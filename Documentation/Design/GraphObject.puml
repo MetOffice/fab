@@ -1,0 +1,99 @@
+@startuml
+
+left to right direction
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource01 {
+  filename = "program.F90"
+}
+
+object fortranPreProcessor01 {
+}
+fileSource01 -> fortranPreProcessor01
+
+object fortranCompiler01 {
+}
+fortranPreProcessor01 o-> fortranCompiler01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource02 {
+  filename = "algorithm.x90"
+}
+
+object fileSource03 {
+  filename = "kernel.f90"
+}
+
+object psyclone01 {
+}
+fileSource02 -> psyclone01
+fileSource03 -> psyclone01
+
+object fortranCompiler02 {
+}
+psyclone01 o-> fortranCompiler02
+
+object fortranCompiler03 {
+}
+psyclone01 o-> fortranCompiler03
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource04 {
+  filename = "test.pf"
+}
+
+object pFProc01 {
+}
+fileSource04 -> pFProc01
+
+object fortranPreProcessor02 {
+}
+pFProc01 o-> fortranPreProcessor02
+
+object fortranCompiler04 {
+}
+fortranPreProcessor02 o-> fortranCompiler04
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource05 {
+  filename = "io.cc"
+}
+
+object cxxCompiler01 {
+}
+fileSource05 -> cxxCompiler01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource06 {
+  filename = "util.c"
+}
+
+object cCompiler01 {
+}
+fileSource06 -> cCompiler01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object library01 {
+  linkage = Static
+}
+cxxCompiler01 -> library01
+cCompiler01 -> library01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSink01 {
+  filename = "program"
+}
+fortranCompiler01 -> fileSink01
+fortranCompiler02 -> fileSink01
+fortranCompiler03 -> fileSink01
+fortranCompiler04 -> fileSink01
+library01         -> fileSink01
+
+@end uml
