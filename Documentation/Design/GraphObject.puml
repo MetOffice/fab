@@ -79,21 +79,27 @@ fileSource06 -> cCompiler01
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-object library01 {
+object objectArchive01 {
+}
+cxxCompiler01 -> objectArchive01
+cCompiler01 -> objectArchive01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object link01 {
   linkage = Static
 }
-cxxCompiler01 -> library01
-cCompiler01 -> library01
+fortranCompiler01 -> link01
+fortranCompiler02 -> link01
+fortranCompiler03 -> link01
+fortranCompiler04 -> link01
+objectArchive01   -> link01
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 object fileSink01 {
   filename = "program"
 }
-fortranCompiler01 -> fileSink01
-fortranCompiler02 -> fileSink01
-fortranCompiler03 -> fileSink01
-fortranCompiler04 -> fileSink01
-library01         -> fileSink01
+link01 -> fileSink01
 
 @end uml
