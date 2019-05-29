@@ -7,7 +7,7 @@ skinparam class {
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-abstract class Artifact <<edge>> {
+abstract class Artifact <<dag edge>> {
     -id: ID {unique}
     -hash: Hash
 }
@@ -27,6 +27,15 @@ CSourceCode ^-- CxxSourceCode
 class FortranSourceCode {
 }
 SourceCode ^-- FortranSourceCode
+
+class PsycloneAlgorithmSourceCode {
+}
+FortranSourceCode ^-- PsycloneAlgorithmSourceCode
+
+class PfunitSourceCode {
+}
+SourceCode ^-- PfunitSourceCode
+note bottom of PfunitSourceCode : Although this is Fortran source with directives\nit does not derive from Fortran source.\nIt cannot be passed to a Fortran compiler before processing.
 
 abstract class Bitmap <<hypothetical>> {
 }
@@ -118,11 +127,26 @@ PreProcessor ^-- pFUnitProcessor
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-class Transform <<node>> {
+abstract class Node <<dag node>> {
 }
 
-Transform -> "*" Artifact : inputs
-Transform -> "*" Artifact : outputs
+class FileReader <<initial>> {
+  -filename : String
+}
+Node ^-- FileReader
+FileReader -> "+" Artifact : output
+
+class FileWriter <<terminal>> {
+  -filename : String
+}
+Node ^-- FileWriter
+FileWriter -> Artifact : input
+
+abstract class Transform {
+}
+Node ^-- Transform
+Transform -> "+" Artifact : inputs
+Transform -> "+" Artifact : outputs
 Transform -> Tool : performer
 
 @enduml
