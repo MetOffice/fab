@@ -12,3 +12,10 @@ features which do not target scientific software development.
 ## Licence
 
 The software is made available under a 3-clause BSD licence.
+
+## Documentation
+
+Project documentation is managed through this wiki.
+
+* A [glossary](Glossary.rest) is provided to ensure everyone is singing from the same hyme sheet.
+* The [requirements](Requirements.rest) for the project.
