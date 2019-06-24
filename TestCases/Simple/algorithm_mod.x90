@@ -1,0 +1,7 @@
+module algorithm_mod
+
+  implicit none
+
+contains
+
+end module algorithm_mod

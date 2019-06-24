@@ -1,0 +1,33 @@
+module stuff_test_mod
+
+  use stuff_mod, only : number
+
+  implicit none
+
+contains
+
+  @test
+  subroutine test_number_okay()
+
+    implicit none
+
+    integer :: result
+
+    result = number()
+    @assertEqual( 42, result )
+
+  end subroutine test_number_okay
+
+  @test
+  subroutine test_number_wrong()
+
+    implicit none
+
+    integer :: result
+
+    result = number()
+    @assertEqual( 13, result )
+
+  end subroutine test_number_wrong
+
+end module stuff_test_mod
