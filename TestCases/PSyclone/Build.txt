@@ -1,0 +1,12 @@
+algorithm_mod.o (Compile)
+  - algorithm_mod.F90 (PSyclone)
+    - algorithm_mod.x90
+    - kernel_mod.f90
+    - optimisation.py
+algorithm_mod_psy.o (Compile)
+  - algorithm_mod_psy.F90 (PSyclone)
+    - algorithm_mod.x90
+    - kernel_mod.f90
+    - optimisation.py
+kernel_mod.o (Compile)
+  -kernel_mod.f90
