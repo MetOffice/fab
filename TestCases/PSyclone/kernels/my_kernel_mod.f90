@@ -1,27 +1,28 @@
-module test_kernel_mod
+module my_kernel_mod
 
-  use argument_mod, only : cells, gh_field, gh_write, w3
-  use kernel_mod,   only : kernel_type
+  use argument_mod,      only : arg_type, cells, gh_field, gh_write
+  use functionspace_mod, only : w3
+  use kernel_mod,        only : kernel_type
 
   implicit none
 
   private
 
-  type, public, extends(kernel_type) :: test_kernel_type
+  type, public, extends(kernel_type) :: my_kernel_type
     private
     type(arg_type) :: meta_args(1) = (/ &
                                         arg_type( gh_field, gh_write, w3 ) &
                                       /)
     integer :: iterates_over = cells
   contains
-    procedure, nopass :: test_kernel_code
+    procedure, nopass :: my_kernel_code
   end type
 
-  public :: test_kernel_code
+  public :: my_kernel_code
 
 contains
 
-  subroutine test_kernel_code( nlayers, field_1_w3, ndf_w3, undf_w3, map_w3 )
+  subroutine my_kernel_code( nlayers, field_1_w3, ndf_w3, undf_w3, map_w3 )
 
     use constants_mod, only : r_def
 
@@ -34,13 +35,15 @@ contains
     integer,          intent(in)  :: map_w3(ndf_w3)
 
     integer :: d, k
+    real :: v(ndf_w3)
 
+    call random_number(v)
     do k=0, nlayers
       do d=0, ndf_w3
-        field_1_w3(map_w3(d)) = rand()
+        field_1_w3(map_w3(d)) = v(d) + k
       end do
     end do
 
-  end subroutine test_kernel_code
+  end subroutine my_kernel_code
 
-end module test_kernel_mod
+end module my_kernel_mod

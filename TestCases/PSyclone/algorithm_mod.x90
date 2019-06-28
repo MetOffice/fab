@@ -1,6 +1,7 @@
 module algorithm_mod
 
-  use field_mod, only : field_type
+  use field_mod,     only : field_type
+  use my_kernel_mod, only : my_kernel_type
 
   implicit none
 
@@ -13,7 +14,7 @@ contains
     type(field_type) :: field
 
     field = field_type()
-    call invoke( test_kernel( field ) )
+    call invoke( name='a_test', my_kernel_type( field ) )
 
   end subroutine algorithm
 

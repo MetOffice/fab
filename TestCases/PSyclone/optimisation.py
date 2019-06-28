@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 '''
 PSyclone transformation script for the Dynamo0p3 API to apply
 colouring and OpenMP.
@@ -6,7 +7,7 @@ from __future__ import absolute_import, print_function
 
 from psyclone.transformations import Dynamo0p3ColourTrans, \
                                      Dynamo0p3OMPLoopTrans, \
-                                     OMPParallelTrans,
+                                     OMPParallelTrans
 from psyclone.dynamo0p3 import DISCONTINUOUS_FUNCTION_SPACES
 
 
