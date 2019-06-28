@@ -1,0 +1,152 @@
+@startuml
+
+skinparam class {
+    BackgroundColor LemonChiffon
+    BackgroundColor<<hypothetical>> LightSkyBlue
+}
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+abstract class Artifact <<dag edge>> {
+    -id: ID {unique}
+    -hash: Hash
+}
+
+abstract class SourceCode {
+}
+Artifact ^-- SourceCode
+
+class CSourceCode {
+}
+SourceCode ^-- CSourceCode
+
+class CxxSourceCode {
+}
+CSourceCode ^-- CxxSourceCode
+
+class FortranSourceCode {
+}
+SourceCode ^-- FortranSourceCode
+
+class PsycloneAlgorithmSourceCode {
+}
+FortranSourceCode ^-- PsycloneAlgorithmSourceCode
+
+class PfunitSourceCode {
+}
+SourceCode ^-- PfunitSourceCode
+note bottom of PfunitSourceCode : Although this is Fortran source with directives\nit does not derive from Fortran source.\nIt cannot be passed to a Fortran compiler before processing.
+
+abstract class Bitmap <<hypothetical>> {
+}
+Artifact ^-- Bitmap
+
+class PngBitmap <<hypothetical>> {
+}
+Bitmap ^-- PngBitmap
+
+class JpegBitmap <<hypothetical>> {
+}
+Bitmap ^-- JpegBitmap
+
+abstract class CompilerOutput {
+}
+Artifact ^-- CompilerOutput
+
+class CompilerObject {
+}
+CompilerOutput ^-- CompilerObject
+
+class FortranModule {
+}
+CompilerOutput ^-- FortranModule
+
+class CxxModule <<hypothetical>> {
+}
+CompilerOutput ^-- CxxModule
+
+class Executable {
+}
+Artifact ^-- Executable
+
+class Library {
+}
+Artifact ^-- Library
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+abstract class Tool {
+}
+
+class Control {
+}
+Control <- "*" Tool : configuration
+
+abstract class Compiler {
+  +useLibrary(name: String, baseDirectory: Directory = None, linking: LinkType = Dynamic, priority: Integer = 0)
+  +useLibrary(library: Library, linking: LinkType = static, priority: Integer = 0)
+}
+Tool ^-- Compiler
+
+class FortranCompiler {
+}
+Compiler ^-- FortranCompiler
+
+class CeeCompiler {
+}
+Compiler ^-- CeeCompiler
+
+class CxxCompiler {
+}
+Compiler ^-- CxxCompiler
+
+class LaTeX {
+}
+Tool ^-- LaTeX
+
+class PSyclone {
+}
+Tool ^-- PSyclone
+
+abstract class PreProcessor <<decorator_pattern>> {
+}
+Tool ^-- PreProcessor
+PreProcessor o- Tool
+
+class CeePreProcessor {
+}
+PreProcessor ^-- CeePreProcessor
+
+class FortranPreProcessor {
+}
+PreProcessor ^-- FortranPreProcessor
+
+class pFUnitProcessor {
+}
+PreProcessor ^-- pFUnitProcessor
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+abstract class Node <<dag node>> {
+}
+
+class FileReader <<initial>> {
+  -filename : String
+}
+Node ^-- FileReader
+FileReader -> "+" Artifact : output
+
+class FileWriter <<terminal>> {
+  -filename : String
+}
+Node ^-- FileWriter
+FileWriter -> Artifact : input
+
+abstract class Transform {
+}
+Node ^-- Transform
+Transform -> "+" Artifact : inputs
+Transform -> "+" Artifact : outputs
+Transform -> Tool : performer
+
+@enduml

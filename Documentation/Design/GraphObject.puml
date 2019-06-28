@@ -1,0 +1,140 @@
+@startuml
+
+left to right direction
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource01 {
+  filename = "program.F90"
+}
+
+object fortranPreProcessor01 {
+}
+fileSource01 -> fortranPreProcessor01
+
+object fortranCompiler01 {
+}
+fortranPreProcessor01 o-> fortranCompiler01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource02 {
+  filename = "algorithm.x90"
+}
+
+object fileSource03 {
+  filename = "kernel.f90"
+}
+
+object fileSource04 {
+  filename = "optimisation.py"
+}
+
+object psyclone01 {
+}
+fileSource02 -> psyclone01
+fileSource03 -> psyclone01
+fileSource04 -> psyclone01
+
+object fortranCompiler02 {
+}
+psyclone01 o-> fortranCompiler02
+
+object fortranCompiler03 {
+}
+psyclone01 o-> fortranCompiler03
+
+object fortranCompiler04 {
+}
+fileSource03 -> fortranCompiler04
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource05 {
+  filename = "io.cc"
+}
+
+object cxxCompiler01 {
+}
+fileSource05 -> cxxCompiler01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource06 {
+  filename = "util.c"
+}
+
+object cCompiler01 {
+}
+fileSource06 -> cCompiler01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object objectArchive01 {
+}
+cxxCompiler01 -> objectArchive01
+cCompiler01 -> objectArchive01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object link01 {
+  linkage = Static
+}
+fortranCompiler01 -> link01
+fortranCompiler02 -> link01
+fortranCompiler03 -> link01
+fortranCompiler04 -> link01
+objectArchive01   -> link01
+
+object fileSink01 {
+  filename = "program"
+}
+link01 -> fileSink01
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource07 {
+  filename = "test.pf"
+}
+
+object pFProc01 {
+}
+fileSource07 -> pFProc01
+
+object fortranPreProcessor02 {
+}
+pFProc01 -> fortranPreProcessor02
+
+object fortranCompiler05 {
+}
+fortranPreProcessor02 o-> fortranCompiler05
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object fileSource08 {
+  filename = "driver.F90"
+}
+
+object fortranPreProcessor03 {
+}
+fileSource08 -> fortranPreProcessor03
+
+object fortranCompiler06 {
+}
+fortranPreProcessor03 o-> fortranCompiler06
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+object link02 {
+  linkage = Dynamic
+}
+fortranCompiler05 -> link02
+fortranCompiler06 -> link02
+fortranCompiler04 -> link02
+
+object fileSink02 {
+  filename = "unit-tests"
+}
+link02 -> fileSink02
+
+@end uml
