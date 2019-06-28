@@ -2,9 +2,9 @@
 # While we don't have a build system we will use someone elses.
 #
 .SUFFIXES:
-.SUFFIXES: .pf .f90 .F90 .cc .o .mod
+.SUFFIXES: .pf .f90 .F90 .o .mod
 
-APP_OBJECTS = io.o util.o util_mod.o \
+APP_OBJECTS = util.o util_mod.o \
               algorithm_mod.o algorithm_mod_psy.o \
               model/field_mod.o model/functionspace_mod.o model/mesh_mod.o \
               model/kernel_mod.o kernels/my_kernel_mod.o \
@@ -12,24 +12,20 @@ APP_OBJECTS = io.o util.o util_mod.o \
 TEST_OBJECTS = kernels/my_kernel_mod.o kernel_test_mod.o driver.o
 
 FC = mpif90
-FFLAGS = -Ikernels -Imodel -I$(PFUNIT)/mod
+FFLAGS = -Ikernels -Imodel -I$(PFUNIT)/mod -debug full -traceback
 CC =gcc
-CFLAGS = -std=c99
-LFLAGS = -qopenmp
+CFLAGS = -std=c99 -g
+LFLAGS = -qopenmp -debug full -traceback
 
 all: thing test
 
 thing: $(APP_OBJECTS)
 	@echo Linking $@
-	$(FC) -o $@ $(APP_OBJECTS) -lstdc++
+	$(FC) -o $@ -g $(APP_OBJECTS) -lstdc++
 
 test: $(TEST_OBJECTS)
 	@echo Linking $@
 	$(FC) $(LFLAGS) -o $@ -L$(PFUNIT)/lib $(TEST_OBJECTS) -l pfunit
-
-%.o: %.cc
-	@echo Compiling $@
-	$(CXX) -o $@ -c $<
 
 %.o: %.c
 	@echo Compiling $@
@@ -93,7 +89,7 @@ clean: ALWAYS
 	-rm *.o *.mod *.pyc kernels/*.o kernels/*.mod model/*.o model/*.mod
 	-rm testSuites.inc
 	-rm algorithm_mod.f90 algorithm_mod_psy.F90 kernel_test_mod.F90
-        -rm util_mod.f90
+	-rm util_mod.f90
 	-rm test thing
 
 ALWAYS:
