@@ -8,12 +8,12 @@ module util_mod
   public :: hash
 
   interface
-    function eor_hash(block, length) bind(c)
+    function eor_hash(block, length) bind(c, name='eor_hash')
       import c_int, c_int8_t, c_ptr
       implicit none
       integer(c_int8_t) eor_hash
-      type(c_ptr),    intent(in) :: block
-      integer(c_int), intent(in) :: length
+      type(c_ptr),    intent(in)        :: block
+      integer(c_int), intent(in), value :: length
     end function eor_hash
   end interface
 
