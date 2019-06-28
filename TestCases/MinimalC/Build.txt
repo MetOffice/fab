@@ -1,3 +1,0 @@
-program (Link)
-  - program.o (Compile)
-    - program.c
