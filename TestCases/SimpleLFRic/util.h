@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-uint8_t eor_hash(void *block, unsigned int length);
+extern int8_t eor_hash(void *block, int length);
 
 #endif
