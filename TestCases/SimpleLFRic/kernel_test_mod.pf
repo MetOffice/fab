@@ -1,7 +1,0 @@
-module kernel_test_mod
-
-  implicit none
-
-contains
-
-end module kernel_test_mod

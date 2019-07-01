@@ -9,7 +9,7 @@ APP_OBJECTS = util.o util_mod.o \
               model/field_mod.o model/functionspace_mod.o model/mesh_mod.o \
               model/kernel_mod.o kernels/my_kernel_mod.o \
               thing.o
-TEST_OBJECTS = kernels/my_kernel_mod.o kernel_test_mod.o driver.o
+TEST_OBJECTS = kernels/my_kernel_mod.o my_kernel_test_mod.o driver.o
 
 FC = mpif90
 FFLAGS = -Ikernels -Imodel -I$(PFUNIT)/mod -debug full -traceback
@@ -61,8 +61,8 @@ testSuites.inc:
 	@echo Creating $@
 	echo ADD_TEST_SUITE\(kernel_test_mod_suite\) > $@
 
-kernel_mod.o: kernel_mod.f90
-kernel_test_mod.o: kernel_test_mod.F90
+my_kernel_test_mod.o: my_kernel_test_mod.F90 kernels/my_kernel_mod.mod \
+                      model/constants_mod.mod
 kernel_test_mod.F90: kernel_test_mod.pf
 
 algorithm_mod.o: algorithm_mod.f90 algorithm_mod_psy.mod \

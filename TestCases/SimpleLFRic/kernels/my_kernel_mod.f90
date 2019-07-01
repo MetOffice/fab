@@ -35,12 +35,10 @@ contains
     integer,          intent(in)  :: map_w3(ndf_w3)
 
     integer :: d, k
-    real :: v(ndf_w3)
 
-    call random_number(v)
     do k=0, nlayers
       do d=0, ndf_w3
-        field_1_w3(map_w3(d)) = v(d) + k
+        field_1_w3(map_w3(d)) = d + k
       end do
     end do
 
