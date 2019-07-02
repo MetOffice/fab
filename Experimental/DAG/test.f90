@@ -1,0 +1,15 @@
+MODULE test_mod
+
+IMPLICIT NONE 
+
+CONTAINS
+
+SUBROUTINE test_sub
+
+IMPLICIT NONE 
+
+PRINT*, "Hello World!"
+
+END SUBROUTINE test_sub
+
+END MODULE test_mod
