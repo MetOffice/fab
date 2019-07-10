@@ -21,6 +21,7 @@ contains
 
 
   module procedure bar_howmuch ! Alternative syntax
+    implicit none
     bar_howmuch = this%stuff
   end procedure bar_howmuch
 
