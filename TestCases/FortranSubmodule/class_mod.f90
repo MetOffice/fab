@@ -13,11 +13,13 @@ module class_mod
 
   interface
     subroutine mangle_if(this, factor)
+      implicit none
       import foo_type
       class(foo_type), intent(inout) :: this
       integer,         intent(in) :: factor
     end subroutine mangle_if
     function how_much_if(this)
+      implicit none
       import foo_type
       class(foo_type), intent(inout) :: this
       integer :: how_much_if
@@ -38,14 +40,17 @@ module class_mod
 
   interface
     module function bar_initialiser(starter) result(instance)
+      implicit none
       integer,intent(in) :: starter
       type(bar_type) :: instance
     end function bar_initialiser
     module subroutine bar_mangle(this, factor)
+      implicit none
       class(bar_type), intent(inout) :: this
       integer,         intent(in) :: factor
     end subroutine bar_mangle
     module function bar_howmuch(this)
+      implicit none
       class(bar_type), intent(inout) :: this
       integer :: bar_howmuch
     end function bar_howmuch
