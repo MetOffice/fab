@@ -20,7 +20,7 @@ module class_mod
     function how_much_if(this)
       import foo_type
       class(foo_type), intent(inout) :: this
-      integer :: how_much
+      integer :: how_much_if
     end function how_much_if
   end interface
 
