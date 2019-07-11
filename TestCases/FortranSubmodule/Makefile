@@ -8,6 +8,15 @@ FC = ifort
 
 OBJECTS = simple_impl.o simple_mod.o class_mod.o class_impl.o test.o
 
+verify: test.out test.expected
+	diff $^
+
+test.out: test
+	./$< >$@
+
+test.expected:
+	printf "Returner 14\n\nStart with 12\nAfter mangle 29\n" >$@
+
 test: $(OBJECTS)
 	@echo Linking $@
 	$(FC) -o $@ $(OBJECTS)
@@ -27,4 +36,4 @@ class_impl.o: class_impl.f90 class_mod.mod
 test.o: test.f90 simple_mod.mod class_mod.mod
 
 clean:
-	rm *.o *.mod *.smod test
+	rm *.o *.mod *.smod test test.out test.expected

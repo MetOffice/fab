@@ -7,10 +7,9 @@ program hillfort
 
   implicit none
 
-  integer :: input
+  integer :: input = 50
 
-  write(output_unit, '("Please enter an integer number > ")', advance='no')
-  read(input_unit, '(I10)') input
+  write(output_unit, '("Input is ", I0)') input
 
 #ifdef BEEF
   write(output_unit, &

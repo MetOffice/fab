@@ -8,6 +8,15 @@ FC = ifort
 
 OBJECTS = program.o
 
+verify: test.out test.expected
+	diff $^
+
+test.out: test
+	./$< >$@
+
+test.expected:
+	printf "Hello world!\n" >$@
+
 test: $(OBJECTS)
 	@echo Linking $@
 	$(FC) -o $@ $(OBJECTS)
@@ -23,4 +32,4 @@ test: $(OBJECTS)
 program.o: program.f90
 
 clean:
-	-rm *.o *.mod test
+	-rm *.o *.mod test test.out test.expected

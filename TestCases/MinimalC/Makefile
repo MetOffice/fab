@@ -8,6 +8,15 @@ CC = gcc
 
 OBJECTS = program.o
 
+verify: test.out test.expected
+	diff $^
+
+test.out: test
+	./$< >$@
+
+test.expected:
+	printf "Hello world!\n" >$@
+
 test: $(OBJECTS)
 	@echo Linking $@
 	$(CC) -o $@ $(OBJECTS)
@@ -19,4 +28,4 @@ test: $(OBJECTS)
 program.o: program.c
 
 clean:
-	rm *.o test
+	rm *.o test test.out test.expected

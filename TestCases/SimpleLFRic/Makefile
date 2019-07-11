@@ -40,7 +40,26 @@ ifeq "x$(shell command -v $(PFPROC))" "x"
 $(error Could not find the pFUnit processor on PATH)
 endif
 
-all: thing test
+verify: test-thing test-test
+
+test-thing: thing.out thing.expected
+	diff $^
+
+thing.out: thing
+	./$< >$@
+
+thing.expected:
+	printf "Some hash: 7\n" >$@
+	for iter in 1 2 3 4 5 6 7 8 9 10; do printf "Field data:            1.0000\n"; done >>$@
+
+test-test: test.out test.expected
+	diff $^
+
+test.out: test
+	./$< | tail -n 2 >$@
+
+test.expected:
+	printf " OK\n (1 test)\n" >$@
 
 thing: $(APP_OBJECTS)
 	@echo Linking $@
@@ -118,4 +137,4 @@ clean:
 	-rm testSuites.inc
 	-rm algorithm_mod.f90 algorithm_mod_psy.F90 my_kernel_test_mod.F90
 	-rm util_mod.f90
-	-rm test thing
+	-rm test test.out test.expected thing thing.out thing.expected
