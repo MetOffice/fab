@@ -4,6 +4,9 @@
 .SUFFIXES:
 .SUFFIXES: .c .f90 .F90 .o .mod
 
+FC = gfortran
+CC = gcc
+
 ifdef BEEF
 CFLAGS = -DBEEF
 FFLAGS = -DBEEF

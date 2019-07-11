@@ -4,6 +4,8 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
+CC = gcc
+
 OBJECTS = program.o
 
 test: $(OBJECTS)
@@ -16,7 +18,5 @@ test: $(OBJECTS)
 
 program.o: program.c
 
-clean: ALWAYS
+clean:
 	rm *.o test
-
-ALWAYS:

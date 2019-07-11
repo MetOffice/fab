@@ -4,6 +4,8 @@
 .SUFFIXES:
 .SUFFIXES: .f90 .F90 .o .mod
 
+FC = ifort
+
 OBJECTS = program.o
 
 test: $(OBJECTS)
@@ -20,7 +22,5 @@ test: $(OBJECTS)
 
 program.o: program.f90
 
-clean: ALWAYS
-	rm *.o *.mod test
-
-ALWAYS:
+clean:
+	-rm *.o *.mod test

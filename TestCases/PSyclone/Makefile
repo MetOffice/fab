@@ -4,6 +4,8 @@
 .SUFFIXES:
 .SUFFIXES: .x90 .f90 .F90 .o .mod
 
+FC = ifort
+
 DIRECTORIES = kernels model
 
 objects: kernels/my_kernel_mod.o algorithm_mod.o algorithm_mod_psy.o
@@ -47,9 +49,6 @@ kernels/my_kernel_mod.mod: kernels/my_kernel_mod.f90 \
 model/field_mod.o \
 model/field_mod.mod: model/field_mod.f90 model/functionspace_mod.mod
 
-clean: ALWAYS
+clean:
 	-rm -r *.o *.mod kernels/*.o kernels/*.mod model/*.o model/*.mod test
 	-rm *.pyc algorithm_mod.f90 algorithm_mod_psy.f90
-
-
-ALWAYS:

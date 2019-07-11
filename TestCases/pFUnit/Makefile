@@ -4,6 +4,8 @@
 .SUFFIXES:
 .SUFFIXES: .pf .f90 .F90 .o .mod
 
+FC = ifort
+
 objects: stuff_mod.o stuff_test.o
 
 .f90.o:
@@ -30,7 +32,5 @@ stuff_mod.o: stuff_mod.f90
 stuff_test.o: stuff_test.F90 stuff_mod.mod
 stuff_test.F90: stuff_test.pf
 
-clean: ALWAYS
-	rm *.o *.mod test
-
-ALWAYS:
+clean:
+	-rm *.o *.mod test

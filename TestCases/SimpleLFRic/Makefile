@@ -4,6 +4,9 @@
 .SUFFIXES:
 .SUFFIXES: .pf .f90 .F90 .o .mod
 
+FC = ifort
+CC = gcc
+
 APP_OBJECTS = util.o util_mod.o \
               algorithm_mod.o algorithm_mod_psy.o \
               model/field_mod.o model/functionspace_mod.o model/mesh_mod.o \
@@ -85,11 +88,9 @@ util_mod.o: util_mod.f90 model/constants_mod.mod
 thing.o: thing.f90 algorithm_mod.mod algorithm_mod_psy.mod  util_mod.mod \
          model/field_mod.mod
 
-clean: ALWAYS
+clean:
 	-rm *.o *.mod *.pyc kernels/*.o kernels/*.mod model/*.o model/*.mod
 	-rm testSuites.inc
-	-rm algorithm_mod.f90 algorithm_mod_psy.F90 kernel_test_mod.F90
+	-rm algorithm_mod.f90 algorithm_mod_psy.F90 my_kernel_test_mod.F90
 	-rm util_mod.f90
 	-rm test thing
-
-ALWAYS:
