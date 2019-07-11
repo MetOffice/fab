@@ -15,7 +15,7 @@ test.out: test
 	./$< >$@
 
 test.expected:
-	printf "Returner 14\n\nStart with 12\nAfter mangle 29\n" >$@
+	printf "Doubler in submodule 14\n\nInitial value 12\nAfter submodule method 29\n" >$@
 
 test: $(OBJECTS)
 	@echo Linking $@

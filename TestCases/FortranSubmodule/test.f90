@@ -11,11 +11,12 @@ program test
 
   thing = bar_type(12)
 
-  write(output_unit, '("Returner ", I0)') returnerer(7)
+  write(output_unit, '("Doubler in submodule ", I0)') returnerer(7)
   write(output_unit, '()')
 
-  write(output_unit, '("Start with ", I0)') thing%how_much()
+  write(output_unit, '("Initial value ", I0)') thing%how_much()
   call thing%mangle(17)
-  write(output_unit, '("After mangle ", I0)') thing%how_much()
+  write(output_unit, &
+        '("After submodule method ", I0)') thing%how_much()
 
 end program test
