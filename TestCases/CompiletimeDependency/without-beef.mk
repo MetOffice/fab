@@ -1,10 +1,7 @@
 $(info Building without beef)
 
-FC = gfortran
-CC = gcc
-
-CFLAGS = 
-FFLAGS = 
+export CFLAGS = 
+export FFLAGS = 
 
 DIR = nobeef/
 

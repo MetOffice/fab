@@ -4,7 +4,15 @@
 .SUFFIXES:
 .SUFFIXES: .c .o
 
-CC = gcc
+# By default gmake sets FC to "cc" we need to detect that and force it to our
+# default. If it is not set then we still have a default but we allow the user
+# to override it.
+#
+ifeq "$(origin CC)" "default"
+export CC = gcc
+else
+export CC ?= gcc
+endif
 
 OBJECTS = program.o
 

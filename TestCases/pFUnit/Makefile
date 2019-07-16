@@ -12,8 +12,17 @@
 .SUFFIXES:
 .SUFFIXES: .pf .f90 .F90 .o .mod
 
-FC = ifort
-PFPROC = pFUnitParser.py
+# By default gmake sets FC to "f77" we need to detect that and force it to our
+# default. If it is not set then we still have a default but we allow the user
+# to override it.
+#
+ifeq "$(origin FC)" "default"
+export FC = ifort
+else
+export FC ?= ifort
+endif
+
+PFPROC ?= pFUnitParser.py
 
 ifeq "x$(shell command -v $(PFPROC))" "x"
 $(error Could not find the pFUnit processor on PATH)
@@ -46,4 +55,4 @@ stuff_test.o stuff_test_mod.mod: stuff_test.F90 stuff_mod.mod
 stuff_test.F90: stuff_test.pf
 
 clean:
-	-rm *.o *.mod test stuff_test.F90
+	-rm *.o *.mod stuff_test.F90

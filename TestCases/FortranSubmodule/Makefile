@@ -4,7 +4,15 @@
 .SUFFIXES:
 .SUFFIXES: .f90 .o .mod
 
-FC = ifort
+# By default gmake sets FC to "f77" we need to detect that and force it to our
+# default. If it is not set then we still have a default but we allow the user
+# to override it.
+#
+ifeq "$(origin FC)" "default"
+export FC = ifort
+else
+export FC ?= ifort
+endif
 
 OBJECTS = simple_impl.o simple_mod.o class_mod.o class_impl.o test.o
 

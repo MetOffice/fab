@@ -8,7 +8,11 @@
 .SUFFIXES:
 .SUFFIXES: .x90 .f90 .F90 .o .mod
 
-FC = ifort
+# The compiler has to be ifort as we use the "-module" argument to redirect
+# module file storage.
+#
+export FC = ifort
+
 PSYCLONE = psyclone
 
 ifeq "x$(shell command -v $(PSYCLONE))" "x"
@@ -48,5 +52,5 @@ model/field_mod.o \
 model/field_mod.mod: model/field_mod.f90 model/functionspace_mod.mod
 
 clean:
-	-rm -r *.o *.mod kernels/*.o kernels/*.mod model/*.o model/*.mod test
+	-rm -r *.o *.mod kernels/*.o kernels/*.mod model/*.o model/*.mod
 	-rm *.pyc algorithm_mod.f90 algorithm_mod_psy.f90

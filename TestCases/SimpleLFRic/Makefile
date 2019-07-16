@@ -28,6 +28,9 @@ LFLAGS = -qopenmp -debug full -traceback
 PSYCLONE = psyclone
 PFPROC = pFUnitParser.py
 
+# We use the "-module" argument to redirect module file creation so the
+# compiler wrapped by MPI must be ifort.
+#
 ifneq "$(firstword $(shell $(FC) -show))" "ifort"
 $(error Please build with MPICH for Intel Fortran)
 endif

@@ -1,10 +1,7 @@
 $(info Building with beef)
 
-FC = gfortran
-CC = gcc
-
-CFLAGS = -DBEEF
-FFLAGS = -DBEEF
+export CFLAGS = -DBEEF
+export FFLAGS = -DBEEF
 
 DIR = beefy/
 
