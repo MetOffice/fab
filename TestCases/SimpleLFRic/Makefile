@@ -1,6 +1,15 @@
 # The best way to show how a test case should be built is to build it.
 # While we don't have a build system we will use someone elses.
 #
+# This test expects the MPICH compiler wrapper scripts to be available on
+# PATH. Furthermore it expects them to be wrapping Intel Fortran.
+#
+# It also expects the PSyclone source generator and pFUnit processor to be
+# available on PATH.
+#
+# As recommended by the pFUnit developers it exptects a macro PFUNIT to
+# contain the full path to the pFUnit install directory.
+#
 .SUFFIXES:
 .SUFFIXES: .pf .f90 .F90 .o .mod
 
@@ -13,11 +22,47 @@ TEST_OBJECTS = kernels/my_kernel_mod.o my_kernel_test_mod.o driver.o
 
 FC = mpif90
 FFLAGS = -Ikernels -Imodel -I$(PFUNIT)/mod -debug full -traceback
-CC =gcc
+CC = gcc
 CFLAGS = -std=c99 -g
 LFLAGS = -qopenmp -debug full -traceback
+PSYCLONE = psyclone
+PFPROC = pFUnitParser.py
 
-all: thing test
+# We use the "-module" argument to redirect module file creation so the
+# compiler wrapped by MPI must be ifort.
+#
+ifneq "$(firstword $(shell $(FC) -show))" "ifort"
+$(error Please build with MPICH for Intel Fortran)
+endif
+
+ifeq "x$(shell command -v $(PSYCLONE))" "x"
+$(error Could not find the PSyclone script on PATH)
+endif
+
+ifeq "x$(shell command -v $(PFPROC))" "x"
+$(error Could not find the pFUnit processor on PATH)
+endif
+
+verify: test-thing test-test
+
+test-thing: thing.out thing.expected
+	diff $^
+
+thing.out: thing
+	./$< >$@
+
+thing.expected:
+	printf "Some hash: 7\n" >$@
+	for iter in 1 2 3 4 5 6 7 8 9 10; do printf "Field data:            1.0000\n"; done >>$@
+
+test-test: test.out test.expected
+	diff $^
+
+test.out: test
+	./$< | tail -n 2 >$@
+
+test.expected:
+	printf " OK\n (1 test)\n" >$@
 
 thing: $(APP_OBJECTS)
 	@echo Linking $@
@@ -39,10 +84,10 @@ test: $(TEST_OBJECTS)
 	@echo Compiling $@
 	$(FC) -o $*.o $(FFLAGS) -module $(dir $@) -c $<
 
-%.f90 %_psy.F90: %.x90
+%.f90 %_psy.F90: %.x90 optimisation.py
 	@echo Generating $@
-	psyclone -oalg $*.f90 -opsy $*_psy.F90 -d kernels \
-                 -s $(realpath optimisation.py) -api dynamo0.3 -l -dm $<
+	$(PSYCLONE) -oalg $*.f90 -opsy $*_psy.F90 -d kernels \
+                    -s $(realpath optimisation.py) -api dynamo0.3 -l -dm $<
 
 util_mod.f90: util_mod.template # Really should be util.c
 	@echo Generating $@
@@ -51,7 +96,7 @@ util_mod.f90: util_mod.template # Really should be util.c
 
 .pf.F90:
 	@echo Generating $@
-	pFUnitParser.py $< $@
+	$(PFPROC) $< $@
 
 driver.o: $(PFUNIT)/include/driver.F90 testSuites.inc
 	@echo Compiling $@
@@ -59,22 +104,27 @@ driver.o: $(PFUNIT)/include/driver.F90 testSuites.inc
 
 testSuites.inc:
 	@echo Creating $@
-	echo ADD_TEST_SUITE\(kernel_test_mod_suite\) > $@
+	echo ADD_TEST_SUITE\(my_kernel_test_mod_suite\) > $@
 
-my_kernel_test_mod.o: my_kernel_test_mod.F90 kernels/my_kernel_mod.mod \
-                      model/constants_mod.mod
+my_kernel_test_mod.o \
+my_kernel_test_mod.mod: my_kernel_test_mod.F90 \
+                        kernels/my_kernel_mod.mod model/constants_mod.mod
 kernel_test_mod.F90: kernel_test_mod.pf
 
-algorithm_mod.o: algorithm_mod.f90 algorithm_mod_psy.mod \
-                 model/field_mod.mod kernels/my_kernel_mod.mod
-algorithm_mod.f90: algorithm_mod.x90 kernels/my_kernel_mod.mod optimisation.py
-algorithm_mod_psy.o: algorithm_mod_psy.F90 \
-                     model/field_mod.mod model/operator_mod.mod \
-                     kernels/my_kernel_mod.mod
-algorithm_mod_psy.F90: algorithm_mod.x90 kernels/my_kernel_mod.f90 optimisation.py
-kernels/my_kernel_mod.o: kernels/my_kernel_mod.f90 model/mesh_mod.mod\
-                         model/argument_mod.mod model/constants_mod.mod \
-                         model/functionspace_mod.mod model/kernel_mod.mod
+algorithm_mod.o \
+algorithm_mod.mod: algorithm_mod.f90 algorithm_mod_psy.mod \
+                   model/field_mod.mod kernels/my_kernel_mod.mod
+algorithm_mod.f90: algorithm_mod.x90 kernels/my_kernel_mod.f90 optimisation.py
+algorithm_mod_psy.o \
+algorithm_mod_psy.mod: algorithm_mod_psy.F90 \
+                       model/field_mod.mod model/operator_mod.mod \
+                       kernels/my_kernel_mod.mod
+algorithm_mod_psy.F90: algorithm_mod.x90 \
+                       kernels/my_kernel_mod.f90 optimisation.py
+kernels/my_kernel_mod.o \
+kernels/my_kernel_mod.mod: kernels/my_kernel_mod.f90 model/mesh_mod.mod\
+                           model/argument_mod.mod model/constants_mod.mod \
+                           model/functionspace_mod.mod model/kernel_mod.mod
 
 model/field_mod.o: model/field_mod.f90 \
                    model/constants_mod.mod model/functionspace_mod.mod \
@@ -85,11 +135,9 @@ util_mod.o: util_mod.f90 model/constants_mod.mod
 thing.o: thing.f90 algorithm_mod.mod algorithm_mod_psy.mod  util_mod.mod \
          model/field_mod.mod
 
-clean: ALWAYS
+clean:
 	-rm *.o *.mod *.pyc kernels/*.o kernels/*.mod model/*.o model/*.mod
 	-rm testSuites.inc
-	-rm algorithm_mod.f90 algorithm_mod_psy.F90 kernel_test_mod.F90
+	-rm algorithm_mod.f90 algorithm_mod_psy.F90 my_kernel_test_mod.F90
 	-rm util_mod.f90
-	-rm test thing
-
-ALWAYS:
+	-rm test test.out test.expected thing thing.out thing.expected

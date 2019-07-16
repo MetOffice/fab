@@ -13,14 +13,14 @@ module class_mod
 
   interface
     subroutine mangle_if(this, factor)
-      implicit none
       import foo_type
+      implicit none
       class(foo_type), intent(inout) :: this
       integer,         intent(in) :: factor
     end subroutine mangle_if
     function how_much_if(this)
-      implicit none
       import foo_type
+      implicit none
       class(foo_type), intent(inout) :: this
       integer :: how_much_if
     end function how_much_if
