@@ -32,4 +32,4 @@ test: $(OBJECTS)
 program.o: program.f90
 
 clean:
-	-rm *.o *.mod test test.out test.expected
+	-rm *.o test test.out test.expected
