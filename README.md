@@ -12,3 +12,7 @@ features which do not target scientific software development.
 ## Licence
 
 The software is made available under a 3-clause BSD licence.
+
+## Installation
+
+You may simply use `pip install foo`.
