@@ -15,4 +15,4 @@ The software is made available under a 3-clause BSD licence.
 
 ## Installation
 
-You may simply use `pip install foo`.
+You may simply use `pip install model-fab`.
