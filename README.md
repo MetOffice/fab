@@ -1,5 +1,7 @@
 # Fab - A Build System for Tomorrow!
 
+![](https://github.com/Metomi/fab/workflows/Python%20package/badge.svg)
+
 The "Fab" build system aims to provide a quick and easy build process tailored towards a
 specific subset of scientific software developers. Quick should be in both use and
 operation. Easy should mean the simple things are simple and the complicated things
