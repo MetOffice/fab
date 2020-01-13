@@ -1,0 +1,7 @@
+# Include top level documentation including README.md
+#
+include *.md
+
+# The licence file has no extension so must be handled separately
+#
+include LICENSE
