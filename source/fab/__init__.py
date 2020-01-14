@@ -6,4 +6,4 @@
 Flexible build system for scientific software.
 '''
 
-__version__ = '0.1.dev0'
+__version__ = '2020.4.dev0'
