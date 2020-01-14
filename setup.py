@@ -17,7 +17,7 @@ with open(os.path.join(_here, 'source', 'fab', '__init__.py'),
         raise RuntimeError('Cannot determine package version.')
 
 setuptools.setup(
-    name='model-fab',
+    name='sci-fab',
     version=_version,
     author='SciFab Developers',
     author_email='metomi@metoffice.gov.uk',
@@ -30,8 +30,8 @@ setuptools.setup(
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Console',
-        'License :: OSI Approved :: BSD License',
-        'Operating System :: OS Independent',
+        'License :: OSI Approved :: BSD License','
+        'Operating System :: POSIX',
         'ProgrammingLanguage :: Python :: 3',
         'Topic :: Scientific/Engineering',
         'Topic :: Software Development :: Build Tools'
@@ -39,7 +39,7 @@ setuptools.setup(
     python_requires='>=3.6, <4',
     entry_points={'console_scripts': ['fab=fab.__main__:main']},
     project_urls={
-        'Bug reports': 'https://github.com/Metomi/fab/issues',
-        'Source': 'https://github.com/Metomi/fab/'
+        'Bug reports': 'https://github.com/metomi/fab/issues',
+        'Source': 'https://github.com/metomi/fab/'
     }
 )

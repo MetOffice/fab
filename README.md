@@ -15,4 +15,4 @@ The software is made available under a 3-clause BSD licence.
 
 ## Installation
 
-You may simply use `pip install model-fab`.
+You may simply use `pip install sci-fab`.
