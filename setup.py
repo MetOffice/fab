@@ -34,7 +34,7 @@ setuptools.setup(
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Console',
-        'License :: OSI Approved :: BSD License','
+        'License :: OSI Approved :: BSD License',
         'Operating System :: POSIX',
         'ProgrammingLanguage :: Python :: 3',
         'Topic :: Scientific/Engineering',

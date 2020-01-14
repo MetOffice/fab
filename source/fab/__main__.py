@@ -16,7 +16,7 @@ def parse_cli() -> argparse.Namespace:
     '''
     Parse the command line for arguments.
     '''
-    description='Flexible build system for scientific software.'
+    description = 'Flexible build system for scientific software.'
     parser = argparse.ArgumentParser(add_help=False,
                                      description=description)
     parser.add_argument('-help', '-h', '--help', action='help',
