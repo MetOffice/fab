@@ -2,6 +2,7 @@
 #
 include *.md
 
-# The licence file has no extension so must be handled separately
+# Some of the legal files have no extension so much be included manually
 #
+include COPYRIGHT
 include LICENSE
