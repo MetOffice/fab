@@ -15,7 +15,7 @@ with open(os.path.join(_here, 'source', 'fab', '__init__.py'),
     for line in handle:
         bits = line.split('=', 1)
         if bits[0].strip().lower() == '__version__':
-            _version = bits[1].strip()
+            _version = bits[1].strip().strip('"\'')
             break
     else:
         raise RuntimeError('Cannot determine package version.')
@@ -36,7 +36,7 @@ setuptools.setup(
         'Environment :: Console',
         'License :: OSI Approved :: BSD License',
         'Operating System :: POSIX',
-        'ProgrammingLanguage :: Python :: 3',
+        'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering',
         'Topic :: Software Development :: Build Tools'
         ],
