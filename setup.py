@@ -29,8 +29,10 @@ setuptools.setup(
     long_description=_long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/Metomi/fab',
-    package_dir={'': 'source'},
-    packages=setuptools.find_packages(where='source'),
+    project_urls={
+        'Bug reports': 'https://github.com/metomi/fab/issues',
+        'Source': 'https://github.com/metomi/fab/'
+    },
     classifiers=[
         'Development Status :: 1 - Planning',
         'Environment :: Console',
@@ -40,10 +42,12 @@ setuptools.setup(
         'Topic :: Scientific/Engineering',
         'Topic :: Software Development :: Build Tools'
         ],
-    python_requires='>=3.6, <4',
+    package_dir={'': 'source'},
+    packages=setuptools.find_packages(where='source'),
     entry_points={'console_scripts': ['fab=fab.__main__:main']},
-    project_urls={
-        'Bug reports': 'https://github.com/metomi/fab/issues',
-        'Source': 'https://github.com/metomi/fab/'
+    python_requires='>=3.6, <4',
+    install_requires=[],
+    extra_requires={
+        'test': ['pytest']
     }
 )
