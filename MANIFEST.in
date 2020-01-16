@@ -1,0 +1,8 @@
+# Include top level documentation including README.md
+#
+include *.md
+
+# Some of the legal files have no extension so much be included manually
+#
+include COPYRIGHT
+include LICENSE
