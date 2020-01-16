@@ -47,7 +47,7 @@ setuptools.setup(
     entry_points={'console_scripts': ['fab=fab.__main__:main']},
     python_requires='>=3.5, <4',
     install_requires=[],
-    extra_requires={
+    extra_require={
         'dev': ['flake8'],
         'test': ['pytest', 'pytest-cov']
     }
