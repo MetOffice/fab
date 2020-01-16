@@ -10,9 +10,9 @@ import luigi
 # something like a sqlite database or similar
 DEPENDENCIES = {
     "test_exec":
-        ["test_main.f90",],
-    "test_main.f90":
-        ["test.f90",],
+        ["ex_main.f90",],
+    "ex_main.f90":
+        ["ex.f90",],
     }
 
 # Similarly another database that gives us information about how to compile
@@ -20,8 +20,8 @@ DEPENDENCIES = {
 # of Fab; the compiler may be represented as a class or something else
 COMPILERS = {
     "test_exec": ["ifort",],
-    "test_main.f90": ["ifort", "-c" ],
-    "test.f90": ["ifort", "-c"],    
+    "ex_main.f90": ["ifort", "-c" ],
+    "ex.f90": ["ifort", "-c"],
     }
 
 
@@ -109,8 +109,8 @@ if __name__ == "__main__":
     # Now we can put together the DAG itself - 2 compile steps and a link
     build_manifest = [
         LinkFortran("test_exec", "test_exec.exe"),
-        CompileFortran("test_main.f90"),
-        CompileFortran("test.f90"),
+        CompileFortran("ex_main.f90"),
+        CompileFortran("ex.f90"),
         ]
 
     # and execute it...

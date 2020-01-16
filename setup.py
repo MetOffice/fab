@@ -45,7 +45,7 @@ setuptools.setup(
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
     entry_points={'console_scripts': ['fab=fab.__main__:main']},
-    python_requires='>=3.6, <4',
+    python_requires='>=3.5, <4',
     install_requires=[],
     extra_requires={
         'dev': ['flake8'],
