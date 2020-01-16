@@ -31,4 +31,4 @@ jobs:
     - name: Test with pytest
       run: |
         pip install .[test]
-        python -m pytest --cov=sci-fab --cov-fail-under=75
+        python -m pytest --cov=sci-fab
