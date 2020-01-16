@@ -19,10 +19,12 @@ def parse_cli() -> argparse.Namespace:
     description = 'Flexible build system for scientific software.'
     parser = argparse.ArgumentParser(add_help=False,
                                      description=description)
-    parser.add_argument('-help', '-h', '--help', action='help',
+    parser.add_argument('-h', '-help', '--help', action='help',
                         help='Print this help and exit')
-    parser.add_argument('-version', action='version', version=fab.__version__)
-    parser.add_argument('-verbose', action='store_true',
+    parser.add_argument('-V', '--version', action='version',
+                        version=fab.__version__,
+                        help='Print version identifier and exit')
+    parser.add_argument('-v', '--verbose', action='store_true',
                         help='Produce a running commentary on progress')
     return parser.parse_args()
 
