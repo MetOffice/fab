@@ -12,7 +12,8 @@ def sourcefile_iter(filename: str) -> str:
     '''
     Generator to return each line of a source file; the lines
     are sanitised to remove strings and comments, as well as
-    collapsing the result of continuation lines.
+    collapsing the result of continuation lines and trimming
+    away as much whitespace as possible
     '''
     with open(filename, 'r') as sourcefile:
         line_buffer = ''
@@ -20,15 +21,23 @@ def sourcefile_iter(filename: str) -> str:
             # Remove strings - the pattern is designed so that it
             # remembers the opening quotation type and then matches
             # for its pair, ignoring any that are explicitly escaped
-            line = re.sub(r'(\'|").*?(?<!\\)\1', '', line)
+            line = re.sub(r'(\'|").*?(?<!\\)\1', r'\1\1', line)
 
             # Remove comments
             line = re.sub(r'!.*', '', line)
 
-            # Deal with continuations
+            # If the line is now empty, go onto the next
+            if line.strip() == '':
+                continue
+
+            # Deal with continuations by removing them to collapse
+            # the lines together
             line_buffer += line
             if "&" in line_buffer:
                 line_buffer = re.sub(r'&\s*\n', '', line_buffer)
-            else:
-                yield line_buffer
-                line_buffer = ''
+                continue
+
+            # Before output, minimise whitespace
+            line_buffer = re.sub(r'\s+', r' ', line_buffer)
+            yield line_buffer
+            line_buffer = ''

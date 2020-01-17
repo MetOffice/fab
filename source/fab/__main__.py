@@ -64,6 +64,7 @@ def main() -> None:
         logger.setLevel(logging.WARNING)
 
     for sourcefile in sourcepath_iter(arguments.source):
-        print(f'Processing {sourcefile}:')
-        print(''.join(reader.sourcefile_iter(sourcefile)))
-        print(f'Processed {sourcefile}\n')
+        msg = '{0:s}\n! {1:s}\n{0:s}'
+        print(msg.format("!" + "#" * (len(sourcefile)+1),
+                         sourcefile))
+        print('\n'.join(reader.sourcefile_iter(sourcefile)))
