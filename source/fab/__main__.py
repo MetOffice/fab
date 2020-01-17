@@ -36,7 +36,7 @@ def parse_cli() -> argparse.Namespace:
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Produce a running commentary on progress')
     parser.add_argument('source',
-                        help='The path to the source tree to build')
+                        help='The path of the source tree to build')
     return parser.parse_args()
 
 
