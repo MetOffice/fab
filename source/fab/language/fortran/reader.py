@@ -6,18 +6,20 @@
 Source reading tools for Fortran format.
 '''
 import re
+from typing import Generator
+from pathlib import Path
 
 
-def sourcefile_iter(filename: str) -> str:
+def sourcefile_iter(filepath: Path) -> Generator[str, None, None]:
     '''
     Generator to return each line of a source file; the lines
     are sanitised to remove strings and comments, as well as
     collapsing the result of continuation lines and trimming
     away as much whitespace as possible
     '''
-    with open(filename, 'r') as sourcefile:
+    with filepath.open('r') as source:
         line_buffer = ''
-        for line in sourcefile:
+        for line in source:
             # Remove strings - the pattern is designed so that it
             # remembers the opening quotation type and then matches
             # for its pair, ignoring any that are explicitly escaped
