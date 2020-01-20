@@ -13,22 +13,21 @@ from pathlib import Path
 def sourcefile_iter(filepath: Path) -> Generator[str, None, None]:
     '''
     Generator to return each line of a source file; the lines
-    are sanitised to remove strings and comments, as well as
-    collapsing the result of continuation lines and trimming
-    away as much whitespace as possible
+    are sanitised to remove comments and collapse the result
+    of continuation lines whilst also trimming away as much
+    whitespace as possible
     '''
     with filepath.open('r') as source:
         line_buffer = ''
         for line in source:
-            # Remove strings - the pattern is designed so that it
-            # remembers the opening quotation type and then matches
-            # for its pair, ignoring any that are explicitly escaped
-            line = re.sub(r'(\'|").*?(?<!\\)\1', r'\1\1', line)
 
-            # Remove comments
+            # Remove comments - we accept that an exclamation mark
+            # appearing in a string will cause the rest of that line
+            # to be blanked out, but the things we wish to parse
+            # later shouldn't appear after a string on a line anyway
             line = re.sub(r'!.*', '', line)
 
-            # If the line is now empty, go onto the next
+            # If the line is empty, go onto the next
             if line.strip() == '':
                 continue
 
