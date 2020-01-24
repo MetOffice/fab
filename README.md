@@ -18,3 +18,9 @@ The software is made available under a 3-clause BSD licence.
 ## Installation
 
 You may simply use `pip install sci-fab`.
+
+## Usage
+
+Although Fab is in its initial development phases right now and much of the
+functionality is yet to be added, the command line interface to the tool is 
+in place and can be run using the command `fab` 
