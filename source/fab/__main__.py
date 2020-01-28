@@ -9,8 +9,16 @@ Command-line interface to Fab build tool.
 import argparse
 import logging
 import sys
+from pathlib import Path
+from typing import Generator
 
 import fab
+from fab.language.fortran import reader
+
+_extensions = [
+    '.F90',
+    '.f90',
+    ]
 
 
 def parse_cli() -> argparse.Namespace:
@@ -27,7 +35,18 @@ def parse_cli() -> argparse.Namespace:
                         help='Print version identifier and exit')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Produce a running commentary on progress')
+    parser.add_argument('source',
+                        help='The path of the source tree to build')
     return parser.parse_args()
+
+
+def rootpath_iter(rootpath: Path) -> Generator[Path, None, None]:
+    '''
+    Return files we can process from the source tree.
+    '''
+    for path in rootpath.rglob("*"):
+        if path.suffix in _extensions:
+            yield path
 
 
 def main() -> None:
@@ -43,3 +62,11 @@ def main() -> None:
         logger.setLevel(logging.INFO)
     else:
         logger.setLevel(logging.WARNING)
+
+    rootpath = Path(arguments.source)
+
+    for sourcepath in rootpath_iter(rootpath):
+        msg = '{0:s}\n! {1:s}\n{0:s}'
+        print(msg.format("!" + "#" * (len(sourcepath.name)+1),
+                         sourcepath.name))
+        print('\n'.join(reader.sourcefile_iter(sourcepath)))
