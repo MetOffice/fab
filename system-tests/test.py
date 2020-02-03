@@ -97,7 +97,8 @@ if __name__ == '__main__':
             parent.mkdir(parents=True)
 
         leaf: Path = arguments.log.stem
-        timestamp: str = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S.%f')
+        fmt: str='%Y_%m_%d_%H_%M_%S.%f'
+        timestamp: str = datetime.datetime.now().strftime(fmt)
         leaf += '-' + timestamp
         filename = parent / (leaf + '.log')
 

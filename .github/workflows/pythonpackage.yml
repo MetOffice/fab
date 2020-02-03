@@ -28,9 +28,10 @@ jobs:
     - name: Test with pytest
       run: |
         pip install .[unit-test]
-        ls -l
         python -m pytest --cov=sci-fab unit-tests
     - name: Test with systest
       run: |
         pip install .[system-test]
+        ls -l
+        export
         python system-tests/test.py
