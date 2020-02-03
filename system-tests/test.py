@@ -8,11 +8,15 @@ System testing for Fab.
 
 Currently runs the tool as a subprocess but should also use it as a library.
 '''
+import argparse
+import datetime
 import difflib
+import logging
+from logging import StreamHandler, FileHandler
 from pathlib import Path
 import subprocess
+import sys
 import traceback
-from typing import Generator
 
 import systest
 
@@ -57,16 +61,64 @@ class FabTestCase(systest.TestCase):
 
 
 if __name__ == '__main__':
-    root_dir = Path(__file__).parent
+    description = 'Perform Fab system tests'
+    cli_parser = argparse.ArgumentParser(description=description,
+                                         add_help=False)
+    cli_parser.add_argument('-help', '-h', '--help', action='help',
+                            help='Display this help message and exit')
+    cli_parser.add_argument('-g', '--graph', action='store_true',
+                            help='Generate graph of test runs')
+    cli_parser.add_argument('-l', '--log', action='store', metavar='FILENAME',
+                            nargs='?', const='systest', type=Path,
+                            help='Generate log file')
+    arguments = cli_parser.parse_args()
+
+    # We set up logging by hand rather than calling systest.configure_logging
+    # as we want finer control over where things end up. In particular we don't
+    # want to generate a log file unless requested.
+    #
+    logging.getLogger('systest').setLevel(logging.DEBUG)
+
+    stdout_logger: StreamHandler = logging.StreamHandler()
+    stdout_logger.setFormatter(systest.ColorFormatter())
+    stdout_logger.setLevel(logging.INFO)
+    logging.getLogger('systest').addHandler(stdout_logger)
+
+    if arguments.log:
+        parent: Path = arguments.log.parent
+        if not parent.exists():
+            parent.mkdir(parents=True)
+
+        leaf: Path = arguments.log.stem
+        timestamp: str = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S.%f')
+        leaf += '-' + timestamp
+        filename = parent / (leaf + '.log')
+
+        file_logger: FileHandler = logging.FileHandler(filename, 'w')
+        fmt = '%(asctime)s %(name)s %(levelname)s %(message)s'
+        file_logger.setFormatter(logging.Formatter(fmt))
+        stdout_logger.setLevel(logging.DEBUG)
+        logging.getLogger('systest').addHandler(file_logger)
 
     # Tests are performed serially in list order. Where a tuple is found in
     # the list, those tests are run in parallel.
     #
+    root_dir = Path(__file__).parent
+
     sequence = [
         FabTestCase(root_dir / 'MinimalFortran')
         ]
 
-    systest.configure_logging()
     sequencer = systest.Sequencer('Fab system tests')
-    sequencer.run(sequence)
-    sequencer.report()
+    tallies = sequencer.run(sequence)
+
+    summary = sequencer.summary()
+    systest.log_lines(summary)
+
+    if arguments.graph:
+        systest.dot_digraph()
+
+    if tallies.failed > 0:
+        sys.exit(1)
+    else:
+        sys.exit(0)
