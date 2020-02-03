@@ -38,7 +38,8 @@ def sourcefile_iter(filepath: Path) -> Generator[str, None, None]:
                 line_buffer = re.sub(r'&\s*\n', '', line_buffer)
                 continue
 
-            # Before output, minimise whitespace
+            # Before output, minimise whitespace but add a space on the end
+            # of the line.
             line_buffer = re.sub(r'\s+', r' ', line_buffer)
-            yield line_buffer
+            yield line_buffer.rstrip()
             line_buffer = ''
