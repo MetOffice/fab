@@ -49,7 +49,7 @@ setuptools.setup(
     install_requires=[],
     extras_require={
         'dev': ['flake8'],
-        'unit-test': ['pytest', 'pytest-cov']
+        'unit-test': ['pytest', 'pytest-cov'],
         'system-test': ['systest']
     }
 )
