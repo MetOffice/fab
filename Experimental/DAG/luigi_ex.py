@@ -10,17 +10,17 @@ import luigi
 # something like a sqlite database or similar
 DEPENDENCIES = {
     "test_exec":
-        ["ex_main.f90",],
+        ["ex_main.f90", ],
     "ex_main.f90":
-        ["ex.f90",],
+        ["ex.f90", ],
     }
 
 # Similarly another database that gives us information about how to compile
 # each given source. This would likely be more complicated in a final version
 # of Fab; the compiler may be represented as a class or something else
 COMPILERS = {
-    "test_exec": ["ifort",],
-    "ex_main.f90": ["ifort", "-c" ],
+    "test_exec": ["ifort", ],
+    "ex_main.f90": ["ifort", "-c"],
     "ex.f90": ["ifort", "-c"],
     }
 
@@ -63,14 +63,14 @@ class CompileFortran(luigi.Task):
                 targets.append(luigi.LocalTarget(
                     os.path.join(
                         os.path.dirname(self.source), mod_name + ".mod")))
-        
+
         return targets
 
     # Finally this part defines what should be run to perform the compilation.
     # So we look up the command to use from the other "database"
     def run(self):
         compiler_command = COMPILERS[self.source]
-        subprocess.check_call(compiler_command + [self.source,])
+        subprocess.check_call(compiler_command + [self.source, ])
 
 
 # Next we define a second task which deals with the linking
