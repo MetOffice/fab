@@ -19,6 +19,7 @@ import sys
 import traceback
 
 import systest
+from systest import Sequencer
 
 
 class FabTestCase(systest.TestCase):
@@ -66,8 +67,14 @@ if __name__ == '__main__':
                                          add_help=False)
     cli_parser.add_argument('-help', '-h', '--help', action='help',
                             help='Display this help message and exit')
-    cli_parser.add_argument('-g', '--graph', action='store_true',
-                            help='Generate graph of test runs')
+    cli_parser.add_argument('-g', '--graph', action='store', metavar='FILENAME',
+                            nargs='?', const='fab',
+                            type=Path,
+                            help='Generate report of test run as graph')
+    cli_parser.add_argument('-j', '--json', action='store', metavar='FILENAME',
+                            nargs='?', const='fab',
+                            type=Path,
+                            help='Generate report of test run as JSON')
     cli_parser.add_argument('-l', '--log', action='store', metavar='FILENAME',
                             nargs='?', const='systest', type=Path,
                             help='Generate log file')
@@ -109,14 +116,16 @@ if __name__ == '__main__':
         FabTestCase(root_dir / 'MinimalFortran')
         ]
 
-    sequencer = systest.Sequencer('Fab system tests')
+    sequencer: Sequencer = systest.Sequencer('Fab system tests')
     tallies = sequencer.run(sequence)
 
     summary = sequencer.summary()
     systest.log_lines(summary)
 
     if arguments.graph:
-        systest.dot_digraph()
+        sequencer._report_dot(str(arguments.graph))
+    if arguments.json:
+        sequencer._report_json(str(arguments.json))
 
     if tallies.failed > 0:
         sys.exit(1)
