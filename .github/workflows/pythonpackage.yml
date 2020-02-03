@@ -30,5 +30,9 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pip install .[test]
+        pip install .[unit-test]
         python -m pytest --cov=sci-fab unit-tests
+    - name: Test with systest
+      run: |
+        pip install .[system-test]
+        python system-tests/test.py
