@@ -67,9 +67,9 @@ if __name__ == '__main__':
                                          add_help=False)
     cli_parser.add_argument('-help', '-h', '--help', action='help',
                             help='Display this help message and exit')
-    cli_parser.add_argument('-g', '--graph', action='store', metavar='FILENAME',
+    cli_parser.add_argument('-g', '--graph', metavar='FILENAME',
                             nargs='?', const='fab',
-                            type=Path,
+                            action='store', type=Path,
                             help='Generate report of test run as graph')
     cli_parser.add_argument('-j', '--json', action='store', metavar='FILENAME',
                             nargs='?', const='fab',
@@ -97,7 +97,7 @@ if __name__ == '__main__':
             parent.mkdir(parents=True)
 
         leaf: Path = arguments.log.stem
-        fmt: str='%Y_%m_%d_%H_%M_%S.%f'
+        fmt: str = '%Y_%m_%d_%H_%M_%S.%f'
         timestamp: str = datetime.datetime.now().strftime(fmt)
         leaf += '-' + timestamp
         filename = parent / (leaf + '.log')
