@@ -38,7 +38,8 @@ class FabTestCase(systest.TestCase):
 
     def run(self):
         command = ['python', '-m', 'fab', self._test_directory]
-        stdout: bytes = subprocess.check_output(command)
+        environment = {'PYTHONPATH': 'source'}
+        stdout: bytes = subprocess.check_output(command, env=environment)
         self._assert_diff(self._expected,
                           stdout.decode('utf8').splitlines(keepends=True))
 
