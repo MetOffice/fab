@@ -32,6 +32,4 @@ jobs:
     - name: Test with systest
       run: |
         pip install .[system-test]
-        ls -l
-        export
         python system-tests/test.py
