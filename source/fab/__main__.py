@@ -70,3 +70,7 @@ def main() -> None:
         print(msg.format("!" + "#" * (len(sourcepath.name)+1),
                          sourcepath.name))
         print('\n'.join(reader.sourcefile_iter(sourcepath)))
+
+
+if __name__ == '__main__':
+    main()

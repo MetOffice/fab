@@ -37,7 +37,7 @@ class FabTestCase(systest.TestCase):
             .splitlines(keepends=True)
 
     def run(self):
-        command = ['fab', self._test_directory]
+        command = ['python', '-m', 'fab', self._test_directory]
         stdout: bytes = subprocess.check_output(command)
         self._assert_diff(self._expected,
                           stdout.decode('utf8').splitlines(keepends=True))
