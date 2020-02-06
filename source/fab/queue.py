@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 '''
-Classes and methods relating to main transformation
+Classes and methods relating to the queue system
 '''
 
 class QueueManager(object):

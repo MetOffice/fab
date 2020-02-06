@@ -22,7 +22,7 @@ class Transformation(ABC):
     '''
     def __init__(self, source: Sequence[Path]) -> None:
         '''Setup and assign the source of this transformation'''
-        self._source = sources
+        self._source = source
         self._outputs = []
 
     @property
