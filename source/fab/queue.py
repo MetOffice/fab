@@ -7,6 +7,7 @@
 Classes and methods relating to the queue system
 '''
 
+
 class QueueManager(object):
     def __init__(self):
         pass

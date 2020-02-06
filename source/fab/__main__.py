@@ -76,8 +76,10 @@ def main() -> None:
         msg = '{0:s}\n! {1:s}\n{0:s}'
         print(msg.format("!" + "#" * (len(sourcepath.name)+1),
                          sourcepath.name))
-        
-        transform = _entry_transform[sourcepath.suffix](sourcepath)
+
+        # Associate correct starting transform for this
+        # file type (commented out to avoid unused variable for now)
+        # transform = _entry_transform[sourcepath.suffix](sourcepath)
 
         print('\n'.join(reader.sourcefile_iter(sourcepath)))
 
