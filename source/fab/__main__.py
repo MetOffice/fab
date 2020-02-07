@@ -14,11 +14,18 @@ from typing import Generator
 
 import fab
 from fab.language.fortran import reader
+from fab.transformation import (
+    FortranPreprocess, FortranCompile, CPreprocess, Psyclone, pFUnit)
 
-_extensions = [
-    '.F90',
-    '.f90',
-    ]
+_entry_transform = {
+    '.F90': FortranPreprocess,
+    '.f90': FortranCompile,
+    '.x90': Psyclone,
+    '.pf': pFUnit,
+    '.c': CPreprocess,
+    '.cpp': CPreprocess,
+    '.cc': CPreprocess,
+    }
 
 
 def parse_cli() -> argparse.Namespace:
@@ -45,7 +52,7 @@ def rootpath_iter(rootpath: Path) -> Generator[Path, None, None]:
     Return files we can process from the source tree.
     '''
     for path in rootpath.rglob("*"):
-        if path.suffix in _extensions:
+        if path.suffix in _entry_transform:
             yield path
 
 
@@ -69,6 +76,11 @@ def main() -> None:
         msg = '{0:s}\n! {1:s}\n{0:s}'
         print(msg.format("!" + "#" * (len(sourcepath.name)+1),
                          sourcepath.name))
+
+        # Associate correct starting transform for this
+        # file type (commented out to avoid unused variable for now)
+        # transform = _entry_transform[sourcepath.suffix](sourcepath)
+
         print('\n'.join(reader.sourcefile_iter(sourcepath)))
 
 
