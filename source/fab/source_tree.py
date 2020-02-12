@@ -40,7 +40,7 @@ class TreeDescent(object):
         while len(visit) > 0:
             candidate: Path = visit.pop()
             if candidate.is_dir():
-                visit.extend(candidate.iterdir())
+                visit.extend(sorted(candidate.iterdir()))
                 continue
 
             # At this point the object should be a file, directories having
