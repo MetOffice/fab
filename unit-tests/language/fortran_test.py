@@ -9,12 +9,13 @@ from typing import List, Sequence
 
 import pytest
 
-from fab.database import WorkingStateException
+from fab.database import StateDatabase, WorkingStateException
 from fab.language.fortran import FortranAnalyser, FortranWorkingState
 
 
 def test_program_unit_per_file(tmp_path):
-    test_unit = FortranWorkingState(tmp_path)
+    database = StateDatabase(tmp_path)
+    test_unit = FortranWorkingState(database)
 
     # Add a file containing a program unit
     #
@@ -98,12 +99,13 @@ end subroutine qux
 ''')
     units: List[str] = ['foo', 'bar', 'baz', 'qux']
 
-    database = FortranWorkingState(tmp_path)
+    database: StateDatabase = StateDatabase(tmp_path)
     test_unit = FortranAnalyser(database)
     test_unit.analyse(test_file)
-    assert database.program_units_from_file(test_file) == units
+    working_state = FortranWorkingState(database)
+    assert working_state.program_units_from_file(test_file) == units
     for unit in units:
-        assert database.filenames_from_program_unit(unit) == [test_file]
+        assert working_state.filenames_from_program_unit(unit) == [test_file]
 
 
 def test_analyser_scope(caplog, tmp_path):
@@ -138,9 +140,10 @@ end module
 ''')
     units: List[str] = ['fred', 'barney']
 
-    database = FortranWorkingState(tmp_path)
+    database: StateDatabase = StateDatabase(tmp_path)
     test_unit = FortranAnalyser(database)
     test_unit.analyse(test_file)
-    assert database.program_units_from_file(test_file) == units
+    working_state = FortranWorkingState(database)
+    assert working_state.program_units_from_file(test_file) == units
     for unit in units:
-        assert database.filenames_from_program_unit(unit) == [test_file]
+        assert working_state.filenames_from_program_unit(unit) == [test_file]

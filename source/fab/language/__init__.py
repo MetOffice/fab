@@ -7,7 +7,7 @@ Modules for handling different program languages appear in this package.
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from fab.database import WorkingState
+from fab.database import StateDatabase
 
 
 class AnalysisException(Exception):
@@ -15,8 +15,8 @@ class AnalysisException(Exception):
 
 
 class Analyser(ABC):
-    def __init__(self, state: WorkingState):
-        self._state = state
+    def __init__(self, database: StateDatabase):
+        self._database = database
 
     @abstractmethod
     def analyse(self, filename: Path) -> None:

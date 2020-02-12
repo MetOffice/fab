@@ -11,30 +11,33 @@ import re
 import sqlite3
 from typing import Generator, List, Match, Pattern, Tuple
 
-from fab.database import WorkingState, WorkingStateException
+from fab.database import StateDatabase, WorkingStateException
 from fab.language import Analyser, AnalysisException
+from fab.source_tree import TreeVisitor
 
 
-class FortranWorkingState(WorkingState):
-    def __init__(self, working_directory: Path):
-        super().__init__(working_directory)
-
+class FortranWorkingState(object):
+    def __init__(self, database: StateDatabase):
+        self._database: StateDatabase = database
         # According to the Fortran spec, section 3.2.2 in
         # BS ISO/IEC 1539-1:2010, the maximum size of a name is 63 characters.
         # Choosing a length for filenames is much less clear cut. I have gone
         # for 1k.
         #
-        self._connection.execute('''create table if not exists fortran_unit
-                                    (id integer primary key,
-                                     unit character(63) not null,
-                                     filename character(1024) not null)''')
-        self._connection.execute(
+        self._database.connection.execute(
+            '''create table if not exists fortran_unit (
+                 id integer primary key,
+                 unit character(63) not null,
+                 filename character(1024) not null
+               )'''
+        )
+        self._database.connection.execute(
             'create index if not exists idx_fortran_program_unit '
             'on fortran_unit(unit)')
-        self._connection.execute(
+        self._database.connection.execute(
             'create index if not exists idx_fortran_filename '
             'on fortran_unit(filename)')
-        self._connection.commit()
+        self._database.connection.commit()
 
     def add_fortran_program_unit(self, name: str, in_file: Path) -> None:
         '''
@@ -46,11 +49,11 @@ class FortranWorkingState(WorkingState):
         :param name: Program unit name.
         :param in_file: Filename of source containing program unit.
         '''
-        self._connection.execute(
+        self._database.connection.execute(
             '''insert into fortran_unit (unit, filename) 
                values (:unit, :filename)''',
             {'unit': name, 'filename': str(in_file)})
-        self._connection.commit()
+        self._database.connection.commit()
 
     def filenames_from_program_unit(self, name: str) -> List[Path]:
         '''
@@ -65,7 +68,7 @@ class FortranWorkingState(WorkingState):
         :return: Filenames of source files.
         '''
         filenames: List[Path] = []
-        cursor: sqlite3.Cursor = self._connection.execute(
+        cursor: sqlite3.Cursor = self._database.connection.execute(
             'select filename from fortran_unit where unit=:unit',
             {'unit': name})
         while True:
@@ -87,7 +90,7 @@ class FortranWorkingState(WorkingState):
         :return: Program units found therein.
         '''
         units: List[str] = []
-        cursor: sqlite3.Cursor = self._connection.execute(
+        cursor: sqlite3.Cursor = self._database.connection.execute(
             'select unit from fortran_unit where filename=:filename ',
             {'filename': str(filename)})
         while True:
@@ -103,8 +106,9 @@ class FortranWorkingState(WorkingState):
 
 
 class FortranAnalyser(Analyser):
-    def __init__(self, state: FortranWorkingState):
-        super().__init__(state)
+    def __init__(self, database: StateDatabase):
+        super().__init__(database)
+        self._state = FortranWorkingState(database)
 
     _letters: str = r'abcdefghijklmnopqrstuvwxyz'
     _digits: str = r'1234567890'
@@ -205,6 +209,7 @@ class FortranAnalyser(Analyser):
                         raise AnalysisException(message.format(exp=exp[0],
                                                                name=exp[1],
                                                                found=name))
+
 
     @staticmethod
     def _normalise(filename: Path) -> Generator[str, None, None]:

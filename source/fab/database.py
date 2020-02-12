@@ -8,14 +8,13 @@ Working state which is either per-build or persistent between builds.
 '''
 import sqlite3
 from pathlib import Path
-from typing import List, Any
 
 
 class WorkingStateException(Exception):
     pass
 
 
-class WorkingState(object):
+class StateDatabase(object):
     '''
     Provides a semi-permanent store of working state.
 
@@ -28,8 +27,8 @@ class WorkingState(object):
         if not self._working_directory.exists():
             self._working_directory.mkdir(parents=True)
 
-        self._connection = sqlite3.connect(str(working_directory / 'state.db'))
-        self._connection.row_factory = sqlite3.Row
+        self.connection = sqlite3.connect(str(working_directory / 'state.db'))
+        self.connection.row_factory = sqlite3.Row
 
     def __del__(self):
-        self._connection.close()
+        self.connection.close()
