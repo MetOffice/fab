@@ -24,8 +24,11 @@ class ExtensionVisitor(TreeVisitor):
         self._extension_map = extension_map
 
     def visit(self, candidate: Path):
-        analyser = self._extension_map[candidate.suffix]
-        analyser.analyse(candidate)
+        try:
+            analyser = self._extension_map[candidate.suffix]
+            analyser.analyse(candidate)
+        except KeyError:
+            pass
 
 
 class TreeDescent(object):
@@ -43,8 +46,8 @@ class TreeDescent(object):
             # At this point the object should be a file, directories having
             # been dealt with previously.
             #
-            visitor.visit(candidate)
-
             msg = '{0:s}\n! {1:s}\n{0:s}'
             print(msg.format("!" + "#" * (len(candidate.name) + 1),
                              candidate.name))
+
+            visitor.visit(candidate)

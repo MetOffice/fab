@@ -8,12 +8,11 @@ Command-line interface to Fab build tool.
 '''
 import argparse
 import logging
-import sys
 from pathlib import Path
+import sys
 
-import fab
-from fab.database import WorkingState
-from fab.source_tree import TreeDescent,
+import fab.application
+
 
 def parse_cli() -> argparse.Namespace:
     '''
@@ -53,9 +52,8 @@ def main() -> None:
     if not arguments.workspace:
         arguments.workspace: Path = arguments.source / 'working'
 
-    state = WorkingState(arguments.workspace)
-    descender = TreeDescent(state, arguments.source)
-    descender.run()  # This could become a thread start in the future.
+    application = fab.application.Fab(arguments.workspace)
+    application.run(arguments.source)
 
 
 if __name__ == '__main__':

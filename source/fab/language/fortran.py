@@ -13,7 +13,6 @@ from typing import Generator, List, Match, Pattern, Tuple
 
 from fab.database import StateDatabase, WorkingStateException
 from fab.language import Analyser, AnalysisException
-from fab.source_tree import TreeVisitor
 
 
 class FortranWorkingState(object):

@@ -6,7 +6,8 @@
 from pathlib import Path
 
 from fab.database import StateDatabase
-from fab.source_tree import TreeDescent, TreeVisitor
+from fab.language import Analyser
+from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
 
 
 class DummyVisitor(TreeVisitor):
@@ -32,3 +33,30 @@ def test_descent(tmp_path: Path):
     assert visitor.visited == [tree_root / 'gamma',
                                tree_root / 'beta' / 'epsilon',
                                tree_root / 'beta' / 'delta']
+
+
+class DummyAnalyser(Analyser):
+    def __init__(self, db: StateDatabase):
+        super().__init__(db)
+        self.seen = []
+
+    def analyse(self, filename: Path):
+        self.seen.append(filename)
+
+
+def test_extension_visitor(tmp_path: Path):
+    db = StateDatabase(tmp_path)
+    emap = {'.foo': DummyAnalyser(db),
+            '.bar': DummyAnalyser(db)}
+    test_unit = ExtensionVisitor(emap)
+    test_unit.visit(tmp_path / 'file.foo')
+    assert emap['.foo'].seen == [tmp_path / 'file.foo']
+    assert emap['.bar'].seen == []
+
+    test_unit.visit(tmp_path / 'dir' / 'file.bar')
+    assert emap['.foo'].seen == [tmp_path / 'file.foo']
+    assert emap['.bar'].seen == [tmp_path / 'dir' / 'file.bar']
+
+    test_unit.visit(tmp_path / 'file.baz')
+    assert emap['.foo'].seen == [tmp_path / 'file.foo']
+    assert emap['.bar'].seen == [tmp_path / 'dir' / 'file.bar']
