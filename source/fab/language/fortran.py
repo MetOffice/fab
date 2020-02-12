@@ -49,7 +49,7 @@ class FortranWorkingState(object):
         :param in_file: Filename of source containing program unit.
         '''
         self._database.connection.execute(
-            '''insert into fortran_unit (unit, filename) 
+            '''insert into fortran_unit (unit, filename)
                values (:unit, :filename)''',
             {'unit': name, 'filename': str(in_file)})
         self._database.connection.commit()
@@ -151,13 +151,13 @@ class FortranAnalyser(Analyser):
     _underscore: str = r'_'
     _alphanumeric_re: str = '[' + _letters + _digits + _underscore + ']'
     _name_re: str = '[' + _letters + ']' + _alphanumeric_re + '*'
-    _unit_type_re: str = r'program|module|function|subroutine'
+    _unit_block_re: str = r'program|module|function|subroutine'
     _scope_block_re: str = r'associate|block|critical|do|if|select'
     _iface_block_re: str = r'interface'
     _type_block_re: str = r'type'
 
     _program_unit_re: str = r'^\s*({unit_type_re})\s*({name_re})' \
-                            .format(unit_type_re=_unit_type_re,
+                            .format(unit_type_re=_unit_block_re,
                                     name_re=_name_re)
     _scoping_re: str = r'^\s*(({name_re})\s*:)?\s*({scope_type_re})' \
                        .format(scope_type_re=_scope_block_re,
@@ -165,16 +165,18 @@ class FortranAnalyser(Analyser):
     _interface_re: str = r'^\s*{iface_block_re}\s*({name_re})?' \
                          .format(iface_block_re=_iface_block_re,
                                  name_re=_name_re)
-    _type_re: str = r'^\s*{type_block_re}((\s*,\s*[^,]+)*\s*::)?\s*({name_re})' \
-                    .format(type_block_re=_type_block_re,
-                            name_re=_name_re)
+    _type_re: str = r'^\s*{type_block_re}' \
+                    r'((\s*,\s*[^,]+)*\s*::)?' \
+                    r'\s*({name_re})'.format(type_block_re=_type_block_re,
+                                             name_re=_name_re)
     _end_block_re: str \
         = r'^\s*end' \
-          r'\s*({scope_block_re}|{iface_block_re}|{type_block_re}|{unit_type_re})?' \
+          r'\s*({scope_block_re}|{iface_block_re}' \
+          r'|{type_block_re}|{unit_type_re})?' \
           r'\s*({name_re})?'.format(scope_block_re=_scope_block_re,
                                     iface_block_re=_iface_block_re,
                                     type_block_re=_type_block_re,
-                                    unit_type_re=_unit_type_re,
+                                    unit_type_re=_unit_block_re,
                                     name_re=_name_re)
 
     _program_unit_pattern: Pattern = re.compile(_program_unit_re,
@@ -249,7 +251,6 @@ class FortranAnalyser(Analyser):
                         raise AnalysisException(message.format(exp=exp[0],
                                                                name=exp[1],
                                                                found=name))
-
 
     @staticmethod
     def _normalise(filename: Path) -> Generator[str, None, None]:

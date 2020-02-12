@@ -8,7 +8,7 @@ Descend a directory tree or trees processing source files found along the way.
 '''
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Mapping, Type
+from typing import Mapping
 
 from fab.language import Analyser
 

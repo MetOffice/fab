@@ -27,7 +27,7 @@ class Fab(object):
     def run(self, source: Path):
         visitor = ExtensionVisitor(self._extension_map)
         descender = TreeDescent(source)
-        descender.descend(visitor)  # This could become a thread start in the future.
+        descender.descend(visitor)
 
         db = FortranWorkingState(self._state)
         for unit, files in db.iterate_program_units():

@@ -46,8 +46,8 @@ class TestFortranWorkingSpace:
         with pytest.raises(WorkingStateException):
             _ = test_unit.program_units_from_file(tmp_path / 'baz.F90')
 
-        # Add a third file also containing a third program unit and another copy
-        # of the first
+        # Add a third file also containing a third program unit and another
+        # copy of the first
         #
         test_unit.add_fortran_program_unit('baz', tmp_path / 'baz.f90')
         test_unit.add_fortran_program_unit('foo', tmp_path / 'baz.f90')
@@ -105,30 +105,30 @@ class TestFortranAnalyser(object):
 
         test_file: Path = tmp_path / 'test.f90'
         test_file.write_text('''
-    program foo
-    
-      implicit none
-    
-    end program foo
-    
-    module bar
-    
-      implicit none
-    
-    end module bar
-    
-    function baz(first, second)
-    
-      implicit none
-      
-    end function baz
-    
-    subroutine qux()
-    
-      implicit none
-    
-    end subroutine qux
-    ''')
+program foo
+
+  implicit none
+
+end program foo
+
+module bar
+
+  implicit none
+
+end module bar
+
+function baz(first, second)
+
+  implicit none
+
+end function baz
+
+subroutine qux()
+
+  implicit none
+
+end subroutine qux
+''')
         units: List[str] = ['foo', 'bar', 'baz', 'qux']
 
         database: StateDatabase = StateDatabase(tmp_path)
@@ -137,38 +137,39 @@ class TestFortranAnalyser(object):
         working_state = FortranWorkingState(database)
         assert working_state.program_units_from_file(test_file) == units
         for unit in units:
-            assert working_state.filenames_from_program_unit(unit) == [test_file]
+            assert working_state.filenames_from_program_unit(unit) \
+                == [test_file]
 
     def test_analyser_scope(self, caplog, tmp_path):
         caplog.set_level(logging.DEBUG)
 
         test_file: Path = tmp_path / 'test.f90'
         test_file.write_text('''
-    program fred
-    
-      implicit none
-      
-      if (something) then
-        named: do i=1, 10
-        end do named
-      endif
-    
-    end program
-    
-    module barney
-    
-      implicit none
-    
-      type betty_type
-        integer :: property
-      end type
-      
-      interface betty_type
-        procedure betty_constructor
-      end
-    
-    end module 
-    ''')
+program fred
+
+  implicit none
+
+  if (something) then
+    named: do i=1, 10
+    end do named
+  endif
+
+end program
+
+module barney
+
+  implicit none
+
+  type betty_type
+    integer :: property
+  end type
+
+  interface betty_type
+    procedure betty_constructor
+  end
+
+end module
+''')
         units: List[str] = ['fred', 'barney']
 
         database: StateDatabase = StateDatabase(tmp_path)
@@ -177,25 +178,27 @@ class TestFortranAnalyser(object):
         working_state = FortranWorkingState(database)
         assert working_state.program_units_from_file(test_file) == units
         for unit in units:
-            assert working_state.filenames_from_program_unit(unit) == [test_file]
+            assert working_state.filenames_from_program_unit(unit) \
+                == [test_file]
 
     def test_harvested_data(self, caplog, tmp_path):
         caplog.set_level(logging.DEBUG)
 
         first_file: Path = tmp_path / 'other.F90'
         first_file.write_text('''
-        program betty
-          use barney_mod, only :: dino
-          implicit none
-        end program betty
-        
-        module barney_mod
-        end module barney_mod
-        ''')
+program betty
+  use barney_mod, only :: dino
+  implicit none
+end program betty
+
+module barney_mod
+end module barney_mod
+''')
         second_file: Path = tmp_path / 'test.f90'
         second_file.write_text('''
-        module barney_mod
-        end module barney_mod''')
+module barney_mod
+end module barney_mod
+''')
 
         database: StateDatabase = StateDatabase(tmp_path)
         test_unit = FortranAnalyser(database)
@@ -204,8 +207,8 @@ class TestFortranAnalyser(object):
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
-               == [('barney_mod', [first_file, second_file]),
-                   ('betty', [first_file])]
+            == [('barney_mod', [first_file, second_file]),
+                ('betty', [first_file])]
 
         # Repeat the scan of second_file, there should be no change.
         #
@@ -213,6 +216,5 @@ class TestFortranAnalyser(object):
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
-               == [('barney_mod', [first_file, second_file]),
-                   ('betty', [first_file])]
-
+            == [('barney_mod', [first_file, second_file]),
+                ('betty', [first_file])]
