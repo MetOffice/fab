@@ -46,8 +46,4 @@ class TreeDescent(object):
             # At this point the object should be a file, directories having
             # been dealt with previously.
             #
-            msg = '{0:s}\n! {1:s}\n{0:s}'
-            print(msg.format("!" + "#" * (len(candidate.name) + 1),
-                             candidate.name))
-
             visitor.visit(candidate)

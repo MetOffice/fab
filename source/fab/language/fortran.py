@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 import re
 import sqlite3
-from typing import Generator, List, Match, Pattern, Tuple
+from typing import Generator, List, Match, Pattern, Sequence, Tuple
 
 from fab.database import StateDatabase, WorkingStateException
 from fab.language import Analyser, AnalysisException
@@ -53,6 +53,43 @@ class FortranWorkingState(object):
                values (:unit, :filename)''',
             {'unit': name, 'filename': str(in_file)})
         self._database.connection.commit()
+
+    def remove_fortran_file(self, filename: Path) -> None:
+        '''
+        Removes all records relating of a particular source file.
+
+        :param filename: File to be removed.
+        '''
+        self._database.connection.execute(
+            'delete from fortran_unit where filename=:filename',
+            {'filename': str(filename)})
+        self._database.connection.commit()
+
+    def iterate_program_units(self) \
+            -> Generator[Tuple[str, Sequence[Path]], None, None]:
+        '''
+        Yields all units and their containing file names.
+
+        :return: Unit name and containing filename pairs.
+        '''
+        cursor: sqlite3.Cursor = self._database.connection.execute(
+            'select unit, filename from fortran_unit '
+            'order by unit, filename')
+        unit = None
+        files = []
+        while True:
+            row: sqlite3.Row = cursor.fetchone()
+            if row is None:
+                break
+            if row['unit'] != unit:
+                if unit is not None:
+                    yield (unit, files)
+                unit = row['unit']
+                files = [Path(row['filename'])]
+            else:  # row['unit'] == unit
+                files.append(Path(row['filename']))
+        if unit is not None:
+            yield (unit, files)
 
     def filenames_from_program_unit(self, name: str) -> List[Path]:
         '''
@@ -149,10 +186,14 @@ class FortranAnalyser(Analyser):
 
     def analyse(self, filename: Path) -> None:
         logger = logging.getLogger(__name__)
+
+        self._state.remove_fortran_file(filename)
+
         scope = []
         for line in self._normalise(filename):
             logger.debug(scope)
             logger.debug('Considering: %s', line)
+
             if len(scope) == 0:
                 match: Match = self._program_unit_pattern.match(line)
                 if match:

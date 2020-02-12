@@ -8,7 +8,7 @@ from typing import Dict, Mapping
 
 from fab.database import StateDatabase
 from fab.language import Analyser
-from fab.language.fortran import FortranAnalyser
+from fab.language.fortran import FortranAnalyser, FortranWorkingState
 from fab.source_tree import TreeDescent, ExtensionVisitor
 
 
@@ -28,3 +28,9 @@ class Fab(object):
         visitor = ExtensionVisitor(self._extension_map)
         descender = TreeDescent(source)
         descender.descend(visitor)  # This could become a thread start in the future.
+
+        db = FortranWorkingState(self._state)
+        for unit, files in db.iterate_program_units():
+            print(unit)
+            for file in files:
+                print('    ' + str(file))
