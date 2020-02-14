@@ -8,24 +8,10 @@ Command-line interface to Fab build tool.
 '''
 import argparse
 import logging
-import sys
 from pathlib import Path
-from typing import Generator
+import sys
 
-import fab
-from fab.language.fortran import reader
-from fab.transformation import (
-    FortranPreprocess, FortranCompile, CPreprocess, Psyclone, pFUnit)
-
-_entry_transform = {
-    '.F90': FortranPreprocess,
-    '.f90': FortranCompile,
-    '.x90': Psyclone,
-    '.pf': pFUnit,
-    '.c': CPreprocess,
-    '.cpp': CPreprocess,
-    '.cc': CPreprocess,
-    }
+import fab.application
 
 
 def parse_cli() -> argparse.Namespace:
@@ -42,18 +28,11 @@ def parse_cli() -> argparse.Namespace:
                         help='Print version identifier and exit')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Produce a running commentary on progress')
-    parser.add_argument('source',
+    parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
+                        help='Directory for working files.')
+    parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     return parser.parse_args()
-
-
-def rootpath_iter(rootpath: Path) -> Generator[Path, None, None]:
-    '''
-    Return files we can process from the source tree.
-    '''
-    for path in rootpath.rglob("*"):
-        if path.suffix in _entry_transform:
-            yield path
 
 
 def main() -> None:
@@ -70,18 +49,11 @@ def main() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-    rootpath = Path(arguments.source)
+    if not arguments.workspace:
+        arguments.workspace: Path = arguments.source / 'working'
 
-    for sourcepath in rootpath_iter(rootpath):
-        msg = '{0:s}\n! {1:s}\n{0:s}'
-        print(msg.format("!" + "#" * (len(sourcepath.name)+1),
-                         sourcepath.name))
-
-        # Associate correct starting transform for this
-        # file type (commented out to avoid unused variable for now)
-        # transform = _entry_transform[sourcepath.suffix](sourcepath)
-
-        print('\n'.join(reader.sourcefile_iter(sourcepath)))
+    application = fab.application.Fab(arguments.workspace)
+    application.run(arguments.source)
 
 
 if __name__ == '__main__':
