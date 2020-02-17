@@ -49,9 +49,20 @@ class FabTestCase(systest.TestCase):
     def run(self):
         command = ['python3', '-m', 'fab', self._test_directory]
         environment = {'PYTHONPATH': 'source'}
-        stdout: bytes = subprocess.check_output(command, env=environment)
-        self._assert_diff(self._expected,
-                          stdout.decode('utf8').splitlines(keepends=True))
+        thread = subprocess.Popen(command, env=environment,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
+        stdout: bytes
+        stderr: bytes
+        stdout, stderr = thread.communicate()
+        if thread.returncode != 0:
+            print('Running Fab failed: ', file=sys.stderr)
+            print('    stdout: ' + stdout.decode('utf-8'))
+            print('    stderr: ' + stderr.decode('utf-8'))
+
+        self.assert_true(thread.returncode == 0)
+        self._assert_diff(stdout.decode('utf-8').splitlines(keepends=True),
+                          self._expected)
 
     def _assert_diff(self, first, second):
         '''
@@ -125,7 +136,8 @@ if __name__ == '__main__':
     root_dir = Path(__file__).parent
 
     sequence = [
-        FabTestCase(root_dir / 'MinimalFortran')
+        FabTestCase(root_dir / 'MinimalFortran'),
+        FabTestCase(root_dir / 'FortranDependencies')
         ]
 
     sequencer: Sequencer = systest.Sequencer('Fab system tests')

@@ -199,6 +199,11 @@ program fred
     end do named
   endif
 
+contains
+
+  subroutine yabadabadoo()
+  end
+
 end program
 
 module barney
@@ -207,11 +212,21 @@ module barney
 
   type betty_type
     integer :: property
+  contains
+    procedure inspect
   end type
 
   interface betty_type
     procedure betty_constructor
   end
+
+contains
+
+  function inspect(this)
+    class(betty_type), intent(in) :: this
+    integer :: inspect
+    inspect = this%property
+  end function inspect
 
 end module
 ''')

@@ -220,7 +220,8 @@ class FortranAnalyser(Analyser):
     _underscore: str = r'_'
     _alphanumeric_re: str = '[' + _letters + _digits + _underscore + ']'
     _name_re: str = '[' + _letters + ']' + _alphanumeric_re + '*'
-    _unit_block_re: str = r'program|module|function|subroutine'
+    _procedure_block_re: str = r'function|subroutine'
+    _unit_block_re: str = r'program|module|' + _procedure_block_re
     _scope_block_re: str = r'associate|block|critical|do|if|select'
     _iface_block_re: str = r'interface'
     _type_block_re: str = r'type'
@@ -231,6 +232,9 @@ class FortranAnalyser(Analyser):
     _scoping_re: str = r'^\s*(({name_re})\s*:)?\s*({scope_type_re})' \
                        .format(scope_type_re=_scope_block_re,
                                name_re=_name_re)
+    _procedure_re: str = r'^\s*({procedure_block_re})\s*({name_re})' \
+                         .format(procedure_block_re=_procedure_block_re,
+                                 name_re=_name_re)
     _interface_re: str = r'^\s*{iface_block_re}\s*({name_re})?' \
                          .format(iface_block_re=_iface_block_re,
                                  name_re=_name_re)
@@ -255,6 +259,7 @@ class FortranAnalyser(Analyser):
     _program_unit_pattern: Pattern = re.compile(_program_unit_re,
                                                 re.IGNORECASE)
     _scoping_pattern: Pattern = re.compile(_scoping_re, re.IGNORECASE)
+    _procedure_pattern: Pattern = re.compile(_procedure_re, re.IGNORECASE)
     _interface_pattern: Pattern = re.compile(_interface_re, re.IGNORECASE)
     _type_pattern: Pattern = re.compile(_type_re, re.IGNORECASE)
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
@@ -280,18 +285,15 @@ class FortranAnalyser(Analyser):
                     scope.append((unit, name))
                     continue
 
-                match: Match = self._use_pattern.match(line)
-                if match:
-                    message = '"use" statement found outside program unit'
-                    raise AnalysisException(message)
-                    continue
-
             match: Match = self._use_pattern.match(line)
             if match:
                 name: str = match.group(3).lower()
                 if name in self._intrinsic_modules:
                     logger.debug('Ignoring intrinsic module "%s"', name)
                 else:
+                    if len(scope) == 0:
+                        message = '"use" statement found outside program unit'
+                        raise AnalysisException(message)
                     logger.debug('Found usage of "%s"', name)
                     self._state.add_fortran_dependency(scope[0][1], name)
                 continue
@@ -303,6 +305,14 @@ class FortranAnalyser(Analyser):
                 #
                 name: str = match.group(1) and match.group(2).lower()
                 nature: str = match.group(3).lower()
+                logger.debug('Found %s called "%s"', nature, name)
+                scope.append((nature, name))
+                continue
+
+            match: Match = self._procedure_pattern.match(line)
+            if match:
+                nature = match.group(1).lower()
+                name = match.group(2).lower()
                 logger.debug('Found %s called "%s"', nature, name)
                 scope.append((nature, name))
                 continue
@@ -329,15 +339,16 @@ class FortranAnalyser(Analyser):
                 exp: Tuple[str, str] = scope.pop()
                 if nature is not None:
                     if nature != exp[0]:
-                        message = 'Expected end of {exp} but found {found}'
+                        message = 'Expected end of {exp} "{name}" ' \
+                                  'but found {found}'
 
                         raise AnalysisException(message.format(exp=exp[0],
+                                                               name=exp[1],
                                                                found=nature))
                 if name is not None:
                     if name != exp[1]:
-                        message = '''
-                        Expected end of {exp} "{name}" but found {found}
-                        '''.strip()
+                        message = 'Expected end of {exp} "{name}" ' \
+                                  'but found end of {found}'
                         raise AnalysisException(message.format(exp=exp[0],
                                                                name=exp[1],
                                                                found=name))

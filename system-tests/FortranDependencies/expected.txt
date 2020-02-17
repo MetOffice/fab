@@ -1,0 +1,12 @@
+bye_mod
+    found in: system-tests/FortranDependencies/bye_mod.f90
+    depends on: ['constants_mod']
+first
+    found in: system-tests/FortranDependencies/first.f90
+    depends on: ['constants_mod', 'greeting_mod']
+greeting_mod
+    found in: system-tests/FortranDependencies/greeting_mod.f90
+    depends on: ['constants_mod']
+second
+    found in: system-tests/FortranDependencies/second.f90
+    depends on: ['constants_mod', 'bye_mod']
