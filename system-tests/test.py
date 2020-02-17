@@ -14,6 +14,7 @@ import difflib
 import logging
 from logging import StreamHandler, FileHandler
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import traceback
@@ -24,7 +25,7 @@ from systest import Sequencer
 
 class FabTestCase(systest.TestCase):
     '''Run Fab against source tree and validate result.'''
-    #  The result is held in a file 'expected.txt' in the test directory.
+    # The result is held in a file 'expected.txt' in the test directory.
     #
     # This comment exists as the framework hijacks the docstring for output.
 
@@ -35,6 +36,14 @@ class FabTestCase(systest.TestCase):
         expectation_file = test_directory / 'expected.txt'
         self._expected = expectation_file.read_text('utf-8') \
             .splitlines(keepends=True)
+
+    def setup(self):
+        working_dir = self._test_directory / 'working'
+        shutil.rmtree(working_dir)
+
+    def teardown(self):
+        working_dir = self._test_directory / 'working'
+        shutil.rmtree(working_dir)
 
     def run(self):
         command = ['python3', '-m', 'fab', self._test_directory]
