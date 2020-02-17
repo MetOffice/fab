@@ -30,7 +30,8 @@ class TestFortranWorkingSpace:
         for filename, unit in expected_filename.items():
             if filename.suffix == '.not':
                 with pytest.raises(WorkingStateException):
-                    _ = test_unit.program_units_from_file(filename.with_suffix(''))
+                    actual_filename: Path = filename.with_suffix('')
+                    _ = test_unit.program_units_from_file(actual_filename)
             else:
                 assert test_unit.program_units_from_file(filename) == unit
 
