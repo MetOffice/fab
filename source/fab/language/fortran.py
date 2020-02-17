@@ -213,6 +213,8 @@ class FortranAnalyser(Analyser):
         super().__init__(database)
         self._state = FortranWorkingState(database)
 
+    _intrinsic_modules = ['iso_fortran_env']
+
     _letters: str = r'abcdefghijklmnopqrstuvwxyz'
     _digits: str = r'1234567890'
     _underscore: str = r'_'
@@ -287,8 +289,12 @@ class FortranAnalyser(Analyser):
             match: Match = self._use_pattern.match(line)
             if match:
                 name: str = match.group(3).lower()
-                logger.debug('Found usage of "%s"', name)
-                self._state.add_fortran_dependency(scope[0][1], name)
+                if name in self._intrinsic_modules:
+                    logger.debug('Ignoring intrinsic module "%s"', name)
+                else:
+                    logger.debug('Found usage of "%s"', name)
+                    self._state.add_fortran_dependency(scope[0][1], name)
+                continue
 
             match: Match = self._scoping_pattern.match(line)
             if match:

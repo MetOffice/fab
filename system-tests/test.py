@@ -39,7 +39,8 @@ class FabTestCase(systest.TestCase):
 
     def setup(self):
         working_dir = self._test_directory / 'working'
-        shutil.rmtree(working_dir)
+        if working_dir.is_dir():
+            shutil.rmtree(working_dir)
 
     def teardown(self):
         working_dir = self._test_directory / 'working'

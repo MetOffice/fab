@@ -33,4 +33,5 @@ class Fab(object):
         for unit, files in db.iterate_program_units():
             print(unit)
             for file in files:
-                print('    ' + str(file))
+                print('    found in: ' + str(file))
+                print('    depends on: ' + str(db.depends_on(unit)))

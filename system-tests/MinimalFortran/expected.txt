@@ -1,2 +1,3 @@
 test
-    system-tests/MinimalFortran/program.f90
+    found in: system-tests/MinimalFortran/program.f90
+    depends on: []
