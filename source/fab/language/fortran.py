@@ -38,6 +38,30 @@ class FortranWorkingState(object):
             'on fortran_unit(filename)')
         self._database.connection.commit()
 
+        # Although the current unit will already have been entered into the
+        # database it is not necessarily unique. We may have multiple source
+        # files which define the same unit. Thus it can not be used as a
+        # foreign key.
+        #
+        # Meanwhile the dependency unit may not have been encountered yet so
+        # we can't expect it to be in the database. Thus it too may not be
+        # used as a foreign key.
+        #
+        self._database.connection.execute(
+            '''create table if not exists fortran_dependency (
+                 id integer primary key,
+                 unit character(63) not null,
+                 depends_on character(63) not null
+            )'''
+        )
+        self._database.connection.execute(
+            'create index if not exists idx_fortran_dependor '
+            'on fortran_dependency(unit)')
+        self._database.connection.execute(
+            'create index if not exists idx_fortran_dependee '
+            'on fortran_dependency(depends_on)')
+        self._database.connection.commit()
+
     def add_fortran_program_unit(self, name: str, in_file: Path) -> None:
         '''
         Creates a record of a new program unit and the file it is found in.
@@ -54,15 +78,39 @@ class FortranWorkingState(object):
             {'unit': name, 'filename': str(in_file)})
         self._database.connection.commit()
 
+    def add_fortran_dependency(self, unit: str, depends_on: str) -> None:
+        '''
+        Records the dependency of one unit on another.
+
+        :param unit: Name of the depending unit.
+        :param depends_on:  Name of the prerequisite unit.
+        '''
+        self._database.connection.execute(
+            '''insert into fortran_dependency(unit, depends_on)
+               values (:unit, :depends_on)''',
+            {'unit': unit, 'depends_on': depends_on}
+        )
+        self._database.connection.commit()
+
     def remove_fortran_file(self, filename: Path) -> None:
         '''
         Removes all records relating of a particular source file.
 
         :param filename: File to be removed.
         '''
-        self._database.connection.execute(
-            'delete from fortran_unit where filename=:filename',
-            {'filename': str(filename)})
+        cursor: sqlite3.Cursor = self._database.connection.execute(
+            'select unit from fortran_unit where filename=:filename',
+            {'filename': str(filename)}
+        )
+        row = cursor.fetchone()
+        if row is not None:
+            self._database.connection.execute(
+                'delete from fortran_unit where filename=:filename',
+                {'filename': str(filename)})
+            self._database.connection.execute(
+                'delete from fortran_dependency where unit=:unit',
+                {'unit': row['unit']}
+            )
         self._database.connection.commit()
 
     def iterate_program_units(self) \
@@ -140,6 +188,25 @@ class FortranWorkingState(object):
             raise WorkingStateException(message.format(filename=filename))
         return units
 
+    def depends_on(self, unit: str) -> List[str]:
+        '''
+        Gets the prerequisite program units of a program unit.
+
+        :param unit: Program unit name
+        :return: Prerequisite unit names. May be an empty list.
+        '''
+        units: List[str] = []
+        cursor: sqlite3.Cursor = self._database.connection.execute(
+            'select depends_on from fortran_dependency where unit=:unit',
+            {'unit': unit})
+        while True:
+            row: sqlite3.Row = cursor.fetchone()
+            if row is None:
+                break
+            units.append(row['depends_on'])
+        cursor.close()
+        return units
+
 
 class FortranAnalyser(Analyser):
     def __init__(self, database: StateDatabase):
@@ -179,12 +246,17 @@ class FortranAnalyser(Analyser):
                                     unit_type_re=_unit_block_re,
                                     name_re=_name_re)
 
+    _use_statement_re: str \
+        = r'^\s*use((\s*,\s*non_intrinsic)?\s*::)?\s*({name_re})' \
+          .format(name_re=_name_re)
+
     _program_unit_pattern: Pattern = re.compile(_program_unit_re,
                                                 re.IGNORECASE)
     _scoping_pattern: Pattern = re.compile(_scoping_re, re.IGNORECASE)
     _interface_pattern: Pattern = re.compile(_interface_re, re.IGNORECASE)
     _type_pattern: Pattern = re.compile(_type_re, re.IGNORECASE)
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
+    _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
     def analyse(self, filename: Path) -> None:
         logger = logging.getLogger(__name__)
@@ -204,7 +276,19 @@ class FortranAnalyser(Analyser):
                     logger.debug('Found %s called "%s"', unit, name)
                     self._state.add_fortran_program_unit(name, filename)
                     scope.append((unit, name))
-                continue
+                    continue
+
+                match: Match = self._use_pattern.match(line)
+                if match:
+                    message = '"use" statement found outside program unit'
+                    raise AnalysisException(message)
+                    continue
+
+            match: Match = self._use_pattern.match(line)
+            if match:
+                name: str = match.group(3).lower()
+                logger.debug('Found usage of "%s"', name)
+                self._state.add_fortran_dependency(scope[0][1], name)
 
             match: Match = self._scoping_pattern.match(line)
             if match:
