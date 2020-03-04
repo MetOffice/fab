@@ -4,6 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
+from typing import List
 
 from fab.database import StateDatabase
 from fab.language import Analyser
@@ -38,7 +39,7 @@ def test_descent(tmp_path: Path):
 class DummyAnalyser(Analyser):
     def __init__(self, db: StateDatabase):
         super().__init__(db)
-        self.seen = []
+        self.seen: List[Path] = []
 
     def analyse(self, filename: Path):
         self.seen.append(filename)

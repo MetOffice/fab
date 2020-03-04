@@ -50,7 +50,7 @@ def main() -> None:
         logger.setLevel(logging.WARNING)
 
     if not arguments.workspace:
-        arguments.workspace: Path = arguments.source / 'working'
+        arguments.workspace = arguments.source / 'working'
 
     application = fab.application.Fab(arguments.workspace)
     application.run(arguments.source)
