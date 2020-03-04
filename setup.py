@@ -3,7 +3,7 @@
 # which you should have received as part of this distribution
 
 import os.path
-import setuptools
+import setuptools  # type: ignore
 
 _here = os.path.dirname(__file__)
 
@@ -48,7 +48,7 @@ setuptools.setup(
     python_requires='>=3.6, <4',
     install_requires=[],
     extras_require={
-        'dev': ['flake8', 'mypy', 'setuptools'],
+        'dev': ['flake8', 'mypy'],
         'unit-test': ['pytest', 'pytest-cov'],
         'system-test': ['systest']
     }

@@ -24,7 +24,7 @@ jobs:
     - name: Type check with mypy
       run: |
         pip install -e .[dev]
-        python -m mypy .
+        python -m mypy setup.py source system-tests unit-tests
     - name: Code style check with flake8
       run: |
         pip install -e .[dev]
