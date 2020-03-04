@@ -5,6 +5,7 @@
 ##############################################################################
 import logging
 from pathlib import Path
+from textwrap import dedent
 from typing import Dict, List, Sequence
 
 import pytest
@@ -145,28 +146,29 @@ class TestFortranAnalyser(object):
         caplog.set_level(logging.DEBUG)
 
         test_file: Path = tmp_path / 'test.f90'
-        test_file.write_text('''
-program foo
-  use beef_mod
-  implicit none
-end program foo
+        test_file.write_text(
+            dedent('''
+                   program foo
+                     use beef_mod
+                     implicit none
+                   end program foo
 
-module bar
-  use cheese_mod, only : bits_n_bobs
-  implicit none
-end module bar
+                   module bar
+                     use cheese_mod, only : bits_n_bobs
+                     implicit none
+                   end module bar
 
-function baz(first, second)
-  use teapot_mod
-  implicit none
-end function baz
+                   function baz(first, second)
+                     use teapot_mod
+                     implicit none
+                   end function baz
 
-subroutine qux()
-  use wibble_mod
-  use wubble_mod, only: stuff_n_nonsense
-  implicit none
-end subroutine qux
-''')
+                   subroutine qux()
+                     use wibble_mod
+                     use wubble_mod, only: stuff_n_nonsense
+                     implicit none
+                   end subroutine qux
+                   '''))
         units: List[str] = ['foo', 'bar', 'baz', 'qux']
         prereqs: Dict[str, List[str]] = {'foo': ['beef_mod'],
                                          'bar': ['cheese_mod'],
@@ -190,47 +192,48 @@ end subroutine qux
         caplog.set_level(logging.DEBUG)
 
         test_file: Path = tmp_path / 'test.f90'
-        test_file.write_text('''
-program fred
+        test_file.write_text(
+            dedent('''
+                   program fred
 
-  implicit none
+                     implicit none
 
-  if (something) then
-    named: do i=1, 10
-    end do named
-  endif
+                     if (something) then
+                       named: do i=1, 10
+                       end do named
+                     endif
 
-contains
+                   contains
 
-  subroutine yabadabadoo()
-  end
+                     subroutine yabadabadoo()
+                     end
 
-end program
+                   end program
 
-module barney
+                   module barney
 
-  implicit none
+                     implicit none
 
-  type betty_type
-    integer :: property
-  contains
-    procedure inspect
-  end type
+                     type betty_type
+                       integer :: property
+                     contains
+                       procedure inspect
+                     end type
 
-  interface betty_type
-    procedure betty_constructor
-  end
+                     interface betty_type
+                       procedure betty_constructor
+                     end
 
-contains
+                   contains
 
-  function inspect(this)
-    class(betty_type), intent(in) :: this
-    integer :: inspect
-    inspect = this%property
-  end function inspect
+                     function inspect(this)
+                       class(betty_type), intent(in) :: this
+                       integer :: inspect
+                       inspect = this%property
+                     end function inspect
 
-end module
-''')
+                   end module
+                   '''))
         units: List[str] = ['fred', 'barney']
 
         database: StateDatabase = StateDatabase(tmp_path)
@@ -249,20 +252,22 @@ end module
         caplog.set_level(logging.DEBUG)
 
         first_file: Path = tmp_path / 'other.F90'
-        first_file.write_text('''
-program betty
-  use barney_mod, only :: dino
-  implicit none
-end program betty
+        first_file.write_text(
+            dedent('''
+                   program betty
+                     use barney_mod, only :: dino
+                     implicit none
+                   end program betty
 
-module barney_mod
-end module barney_mod
-''')
+                   module barney_mod
+                   end module barney_mod
+                   '''))
         second_file: Path = tmp_path / 'test.f90'
-        second_file.write_text('''
-module barney_mod
-end module barney_mod
-''')
+        second_file.write_text(
+            dedent('''
+                   module barney_mod
+                   end module barney_mod
+                   '''))
 
         database: StateDatabase = StateDatabase(tmp_path)
         test_unit = FortranAnalyser(database)
@@ -291,12 +296,13 @@ end module barney_mod
         program unit.
         '''
         test_file: Path = tmp_path / 'test.f90'
-        test_file.write_text('''
-use beef_mod
+        test_file.write_text(
+            dedent('''
+                   use beef_mod
 
-module test_mod
-end module test_mod
-''')
+                   module test_mod
+                   end module test_mod
+                   '''))
 
         database: StateDatabase = StateDatabase(tmp_path)
         test_unit = FortranAnalyser(database)
