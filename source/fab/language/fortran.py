@@ -16,19 +16,29 @@ from fab.language import Analyser, AnalysisException
 
 
 class FortranWorkingState(object):
+    '''
+    Maintains a database of information relating to Fortran program units.
+    '''
+    # According to the Fortran spec, section 3.2.2 in
+    # BS ISO/IEC 1539-1:2010, the maximum size of a name is 63 characters.
+    #
+    # If you find source containing labels longer than this then that source
+    # is non-conformant.
+    #
+    _FORTRAN_LABEL_LENGTH = 63
+
     def __init__(self, database: StateDatabase):
         self._database: StateDatabase = database
-        # According to the Fortran spec, section 3.2.2 in
-        # BS ISO/IEC 1539-1:2010, the maximum size of a name is 63 characters.
-        # Choosing a length for filenames is much less clear cut. I have gone
-        # for 1k.
+        # Choosing a length for filenames is much less clear cut than for
+        # labels. I have gone for 1k.
         #
         self._database.connection.execute(
             '''create table if not exists fortran_unit (
                  id integer primary key,
-                 unit character(63) not null,
+                 unit character(:length) not null,
                  filename character(1024) not null
-               )'''
+               )''',
+            {'length': self._FORTRAN_LABEL_LENGTH}
         )
         self._database.connection.execute(
             'create index if not exists idx_fortran_program_unit '
@@ -50,9 +60,10 @@ class FortranWorkingState(object):
         self._database.connection.execute(
             '''create table if not exists fortran_dependency (
                  id integer primary key,
-                 unit character(63) not null,
-                 depends_on character(63) not null
-            )'''
+                 unit character(:length) not null,
+                 depends_on character(:length) not null
+            )''',
+            {'length': self._FORTRAN_LABEL_LENGTH}
         )
         self._database.connection.execute(
             'create index if not exists idx_fortran_dependor '
@@ -102,7 +113,7 @@ class FortranWorkingState(object):
             'select unit from fortran_unit where filename=:filename',
             {'filename': str(filename)}
         )
-        row = cursor.fetchone()
+        row: sqlite3.Row = cursor.fetchone()
         if row is not None:
             self._database.connection.execute(
                 'delete from fortran_unit where filename=:filename',
@@ -292,7 +303,8 @@ class FortranAnalyser(Analyser):
                     logger.debug('Ignoring intrinsic module "%s"', name)
                 else:
                     if len(scope) == 0:
-                        message = '"use" statement found outside program unit'
+                        message: str \
+                            = '"use" statement found outside program unit'
                         raise AnalysisException(message)
                     logger.debug('Found usage of "%s"', name)
                     self._state.add_fortran_dependency(scope[0][1], name)

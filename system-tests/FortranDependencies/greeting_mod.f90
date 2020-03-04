@@ -15,4 +15,4 @@ contains
         write(buffer, '(A)') 'Hello'
     end subroutine greet
 
-end greeting_mod
+end module greeting_mod
