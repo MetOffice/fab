@@ -48,7 +48,7 @@ setuptools.setup(
     python_requires='>=3.6, <4',
     install_requires=[],
     extras_require={
-        'dev': ['flake8'],
+        'dev': ['mypy', 'flake8'],
         'unit-test': ['pytest', 'pytest-cov'],
         'system-test': ['systest']
     }
