@@ -25,7 +25,7 @@ class FortranWorkingState(object):
     # If you find source containing labels longer than this then that source
     # is non-conformant.
     #
-    _FORTRAN_LABEL_LENGTH = 63
+    _FORTRAN_LABEL_LENGTH: int = 63
 
     def __init__(self, database: StateDatabase):
         self._database: StateDatabase = database
@@ -35,10 +35,9 @@ class FortranWorkingState(object):
         self._database.connection.execute(
             '''create table if not exists fortran_unit (
                  id integer primary key,
-                 unit character(:length) not null,
+                 unit character({label}) not null,
                  filename character(1024) not null
-               )''',
-            {'length': self._FORTRAN_LABEL_LENGTH}
+               )'''.format(label=self._FORTRAN_LABEL_LENGTH)
         )
         self._database.connection.execute(
             'create index if not exists idx_fortran_program_unit '
@@ -60,10 +59,9 @@ class FortranWorkingState(object):
         self._database.connection.execute(
             '''create table if not exists fortran_dependency (
                  id integer primary key,
-                 unit character(:length) not null,
-                 depends_on character(:length) not null
-            )''',
-            {'length': self._FORTRAN_LABEL_LENGTH}
+                 unit character({label}) not null,
+                 depends_on character({label}) not null
+            )'''.format(label=self._FORTRAN_LABEL_LENGTH)
         )
         self._database.connection.execute(
             'create index if not exists idx_fortran_dependor '
