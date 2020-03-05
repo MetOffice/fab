@@ -18,12 +18,11 @@ class Transformation(ABC):
     '''
     Runs a build operation which both operates on and produces
     one or more artifacts
-
     '''
     def __init__(self, source: Sequence[Path]) -> None:
         '''Setup and assign the source of this transformation'''
         self._source = source
-        self._outputs = []
+        self._outputs: List[Path] = []
 
     @property
     def source(self) -> Sequence[Path]:
@@ -40,7 +39,6 @@ class Transformation(ABC):
         '''
         Run the transformation, returning a list containing any
         other transformation objects that need to be processed.
-
         '''
         return []
 
