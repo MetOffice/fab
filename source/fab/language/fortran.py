@@ -303,7 +303,7 @@ class FortranAnalyser(Analyser):
                     logger.debug('Ignoring intrinsic module "%s"', use_name)
                 else:
                     if len(scope) == 0:
-                        use_message: str \
+                        use_message \
                             = '"use" statement found outside program unit'
                         raise AnalysisException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
@@ -359,20 +359,22 @@ class FortranAnalyser(Analyser):
 
                 if end_nature is not None:
                     if end_nature != exp[0]:
-                        message = 'Expected end of {exp} "{name}" ' \
-                                  'but found {found}'
-                        values = {'exp': exp[0],
-                                  'name': exp[1],
-                                  'found': end_nature}
-                        raise AnalysisException(message.format(**values))
+                        end_message = 'Expected end of {exp} "{name}" ' \
+                                      'but found {found}'
+                        end_values = {'exp': exp[0],
+                                      'name': exp[1],
+                                      'found': end_nature}
+                        raise AnalysisException(
+                            end_message.format(**end_values))
                 if end_name is not None:
                     if end_name != exp[1]:
-                        message = 'Expected end of {exp} "{name}" ' \
-                                  'but found end of {found}'
-                        values = {'exp': exp[0],
-                                  'name': exp[1],
-                                  'found': end_name}
-                        raise AnalysisException(message.format(**values))
+                        end_message = 'Expected end of {exp} "{name}" ' \
+                                      'but found end of {found}'
+                        end_values = {'exp': exp[0],
+                                      'name': exp[1],
+                                      'found': end_name}
+                        raise AnalysisException(
+                            end_message.format(**end_values))
 
     @staticmethod
     def _normalise(filename: Path) -> Generator[str, None, None]:

@@ -31,27 +31,28 @@ class FabTestCase(systest.TestCase):
 
     def __init__(self, test_directory: Path):
         super().__init__(name=test_directory.stem)
-        self._test_directory = test_directory
+        self._test_directory: Path = test_directory
 
         expectation_file = test_directory / 'expected.txt'
         self._expected = expectation_file.read_text('utf-8') \
             .splitlines(keepends=True)
 
     def setup(self):
-        working_dir = self._test_directory / 'working'
+        working_dir: Path = self._test_directory / 'working'
         if working_dir.is_dir():
             shutil.rmtree(working_dir)
 
     def teardown(self):
-        working_dir = self._test_directory / 'working'
+        working_dir: Path = self._test_directory / 'working'
         shutil.rmtree(working_dir)
 
     def run(self):
         command = ['python3', '-m', 'fab', self._test_directory]
         environment = {'PYTHONPATH': 'source'}
-        thread = subprocess.Popen(command, env=environment,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE)
+        thread: subprocess.Popen = subprocess.Popen(command,
+                                                    env=environment,
+                                                    stdout=subprocess.PIPE,
+                                                    stderr=subprocess.PIPE)
         stdout: bytes
         stderr: bytes
         stdout, stderr = thread.communicate()
