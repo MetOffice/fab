@@ -22,12 +22,13 @@ class StateDatabase(object):
     used for permanent storage of e.g. configuration.
     '''
     def __init__(self, working_directory: Path):
-        self._working_directory = working_directory
+        self._working_directory: Path = working_directory
 
         if not self._working_directory.exists():
             self._working_directory.mkdir(parents=True)
 
-        self.connection = sqlite3.connect(str(working_directory / 'state.db'))
+        self.connection: sqlite3.Connection \
+            = sqlite3.connect(str(working_directory / 'state.db'))
         self.connection.row_factory = sqlite3.Row
 
     def __del__(self):

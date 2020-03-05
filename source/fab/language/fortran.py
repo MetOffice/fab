@@ -16,19 +16,28 @@ from fab.language import Analyser, AnalysisException
 
 
 class FortranWorkingState(object):
+    '''
+    Maintains a database of information relating to Fortran program units.
+    '''
+    # According to the Fortran spec, section 3.2.2 in
+    # BS ISO/IEC 1539-1:2010, the maximum size of a name is 63 characters.
+    #
+    # If you find source containing labels longer than this then that source
+    # is non-conformant.
+    #
+    _FORTRAN_LABEL_LENGTH: int = 63
+
     def __init__(self, database: StateDatabase):
         self._database: StateDatabase = database
-        # According to the Fortran spec, section 3.2.2 in
-        # BS ISO/IEC 1539-1:2010, the maximum size of a name is 63 characters.
-        # Choosing a length for filenames is much less clear cut. I have gone
-        # for 1k.
+        # Choosing a length for filenames is much less clear cut than for
+        # labels. I have gone for 1k.
         #
         self._database.connection.execute(
             '''create table if not exists fortran_unit (
                  id integer primary key,
-                 unit character(63) not null,
+                 unit character({label}) not null,
                  filename character(1024) not null
-               )'''
+               )'''.format(label=self._FORTRAN_LABEL_LENGTH)
         )
         self._database.connection.execute(
             'create index if not exists idx_fortran_program_unit '
@@ -36,6 +45,30 @@ class FortranWorkingState(object):
         self._database.connection.execute(
             'create index if not exists idx_fortran_filename '
             'on fortran_unit(filename)')
+        self._database.connection.commit()
+
+        # Although the current unit will already have been entered into the
+        # database it is not necessarily unique. We may have multiple source
+        # files which define the same unit. Thus it can not be used as a
+        # foreign key.
+        #
+        # Meanwhile the dependency unit may not have been encountered yet so
+        # we can't expect it to be in the database. Thus it too may not be
+        # used as a foreign key.
+        #
+        self._database.connection.execute(
+            '''create table if not exists fortran_dependency (
+                 id integer primary key,
+                 unit character({label}) not null,
+                 depends_on character({label}) not null
+            )'''.format(label=self._FORTRAN_LABEL_LENGTH)
+        )
+        self._database.connection.execute(
+            'create index if not exists idx_fortran_dependor '
+            'on fortran_dependency(unit)')
+        self._database.connection.execute(
+            'create index if not exists idx_fortran_dependee '
+            'on fortran_dependency(depends_on)')
         self._database.connection.commit()
 
     def add_fortran_program_unit(self, name: str, in_file: Path) -> None:
@@ -54,15 +87,39 @@ class FortranWorkingState(object):
             {'unit': name, 'filename': str(in_file)})
         self._database.connection.commit()
 
+    def add_fortran_dependency(self, unit: str, depends_on: str) -> None:
+        '''
+        Records the dependency of one unit on another.
+
+        :param unit: Name of the depending unit.
+        :param depends_on:  Name of the prerequisite unit.
+        '''
+        self._database.connection.execute(
+            '''insert into fortran_dependency(unit, depends_on)
+               values (:unit, :depends_on)''',
+            {'unit': unit, 'depends_on': depends_on}
+        )
+        self._database.connection.commit()
+
     def remove_fortran_file(self, filename: Path) -> None:
         '''
         Removes all records relating of a particular source file.
 
         :param filename: File to be removed.
         '''
-        self._database.connection.execute(
-            'delete from fortran_unit where filename=:filename',
-            {'filename': str(filename)})
+        cursor: sqlite3.Cursor = self._database.connection.execute(
+            'select unit from fortran_unit where filename=:filename',
+            {'filename': str(filename)}
+        )
+        row: sqlite3.Row = cursor.fetchone()
+        if row is not None:
+            self._database.connection.execute(
+                'delete from fortran_unit where filename=:filename',
+                {'filename': str(filename)})
+            self._database.connection.execute(
+                'delete from fortran_dependency where unit=:unit',
+                {'unit': row['unit']}
+            )
         self._database.connection.commit()
 
     def iterate_program_units(self) \
@@ -140,18 +197,40 @@ class FortranWorkingState(object):
             raise WorkingStateException(message.format(filename=filename))
         return units
 
+    def depends_on(self, unit: str) -> List[str]:
+        '''
+        Gets the prerequisite program units of a program unit.
+
+        :param unit: Program unit name
+        :return: Prerequisite unit names. May be an empty list.
+        '''
+        units: List[str] = []
+        cursor: sqlite3.Cursor = self._database.connection.execute(
+            'select depends_on from fortran_dependency where unit=:unit',
+            {'unit': unit})
+        while True:
+            row: sqlite3.Row = cursor.fetchone()
+            if row is None:
+                break
+            units.append(row['depends_on'])
+        cursor.close()
+        return units
+
 
 class FortranAnalyser(Analyser):
     def __init__(self, database: StateDatabase):
         super().__init__(database)
         self._state = FortranWorkingState(database)
 
+    _intrinsic_modules = ['iso_fortran_env']
+
     _letters: str = r'abcdefghijklmnopqrstuvwxyz'
     _digits: str = r'1234567890'
     _underscore: str = r'_'
     _alphanumeric_re: str = '[' + _letters + _digits + _underscore + ']'
     _name_re: str = '[' + _letters + ']' + _alphanumeric_re + '*'
-    _unit_block_re: str = r'program|module|function|subroutine'
+    _procedure_block_re: str = r'function|subroutine'
+    _unit_block_re: str = r'program|module|' + _procedure_block_re
     _scope_block_re: str = r'associate|block|critical|do|if|select'
     _iface_block_re: str = r'interface'
     _type_block_re: str = r'type'
@@ -162,6 +241,9 @@ class FortranAnalyser(Analyser):
     _scoping_re: str = r'^\s*(({name_re})\s*:)?\s*({scope_type_re})' \
                        .format(scope_type_re=_scope_block_re,
                                name_re=_name_re)
+    _procedure_re: str = r'^\s*({procedure_block_re})\s*({name_re})' \
+                         .format(procedure_block_re=_procedure_block_re,
+                                 name_re=_name_re)
     _interface_re: str = r'^\s*{iface_block_re}\s*({name_re})?' \
                          .format(iface_block_re=_iface_block_re,
                                  name_re=_name_re)
@@ -179,12 +261,18 @@ class FortranAnalyser(Analyser):
                                     unit_type_re=_unit_block_re,
                                     name_re=_name_re)
 
+    _use_statement_re: str \
+        = r'^\s*use((\s*,\s*non_intrinsic)?\s*::)?\s*({name_re})' \
+          .format(name_re=_name_re)
+
     _program_unit_pattern: Pattern = re.compile(_program_unit_re,
                                                 re.IGNORECASE)
     _scoping_pattern: Pattern = re.compile(_scoping_re, re.IGNORECASE)
+    _procedure_pattern: Pattern = re.compile(_procedure_re, re.IGNORECASE)
     _interface_pattern: Pattern = re.compile(_interface_re, re.IGNORECASE)
     _type_pattern: Pattern = re.compile(_type_re, re.IGNORECASE)
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
+    _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
     def analyse(self, filename: Path) -> None:
         logger = logging.getLogger(__name__)
@@ -205,6 +293,21 @@ class FortranAnalyser(Analyser):
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
                     self._state.add_fortran_program_unit(unit_name, filename)
                     scope.append((unit_type, unit_name))
+                    continue
+
+            use_match: Optional[Match] \
+                = self._use_pattern.match(line)
+            if use_match:
+                use_name: str = use_match.group(3).lower()
+                if use_name in self._intrinsic_modules:
+                    logger.debug('Ignoring intrinsic module "%s"', use_name)
+                else:
+                    if len(scope) == 0:
+                        use_message \
+                            = '"use" statement found outside program unit'
+                        raise AnalysisException(use_message)
+                    logger.debug('Found usage of "%s"', use_name)
+                    self._state.add_fortran_dependency(scope[0][1], use_name)
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)
@@ -217,6 +320,16 @@ class FortranAnalyser(Analyser):
                 block_nature: str = block_match.group(3).lower()
                 logger.debug('Found %s called "%s"', block_nature, block_name)
                 scope.append((block_nature, block_name))
+                continue
+
+            proc_match: Optional[Match] \
+                = self._procedure_pattern.match(line)
+            if proc_match:
+                proc_nature = proc_match.group(1).lower()
+                proc_name = proc_match.group(2).lower()
+                logger.debug('Found %s called "%s"', proc_nature, proc_name)
+                # Note: We append a tuple so double brackets.
+                scope.append((proc_nature, proc_name))
                 continue
 
             iface_match: Optional[Match] = self._interface_pattern.match(line)
@@ -243,21 +356,25 @@ class FortranAnalyser(Analyser):
                 logger.debug('Found end of %s called %s',
                              end_nature, end_name)
                 exp: Tuple[str, str] = scope.pop()
+
                 if end_nature is not None:
                     if end_nature != exp[0]:
-                        message = 'Expected end of {exp} but found {found}'
-
+                        end_message = 'Expected end of {exp} "{name}" ' \
+                                      'but found {found}'
+                        end_values = {'exp': exp[0],
+                                      'name': exp[1],
+                                      'found': end_nature}
                         raise AnalysisException(
-                            message.format(exp=exp[0], found=end_nature))
+                            end_message.format(**end_values))
                 if end_name is not None:
                     if end_name != exp[1]:
-                        message = '''
-                        Expected end of {exp} "{name}" but found {found}
-                        '''.strip()
+                        end_message = 'Expected end of {exp} "{name}" ' \
+                                      'but found end of {found}'
+                        end_values = {'exp': exp[0],
+                                      'name': exp[1],
+                                      'found': end_name}
                         raise AnalysisException(
-                            message.format(exp=exp[0],
-                                           name=exp[1],
-                                           found=end_name))
+                            end_message.format(**end_values))
 
     @staticmethod
     def _normalise(filename: Path) -> Generator[str, None, None]:

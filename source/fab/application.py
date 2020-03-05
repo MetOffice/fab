@@ -32,5 +32,6 @@ class Fab(object):
         db = FortranWorkingState(self._state)
         for unit, files in db.iterate_program_units():
             print(unit)
-            for file in files:
-                print('    ' + str(file))
+            for filename in files:
+                print('    found in: ' + str(filename))
+                print('    depends on: ' + str(db.depends_on(unit)))

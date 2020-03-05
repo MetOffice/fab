@@ -14,6 +14,7 @@ import difflib
 import logging
 from logging import StreamHandler, FileHandler
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import traceback
@@ -24,24 +25,45 @@ from systest import Sequencer
 
 class FabTestCase(systest.TestCase):
     '''Run Fab against source tree and validate result.'''
-    #  The result is held in a file 'expected.txt' in the test directory.
+    # The result is held in a file 'expected.txt' in the test directory.
     #
     # This comment exists as the framework hijacks the docstring for output.
 
     def __init__(self, test_directory: Path):
         super().__init__(name=test_directory.stem)
-        self._test_directory = test_directory
+        self._test_directory: Path = test_directory
 
         expectation_file = test_directory / 'expected.txt'
         self._expected = expectation_file.read_text('utf-8') \
             .splitlines(keepends=True)
 
+    def setup(self):
+        working_dir: Path = self._test_directory / 'working'
+        if working_dir.is_dir():
+            shutil.rmtree(working_dir)
+
+    def teardown(self):
+        working_dir: Path = self._test_directory / 'working'
+        shutil.rmtree(working_dir)
+
     def run(self):
         command = ['python3', '-m', 'fab', self._test_directory]
         environment = {'PYTHONPATH': 'source'}
-        stdout: bytes = subprocess.check_output(command, env=environment)
-        self._assert_diff(self._expected,
-                          stdout.decode('utf8').splitlines(keepends=True))
+        thread: subprocess.Popen = subprocess.Popen(command,
+                                                    env=environment,
+                                                    stdout=subprocess.PIPE,
+                                                    stderr=subprocess.PIPE)
+        stdout: bytes
+        stderr: bytes
+        stdout, stderr = thread.communicate()
+        if thread.returncode != 0:
+            print('Running Fab failed: ', file=sys.stderr)
+            print('    stdout: ' + stdout.decode('utf-8'))
+            print('    stderr: ' + stderr.decode('utf-8'))
+
+        self.assert_true(thread.returncode == 0)
+        self._assert_diff(stdout.decode('utf-8').splitlines(keepends=True),
+                          self._expected)
 
     def _assert_diff(self, first, second):
         '''
@@ -115,7 +137,8 @@ if __name__ == '__main__':
     root_dir = Path(__file__).parent
 
     sequence = [
-        FabTestCase(root_dir / 'MinimalFortran')
+        FabTestCase(root_dir / 'MinimalFortran'),
+        FabTestCase(root_dir / 'FortranDependencies')
         ]
 
     sequencer: Sequencer = systest.Sequencer('Fab system tests')
