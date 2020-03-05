@@ -29,15 +29,13 @@ class FortranWorkingState(object):
 
     def __init__(self, database: StateDatabase):
         self._database: StateDatabase = database
-        # Choosing a length for filenames is much less clear cut than for
-        # labels. I have gone for 1k.
-        #
         self._database.connection.execute(
             '''create table if not exists fortran_unit (
                  id integer primary key,
                  unit character({label}) not null,
-                 filename character(1024) not null
-               )'''.format(label=self._FORTRAN_LABEL_LENGTH)
+                 filename character({filename}) not null
+               )'''.format(label=self._FORTRAN_LABEL_LENGTH,
+                           filename=database._PATH_LENGTH)
         )
         self._database.connection.execute(
             'create index if not exists idx_fortran_program_unit '
