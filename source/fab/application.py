@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from typing import Dict, Mapping
+from typing import Dict, Mapping, Type
 
 from fab.database import StateDatabase
 from fab.language import Analyser
@@ -13,7 +13,7 @@ from fab.source_tree import TreeDescent, ExtensionVisitor
 
 
 class Fab(object):
-    _extensions: Dict[str, Analyser] = {
+    _extensions: Dict[str, Type[Analyser]] = {
         '.F90': FortranAnalyser,
         '.f90': FortranAnalyser
     }

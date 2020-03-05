@@ -19,7 +19,7 @@ import subprocess
 import sys
 import traceback
 
-import systest
+import systest  # type: ignore
 from systest import Sequencer
 
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
         if not parent.exists():
             parent.mkdir(parents=True)
 
-        leaf: Path = arguments.log.stem
+        leaf: str = arguments.log.stem
         fmt: str = '%Y_%m_%d_%H_%M_%S.%f'
         timestamp: str = datetime.datetime.now().strftime(fmt)
         leaf += '-' + timestamp

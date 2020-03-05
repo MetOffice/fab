@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 import re
 import sqlite3
-from typing import Generator, List, Match, Pattern, Sequence, Tuple
+from typing import Generator, List, Match, Optional, Pattern, Sequence, Tuple
 
 from fab.database import StateDatabase, WorkingStateException
 from fab.language import Analyser, AnalysisException
@@ -279,89 +279,100 @@ class FortranAnalyser(Analyser):
 
         self._state.remove_fortran_file(filename)
 
-        scope = []
+        scope: List[Tuple[str, str]] = []
         for line in self._normalise(filename):
             logger.debug(scope)
             logger.debug('Considering: %s', line)
 
             if len(scope) == 0:
-                match: Match = self._program_unit_pattern.match(line)
-                if match:
-                    unit: str = match.group(1).lower()
-                    name: str = match.group(2).lower()
-                    logger.debug('Found %s called "%s"', unit, name)
-                    self._state.add_fortran_program_unit(name, filename)
-                    scope.append((unit, name))
+                unit_match: Optional[Match] \
+                    = self._program_unit_pattern.match(line)
+                if unit_match:
+                    unit_type: str = unit_match.group(1).lower()
+                    unit_name: str = unit_match.group(2).lower()
+                    logger.debug('Found %s called "%s"', unit_type, unit_name)
+                    self._state.add_fortran_program_unit(unit_name, filename)
+                    scope.append((unit_type, unit_name))
                     continue
 
-            match: Match = self._use_pattern.match(line)
-            if match:
-                name: str = match.group(3).lower()
-                if name in self._intrinsic_modules:
-                    logger.debug('Ignoring intrinsic module "%s"', name)
+            use_match: Optional[Match] \
+                = self._use_pattern.match(line)
+            if use_match:
+                use_name: str = use_match.group(3).lower()
+                if use_name in self._intrinsic_modules:
+                    logger.debug('Ignoring intrinsic module "%s"', use_name)
                 else:
                     if len(scope) == 0:
-                        message: str \
+                        use_message: str \
                             = '"use" statement found outside program unit'
-                        raise AnalysisException(message)
-                    logger.debug('Found usage of "%s"', name)
-                    self._state.add_fortran_dependency(scope[0][1], name)
+                        raise AnalysisException(use_message)
+                    logger.debug('Found usage of "%s"', use_name)
+                    self._state.add_fortran_dependency(scope[0][1], use_name)
                 continue
 
-            match: Match = self._scoping_pattern.match(line)
-            if match:
+            block_match: Optional[Match] = self._scoping_pattern.match(line)
+            if block_match:
                 # Beware we want the value of a different group to the one we
                 # check the presence of.
                 #
-                name: str = match.group(1) and match.group(2).lower()
-                nature: str = match.group(3).lower()
-                logger.debug('Found %s called "%s"', nature, name)
-                scope.append((nature, name))
+                block_name: str = block_match.group(1) \
+                                  and block_match.group(2).lower()
+                block_nature: str = block_match.group(3).lower()
+                logger.debug('Found %s called "%s"', block_nature, block_name)
+                scope.append((block_nature, block_name))
                 continue
 
-            match: Match = self._procedure_pattern.match(line)
-            if match:
-                nature = match.group(1).lower()
-                name = match.group(2).lower()
-                logger.debug('Found %s called "%s"', nature, name)
-                scope.append((nature, name))
+            proc_match: Optional[Match] \
+                = self._procedure_pattern.match(line)
+            if proc_match:
+                proc_nature = proc_match.group(1).lower()
+                proc_name = proc_match.group(2).lower()
+                logger.debug('Found %s called "%s"', proc_nature, proc_name)
+                # Note: We append a tuple so double brackets.
+                scope.append((proc_nature, proc_name))
                 continue
 
-            match: Match = self._interface_pattern.match(line)
-            if match:
-                name = match.group(1) and match.group(1).lower()
-                logger.debug('Found interface called "%s"', name)
-                scope.append(('interface', name))
+            iface_match: Optional[Match] = self._interface_pattern.match(line)
+            if iface_match:
+                iface_name = iface_match.group(1) \
+                             and iface_match.group(1).lower()
+                logger.debug('Found interface called "%s"', iface_name)
+                scope.append(('interface', iface_name))
                 continue
 
-            match: Match = self._type_pattern.match(line)
-            if match:
-                name = match.group(3).lower()
-                logger.debug('Found type called "%s"', name)
-                scope.append(('type', name))
+            type_match: Optional[Match] = self._type_pattern.match(line)
+            if type_match:
+                type_name = type_match.group(3).lower()
+                logger.debug('Found type called "%s"', type_name)
+                scope.append(('type', type_name))
                 continue
 
-            match: Match = self._end_block_pattern.match(line)
-            if match:
-                nature: str = match.group(1) and match.group(1).lower()
-                name: str = match.group(2) and match.group(2).lower()
-                logger.debug('Found end of %s called %s', nature, name)
+            end_match: Optional[Match] = self._end_block_pattern.match(line)
+            if end_match:
+                end_nature: str = end_match.group(1) \
+                    and end_match.group(1).lower()
+                end_name: str = end_match.group(2) \
+                    and end_match.group(2).lower()
+                logger.debug('Found end of %s called %s',
+                             end_nature, end_name)
                 exp: Tuple[str, str] = scope.pop()
-                if nature is not None:
-                    if nature != exp[0]:
+
+                if end_nature is not None:
+                    if end_nature != exp[0]:
                         message = 'Expected end of {exp} "{name}" ' \
                                   'but found {found}'
-
-                        raise AnalysisException(message.format(exp=exp[0],
-                                                               name=exp[1],
-                                                               found=nature))
-                if name is not None:
-                    if name != exp[1]:
+                        values = {'exp': exp[0],
+                                  'name': exp[1],
+                                  'found': end_nature}
+                        raise AnalysisException(message.format(**values))
+                if end_name is not None:
+                    if end_name != exp[1]:
                         message = 'Expected end of {exp} "{name}" ' \
                                   'but found end of {found}'
-                        raise AnalysisException(message.format(exp=exp[0],
-                                                               name=exp[1],
-                                                               found=name))
+                        values = {'exp': exp[0],
+                                  'name': exp[1],
+                                  'found': end_name}
+                        raise AnalysisException(message.format(**values))
 
     @staticmethod
     def _normalise(filename: Path) -> Generator[str, None, None]:
