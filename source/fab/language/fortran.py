@@ -8,14 +8,17 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import re
-import sqlite3
 from typing import Generator, List, Match, Optional, Pattern, Sequence, Tuple
 
-from fab.database import StateDatabase, WorkingStateException
+from fab.database import DatabaseDecorator, \
+                         FileInfoDatabase, \
+                         StateDatabase, \
+                         SqliteStateDatabase, \
+                         WorkingStateException
 from fab.language import Analyser, AnalysisException
 
 
-class FortranWorkingState(object):
+class FortranWorkingState(DatabaseDecorator):
     '''
     Maintains a database of information relating to Fortran program units.
     '''
@@ -28,22 +31,19 @@ class FortranWorkingState(object):
     _FORTRAN_LABEL_LENGTH: int = 63
 
     def __init__(self, database: StateDatabase):
-        self._database: StateDatabase = database
-        self._database.connection.execute(
-            '''create table if not exists fortran_unit (
-                 id integer primary key,
-                 unit character({label}) not null,
-                 filename character({filename}) not null
-               )'''.format(label=self._FORTRAN_LABEL_LENGTH,
-                           filename=database._PATH_LENGTH)
-        )
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_program_unit '
-            'on fortran_unit(unit)')
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_filename '
-            'on fortran_unit(filename)')
-        self._database.connection.commit()
+        super().__init__(database)
+        create_unit_table = [
+            f'''create table if not exists fortran_unit (
+                   id integer primary key,
+                   unit character({self._FORTRAN_LABEL_LENGTH}) not null,
+                   filename character({FileInfoDatabase.PATH_LENGTH}) not null
+                   )''',
+            '''create index if not exists idx_fortran_program_unit
+                   on fortran_unit(unit)''',
+            '''create index if not exists idx_fortran_filename
+                   on fortran_unit(filename)'''
+        ]
+        self.execute(create_unit_table, {})
 
         # Although the current unit will already have been entered into the
         # database it is not necessarily unique. We may have multiple source
@@ -54,20 +54,18 @@ class FortranWorkingState(object):
         # we can't expect it to be in the database. Thus it too may not be
         # used as a foreign key.
         #
-        self._database.connection.execute(
-            '''create table if not exists fortran_dependency (
-                 id integer primary key,
-                 unit character({label}) not null,
-                 depends_on character({label}) not null
-            )'''.format(label=self._FORTRAN_LABEL_LENGTH)
-        )
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_dependor '
-            'on fortran_dependency(unit)')
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_dependee '
-            'on fortran_dependency(depends_on)')
-        self._database.connection.commit()
+        create_depdency_table = [
+            f'''create table if not exists fortran_dependency (
+                   id integer primary key,
+                   unit character({self._FORTRAN_LABEL_LENGTH}) not null,
+                   depends_on character({self._FORTRAN_LABEL_LENGTH}) not null
+                   )''',
+            '''create index if not exists idx_fortran_dependor
+                   on fortran_dependency(unit)''',
+            '''create index if not exists idx_fortran_dependee
+                   on fortran_dependency(depends_on)'''
+        ]
+        self.execute(create_depdency_table, {})
 
     def add_fortran_program_unit(self, name: str, in_file: Path) -> None:
         '''
@@ -79,11 +77,11 @@ class FortranWorkingState(object):
         :param name: Program unit name.
         :param in_file: Filename of source containing program unit.
         '''
-        self._database.connection.execute(
+        add_unit = [
             '''insert into fortran_unit (unit, filename)
-               values (:unit, :filename)''',
-            {'unit': name, 'filename': str(in_file)})
-        self._database.connection.commit()
+                   values (:unit, :filename)'''
+        ]
+        self.execute(add_unit, {'unit': name, 'filename': str(in_file)})
 
     def add_fortran_dependency(self, unit: str, depends_on: str) -> None:
         '''
@@ -92,12 +90,11 @@ class FortranWorkingState(object):
         :param unit: Name of the depending unit.
         :param depends_on:  Name of the prerequisite unit.
         '''
-        self._database.connection.execute(
+        add_dependency = [
             '''insert into fortran_dependency(unit, depends_on)
-               values (:unit, :depends_on)''',
-            {'unit': unit, 'depends_on': depends_on}
-        )
-        self._database.connection.commit()
+                   values (:unit, :depends_on)'''
+        ]
+        self.execute(add_dependency, {'unit': unit, 'depends_on': depends_on})
 
     def remove_fortran_file(self, filename: Path) -> None:
         '''
@@ -105,20 +102,13 @@ class FortranWorkingState(object):
 
         :param filename: File to be removed.
         '''
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select unit from fortran_unit where filename=:filename',
-            {'filename': str(filename)}
-        )
-        row: sqlite3.Row = cursor.fetchone()
-        if row is not None:
-            self._database.connection.execute(
-                'delete from fortran_unit where filename=:filename',
-                {'filename': str(filename)})
-            self._database.connection.execute(
-                'delete from fortran_dependency where unit=:unit',
-                {'unit': row['unit']}
-            )
-        self._database.connection.commit()
+        remove_file = [
+            '''delete from fortran_dependency
+                   where unit=(select unit from fortran_unit
+                       where filename=:filename)''',
+            '''delete from fortran_unit where filename=:filename'''
+            ]
+        self.execute(remove_file, {'filename': str(filename)})
 
     def iterate_program_units(self) \
             -> Generator[Tuple[str, Sequence[Path]], None, None]:
@@ -127,15 +117,12 @@ class FortranWorkingState(object):
 
         :return: Unit name and containing filename pairs.
         '''
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select unit, filename from fortran_unit '
-            'order by unit, filename')
+        query = '''select unit, filename from fortran_unit
+                       order by unit, filename'''
+        rows = self.execute(query, {})
         unit = None
         files = []
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             if row['unit'] != unit:
                 if unit is not None:
                     yield (unit, files)
@@ -158,16 +145,11 @@ class FortranWorkingState(object):
         :param name: Program unit name.
         :return: Filenames of source files.
         '''
+        query = 'select filename from fortran_unit where unit=:unit'
+        rows = self.execute(query, {'unit': name})
         filenames: List[Path] = []
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select filename from fortran_unit where unit=:unit',
-            {'unit': name})
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             filenames.append(Path(row['filename']))
-        cursor.close()
         if len(filenames) == 0:
             message = 'Program unit "{unit}" not found in database.'
             raise WorkingStateException(message.format(unit=name))
@@ -180,16 +162,11 @@ class FortranWorkingState(object):
         :param filename: Source file of interest.
         :return: Program units found therein.
         '''
+        query = 'select unit from fortran_unit where filename=:filename'
+        rows = self.execute(query, {'filename': str(filename)})
         units: List[str] = []
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select unit from fortran_unit where filename=:filename ',
-            {'filename': str(filename)})
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             units.append(row['unit'])
-        cursor.close()
         if len(units) == 0:
             message = 'Source file "{filename}" not found in database.'
             raise WorkingStateException(message.format(filename=filename))
@@ -202,21 +179,16 @@ class FortranWorkingState(object):
         :param unit: Program unit name
         :return: Prerequisite unit names. May be an empty list.
         '''
+        query = 'select depends_on from fortran_dependency where unit=:unit'
+        rows = self.execute(query, {'unit': unit})
         units: List[str] = []
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select depends_on from fortran_dependency where unit=:unit',
-            {'unit': unit})
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             units.append(row['depends_on'])
-        cursor.close()
         return units
 
 
 class FortranAnalyser(Analyser):
-    def __init__(self, database: StateDatabase):
+    def __init__(self, database: SqliteStateDatabase):
         super().__init__(database)
         self._state = FortranWorkingState(database)
 

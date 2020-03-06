@@ -6,7 +6,7 @@
 from pathlib import Path
 from typing import List
 
-from fab.database import StateDatabase
+from fab.database import SqliteStateDatabase
 from fab.language import Analyser
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
 
@@ -37,7 +37,7 @@ def test_descent(tmp_path: Path):
 
 
 class DummyAnalyser(Analyser):
-    def __init__(self, db: StateDatabase):
+    def __init__(self, db: SqliteStateDatabase):
         super().__init__(db)
         self.seen: List[Path] = []
 
@@ -46,7 +46,7 @@ class DummyAnalyser(Analyser):
 
 
 def test_extension_visitor(tmp_path: Path):
-    db = StateDatabase(tmp_path)
+    db = SqliteStateDatabase(tmp_path)
     emap = {'.foo': DummyAnalyser(db),
             '.bar': DummyAnalyser(db)}
     test_unit = ExtensionVisitor(emap)

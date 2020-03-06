@@ -6,7 +6,7 @@
 from pathlib import Path
 from typing import Dict, Mapping, Type
 
-from fab.database import StateDatabase
+from fab.database import SqliteStateDatabase
 from fab.language import Analyser
 from fab.language.fortran import FortranAnalyser, FortranWorkingState
 from fab.source_tree import TreeDescent, ExtensionVisitor
@@ -19,7 +19,7 @@ class Fab(object):
     }
 
     def __init__(self, workspace: Path):
-        self._state = StateDatabase(workspace)
+        self._state = SqliteStateDatabase(workspace)
         self._extension_map: Mapping[str, Analyser] \
             = {extension: analyser(self._state)
                for extension, analyser in self._extensions.items()}

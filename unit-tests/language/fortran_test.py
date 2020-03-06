@@ -10,7 +10,7 @@ from typing import Dict, List, Sequence
 
 import pytest
 
-from fab.database import StateDatabase, WorkingStateException
+from fab.database import SqliteStateDatabase, WorkingStateException
 from fab.language import AnalysisException
 from fab.language.fortran import FortranAnalyser, FortranWorkingState
 
@@ -44,7 +44,7 @@ class TestFortranWorkingSpace:
         Walks a FortranWorkingState object through a sequence of adds and
         removes checking the contents at each stage.
         '''
-        database = StateDatabase(tmp_path)
+        database = SqliteStateDatabase(tmp_path)
         test_unit = FortranWorkingState(database)
 
         # Add a file containing a program unit and an unsatisfied dependency.
@@ -122,7 +122,7 @@ class TestFortranWorkingSpace:
                        expected_dependency)
 
     def test_unit_iterator(self, tmp_path):
-        database = StateDatabase(tmp_path)
+        database = SqliteStateDatabase(tmp_path)
         test_unit = FortranWorkingState(database)
 
         test_unit.add_fortran_program_unit('foo', tmp_path / 'foo.f90')
@@ -175,7 +175,7 @@ class TestFortranAnalyser(object):
                                          'baz': ['teapot_mod'],
                                          'qux': ['wibble_mod', 'wubble_mod']}
 
-        database: StateDatabase = StateDatabase(tmp_path)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
         test_unit = FortranAnalyser(database)
         test_unit.analyse(test_file)
         working_state = FortranWorkingState(database)
@@ -236,7 +236,7 @@ class TestFortranAnalyser(object):
                    '''))
         units: List[str] = ['fred', 'barney']
 
-        database: StateDatabase = StateDatabase(tmp_path)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
         test_unit = FortranAnalyser(database)
         test_unit.analyse(test_file)
         working_state = FortranWorkingState(database)
@@ -269,7 +269,7 @@ class TestFortranAnalyser(object):
                    end module barney_mod
                    '''))
 
-        database: StateDatabase = StateDatabase(tmp_path)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
         test_unit = FortranAnalyser(database)
         test_unit.analyse(first_file)
         test_unit.analyse(second_file)
@@ -304,7 +304,7 @@ class TestFortranAnalyser(object):
                    end module test_mod
                    '''))
 
-        database: StateDatabase = StateDatabase(tmp_path)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
         test_unit = FortranAnalyser(database)
         with pytest.raises(AnalysisException):
             test_unit.analyse(test_file)

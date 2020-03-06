@@ -4,14 +4,30 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
+import sqlite3
 import pytest  # type: ignore
 
-from fab.database import StateDatabase, FileInfo, WorkingStateException
+from fab.database import SqliteStateDatabase, \
+                         FileInfoDatabase, \
+                         FileInfo, \
+                         WorkingStateException
 
 
-class TestStateDatabase(object):
+class TestSQLiteStateDatabase(object):
+    def test_constructor(self, tmp_path: Path):
+        _ = SqliteStateDatabase(tmp_path)
+
+        db_file = tmp_path / 'state.db'
+        assert db_file.exists()
+
+        # Check we can open the database without exceptions
+        connection = sqlite3.Connection(str(db_file))
+        connection.close()
+
+
+class TestFileInfoDatabase(object):
     def test_file_info(self, tmp_path: Path):
-        test_unit = StateDatabase(tmp_path)
+        test_unit = FileInfoDatabase(SqliteStateDatabase(tmp_path))
 
         with pytest.raises(WorkingStateException):
             test_unit.get_file_info(Path('foo.f90'))
