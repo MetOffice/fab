@@ -40,11 +40,11 @@ class FabTestCase(systest.TestCase):
     def setup(self):
         working_dir: Path = self._test_directory / 'working'
         if working_dir.is_dir():
-            shutil.rmtree(working_dir)
+            shutil.rmtree(str(working_dir))
 
     def teardown(self):
         working_dir: Path = self._test_directory / 'working'
-        shutil.rmtree(working_dir)
+        shutil.rmtree(str(working_dir))
 
     def run(self):
         command = ['python3', '-m', 'fab', self._test_directory]

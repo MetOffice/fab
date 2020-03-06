@@ -10,7 +10,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Mapping
 
+from fab.database import FileInfoDatabase
 from fab.language import Analyser
+from fab.reader import TextReader, FileTextReader, TextReaderAdler32
 
 
 class TreeVisitor(ABC):
@@ -26,7 +28,13 @@ class ExtensionVisitor(TreeVisitor):
     def visit(self, candidate: Path):
         try:
             analyser = self._extension_map[candidate.suffix]
-            analyser.analyse(candidate)
+            reader: TextReader = FileTextReader(candidate)
+            hasher: TextReaderAdler32 = TextReaderAdler32(reader)
+            analyser.analyse(hasher)
+            for _ in hasher.line_by_line():
+                pass  # Make sure we've read the whole file.
+            file_info = FileInfoDatabase(analyser.get_database())
+            file_info.add_file_info(candidate, hasher.get_hash())
         except KeyError:
             pass
 

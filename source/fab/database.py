@@ -86,6 +86,12 @@ class FileInfoDatabase(DatabaseDecorator):
                      {'filename': str(filename),
                       'adler32': str(adler32)})
 
+    def get_all_filenames(self) -> Iterator[Path]:
+        query = ['select filename from file_info order by filename']
+        rows: DatabaseRows = self.execute(query, {})
+        for row in rows:
+            yield Path(row['filename'])
+
     def get_file_info(self, filename: Path) -> FileInfo:
         queries = ['''select filename, adler32 from file_info
                           where filename=:filename''']

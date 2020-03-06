@@ -9,7 +9,7 @@ from typing import Dict, Mapping, Type
 from fab.database import SqliteStateDatabase
 from fab.language import Analyser
 from fab.language.fortran import FortranAnalyser, FortranWorkingState
-from fab.source_tree import TreeDescent, ExtensionVisitor
+from fab.source_tree import ExtensionVisitor, FileInfoDatabase, TreeDescent
 
 
 class Fab(object):
@@ -29,9 +29,15 @@ class Fab(object):
         descender = TreeDescent(source)
         descender.descend(visitor)
 
-        db = FortranWorkingState(self._state)
-        for unit, files in db.iterate_program_units():
+        file_db = FileInfoDatabase(self._state)
+        for file in file_db.get_all_filenames():
+            info = file_db.get_file_info(file)
+            print(info.filename)
+            print(f'    hash: {info.adler32}')
+
+        fortran_db = FortranWorkingState(self._state)
+        for unit, files in fortran_db.iterate_program_units():
             print(unit)
             for filename in files:
                 print('    found in: ' + str(filename))
-                print('    depends on: ' + str(db.depends_on(unit)))
+                print('    depends on: ' + str(fortran_db.depends_on(unit)))

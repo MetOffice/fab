@@ -8,14 +8,22 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import re
-from typing import Generator, List, Match, Optional, Pattern, Sequence, Tuple
+from typing import (Generator,
+                    List,
+                    Match,
+                    Optional,
+                    Pattern,
+                    Sequence,
+                    Tuple,
+                    Union)
 
-from fab.database import DatabaseDecorator, \
-                         FileInfoDatabase, \
-                         StateDatabase, \
-                         SqliteStateDatabase, \
-                         WorkingStateException
+from fab.database import (DatabaseDecorator,
+                          FileInfoDatabase,
+                          StateDatabase,
+                          SqliteStateDatabase,
+                          WorkingStateException)
 from fab.language import Analyser, AnalysisException
+from fab.reader import TextReader
 
 
 class FortranWorkingState(DatabaseDecorator):
@@ -67,7 +75,8 @@ class FortranWorkingState(DatabaseDecorator):
         ]
         self.execute(create_depdency_table, {})
 
-    def add_fortran_program_unit(self, name: str, in_file: Path) -> None:
+    def add_fortran_program_unit(self, name: str,
+                                 in_file: Union[Path, str]) -> None:
         '''
         Creates a record of a new program unit and the file it is found in.
 
@@ -96,7 +105,7 @@ class FortranWorkingState(DatabaseDecorator):
         ]
         self.execute(add_dependency, {'unit': unit, 'depends_on': depends_on})
 
-    def remove_fortran_file(self, filename: Path) -> None:
+    def remove_fortran_file(self, filename: Union[Path, str]) -> None:
         '''
         Removes all records relating of a particular source file.
 
@@ -244,13 +253,13 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def analyse(self, filename: Path) -> None:
+    def analyse(self, source: TextReader) -> None:
         logger = logging.getLogger(__name__)
 
-        self._state.remove_fortran_file(filename)
+        self._state.remove_fortran_file(source.get_filename())
 
         scope: List[Tuple[str, str]] = []
-        for line in self._normalise(filename):
+        for line in self._normalise(source):
             logger.debug(scope)
             logger.debug('Considering: %s', line)
 
@@ -261,7 +270,8 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    self._state.add_fortran_program_unit(unit_name, filename)
+                    self._state.add_fortran_program_unit(unit_name,
+                                                         source.get_filename())
                     scope.append((unit_type, unit_name))
                     continue
 
@@ -347,35 +357,34 @@ class FortranAnalyser(Analyser):
                             end_message.format(**end_values))
 
     @staticmethod
-    def _normalise(filename: Path) -> Generator[str, None, None]:
+    def _normalise(source: TextReader) -> Generator[str, None, None]:
         '''
         Generator to return each line of a source file; the lines
         are sanitised to remove comments and collapse the result
         of continuation lines whilst also trimming away as much
         whitespace as possible
         '''
-        with filename.open('r') as source:
+        line_buffer = ''
+        for line in source.line_by_line():
+            # Remove comments - we accept that an exclamation mark
+            # appearing in a string will cause the rest of that line
+            # to be blanked out, but the things we wish to parse
+            # later shouldn't appear after a string on a line anyway
+            line = re.sub(r'!.*', '', line)
+
+            # If the line is empty, go onto the next
+            if line.strip() == '':
+                continue
+
+            # Deal with continuations by removing them to collapse
+            # the lines together
+            line_buffer += line
+            if "&" in line_buffer:
+                line_buffer = re.sub(r'&\s*\n', '', line_buffer)
+                continue
+
+            # Before output, minimise whitespace but add a space on the end
+            # of the line.
+            line_buffer = re.sub(r'\s+', r' ', line_buffer)
+            yield line_buffer.rstrip()
             line_buffer = ''
-            for line in source:
-                # Remove comments - we accept that an exclamation mark
-                # appearing in a string will cause the rest of that line
-                # to be blanked out, but the things we wish to parse
-                # later shouldn't appear after a string on a line anyway
-                line = re.sub(r'!.*', '', line)
-
-                # If the line is empty, go onto the next
-                if line.strip() == '':
-                    continue
-
-                # Deal with continuations by removing them to collapse
-                # the lines together
-                line_buffer += line
-                if "&" in line_buffer:
-                    line_buffer = re.sub(r'&\s*\n', '', line_buffer)
-                    continue
-
-                # Before output, minimise whitespace but add a space on the end
-                # of the line.
-                line_buffer = re.sub(r'\s+', r' ', line_buffer)
-                yield line_buffer.rstrip()
-                line_buffer = ''

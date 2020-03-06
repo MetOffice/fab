@@ -31,18 +31,24 @@ class TestFileInfoDatabase(object):
 
         with pytest.raises(WorkingStateException):
             test_unit.get_file_info(Path('foo.f90'))
+        assert list(test_unit.get_all_filenames()) == []
 
         test_unit.add_file_info(Path('foo.f90'), 1234)
+        assert list(test_unit.get_all_filenames()) == [Path('foo.f90')]
         assert test_unit.get_file_info(Path('foo.f90')) \
             == FileInfo(Path('foo.f90'), 1234)
 
         test_unit.add_file_info(Path('bar/baz.f90'), 5786)
+        assert list(test_unit.get_all_filenames()) == [Path('bar/baz.f90'),
+                                                       Path('foo.f90')]
         assert test_unit.get_file_info(Path('foo.f90')) \
             == FileInfo(Path('foo.f90'), 1234)
         assert test_unit.get_file_info(Path('bar/baz.f90')) \
             == FileInfo(Path('bar/baz.f90'), 5786)
 
         test_unit.add_file_info(Path('foo.f90'), 987)
+        assert list(test_unit.get_all_filenames()) == [Path('bar/baz.f90'),
+                                                       Path('foo.f90')]
         assert test_unit.get_file_info(Path('foo.f90')) \
             == FileInfo(Path('foo.f90'), 987)
         assert test_unit.get_file_info(Path('bar/baz.f90')) \
