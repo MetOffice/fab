@@ -6,6 +6,8 @@
 from collections import defaultdict
 from pathlib import Path
 import sys
+import tkinter as tk
+import tkinter.ttk as ttk
 from typing import Dict, List, Type, Union
 
 from fab import FabException
@@ -208,3 +210,52 @@ class Dump(object):
             print(f"    Found in      : {info.unit.found_in}", file=stream)
             print(f"    Prerequisites : {', '.join(info.depends_on)}",
                   file=stream)
+
+
+class Explorer(tk.Frame):
+    def __init__(self, workspace: Path):
+        self._state = SqliteStateDatabase(workspace)
+
+        root = tk.Tk()
+        super().__init__(root)
+
+        menubar = tk.Menu(root)
+
+        app_menu = tk.Menu(menubar, tearoff=0)
+        app_menu.add_command(label='Exit', command=root.quit)
+        menubar.add_cascade(label='Application', menu=app_menu)
+
+        root.config(menu=menubar)
+
+        notebook = ttk.Notebook(root)
+
+        file_frame = ttk.Frame(notebook)
+        notebook.add(file_frame, text="File view")
+
+        file_view = ttk.Treeview(file_frame)
+        file_view['columns'] = ('hash')
+        file_view.heading('#0', text="Filename")
+        file_view.heading('hash', text="Hash")
+        file_view.pack()
+
+        fortran_frame = ttk.Frame(notebook)
+        notebook.add(fortran_frame, text="Fortran view")
+
+        fortran_view = ttk.Treeview(fortran_frame)
+        fortran_view['columns'] = ('files', 'prerequisites')
+        fortran_view.heading('#0', text="Program unit")
+        fortran_view.heading('files', text="Appears in")
+        fortran_view.heading('prerequisites', text="Depends on")
+        fortran_view.pack()
+
+        notebook.pack(expand=1, fill='both')
+        self.pack()
+
+    def _create_widgets(self):
+        self._button = tk.Button(self)
+        self._button['text'] = "Greetings"
+        self._button['command'] = self._action
+        self._button.pack(side='top')
+
+    def _action(self):
+        pass
