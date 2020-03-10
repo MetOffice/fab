@@ -95,5 +95,6 @@ def dump_entry() -> None:
     application = fab.application.Dump(arguments.workspace)
     application.run()
 
+
 if __name__ == '__main__':
     raise Exception("Invoke using entry points only")

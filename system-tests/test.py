@@ -34,7 +34,7 @@ class RunTestCase(systest.TestCase):
                  working_dir: Path,
                  expectation_file: Path,
                  entry_point: str,
-                 arguments: Sequence[str]=[]):
+                 arguments: Sequence[str] = []):
         super().__init__(name=test_directory.stem)
         self._test_directory: Path = test_directory
         self._working_dir: Path = working_dir
@@ -98,7 +98,7 @@ class FabTestCase(RunTestCase):
                          test_directory / 'working',
                          test_directory / 'expected.fab.txt',
                          'fab_entry',
-                         [test_directory])
+                         [str(test_directory)])
 
     def setup(self):
         if self._working_dir.is_dir():
