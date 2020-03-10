@@ -13,6 +13,7 @@ import datetime
 import difflib
 import logging
 from logging import StreamHandler, FileHandler
+import os.path
 from pathlib import Path
 import shutil
 import subprocess
@@ -36,19 +37,24 @@ class FabTestCase(systest.TestCase):
         expectation_file = test_directory / 'expected.txt'
         self._expected = expectation_file.read_text('utf-8') \
             .splitlines(keepends=True)
+        
+        self._working_dir: Path = self._test_directory / 'working'
 
     def setup(self):
-        working_dir: Path = self._test_directory / 'working'
-        if working_dir.is_dir():
-            shutil.rmtree(working_dir)
+        if self._working_dir.is_dir():
+            shutil.rmtree(self._working_dir)
 
     def teardown(self):
-        working_dir: Path = self._test_directory / 'working'
-        shutil.rmtree(working_dir)
+        pass
+        #if working_dir.is_dir():
+        #    shutil.rmtree(working_dir)
 
     def run(self):
-        command = ['python3', '-m', 'fab', self._test_directory]
-        environment = {'PYTHONPATH': 'source'}
+        command = ['python3',
+                   '-c', 'import sys; import fab; sys.exit(fab.entry.fab())',
+                   '-w', self._working_dir, self._test_directory]
+        environment = {'PATH': os.path.dirname(sys.executable),
+                       'PYTHONPATH': 'source'}
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
                                                     stdout=subprocess.PIPE,

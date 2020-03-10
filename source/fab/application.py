@@ -35,3 +35,12 @@ class Fab(object):
             for filename in files:
                 print('    found in: ' + str(filename))
                 print('    depends on: ' + str(db.depends_on(unit)))
+
+
+class Dump(object):
+    def __init__(self, workspace: Path):
+        self._state = StateDatabase(workspace)
+
+    def run(self):
+        fortran_view = FortranWorkingState(self._state)
+        

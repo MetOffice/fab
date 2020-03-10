@@ -44,7 +44,8 @@ setuptools.setup(
         ],
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
-    entry_points={'console_scripts': ['fab=fab.__main__:main']},
+    entry_points={'console_scripts': ['fab=fab.entry:fab',
+                                      'fab-dump=fab.entry:dump']},
     python_requires='>=3.6, <4',
     install_requires=[],
     extras_require={
