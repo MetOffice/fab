@@ -35,7 +35,7 @@ def fab_cli() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def fab() -> None:
+def fab_entry() -> None:
     """
     The core Fab build tool.
     """
@@ -75,7 +75,7 @@ def dump_cli() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def dump() -> None:
+def dump_entry() -> None:
     """
     Dump a state database from a working directory.
     """

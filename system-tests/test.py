@@ -50,8 +50,8 @@ class FabTestCase(systest.TestCase):
         #    shutil.rmtree(working_dir)
 
     def run(self):
-        command = ['python3',
-                   '-c', 'import sys; import fab; sys.exit(fab.entry.fab())',
+        script = "import sys; import fab.entry; sys.exit(fab.entry.fab_entry())"
+        command = ['python3', '-c', script,
                    '-w', self._working_dir, self._test_directory]
         environment = {'PATH': os.path.dirname(sys.executable),
                        'PYTHONPATH': 'source'}
