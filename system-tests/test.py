@@ -19,40 +19,36 @@ import shutil
 import subprocess
 import sys
 import traceback
+from typing import Sequence
 
 import systest  # type: ignore
 from systest import Sequencer
 
 
-class FabTestCase(systest.TestCase):
-    '''Run Fab against source tree and validate result.'''
-    # The result is held in a file 'expected.txt' in the test directory.
-    #
-    # This comment exists as the framework hijacks the docstring for output.
-
-    def __init__(self, test_directory: Path):
+class RunTestCase(systest.TestCase):
+    """
+    Runs a tool from the fab collection and compares output with expected one.
+    """
+    def __init__(self,
+                 test_directory: Path,
+                 working_dir: Path,
+                 expectation_file: Path,
+                 entry_point: str,
+                 arguments: Sequence[str]=[]):
         super().__init__(name=test_directory.stem)
         self._test_directory: Path = test_directory
-
-        expectation_file = test_directory / 'expected.txt'
+        self._working_dir: Path = working_dir
+        self._entry_point = entry_point
+        self._arguments = arguments
         self._expected = expectation_file.read_text('utf-8') \
             .splitlines(keepends=True)
-        
-        self._working_dir: Path = self._test_directory / 'working'
-
-    def setup(self):
-        if self._working_dir.is_dir():
-            shutil.rmtree(self._working_dir)
-
-    def teardown(self):
-        pass
-        #if working_dir.is_dir():
-        #    shutil.rmtree(working_dir)
 
     def run(self):
-        script = "import sys; import fab.entry; sys.exit(fab.entry.fab_entry())"
+        script = "import sys; import fab.entry; " \
+            f"sys.exit(fab.entry.{self._entry_point}())"
         command = ['python3', '-c', script,
-                   '-w', self._working_dir, self._test_directory]
+                   '-w', self._working_dir]
+        command.extend(self._arguments)
         environment = {'PATH': os.path.dirname(sys.executable),
                        'PYTHONPATH': 'source'}
         thread: subprocess.Popen = subprocess.Popen(command,
@@ -71,7 +67,8 @@ class FabTestCase(systest.TestCase):
         self._assert_diff(stdout.decode('utf-8').splitlines(keepends=True),
                           self._expected)
 
-    def _assert_diff(self, first, second):
+    @staticmethod
+    def _assert_diff(first, second):
         '''
         Raise an exception if ``first`` and ``seconds`` are not the same.
 
@@ -88,6 +85,42 @@ class FabTestCase(systest.TestCase):
                 '{}:{}: Mismatch found:\n{}'.format(filename,
                                                     line,
                                                     text))
+
+
+class FabTestCase(RunTestCase):
+    """Run Fab build tool against source tree and validate result."""
+    # The result is held in a file 'expected.fab.txt' in the test directory.
+    #
+    # This comment exists as the framework hijacks the docstring for output.
+    #
+    def __init__(self, test_directory: Path):
+        super().__init__(test_directory,
+                         test_directory / 'working',
+                         test_directory / 'expected.fab.txt',
+                         'fab_entry',
+                         [test_directory])
+
+    def setup(self):
+        if self._working_dir.is_dir():
+            shutil.rmtree(self._working_dir)
+
+
+class DumpTestCase(RunTestCase):
+    """Run Fab dump tool against working directory and validate result."""
+    # The result is held in a file 'expected.dump.txt' in the test directory.
+    #
+    # This comment exists as the framework hijacks the docstring for output.
+    #
+    def __init__(self, test_directory: Path):
+        super().__init__(test_directory,
+                         test_directory / 'working',
+                         test_directory / 'expected.dump.txt',
+                         'dump_entry',
+                         [])
+
+    def teardown(self):
+        if self._working_dir.is_dir():
+            shutil.rmtree(self._working_dir)
 
 
 if __name__ == '__main__':
@@ -142,10 +175,16 @@ if __name__ == '__main__':
     #
     root_dir = Path(__file__).parent
 
-    sequence = [
-        FabTestCase(root_dir / 'MinimalFortran'),
-        FabTestCase(root_dir / 'FortranDependencies')
-        ]
+    sequence = (
+                   [
+                       FabTestCase(root_dir / 'MinimalFortran'),
+                       DumpTestCase(root_dir / 'MinimalFortran')
+                   ],
+                   [
+                       FabTestCase(root_dir / 'FortranDependencies'),
+                       DumpTestCase(root_dir / 'FortranDependencies')
+                   ]
+               )
 
     sequencer: Sequencer = systest.Sequencer('Fab system tests')
     tallies = sequencer.run(sequence)

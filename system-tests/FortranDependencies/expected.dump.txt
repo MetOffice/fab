@@ -1,0 +1,13 @@
+Fortran View
+  Program unit    : bye_mod
+    Found in      : system-tests/FortranDependencies/bye_mod.f90
+    Prerequisites : constants_mod
+  Program unit    : first_mod
+    Found in      : system-tests/FortranDependencies/first.f90
+    Prerequisites : constants_mod, greeting_mod
+  Program unit    : greeting_mod
+    Found in      : system-tests/FortranDependencies/greeting_mod.f90
+    Prerequisites : constants_mod
+  Program unit    : second
+    Found in      : system-tests/FortranDependencies/second.f90
+    Prerequisites : constants_mod, bye_mod

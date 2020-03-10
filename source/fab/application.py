@@ -4,6 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
+import sys
 from typing import Dict, Mapping, Type
 
 from fab.database import StateDatabase
@@ -41,6 +42,13 @@ class Dump(object):
     def __init__(self, workspace: Path):
         self._state = StateDatabase(workspace)
 
-    def run(self):
+    def run(self, stream=sys.stdout):
         fortran_view = FortranWorkingState(self._state)
-        
+        print("Fortran View", file=stream)
+        for program_unit, found_in in fortran_view.iterate_program_units():
+            filenames = (str(path) for path in found_in)
+            print(f"  Program unit    : {program_unit}", file=stream)
+            print(f"    Found in      : {', '.join(filenames)}", file=stream)
+            prerequisites = fortran_view.depends_on(program_unit)
+            print(f"    Prerequisites : {', '.join(prerequisites)}",
+                  file=stream)

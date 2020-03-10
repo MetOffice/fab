@@ -1,7 +1,7 @@
 bye_mod
     found in: system-tests/FortranDependencies/bye_mod.f90
     depends on: ['constants_mod']
-first
+first_mod
     found in: system-tests/FortranDependencies/first.f90
     depends on: ['constants_mod', 'greeting_mod']
 greeting_mod

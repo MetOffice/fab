@@ -2,7 +2,7 @@
 ! For further details please refer to the file COPYRIGHT
 ! which you should have received as part of this distribution
 !
-program first
+program first_mod
 
     use, intrinsic :: iso_fortran_env, only : output_unit
     use :: constants_mod, only : str_len
@@ -14,4 +14,4 @@ program first
 
     write(output_unit, '(A)') message
 
-end program first
+end program first_mod

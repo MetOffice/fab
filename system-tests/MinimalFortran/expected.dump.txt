@@ -1,0 +1,4 @@
+Fortran View
+  Program unit    : test
+    Found in      : system-tests/MinimalFortran/program.f90
+    Prerequisites : 
