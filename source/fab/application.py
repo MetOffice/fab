@@ -7,25 +7,30 @@ from pathlib import Path
 from typing import Dict, Mapping, Type
 
 from fab.database import SqliteStateDatabase
-from fab.language import Analyser
-from fab.language.fortran import FortranAnalyser, FortranWorkingState
-from fab.source_tree import ExtensionVisitor, FileInfoDatabase, TreeDescent
+from fab.language import Analyser, PreProcessor
+from fab.language.fortran import \
+    FortranAnalyser, \
+    FortranWorkingState, \
+    FortranPreProcessor
+from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
 
 
 class Fab(object):
-    _extensions: Dict[str, Type[Analyser]] = {
-        '.F90': FortranAnalyser,
+    _analysers: Dict[str, Type[Analyser]] = {
         '.f90': FortranAnalyser
     }
 
     def __init__(self, workspace: Path):
         self._state = SqliteStateDatabase(workspace)
-        self._extension_map: Mapping[str, Analyser] \
+        self._analyser_map: Mapping[str, Analyser] \
             = {extension: analyser(self._state)
-               for extension, analyser in self._extensions.items()}
+               for extension, analyser in self._analysers.items()}
+        self._preprocessor_map: Dict[str, Type[PreProcessor]] = {
+            ".F90": FortranPreProcessor("cpp", "", workspace)
+        }
 
     def run(self, source: Path):
-        visitor = ExtensionVisitor(self._extension_map)
+        visitor = ExtensionVisitor(self._analyser_map)
         descender = TreeDescent(source)
         descender.descend(visitor)
 

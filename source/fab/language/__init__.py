@@ -10,7 +10,7 @@ from fab.database import SqliteStateDatabase
 from fab.reader import TextReader
 
 
-class AnalysisException(Exception):
+class TransformException(Exception):
     pass
 
 

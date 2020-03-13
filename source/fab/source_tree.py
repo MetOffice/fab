@@ -30,7 +30,7 @@ class ExtensionVisitor(TreeVisitor):
             analyser = self._extension_map[candidate.suffix]
             reader: TextReader = FileTextReader(candidate)
             hasher: TextReaderAdler32 = TextReaderAdler32(reader)
-            analyser.analyse(hasher)
+            analyser.run(hasher)
             for _ in hasher.line_by_line():
                 pass  # Make sure we've read the whole file.
             file_info = FileInfoDatabase(analyser.database)

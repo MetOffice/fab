@@ -8,6 +8,7 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import re
+import subprocess
 from typing import (Generator,
                     Iterator,
                     List,
@@ -23,7 +24,7 @@ from fab.database import (DatabaseDecorator,
                           StateDatabase,
                           SqliteStateDatabase,
                           WorkingStateException)
-from fab.language import Analyser, AnalysisException
+from fab.language import Analyser, TransformException, PreProcessor
 from fab.reader import TextReader, TextReaderDecorator
 
 
@@ -292,7 +293,7 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def analyse(self, source: TextReader) -> None:
+    def run(self, source: TextReader) -> None:
         logger = logging.getLogger(__name__)
 
         self._state.remove_fortran_file(source.filename)
@@ -325,7 +326,7 @@ class FortranAnalyser(Analyser):
                     if len(scope) == 0:
                         use_message \
                             = '"use" statement found outside program unit'
-                        raise AnalysisException(use_message)
+                        raise TransformException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
                     self._state.add_fortran_dependency(scope[0][1], use_name)
                 continue
@@ -384,7 +385,7 @@ class FortranAnalyser(Analyser):
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
                                       'found': end_nature}
-                        raise AnalysisException(
+                        raise TransformException(
                             end_message.format(**end_values))
                 if end_name is not None:
                     if end_name != exp[1]:
@@ -393,5 +394,29 @@ class FortranAnalyser(Analyser):
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
                                       'found': end_name}
-                        raise AnalysisException(
+                        raise TransformException(
                             end_message.format(**end_values))
+        return []
+
+
+class FortranPreProcessor(PreProcessor):
+
+    def __init__(self, tool: str, flags: str, workspace: Path):
+        super().__init__(tool, flags, workspace)
+
+    def run(self, source: Sequence[Path]):
+        if len(source) > 1:
+            raise TransformException("Only one source file expected")
+        else:
+            filename: Path = source[0]
+        
+        command: List[str] = [self._tool,] + self._flags.split() + [filename,]
+        preprocess: subprocess.CompletedProcess = \
+            subprocess.run(command, check=True)
+
+        processed_filename: Path = \
+            self._workspace / filename.with_suffix(".f90").name
+        with open(processed_filename, "w") as processed_file:
+            processed_file.write(preprocess.stdout)
+        
+        return [processed_filename,]
