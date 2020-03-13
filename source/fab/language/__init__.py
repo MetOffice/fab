@@ -5,6 +5,8 @@
 Modules for handling different program languages appear in this package.
 '''
 from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Sequence, List
 
 from fab.database import SqliteStateDatabase
 from fab.reader import TextReader

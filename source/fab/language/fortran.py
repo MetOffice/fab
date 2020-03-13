@@ -409,8 +409,13 @@ class FortranPreProcessor(PreProcessor):
             raise TransformException("Only one source file expected")
         else:
             filename: Path = source[0]
-        
-        command: List[str] = [self._tool,] + self._flags.split() + [filename,]
+
+        command: List[str] = (
+            [str(self._tool,)]
+            + self._flags.split()
+            + [str(filename), ]
+            )
+
         preprocess: subprocess.CompletedProcess = \
             subprocess.run(command, check=True)
 
@@ -418,5 +423,5 @@ class FortranPreProcessor(PreProcessor):
             self._workspace / filename.with_suffix(".f90").name
         with open(processed_filename, "w") as processed_file:
             processed_file.write(preprocess.stdout)
-        
-        return [processed_filename,]
+
+        return [processed_filename, ]

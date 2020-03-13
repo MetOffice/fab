@@ -51,7 +51,7 @@ class DummyAnalyser(Analyser):
         super().__init__(db)
         self.last_seen: TextReader = DummyReader()
 
-    def analyse(self, file: TextReader):
+    def run(self, file: TextReader):
         self.last_seen = file
 
 

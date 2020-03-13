@@ -25,7 +25,7 @@ class Fab(object):
         self._analyser_map: Mapping[str, Analyser] \
             = {extension: analyser(self._state)
                for extension, analyser in self._analysers.items()}
-        self._preprocessor_map: Dict[str, Type[PreProcessor]] = {
+        self._preprocessor_map: Dict[str, PreProcessor] = {
             ".F90": FortranPreProcessor("cpp", "", workspace)
         }
 
