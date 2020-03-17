@@ -295,7 +295,7 @@ class FortranAnalyser(Analyser):
     def analyse(self, source: TextReader) -> None:
         logger = logging.getLogger(__name__)
 
-        self._state.remove_fortran_file(source.get_filename())
+        self._state.remove_fortran_file(source.filename)
 
         normalised_source = _FortranNormaliser(source)
         scope: List[Tuple[str, str]] = []
@@ -311,7 +311,7 @@ class FortranAnalyser(Analyser):
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
                     self._state.add_fortran_program_unit(unit_name,
-                                                         source.get_filename())
+                                                         source.filename)
                     scope.append((unit_type, unit_name))
                     continue
 

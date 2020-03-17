@@ -17,7 +17,7 @@ class TestFileTextReader:
         test_file.parent.mkdir()
         test_file.write_text('')
         test_unit = FileTextReader(test_file)
-        assert test_unit.get_filename() == test_file
+        assert test_unit.filename == test_file
 
     def test_reading(self, tmp_path: Path):
         test_file = tmp_path / 'beef.food'
@@ -40,8 +40,8 @@ class TestStringTextReader:
             Battlemechs can stand on me.
             ''')
         test_unit = StringTextReader(string)
-        assert isinstance(test_unit.get_filename(), str)
-        assert test_unit.get_filename().startswith('[string:')
+        assert isinstance(test_unit.filename, str)
+        assert test_unit.filename.startswith('[string:')
 
     def test_reading(self, tmp_path: Path):
         test_file = tmp_path / 'beef.food'
@@ -63,7 +63,7 @@ class TestTextReaderAdler32:
         test_unit = TextReaderAdler32(source)
         content = [line for line in test_unit.line_by_line()]
         assert content == ['Bibble\n', 'Bobble babble\n']
-        assert test_unit.get_hash() == 1329530643
+        assert test_unit.hash == 1329530643
 
         # Call again on a now read file...
         for _ in test_unit.line_by_line():

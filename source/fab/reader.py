@@ -5,8 +5,9 @@ from zlib import adler32
 
 
 class TextReader(ABC):
+    @property
     @abstractmethod
-    def get_filename(self) -> Union[Path, str]:
+    def filename(self) -> Union[Path, str]:
         raise NotImplementedError('Abstract method must be implemented')
 
     @abstractmethod
@@ -22,7 +23,8 @@ class FileTextReader(TextReader):
     def __del__(self):
         self._handle.close()
 
-    def get_filename(self):
+    @property
+    def filename(self):
         return self._filename
 
     def line_by_line(self):
@@ -35,7 +37,8 @@ class StringTextReader(TextReader):
         self._hash = hash(string)
         self._content: List[str] = string.splitlines(keepends=True)
 
-    def get_filename(self):
+    @property
+    def filename(self):
         return f'[string:{hash(self._hash)}]'
 
     def line_by_line(self):
@@ -47,8 +50,9 @@ class TextReaderDecorator(TextReader, ABC):
     def __init__(self, reader: TextReader):
         self._source = reader
 
-    def get_filename(self):
-        return self._source.get_filename()
+    @property
+    def filename(self):
+        return self._source.filename
 
 
 class TextReaderAdler32(TextReaderDecorator):
@@ -56,10 +60,11 @@ class TextReaderAdler32(TextReaderDecorator):
         super().__init__(source)
         self._hash = 1
 
-    def get_hash(self):
+    @property
+    def hash(self):
         return self._hash
 
     def line_by_line(self):
         for line in self._source.line_by_line():
             self._hash = adler32(bytes(line, encoding='utf-8'), self._hash)
-            yield(line)
+            yield line

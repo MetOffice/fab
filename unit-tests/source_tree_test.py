@@ -38,7 +38,8 @@ def test_descent(tmp_path: Path):
 
 
 class DummyReader(TextReader):
-    def get_filename(self) -> Union[Path, str]:
+    @property
+    def filename(self) -> Union[Path, str]:
         return Path('/dummy')
 
     def line_by_line(self) -> Iterator[str]:
@@ -69,25 +70,25 @@ def test_extension_visitor(tmp_path: Path):
     test_unit = ExtensionVisitor(emap)
 
     test_unit.visit(foo_file)
-    assert emap['.foo'].last_seen.get_filename() == tmp_path / 'file.foo'
+    assert emap['.foo'].last_seen.filename == tmp_path / 'file.foo'
     assert file_info.get_file_info(foo_file) \
         == FileInfo(tmp_path / 'file.foo', 345244617)
     assert isinstance(emap['.bar'].last_seen, DummyReader)
 
     test_unit.visit(bar_file)
-    assert emap['.foo'].last_seen.get_filename() == tmp_path / 'file.foo'
+    assert emap['.foo'].last_seen.filename == tmp_path / 'file.foo'
     assert file_info.get_file_info(foo_file) \
         == FileInfo(tmp_path / 'file.foo', 345244617)
-    assert emap['.bar'].last_seen.get_filename() \
+    assert emap['.bar'].last_seen.filename \
         == tmp_path / 'dir' / 'file.bar'
     assert file_info.get_file_info(bar_file) \
         == FileInfo(tmp_path / 'dir' / 'file.bar', 2333477459)
 
     test_unit.visit(tmp_path / 'file.baz')
-    assert emap['.foo'].last_seen.get_filename() == tmp_path / 'file.foo'
+    assert emap['.foo'].last_seen.filename == tmp_path / 'file.foo'
     assert file_info.get_file_info(foo_file) \
         == FileInfo(tmp_path / 'file.foo', 345244617)
-    assert emap['.bar'].last_seen.get_filename() \
+    assert emap['.bar'].last_seen.filename \
         == tmp_path / 'dir' / 'file.bar'
     assert file_info.get_file_info(bar_file) \
         == FileInfo(tmp_path / 'dir' / 'file.bar', 2333477459)
