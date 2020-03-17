@@ -8,7 +8,7 @@ Descend a directory tree or trees processing source files found along the way.
 '''
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Mapping, List
+from typing import Mapping, List, Union, Type
 
 from fab.database import FileInfoDatabase
 from fab.language import Task, Analyser, CommandTask, Command
@@ -22,24 +22,26 @@ class TreeVisitor(ABC):
 
 
 class ExtensionVisitor(TreeVisitor):
-    def __init__(self, extension_map: Mapping[str, Task],
-		 state: StateDatabase, workspace: Path):
+    def __init__(self,
+                 extension_map: Mapping[str, Union[Type[Task], Type[Command]]],
+                 state: StateDatabase, workspace: Path):
         self._extension_map = extension_map
         self._state = state
         self._workspace = workspace
 
     def visit(self, candidate: Path):
         try:
-            transform_class = self._extension_map[candidate.suffix]
+            task_class = self._extension_map[candidate.suffix]
             reader: TextReader = FileTextReader(candidate)
             hasher: TextReaderAdler32 = TextReaderAdler32(reader)
 
-            if isinstance(transform, Analyser):
-                transform = transform_class(candidate, self._state)
-            elif isinstance(transform, Command):
-                transform = CommandTask(transform_class(candidate, self._workspace))
+            if isinstance(task_class, Analyser):
+                task: Task = task_class(candidate, self._state)
+            elif isinstance(task, Command):
+                task = CommandTask(
+                    task_class(candidate, self._workspace))
 	        # TODO: Eventually add to the queue here rather than running
-            new_candidates: List[Path] = transform.run()
+            new_candidates: List[Path] = task.run()
             for _ in hasher.line_by_line():
                 pass  # Make sure we've read the whole file.
             file_info = FileInfoDatabase(analyser.database)

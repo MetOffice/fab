@@ -237,8 +237,8 @@ class _FortranNormaliser(TextReaderDecorator):
 
 
 class FortranAnalyser(Analyser):
-    def __init__(self, database: SqliteStateDatabase, reader: TextReader):
-        super().__init__(database)
+    def __init__(self, reader: TextReader, database: SqliteStateDatabase):
+        super().__init__(reader, database)
         self._state = FortranWorkingState(database)
         self._reader = reader
 
@@ -312,8 +312,8 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    self._state.add_fortran_program_unit(unit_name,
-                                                         self._reader.filename)
+                    self._state.add_fortran_program_unit(
+                        unit_name, self._reader.filename)
                     scope.append((unit_type, unit_name))
                     continue
 
@@ -404,8 +404,11 @@ class FortranPreProcessor(Command):
     stdout = False
     @property
     def as_list(self) -> List[str]:
-        return ["cpp", "-traditional-cpp", self._filename, self.output_filename]
-    @property
-    def output_filename(self) -> str:
-        return self._workspace / self._filename.with_suffix(".f90").name
+        return ["cpp",
+                "-traditional-cpp",
+                str(self._filename),
+                str(self.output_filename)]
 
+    @property
+    def output_filename(self) -> Path:
+        return self._workspace / self._filename.with_suffix(".f90").name
