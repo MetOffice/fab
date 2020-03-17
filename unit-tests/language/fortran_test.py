@@ -11,7 +11,7 @@ from typing import Dict, List, Sequence
 import pytest  # type: ignore
 
 from fab.database import SqliteStateDatabase, WorkingStateException
-from fab.language import TransformException
+from fab.language import TaskException
 from fab.language.fortran import FortranAnalyser, FortranWorkingState
 from fab.reader import FileTextReader
 
@@ -179,8 +179,8 @@ class TestFortranAnalyser(object):
                                          'qux': ['wibble_mod', 'wubble_mod']}
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
-        test_unit.run(FileTextReader(test_file))
+        test_unit = FortranAnalyser(FileTextReader(test_file), database)
+        test_unit.run()
         working_state = FortranWorkingState(database)
         assert working_state.program_units_from_file(test_file) == units
         for unit in units:
@@ -240,8 +240,8 @@ class TestFortranAnalyser(object):
         units: List[str] = ['fred', 'barney']
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
-        test_unit.run(FileTextReader(test_file))
+        test_unit = FortranAnalyser(FileTextReader(test_file), database)
+        test_unit.run()
         working_state = FortranWorkingState(database)
         assert working_state.program_units_from_file(test_file) == units
         for unit in units:
@@ -273,9 +273,10 @@ class TestFortranAnalyser(object):
                    '''))
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
-        test_unit.run(FileTextReader(first_file))
-        test_unit.run(FileTextReader(second_file))
+        test_unit = FortranAnalyser(FileTextReader(first_file), database)
+        test_unit.run()
+        test_unit = FortranAnalyser(FileTextReader(second_file), database)
+        test_unit.run()
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
@@ -285,7 +286,7 @@ class TestFortranAnalyser(object):
 
         # Repeat the scan of second_file, there should be no change.
         #
-        test_unit.run(FileTextReader(second_file))
+        test_unit.run()
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
@@ -308,6 +309,6 @@ class TestFortranAnalyser(object):
                    '''))
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
+        test_unit = FortranAnalyser(FileTextReader(test_file), database)
         with pytest.raises(TransformException):
-            test_unit.run(FileTextReader(test_file))
+            test_unit.run()

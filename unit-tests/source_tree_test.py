@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from typing import Iterator, Union
+from typing import Iterator, Union, List
 
 from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
 from fab.language import Analyser
@@ -46,13 +46,20 @@ class DummyReader(TextReader):
         yield 'dummy'
 
 
-class DummyAnalyser(Analyser):
-    def __init__(self, db: SqliteStateDatabase):
-        super().__init__(db)
-        self.last_seen: TextReader = DummyReader()
+class DummyAnalyserFoo(Analyser):
+    last_seen: TextReader = DummyReader()
 
-    def run(self, file: TextReader):
-        self.last_seen = file
+    def run(self):
+        self.last_seen = self._reader
+        return []
+
+
+class DummyAnalyserBar(Analyser):
+    last_seen: TextReader = DummyReader()
+
+    def run(self):
+        self.last_seen = self._reader
+        return []
 
 
 def test_extension_visitor(tmp_path: Path):
@@ -65,9 +72,9 @@ def test_extension_visitor(tmp_path: Path):
     db = SqliteStateDatabase(tmp_path)
     file_info = FileInfoDatabase(db)
 
-    emap = {'.foo': DummyAnalyser(db),
-            '.bar': DummyAnalyser(db)}
-    test_unit = ExtensionVisitor(emap)
+    emap = {'.foo': DummyAnalyserFoo,
+            '.bar': DummyAnalyserBar}
+    test_unit = ExtensionVisitor(emap, db, tmp_path)
 
     test_unit.visit(foo_file)
     assert emap['.foo'].last_seen.filename == tmp_path / 'file.foo'

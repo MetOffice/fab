@@ -5,7 +5,7 @@
 Modules for handling different program languages appear in this package.
 '''
 import subprocess
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import List
 
@@ -36,13 +36,11 @@ class Command(ABC):
         self._filename = filename
         self._workspace = workspace
 
-    @abstractmethod
-    @property
+    @abstractproperty
     def as_list(self) -> List[str]:
         raise NotImplementedError('Abstract methods must be implemented')
 
-    @abstractmethod
-    @property
+    @abstractproperty
     def output_filename(self) -> Path:
         raise NotImplementedError('Abstract methods must be implemented')
 

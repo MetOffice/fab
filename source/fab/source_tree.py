@@ -35,9 +35,9 @@ class ExtensionVisitor(TreeVisitor):
             reader: TextReader = FileTextReader(candidate)
             hasher: TextReaderAdler32 = TextReaderAdler32(reader)
 
-            if isinstance(task_class, Analyser):
+            if issubclass(task_class, Analyser):
                 task: Task = task_class(candidate, self._state)
-            elif isinstance(task, Command):
+            elif issubclass(task_class, Command):
                 task = CommandTask(
                     task_class(candidate, self._workspace))
 	        # TODO: Eventually add to the queue here rather than running
