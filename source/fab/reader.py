@@ -7,7 +7,7 @@ from zlib import adler32
 class TextReader(ABC):
     @abstractmethod
     def get_filename(self) -> Union[Path, str]:
-        raise NotImplementedError('Abstract method must be implmeneted')
+        raise NotImplementedError('Abstract method must be implemented')
 
     @abstractmethod
     def line_by_line(self) -> Iterator[str]:
