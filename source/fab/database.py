@@ -44,7 +44,7 @@ class StateDatabase(ABC):
     @abstractmethod
     def execute(self, query: Union[Sequence[str], str],
                 inserts: Dict[str, str]) -> DatabaseRows:
-        raise NotImplementedError('Abstract methods must be overridden.')
+        raise NotImplementedError('Abstract methods must be implemented.')
 
 
 class DatabaseDecorator(StateDatabase):
@@ -62,7 +62,7 @@ class FileInfoDatabase(DatabaseDecorator):
     # By way of example, Linux systems often define this value to be 4k.
     #
     # Given that we will often be working with Linux systems I have followed
-    # suite.
+    # suit.
     #
     PATH_LENGTH = 1024 * 4
 
