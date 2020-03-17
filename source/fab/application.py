@@ -4,10 +4,10 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from typing import Dict, Mapping, Type
+from typing import Dict, Mapping, Type, Union
 
 from fab.database import SqliteStateDatabase
-from fab.language import Analyser, PreProcessor
+from fab.language import Task, Command
 from fab.language.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
@@ -16,21 +16,19 @@ from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
 
 
 class Fab(object):
-    _analysers: Dict[str, Type[Analyser]] = {
-        '.f90': FortranAnalyser
+    _extension_map: Dict[str, Union[Task, Command]] = {
+        '.f90': FortranAnalyser,
+        '.F90': FortranPreProcessor,
     }
 
     def __init__(self, workspace: Path):
         self._state = SqliteStateDatabase(workspace)
-        self._analyser_map: Mapping[str, Analyser] \
-            = {extension: analyser(self._state)
-               for extension, analyser in self._analysers.items()}
-        self._preprocessor_map: Dict[str, PreProcessor] = {
-            ".F90": FortranPreProcessor("cpp", "", workspace)
-        }
+        self._workspace = workspace
 
     def run(self, source: Path):
-        visitor = ExtensionVisitor(self._analyser_map)
+        visitor = ExtensionVisitor(self._extension_map, 
+                                   self._state, 
+                                   self._workspace)
         descender = TreeDescent(source)
         descender.descend(visitor)
 

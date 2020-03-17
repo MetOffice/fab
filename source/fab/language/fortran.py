@@ -24,7 +24,7 @@ from fab.database import (DatabaseDecorator,
                           StateDatabase,
                           SqliteStateDatabase,
                           WorkingStateException)
-from fab.language import Analyser, TransformException, PreProcessor
+from fab.language import Analyser, TaskException, Command
 from fab.reader import TextReader, TextReaderDecorator
 
 
@@ -237,9 +237,10 @@ class _FortranNormaliser(TextReaderDecorator):
 
 
 class FortranAnalyser(Analyser):
-    def __init__(self, database: SqliteStateDatabase):
+    def __init__(self, database: SqliteStateDatabase, reader: TextReader):
         super().__init__(database)
         self._state = FortranWorkingState(database)
+        self._reader = reader
 
     _intrinsic_modules = ['iso_fortran_env']
 
@@ -293,12 +294,12 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def run(self, source: TextReader) -> None:
+    def run(self) -> List[Path]:
         logger = logging.getLogger(__name__)
 
-        self._state.remove_fortran_file(source.filename)
+        self._state.remove_fortran_file(self._reader.filename)
 
-        normalised_source = _FortranNormaliser(source)
+        normalised_source = _FortranNormaliser(self._reader)
         scope: List[Tuple[str, str]] = []
         for line in normalised_source.line_by_line():
             logger.debug(scope)
@@ -312,7 +313,7 @@ class FortranAnalyser(Analyser):
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
                     self._state.add_fortran_program_unit(unit_name,
-                                                         source.filename)
+                                                         self._reader.filename)
                     scope.append((unit_type, unit_name))
                     continue
 
@@ -326,7 +327,7 @@ class FortranAnalyser(Analyser):
                     if len(scope) == 0:
                         use_message \
                             = '"use" statement found outside program unit'
-                        raise TransformException(use_message)
+                        raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
                     self._state.add_fortran_dependency(scope[0][1], use_name)
                 continue
@@ -385,7 +386,7 @@ class FortranAnalyser(Analyser):
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
                                       'found': end_nature}
-                        raise TransformException(
+                        raise TaskException(
                             end_message.format(**end_values))
                 if end_name is not None:
                     if end_name != exp[1]:
@@ -394,34 +395,17 @@ class FortranAnalyser(Analyser):
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
                                       'found': end_name}
-                        raise TransformException(
+                        raise TaskException(
                             end_message.format(**end_values))
         return []
 
 
-class FortranPreProcessor(PreProcessor):
+class FortranPreProcessor(Command):
+    stdout = False
+    @property
+    def as_list(self) -> List[str]:
+        return ["cpp", "-traditional-cpp", self._filename, self.output_filename]
+    @property
+    def output_filename(self) -> str:
+        return self._workspace / self._filename.with_suffix(".f90").name
 
-    def __init__(self, tool: str, flags: str, workspace: Path):
-        super().__init__(tool, flags, workspace)
-
-    def run(self, source: Sequence[Path]):
-        if len(source) > 1:
-            raise TransformException("Only one source file expected")
-        else:
-            filename: Path = source[0]
-
-        command: List[str] = (
-            [str(self._tool,)]
-            + self._flags.split()
-            + [str(filename), ]
-            )
-
-        preprocess: subprocess.CompletedProcess = \
-            subprocess.run(command, check=True)
-
-        processed_filename: Path = \
-            self._workspace / filename.with_suffix(".f90").name
-        with open(processed_filename, "w") as processed_file:
-            processed_file.write(preprocess.stdout)
-
-        return [processed_filename, ]
