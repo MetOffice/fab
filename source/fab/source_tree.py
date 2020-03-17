@@ -33,7 +33,7 @@ class ExtensionVisitor(TreeVisitor):
             analyser.analyse(hasher)
             for _ in hasher.line_by_line():
                 pass  # Make sure we've read the whole file.
-            file_info = FileInfoDatabase(analyser.get_database())
+            file_info = FileInfoDatabase(analyser.database)
             file_info.add_file_info(candidate, hasher.get_hash())
         except KeyError:
             pass

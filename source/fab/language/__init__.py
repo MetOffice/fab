@@ -18,7 +18,8 @@ class Analyser(ABC):
     def __init__(self, database: SqliteStateDatabase):
         self._database = database
 
-    def get_database(self):
+    @property
+    def database(self):
         return self._database
 
     @abstractmethod
