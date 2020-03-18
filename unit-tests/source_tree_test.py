@@ -4,10 +4,11 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from typing import List
+from typing import Iterator, Union
 
-from fab.database import StateDatabase
+from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
 from fab.language import Analyser
+from fab.reader import TextReader
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
 
 
@@ -36,28 +37,58 @@ def test_descent(tmp_path: Path):
                                tree_root / 'beta' / 'delta']
 
 
-class DummyAnalyser(Analyser):
-    def __init__(self, db: StateDatabase):
-        super().__init__(db)
-        self.seen: List[Path] = []
+class DummyReader(TextReader):
+    @property
+    def filename(self) -> Union[Path, str]:
+        return Path('/dummy')
 
-    def analyse(self, filename: Path):
-        self.seen.append(filename)
+    def line_by_line(self) -> Iterator[str]:
+        yield 'dummy'
+
+
+class DummyAnalyser(Analyser):
+    def __init__(self, db: SqliteStateDatabase):
+        super().__init__(db)
+        self.last_seen: TextReader = DummyReader()
+
+    def analyse(self, file: TextReader):
+        self.last_seen = file
 
 
 def test_extension_visitor(tmp_path: Path):
-    db = StateDatabase(tmp_path)
+    foo_file = tmp_path / 'file.foo'
+    foo_file.write_text('First file')
+    (tmp_path / 'dir').mkdir()
+    bar_file = tmp_path / 'dir' / 'file.bar'
+    bar_file.write_text('Second file in subdirectory')
+
+    db = SqliteStateDatabase(tmp_path)
+    file_info = FileInfoDatabase(db)
+
     emap = {'.foo': DummyAnalyser(db),
             '.bar': DummyAnalyser(db)}
     test_unit = ExtensionVisitor(emap)
-    test_unit.visit(tmp_path / 'file.foo')
-    assert emap['.foo'].seen == [tmp_path / 'file.foo']
-    assert emap['.bar'].seen == []
 
-    test_unit.visit(tmp_path / 'dir' / 'file.bar')
-    assert emap['.foo'].seen == [tmp_path / 'file.foo']
-    assert emap['.bar'].seen == [tmp_path / 'dir' / 'file.bar']
+    test_unit.visit(foo_file)
+    assert emap['.foo'].last_seen.filename == tmp_path / 'file.foo'
+    assert file_info.get_file_info(foo_file) \
+        == FileInfo(tmp_path / 'file.foo', 345244617)
+    assert isinstance(emap['.bar'].last_seen, DummyReader)
+
+    test_unit.visit(bar_file)
+    assert emap['.foo'].last_seen.filename == tmp_path / 'file.foo'
+    assert file_info.get_file_info(foo_file) \
+        == FileInfo(tmp_path / 'file.foo', 345244617)
+    assert emap['.bar'].last_seen.filename \
+        == tmp_path / 'dir' / 'file.bar'
+    assert file_info.get_file_info(bar_file) \
+        == FileInfo(tmp_path / 'dir' / 'file.bar', 2333477459)
 
     test_unit.visit(tmp_path / 'file.baz')
-    assert emap['.foo'].seen == [tmp_path / 'file.foo']
-    assert emap['.bar'].seen == [tmp_path / 'dir' / 'file.bar']
+    assert emap['.foo'].last_seen.filename == tmp_path / 'file.foo'
+    assert file_info.get_file_info(foo_file) \
+        == FileInfo(tmp_path / 'file.foo', 345244617)
+    assert emap['.bar'].last_seen.filename \
+        == tmp_path / 'dir' / 'file.bar'
+    assert file_info.get_file_info(bar_file) \
+        == FileInfo(tmp_path / 'dir' / 'file.bar', 2333477459)

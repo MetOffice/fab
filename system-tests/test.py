@@ -101,8 +101,9 @@ class FabTestCase(RunTestCase):
                          [str(test_directory)])
 
     def setup(self):
-        if self._working_dir.is_dir():
-            shutil.rmtree(self._working_dir)
+        working_dir: Path = self._test_directory / 'working'
+        if working_dir.is_dir():
+            shutil.rmtree(str(working_dir))
 
 
 class DumpTestCase(RunTestCase):
@@ -119,8 +120,8 @@ class DumpTestCase(RunTestCase):
                          [])
 
     def teardown(self):
-        if self._working_dir.is_dir():
-            shutil.rmtree(self._working_dir)
+        working_dir: Path = self._test_directory / 'working'
+        shutil.rmtree(str(working_dir))
 
 
 if __name__ == '__main__':

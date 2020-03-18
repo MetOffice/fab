@@ -1,3 +1,12 @@
+File View
+  File   : system-tests/FortranDependencies/bye_mod.f90
+    Hash : 2054258567
+  File   : system-tests/FortranDependencies/first.f90
+    Hash : 1880463554
+  File   : system-tests/FortranDependencies/greeting_mod.f90
+    Hash : 1789892039
+  File   : system-tests/FortranDependencies/second.f90
+    Hash : 624596557
 Fortran View
   Program unit    : bye_mod
     Found in      : system-tests/FortranDependencies/bye_mod.f90
