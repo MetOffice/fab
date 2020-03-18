@@ -310,5 +310,5 @@ class TestFortranAnalyser(object):
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
         test_unit = FortranAnalyser(FileTextReader(test_file), database)
-        with pytest.raises(TransformException):
+        with pytest.raises(TaskException):
             test_unit.run()

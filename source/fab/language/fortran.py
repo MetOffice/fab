@@ -8,7 +8,6 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import re
-import subprocess
 from typing import (Generator,
                     Iterator,
                     List,
@@ -240,7 +239,6 @@ class FortranAnalyser(Analyser):
     def __init__(self, reader: TextReader, database: SqliteStateDatabase):
         super().__init__(reader, database)
         self._state = FortranWorkingState(database)
-        self._reader = reader
 
     _intrinsic_modules = ['iso_fortran_env']
 
@@ -316,7 +314,6 @@ class FortranAnalyser(Analyser):
                         unit_name, self._reader.filename)
                     scope.append((unit_type, unit_name))
                     continue
-
             use_match: Optional[Match] \
                 = self._use_pattern.match(line)
             if use_match:

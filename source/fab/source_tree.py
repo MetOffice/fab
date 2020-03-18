@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Mapping, List, Union, Type
 
-from fab.database import FileInfoDatabase
+from fab.database import FileInfoDatabase, SqliteStateDatabase
 from fab.language import Task, Analyser, CommandTask, Command
 from fab.reader import TextReader, FileTextReader, TextReaderAdler32
 
@@ -24,7 +24,7 @@ class TreeVisitor(ABC):
 class ExtensionVisitor(TreeVisitor):
     def __init__(self,
                  extension_map: Mapping[str, Union[Type[Task], Type[Command]]],
-                 state: StateDatabase, workspace: Path):
+                 state: SqliteStateDatabase, workspace: Path):
         self._extension_map = extension_map
         self._state = state
         self._workspace = workspace
@@ -36,15 +36,15 @@ class ExtensionVisitor(TreeVisitor):
             hasher: TextReaderAdler32 = TextReaderAdler32(reader)
 
             if issubclass(task_class, Analyser):
-                task: Task = task_class(candidate, self._state)
+                task: Task = task_class(hasher, self._state)
             elif issubclass(task_class, Command):
                 task = CommandTask(
-                    task_class(candidate, self._workspace))
-	        # TODO: Eventually add to the queue here rather than running
+                    task_class(Path(hasher.filename), self._workspace))
+            # TODO: Eventually add to the queue here rather than running
             new_candidates: List[Path] = task.run()
             for _ in hasher.line_by_line():
                 pass  # Make sure we've read the whole file.
-            file_info = FileInfoDatabase(analyser.database)
+            file_info = FileInfoDatabase(self._state)
             file_info.add_file_info(candidate, hasher.hash)
             for new_candidate in new_candidates:
                 self.visit(new_candidate)

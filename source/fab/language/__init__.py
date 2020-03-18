@@ -5,7 +5,7 @@
 Modules for handling different program languages appear in this package.
 '''
 import subprocess
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
@@ -26,7 +26,11 @@ class Task(ABC):
 class Analyser(Task):
     def __init__(self, reader: TextReader, database: SqliteStateDatabase):
         self._database = database
-        self._filename = reader.filename
+        self._reader = reader
+
+    @property
+    def database(self):
+        return self._database
 
 
 class Command(ABC):
@@ -36,17 +40,15 @@ class Command(ABC):
         self._filename = filename
         self._workspace = workspace
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def as_list(self) -> List[str]:
         raise NotImplementedError('Abstract methods must be implemented')
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def output_filename(self) -> Path:
         raise NotImplementedError('Abstract methods must be implemented')
-
-    @property
-    def database(self):
-        return self._database
 
 
 class CommandTask(Task):

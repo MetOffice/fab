@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from typing import Iterator, Union, List, Mapping, Dict, Union, Type
+from typing import Iterator, Union, List, Mapping, Dict, Type
 
 from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
 from fab.language import Analyser, Command, Task
@@ -59,7 +59,7 @@ def clear_tracker():
 
 class DummyAnalyser(Analyser):
     def run(self):
-        tracker["analyser"].append(self._reader)
+        tracker["analyser"].append(self._reader.filename)
         return []
 
 
@@ -69,7 +69,7 @@ class DummyCommand(Command):
         tracker["command"].append(self._filename)
         # Note that this is the command "true" which does nothing
         # (we're not trying to test the result of the command here)
-        return ["true"]
+        return ["touch", str(self.output_filename)]
 
     @property
     def output_filename(self) -> Path:
@@ -82,6 +82,7 @@ def test_extension_visitor(tmp_path: Path):
     (tmp_path / 'dir').mkdir()
     bar_file = tmp_path / 'dir' / 'file.bar'
     bar_file.write_text('Second file in subdirectory')
+    baz_file = tmp_path / 'file.baz'  # Doesn't exist
 
     db = SqliteStateDatabase(tmp_path)
     file_info = FileInfoDatabase(db)
@@ -92,32 +93,40 @@ def test_extension_visitor(tmp_path: Path):
         '.bar': DummyCommand
         }
     test_unit = ExtensionVisitor(emap, db, tmp_path)
-    test_unit.visit(tmp_path / 'file.foo')
+    test_unit.visit(foo_file)
 
-    assert tracker["analyser"] == [tmp_path / 'file.foo']
+    assert tracker["analyser"] == [foo_file]
     assert file_info.get_file_info(foo_file) \
-        == FileInfo(tmp_path / 'file.foo', 345244617)
+        == FileInfo(foo_file, 345244617)
     assert tracker["command"] == []
 
-    test_unit.visit(tmp_path / 'dir' / 'file.bar')
-    assert tracker["analyser"] == [tmp_path / 'file.foo']
+    test_unit.visit(bar_file)
+    assert tracker["analyser"] == [foo_file]
     assert file_info.get_file_info(foo_file) \
-        == FileInfo(tmp_path / 'file.foo', 345244617)
-    assert tracker["command"] == [tmp_path / 'dir' / 'file.bar']
+        == FileInfo(foo_file, 345244617)
+    assert tracker["command"] == [bar_file]
     assert file_info.get_file_info(bar_file) \
-        == FileInfo(tmp_path / 'dir' / 'file.bar', 2333477459)
+        == FileInfo(bar_file, 2333477459)
 
-    test_unit.visit(tmp_path / 'file.baz')
-    assert tracker["analyser"] == [tmp_path / 'file.foo']
+    test_unit.visit(baz_file)
+    assert tracker["analyser"] == [foo_file]
     assert file_info.get_file_info(foo_file) \
-        == FileInfo(tmp_path / 'file.foo', 345244617)
-    assert tracker["command"] == [tmp_path / 'dir' / 'file.bar']
+        == FileInfo(foo_file, 345244617)
+    assert tracker["command"] == [bar_file]
     assert file_info.get_file_info(bar_file) \
-        == FileInfo(tmp_path / 'dir' / 'file.bar', 2333477459)
- 
+        == FileInfo(bar_file, 2333477459)
+
 
 def test_nested_extension_visitor(tmp_path: Path):
-    db = StateDatabase(tmp_path)
+    foo_file = tmp_path / 'file.foo'
+    foo_file.write_text('First file')
+    (tmp_path / 'dir').mkdir()
+    bar_file = tmp_path / 'dir' / 'file.bar'
+    bar_file.write_text('Second file in subdirectory')
+    qux_file = tmp_path / 'dir' / 'file.qux'  # Created by DummyCommand
+
+    db = SqliteStateDatabase(tmp_path)
+    file_info = FileInfoDatabase(db)
     clear_tracker()
     emap: Dict[str, Union[Type[Task], Type[Command]]] = {
         '.foo': DummyAnalyser,
@@ -125,12 +134,20 @@ def test_nested_extension_visitor(tmp_path: Path):
         '.qux': DummyAnalyser
         }
     test_unit = ExtensionVisitor(emap, db, tmp_path)
-    test_unit.visit(tmp_path / 'file.foo')
+    test_unit.visit(foo_file)
 
-    assert tracker["analyser"] == [tmp_path / 'file.foo']
+    assert tracker["analyser"] == [foo_file]
+    assert file_info.get_file_info(foo_file) \
+        == FileInfo(foo_file, 345244617)
     assert tracker["command"] == []
 
-    test_unit.visit(tmp_path / 'dir' / 'file.bar')
-    assert tracker["analyser"] == [tmp_path / 'file.foo',
-                                   tmp_path / 'dir' / 'file.qux']
-    assert tracker["command"] == [tmp_path / 'dir' / 'file.bar']
+    test_unit.visit(bar_file)
+    assert tracker["analyser"] == [foo_file,
+                                   qux_file]
+    assert file_info.get_file_info(foo_file) \
+        == FileInfo(foo_file, 345244617)
+    assert file_info.get_file_info(qux_file) \
+        == FileInfo(qux_file, 1)
+    assert tracker["command"] == [bar_file]
+    assert file_info.get_file_info(bar_file) \
+        == FileInfo(bar_file, 2333477459)
