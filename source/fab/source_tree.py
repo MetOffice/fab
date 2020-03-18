@@ -29,27 +29,25 @@ class ExtensionVisitor(TreeVisitor):
         self._state = state
         self._workspace = workspace
 
-    def visit(self, candidate: Path):
-        try:
-            task_class = self._extension_map[candidate.suffix]
-            reader: TextReader = FileTextReader(candidate)
-            hasher: TextReaderAdler32 = TextReaderAdler32(reader)
+    def visit(self, candidate: Path) -> List[Path]:
 
-            if issubclass(task_class, Analyser):
-                task: Task = task_class(hasher, self._state)
-            elif issubclass(task_class, Command):
-                task = CommandTask(
-                    task_class(Path(hasher.filename), self._workspace))
-            # TODO: Eventually add to the queue here rather than running
-            new_candidates: List[Path] = task.run()
-            for _ in hasher.line_by_line():
-                pass  # Make sure we've read the whole file.
-            file_info = FileInfoDatabase(self._state)
-            file_info.add_file_info(candidate, hasher.hash)
-            for new_candidate in new_candidates:
-                self.visit(new_candidate)
-        except KeyError:
-            pass
+        task_class = self._extension_map[candidate.suffix]
+        reader: TextReader = FileTextReader(candidate)
+        hasher: TextReaderAdler32 = TextReaderAdler32(reader)
+
+        if issubclass(task_class, Analyser):
+            task: Task = task_class(hasher, self._state)
+        elif issubclass(task_class, Command):
+            task = CommandTask(
+                task_class(Path(hasher.filename), self._workspace))
+        # TODO: Eventually add to the queue here rather than running
+        new_candidates: List[Path] = task.run()
+        for _ in hasher.line_by_line():
+            pass  # Make sure we've read the whole file.
+        file_info = FileInfoDatabase(self._state)
+        file_info.add_file_info(candidate, hasher.hash)
+
+        return new_candidates
 
 
 class TreeDescent(object):
@@ -57,14 +55,14 @@ class TreeDescent(object):
         self._root = root
 
     def descend(self, visitor: TreeVisitor):
-        visit = [self._root]
-        while len(visit) > 0:
-            candidate: Path = visit.pop()
+        addresses = [self._root]
+        while len(addresses) > 0:
+            candidate: Path = addresses.pop()
             if candidate.is_dir():
-                visit.extend(sorted(candidate.iterdir()))
+                addresses.extend(sorted(candidate.iterdir()))
                 continue
 
             # At this point the object should be a file, directories having
             # been dealt with previously.
             #
-            visitor.visit(candidate)
+            addresses.extend(visitor.visit(candidate))

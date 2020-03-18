@@ -6,6 +6,8 @@
 from pathlib import Path
 from typing import Iterator, Union, List, Mapping, Dict, Type
 
+import pytest  # type: ignore
+
 from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
 from fab.language import Analyser, Command, Task
 from fab.reader import TextReader
@@ -16,8 +18,9 @@ class DummyVisitor(TreeVisitor):
     def __init__(self):
         self.visited = []
 
-    def visit(self, candidate: Path):
+    def visit(self, candidate: Path) -> List[Path]:
         self.visited.append(candidate)
+        return []
 
 
 def test_descent(tmp_path: Path):
@@ -108,46 +111,11 @@ def test_extension_visitor(tmp_path: Path):
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 2333477459)
 
-    test_unit.visit(baz_file)
+    with pytest.raises(KeyError):
+        test_unit.visit(baz_file)
     assert tracker["analyser"] == [foo_file]
     assert file_info.get_file_info(foo_file) \
         == FileInfo(foo_file, 345244617)
-    assert tracker["command"] == [bar_file]
-    assert file_info.get_file_info(bar_file) \
-        == FileInfo(bar_file, 2333477459)
-
-
-def test_nested_extension_visitor(tmp_path: Path):
-    foo_file = tmp_path / 'file.foo'
-    foo_file.write_text('First file')
-    (tmp_path / 'dir').mkdir()
-    bar_file = tmp_path / 'dir' / 'file.bar'
-    bar_file.write_text('Second file in subdirectory')
-    qux_file = tmp_path / 'dir' / 'file.qux'  # Created by DummyCommand
-
-    db = SqliteStateDatabase(tmp_path)
-    file_info = FileInfoDatabase(db)
-    clear_tracker()
-    emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-        '.foo': DummyAnalyser,
-        '.bar': DummyCommand,
-        '.qux': DummyAnalyser
-        }
-    test_unit = ExtensionVisitor(emap, db, tmp_path)
-    test_unit.visit(foo_file)
-
-    assert tracker["analyser"] == [foo_file]
-    assert file_info.get_file_info(foo_file) \
-        == FileInfo(foo_file, 345244617)
-    assert tracker["command"] == []
-
-    test_unit.visit(bar_file)
-    assert tracker["analyser"] == [foo_file,
-                                   qux_file]
-    assert file_info.get_file_info(foo_file) \
-        == FileInfo(foo_file, 345244617)
-    assert file_info.get_file_info(qux_file) \
-        == FileInfo(qux_file, 2333477459)
     assert tracker["command"] == [bar_file]
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 2333477459)

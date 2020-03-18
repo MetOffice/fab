@@ -5,6 +5,8 @@ from zlib import adler32
 
 
 class TextReader(ABC):
+    # TODO: Consider whether returning Path or str will cause
+    #       any weird behaviour anywhere
     @property
     @abstractmethod
     def filename(self) -> Union[Path, str]:
