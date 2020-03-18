@@ -1,3 +1,11 @@
+system-tests/FortranDependencies/bye_mod.f90
+    hash: 2054258567
+system-tests/FortranDependencies/first.f90
+    hash: 1577883012
+system-tests/FortranDependencies/greeting_mod.f90
+    hash: 1789892039
+system-tests/FortranDependencies/second.f90
+    hash: 624596557
 bye_mod
     found in: system-tests/FortranDependencies/bye_mod.f90
     depends on: ['constants_mod']

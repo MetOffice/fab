@@ -8,14 +8,26 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import re
-import sqlite3
-from typing import Generator, List, Match, Optional, Pattern, Sequence, Tuple
+from typing import (Generator,
+                    Iterator,
+                    List,
+                    Match,
+                    Optional,
+                    Pattern,
+                    Sequence,
+                    Tuple,
+                    Union)
 
-from fab.database import StateDatabase, WorkingStateException
+from fab.database import (DatabaseDecorator,
+                          FileInfoDatabase,
+                          StateDatabase,
+                          SqliteStateDatabase,
+                          WorkingStateException)
 from fab.language import Analyser, AnalysisException
+from fab.reader import TextReader, TextReaderDecorator
 
 
-class FortranWorkingState(object):
+class FortranWorkingState(DatabaseDecorator):
     '''
     Maintains a database of information relating to Fortran program units.
     '''
@@ -28,24 +40,19 @@ class FortranWorkingState(object):
     _FORTRAN_LABEL_LENGTH: int = 63
 
     def __init__(self, database: StateDatabase):
-        self._database: StateDatabase = database
-        # Choosing a length for filenames is much less clear cut than for
-        # labels. I have gone for 1k.
-        #
-        self._database.connection.execute(
-            '''create table if not exists fortran_unit (
-                 id integer primary key,
-                 unit character({label}) not null,
-                 filename character(1024) not null
-               )'''.format(label=self._FORTRAN_LABEL_LENGTH)
-        )
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_program_unit '
-            'on fortran_unit(unit)')
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_filename '
-            'on fortran_unit(filename)')
-        self._database.connection.commit()
+        super().__init__(database)
+        create_unit_table = [
+            f'''create table if not exists fortran_unit (
+                   id integer primary key,
+                   unit character({self._FORTRAN_LABEL_LENGTH}) not null,
+                   filename character({FileInfoDatabase.PATH_LENGTH}) not null
+                   )''',
+            '''create index if not exists idx_fortran_program_unit
+                   on fortran_unit(unit)''',
+            '''create index if not exists idx_fortran_filename
+                   on fortran_unit(filename)'''
+        ]
+        self.execute(create_unit_table, {})
 
         # Although the current unit will already have been entered into the
         # database it is not necessarily unique. We may have multiple source
@@ -56,22 +63,21 @@ class FortranWorkingState(object):
         # we can't expect it to be in the database. Thus it too may not be
         # used as a foreign key.
         #
-        self._database.connection.execute(
-            '''create table if not exists fortran_dependency (
-                 id integer primary key,
-                 unit character({label}) not null,
-                 depends_on character({label}) not null
-            )'''.format(label=self._FORTRAN_LABEL_LENGTH)
-        )
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_dependor '
-            'on fortran_dependency(unit)')
-        self._database.connection.execute(
-            'create index if not exists idx_fortran_dependee '
-            'on fortran_dependency(depends_on)')
-        self._database.connection.commit()
+        create_depdency_table = [
+            f'''create table if not exists fortran_dependency (
+                   id integer primary key,
+                   unit character({self._FORTRAN_LABEL_LENGTH}) not null,
+                   depends_on character({self._FORTRAN_LABEL_LENGTH}) not null
+                   )''',
+            '''create index if not exists idx_fortran_dependor
+                   on fortran_dependency(unit)''',
+            '''create index if not exists idx_fortran_dependee
+                   on fortran_dependency(depends_on)'''
+        ]
+        self.execute(create_depdency_table, {})
 
-    def add_fortran_program_unit(self, name: str, in_file: Path) -> None:
+    def add_fortran_program_unit(self, name: str,
+                                 in_file: Union[Path, str]) -> None:
         '''
         Creates a record of a new program unit and the file it is found in.
 
@@ -81,11 +87,11 @@ class FortranWorkingState(object):
         :param name: Program unit name.
         :param in_file: Filename of source containing program unit.
         '''
-        self._database.connection.execute(
+        add_unit = [
             '''insert into fortran_unit (unit, filename)
-               values (:unit, :filename)''',
-            {'unit': name, 'filename': str(in_file)})
-        self._database.connection.commit()
+                   values (:unit, :filename)'''
+        ]
+        self.execute(add_unit, {'unit': name, 'filename': str(in_file)})
 
     def add_fortran_dependency(self, unit: str, depends_on: str) -> None:
         '''
@@ -94,33 +100,25 @@ class FortranWorkingState(object):
         :param unit: Name of the depending unit.
         :param depends_on:  Name of the prerequisite unit.
         '''
-        self._database.connection.execute(
+        add_dependency = [
             '''insert into fortran_dependency(unit, depends_on)
-               values (:unit, :depends_on)''',
-            {'unit': unit, 'depends_on': depends_on}
-        )
-        self._database.connection.commit()
+                   values (:unit, :depends_on)'''
+        ]
+        self.execute(add_dependency, {'unit': unit, 'depends_on': depends_on})
 
-    def remove_fortran_file(self, filename: Path) -> None:
+    def remove_fortran_file(self, filename: Union[Path, str]) -> None:
         '''
         Removes all records relating of a particular source file.
 
         :param filename: File to be removed.
         '''
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select unit from fortran_unit where filename=:filename',
-            {'filename': str(filename)}
-        )
-        row: sqlite3.Row = cursor.fetchone()
-        if row is not None:
-            self._database.connection.execute(
-                'delete from fortran_unit where filename=:filename',
-                {'filename': str(filename)})
-            self._database.connection.execute(
-                'delete from fortran_dependency where unit=:unit',
-                {'unit': row['unit']}
-            )
-        self._database.connection.commit()
+        remove_file = [
+            '''delete from fortran_dependency
+                   where unit=(select unit from fortran_unit
+                       where filename=:filename)''',
+            '''delete from fortran_unit where filename=:filename'''
+            ]
+        self.execute(remove_file, {'filename': str(filename)})
 
     def iterate_program_units(self) \
             -> Generator[Tuple[str, Sequence[Path]], None, None]:
@@ -129,15 +127,12 @@ class FortranWorkingState(object):
 
         :return: Unit name and containing filename pairs.
         '''
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select unit, filename from fortran_unit '
-            'order by unit, filename')
+        query = '''select unit, filename from fortran_unit
+                       order by unit, filename'''
+        rows = self.execute(query, {})
         unit = None
         files = []
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             if row['unit'] != unit:
                 if unit is not None:
                     yield (unit, files)
@@ -160,16 +155,11 @@ class FortranWorkingState(object):
         :param name: Program unit name.
         :return: Filenames of source files.
         '''
+        query = 'select filename from fortran_unit where unit=:unit'
+        rows = self.execute(query, {'unit': name})
         filenames: List[Path] = []
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select filename from fortran_unit where unit=:unit',
-            {'unit': name})
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             filenames.append(Path(row['filename']))
-        cursor.close()
         if len(filenames) == 0:
             message = 'Program unit "{unit}" not found in database.'
             raise WorkingStateException(message.format(unit=name))
@@ -182,16 +172,11 @@ class FortranWorkingState(object):
         :param filename: Source file of interest.
         :return: Program units found therein.
         '''
+        query = 'select unit from fortran_unit where filename=:filename'
+        rows = self.execute(query, {'filename': str(filename)})
         units: List[str] = []
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select unit from fortran_unit where filename=:filename ',
-            {'filename': str(filename)})
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             units.append(row['unit'])
-        cursor.close()
         if len(units) == 0:
             message = 'Source file "{filename}" not found in database.'
             raise WorkingStateException(message.format(filename=filename))
@@ -204,21 +189,54 @@ class FortranWorkingState(object):
         :param unit: Program unit name
         :return: Prerequisite unit names. May be an empty list.
         '''
+        query = 'select depends_on from fortran_dependency where unit=:unit'
+        rows = self.execute(query, {'unit': unit})
         units: List[str] = []
-        cursor: sqlite3.Cursor = self._database.connection.execute(
-            'select depends_on from fortran_dependency where unit=:unit',
-            {'unit': unit})
-        while True:
-            row: sqlite3.Row = cursor.fetchone()
-            if row is None:
-                break
+        for row in rows:
             units.append(row['depends_on'])
-        cursor.close()
         return units
 
 
+class _FortranNormaliser(TextReaderDecorator):
+    def __init__(self, source: TextReader):
+        super().__init__(source)
+        self._line_buffer = ''
+
+    def line_by_line(self) -> Iterator[str]:
+        '''
+        Each line of the source file is modified to ease the work of analysis.
+
+        The lines are sanitised to remove comments and collapse the result
+        of continuation lines whilst also trimming away as much whitespace as
+        possible
+        '''
+        for line in self._source.line_by_line():
+            # Remove comments - we accept that an exclamation mark
+            # appearing in a string will cause the rest of that line
+            # to be blanked out, but the things we wish to parse
+            # later shouldn't appear after a string on a line anyway
+            line = re.sub(r'!.*', '', line)
+
+            # If the line is empty, go onto the next
+            if line.strip() == '':
+                continue
+
+            # Deal with continuations by removing them to collapse
+            # the lines together
+            self._line_buffer += line
+            if "&" in self._line_buffer:
+                self._line_buffer = re.sub(r'&\s*\n', '', self._line_buffer)
+                continue
+
+            # Before output, minimise whitespace but add a space on the end
+            # of the line.
+            line_buffer = re.sub(r'\s+', r' ', self._line_buffer)
+            yield line_buffer.rstrip()
+            self._line_buffer = ''
+
+
 class FortranAnalyser(Analyser):
-    def __init__(self, database: StateDatabase):
+    def __init__(self, database: SqliteStateDatabase):
         super().__init__(database)
         self._state = FortranWorkingState(database)
 
@@ -274,13 +292,14 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def analyse(self, filename: Path) -> None:
+    def analyse(self, source: TextReader) -> None:
         logger = logging.getLogger(__name__)
 
-        self._state.remove_fortran_file(filename)
+        self._state.remove_fortran_file(source.filename)
 
+        normalised_source = _FortranNormaliser(source)
         scope: List[Tuple[str, str]] = []
-        for line in self._normalise(filename):
+        for line in normalised_source.line_by_line():
             logger.debug(scope)
             logger.debug('Considering: %s', line)
 
@@ -291,7 +310,8 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    self._state.add_fortran_program_unit(unit_name, filename)
+                    self._state.add_fortran_program_unit(unit_name,
+                                                         source.filename)
                     scope.append((unit_type, unit_name))
                     continue
 
@@ -375,37 +395,3 @@ class FortranAnalyser(Analyser):
                                       'found': end_name}
                         raise AnalysisException(
                             end_message.format(**end_values))
-
-    @staticmethod
-    def _normalise(filename: Path) -> Generator[str, None, None]:
-        '''
-        Generator to return each line of a source file; the lines
-        are sanitised to remove comments and collapse the result
-        of continuation lines whilst also trimming away as much
-        whitespace as possible
-        '''
-        with filename.open('r') as source:
-            line_buffer = ''
-            for line in source:
-                # Remove comments - we accept that an exclamation mark
-                # appearing in a string will cause the rest of that line
-                # to be blanked out, but the things we wish to parse
-                # later shouldn't appear after a string on a line anyway
-                line = re.sub(r'!.*', '', line)
-
-                # If the line is empty, go onto the next
-                if line.strip() == '':
-                    continue
-
-                # Deal with continuations by removing them to collapse
-                # the lines together
-                line_buffer += line
-                if "&" in line_buffer:
-                    line_buffer = re.sub(r'&\s*\n', '', line_buffer)
-                    continue
-
-                # Before output, minimise whitespace but add a space on the end
-                # of the line.
-                line_buffer = re.sub(r'\s+', r' ', line_buffer)
-                yield line_buffer.rstrip()
-                line_buffer = ''
