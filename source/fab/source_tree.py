@@ -30,23 +30,29 @@ class ExtensionVisitor(TreeVisitor):
         self._workspace = workspace
 
     def visit(self, candidate: Path) -> List[Path]:
+        new_candidates: List[Path] = []
+        try:
+            task_class = self._extension_map[candidate.suffix]
+            reader: TextReader = FileTextReader(candidate)
+            hasher: TextReaderAdler32 = TextReaderAdler32(reader)
 
-        task_class = self._extension_map[candidate.suffix]
-        reader: TextReader = FileTextReader(candidate)
-        hasher: TextReaderAdler32 = TextReaderAdler32(reader)
-
-        if issubclass(task_class, Analyser):
-            task: Task = task_class(hasher, self._state)
-        elif issubclass(task_class, Command):
-            task = CommandTask(
-                task_class(Path(hasher.filename), self._workspace))
-        # TODO: Eventually add to the queue here rather than running
-        new_candidates: List[Path] = task.run()
-        for _ in hasher.line_by_line():
-            pass  # Make sure we've read the whole file.
-        file_info = FileInfoDatabase(self._state)
-        file_info.add_file_info(candidate, hasher.hash)
-
+            if issubclass(task_class, Analyser):
+                task: Task = task_class(hasher, self._state)
+            elif issubclass(task_class, Command):
+                task = CommandTask(
+                    task_class(Path(hasher.filename), self._workspace))
+            else:
+                message = 'Unhandled class "{cls}" in extension map.'
+                raise TypeError(
+                    message.format(cls=task_class))
+            # TODO: Eventually add to the queue here rather than running
+            new_candidates = task.run()
+            for _ in hasher.line_by_line():
+                pass  # Make sure we've read the whole file.
+            file_info = FileInfoDatabase(self._state)
+            file_info.add_file_info(candidate, hasher.hash)
+        except KeyError:
+            pass
         return new_candidates
 
 

@@ -6,8 +6,6 @@
 from pathlib import Path
 from typing import Iterator, Union, List, Mapping, Dict, Type
 
-import pytest  # type: ignore
-
 from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
 from fab.language import Analyser, Command, Task
 from fab.reader import TextReader
@@ -111,8 +109,8 @@ def test_extension_visitor(tmp_path: Path):
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 2333477459)
 
-    with pytest.raises(KeyError):
-        test_unit.visit(baz_file)
+    # Baz doesn't exist, so we're expecting no change
+    test_unit.visit(baz_file)
     assert tracker["analyser"] == [foo_file]
     assert file_info.get_file_info(foo_file) \
         == FileInfo(foo_file, 345244617)
