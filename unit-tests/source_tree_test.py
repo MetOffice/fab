@@ -69,7 +69,7 @@ class DummyCommand(Command):
         tracker["command"].append(self._filename)
         # Note that this is the command "true" which does nothing
         # (we're not trying to test the result of the command here)
-        return ["touch", str(self.output_filename)]
+        return ["cp", str(self._filename), str(self.output_filename)]
 
     @property
     def output_filename(self) -> Path:
@@ -147,7 +147,7 @@ def test_nested_extension_visitor(tmp_path: Path):
     assert file_info.get_file_info(foo_file) \
         == FileInfo(foo_file, 345244617)
     assert file_info.get_file_info(qux_file) \
-        == FileInfo(qux_file, 1)
+        == FileInfo(qux_file, 2333477459)
     assert tracker["command"] == [bar_file]
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 2333477459)
