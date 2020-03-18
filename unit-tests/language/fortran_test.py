@@ -286,6 +286,7 @@ class TestFortranAnalyser(object):
 
         # Repeat the scan of second_file, there should be no change.
         #
+        test_unit = FortranAnalyser(FileTextReader(second_file), database)
         test_unit.run()
 
         fdb = FortranWorkingState(database)
