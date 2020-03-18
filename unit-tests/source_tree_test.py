@@ -74,7 +74,7 @@ class DummyCommand(Command):
 
     @property
     def output_filename(self) -> Path:
-        return self._filename.with_suffix(".qux")
+        return self._filename.with_suffix(".baz")
 
 
 def test_extension_visitor(tmp_path: Path):
@@ -117,3 +117,37 @@ def test_extension_visitor(tmp_path: Path):
     assert tracker["command"] == [bar_file]
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 2333477459)
+
+
+def test_nested_visit(tmp_path: Path):
+    tree_root = tmp_path / 'nested'
+    tree_root.mkdir()
+    foo_file = tree_root / 'file.foo'
+    foo_file.write_text('First file')
+    bar_file = tree_root / 'file.bar'
+    bar_file.write_text('Second file')
+    # This file doesn't exist - it will be created by the
+    # command task when run on the "bar" file
+    baz_file = tree_root / 'file.baz'
+
+    db = SqliteStateDatabase(tmp_path)
+    file_info = FileInfoDatabase(db)
+    clear_tracker()
+
+    emap: Dict[str, Union[Type[Task], Type[Command]]] = {
+        '.foo': DummyAnalyser,
+        '.bar': DummyCommand,
+        '.baz': DummyAnalyser
+        }
+    visitor = ExtensionVisitor(emap, db, tmp_path)
+    test_unit = TreeDescent(tree_root)
+    test_unit.descend(visitor)
+
+    assert tracker["analyser"] == [foo_file, baz_file]
+    assert file_info.get_file_info(foo_file) \
+        == FileInfo(foo_file, 345244617)
+    assert file_info.get_file_info(baz_file) \
+        == FileInfo(baz_file, 411763741)
+    assert tracker["command"] == [bar_file]
+    assert file_info.get_file_info(bar_file) \
+        == FileInfo(bar_file, 411763741)
