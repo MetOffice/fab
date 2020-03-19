@@ -29,7 +29,9 @@ def parse_cli() -> argparse.Namespace:
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Produce a running commentary on progress')
     parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
-                        help='Directory for working files.')
+                        help='Directory for working files')
+    parser.add_argument('--fpp-flags', action='store', type=str, default="",
+                        help='Provide flags for Fortran PreProcessor ')
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     return parser.parse_args()
@@ -52,7 +54,8 @@ def main() -> None:
     if not arguments.workspace:
         arguments.workspace = arguments.source / 'working'
 
-    application = fab.application.Fab(arguments.workspace)
+    application = fab.application.Fab(arguments.workspace,
+                                      arguments.fpp_flags)
     application.run(arguments.source)
 
 

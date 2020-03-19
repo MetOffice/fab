@@ -29,9 +29,10 @@ class FabTestCase(systest.TestCase):
     #
     # This comment exists as the framework hijacks the docstring for output.
 
-    def __init__(self, test_directory: Path):
+    def __init__(self, test_directory: Path, fpp_flags: str = None):
         super().__init__(name=test_directory.stem)
         self._test_directory: Path = test_directory
+        self._fpp_flags = fpp_flags
 
         expectation_file = test_directory / 'expected.txt'
         self._expected = expectation_file.read_text('utf-8') \
@@ -47,7 +48,11 @@ class FabTestCase(systest.TestCase):
         shutil.rmtree(str(working_dir))
 
     def run(self):
-        command = ['python3', '-m', 'fab', self._test_directory]
+        command = ['python3', '-m', 'fab']
+        if self._fpp_flags is not None:
+            command.append("--fpp-flags=" + self._fpp_flags)
+        command.append(self._test_directory)
+
         environment = {'PYTHONPATH': 'source'}
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
@@ -138,7 +143,9 @@ if __name__ == '__main__':
 
     sequence = [
         FabTestCase(root_dir / 'MinimalFortran'),
-        FabTestCase(root_dir / 'FortranDependencies')
+        FabTestCase(root_dir / 'FortranDependencies'),
+        FabTestCase(root_dir / 'FortranPreProcess',
+                    fpp_flags='-DSHOULD_I_STAY=yes')
         ]
 
     sequencer: Sequencer = systest.Sequencer('Fab system tests')

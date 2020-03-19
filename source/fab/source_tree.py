@@ -41,7 +41,7 @@ class ExtensionVisitor(TreeVisitor):
             if issubclass(task_class, Analyser):
                 task: Task = task_class(hasher, self._state)
             elif issubclass(task_class, Command):
-                flags = self._command_flags_map.get(task_class, ["", ])
+                flags = self._command_flags_map.get(task_class, [])
                 task = CommandTask(
                     task_class(Path(hasher.filename), self._workspace, flags))
             else:

@@ -20,13 +20,15 @@ class Fab(object):
         '.f90': FortranAnalyser,
         '.F90': FortranPreProcessor,
     }
-    _command_flags_map: Dict[Type[Command], List[str]] = {
-        FortranPreProcessor: ["", ],
-    }
+    _command_flags_map: Dict[Type[Command], List[str]] = {}
 
-    def __init__(self, workspace: Path):
+    def __init__(self, workspace: Path, fpp_flags: str):
         self._state = SqliteStateDatabase(workspace)
         self._workspace = workspace
+        if fpp_flags != "":
+            self._command_flags_map[FortranPreProcessor] = (
+                fpp_flags.split()
+            )
 
     def run(self, source: Path):
         visitor = ExtensionVisitor(self._extension_map,
