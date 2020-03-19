@@ -351,7 +351,7 @@ class TestFortranPreProcessor(object):
         preprocessor = FortranPreProcessor(
                 test_file,
                 tmp_path,
-                ['-P', '-DTEST_MACRO=test_macro', ])
+                ['-DTEST_MACRO=test_macro', ])
         test_unit = CommandTask(preprocessor)
         test_unit.run()
 
@@ -371,7 +371,7 @@ class TestFortranPreProcessor(object):
         preprocessor = FortranPreProcessor(
                 test_file,
                 tmp_path,
-                ['-P', ])
+                [])
         test_unit = CommandTask(preprocessor)
         test_unit.run()
 

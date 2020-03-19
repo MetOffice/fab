@@ -17,6 +17,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import os
 import traceback
 
 import systest  # type: ignore
@@ -53,7 +54,8 @@ class FabTestCase(systest.TestCase):
             command.append("--fpp-flags=" + self._fpp_flags)
         command.append(self._test_directory)
 
-        environment = {'PYTHONPATH': 'source'}
+        environment = os.environ
+        environment.update({'PYTHONPATH': 'source'})
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
                                                     stdout=subprocess.PIPE,

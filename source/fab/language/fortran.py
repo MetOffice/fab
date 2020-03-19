@@ -402,7 +402,7 @@ class FortranPreProcessor(Command):
 
     @property
     def as_list(self) -> List[str]:
-        base_command = ["cpp", "-traditional-cpp"]
+        base_command = ["cpp", "-traditional-cpp", "-P"]
         file_args = [str(self._filename), str(self.output_filename)]
         return base_command + self._flags + file_args
 

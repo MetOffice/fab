@@ -50,6 +50,6 @@ setuptools.setup(
     extras_require={
         'dev': ['flake8', 'mypy'],
         'unit-test': ['pytest', 'pytest-cov'],
-        'system-test': ['systest']
+        'system-test': ['systest', 'gcc']
     }
 )
