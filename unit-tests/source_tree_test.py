@@ -93,7 +93,7 @@ def test_extension_visitor(tmp_path: Path):
         '.foo': DummyAnalyser,
         '.bar': DummyCommand
         }
-    test_unit = ExtensionVisitor(emap, db, tmp_path)
+    test_unit = ExtensionVisitor(emap, {}, db, tmp_path)
     test_unit.visit(foo_file)
 
     assert tracker["analyser"] == [foo_file]
@@ -139,7 +139,7 @@ def test_nested_visit(tmp_path: Path):
         '.bar': DummyCommand,
         '.baz': DummyAnalyser
         }
-    visitor = ExtensionVisitor(emap, db, tmp_path)
+    visitor = ExtensionVisitor(emap, {}, db, tmp_path)
     test_unit = TreeDescent(tree_root)
     test_unit.descend(visitor)
 

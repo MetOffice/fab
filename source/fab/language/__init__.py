@@ -36,9 +36,10 @@ class Analyser(Task):
 class Command(ABC):
     stdout = False
 
-    def __init__(self, filename: Path, workspace: Path):
+    def __init__(self, filename: Path, workspace: Path, flags: List[str]):
         self._filename = filename
         self._workspace = workspace
+        self._flags = flags
 
     @property
     @abstractmethod

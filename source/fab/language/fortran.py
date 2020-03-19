@@ -399,12 +399,12 @@ class FortranAnalyser(Analyser):
 
 class FortranPreProcessor(Command):
     stdout = False
+
     @property
     def as_list(self) -> List[str]:
-        return ["cpp",
-                "-traditional-cpp",
-                str(self._filename),
-                str(self.output_filename)]
+        base_command = ["cpp", "-traditional-cpp"]
+        file_args = [str(self._filename), str(self.output_filename)]
+        return base_command + self._flags + file_args
 
     @property
     def output_filename(self) -> Path:

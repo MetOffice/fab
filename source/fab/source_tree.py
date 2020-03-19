@@ -24,8 +24,10 @@ class TreeVisitor(ABC):
 class ExtensionVisitor(TreeVisitor):
     def __init__(self,
                  extension_map: Mapping[str, Union[Type[Task], Type[Command]]],
+                 command_flags_map: Mapping[Type[Command], List[str]],
                  state: SqliteStateDatabase, workspace: Path):
         self._extension_map = extension_map
+        self._command_flags_map = command_flags_map
         self._state = state
         self._workspace = workspace
 
@@ -39,8 +41,9 @@ class ExtensionVisitor(TreeVisitor):
             if issubclass(task_class, Analyser):
                 task: Task = task_class(hasher, self._state)
             elif issubclass(task_class, Command):
+                flags = self._command_flags_map.get(task_class, ["", ])
                 task = CommandTask(
-                    task_class(Path(hasher.filename), self._workspace))
+                    task_class(Path(hasher.filename), self._workspace, flags))
             else:
                 message = 'Unhandled class "{cls}" in extension map.'
                 raise TypeError(

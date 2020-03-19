@@ -11,8 +11,11 @@ from typing import Dict, List, Sequence
 import pytest  # type: ignore
 
 from fab.database import SqliteStateDatabase, WorkingStateException
-from fab.language import TaskException
-from fab.language.fortran import FortranAnalyser, FortranWorkingState
+from fab.language import TaskException, CommandTask
+from fab.language.fortran import (
+    FortranAnalyser,
+    FortranWorkingState,
+    FortranPreProcessor)
 from fab.reader import FileTextReader
 
 
@@ -313,3 +316,73 @@ class TestFortranAnalyser(object):
         test_unit = FortranAnalyser(FileTextReader(test_file), database)
         with pytest.raises(TaskException):
             test_unit.run()
+
+
+class TestFortranPreProcessor(object):
+    def test_preprocssor_output(self, caplog, tmp_path):
+        '''
+        Tests that the processor correctly applies to the source.
+        '''
+        caplog.set_level(logging.DEBUG)
+
+        test_file: Path = tmp_path / 'test.F90'
+        test_file.write_text(
+            dedent('''
+                   #if defined(TEST_MACRO)
+                   SUBROUTINE included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_set
+                   #else
+                   SUBROUTINE included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_not_set
+                   #endif
+                   #if !defined(TEST_MACRO)
+                   FUNCTION included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_not_set
+                   #else
+                   FUNCTION included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_set
+                   #endif
+                   '''))
+        # Test once with the macro set
+        preprocessor = FortranPreProcessor(
+                test_file,
+                tmp_path,
+                ['-P', '-DTEST_MACRO=test_macro', ])
+        test_unit = CommandTask(preprocessor)
+        test_unit.run()
+
+        assert preprocessor.output_filename.exists
+        with open(preprocessor.output_filename, "r") as outfile:
+            outfile_content = outfile.read().strip()
+
+        assert outfile_content == dedent('''\
+                   SUBROUTINE included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_set
+                   FUNCTION included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_set''')
+
+        # And test again with the macro unset
+        preprocessor = FortranPreProcessor(
+                test_file,
+                tmp_path,
+                ['-P', ])
+        test_unit = CommandTask(preprocessor)
+        test_unit.run()
+
+        assert preprocessor.output_filename.exists
+        with open(preprocessor.output_filename, "r") as outfile:
+            outfile_content = outfile.read().strip()
+
+        assert outfile_content == dedent('''\
+                   SUBROUTINE included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_not_set
+                   FUNCTION included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_not_set''')

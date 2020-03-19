@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from typing import Dict, Type, Union
+from typing import Dict, Type, Union, List
 
 from fab.database import SqliteStateDatabase
 from fab.language import Task, Command
@@ -20,6 +20,9 @@ class Fab(object):
         '.f90': FortranAnalyser,
         '.F90': FortranPreProcessor,
     }
+    _command_flags_map: Dict[Type[Command], List[str]] = {
+        FortranPreProcessor: ["", ],
+    }
 
     def __init__(self, workspace: Path):
         self._state = SqliteStateDatabase(workspace)
@@ -27,6 +30,7 @@ class Fab(object):
 
     def run(self, source: Path):
         visitor = ExtensionVisitor(self._extension_map,
+                                   self._command_flags_map,
                                    self._state,
                                    self._workspace)
         descender = TreeDescent(source)
