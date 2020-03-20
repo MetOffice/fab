@@ -17,7 +17,7 @@ from fab.reader import TextReader, FileTextReader, TextReaderAdler32
 
 class TreeVisitor(ABC):
     @abstractmethod
-    def visit(self, candidate: Path):
+    def visit(self, candidate: Path) -> List[Path]:
         raise NotImplementedError('Abstract method must be implemented')
 
 

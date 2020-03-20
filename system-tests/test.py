@@ -54,8 +54,10 @@ class FabTestCase(systest.TestCase):
             command.append('--fpp-flags=' + self._fpp_flags)
         command.append(self._test_directory)
 
-        environment = os.environ
-        environment.update({'PYTHONPATH': 'source'})
+        environment = {
+            'PYTHONPATH': 'source',
+            'PATH': os.environ.get("PATH", '')
+            }
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
                                                     stdout=subprocess.PIPE,

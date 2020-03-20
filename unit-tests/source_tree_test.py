@@ -68,8 +68,6 @@ class DummyCommand(Command):
     @property
     def as_list(self) -> List[str]:
         tracker['command'].append(self._filename)
-        # Note that this is the command "true" which does nothing
-        # (we're not trying to test the result of the command here)
         return ['cp', str(self._filename), str(self.output_filename)]
 
     @property

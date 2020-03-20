@@ -398,7 +398,6 @@ class FortranAnalyser(Analyser):
 
 
 class FortranPreProcessor(Command):
-    stdout = False
 
     @property
     def as_list(self) -> List[str]:
