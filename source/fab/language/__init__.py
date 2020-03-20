@@ -59,6 +59,6 @@ class CommandTask(Task):
     def run(self) -> List[Path]:
         process = subprocess.run(self._command.as_list, check=True)
         if self._command.stdout:
-            with open(self._command.output_filename, "wb") as out_file:
+            with open(self._command.output_filename, 'wb') as out_file:
                 out_file.write(process.stdout)
         return [self._command.output_filename, ]

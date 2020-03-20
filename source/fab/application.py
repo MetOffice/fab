@@ -25,7 +25,7 @@ class Fab(object):
     def __init__(self, workspace: Path, fpp_flags: str):
         self._state = SqliteStateDatabase(workspace)
         self._workspace = workspace
-        if fpp_flags != "":
+        if fpp_flags != '':
             self._command_flags_map[FortranPreProcessor] = (
                 fpp_flags.split()
             )

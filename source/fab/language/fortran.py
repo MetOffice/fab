@@ -224,7 +224,7 @@ class _FortranNormaliser(TextReaderDecorator):
             # Deal with continuations by removing them to collapse
             # the lines together
             self._line_buffer += line
-            if "&" in self._line_buffer:
+            if '&' in self._line_buffer:
                 self._line_buffer = re.sub(r'&\s*\n', '', self._line_buffer)
                 continue
 
@@ -402,10 +402,10 @@ class FortranPreProcessor(Command):
 
     @property
     def as_list(self) -> List[str]:
-        base_command = ["cpp", "-traditional-cpp", "-P"]
+        base_command = ['cpp', '-traditional-cpp', '-P']
         file_args = [str(self._filename), str(self.output_filename)]
         return base_command + self._flags + file_args
 
     @property
     def output_filename(self) -> Path:
-        return self._workspace / self._filename.with_suffix(".f90").name
+        return self._workspace / self._filename.with_suffix('.f90').name

@@ -48,33 +48,33 @@ class DummyReader(TextReader):
 
 
 tracker: Mapping[str, List[Path]] = {
-    "analyser": [],
-    "command": [],
+    'analyser': [],
+    'command': [],
 }
 
 
 def clear_tracker():
-    tracker["analyser"] = []
-    tracker["command"] = []
+    tracker['analyser'] = []
+    tracker['command'] = []
 
 
 class DummyAnalyser(Analyser):
     def run(self):
-        tracker["analyser"].append(self._reader.filename)
+        tracker['analyser'].append(self._reader.filename)
         return []
 
 
 class DummyCommand(Command):
     @property
     def as_list(self) -> List[str]:
-        tracker["command"].append(self._filename)
+        tracker['command'].append(self._filename)
         # Note that this is the command "true" which does nothing
         # (we're not trying to test the result of the command here)
-        return ["cp", str(self._filename), str(self.output_filename)]
+        return ['cp', str(self._filename), str(self.output_filename)]
 
     @property
     def output_filename(self) -> Path:
-        return self._filename.with_suffix(".baz")
+        return self._filename.with_suffix('.baz')
 
 
 def test_extension_visitor(tmp_path: Path):
@@ -96,25 +96,25 @@ def test_extension_visitor(tmp_path: Path):
     test_unit = ExtensionVisitor(emap, {}, db, tmp_path)
     test_unit.visit(foo_file)
 
-    assert tracker["analyser"] == [foo_file]
+    assert tracker['analyser'] == [foo_file]
     assert file_info.get_file_info(foo_file) \
         == FileInfo(foo_file, 345244617)
-    assert tracker["command"] == []
+    assert tracker['command'] == []
 
     test_unit.visit(bar_file)
-    assert tracker["analyser"] == [foo_file]
+    assert tracker['analyser'] == [foo_file]
     assert file_info.get_file_info(foo_file) \
         == FileInfo(foo_file, 345244617)
-    assert tracker["command"] == [bar_file]
+    assert tracker['command'] == [bar_file]
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 2333477459)
 
     # Baz doesn't exist, so we're expecting no change
     test_unit.visit(baz_file)
-    assert tracker["analyser"] == [foo_file]
+    assert tracker['analyser'] == [foo_file]
     assert file_info.get_file_info(foo_file) \
         == FileInfo(foo_file, 345244617)
-    assert tracker["command"] == [bar_file]
+    assert tracker['command'] == [bar_file]
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 2333477459)
 
@@ -143,11 +143,11 @@ def test_nested_visit(tmp_path: Path):
     test_unit = TreeDescent(tree_root)
     test_unit.descend(visitor)
 
-    assert tracker["analyser"] == [foo_file, baz_file]
+    assert tracker['analyser'] == [foo_file, baz_file]
     assert file_info.get_file_info(foo_file) \
         == FileInfo(foo_file, 345244617)
     assert file_info.get_file_info(baz_file) \
         == FileInfo(baz_file, 411763741)
-    assert tracker["command"] == [bar_file]
+    assert tracker['command'] == [bar_file]
     assert file_info.get_file_info(bar_file) \
         == FileInfo(bar_file, 411763741)

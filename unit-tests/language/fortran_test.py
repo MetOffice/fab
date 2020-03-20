@@ -356,7 +356,7 @@ class TestFortranPreProcessor(object):
         test_unit.run()
 
         assert preprocessor.output_filename.exists
-        with open(preprocessor.output_filename, "r") as outfile:
+        with open(preprocessor.output_filename, 'r') as outfile:
             outfile_content = outfile.read().strip()
 
         assert outfile_content == dedent('''\
@@ -376,7 +376,7 @@ class TestFortranPreProcessor(object):
         test_unit.run()
 
         assert preprocessor.output_filename.exists
-        with open(preprocessor.output_filename, "r") as outfile:
+        with open(preprocessor.output_filename, 'r') as outfile:
             outfile_content = outfile.read().strip()
 
         assert outfile_content == dedent('''\

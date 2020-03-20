@@ -51,7 +51,7 @@ class FabTestCase(systest.TestCase):
     def run(self):
         command = ['python3', '-m', 'fab']
         if self._fpp_flags is not None:
-            command.append("--fpp-flags=" + self._fpp_flags)
+            command.append('--fpp-flags=' + self._fpp_flags)
         command.append(self._test_directory)
 
         environment = os.environ

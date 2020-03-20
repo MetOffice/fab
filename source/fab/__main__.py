@@ -30,7 +30,7 @@ def parse_cli() -> argparse.Namespace:
                         help='Produce a running commentary on progress')
     parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
                         help='Directory for working files')
-    parser.add_argument('--fpp-flags', action='store', type=str, default="",
+    parser.add_argument('--fpp-flags', action='store', type=str, default='',
                         help='Provide flags for Fortran PreProcessor ')
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
