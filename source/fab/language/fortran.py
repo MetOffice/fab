@@ -23,7 +23,7 @@ from fab.database import (DatabaseDecorator,
                           StateDatabase,
                           SqliteStateDatabase,
                           WorkingStateException)
-from fab.language import Analyser, AnalysisException
+from fab.language import Analyser, TaskException, Command
 from fab.reader import TextReader, TextReaderDecorator
 
 
@@ -224,7 +224,7 @@ class _FortranNormaliser(TextReaderDecorator):
             # Deal with continuations by removing them to collapse
             # the lines together
             self._line_buffer += line
-            if "&" in self._line_buffer:
+            if '&' in self._line_buffer:
                 self._line_buffer = re.sub(r'&\s*\n', '', self._line_buffer)
                 continue
 
@@ -236,8 +236,8 @@ class _FortranNormaliser(TextReaderDecorator):
 
 
 class FortranAnalyser(Analyser):
-    def __init__(self, database: SqliteStateDatabase):
-        super().__init__(database)
+    def __init__(self, reader: TextReader, database: SqliteStateDatabase):
+        super().__init__(reader, database)
         self._state = FortranWorkingState(database)
 
     _intrinsic_modules = ['iso_fortran_env']
@@ -292,12 +292,12 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def analyse(self, source: TextReader) -> None:
+    def run(self) -> List[Path]:
         logger = logging.getLogger(__name__)
 
-        self._state.remove_fortran_file(source.filename)
+        self._state.remove_fortran_file(self._reader.filename)
 
-        normalised_source = _FortranNormaliser(source)
+        normalised_source = _FortranNormaliser(self._reader)
         scope: List[Tuple[str, str]] = []
         for line in normalised_source.line_by_line():
             logger.debug(scope)
@@ -310,11 +310,10 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    self._state.add_fortran_program_unit(unit_name,
-                                                         source.filename)
+                    self._state.add_fortran_program_unit(
+                        unit_name, self._reader.filename)
                     scope.append((unit_type, unit_name))
                     continue
-
             use_match: Optional[Match] \
                 = self._use_pattern.match(line)
             if use_match:
@@ -325,7 +324,7 @@ class FortranAnalyser(Analyser):
                     if len(scope) == 0:
                         use_message \
                             = '"use" statement found outside program unit'
-                        raise AnalysisException(use_message)
+                        raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
                     self._state.add_fortran_dependency(scope[0][1], use_name)
                 continue
@@ -384,7 +383,7 @@ class FortranAnalyser(Analyser):
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
                                       'found': end_nature}
-                        raise AnalysisException(
+                        raise TaskException(
                             end_message.format(**end_values))
                 if end_name is not None:
                     if end_name != exp[1]:
@@ -393,5 +392,19 @@ class FortranAnalyser(Analyser):
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
                                       'found': end_name}
-                        raise AnalysisException(
+                        raise TaskException(
                             end_message.format(**end_values))
+        return []
+
+
+class FortranPreProcessor(Command):
+
+    @property
+    def as_list(self) -> List[str]:
+        base_command = ['cpp', '-traditional-cpp', '-P']
+        file_args = [str(self._filename), str(self.output_filename)]
+        return base_command + self._flags + file_args
+
+    @property
+    def output_filename(self) -> Path:
+        return self._workspace / self._filename.with_suffix('.f90').name
