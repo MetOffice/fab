@@ -53,7 +53,7 @@ tracker: Mapping[str, List[Path]] = {
 }
 
 
-def clear_tracker():
+def setup_function():
     tracker['analyser'] = []
     tracker['command'] = []
 
@@ -85,7 +85,6 @@ def test_extension_visitor(tmp_path: Path):
 
     db = SqliteStateDatabase(tmp_path)
     file_info = FileInfoDatabase(db)
-    clear_tracker()
 
     emap: Dict[str, Union[Type[Task], Type[Command]]] = {
         '.foo': DummyAnalyser,
@@ -130,7 +129,6 @@ def test_nested_visit(tmp_path: Path):
 
     db = SqliteStateDatabase(tmp_path)
     file_info = FileInfoDatabase(db)
-    clear_tracker()
 
     emap: Dict[str, Union[Type[Task], Type[Command]]] = {
         '.foo': DummyAnalyser,
