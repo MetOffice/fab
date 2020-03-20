@@ -64,14 +64,14 @@ class TreeDescent(object):
         self._root = root
 
     def descend(self, visitor: TreeVisitor):
-        addresses = [self._root]
-        while len(addresses) > 0:
-            candidate: Path = addresses.pop()
+        to_visit = [self._root]
+        while len(to_visit) > 0:
+            candidate: Path = to_visit.pop()
             if candidate.is_dir():
-                addresses.extend(sorted(candidate.iterdir()))
+                to_visit.extend(sorted(candidate.iterdir()))
                 continue
 
             # At this point the object should be a file, directories having
             # been dealt with previously.
             #
-            addresses.extend(visitor.visit(candidate))
+            to_visit.extend(visitor.visit(candidate))
