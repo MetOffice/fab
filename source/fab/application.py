@@ -42,7 +42,12 @@ class Fab(object):
         for file in file_db.get_all_filenames():
             info = file_db.get_file_info(file)
             print(info.filename)
-            print(f'    hash: {info.adler32}')
+            # Where files are generated in the working directory
+            # by third party tools, we cannot guarantee the hashes
+            if str(info.filename).startswith(str(self._workspace)):
+                print('    hash: --hidden-- (generated file)')
+            else:
+                print(f'    hash: {info.adler32}')
 
         fortran_db = FortranWorkingState(self._state)
         for unit, files in fortran_db.iterate_program_units():
