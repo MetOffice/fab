@@ -8,11 +8,15 @@ from pathlib import Path
 from textwrap import dedent
 from typing import Dict, List, Sequence
 
-import pytest
+import pytest  # type: ignore
 
-from fab.database import StateDatabase, WorkingStateException
-from fab.language import AnalysisException
-from fab.language.fortran import FortranAnalyser, FortranWorkingState
+from fab.database import SqliteStateDatabase, WorkingStateException
+from fab.language import TaskException, CommandTask
+from fab.language.fortran import (
+    FortranAnalyser,
+    FortranWorkingState,
+    FortranPreProcessor)
+from fab.reader import FileTextReader
 
 
 class TestFortranWorkingSpace:
@@ -21,20 +25,22 @@ class TestFortranWorkingSpace:
                   expected_unit: Dict[str, Sequence[Path]],
                   expected_filename: Dict[Path, Sequence[str]],
                   expected_dependency: Dict[str, Sequence[str]]):
-        for unit, filename in expected_unit.items():
+        for unit, unit_filename in expected_unit.items():
             if unit.startswith('!'):
                 with pytest.raises(WorkingStateException):
                     _ = test_unit.filenames_from_program_unit(unit[1:])
             else:
-                assert test_unit.filenames_from_program_unit(unit) == filename
+                assert test_unit.filenames_from_program_unit(unit) \
+                    == unit_filename
 
-        for filename, unit in expected_filename.items():
+        for filename, filename_unit in expected_filename.items():
             if filename.suffix == '.not':
                 with pytest.raises(WorkingStateException):
                     actual_filename: Path = filename.with_suffix('')
                     _ = test_unit.program_units_from_file(actual_filename)
             else:
-                assert test_unit.program_units_from_file(filename) == unit
+                assert test_unit.program_units_from_file(filename) \
+                    == filename_unit
 
         for unit, prerequisites in expected_dependency.items():
             assert test_unit.depends_on(unit) == prerequisites
@@ -44,7 +50,7 @@ class TestFortranWorkingSpace:
         Walks a FortranWorkingState object through a sequence of adds and
         removes checking the contents at each stage.
         '''
-        database = StateDatabase(tmp_path)
+        database = SqliteStateDatabase(tmp_path)
         test_unit = FortranWorkingState(database)
 
         # Add a file containing a program unit and an unsatisfied dependency.
@@ -122,7 +128,7 @@ class TestFortranWorkingSpace:
                        expected_dependency)
 
     def test_unit_iterator(self, tmp_path):
-        database = StateDatabase(tmp_path)
+        database = SqliteStateDatabase(tmp_path)
         test_unit = FortranWorkingState(database)
 
         test_unit.add_fortran_program_unit('foo', tmp_path / 'foo.f90')
@@ -175,9 +181,9 @@ class TestFortranAnalyser(object):
                                          'baz': ['teapot_mod'],
                                          'qux': ['wibble_mod', 'wubble_mod']}
 
-        database: StateDatabase = StateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
-        test_unit.analyse(test_file)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
+        test_unit = FortranAnalyser(FileTextReader(test_file), database)
+        test_unit.run()
         working_state = FortranWorkingState(database)
         assert working_state.program_units_from_file(test_file) == units
         for unit in units:
@@ -236,9 +242,9 @@ class TestFortranAnalyser(object):
                    '''))
         units: List[str] = ['fred', 'barney']
 
-        database: StateDatabase = StateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
-        test_unit.analyse(test_file)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
+        test_unit = FortranAnalyser(FileTextReader(test_file), database)
+        test_unit.run()
         working_state = FortranWorkingState(database)
         assert working_state.program_units_from_file(test_file) == units
         for unit in units:
@@ -269,10 +275,11 @@ class TestFortranAnalyser(object):
                    end module barney_mod
                    '''))
 
-        database: StateDatabase = StateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
-        test_unit.analyse(first_file)
-        test_unit.analyse(second_file)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
+        test_unit = FortranAnalyser(FileTextReader(first_file), database)
+        test_unit.run()
+        test_unit = FortranAnalyser(FileTextReader(second_file), database)
+        test_unit.run()
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
@@ -282,7 +289,8 @@ class TestFortranAnalyser(object):
 
         # Repeat the scan of second_file, there should be no change.
         #
-        test_unit.analyse(second_file)
+        test_unit = FortranAnalyser(FileTextReader(second_file), database)
+        test_unit.run()
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
@@ -304,7 +312,77 @@ class TestFortranAnalyser(object):
                    end module test_mod
                    '''))
 
-        database: StateDatabase = StateDatabase(tmp_path)
-        test_unit = FortranAnalyser(database)
-        with pytest.raises(AnalysisException):
-            test_unit.analyse(test_file)
+        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
+        test_unit = FortranAnalyser(FileTextReader(test_file), database)
+        with pytest.raises(TaskException):
+            test_unit.run()
+
+
+class TestFortranPreProcessor(object):
+    def test_preprocssor_output(self, caplog, tmp_path):
+        '''
+        Tests that the processor correctly applies to the source.
+        '''
+        caplog.set_level(logging.DEBUG)
+
+        test_file: Path = tmp_path / 'test.F90'
+        test_file.write_text(
+            dedent('''
+                   #if defined(TEST_MACRO)
+                   SUBROUTINE included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_set
+                   #else
+                   SUBROUTINE included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_not_set
+                   #endif
+                   #if !defined(TEST_MACRO)
+                   FUNCTION included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_not_set
+                   #else
+                   FUNCTION included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_set
+                   #endif
+                   '''))
+        # Test once with the macro set
+        preprocessor = FortranPreProcessor(
+                test_file,
+                tmp_path,
+                ['-DTEST_MACRO=test_macro', ])
+        test_unit = CommandTask(preprocessor)
+        test_unit.run()
+
+        assert preprocessor.output_filename.exists
+        with open(preprocessor.output_filename, 'r') as outfile:
+            outfile_content = outfile.read().strip()
+
+        assert outfile_content == dedent('''\
+                   SUBROUTINE included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_set
+                   FUNCTION included_when_test_macro_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_set''')
+
+        # And test again with the macro unset
+        preprocessor = FortranPreProcessor(
+                test_file,
+                tmp_path,
+                [])
+        test_unit = CommandTask(preprocessor)
+        test_unit.run()
+
+        assert preprocessor.output_filename.exists
+        with open(preprocessor.output_filename, 'r') as outfile:
+            outfile_content = outfile.read().strip()
+
+        assert outfile_content == dedent('''\
+                   SUBROUTINE included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END SUBROUTINE included_when_test_macro_not_set
+                   FUNCTION included_when_test_macro_not_set()
+                   IMPLICIT NONE
+                   END FUNCTION included_when_test_macro_not_set''')
