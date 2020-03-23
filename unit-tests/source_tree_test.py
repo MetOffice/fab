@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterator, Union, List, Mapping, Dict, Type
 
 from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
-from fab.language import Analyser, Command, Task
+from fab.language import Analyser, Command, SingleFileCommand, Task
 from fab.reader import TextReader
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
 
@@ -64,7 +64,7 @@ class DummyAnalyser(Analyser):
         return []
 
 
-class DummyCommand(Command):
+class DummyCommand(SingleFileCommand):
     @property
     def as_list(self) -> List[str]:
         tracker['command'].append(self._filename)

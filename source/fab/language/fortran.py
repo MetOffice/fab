@@ -23,7 +23,7 @@ from fab.database import (DatabaseDecorator,
                           StateDatabase,
                           SqliteStateDatabase,
                           WorkingStateException)
-from fab.language import Analyser, TaskException, Command
+from fab.language import Analyser, TaskException, SingleFileCommand
 from fab.reader import TextReader, TextReaderDecorator
 
 
@@ -397,7 +397,7 @@ class FortranAnalyser(Analyser):
         return []
 
 
-class FortranPreProcessor(Command):
+class FortranPreProcessor(SingleFileCommand):
 
     @property
     def as_list(self) -> List[str]:

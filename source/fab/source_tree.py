@@ -11,7 +11,12 @@ from pathlib import Path
 from typing import Mapping, List, Union, Type
 
 from fab.database import FileInfoDatabase, SqliteStateDatabase
-from fab.language import Task, Analyser, CommandTask, Command
+from fab.language import \
+    Task, \
+    Analyser, \
+    CommandTask, \
+    Command, \
+    SingleFileCommand
 from fab.reader import TextReader, FileTextReader, TextReaderAdler32
 
 
@@ -40,7 +45,7 @@ class ExtensionVisitor(TreeVisitor):
 
             if issubclass(task_class, Analyser):
                 task: Task = task_class(hasher, self._state)
-            elif issubclass(task_class, Command):
+            elif issubclass(task_class, SingleFileCommand):
                 flags = self._command_flags_map.get(task_class, [])
                 task = CommandTask(
                     task_class(Path(hasher.filename), self._workspace, flags))

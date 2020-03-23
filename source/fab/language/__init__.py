@@ -36,8 +36,7 @@ class Analyser(Task):
 class Command(ABC):
     stdout = False
 
-    def __init__(self, filename: Path, workspace: Path, flags: List[str]):
-        self._filename = filename
+    def __init__(self, workspace: Path, flags: List[str]):
         self._workspace = workspace
         self._flags = flags
 
@@ -52,6 +51,12 @@ class Command(ABC):
         raise NotImplementedError('Abstract methods must be implemented')
 
 
+class SingleFileCommand(Command):
+    def __init__(self, filename: Path, workspace: Path, flags: List[str]):
+        super().__init__(workspace, flags)
+        self._filename = filename
+
+
 class CommandTask(Task):
     def __init__(self, command: Command):
         self._command = command
@@ -62,3 +67,26 @@ class CommandTask(Task):
             with open(self._command.output_filename, 'wb') as out_file:
                 out_file.write(process.stdout)
         return [self._command.output_filename, ]
+
+
+class Linker(Command):
+    def __init__(self,
+                 workspace: Path,
+                 flags: List[str],
+                 output_filename: Path):
+        super().__init__(workspace, flags)
+        self._output_filename = output_filename
+        self._filenames: List[Path] = []
+
+    def add_object(self, object_filename: Path):
+        self._filenames.append(object_filename)
+
+    @property
+    def as_list(self) -> List[str]:
+        base_command = ['ld', '-o', str(self.output_filename)]
+        objects = [str(filename) for filename in self._filenames]
+        return base_command + self._flags + objects
+
+    @property
+    def output_filename(self) -> Path:
+        return self._output_filename
