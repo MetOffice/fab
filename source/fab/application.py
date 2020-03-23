@@ -46,9 +46,7 @@ class Fab(object):
             print(info.filename)
             # Where files are generated in the working directory
             # by third party tools, we cannot guarantee the hashes
-            print(info.filename)
-            print(str(self._workspace))
-            if str(info.filename).startswith(str(self._workspace)):
+            if info.filename.match(f'{self._workspace}/*'):
                 print('    hash: --hidden-- (generated file)')
             else:
                 print(f'    hash: {info.adler32}')
