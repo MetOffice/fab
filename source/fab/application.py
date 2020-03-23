@@ -61,6 +61,7 @@ class Fab(object):
 
 class Dump(object):
     def __init__(self, workspace: Path):
+        self._workspace = workspace
         self._state = SqliteStateDatabase(workspace)
 
     def run(self, stream=sys.stdout):
@@ -69,7 +70,12 @@ class Dump(object):
         for filename in file_view.get_all_filenames():
             file_info = file_view.get_file_info(filename)
             print(f"  File   : {file_info.filename}", file=stream)
-            print(f"    Hash : {file_info.adler32}", file=stream)
+            # Where files are generated in the working directory
+            # by third party tools, we cannot guarantee the hashes
+            if file_info.filename.match(f'{self._workspace}/*'):
+                print('    Hash : --hidden-- (generated file)')
+            else:
+                print(f"    Hash : {file_info.adler32}", file=stream)
 
         fortran_view = FortranWorkingState(self._state)
         print("Fortran View", file=stream)
