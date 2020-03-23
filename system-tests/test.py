@@ -20,7 +20,7 @@ import subprocess
 import sys
 import os
 import traceback
-from typing import Sequence
+from typing import List, Sequence
 
 import systest  # type: ignore
 from systest import Sequencer
@@ -30,12 +30,13 @@ class RunTestCase(systest.TestCase):
     """
     Runs a tool from the fab collection and compares output with expected one.
     """
+
     def __init__(self,
                  test_directory: Path,
                  working_dir: Path,
                  expectation_file: Path,
                  entry_point: str,
-                 args: Sequence[str] = []):
+                 args: Sequence[str] = ()):
         super().__init__(name=test_directory.stem)
         self._test_directory: Path = test_directory
         self._working_dir: Path = working_dir
@@ -46,11 +47,13 @@ class RunTestCase(systest.TestCase):
 
     def run(self):
         script = "import sys; import fab.entry; " \
-            f"sys.exit(fab.entry.{self._entry_point}())"
+                 f"sys.exit(fab.entry.{self._entry_point}())"
         command = ['python3', '-c', script,
                    '-w', self._working_dir]
         command.extend(self._arguments)
-        environment = {'PATH': os.path.dirname(sys.executable),
+        new_path = os.environ.get('PATH') \
+            + ':' + os.path.dirname(sys.executable)
+        environment = {'PATH': new_path,
                        'PYTHONPATH': 'source'}
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
@@ -90,11 +93,12 @@ class RunTestCase(systest.TestCase):
 
 class FabTestCase(RunTestCase):
     """Run Fab build tool against source tree and validate result."""
+
     # The result is held in a file 'expected.fab.txt' in the test directory.
     #
     # This comment exists as the framework hijacks the docstring for output.
     #
-    def __init__(self, test_directory: Path, fpp_flags: str=None):
+    def __init__(self, test_directory: Path, fpp_flags: str = None):
         args: List[str] = []
         if fpp_flags:
             args.append('--fpp-flags=' + fpp_flags)
@@ -113,6 +117,7 @@ class FabTestCase(RunTestCase):
 
 class DumpTestCase(RunTestCase):
     """Run Fab dump tool against working directory and validate result."""
+
     # The result is held in a file 'expected.dump.txt' in the test directory.
     #
     # This comment exists as the framework hijacks the docstring for output.
@@ -182,20 +187,20 @@ if __name__ == '__main__':
     root_dir = Path(__file__).parent
 
     sequence = (
-                   [
-                       FabTestCase(root_dir / 'MinimalFortran'),
-                       DumpTestCase(root_dir / 'MinimalFortran')
-                   ],
-                   [
-                       FabTestCase(root_dir / 'FortranDependencies'),
-                       DumpTestCase(root_dir / 'FortranDependencies')
-                   ],
-                   [
-                       FabTestCase(root_dir / 'FortranPreProcess',
-                                   fpp_flags='-DSHOULD_I_STAY=yes'),
-                       DumpTestCase(root_dir / 'FortranPreProcess')
-                   ]
-               )
+        [
+            FabTestCase(root_dir / 'MinimalFortran'),
+            DumpTestCase(root_dir / 'MinimalFortran')
+        ],
+        [
+            FabTestCase(root_dir / 'FortranDependencies'),
+            DumpTestCase(root_dir / 'FortranDependencies')
+        ],
+        [
+            FabTestCase(root_dir / 'FortranPreProcess',
+                        fpp_flags='-DSHOULD_I_STAY=yes'),
+            DumpTestCase(root_dir / 'FortranPreProcess')
+        ]
+    )
 
     sequencer: Sequencer = systest.Sequencer('Fab system tests')
     tallies = sequencer.run(sequence)
