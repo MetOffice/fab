@@ -16,7 +16,7 @@ import fab.application
 
 def fab_cli() -> argparse.Namespace:
     """
-    Parses command line arguments for the core "fab" tool.
+    Parses command line arguments for the core Fab build tool.
     """
     description = 'Flexible build system for scientific software.'
     parser = argparse.ArgumentParser(add_help=False,

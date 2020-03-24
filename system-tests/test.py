@@ -51,9 +51,16 @@ class RunTestCase(systest.TestCase):
         command = ['python3', '-c', script,
                    '-w', self._working_dir]
         command.extend(self._arguments)
-        new_path = os.environ.get('PATH') \
-            + ':' + os.path.dirname(sys.executable)
-        environment = {'PATH': new_path,
+
+        user_path: List[str] = os.environ.get('PATH').split(':')
+        try:
+            while True:
+                user_path.remove('')
+        except ValueError:
+            pass  # No empty entries to be removed.
+        user_path.append(os.path.dirname(sys.executable))
+
+        environment = {'PATH': ':'.join(user_path),
                        'PYTHONPATH': 'source'}
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
@@ -186,6 +193,8 @@ if __name__ == '__main__':
     #
     root_dir = Path(__file__).parent
 
+    # In the sequence structure: Lists are serial while tuples are parallel.
+    #
     sequence = (
         [
             FabTestCase(root_dir / 'MinimalFortran'),
