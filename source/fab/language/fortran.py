@@ -408,3 +408,22 @@ class FortranPreProcessor(SingleFileCommand):
     @property
     def output_filename(self) -> Path:
         return self._workspace / self._filename.with_suffix('.f90').name
+
+
+class FortranCompiler(SingleFileCommand):
+
+    @property
+    def as_list(self) -> List[str]:
+        base_command = ['gfortran',
+                        '-c',
+                        '-J' + str(self._workspace),
+                        ]
+        file_args = [str(self._filename),
+                     '-o',
+                     str(self.output_filename),
+                     ]
+        return base_command + self._flags + file_args
+
+    @property
+    def output_filename(self) -> Path:
+        return self._workspace / self._filename.with_suffix('.o').name
