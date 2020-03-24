@@ -13,51 +13,55 @@ import datetime
 import difflib
 import logging
 from logging import StreamHandler, FileHandler
+import os.path
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import os
 import traceback
+from typing import List, Sequence
 
 import systest  # type: ignore
 from systest import Sequencer
 
 
-class FabTestCase(systest.TestCase):
-    '''Run Fab against source tree and validate result.'''
-    # The result is held in a file 'expected.txt' in the test directory.
-    #
-    # This comment exists as the framework hijacks the docstring for output.
+class RunTestCase(systest.TestCase):
+    """
+    Runs a tool from the fab collection and compares output with expected one.
+    """
 
-    def __init__(self, test_directory: Path, fpp_flags: str = None):
+    def __init__(self,
+                 test_directory: Path,
+                 working_dir: Path,
+                 expectation_file: Path,
+                 entry_point: str,
+                 args: Sequence[str] = ()):
         super().__init__(name=test_directory.stem)
         self._test_directory: Path = test_directory
-        self._fpp_flags = fpp_flags
-
-        expectation_file = test_directory / 'expected.txt'
+        self._working_dir: Path = working_dir
+        self._entry_point = entry_point
+        self._arguments = args
         self._expected = expectation_file.read_text('utf-8') \
             .splitlines(keepends=True)
 
-    def setup(self):
-        working_dir: Path = self._test_directory / 'working'
-        if working_dir.is_dir():
-            shutil.rmtree(str(working_dir))
-
-    def teardown(self):
-        working_dir: Path = self._test_directory / 'working'
-        shutil.rmtree(str(working_dir))
-
     def run(self):
-        command = ['python3', '-m', 'fab']
-        if self._fpp_flags is not None:
-            command.append('--fpp-flags=' + self._fpp_flags)
-        command.append(self._test_directory)
+        script = "import sys; import fab.entry; " \
+                 f"sys.exit(fab.entry.{self._entry_point}())"
+        command = ['python3', '-c', script,
+                   '-w', self._working_dir]
+        command.extend(self._arguments)
 
-        environment = {
-            'PYTHONPATH': 'source',
-            'PATH': os.environ.get("PATH", '')
-            }
+        user_path: List[str] = os.environ.get('PATH').split(':')
+        try:
+            while True:
+                user_path.remove('')
+        except ValueError:
+            pass  # No empty entries to be removed.
+        user_path.append(os.path.dirname(sys.executable))
+
+        environment = {'PATH': ':'.join(user_path),
+                       'PYTHONPATH': 'source'}
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
                                                     stdout=subprocess.PIPE,
@@ -74,7 +78,8 @@ class FabTestCase(systest.TestCase):
         self._assert_diff(stdout.decode('utf-8').splitlines(keepends=True),
                           self._expected)
 
-    def _assert_diff(self, first, second):
+    @staticmethod
+    def _assert_diff(first, second):
         '''
         Raise an exception if ``first`` and ``seconds`` are not the same.
 
@@ -91,6 +96,49 @@ class FabTestCase(systest.TestCase):
                 '{}:{}: Mismatch found:\n{}'.format(filename,
                                                     line,
                                                     text))
+
+
+class FabTestCase(RunTestCase):
+    """Run Fab build tool against source tree and validate result."""
+
+    # The result is held in a file 'expected.fab.txt' in the test directory.
+    #
+    # This comment exists as the framework hijacks the docstring for output.
+    #
+    def __init__(self, test_directory: Path, fpp_flags: str = None):
+        args: List[str] = []
+        if fpp_flags:
+            args.append('--fpp-flags=' + fpp_flags)
+        args.append(str(test_directory))
+        super().__init__(test_directory,
+                         test_directory / 'working',
+                         test_directory / 'expected.fab.txt',
+                         'fab_entry',
+                         args)
+
+    def setup(self):
+        working_dir: Path = self._test_directory / 'working'
+        if working_dir.is_dir():
+            shutil.rmtree(str(working_dir))
+
+
+class DumpTestCase(RunTestCase):
+    """Run Fab dump tool against working directory and validate result."""
+
+    # The result is held in a file 'expected.dump.txt' in the test directory.
+    #
+    # This comment exists as the framework hijacks the docstring for output.
+    #
+    def __init__(self, test_directory: Path):
+        super().__init__(test_directory,
+                         test_directory / 'working',
+                         test_directory / 'expected.dump.txt',
+                         'dump_entry',
+                         [])
+
+    def teardown(self):
+        working_dir: Path = self._test_directory / 'working'
+        shutil.rmtree(str(working_dir))
 
 
 if __name__ == '__main__':
@@ -145,12 +193,23 @@ if __name__ == '__main__':
     #
     root_dir = Path(__file__).parent
 
-    sequence = [
-        FabTestCase(root_dir / 'MinimalFortran'),
-        FabTestCase(root_dir / 'FortranDependencies'),
-        FabTestCase(root_dir / 'FortranPreProcess',
-                    fpp_flags='-DSHOULD_I_STAY=yes')
+    # In the sequence structure: Lists are serial while tuples are parallel.
+    #
+    sequence = (
+        [
+            FabTestCase(root_dir / 'MinimalFortran'),
+            DumpTestCase(root_dir / 'MinimalFortran')
+        ],
+        [
+            FabTestCase(root_dir / 'FortranDependencies'),
+            DumpTestCase(root_dir / 'FortranDependencies')
+        ],
+        [
+            FabTestCase(root_dir / 'FortranPreProcess',
+                        fpp_flags='-DSHOULD_I_STAY=yes'),
+            DumpTestCase(root_dir / 'FortranPreProcess')
         ]
+    )
 
     sequencer: Sequencer = systest.Sequencer('Fab system tests')
     tallies = sequencer.run(sequence)

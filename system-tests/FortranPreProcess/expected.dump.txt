@@ -1,0 +1,19 @@
+File View
+  File   : system-tests/FortranPreProcess/clash.F90
+    Hash : 1901506991
+  File   : system-tests/FortranPreProcess/go_now_mod.f90
+    Hash : 374511745
+  File   : system-tests/FortranPreProcess/stay_mod.f90
+    Hash : 3960444120
+  File   : system-tests/FortranPreProcess/working/clash.f90
+    Hash : --hidden-- (generated file)
+Fortran View
+  Program unit    : go_now_mod
+    Found in      : system-tests/FortranPreProcess/go_now_mod.f90
+    Prerequisites : constants_mod
+  Program unit    : stay_mod
+    Found in      : system-tests/FortranPreProcess/stay_mod.f90
+    Prerequisites : constants_mod
+  Program unit    : stay_or_go_now
+    Found in      : system-tests/FortranPreProcess/working/clash.f90
+    Prerequisites : constants_mod, stay_mod

@@ -4,7 +4,8 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from typing import Dict, Type, Union, List
+import sys
+from typing import Dict, List, Type, Union
 
 from fab.database import SqliteStateDatabase
 from fab.language import Task, Command
@@ -45,7 +46,7 @@ class Fab(object):
             print(info.filename)
             # Where files are generated in the working directory
             # by third party tools, we cannot guarantee the hashes
-            if str(info.filename).startswith(str(self._workspace)):
+            if info.filename.match(f'{self._workspace}/*'):
                 print('    hash: --hidden-- (generated file)')
             else:
                 print(f'    hash: {info.adler32}')
@@ -56,3 +57,32 @@ class Fab(object):
             for filename in files:
                 print('    found in: ' + str(filename))
                 print('    depends on: ' + str(fortran_db.depends_on(unit)))
+
+
+class Dump(object):
+    def __init__(self, workspace: Path):
+        self._workspace = workspace
+        self._state = SqliteStateDatabase(workspace)
+
+    def run(self, stream=sys.stdout):
+        file_view = FileInfoDatabase(self._state)
+        print("File View", file=stream)
+        for filename in file_view.get_all_filenames():
+            file_info = file_view.get_file_info(filename)
+            print(f"  File   : {file_info.filename}", file=stream)
+            # Where files are generated in the working directory
+            # by third party tools, we cannot guarantee the hashes
+            if file_info.filename.match(f'{self._workspace}/*'):
+                print('    Hash : --hidden-- (generated file)')
+            else:
+                print(f"    Hash : {file_info.adler32}", file=stream)
+
+        fortran_view = FortranWorkingState(self._state)
+        print("Fortran View", file=stream)
+        for program_unit, found_in in fortran_view.iterate_program_units():
+            filenames = (str(path) for path in found_in)
+            print(f"  Program unit    : {program_unit}", file=stream)
+            print(f"    Found in      : {', '.join(filenames)}", file=stream)
+            prerequisites = fortran_view.depends_on(program_unit)
+            print(f"    Prerequisites : {', '.join(prerequisites)}",
+                  file=stream)
