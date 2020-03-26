@@ -105,14 +105,23 @@ class FabTestCase(RunTestCase):
     #
     # This comment exists as the framework hijacks the docstring for output.
     #
-    def __init__(self, test_directory: Path, fpp_flags: str = None):
+    def __init__(self,
+                 test_directory: Path,
+                 expectation_prefix: str = '',
+                 fpp_flags: str = None):
         args: List[str] = []
         if fpp_flags:
             args.append('--fpp-flags=' + fpp_flags)
         args.append(str(test_directory))
+
+        expectation_file = 'expected.fab'
+        if expectation_prefix != '':
+            expectation_file += '.' + expectation_prefix
+        expectation_file += '.txt'
+
         super().__init__(test_directory,
                          test_directory / 'working',
-                         test_directory / 'expected.fab.txt',
+                         test_directory / expectation_file,
                          'fab_entry',
                          args)
 
@@ -129,10 +138,18 @@ class DumpTestCase(RunTestCase):
     #
     # This comment exists as the framework hijacks the docstring for output.
     #
-    def __init__(self, test_directory: Path):
+    def __init__(self,
+                 test_directory: Path,
+                 expectation_prefix: str = ''):
+
+        expectation_file = 'expected.dump'
+        if expectation_prefix != '':
+            expectation_file += '.' + expectation_prefix
+        expectation_file += '.txt'
+
         super().__init__(test_directory,
                          test_directory / 'working',
-                         test_directory / 'expected.dump.txt',
+                         test_directory / expectation_file,
                          'dump_entry',
                          [])
 
@@ -205,9 +222,19 @@ if __name__ == '__main__':
             DumpTestCase(root_dir / 'FortranDependencies')
         ],
         [
-            FabTestCase(root_dir / 'FortranPreProcess',
-                        fpp_flags='-DSHOULD_I_STAY=yes'),
-            DumpTestCase(root_dir / 'FortranPreProcess')
+            [
+                FabTestCase(root_dir / 'FortranPreProcess',
+                            expectation_prefix='stay',
+                            fpp_flags='-DSHOULD_I_STAY=yes'),
+                DumpTestCase(root_dir / 'FortranPreProcess',
+                             expectation_prefix='stay')
+            ],
+            [
+                FabTestCase(root_dir / 'FortranPreProcess',
+                            expectation_prefix='go'),
+                DumpTestCase(root_dir / 'FortranPreProcess',
+                             expectation_prefix='go')
+            ]
         ]
     )
 

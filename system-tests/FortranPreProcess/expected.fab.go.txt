@@ -14,4 +14,4 @@ stay_mod
     depends on: ['constants_mod']
 stay_or_go_now
     found in: system-tests/FortranPreProcess/working/clash.f90
-    depends on: ['constants_mod', 'stay_mod']
+    depends on: ['constants_mod', 'go_now_mod']
