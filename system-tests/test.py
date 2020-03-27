@@ -52,6 +52,8 @@ class RunTestCase(systest.TestCase):
                    '-w', self._working_dir]
         command.extend(self._arguments)
 
+        os.system("which gfortran")
+
         user_path: List[str] = os.environ.get('PATH').split(':')
         try:
             while True:
@@ -59,6 +61,8 @@ class RunTestCase(systest.TestCase):
         except ValueError:
             pass  # No empty entries to be removed.
         user_path.append(os.path.dirname(sys.executable))
+
+        print(user_path)
 
         environment = {'PATH': ':'.join(user_path),
                        'PYTHONPATH': 'source'}
