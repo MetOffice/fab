@@ -61,18 +61,17 @@ def setup_function():
 class DummyAnalyser(Analyser):
     def run(self):
         tracker['analyser'].append(self._reader.filename)
-        return []
 
 
 class DummyCommand(SingleFileCommand):
     @property
     def as_list(self) -> List[str]:
         tracker['command'].append(self._filename)
-        return ['cp', str(self._filename), str(self.output_filename)]
+        return ['cp', str(self._filename), str(self.output[0])]
 
     @property
-    def output_filename(self) -> Path:
-        return self._filename.with_suffix('.baz')
+    def output(self) -> List[Path]:
+        return [self._filename.with_suffix('.baz')]
 
 
 def test_extension_visitor(tmp_path: Path):

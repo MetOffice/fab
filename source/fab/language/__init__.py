@@ -19,7 +19,17 @@ class TaskException(Exception):
 
 class Task(ABC):
     @abstractmethod
-    def run(self) -> List[Path]:
+    def run(self):
+        raise NotImplementedError('Abstract methods must be implemented')
+
+    @property
+    @abstractmethod
+    def prerequisites(self) -> List[Path]:
+        raise NotImplementedError('Abstract methods must be implemented')
+
+    @property
+    @abstractmethod
+    def products(self) -> List[Path]:
         raise NotImplementedError('Abstract methods must be implemented')
 
 
@@ -31,6 +41,14 @@ class Analyser(Task):
     @property
     def database(self):
         return self._database
+
+    @property
+    def prerequisites(self) -> List[Path]:
+        return [Path(self._reader.filename)]
+
+    @property
+    def products(self) -> List[Path]:
+        return []
 
 
 class Command(ABC):
@@ -47,7 +65,12 @@ class Command(ABC):
 
     @property
     @abstractmethod
-    def output_filename(self) -> Path:
+    def output(self) -> List[Path]:
+        raise NotImplementedError('Abstract methods must be implemented')
+
+    @property
+    @abstractmethod
+    def input(self) -> List[Path]:
         raise NotImplementedError('Abstract methods must be implemented')
 
 
@@ -56,17 +79,28 @@ class SingleFileCommand(Command):
         super().__init__(workspace, flags)
         self._filename = filename
 
+    @property
+    def input(self) -> List[Path]:
+        return [self._filename]
+
 
 class CommandTask(Task):
     def __init__(self, command: Command):
         self._command = command
 
-    def run(self) -> List[Path]:
+    def run(self):
         process = subprocess.run(self._command.as_list, check=True)
         if self._command.stdout:
             with open(self._command.output_filename, 'wb') as out_file:
                 out_file.write(process.stdout)
-        return [self._command.output_filename, ]
+
+    @property
+    def prerequisites(self) -> List[Path]:
+        return self._command.input
+
+    @property
+    def products(self) -> List[Path]:
+        return self._command.output
 
 
 class Linker(Command):
@@ -83,10 +117,14 @@ class Linker(Command):
 
     @property
     def as_list(self) -> List[str]:
-        base_command = ['ld', '-o', str(self.output_filename)]
+        base_command = ['ld', '-o', str(self._output_filename)]
         objects = [str(filename) for filename in self._filenames]
         return base_command + self._flags + objects
 
     @property
-    def output_filename(self) -> Path:
-        return self._output_filename
+    def output(self) -> List[Path]:
+        return [self._output_filename]
+
+    @property
+    def input(self) -> List[Path]:
+        return self._filenames

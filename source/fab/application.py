@@ -12,7 +12,6 @@ from fab.language import \
     Task, \
     Command, \
     CommandTask, \
-    SingleFileCommand, \
     Linker
 from fab.language.fortran import \
     FortranAnalyser, \
@@ -27,7 +26,7 @@ class Fab(object):
         '.f90': FortranAnalyser,
         '.F90': FortranPreProcessor,
     }
-    _compiler_map: Dict[str, Type[SingleFileCommand]] = {
+    _compiler_map: Dict[str, Type[Command]] = {
         '.f90': FortranCompiler,
     }
 
@@ -42,6 +41,10 @@ class Fab(object):
             )
 
     def run(self, source: Path):
+
+        # TODO: This is where the threads first separate
+        #       master thread stays to manage queue workers.
+        #       One thread performs descent below.
         visitor = ExtensionVisitor(self._extension_map,
                                    self._command_flags_map,
                                    self._state,
@@ -81,44 +84,68 @@ class Fab(object):
         while unit_to_process:
             # Pop pending items from start of the list
             unit = unit_to_process.pop(0)
+            if unit in processed_units:
+                continue
+
             dependencies = fortran_db.depends_on(unit)
+            unit_to_process.extend(dependencies)
 
-            # First prune any dependencies that have already
-            # been compiled
-            for dependee in list(dependencies):
-                if dependee in processed_units:
-                    dependencies.remove(dependee)
-
-            # Add unhandled dependencies to end of list
-            if dependencies:
-                for dependee in dependencies:
-                    if dependee not in unit_to_process:
-                        unit_to_process.append(dependee)
-                # Re-add this unit after them for reconsideration
-                # note that we *do not* do this in the else branch
-                unit_to_process.append(unit)
+            filenames = fortran_db.filenames_from_program_unit(unit)
+            # TODO: should this be done by the database?
+            #       preprocessing should ensure no duplicate units
+            if len(filenames) == 1:
+                filename = filenames[0]
             else:
-                filenames = fortran_db.filenames_from_program_unit(unit)
-                # TODO: should this be done by the database?
-                #       preprocessing should ensure no duplicate units
-                if len(filenames) == 1:
-                    filename = filenames[0]
-                else:
-                    raise ValueError("Duplicate program unit found")
+                raise ValueError("Duplicate program unit found")
 
-                compiler_class = self._compiler_map[filename.suffix]
-                # TODO: Like the preprocessor need to pass any flags
-                #       through to this point eventually
+            # Construct names of any expected module files to
+            # pass to the compiler constructor
+            mod_files = [Path(self._workspace /
+                              dependee).with_suffix('.mod')
+                         for dependee in dependencies]
+
+            compiler_class = self._compiler_map[filename.suffix]
+            # TODO: Like the preprocessor need to pass any flags
+            #       through to this point eventually
+            if issubclass(compiler_class, FortranCompiler):
                 compiler = CommandTask(
-                    compiler_class(filename, self._workspace, []))
-                # Add the object files to the linker
-                link_command.add_object(compiler.run()[0])
-                # And indicate that this unit has been processed
+                    compiler_class(
+                        filename,
+                        self._workspace,
+                        [],
+                        mod_files))
+            else:
+                message = 'Unhandled class "{cls}" in compiler map.'
+                raise TypeError(
+                    message.format(cls=compiler_class))
+
+            # TODO: At this point we would add this to the queue
+            #       rather than running it here.  Noting that
+            #       the queue worked can extract the prerequisites
+            #       from the Task object.  For now we are going
+            #       to have to fake that logic here:
+            if all([prereq.exists for prereq in compiler.prerequisites]):
+                compiler.run()
+                # Indicate that this unit has been processed, so we
+                # don't do it again if we encounter it a second time
                 processed_units.append(unit)
+                # Add the object files to the linker
+                # TODO: For right now products is a list, though the
+                #       compiler only ever produces a single entry;
+                #       maybe add_object should accept Union[Path, List[Path]]?
+                link_command.add_object(compiler.products[0])
+            else:
+                # Re-add this to the set of units to process
+                # (at the end, so that it is reconsidered after
+                # other tasks have resolved)
+                unit_to_process.append(unit)
 
         # Hopefully by this point the list is exhausted and
         # everything has been compiled, and the linker is primed
         linker = CommandTask(link_command)
+        # TODO: Like the others, this would go on the queue
+        #       now that it has knowledge of all its prerequisite
+        #       object files
         linker.run()
 
 

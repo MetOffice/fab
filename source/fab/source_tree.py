@@ -53,8 +53,15 @@ class ExtensionVisitor(TreeVisitor):
                 message = 'Unhandled class "{cls}" in extension map.'
                 raise TypeError(
                     message.format(cls=task_class))
-            # TODO: Eventually add to the queue here rather than running
-            new_candidates = task.run()
+            # TODO: This is where we start calling "add_to_queue"
+            #       rather then running the task right here.
+            #       Noting that it can at this point access
+            #       task.prerequisites to find out what files
+            #       (if any) the task depends on
+            task.run()
+            new_candidates.extend(task.products)
+            # TODO: The hasher part here likely needs to be
+            #       moved once the task is run by the queue
             for _ in hasher.line_by_line():
                 pass  # Make sure we've read the whole file.
             file_info = FileInfoDatabase(self._state)
