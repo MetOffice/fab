@@ -212,50 +212,96 @@ class Dump(object):
                   file=stream)
 
 
+class FileInfoFrame(tk.Frame):
+    def __init__(self, parent: tk.Widget, file_db: FileInfoDatabase):
+        super().__init__(parent)
+        self.pack(side=tk.LEFT, fill=tk.Y)
+
+        self._file_db = file_db
+
+        tk.Label(self, text='Hash :').grid(row=0, column=0, sticky=tk.E)
+        self._hash_field = tk.Entry(self, width=10)
+        self._hash_field.grid(row=0, column=1, sticky=tk.W)
+
+    def change_file(self, filename: Path):
+        info = self._file_db.get_file_info(filename)
+        self._hash_field.delete(0, tk.END)
+        self._hash_field.insert(0, info.adler32)
+
+
+class UnitInfoFrame(tk.Frame):
+    def __init__(self, parent: tk.Widget, fortran_db: FortranWorkingState):
+        super().__init__(parent)
+        self.pack(side=tk.LEFT, fill=tk.Y)
+
+        self._fortran_db = fortran_db
+
+        tk.Label(self, text='Found in').grid(row=0, column=0)
+        self._found_in_field = tk.Listbox(self, selectmode=tk.BROWSE, width=40)
+        self._found_in_field.grid(row=1, column=0)
+
+        tk.Label(self, text='Prerequisites').grid(row=0, column=1)
+        self._prerequisite_field = tk.Listbox(self, selectmode=tk.BROWSE)
+        self._prerequisite_field.grid(row=1, column=1)
+
+    def change_unit(self, name: str):
+        info_list = self._fortran_db.get_program_unit(name)
+        self._found_in_field.delete(0, tk.END)
+        for info in info_list:
+            self._found_in_field.insert(tk.END, info.unit.found_in)
+            # TODO: Clearly this is wrong, it concatenates all
+            #       dependencies from every version of the module.
+            self._prerequisite_field.delete(0, tk.END)
+            for unit in info.depends_on:
+                self._prerequisite_field.insert(tk.END, unit)
+
+
 class Explorer(tk.Frame):
     def __init__(self, workspace: Path):
         self._state = SqliteStateDatabase(workspace)
 
         root = tk.Tk()
+        root.title("Fab Database Explorer")
         super().__init__(root)
+        self.pack()
 
-        menubar = tk.Menu(root)
+        menu_bar = tk.Menu(root)
 
-        app_menu = tk.Menu(menubar, tearoff=0)
+        app_menu = tk.Menu(menu_bar, tearoff=0)
         app_menu.add_command(label='Exit', command=root.quit)
-        menubar.add_cascade(label='Application', menu=app_menu)
+        menu_bar.add_cascade(label='Application', menu=app_menu)
 
-        root.config(menu=menubar)
+        root.config(menu=menu_bar)
 
         notebook = ttk.Notebook(root)
+        notebook.pack(expand=1, fill='both')
 
         file_frame = ttk.Frame(notebook)
         notebook.add(file_frame, text="File view")
 
-        file_view = ttk.Treeview(file_frame)
-        file_view['columns'] = ('hash')
-        file_view.heading('#0', text="Filename")
-        file_view.heading('hash', text="Hash")
-        file_view.pack()
+        def file_click(event):
+            selection = file_list.get(file_list.curselection())
+            file_details.change_file(Path(selection))
+
+        file_db = FileInfoDatabase(self._state)
+        file_list = tk.Listbox(file_frame, selectmode=tk.BROWSE, width=40)
+        file_list.pack(side=tk.LEFT, fill=tk.BOTH)
+        file_list.bind('<ButtonRelease-1>', file_click)
+        for file_info in file_db:
+            file_list.insert(tk.END, file_info.filename)
+        file_details = FileInfoFrame(file_frame, file_db)
 
         fortran_frame = ttk.Frame(notebook)
         notebook.add(fortran_frame, text="Fortran view")
 
-        fortran_view = ttk.Treeview(fortran_frame)
-        fortran_view['columns'] = ('files', 'prerequisites')
-        fortran_view.heading('#0', text="Program unit")
-        fortran_view.heading('files', text="Appears in")
-        fortran_view.heading('prerequisites', text="Depends on")
-        fortran_view.pack()
+        def fortran_click(event):
+            selection = unit_list.get(unit_list.curselection())
+            unit_details.change_unit(selection)
 
-        notebook.pack(expand=1, fill='both')
-        self.pack()
-
-    def _create_widgets(self):
-        self._button = tk.Button(self)
-        self._button['text'] = "Greetings"
-        self._button['command'] = self._action
-        self._button.pack(side='top')
-
-    def _action(self):
-        pass
+        fortran_db = FortranWorkingState(self._state)
+        unit_list = tk.Listbox(fortran_frame, selectmode=tk.BROWSE)
+        unit_list.pack(side=tk.LEFT, fill=tk.BOTH)
+        unit_list.bind('<ButtonRelease-1>', fortran_click)
+        for unit_info in fortran_db:
+            unit_list.insert(tk.END, unit_info.unit.name)
+        unit_details = UnitInfoFrame(fortran_frame, fortran_db)

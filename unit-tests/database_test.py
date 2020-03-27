@@ -6,7 +6,7 @@
 from pathlib import Path
 import sqlite3
 import pytest  # type: ignore
-
+from fab import FabException
 from fab.database import (DatabaseRows,
                           FileInfo,
                           FileInfoDatabase,
@@ -121,3 +121,12 @@ class TestFileInfoDatabase(object):
         test_unit.add_file_info(Path('foo.f90'), 987)
         assert list(iter(test_unit)) == [FileInfo(Path('bar/baz.f90'), 5786),
                                          FileInfo(Path('foo.f90'), 987)]
+
+    def test_getter(self, tmp_path: Path):
+        test_unit = FileInfoDatabase(SqliteStateDatabase(tmp_path))
+        with pytest.raises(FabException):
+            test_unit.get_file_info(Path('anything'))
+
+        test_unit.add_file_info(Path('teapot.c'), 31337)
+        assert test_unit.get_file_info(Path('teapot.c')) \
+            == FileInfo(Path('teapot.c'), 31337)

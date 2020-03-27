@@ -11,6 +11,8 @@ from pathlib import Path
 import sqlite3
 from typing import Dict, Iterator, Optional, Sequence, Union
 
+from fab import FabException
+
 
 class WorkingStateException(Exception):
     pass
@@ -60,7 +62,7 @@ class DatabaseDecorator(StateDatabase):
 
 class FileInfoDatabase(DatabaseDecorator):
     # The Posix standard specifies a value PATH_MAX but requires only that it
-    # be greater than 256. Obviously this is too little for modern systems.
+    # be greater than 256. Obviously this is too small for modern systems.
     # By way of example, Linux systems often define this value to be 4k.
     #
     # Given that we will often be working with Linux systems I have followed
@@ -81,7 +83,7 @@ class FileInfoDatabase(DatabaseDecorator):
         self.execute(queries, {})
 
     def __iter__(self) -> Iterator[FileInfo]:
-        query = ['select * from file_info order by filename']
+        query = ['select filename, adler32 from file_info order by filename']
         rows: DatabaseRows = self.execute(query, {})
         for row in rows:
             yield FileInfo(Path(row['filename']), int(row['adler32']))
@@ -93,6 +95,15 @@ class FileInfoDatabase(DatabaseDecorator):
         self.execute(queries,
                      {'filename': str(filename),
                       'adler32': str(adler32)})
+
+    def get_file_info(self, filename: Path) -> FileInfo:
+        queries = ['''select filename, adler32 from file_info
+                      where filename = :filename order by filename''']
+        try:
+            row = next(self.execute(queries, {'filename': str(filename)}))
+        except StopIteration:
+            raise FabException(f"file '{filename}' not in database")
+        return FileInfo(Path(row['filename']), int(row['adler32']))
 
 
 class SqliteStateDatabase(StateDatabase):
