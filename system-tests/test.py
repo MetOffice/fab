@@ -60,9 +60,8 @@ class RunTestCase(systest.TestCase):
             pass  # No empty entries to be removed.
         user_path.append(os.path.dirname(sys.executable))
 
-        environment = os.environ
-        environment.update({'PATH': ':'.join(user_path),
-                            'PYTHONPATH': 'source'})
+        environment = {'PATH': ':'.join(user_path),
+                       'PYTHONPATH': 'source'}
 
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
