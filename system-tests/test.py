@@ -107,11 +107,13 @@ class FabTestCase(RunTestCase):
     #
     def __init__(self,
                  test_directory: Path,
+                 target: str,
                  expectation_prefix: str = '',
                  fpp_flags: str = None):
         args: List[str] = []
         if fpp_flags:
             args.append('--fpp-flags=' + fpp_flags)
+        args.append(target)
         args.append(str(test_directory))
 
         expectation_file = 'expected.fab'
@@ -214,23 +216,23 @@ if __name__ == '__main__':
     #
     sequence = (
         [
-            FabTestCase(root_dir / 'MinimalFortran'),
+            FabTestCase(root_dir / 'MinimalFortran', 'test'),
             DumpTestCase(root_dir / 'MinimalFortran')
         ],
         [
-            FabTestCase(root_dir / 'FortranDependencies'),
+            FabTestCase(root_dir / 'FortranDependencies', 'first'),
             DumpTestCase(root_dir / 'FortranDependencies')
         ],
         [
             [
-                FabTestCase(root_dir / 'FortranPreProcess',
+                FabTestCase(root_dir / 'FortranPreProcess', 'stay_or_go_now',
                             expectation_prefix='stay',
                             fpp_flags='-DSHOULD_I_STAY=yes'),
                 DumpTestCase(root_dir / 'FortranPreProcess',
                              expectation_prefix='stay')
             ],
             [
-                FabTestCase(root_dir / 'FortranPreProcess',
+                FabTestCase(root_dir / 'FortranPreProcess', 'stay_or_go_now',
                             expectation_prefix='go'),
                 DumpTestCase(root_dir / 'FortranPreProcess',
                              expectation_prefix='go')

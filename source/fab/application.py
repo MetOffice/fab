@@ -30,9 +30,10 @@ class Fab(object):
         '.f90': FortranCompiler,
     }
 
-    def __init__(self, workspace: Path, fpp_flags: str):
+    def __init__(self, workspace: Path, target: str, fpp_flags: str):
         self._state = SqliteStateDatabase(workspace)
         self._workspace = workspace
+        self._target = target
 
         self._command_flags_map: Dict[Type[Command], List[str]] = {}
         if fpp_flags != '':
@@ -70,13 +71,13 @@ class Fab(object):
                 print('    found in: ' + str(filename))
                 print('    depends on: ' + str(fortran_db.depends_on(unit)))
 
-        # TODO: get name of top level unit here from the command line
-        unit_to_process = ["some_program"]
+        # Start with the top level program unit
+        unit_to_process = [self._target]
 
         # Initialise linker
         # TODO: again, the linker needs flags passing, and
         #       an executable name
-        executable = Path(self._workspace / "fab_exec.exe")
+        executable = Path(self._workspace / self._target).with_suffix(".exe")
         link_command = FortranLinker(self._workspace, [], executable)
 
         processed_units = []

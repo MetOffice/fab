@@ -34,6 +34,8 @@ def fab_cli() -> argparse.Namespace:
     #       our configuration system
     parser.add_argument('--fpp-flags', action='store', type=str, default='',
                         help='Provide flags for Fortran PreProcessor ')
+    parser.add_argument('target', action='store', type=str,
+                        help='The top level unit name to compile')
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     return parser.parse_args()
@@ -57,6 +59,7 @@ def fab_entry() -> None:
         arguments.workspace = arguments.source / 'working'
 
     application = fab.application.Fab(arguments.workspace,
+                                      arguments.target,
                                       arguments.fpp_flags)
     application.run(arguments.source)
 
