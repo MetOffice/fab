@@ -128,7 +128,12 @@ class FortranWorkingState(DatabaseDecorator):
         ]
         self.execute(create_prerequisite_table, {})
 
-    def __iter__(self) -> Iterator[FortranInfo]:
+    def __iter__(self) -> Generator[FortranInfo, None, None]:
+        """
+        Yields all units and their containing file names.
+
+        :return: Object per unit.
+        """
         query = '''select u.unit as name, u.found_in, p.prerequisite as prereq
                    from fortran_unit as u
                    left join fortran_prerequisite as p
