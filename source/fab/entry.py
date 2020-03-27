@@ -153,7 +153,7 @@ def fab_explorer() -> None:
         arguments.workspace = Path.cwd() / 'working'
 
     application = fab.application.Explorer(arguments.workspace)
-    application.mainloop()
+    application.run()
 
 
 if __name__ == '__main__':
