@@ -438,7 +438,38 @@ class FortranCompiler(Command):
         return base_command + self._flags + file_args
 
     @property
+    def input(self) -> List[Path]:
+        return self._prerequisites + [self._filename]
+
+    @property
     def output(self) -> List[Path]:
         object_file = (
             self._workspace / self._filename.with_suffix('.o').name)
-        return self._prerequisites + [object_file]
+        return [object_file]
+
+
+class FortranLinker(Command):
+    def __init__(self,
+                 workspace: Path,
+                 flags: List[str],
+                 output_filename: Path):
+        super().__init__(workspace, flags)
+        self._output_filename = output_filename
+        self._filenames: List[Path] = []
+
+    def add_object(self, object_filename: Path):
+        self._filenames.append(object_filename)
+
+    @property
+    def as_list(self) -> List[str]:
+        base_command = ['gfortran', '-o', str(self._output_filename)]
+        objects = [str(filename) for filename in self._filenames]
+        return base_command + self._flags + objects
+
+    @property
+    def output(self) -> List[Path]:
+        return [self._output_filename]
+
+    @property
+    def input(self) -> List[Path]:
+        return self._filenames

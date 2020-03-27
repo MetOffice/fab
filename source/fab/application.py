@@ -11,13 +11,13 @@ from fab.database import SqliteStateDatabase
 from fab.language import \
     Task, \
     Command, \
-    CommandTask, \
-    Linker
+    CommandTask
 from fab.language.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
     FortranPreProcessor, \
-    FortranCompiler
+    FortranCompiler, \
+    FortranLinker
 from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
 
 
@@ -77,7 +77,7 @@ class Fab(object):
         # TODO: again, the linker needs flags passing, and
         #       an executable name
         executable = Path(self._workspace / "fab_exec.exe")
-        link_command = Linker(self._workspace, [], executable)
+        link_command = FortranLinker(self._workspace, [], executable)
 
         processed_units = []
 
@@ -124,7 +124,7 @@ class Fab(object):
             #       the queue worked can extract the prerequisites
             #       from the Task object.  For now we are going
             #       to have to fake that logic here:
-            if all([prereq.exists for prereq in compiler.prerequisites]):
+            if all([prereq.exists() for prereq in compiler.prerequisites]):
                 compiler.run()
                 # Indicate that this unit has been processed, so we
                 # don't do it again if we encounter it a second time
