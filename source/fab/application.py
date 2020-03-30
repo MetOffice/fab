@@ -112,8 +112,9 @@ class Fab(object):
             unit_to_process.extend(dependencies)
 
             filenames = fortran_db.filenames_from_program_unit(unit)
-            # TODO: should this be done by the database?
-            #       preprocessing should ensure no duplicate units
+            # TODO: For now we simply can't handle this returning
+            #       multiple names; later we may be able to deal with
+            #       this via extra information in the configuration
             if len(filenames) == 1:
                 filename = filenames[0]
             else:

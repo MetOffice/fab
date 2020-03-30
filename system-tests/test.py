@@ -110,10 +110,17 @@ class FabTestCase(RunTestCase):
                  test_directory: Path,
                  target: str,
                  expectation_prefix: str = '',
-                 fpp_flags: str = None):
+                 fpp_flags: str = None,
+                 fc_flags: str = None,
+                 ld_flags: str = None):
         args: List[str] = []
         if fpp_flags:
             args.append('--fpp-flags=' + fpp_flags)
+        if fc_flags:
+            args.append('--fc-flags=' + fc_flags)
+        if ld_flags:
+            args.append('--ld-flags=' + ld_flags)
+        args.extend(['--exec-name', 'fab_test.exe'])
         args.append(target)
         args.append(str(test_directory))
 
@@ -122,11 +129,41 @@ class FabTestCase(RunTestCase):
             expectation_file += '.' + expectation_prefix
         expectation_file += '.txt'
 
+        expected_exec_file = 'expected.exec'
+        if expectation_prefix != '':
+            expected_exec_file += '.' + expectation_prefix
+        expected_exec_file += '.txt'
+
+        self._expected_exec = \
+            (test_directory / expected_exec_file).read_text('utf-8') \
+            .splitlines(keepends=True)
+
         super().__init__(test_directory,
                          test_directory / 'working',
                          test_directory / expectation_file,
                          'fab_entry',
                          args)
+
+    def run(self):
+        super().run()
+        expected_exec = self._test_directory / 'working' / 'fab_test.exe'
+        self.assert_true(expected_exec.exists)
+        thread: subprocess.Popen = subprocess.Popen(
+            [expected_exec],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+
+        stdout: bytes
+        stderr: bytes
+        stdout, stderr = thread.communicate()
+        if thread.returncode != 0:
+            print('Running fab_test.exe failed: ', file=sys.stderr)
+            print('    stdout: ' + stdout.decode('utf-8'))
+            print('    stderr: ' + stderr.decode('utf-8'))
+
+        self.assert_true(thread.returncode == 0)
+        self._assert_diff(stdout.decode('utf-8').splitlines(keepends=True),
+                          self._expected_exec)
 
     def setup(self):
         working_dir: Path = self._test_directory / 'working'
