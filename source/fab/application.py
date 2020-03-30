@@ -30,15 +30,31 @@ class Fab(object):
         '.f90': FortranCompiler,
     }
 
-    def __init__(self, workspace: Path, target: str, fpp_flags: str):
+    def __init__(self,
+                 workspace: Path,
+                 target: str,
+                 exec_name: str,
+                 fpp_flags: str,
+                 fc_flags: str,
+                 ld_flags: str):
+
         self._state = SqliteStateDatabase(workspace)
         self._workspace = workspace
         self._target = target
+        self._exec_name = exec_name
 
         self._command_flags_map: Dict[Type[Command], List[str]] = {}
         if fpp_flags != '':
             self._command_flags_map[FortranPreProcessor] = (
                 fpp_flags.split()
+            )
+        if fc_flags != '':
+            self._command_flags_map[FortranCompiler] = (
+                fc_flags.split()
+            )
+        if ld_flags != '':
+            self._command_flags_map[FortranLinker] = (
+                ld_flags.split()
             )
 
     def run(self, source: Path):
@@ -75,10 +91,14 @@ class Fab(object):
         unit_to_process = [self._target]
 
         # Initialise linker
-        # TODO: again, the linker needs flags passing, and
-        #       an executable name
-        executable = Path(self._workspace / self._target).with_suffix(".exe")
-        link_command = FortranLinker(self._workspace, [], executable)
+        if self._exec_name != "":
+            executable = Path(self._workspace) / self._exec_name
+        else:
+            executable = \
+                Path(self._workspace / self._target).with_suffix(".exe")
+
+        flags = self._command_flags_map.get(FortranLinker, [])
+        link_command = FortranLinker(self._workspace, flags, executable)
 
         processed_units = []
 
@@ -106,14 +126,14 @@ class Fab(object):
                          for dependee in dependencies]
 
             compiler_class = self._compiler_map[filename.suffix]
-            # TODO: Like the preprocessor need to pass any flags
-            #       through to this point eventually
+
             if issubclass(compiler_class, FortranCompiler):
+                flags = self._command_flags_map.get(compiler_class, [])
                 compiler = CommandTask(
                     compiler_class(
                         filename,
                         self._workspace,
-                        [],
+                        flags,
                         mod_files))
             else:
                 message = 'Unhandled class "{cls}" in compiler map.'
