@@ -19,7 +19,7 @@ class TaskException(Exception):
 
 class Task(ABC):
     @abstractmethod
-    def run(self):
+    def run(self) -> None:
         raise NotImplementedError('Abstract methods must be implemented')
 
     @property

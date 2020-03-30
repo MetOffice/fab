@@ -121,10 +121,19 @@ class Fab(object):
 
             # Construct names of any expected module files to
             # pass to the compiler constructor
+            # TODO: Note that this currently assumes all of the
+            #       dependencies we found were modules; we are
+            #       going to need a way to get that information
+            #       from the database
             mod_files = [Path(self._workspace /
                               dependee).with_suffix('.mod')
                          for dependee in dependencies]
 
+            # TODO: It would also be good here to be able to
+            #       generate a list of mod files which we
+            #       expect to be *produced* by the compile
+            #       and pass this to the constructor for
+            #       inclusion in the task's "products"
             compiler_class = self._compiler_map[filename.suffix]
 
             if issubclass(compiler_class, FortranCompiler):
@@ -142,7 +151,7 @@ class Fab(object):
 
             # TODO: At this point we would add this to the queue
             #       rather than running it here.  Noting that
-            #       the queue worked can extract the prerequisites
+            #       the queue worker can extract the prerequisites
             #       from the Task object.  For now we are going
             #       to have to fake that logic here:
             if all([prereq.exists() for prereq in compiler.prerequisites]):
