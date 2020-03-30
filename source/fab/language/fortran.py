@@ -14,7 +14,6 @@ from typing import (Generator,
                     Match,
                     Optional,
                     Pattern,
-                    Sequence,
                     Tuple,
                     Union)
 
@@ -45,36 +44,37 @@ class FortranWorkingState(DatabaseDecorator):
             f'''create table if not exists fortran_unit (
                    id integer primary key,
                    unit character({self._FORTRAN_LABEL_LENGTH}) not null,
-                   filename character({FileInfoDatabase.PATH_LENGTH}) not null
+                   found_in character({FileInfoDatabase.PATH_LENGTH})
+                       references file_info (filename)
                    )''',
             '''create index if not exists idx_fortran_program_unit
                    on fortran_unit(unit)''',
-            '''create index if not exists idx_fortran_filename
-                   on fortran_unit(filename)'''
+            '''create index if not exists idx_fortran_found_in
+                   on fortran_unit(found_in)'''
         ]
         self.execute(create_unit_table, {})
 
         # Although the current unit will already have been entered into the
         # database it is not necessarily unique. We may have multiple source
-        # files which define the same unit. Thus it can not be used as a
-        # foreign key.
+        # files which define similarly named units. Thus it can not be used as
+        # a foreign key.
         #
         # Meanwhile the dependency unit may not have been encountered yet so
         # we can't expect it to be in the database. Thus it too may not be
         # used as a foreign key.
         #
-        create_depdency_table = [
-            f'''create table if not exists fortran_dependency (
-                   id integer primary key,
-                   unit character({self._FORTRAN_LABEL_LENGTH}) not null,
-                   depends_on character({self._FORTRAN_LABEL_LENGTH}) not null
-                   )''',
+        create_prerequisite_table = [
+            f'''create table if not exists fortran_prerequisite (
+                  id integer primary key,
+                  dependor character({self._FORTRAN_LABEL_LENGTH}) not null,
+                  dependee character({self._FORTRAN_LABEL_LENGTH}) not null
+                  )''',
             '''create index if not exists idx_fortran_dependor
-                   on fortran_dependency(unit)''',
+                 on fortran_prerequisite(dependor)''',
             '''create index if not exists idx_fortran_dependee
-                   on fortran_dependency(depends_on)'''
+                 on fortran_prerequisite(dependee)'''
         ]
-        self.execute(create_depdency_table, {})
+        self.execute(create_prerequisite_table, {})
 
     def add_fortran_program_unit(self, name: str,
                                  in_file: Union[Path, str]) -> None:
@@ -88,7 +88,7 @@ class FortranWorkingState(DatabaseDecorator):
         :param in_file: Filename of source containing program unit.
         '''
         add_unit = [
-            '''insert into fortran_unit (unit, filename)
+            '''insert into fortran_unit (unit, found_in)
                    values (:unit, :filename)'''
         ]
         self.execute(add_unit, {'unit': name, 'filename': str(in_file)})
@@ -101,7 +101,7 @@ class FortranWorkingState(DatabaseDecorator):
         :param depends_on:  Name of the prerequisite unit.
         '''
         add_dependency = [
-            '''insert into fortran_dependency(unit, depends_on)
+            '''insert into fortran_prerequisite(dependor, dependee)
                    values (:unit, :depends_on)'''
         ]
         self.execute(add_dependency, {'unit': unit, 'depends_on': depends_on})
@@ -113,53 +113,42 @@ class FortranWorkingState(DatabaseDecorator):
         :param filename: File to be removed.
         '''
         remove_file = [
-            '''delete from fortran_dependency
-                   where unit=(select unit from fortran_unit
-                       where filename=:filename)''',
-            '''delete from fortran_unit where filename=:filename'''
+            '''delete from fortran_prerequisite
+                   where dependor=(select unit from fortran_unit
+                       where found_in=:filename)''',
+            '''delete from fortran_unit where found_in=:filename'''
             ]
         self.execute(remove_file, {'filename': str(filename)})
 
-    def iterate_program_units(self) \
-            -> Generator[Tuple[str, Sequence[Path]], None, None]:
+    def iterate_program_units(self) -> Generator[Tuple[str, Path], None, None]:
         '''
-        Yields all units and their containing file names.
+        Yields all units and their containing file name.
 
         :return: Unit name and containing filename pairs.
         '''
-        query = '''select unit, filename from fortran_unit
-                       order by unit, filename'''
+        query = '''select unit, found_in from fortran_unit
+                       order by unit, found_in'''
         rows = self.execute(query, {})
-        unit = None
-        files = []
         for row in rows:
-            if row['unit'] != unit:
-                if unit is not None:
-                    yield (unit, files)
-                unit = row['unit']
-                files = [Path(row['filename'])]
-            else:  # row['unit'] == unit
-                files.append(Path(row['filename']))
-        if unit is not None:
-            yield (unit, files)
+            yield row['unit'], Path(row['found_in'])
 
     def filenames_from_program_unit(self, name: str) -> List[Path]:
         '''
         Gets the source files in which a program unit may be found.
 
-        It is possible that the same program unit is multiply defined, hence
-        why a list is returned. It would be an error to try linking these into
-        a single executable but that is not a concern for the model of the
-        source tree.
+        It is possible that similarly named program units appear in multiple
+        files, hence why a list is returned. It would be an error to try
+        linking these into a single executable but that is not a concern for
+        the model of the source tree.
 
         :param name: Program unit name.
         :return: Filenames of source files.
         '''
-        query = 'select filename from fortran_unit where unit=:unit'
+        query = 'select found_in from fortran_unit where unit=:unit'
         rows = self.execute(query, {'unit': name})
         filenames: List[Path] = []
         for row in rows:
-            filenames.append(Path(row['filename']))
+            filenames.append(Path(row['found_in']))
         if len(filenames) == 0:
             message = 'Program unit "{unit}" not found in database.'
             raise WorkingStateException(message.format(unit=name))
@@ -167,12 +156,13 @@ class FortranWorkingState(DatabaseDecorator):
 
     def program_units_from_file(self, filename: Path) -> List[str]:
         '''
-        Gets the program units found in a particular source file.
+        Gets the program units found in a particular source file. There may be
+        More than one.
 
         :param filename: Source file of interest.
         :return: Program units found therein.
         '''
-        query = 'select unit from fortran_unit where filename=:filename'
+        query = 'select unit from fortran_unit where found_in=:filename'
         rows = self.execute(query, {'filename': str(filename)})
         units: List[str] = []
         for row in rows:
@@ -189,11 +179,13 @@ class FortranWorkingState(DatabaseDecorator):
         :param unit: Program unit name
         :return: Prerequisite unit names. May be an empty list.
         '''
-        query = 'select depends_on from fortran_dependency where unit=:unit'
+        query = '''select dependee
+                   from fortran_prerequisite
+                   where dependor=:unit'''
         rows = self.execute(query, {'unit': unit})
         units: List[str] = []
         for row in rows:
-            units.append(row['depends_on'])
+            units.append(row['dependee'])
         return units
 
 

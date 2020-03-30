@@ -52,11 +52,10 @@ class Fab(object):
                 print(f'    hash: {info.adler32}')
 
         fortran_db = FortranWorkingState(self._state)
-        for unit, files in fortran_db.iterate_program_units():
+        for unit, file in fortran_db.iterate_program_units():
             print(unit)
-            for filename in files:
-                print('    found in: ' + str(filename))
-                print('    depends on: ' + str(fortran_db.depends_on(unit)))
+            print('    found in: ' + str(file))
+            print('    depends on: ' + str(fortran_db.depends_on(unit)))
 
 
 class Dump(object):
@@ -80,9 +79,8 @@ class Dump(object):
         fortran_view = FortranWorkingState(self._state)
         print("Fortran View", file=stream)
         for program_unit, found_in in fortran_view.iterate_program_units():
-            filenames = (str(path) for path in found_in)
             print(f"  Program unit    : {program_unit}", file=stream)
-            print(f"    Found in      : {', '.join(filenames)}", file=stream)
+            print(f"    Found in      : {found_in}", file=stream)
             prerequisites = fortran_view.depends_on(program_unit)
             print(f"    Prerequisites : {', '.join(prerequisites)}",
                   file=stream)

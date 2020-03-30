@@ -136,9 +136,10 @@ class TestFortranWorkingSpace:
         test_unit.add_fortran_program_unit('baz', tmp_path / 'baz.f90')
         test_unit.add_fortran_program_unit('foo', tmp_path / 'baz.f90')
 
-        expected = [('bar', [tmp_path / 'bar.F90']),
-                    ('baz', [tmp_path / 'baz.f90']),
-                    ('foo', [tmp_path / 'baz.f90', tmp_path / 'foo.f90'])]
+        expected = [('bar', tmp_path / 'bar.F90'),
+                    ('baz', tmp_path / 'baz.f90'),
+                    ('foo', tmp_path / 'baz.f90'),
+                    ('foo', tmp_path / 'foo.f90')]
 
         assert list(test_unit.iterate_program_units()) == expected
 
@@ -283,8 +284,9 @@ class TestFortranAnalyser(object):
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
-            == [('barney_mod', [first_file, second_file]),
-                ('betty', [first_file])]
+            == [('barney_mod', first_file),
+                ('barney_mod', second_file),
+                ('betty', first_file)]
         assert fdb.depends_on('betty') == ['barney_mod']
 
         # Repeat the scan of second_file, there should be no change.
@@ -294,8 +296,9 @@ class TestFortranAnalyser(object):
 
         fdb = FortranWorkingState(database)
         assert list(fdb.iterate_program_units()) \
-            == [('barney_mod', [first_file, second_file]),
-                ('betty', [first_file])]
+            == [('barney_mod', first_file),
+                ('barney_mod', second_file),
+                ('betty', first_file)]
         assert fdb.depends_on('betty') == ['barney_mod']
 
     def test_naked_use(self, tmp_path):
