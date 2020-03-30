@@ -40,6 +40,10 @@ class QueueManager(object):
     def add_to_queue(self, task: Task):
         self._queue.put(task)
 
+    def get_queue_length(self):
+        length = self._queue.qsize()
+        return length
+
     def run(self):
         for _ in range(self._n_workers):
             process = Process(
