@@ -50,9 +50,9 @@ class ExtensionVisitor(TreeVisitor):
                 task = CommandTask(
                     task_class(Path(hasher.filename), self._workspace, flags))
             else:
-                message = 'Unhandled class "{cls}" in extension map.'
-                raise TypeError(
-                    message.format(cls=task_class))
+                message = \
+                    f'Unhandled class "{task_class}" in extension map.'
+                raise TypeError(message)
             # TODO: This is where we start calling "add_to_queue"
             #       rather then running the task right here.
             #       Noting that it can at this point access

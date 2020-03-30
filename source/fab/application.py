@@ -145,9 +145,9 @@ class Fab(object):
                         flags,
                         mod_files))
             else:
-                message = 'Unhandled class "{cls}" in compiler map.'
-                raise TypeError(
-                    message.format(cls=compiler_class))
+                message = \
+                    f'Unhandled class "{compiler_class}" in compiler map.'
+                raise TypeError(message)
 
             # TODO: At this point we would add this to the queue
             #       rather than running it here.  Noting that
