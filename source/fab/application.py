@@ -94,8 +94,7 @@ class Fab(object):
         if self._exec_name != "":
             executable = Path(self._workspace) / self._exec_name
         else:
-            executable = \
-                Path(self._workspace / self._target).with_suffix(".exe")
+            executable = Path(self._workspace / self._target)
 
         flags = self._command_flags_map.get(FortranLinker, [])
         link_command = FortranLinker(self._workspace, flags, executable)

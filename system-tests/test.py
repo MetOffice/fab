@@ -120,7 +120,7 @@ class FabTestCase(RunTestCase):
             args.append('--fc-flags=' + fc_flags)
         if ld_flags:
             args.append('--ld-flags=' + ld_flags)
-        args.extend(['--exec-name', 'fab_test.exe'])
+        args.extend(['--exec-name', 'fab_test'])
         args.append(target)
         args.append(str(test_directory))
 
@@ -146,7 +146,7 @@ class FabTestCase(RunTestCase):
 
     def run(self):
         super().run()
-        expected_exec = self._test_directory / 'working' / 'fab_test.exe'
+        expected_exec = self._test_directory / 'working' / 'fab_test'
         self.assert_true(expected_exec.exists)
         thread: subprocess.Popen = subprocess.Popen(
             [expected_exec],
@@ -157,7 +157,7 @@ class FabTestCase(RunTestCase):
         stderr: bytes
         stdout, stderr = thread.communicate()
         if thread.returncode != 0:
-            print('Running fab_test.exe failed: ', file=sys.stderr)
+            print('Running fab_test failed: ', file=sys.stderr)
             print('    stdout: ' + stdout.decode('utf-8'))
             print('    stderr: ' + stderr.decode('utf-8'))
 

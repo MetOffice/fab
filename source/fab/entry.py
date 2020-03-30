@@ -42,7 +42,7 @@ def fab_cli() -> argparse.Namespace:
     # TODO: Name for executable will eventually come from configuration
     parser.add_argument('--exec-name', action='store', type=str, default='',
                         help='Name of executable (default is the name of '
-                        'the program with extentsion ".exe")')
+                        'the target program)')
     # TODO: Target/s will eventually come from configuration
     parser.add_argument('target', action='store', type=str,
                         help='The top level unit name to compile')
