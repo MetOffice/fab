@@ -169,13 +169,20 @@ class UnitInfoFrame(tk.Frame):
         tk.Label(self, text='Found in').grid(row=0, column=0)
         self._found_in_field = tk.Listbox(self, selectmode=tk.BROWSE, width=40)
         self._found_in_field.grid(row=1, column=0)
+        self._found_in_field.config(cursor='X_cursor')
         self._found_in_field.bind('<Double-Button-1>', self._select_file)
 
         tk.Label(self, text='Prerequisites').grid(row=0, column=1)
         self._prerequisite_field = tk.Listbox(self, selectmode=tk.BROWSE)
         self._prerequisite_field.grid(row=1, column=1)
+        self._prerequisite_field.config(cursor='X_cursor')
         self._prerequisite_field.bind('<Double-Button-1>',
                                       self._select_prerequisite)
+
+        tk.Label(self,
+                 text="Double-click with cross pointer").grid(row=2,
+                                                              column=0,
+                                                              columnspan=2)
 
     def update_info(self, name: str) -> None:
         self._found_in_field.delete(0, tk.END)
