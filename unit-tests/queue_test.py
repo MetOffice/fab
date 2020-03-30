@@ -8,7 +8,7 @@ from fab.queue import QueueManager
 from fab.language import Task
 
 
-class DummyTask(object):
+class DummyTask(Task):
     def __init__(self, taskno):
         self._taskno = taskno
 
