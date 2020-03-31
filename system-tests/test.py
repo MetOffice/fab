@@ -127,7 +127,7 @@ class PythonTestCase(RunTestCase):
         script = 'import sys; import fab.entry; ' \
                  f'sys.exit(fab.entry.{self._entry_point}())'
         command = ['python3', '-c', script,
-                   '-w', self._working_dir]
+                   '-w', str(self._working_dir)]
         command.extend(self._arguments)
 
         user_path: List[str] = os.environ.get('PATH').split(':')
