@@ -18,7 +18,7 @@ class DummyTask(Task):
         return [self._taskno]
 
 
-if __name__ == "__main__":
+def test_queue():
 
     q_manager = QueueManager(1)
 
