@@ -7,9 +7,9 @@ Modules for handling different program languages appear in this package.
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List
+from typing import List, Sequence
 
-from fab.database import SqliteStateDatabase
+from fab.database import StateDatabase
 from fab.reader import TextReader
 
 
@@ -33,8 +33,8 @@ class Task(ABC):
         raise NotImplementedError('Abstract methods must be implemented')
 
 
-class Analyser(Task):
-    def __init__(self, reader: TextReader, database: SqliteStateDatabase):
+class Analyser(Task, ABC):
+    def __init__(self, reader: TextReader, database: StateDatabase):
         self._database = database
         self._reader = reader
 
@@ -44,7 +44,7 @@ class Analyser(Task):
 
     @property
     def prerequisites(self) -> List[Path]:
-        return [Path(self._reader.filename)]
+        return [self._reader.filename]
 
     @property
     def products(self) -> List[Path]:
@@ -52,11 +52,14 @@ class Analyser(Task):
 
 
 class Command(ABC):
-    stdout = False
-
-    def __init__(self, workspace: Path, flags: List[str]):
+    def __init__(self, workspace: Path, flags: Sequence[str], stdout=False):
         self._workspace = workspace
         self._flags = flags
+        self._output_is_stdout = stdout
+
+    @property
+    def stdout(self) -> bool:
+        return self._output_is_stdout
 
     @property
     @abstractmethod
@@ -74,8 +77,8 @@ class Command(ABC):
         raise NotImplementedError('Abstract methods must be implemented')
 
 
-class SingleFileCommand(Command):
-    def __init__(self, filename: Path, workspace: Path, flags: List[str]):
+class SingleFileCommand(Command, ABC):
+    def __init__(self, filename: Path, workspace: Path, flags: Sequence[str]):
         super().__init__(workspace, flags)
         self._filename = filename
 
@@ -89,10 +92,14 @@ class CommandTask(Task):
         self._command = command
 
     def run(self):
-        process = subprocess.run(self._command.as_list, check=True)
         if self._command.stdout:
-            with open(self._command.output_filename, 'wb') as out_file:
+            process = subprocess.run(self._command.as_list,
+                                     check=True,
+                                     stdout=subprocess.PIPE)
+            with self._command.output[0].open('wb') as out_file:
                 out_file.write(process.stdout)
+        else:
+            _ = subprocess.run(self._command.as_list, check=True)
 
     @property
     def prerequisites(self) -> List[Path]:
