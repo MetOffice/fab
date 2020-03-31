@@ -20,48 +20,26 @@ import subprocess
 import sys
 import os
 import traceback
-from typing import List, Sequence
+from typing import List, Sequence, Dict
 
 import systest  # type: ignore
 from systest import Sequencer
 
 
 class RunTestCase(systest.TestCase):
-    """
-    Runs a tool from the fab collection and compares output with expected one.
-    """
+    '''
+    Base class for tests containing useful utility functions.
+    '''
 
-    def __init__(self,
-                 test_directory: Path,
-                 working_dir: Path,
-                 expectation_file: Path,
-                 entry_point: str,
-                 args: Sequence[str] = ()):
-        super().__init__(name=test_directory.stem)
-        self._test_directory: Path = test_directory
-        self._working_dir: Path = working_dir
-        self._entry_point = entry_point
-        self._arguments = args
-        self._expected = expectation_file.read_text('utf-8') \
-            .splitlines(keepends=True)
-
-    def run(self):
-        script = "import sys; import fab.entry; " \
-                 f"sys.exit(fab.entry.{self._entry_point}())"
-        command = ['python3', '-c', script,
-                   '-w', self._working_dir]
-        command.extend(self._arguments)
-
-        user_path: List[str] = os.environ.get('PATH').split(':')
-        try:
-            while True:
-                user_path.remove('')
-        except ValueError:
-            pass  # No empty entries to be removed.
-        user_path.append(os.path.dirname(sys.executable))
-
-        environment = {'PATH': ':'.join(user_path),
-                       'PYTHONPATH': 'source'}
+    def run_command_check_output(self,
+                                 command: List[str],
+                                 environment: Dict,
+                                 expected: str):
+        '''
+        Run ``command`` in the given ``environment`` and then compare
+        its stdout to some ``expected`` output, raising an exception
+        if either the command fails or the output disagrees.
+        '''
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
                                                     stdout=subprocess.PIPE,
@@ -70,13 +48,14 @@ class RunTestCase(systest.TestCase):
         stderr: bytes
         stdout, stderr = thread.communicate()
         if thread.returncode != 0:
-            print('Running Fab failed: ', file=sys.stderr)
+            print('Running command failed: ', file=sys.stderr)
+            print('    command: ' + ' '.join(command), file=sys.stderr)
             print('    stdout: ' + stdout.decode('utf-8'))
             print('    stderr: ' + stderr.decode('utf-8'))
 
         self.assert_true(thread.returncode == 0)
         self._assert_diff(stdout.decode('utf-8').splitlines(keepends=True),
-                          self._expected)
+                          expected)
 
     @staticmethod
     def _assert_diff(first, second):
@@ -98,8 +77,102 @@ class RunTestCase(systest.TestCase):
                                                     text))
 
 
-class FabTestCase(RunTestCase):
-    """Run Fab build tool against source tree and validate result."""
+class ExecTestCase(RunTestCase):
+    '''
+    Test case which expects to run an executable and
+    compare its output with an expected result.
+    '''
+
+    def __init__(self,
+                 test_directory: Path,
+                 expectation_file: Path,
+                 executable: Path,
+                 name: str,
+                 args: Sequence[str] = ()):
+        super().__init__(name=name)
+        self._arguments = args
+        self._executable = executable
+        self._expected = expectation_file.read_text('utf-8') \
+            .splitlines(keepends=True)
+
+    def run(self):
+        command = [str(self._executable)] + self._arguments
+
+        self.run_command_check_output(
+            command, {}, self._expected)
+
+
+class PythonTestCase(RunTestCase):
+    '''
+    Test case which expects to run a Python entry point and
+    compare its output with an expected result.
+    '''
+
+    def __init__(self,
+                 test_directory: Path,
+                 working_dir: Path,
+                 expectation_file: Path,
+                 entry_point: str,
+                 name: str,
+                 args: Sequence[str] = ()):
+        super().__init__(name=name)
+        self._test_directory: Path = test_directory
+        self._working_dir: Path = working_dir
+        self._entry_point = entry_point
+        self._arguments = args
+        self._expected = expectation_file.read_text('utf-8') \
+            .splitlines(keepends=True)
+
+    def run(self):
+        script = 'import sys; import fab.entry; ' \
+                 f'sys.exit(fab.entry.{self._entry_point}())'
+        command = ['python3', '-c', script,
+                   '-w', str(self._working_dir)]
+        command.extend(self._arguments)
+
+        user_path: List[str] = os.environ.get('PATH').split(':')
+        try:
+            while True:
+                user_path.remove('')
+        except ValueError:
+            pass  # No empty entries to be removed.
+        user_path.append(os.path.dirname(sys.executable))
+
+        environment = {'PATH': ':'.join(user_path),
+                       'PYTHONPATH': 'source'}
+
+        self.run_command_check_output(
+            command, environment, self._expected)
+
+
+class CompiledExecTestCase(ExecTestCase):
+    '''Run the exec produced by Fab and check its output.'''
+
+    # The result is held in a file 'expected.exec.txt' in the test directory.
+    #
+    # This comment exists as the framework hijacks the docstring for output.
+    #
+    def __init__(self,
+                 test_directory: Path,
+                 expectation_prefix: str = '',):
+        args: List[str] = []
+
+        expectation_file = 'expected.exec'
+        if expectation_prefix != '':
+            expectation_file += '.' + expectation_prefix
+        expectation_file += '.txt'
+
+        executable = test_directory / 'working' / 'fab_test'
+
+        super().__init__(test_directory,
+                         test_directory / expectation_file,
+                         executable,
+                         f'{test_directory.stem} - Running Executable',
+                         args)
+
+
+class FabTestCase(PythonTestCase):
+    '''Run Fab build tool against source tree and validate result.'''
 
     # The result is held in a file 'expected.fab.txt' in the test directory.
     #
@@ -107,11 +180,22 @@ class FabTestCase(RunTestCase):
     #
     def __init__(self,
                  test_directory: Path,
+                 target: str,
                  expectation_prefix: str = '',
-                 fpp_flags: str = None):
+                 fpp_flags: str = None,
+                 fc_flags: str = None,
+                 ld_flags: str = None):
+
         args: List[str] = []
         if fpp_flags:
             args.append('--fpp-flags=' + fpp_flags)
+        if fc_flags:
+            args.append('--fc-flags=' + fc_flags)
+        if ld_flags:
+            args.append('--ld-flags=' + ld_flags)
+
+        args.extend(['--exec-name', 'fab_test'])
+        args.append(target)
         args.append(str(test_directory))
 
         expectation_file = 'expected.fab'
@@ -123,6 +207,7 @@ class FabTestCase(RunTestCase):
                          test_directory / 'working',
                          test_directory / expectation_file,
                          'fab_entry',
+                         f'{test_directory.stem} - Running Fab',
                          args)
 
     def setup(self):
@@ -131,8 +216,8 @@ class FabTestCase(RunTestCase):
             shutil.rmtree(str(working_dir))
 
 
-class DumpTestCase(RunTestCase):
-    """Run Fab dump tool against working directory and validate result."""
+class DumpTestCase(PythonTestCase):
+    '''Run Fab dump tool against working directory and validate result.'''
 
     # The result is held in a file 'expected.dump.txt' in the test directory.
     #
@@ -151,6 +236,7 @@ class DumpTestCase(RunTestCase):
                          test_directory / 'working',
                          test_directory / expectation_file,
                          'dump_entry',
+                         f'{test_directory.stem} - Running Fab dump',
                          [])
 
     def teardown(self):
@@ -214,24 +300,30 @@ if __name__ == '__main__':
     #
     sequence = (
         [
-            FabTestCase(root_dir / 'MinimalFortran'),
+            FabTestCase(root_dir / 'MinimalFortran', 'test'),
+            CompiledExecTestCase(root_dir / 'MinimalFortran'),
             DumpTestCase(root_dir / 'MinimalFortran')
         ],
         [
-            FabTestCase(root_dir / 'FortranDependencies'),
+            FabTestCase(root_dir / 'FortranDependencies', 'first'),
+            CompiledExecTestCase(root_dir / 'FortranDependencies'),
             DumpTestCase(root_dir / 'FortranDependencies')
         ],
         [
             [
-                FabTestCase(root_dir / 'FortranPreProcess',
+                FabTestCase(root_dir / 'FortranPreProcess', 'stay_or_go_now',
                             expectation_prefix='stay',
                             fpp_flags='-DSHOULD_I_STAY=yes'),
+                CompiledExecTestCase(root_dir / 'FortranPreProcess',
+                                     expectation_prefix='stay'),
                 DumpTestCase(root_dir / 'FortranPreProcess',
                              expectation_prefix='stay')
             ],
             [
-                FabTestCase(root_dir / 'FortranPreProcess',
+                FabTestCase(root_dir / 'FortranPreProcess', 'stay_or_go_now',
                             expectation_prefix='go'),
+                CompiledExecTestCase(root_dir / 'FortranPreProcess',
+                                     expectation_prefix='go'),
                 DumpTestCase(root_dir / 'FortranPreProcess',
                              expectation_prefix='go')
             ]

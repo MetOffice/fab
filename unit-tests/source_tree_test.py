@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterator, Union, List, Mapping, Dict, Type
 
 from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
-from fab.language import Analyser, Command, Task
+from fab.language import Analyser, Command, SingleFileCommand, Task
 from fab.reader import TextReader
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
 
@@ -61,18 +61,17 @@ def setup_function():
 class DummyAnalyser(Analyser):
     def run(self):
         tracker['analyser'].append(self._reader.filename)
-        return []
 
 
-class DummyCommand(Command):
+class DummyCommand(SingleFileCommand):
     @property
     def as_list(self) -> List[str]:
         tracker['command'].append(self._filename)
-        return ['cp', str(self._filename), str(self.output_filename)]
+        return ['cp', str(self._filename), str(self.output[0])]
 
     @property
-    def output_filename(self) -> Path:
-        return self._filename.with_suffix('.baz')
+    def output(self) -> List[Path]:
+        return [self._filename.with_suffix('.baz')]
 
 
 def test_extension_visitor(tmp_path: Path):

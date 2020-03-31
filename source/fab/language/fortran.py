@@ -23,7 +23,11 @@ from fab.database import (DatabaseDecorator,
                           StateDatabase,
                           SqliteStateDatabase,
                           WorkingStateException)
-from fab.language import Analyser, TaskException, Command
+from fab.language import \
+    Analyser, \
+    TaskException, \
+    Command, \
+    SingleFileCommand
 from fab.reader import TextReader, TextReaderDecorator
 
 
@@ -292,7 +296,7 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def run(self) -> List[Path]:
+    def run(self):
         logger = logging.getLogger(__name__)
 
         self._state.remove_fortran_file(self._reader.filename)
@@ -394,17 +398,78 @@ class FortranAnalyser(Analyser):
                                       'found': end_name}
                         raise TaskException(
                             end_message.format(**end_values))
-        return []
 
 
-class FortranPreProcessor(Command):
+class FortranPreProcessor(SingleFileCommand):
 
     @property
     def as_list(self) -> List[str]:
         base_command = ['cpp', '-traditional-cpp', '-P']
-        file_args = [str(self._filename), str(self.output_filename)]
+        file_args = [str(self._filename), str(self.output[0])]
         return base_command + self._flags + file_args
 
     @property
-    def output_filename(self) -> Path:
-        return self._workspace / self._filename.with_suffix('.f90').name
+    def output(self) -> List[Path]:
+        return [self._workspace /
+                self._filename.with_suffix('.f90').name]
+
+
+class FortranCompiler(Command):
+
+    def __init__(self,
+                 filename: Path,
+                 workspace: Path,
+                 flags: List[str],
+                 prerequisites: List[Path]):
+        super().__init__(workspace, flags)
+        self._filename = filename
+        self._prerequisites = prerequisites
+
+    @property
+    def as_list(self) -> List[str]:
+        base_command = ['gfortran',
+                        '-c',
+                        '-J' + str(self._workspace),
+                        ]
+        file_args = [str(self._filename),
+                     '-o',
+                     str(self.output[0]),
+                     ]
+        return base_command + self._flags + file_args
+
+    @property
+    def input(self) -> List[Path]:
+        return self._prerequisites + [self._filename]
+
+    @property
+    def output(self) -> List[Path]:
+        object_file = (
+            self._workspace / self._filename.with_suffix('.o').name)
+        return [object_file]
+
+
+class FortranLinker(Command):
+    def __init__(self,
+                 workspace: Path,
+                 flags: List[str],
+                 output_filename: Path):
+        super().__init__(workspace, flags)
+        self._output_filename = output_filename
+        self._filenames: List[Path] = []
+
+    def add_object(self, object_filename: Path):
+        self._filenames.append(object_filename)
+
+    @property
+    def as_list(self) -> List[str]:
+        base_command = ['gfortran', '-o', str(self._output_filename)]
+        objects = [str(filename) for filename in self._filenames]
+        return base_command + self._flags + objects
+
+    @property
+    def output(self) -> List[Path]:
+        return [self._output_filename]
+
+    @property
+    def input(self) -> List[Path]:
+        return self._filenames

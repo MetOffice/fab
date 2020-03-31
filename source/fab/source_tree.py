@@ -11,7 +11,12 @@ from pathlib import Path
 from typing import Mapping, List, Union, Type
 
 from fab.database import FileInfoDatabase, SqliteStateDatabase
-from fab.language import Task, Analyser, CommandTask, Command
+from fab.language import \
+    Task, \
+    Analyser, \
+    CommandTask, \
+    Command, \
+    SingleFileCommand
 from fab.reader import TextReader, FileTextReader, TextReaderAdler32
 
 
@@ -40,16 +45,23 @@ class ExtensionVisitor(TreeVisitor):
 
             if issubclass(task_class, Analyser):
                 task: Task = task_class(hasher, self._state)
-            elif issubclass(task_class, Command):
+            elif issubclass(task_class, SingleFileCommand):
                 flags = self._command_flags_map.get(task_class, [])
                 task = CommandTask(
                     task_class(Path(hasher.filename), self._workspace, flags))
             else:
-                message = 'Unhandled class "{cls}" in extension map.'
-                raise TypeError(
-                    message.format(cls=task_class))
-            # TODO: Eventually add to the queue here rather than running
-            new_candidates = task.run()
+                message = \
+                    f'Unhandled class "{task_class}" in extension map.'
+                raise TypeError(message)
+            # TODO: This is where we start calling "add_to_queue"
+            #       rather then running the task right here.
+            #       Noting that it can at this point access
+            #       task.prerequisites to find out what files
+            #       (if any) the task depends on
+            task.run()
+            new_candidates.extend(task.products)
+            # TODO: The hasher part here likely needs to be
+            #       moved once the task is run by the queue
             for _ in hasher.line_by_line():
                 pass  # Make sure we've read the whole file.
             file_info = FileInfoDatabase(self._state)
