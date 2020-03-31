@@ -17,6 +17,14 @@ class StopTask(Task):
     def run(self):
         return []
 
+    @property
+    def prerequisites(self):
+        return []
+
+    @property
+    def products(self):
+        return []
+
 
 def worker(queue: Queue, rendezvous: List[Path]):
     while True:

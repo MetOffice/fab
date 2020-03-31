@@ -38,7 +38,6 @@ class ExtensionVisitor(TreeVisitor):
 
     def visit(self, candidate: Path) -> List[Path]:
         new_candidates: List[Path] = []
-        task_queue = []
         try:
             task_class = self._extension_map[candidate.suffix]
             reader: TextReader = FileTextReader(candidate)
@@ -59,10 +58,6 @@ class ExtensionVisitor(TreeVisitor):
             #       Noting that it can at this point access
             #       task.prerequisites to find out what files
             #       (if any) the task depends on
-            task_queue.append(task)
-            # TODO move dequeueing and running to application.py
-            runningtask = task_queue.pop(0)
-            new_candidates = runningtask.run()
             task.run()
             new_candidates.extend(task.products)
             # TODO: The hasher part here likely needs to be

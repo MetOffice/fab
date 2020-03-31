@@ -17,6 +17,14 @@ class DummyTask(Task):
         print("Finished task.")
         return [self._taskno]
 
+    @property
+    def prerequisites(self):
+        return []
+
+    @property
+    def products(self):
+        return []
+
 
 def test_queue():
 
