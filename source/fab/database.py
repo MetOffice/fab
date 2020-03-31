@@ -9,7 +9,7 @@ Working state which is either per-build or persistent between builds.
 from abc import ABC, abstractmethod
 from pathlib import Path
 import sqlite3
-from typing import Dict, Iterator, Optional, Sequence, Union
+from typing import Dict, Iterator, Sequence, Union
 
 
 class WorkingStateException(Exception):
@@ -22,17 +22,18 @@ class FileInfo(object):
         self.adler32 = adler32
 
     def __eq__(self, other):
+        if not isinstance(other, FileInfo):
+            message = f"Cannot compare FileInfo with {other.__class__}"
+            raise ValueError(message)
         return (str(other.filename) == str(self.filename)) \
                and (other.adler32 == self.adler32)
 
 
 class DatabaseRows(Iterator[Dict[str, str]]):
-    def __init__(self, cursor: Optional[sqlite3.Cursor]):
+    def __init__(self, cursor: sqlite3.Cursor):
         self._cursor = cursor
 
     def __next__(self) -> Dict[str, str]:
-        if self._cursor is None:
-            raise StopIteration()
         row = self._cursor.fetchone()
         if row is None:
             raise StopIteration()
@@ -45,6 +46,41 @@ class StateDatabase(ABC):
     def execute(self, query: Union[Sequence[str], str],
                 inserts: Dict[str, str]) -> DatabaseRows:
         raise NotImplementedError('Abstract methods must be implemented.')
+
+
+class SqliteStateDatabase(StateDatabase):
+    '''
+    Provides a semi-permanent store of working state.
+
+    Backed by a database which may be deleted at any point. It should not be
+    used for permanent storage of e.g. configuration.
+    '''
+    def __init__(self, working_directory: Path):
+        self._working_directory: Path = working_directory
+
+        if not self._working_directory.exists():
+            self._working_directory.mkdir(parents=True)
+
+        self._connection: sqlite3.Connection \
+            = sqlite3.connect(str(working_directory / 'state.db'))
+        self._connection.row_factory = sqlite3.Row
+
+    def __del__(self):
+        self._connection.close()
+
+    def execute(self, query: Union[Sequence[str], str],
+                inserts: Dict[str, str]) -> DatabaseRows:
+        if isinstance(query, str):
+            query_list: Sequence[str] = [query]
+        else:
+            query_list = query
+
+        cursor = None
+        for command in query_list:
+            cursor = self._connection.execute(command, inserts)
+        self._connection.commit()
+
+        return DatabaseRows(cursor)
 
 
 class DatabaseDecorator(StateDatabase):
@@ -103,38 +139,3 @@ class FileInfoDatabase(DatabaseDecorator):
         except StopIteration:
             raise WorkingStateException('File information not found for: '
                                         + str(filename))
-
-
-class SqliteStateDatabase(StateDatabase):
-    '''
-    Provides a semi-permanent store of working state.
-
-    Backed by a database which may be deleted at any point. It should not be
-    used for permanent storage of e.g. configuration.
-    '''
-    def __init__(self, working_directory: Path):
-        self._working_directory: Path = working_directory
-
-        if not self._working_directory.exists():
-            self._working_directory.mkdir(parents=True)
-
-        self._connection: sqlite3.Connection \
-            = sqlite3.connect(str(working_directory / 'state.db'))
-        self._connection.row_factory = sqlite3.Row
-
-    def __del__(self):
-        self._connection.close()
-
-    def execute(self, query: Union[Sequence[str], str],
-                inserts: Dict[str, str]) -> DatabaseRows:
-        if isinstance(query, str):
-            query_list: Sequence[str] = [query]
-        else:
-            query_list = query
-
-        cursor = None
-        for command in query_list:
-            cursor = self._connection.execute(command, inserts)
-        self._connection.commit()
-
-        return DatabaseRows(cursor)
