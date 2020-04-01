@@ -42,11 +42,11 @@ class TestAnalyser(object):
 class SingleFileCommandHarness(SingleFileCommand):
     @property
     def as_list(self) -> List[str]:
-        pass
+        return []
 
     @property
     def output(self) -> List[Path]:
-        pass
+        return []
 
 
 class TestSingleFileCommand(object):
