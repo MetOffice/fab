@@ -7,7 +7,7 @@
 Classes and methods relating to the queue system
 '''
 
-from multiprocessing import Queue, Process
+from multiprocessing import Queue, JoinableQueue, Process
 from typing import List
 from pathlib import Path
 from fab.language import Task
@@ -26,7 +26,7 @@ class StopTask(Task):
         return []
 
 
-def worker(queue: Queue, rendezvous: List[Path]):
+def worker(queue: JoinableQueue):
     while True:
         task = queue.get(block=True)
         if isinstance(task, StopTask):
@@ -36,28 +36,27 @@ def worker(queue: Queue, rendezvous: List[Path]):
         #       present (in rendezvous) then you
         #       cannot run and should call
         #       queue.put(task)
-        rendezvous.extend(task.run())
+        task.run()
+        queue.task_done()
 
 
 class QueueManager(object):
     def __init__(self, n_workers: int):
-        self._queue: Queue = Queue()
+        self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
-        self._rendezvous: List[Path] = []
 
     def add_to_queue(self, task: Task):
         self._queue.put(task)
 
-    def get_queue_length(self):
-        length = self._queue.qsize()
-        return length
-
     def run(self):
         for _ in range(self._n_workers):
             process = Process(
-                target=worker, args=(self._queue,
-                                     self._rendezvous))
+                target=worker, args=(self._queue,))
             process.start()
+
+    def check_queue_done(self):
+        # Blocks until the JoinableQueue is empty
+        self._queue.join()
 
     def shutdown(self):
         stop = StopTask()
