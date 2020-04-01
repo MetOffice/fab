@@ -10,6 +10,7 @@ from fab.database import SqliteStateDatabase, FileInfoDatabase, FileInfo
 from fab.language import Analyser, Command, SingleFileCommand, Task
 from fab.reader import TextReader
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
+from fab.queue import QueueManager
 
 
 class DummyVisitor(TreeVisitor):
@@ -89,7 +90,8 @@ def test_extension_visitor(tmp_path: Path):
         '.foo': DummyAnalyser,
         '.bar': DummyCommand
         }
-    test_unit = ExtensionVisitor(emap, {}, db, tmp_path)
+    queue = QueueManager(1)
+    test_unit = ExtensionVisitor(emap, {}, db, tmp_path, queue)
     test_unit.visit(foo_file)
 
     assert tracker['analyser'] == [foo_file]
@@ -134,7 +136,8 @@ def test_nested_visit(tmp_path: Path):
         '.bar': DummyCommand,
         '.baz': DummyAnalyser
         }
-    visitor = ExtensionVisitor(emap, {}, db, tmp_path)
+    queue = QueueManager(1)
+    visitor = ExtensionVisitor(emap, {}, db, tmp_path, queue)
     test_unit = TreeDescent(tree_root)
     test_unit.descend(visitor)
 

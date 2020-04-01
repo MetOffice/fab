@@ -29,12 +29,10 @@ def worker(queue: JoinableQueue):
         task = queue.get(block=True)
         if isinstance(task, StopTask):
             break
-        # TODO: Check here whether the task *can*
-        #       be run - if prerequisites are not
-        #       present then you
-        #       cannot run and should call
-        #       queue.put(task)
-        task.run()
+        if all([prereq.exists() for prereq in task.prerequisites]):
+            task.run()
+        else:
+            queue.put(task)
         queue.task_done()
 
 
