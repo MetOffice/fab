@@ -8,8 +8,6 @@ Classes and methods relating to the queue system
 '''
 
 from multiprocessing import Queue, JoinableQueue, Process
-from typing import List
-from pathlib import Path
 from fab.language import Task
 
 
@@ -33,7 +31,7 @@ def worker(queue: JoinableQueue):
             break
         # TODO: Check here whether the task *can*
         #       be run - if prerequisites are not
-        #       present (in rendezvous) then you
+        #       present then you
         #       cannot run and should call
         #       queue.put(task)
         task.run()

@@ -8,7 +8,6 @@ from fab.queue import QueueManager
 from fab.language import Task
 from pathlib import Path
 import os
-import time
 
 
 class DummyTask(Task):
@@ -16,7 +15,6 @@ class DummyTask(Task):
         self._filename = filename
 
     def run(self):
-        print("creating " + str(self._filename))
         os.system("touch " + str(self._filename))
 
     @property
@@ -44,6 +42,7 @@ def test_queue(tmp_path: Path):
     for i in range(1, 4):
         filename = tmp_path / f"file_{i}"
         assert filename.exists()
+
 
 def test_startstop():
     q_manager = QueueManager(1)
