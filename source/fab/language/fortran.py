@@ -1,7 +1,6 @@
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
-
 '''
 Fortran language handling classes.
 '''
@@ -201,7 +200,7 @@ class FortranWorkingState(DatabaseDecorator):
         return units
 
 
-class _FortranNormaliser(TextReaderDecorator):
+class FortranNormaliser(TextReaderDecorator):
     def __init__(self, source: TextReader):
         super().__init__(source)
         self._line_buffer = ''
@@ -229,7 +228,7 @@ class _FortranNormaliser(TextReaderDecorator):
             # the lines together
             self._line_buffer += line
             if '&' in self._line_buffer:
-                self._line_buffer = re.sub(r'&\s*\n', '', self._line_buffer)
+                self._line_buffer = re.sub(r'&\s*$', '', self._line_buffer)
                 continue
 
             # Before output, minimise whitespace but add a space on the end
@@ -301,7 +300,7 @@ class FortranAnalyser(Analyser):
 
         self._state.remove_fortran_file(self._reader.filename)
 
-        normalised_source = _FortranNormaliser(self._reader)
+        normalised_source = FortranNormaliser(self._reader)
         scope: List[Tuple[str, str]] = []
         for line in normalised_source.line_by_line():
             logger.debug(scope)
@@ -462,6 +461,9 @@ class FortranLinker(Command):
 
     @property
     def as_list(self) -> List[str]:
+        if len(self._filenames) == 0:
+            message = "Tried to generate a link without object files"
+            raise TaskException(message)
         base_command = ['gfortran', '-o', str(self._output_filename)]
         objects = [str(filename) for filename in self._filenames]
         return base_command + self._flags + objects
