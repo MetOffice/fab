@@ -7,7 +7,7 @@ Modules for handling different program languages appear in this package.
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Sequence
+from typing import List
 
 from fab.database import StateDatabase
 from fab.reader import TextReader
@@ -44,7 +44,10 @@ class Analyser(Task, ABC):
 
     @property
     def prerequisites(self) -> List[Path]:
-        return [self._reader.filename]
+        if isinstance(self._reader.filename, Path):
+            return [self._reader.filename]
+        else:
+            return []
 
     @property
     def products(self) -> List[Path]:
@@ -52,7 +55,7 @@ class Analyser(Task, ABC):
 
 
 class Command(ABC):
-    def __init__(self, workspace: Path, flags: Sequence[str], stdout=False):
+    def __init__(self, workspace: Path, flags: List[str], stdout=False):
         self._workspace = workspace
         self._flags = flags
         self._output_is_stdout = stdout
@@ -78,7 +81,7 @@ class Command(ABC):
 
 
 class SingleFileCommand(Command, ABC):
-    def __init__(self, filename: Path, workspace: Path, flags: Sequence[str]):
+    def __init__(self, filename: Path, workspace: Path, flags: List[str]):
         super().__init__(workspace, flags)
         self._filename = filename
 

@@ -400,7 +400,6 @@ class FortranAnalyser(Analyser):
 
 
 class FortranPreProcessor(SingleFileCommand):
-
     @property
     def as_list(self) -> List[str]:
         base_command = ['cpp', '-traditional-cpp', '-P']

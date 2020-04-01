@@ -8,4 +8,4 @@ from fab.queue import QueueManager
 
 class TestQueueManager(object):
     def test_constructor(self):
-        test_unit = QueueManager()
+        _ = QueueManager()

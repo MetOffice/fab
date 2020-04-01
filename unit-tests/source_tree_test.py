@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-import pytest
+import pytest  # type: ignore
 from typing import Dict, List, Type, Union
 
 from fab.database import SqliteStateDatabase
@@ -127,7 +127,7 @@ class TestTreeDescent(object):
     class DummyVisitor(TreeVisitor):
         def __init__(self, outfile: Path):
             self._outfile = outfile
-            self.visited = []
+            self.visited: List[Path] = []
 
         def visit(self, candidate: Path) -> List[Path]:
             self.visited.append(candidate)

@@ -99,7 +99,7 @@ class Fab(object):
         flags = self._command_flags_map.get(FortranLinker, [])
         link_command = FortranLinker(self._workspace, flags, executable)
 
-        processed_units = []
+        processed_units: List[str] = []
 
         while unit_to_process:
             # Pop pending items from start of the list

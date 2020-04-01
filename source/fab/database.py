@@ -9,7 +9,7 @@ Working state which is either per-build or persistent between builds.
 from abc import ABC, abstractmethod
 from pathlib import Path
 import sqlite3
-from typing import Dict, Iterator, Sequence, Union
+from typing import Dict, Iterator, Optional, Sequence, Union
 
 
 class WorkingStateException(Exception):
@@ -26,14 +26,16 @@ class FileInfo(object):
             message = f"Cannot compare FileInfo with {other.__class__}"
             raise ValueError(message)
         return (str(other.filename) == str(self.filename)) \
-               and (other.adler32 == self.adler32)
+            and (other.adler32 == self.adler32)
 
 
 class DatabaseRows(Iterator[Dict[str, str]]):
-    def __init__(self, cursor: sqlite3.Cursor):
+    def __init__(self, cursor: Optional[sqlite3.Cursor]):
         self._cursor = cursor
 
     def __next__(self) -> Dict[str, str]:
+        if self._cursor is None:
+            raise StopIteration()
         row = self._cursor.fetchone()
         if row is None:
             raise StopIteration()

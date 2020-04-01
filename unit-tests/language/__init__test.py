@@ -2,20 +2,11 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 from pathlib import Path
-from typing import Iterator, Union, Sequence, Dict, List
+from typing import Union, Sequence, Dict, List
 
-from fab.database import StateDatabase, DatabaseRows
+from fab.database import DatabaseRows, StateDatabase
 from fab.language import Analyser, Command, CommandTask, SingleFileCommand
-from fab.reader import TextReader
-
-
-class DummyReader(TextReader):
-    @property
-    def filename(self) -> Union[Path, str]:
-        return '<dummy>'
-
-    def line_by_line(self) -> Iterator[str]:
-        pass
+from fab.reader import FileTextReader, StringTextReader
 
 
 class DummyDatabase(StateDatabase):
@@ -31,11 +22,19 @@ class AnalyserHarness(Analyser):
 
 
 class TestAnalyser(object):
-    def test_constructor(self):
+    def test_constructor_with_file(self, tmp_path: Path):
+        (tmp_path / 'foo').write_text('Hello')
         db = DummyDatabase()
-        test_unit = AnalyserHarness(DummyReader(), db)
+        test_unit = AnalyserHarness(FileTextReader(tmp_path / 'foo'), db)
         assert test_unit.database == db
-        assert test_unit.prerequisites == ['<dummy>']
+        assert test_unit.prerequisites == [tmp_path / 'foo']
+        assert test_unit.products == []
+
+    def test_constructor_with_string(self):
+        db = DummyDatabase()
+        test_unit = AnalyserHarness(StringTextReader('Hello'), db)
+        assert test_unit.database == db
+        assert test_unit.prerequisites == []
         assert test_unit.products == []
 
 
@@ -58,13 +57,13 @@ class TestSingleFileCommand(object):
 
 
 class DummyCommand(Command):
-    def __init__(self, workspace: Path, flags: Sequence[str], stdout: bool):
+    def __init__(self, workspace: Path, flags: List[str], stdout: bool):
         super().__init__(workspace, flags, stdout)
         self._output = workspace / 'run.touch'
 
     @property
     def as_list(self) -> List[str]:
-        return ['touch', self._output]
+        return ['touch', str(self._output)]
 
     @property
     def output(self) -> List[Path]:
@@ -76,7 +75,7 @@ class DummyCommand(Command):
 
 
 class DummyTerminalCommand(Command):
-    def __init__(self, workspace: Path, flags: Sequence[str], stdout: bool):
+    def __init__(self, workspace: Path, flags: List[str], stdout: bool):
         super().__init__(workspace, flags, stdout)
         self._output = workspace / 'run.out'
 
