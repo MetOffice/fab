@@ -75,6 +75,8 @@ class Fab(object):
         descender = TreeDescent(source)
         descender.descend(visitor)
 
+        self._queue.check_queue_done()
+
         file_db = FileInfoDatabase(self._state)
         for file in file_db.get_all_filenames():
             info = file_db.get_file_info(file)
@@ -92,8 +94,6 @@ class Fab(object):
             for filename in files:
                 print('    found in: ' + str(filename))
                 print('    depends on: ' + str(fortran_db.depends_on(unit)))
-
-        self._queue.check_queue_done()
 
         # Start with the top level program unit
         unit_to_process = [self._target]
@@ -170,9 +170,6 @@ class Fab(object):
         # Hopefully by this point the list is exhausted and
         # everything has been compiled, and the linker is primed
         linker = CommandTask(link_command)
-        # TODO: Like the others, this would go on the queue
-        #       now that it has knowledge of all its prerequisite
-        #       object files
         self._queue.add_to_queue(linker)
         self._queue.check_queue_done()
         self._queue.shutdown()

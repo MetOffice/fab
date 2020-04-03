@@ -6,7 +6,7 @@
 '''
 Classes and methods relating to the queue system
 '''
-
+from typing import List
 from multiprocessing import Queue, JoinableQueue, Process
 from fab.language import Task
 
@@ -34,12 +34,14 @@ def worker(queue: JoinableQueue):
         else:
             queue.put(task)
         queue.task_done()
+    queue.task_done()
 
 
 class QueueManager(object):
     def __init__(self, n_workers: int):
         self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
+        self._workers: List[int] = []
 
     def add_to_queue(self, task: Task):
         self._queue.put(task)
@@ -49,6 +51,7 @@ class QueueManager(object):
             process = Process(
                 target=worker, args=(self._queue,))
             process.start()
+            self._workers.append(process)
 
     def check_queue_done(self):
         # Blocks until the JoinableQueue is empty
@@ -58,3 +61,5 @@ class QueueManager(object):
         stop = StopTask()
         for _ in range(self._n_workers):
             self._queue.put(stop)
+        self.check_queue_done()
+        self._workers.clear()
