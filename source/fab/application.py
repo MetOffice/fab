@@ -58,8 +58,7 @@ class Fab(object):
             self._command_flags_map[FortranLinker] = (
                 ld_flags.split()
             )
-        n_workers: int = n_procs - 1
-        self._queue = QueueManager(n_workers)
+        self._queue = QueueManager(n_procs - 1)
 
     def run(self, source: Path):
 

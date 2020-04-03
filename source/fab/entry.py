@@ -34,7 +34,7 @@ def fab_cli() -> argparse.Namespace:
     parser.add_argument('--nprocs', action='store', type=int, default=2,
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
-                             + 'default is 2 if not set.')
+                             'default is 2 if not set.')
     # TODO: Flags will eventually come from configuration
     parser.add_argument('--fpp-flags', action='store', type=str, default='',
                         help='Provide flags for Fortran PreProcessor ')
