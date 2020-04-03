@@ -8,6 +8,7 @@ Entry points for tools in the Fab suite of build related tools.
 """
 import argparse
 import logging
+import multiprocessing
 from pathlib import Path
 import sys
 
@@ -30,8 +31,10 @@ def fab_cli() -> argparse.Namespace:
                         help='Produce a running commentary on progress')
     parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
                         help='Directory for working files.')
-    parser.add_argument('--nprocs', action='store', type=int, default=None,
-                        help='Provide number of processors available for use')
+    parser.add_argument('--nprocs', action='store', type=int, default=2,
+                        choices=range(2, multiprocessing.cpu_count()),
+                        help='Provide number of processors available for use,'
+                             + 'default is 2 if not set.')
     # TODO: Flags will eventually come from configuration
     parser.add_argument('--fpp-flags', action='store', type=str, default='',
                         help='Provide flags for Fortran PreProcessor ')
