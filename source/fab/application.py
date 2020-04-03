@@ -37,7 +37,8 @@ class Fab(object):
                  exec_name: str,
                  fpp_flags: str,
                  fc_flags: str,
-                 ld_flags: str):
+                 ld_flags: str,
+                 n_procs: int):
 
         self._state = SqliteStateDatabase(workspace)
         self._workspace = workspace
@@ -57,8 +58,9 @@ class Fab(object):
             self._command_flags_map[FortranLinker] = (
                 ld_flags.split()
             )
-        # TODO: Need to pass number of workers from the command line
-        self._queue = QueueManager(4)
+        if n_procs is None:
+            n_procs = 2
+        self._queue = QueueManager(n_procs)
 
     def run(self, source: Path):
 

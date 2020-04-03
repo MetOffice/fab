@@ -30,6 +30,8 @@ def fab_cli() -> argparse.Namespace:
                         help='Produce a running commentary on progress')
     parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
                         help='Directory for working files.')
+    parser.add_argument('--nprocs', action='store', type=int, default=None,
+                        help='Provide number of processors available for use')
     # TODO: Flags will eventually come from configuration
     parser.add_argument('--fpp-flags', action='store', type=str, default='',
                         help='Provide flags for Fortran PreProcessor ')
@@ -73,7 +75,8 @@ def fab_entry() -> None:
                                       arguments.exec_name,
                                       arguments.fpp_flags,
                                       arguments.fc_flags,
-                                      arguments.ld_flags)
+                                      arguments.ld_flags,
+                                      arguments.nprocs)
     application.run(arguments.source)
 
 
