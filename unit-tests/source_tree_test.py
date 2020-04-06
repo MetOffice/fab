@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-import pytest
+import pytest  # type: ignore
 from typing import Union, List, Dict, Type
 
 from fab.database import SqliteStateDatabase
@@ -17,7 +17,8 @@ class TestExtensionVisitor(object):
     def test_analyser(self, tmp_path: Path):
         (tmp_path / 'test.foo').write_text("First file")
         (tmp_path / 'directory').mkdir()
-        (tmp_path / 'directory' / 'file.foo').write_text("Second file in directory")
+        (tmp_path / 'directory' / 'file.foo')\
+            .write_text("Second file in directory")
 
         tracker: List[Path] = []
 
@@ -43,7 +44,8 @@ class TestExtensionVisitor(object):
     def test_command(self, tmp_path: Path):
         (tmp_path / 'test.bar').write_text("File the first")
         (tmp_path / 'directory').mkdir()
-        (tmp_path / 'directory' / 'test.bar').write_text("File the second in directory")
+        (tmp_path / 'directory' / 'test.bar') \
+            .write_text("File the second in directory")
 
         tracker: List[Path] = []
 
