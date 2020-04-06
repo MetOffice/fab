@@ -18,6 +18,7 @@ from fab.language import \
     Command, \
     SingleFileCommand
 from fab.reader import TextReader, FileTextReader, TextReaderAdler32
+from fab.queue import QueueManager
 
 
 class TreeVisitor(ABC):
@@ -30,11 +31,14 @@ class ExtensionVisitor(TreeVisitor):
     def __init__(self,
                  extension_map: Mapping[str, Union[Type[Task], Type[Command]]],
                  command_flags_map: Mapping[Type[Command], List[str]],
-                 state: SqliteStateDatabase, workspace: Path):
+                 state: SqliteStateDatabase,
+                 workspace: Path,
+                 queue: QueueManager):
         self._extension_map = extension_map
         self._command_flags_map = command_flags_map
         self._state = state
         self._workspace = workspace
+        self._queue = queue
 
     def visit(self, candidate: Path) -> List[Path]:
         new_candidates: List[Path] = []
@@ -53,11 +57,8 @@ class ExtensionVisitor(TreeVisitor):
                 message = \
                     f'Unhandled class "{task_class}" in extension map.'
                 raise TypeError(message)
-            # TODO: This is where we start calling "add_to_queue"
-            #       rather then running the task right here.
-            #       Noting that it can at this point access
-            #       task.prerequisites to find out what files
-            #       (if any) the task depends on
+            # TODO: Make SQLite connection multiprocess safe
+            # self._queue.add_to_queue(task)
             task.run()
             new_candidates.extend(task.products)
             # TODO: The hasher part here likely needs to be

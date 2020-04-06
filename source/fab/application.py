@@ -19,6 +19,7 @@ from fab.language.fortran import \
     FortranCompiler, \
     FortranLinker
 from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
+from fab.queue import QueueManager
 
 
 class Fab(object):
@@ -36,7 +37,8 @@ class Fab(object):
                  exec_name: str,
                  fpp_flags: str,
                  fc_flags: str,
-                 ld_flags: str):
+                 ld_flags: str,
+                 n_procs: int):
 
         self._state = SqliteStateDatabase(workspace)
         self._workspace = workspace
@@ -56,8 +58,11 @@ class Fab(object):
             self._command_flags_map[FortranLinker] = (
                 ld_flags.split()
             )
+        self._queue = QueueManager(n_procs - 1)
 
     def run(self, source: Path):
+
+        self._queue.run()
 
         # TODO: This is where the threads first separate
         #       master thread stays to manage queue workers.
@@ -65,9 +70,12 @@ class Fab(object):
         visitor = ExtensionVisitor(self._extension_map,
                                    self._command_flags_map,
                                    self._state,
-                                   self._workspace)
+                                   self._workspace,
+                                   self._queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
+
+        self._queue.check_queue_done()
 
         file_db = FileInfoDatabase(self._state)
         for file in file_db.get_all_filenames():
@@ -149,34 +157,22 @@ class Fab(object):
                     f'Unhandled class "{compiler_class}" in compiler map.'
                 raise TypeError(message)
 
-            # TODO: At this point we would add this to the queue
-            #       rather than running it here.  Noting that
-            #       the queue worker can extract the prerequisites
-            #       from the Task object.  For now we are going
-            #       to have to fake that logic here:
-            if all([prereq.exists() for prereq in compiler.prerequisites]):
-                compiler.run()
-                # Indicate that this unit has been processed, so we
-                # don't do it again if we encounter it a second time
-                processed_units.append(unit)
-                # Add the object files to the linker
-                # TODO: For right now products is a list, though the
-                #       compiler only ever produces a single entry;
-                #       maybe add_object should accept Union[Path, List[Path]]?
-                link_command.add_object(compiler.products[0])
-            else:
-                # Re-add this to the set of units to process
-                # (at the end, so that it is reconsidered after
-                # other tasks have resolved)
-                unit_to_process.append(unit)
+            self._queue.add_to_queue(compiler)
+            # Indicate that this unit has been processed, so we
+            # don't do it again if we encounter it a second time
+            processed_units.append(unit)
+            # Add the object files to the linker
+            # TODO: For right now products is a list, though the
+            #       compiler only ever produces a single entry;
+            #       maybe add_object should accept Union[Path, List[Path]]?
+            link_command.add_object(compiler.products[0])
 
         # Hopefully by this point the list is exhausted and
         # everything has been compiled, and the linker is primed
         linker = CommandTask(link_command)
-        # TODO: Like the others, this would go on the queue
-        #       now that it has knowledge of all its prerequisite
-        #       object files
-        linker.run()
+        self._queue.add_to_queue(linker)
+        self._queue.check_queue_done()
+        self._queue.shutdown()
 
 
 class Dump(object):
