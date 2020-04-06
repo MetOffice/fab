@@ -22,8 +22,10 @@ class FileInfo(object):
         self.adler32 = adler32
 
     def __eq__(self, other):
+        if not isinstance(other, FileInfo):
+            raise ValueError('Cannot compare FileInfo with none FileInfo')
         return (str(other.filename) == str(self.filename)) \
-               and (other.adler32 == self.adler32)
+            and (other.adler32 == self.adler32)
 
 
 class DatabaseRows(Iterator[Dict[str, str]]):
