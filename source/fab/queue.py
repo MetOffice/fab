@@ -10,7 +10,7 @@ from typing import List
 from pathlib import Path
 from multiprocessing import Queue, JoinableQueue, Process, Lock
 from multiprocessing.synchronize import Lock as LockT
-from fab.language import Task, Analyser
+from fab.language import Task, Analyser, HashCalculator
 from fab.database import SqliteStateDatabase
 
 
@@ -35,7 +35,7 @@ def worker(queue: JoinableQueue, lock: LockT, workspace: Path):
         if isinstance(task, StopTask):
             break
         if all([prereq.exists() for prereq in task.prerequisites]):
-            if isinstance(task, Analyser):
+            if isinstance(task, (Analyser, HashCalculator)):
                 task.run(database)
             else:
                 task.run()

@@ -21,7 +21,6 @@ from typing import (Generator,
 from fab.database import (DatabaseDecorator,
                           FileInfoDatabase,
                           StateDatabase,
-                          SqliteStateDatabase,
                           WorkingStateException)
 from fab.language import \
     Analyser, \
@@ -295,8 +294,11 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def run(self, database: SqliteStateDatabase):
+    def run(self, database: StateDatabase = None):
         logger = logging.getLogger(__name__)
+
+        if database is None:
+            raise TaskException("Analyser called without database")
 
         state = FortranWorkingState(database)
 

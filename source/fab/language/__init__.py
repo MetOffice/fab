@@ -9,8 +9,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
-from fab.database import StateDatabase
-from fab.reader import TextReader
+from fab.database import StateDatabase, FileInfoDatabase
+from fab.reader import TextReader, TextReaderAdler32
 
 
 class TaskException(Exception):
@@ -45,6 +45,30 @@ class Analyser(Task, ABC):
     def prerequisites(self) -> List[Path]:
         if isinstance(self._reader.filename, Path):
             return [self._reader.filename]
+        else:
+            return []
+
+    @property
+    def products(self) -> List[Path]:
+        return []
+
+
+class HashCalculator(Task):
+    def __init__(self, hasher: TextReaderAdler32):
+        self._hasher = hasher
+
+    def run(self, database: StateDatabase = None) -> None:
+        for _ in self._hasher.line_by_line():
+            pass  # Make sure we've read the whole file.
+        if database is not None:
+            file_info = FileInfoDatabase(database)
+            file_info.add_file_info(Path(self._hasher.filename),
+                                    self._hasher.hash)
+
+    @property
+    def prerequisites(self) -> List[Path]:
+        if isinstance(self._hasher.filename, Path):
+            return [self._hasher.filename]
         else:
             return []
 

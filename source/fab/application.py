@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 from typing import Dict, List, Type, Union
 
-from fab.database import SqliteStateDatabase
+from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.language import \
     Task, \
     Command, \
@@ -18,7 +18,7 @@ from fab.language.fortran import \
     FortranPreProcessor, \
     FortranCompiler, \
     FortranLinker
-from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
+from fab.source_tree import TreeDescent, ExtensionVisitor
 from fab.queue import QueueManager
 
 

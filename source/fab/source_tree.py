@@ -10,13 +10,14 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Mapping, List, Union, Type
 
-from fab.database import FileInfoDatabase, SqliteStateDatabase
+from fab.database import SqliteStateDatabase
 from fab.language import \
     Task, \
     Analyser, \
     CommandTask, \
     Command, \
-    SingleFileCommand
+    SingleFileCommand, \
+    HashCalculator
 from fab.reader import TextReader, FileTextReader, TextReaderAdler32
 from fab.queue import QueueManager
 
@@ -59,14 +60,10 @@ class ExtensionVisitor(TreeVisitor):
                 raise TypeError(message)
 
             self._queue.add_to_queue(task)
+            self._queue.add_to_queue(HashCalculator(hasher))
 
             new_candidates.extend(task.products)
-            # TODO: The hasher part here likely needs to be
-            #       moved once the task is run by the queue
-            #for _ in hasher.line_by_line():
-            #    pass  # Make sure we've read the whole file.
-            #file_info = FileInfoDatabase(self._state)
-            #file_info.add_file_info(candidate, hasher.hash)
+
         except KeyError:
             pass
         return new_candidates
