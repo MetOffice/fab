@@ -14,6 +14,7 @@ from typing import (Generator,
                     Match,
                     Optional,
                     Pattern,
+                    Sequence,
                     Tuple,
                     Union)
 
@@ -28,6 +29,26 @@ from fab.language import \
     Command, \
     SingleFileCommand
 from fab.reader import TextReader, TextReaderDecorator
+
+
+class FortranInfo(object):
+    def __init__(self,
+                 unit_name: str,
+                 found_in: Path,
+                 depends_on: Sequence[str] = ()):
+        self.unit_name = unit_name
+        self.found_in = found_in
+        self.depends_on = list(depends_on)
+
+    def __eq__(self, other):
+        if not isinstance(other, FortranInfo):
+            raise TypeError(f"Cannot compare Fortran Info with {other.__class__.__name__}")
+        return other.unit_name == self.unit_name \
+            and other.found_in == self.found_in \
+            and other.depends_on == self.depends_on
+
+    def add_prerequisite(self, prereq: str):
+        self.depends_on.append(prereq)
 
 
 class FortranWorkingState(DatabaseDecorator):
@@ -52,16 +73,14 @@ class FortranWorkingState(DatabaseDecorator):
                        references file_info (filename)
                    )''',
             '''create index if not exists idx_fortran_program_unit
-                   on fortran_unit(unit)''',
-            '''create index if not exists idx_fortran_found_in
-                   on fortran_unit(found_in)'''
+                   on fortran_unit (unit, found_in)'''
         ]
         self.execute(create_unit_table, {})
 
         # Although the current unit will already have been entered into the
         # database it is not necessarily unique. We may have multiple source
         # files which define similarly named units. Thus it can not be used as
-        # a foreign key.
+        # a foreign key alone.
         #
         # Meanwhile the dependency unit may not have been encountered yet so
         # we can't expect it to be in the database. Thus it too may not be
@@ -70,15 +89,35 @@ class FortranWorkingState(DatabaseDecorator):
         create_prerequisite_table = [
             f'''create table if not exists fortran_prerequisite (
                   id integer primary key,
-                  dependor character({self._FORTRAN_LABEL_LENGTH}) not null,
-                  dependee character({self._FORTRAN_LABEL_LENGTH}) not null
-                  )''',
-            '''create index if not exists idx_fortran_dependor
-                 on fortran_prerequisite(dependor)''',
-            '''create index if not exists idx_fortran_dependee
-                 on fortran_prerequisite(dependee)'''
+                  unit character({self._FORTRAN_LABEL_LENGTH}) not null,
+                  found_in character({FileInfoDatabase.PATH_LENGTH}) not null,
+                  dependee character({self._FORTRAN_LABEL_LENGTH}) not null,
+                  foreign key (unit, found_in) references fortran_unit (unit, found_in)
+                  )'''
         ]
         self.execute(create_prerequisite_table, {})
+
+    def __iter__(self) -> Iterator[FortranInfo]:
+        query = '''select u.unit as name, u.found_in, p.dependee as prereq
+                   from fortran_unit as u
+                   left join fortran_prerequisite as p
+                   on p.unit = u.unit and p.found_in = u.found_in
+                   order by u.unit, u.found_in, p.dependee'''
+        rows = self.execute([query], {})
+        info: Optional[FortranInfo] = None
+        key: Optional[Tuple[str, str]] = None
+        for row in rows:
+            if (row['name'], row['found_in']) == key:
+                info.add_prerequisite(row['prereq'])
+            else:  # (row['name'], row['found_in']) != key
+                if info is not None:
+                    yield info
+                info = FortranInfo(row['name'], Path(row['found_in']))
+                key = (row['name'], row['found_in'])
+                if row['prereq'] :
+                    info.add_prerequisite(row['prereq'])
+        if info is not None:  # We have left-overs
+            yield info
 
     def add_fortran_program_unit(self, name: str,
                                  in_file: Union[Path, str]) -> None:
@@ -97,18 +136,19 @@ class FortranWorkingState(DatabaseDecorator):
         ]
         self.execute(add_unit, {'unit': name, 'filename': str(in_file)})
 
-    def add_fortran_dependency(self, unit: str, depends_on: str) -> None:
+    def add_fortran_dependency(self, unit: str, found_in: Path, depends_on: str) -> None:
         '''
         Records the dependency of one unit on another.
 
         :param unit: Name of the depending unit.
+        :param found_in: Source file containing unit.
         :param depends_on:  Name of the prerequisite unit.
         '''
         add_dependency = [
-            '''insert into fortran_prerequisite(dependor, dependee)
-                   values (:unit, :depends_on)'''
+            '''insert into fortran_prerequisite(unit, found_in, dependee)
+                   values (:unit, :found_in, :depends_on)'''
         ]
-        self.execute(add_dependency, {'unit': unit, 'depends_on': depends_on})
+        self.execute(add_dependency, {'unit': unit, 'found_in': str(found_in), 'depends_on': depends_on})
 
     def remove_fortran_file(self, filename: Union[Path, str]) -> None:
         '''
@@ -118,23 +158,10 @@ class FortranWorkingState(DatabaseDecorator):
         '''
         remove_file = [
             '''delete from fortran_prerequisite
-                   where dependor=(select unit from fortran_unit
-                       where found_in=:filename)''',
+               where found_in = :filename''',
             '''delete from fortran_unit where found_in=:filename'''
             ]
         self.execute(remove_file, {'filename': str(filename)})
-
-    def iterate_program_units(self) -> Generator[Tuple[str, Path], None, None]:
-        '''
-        Yields all units and their containing file name.
-
-        :return: Unit name and containing filename pairs.
-        '''
-        query = '''select unit, found_in from fortran_unit
-                       order by unit, found_in'''
-        rows = self.execute(query, {})
-        for row in rows:
-            yield row['unit'], Path(row['found_in'])
 
     def filenames_from_program_unit(self, name: str) -> List[Path]:
         '''
@@ -148,7 +175,9 @@ class FortranWorkingState(DatabaseDecorator):
         :param name: Program unit name.
         :return: Filenames of source files.
         '''
-        query = 'select found_in from fortran_unit where unit=:unit'
+        query = '''select found_in from fortran_unit
+                   where unit=:unit
+                   order by found_in'''
         rows = self.execute(query, {'unit': name})
         filenames: List[Path] = []
         for row in rows:
@@ -176,17 +205,19 @@ class FortranWorkingState(DatabaseDecorator):
             raise WorkingStateException(message.format(filename=filename))
         return units
 
-    def depends_on(self, unit: str) -> List[str]:
+    def depends_on(self, unit: str, found_in: Path) -> List[str]:
         '''
         Gets the prerequisite program units of a program unit.
 
-        :param unit: Program unit name
+        :param unit: Program unit name.
+        :param found_in: Source file containing program unit.
         :return: Prerequisite unit names. May be an empty list.
         '''
         query = '''select dependee
                    from fortran_prerequisite
-                   where dependor=:unit'''
-        rows = self.execute(query, {'unit': unit})
+                   where unit=:unit and found_in=:filename
+                   order by unit, found_in'''
+        rows = self.execute(query, {'unit': unit, 'filename': str(found_in)})
         units: List[str] = []
         for row in rows:
             units.append(row['dependee'])
@@ -322,7 +353,7 @@ class FortranAnalyser(Analyser):
                             = '"use" statement found outside program unit'
                         raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
-                    self._state.add_fortran_dependency(scope[0][1], use_name)
+                    self._state.add_fortran_dependency(scope[0][1], self._reader.filename, use_name)
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)

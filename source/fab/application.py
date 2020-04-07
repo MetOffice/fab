@@ -88,10 +88,10 @@ class Fab(object):
                 print(f'    hash: {info.adler32}')
 
         fortran_db = FortranWorkingState(self._state)
-        for unit, file in fortran_db.iterate_program_units():
-            print(unit)
-            print('    found in: ' + str(file))
-            print('    depends on: ' + str(fortran_db.depends_on(unit)))
+        for info in fortran_db:
+            print(info.unit_name)
+            print('    found in: ' + str(info.found_in))
+            print('    depends on: ' + str(info.depends_on))
 
         # Start with the top level program unit
         unit_to_process = [self._target]
@@ -192,9 +192,8 @@ class Dump(object):
 
         fortran_view = FortranWorkingState(self._state)
         print("Fortran View", file=stream)
-        for program_unit, found_in in fortran_view.iterate_program_units():
-            print(f"  Program unit    : {program_unit}", file=stream)
-            print(f"    Found in      : {found_in}", file=stream)
-            prerequisites = fortran_view.depends_on(program_unit)
-            print(f"    Prerequisites : {', '.join(prerequisites)}",
+        for info in fortran_view:
+            print(f"  Program unit    : {info.unit_name}", file=stream)
+            print(f"    Found in      : {info.found_in}", file=stream)
+            print(f"    Prerequisites : {', '.join(info.depends_on)}",
                   file=stream)
