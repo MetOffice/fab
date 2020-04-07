@@ -240,9 +240,8 @@ class FortranNormaliser(TextReaderDecorator):
 
 
 class FortranAnalyser(Analyser):
-    def __init__(self, reader: TextReader, database: SqliteStateDatabase):
-        super().__init__(reader, database)
-        self._state = FortranWorkingState(database)
+    def __init__(self, reader: TextReader):
+        super().__init__(reader)
 
     _intrinsic_modules = ['iso_fortran_env']
 
@@ -296,10 +295,12 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def run(self):
+    def run(self, database: SqliteStateDatabase):
         logger = logging.getLogger(__name__)
 
-        self._state.remove_fortran_file(self._reader.filename)
+        state = FortranWorkingState(database)
+
+        state.remove_fortran_file(self._reader.filename)
 
         normalised_source = FortranNormaliser(self._reader)
         scope: List[Tuple[str, str]] = []
@@ -314,7 +315,7 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    self._state.add_fortran_program_unit(
+                    state.add_fortran_program_unit(
                         unit_name, self._reader.filename)
                     scope.append((unit_type, unit_name))
                     continue
@@ -330,7 +331,7 @@ class FortranAnalyser(Analyser):
                             = '"use" statement found outside program unit'
                         raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
-                    self._state.add_fortran_dependency(scope[0][1], use_name)
+                    state.add_fortran_dependency(scope[0][1], use_name)
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)

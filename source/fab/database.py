@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 import sqlite3
 from typing import Dict, Iterator, Optional, Sequence, Union
+from multiprocessing.synchronize import Lock as LockT
 
 
 class WorkingStateException(Exception):
@@ -114,7 +115,7 @@ class SqliteStateDatabase(StateDatabase):
     Backed by a database which may be deleted at any point. It should not be
     used for permanent storage of e.g. configuration.
     '''
-    def __init__(self, working_directory: Path):
+    def __init__(self, working_directory: Path, lock: LockT = None):
         self._working_directory: Path = working_directory
 
         if not self._working_directory.exists():
@@ -123,6 +124,7 @@ class SqliteStateDatabase(StateDatabase):
         self._connection: sqlite3.Connection \
             = sqlite3.connect(str(working_directory / 'state.db'))
         self._connection.row_factory = sqlite3.Row
+        self._lock = lock
 
     def __del__(self):
         self._connection.close()
@@ -135,8 +137,12 @@ class SqliteStateDatabase(StateDatabase):
             query_list = query
 
         cursor = None
+        if self._lock is not None:
+            self._lock.acquire()
         for command in query_list:
             cursor = self._connection.execute(command, inserts)
         self._connection.commit()
+        if self._lock is not None:
+            self._lock.release()
 
         return DatabaseRows(cursor)

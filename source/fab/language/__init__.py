@@ -34,13 +34,12 @@ class Task(ABC):
 
 
 class Analyser(Task, ABC):
-    def __init__(self, reader: TextReader, database: StateDatabase):
-        self._database = database
+    def __init__(self, reader: TextReader):
         self._reader = reader
 
-    @property
-    def database(self):
-        return self._database
+    @abstractmethod
+    def run(self, database: StateDatabase = None) -> None:
+        raise NotImplementedError('Abstract methods must be implemented')
 
     @property
     def prerequisites(self) -> List[Path]:

@@ -7,8 +7,11 @@
 Classes and methods relating to the queue system
 '''
 from typing import List
-from multiprocessing import Queue, JoinableQueue, Process
-from fab.language import Task
+from pathlib import Path
+from multiprocessing import Queue, JoinableQueue, Process, Lock
+from multiprocessing.synchronize import Lock as LockT
+from fab.language import Task, Analyser
+from fab.database import SqliteStateDatabase
 
 
 class StopTask(Task):
@@ -24,13 +27,18 @@ class StopTask(Task):
         return []
 
 
-def worker(queue: JoinableQueue):
+def worker(queue: JoinableQueue, lock: LockT, workspace: Path):
+    # Each worker maintains its own database connection
+    database = SqliteStateDatabase(workspace, lock)
     while True:
         task = queue.get(block=True)
         if isinstance(task, StopTask):
             break
         if all([prereq.exists() for prereq in task.prerequisites]):
-            task.run()
+            if isinstance(task, Analyser):
+                task.run(database)
+            else:
+                task.run()
         else:
             queue.put(task)
         queue.task_done()
@@ -38,10 +46,12 @@ def worker(queue: JoinableQueue):
 
 
 class QueueManager(object):
-    def __init__(self, n_workers: int):
+    def __init__(self, n_workers: int, workspace: Path):
         self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
-        self._workers: List[int] = []
+        self._workers: List[Process] = []
+        self._workspace = workspace
+        self._lock = Lock()
 
     def add_to_queue(self, task: Task):
         self._queue.put(task)
@@ -49,7 +59,9 @@ class QueueManager(object):
     def run(self):
         for _ in range(self._n_workers):
             process = Process(
-                target=worker, args=(self._queue,))
+                target=worker, args=(self._queue,
+                                     self._lock,
+                                     self._workspace))
             process.start()
             self._workers.append(process)
 

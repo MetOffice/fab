@@ -48,7 +48,7 @@ class ExtensionVisitor(TreeVisitor):
             hasher: TextReaderAdler32 = TextReaderAdler32(reader)
 
             if issubclass(task_class, Analyser):
-                task: Task = task_class(hasher, self._state)
+                task: Task = task_class(hasher)
             elif issubclass(task_class, SingleFileCommand):
                 flags = self._command_flags_map.get(task_class, [])
                 task = CommandTask(
@@ -57,16 +57,16 @@ class ExtensionVisitor(TreeVisitor):
                 message = \
                     f'Unhandled class "{task_class}" in extension map.'
                 raise TypeError(message)
-            # TODO: Make SQLite connection multiprocess safe
-            # self._queue.add_to_queue(task)
-            task.run()
+
+            self._queue.add_to_queue(task)
+
             new_candidates.extend(task.products)
             # TODO: The hasher part here likely needs to be
             #       moved once the task is run by the queue
-            for _ in hasher.line_by_line():
-                pass  # Make sure we've read the whole file.
-            file_info = FileInfoDatabase(self._state)
-            file_info.add_file_info(candidate, hasher.hash)
+            #for _ in hasher.line_by_line():
+            #    pass  # Make sure we've read the whole file.
+            #file_info = FileInfoDatabase(self._state)
+            #file_info.add_file_info(candidate, hasher.hash)
         except KeyError:
             pass
         return new_candidates
