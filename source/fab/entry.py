@@ -8,6 +8,7 @@ Entry points for tools in the Fab suite of build related tools.
 """
 import argparse
 import logging
+import multiprocessing
 from pathlib import Path
 import sys
 
@@ -30,10 +31,26 @@ def fab_cli() -> argparse.Namespace:
                         help='Produce a running commentary on progress')
     parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
                         help='Directory for working files.')
-    # TODO: Details like these flags will eventually come from
-    #       our configuration system
+    parser.add_argument('--nprocs', action='store', type=int, default=2,
+                        choices=range(2, multiprocessing.cpu_count()),
+                        help='Provide number of processors available for use,'
+                             'default is 2 if not set.')
+    # TODO: Flags will eventually come from configuration
     parser.add_argument('--fpp-flags', action='store', type=str, default='',
                         help='Provide flags for Fortran PreProcessor ')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--fc-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran Compiler')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--ld-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran Linker')
+    # TODO: Name for executable will eventually come from configuration
+    parser.add_argument('--exec-name', action='store', type=str, default='',
+                        help='Name of executable (default is the name of '
+                        'the target program)')
+    # TODO: Target/s will eventually come from configuration
+    parser.add_argument('target', action='store', type=str,
+                        help='The top level unit name to compile')
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     return parser.parse_args()
@@ -57,7 +74,12 @@ def fab_entry() -> None:
         arguments.workspace = arguments.source / 'working'
 
     application = fab.application.Fab(arguments.workspace,
-                                      arguments.fpp_flags)
+                                      arguments.target,
+                                      arguments.exec_name,
+                                      arguments.fpp_flags,
+                                      arguments.fc_flags,
+                                      arguments.ld_flags,
+                                      arguments.nprocs)
     application.run(arguments.source)
 
 

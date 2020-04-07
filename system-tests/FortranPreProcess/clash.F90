@@ -4,7 +4,9 @@
 !
 program stay_or_go_now
 
+    use iso_fortran_env, only: output_unit
     use constants_mod, only : str_len
+    
 #if defined(SHOULD_I_STAY)
     use stay_mod,     only  : stay
 #else

@@ -1,6 +1,8 @@
 File View
   File   : system-tests/FortranDependencies/bye_mod.f90
     Hash : 2054258567
+  File   : system-tests/FortranDependencies/constants_mod.f90
+    Hash : 1014899572
   File   : system-tests/FortranDependencies/first.f90
     Hash : 1577883012
   File   : system-tests/FortranDependencies/greeting_mod.f90
@@ -11,6 +13,9 @@ Fortran View
   Program unit    : bye_mod
     Found in      : system-tests/FortranDependencies/bye_mod.f90
     Prerequisites : constants_mod
+  Program unit    : constants_mod
+    Found in      : system-tests/FortranDependencies/constants_mod.f90
+    Prerequisites : 
   Program unit    : first
     Found in      : system-tests/FortranDependencies/first.f90
     Prerequisites : constants_mod, greeting_mod

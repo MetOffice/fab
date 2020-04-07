@@ -17,6 +17,9 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Setup Compiler
+      run: |
+        sudo apt-get -y install gfortran
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip

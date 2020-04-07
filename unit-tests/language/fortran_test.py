@@ -6,17 +6,19 @@
 import logging
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, List, Sequence
+from typing import Dict, Iterator, List, Union, Sequence
 
 import pytest  # type: ignore
 
 from fab.database import SqliteStateDatabase, WorkingStateException
 from fab.language import TaskException, CommandTask
-from fab.language.fortran import (
-    FortranAnalyser,
-    FortranWorkingState,
-    FortranPreProcessor)
-from fab.reader import FileTextReader
+from fab.language.fortran import (FortranAnalyser,
+                                  FortranCompiler,
+                                  FortranLinker,
+                                  FortranNormaliser,
+                                  FortranPreProcessor,
+                                  FortranWorkingState)
+from fab.reader import FileTextReader, StringTextReader, TextReader
 
 
 class TestFortranWorkingSpace:
@@ -144,6 +146,30 @@ class TestFortranWorkingSpace:
         assert list(test_unit.iterate_program_units()) == expected
 
 
+class DummyReader(TextReader):
+    @property
+    def filename(self) -> Union[Path, str]:
+        return '<dummy>'
+
+    def line_by_line(self) -> Iterator[str]:
+        yield '! This comment should be removed and the line with it'
+        yield "write(6, '(A)') 'Look! The end of this line will be removed'"
+        yield '     ! Another line to be removed despite leading spaces'
+        yield '  call the_thing( first,  &'
+        yield '                  second, &'
+        yield '                  third )'
+
+
+class TestFortranNormaliser(object):
+    def test_iteration(self):
+        test_unit = FortranNormaliser(DummyReader())
+        result = []
+        for line in test_unit.line_by_line():
+            result.append(line)
+        assert result == ["write(6, '(A)') 'Look",
+                          ' call the_thing( first, second, third )']
+
+
 class TestFortranAnalyser(object):
     def test_analyser_program_units(self, caplog, tmp_path):
         '''
@@ -156,21 +182,29 @@ class TestFortranAnalyser(object):
         test_file.write_text(
             dedent('''
                    program foo
+                     use iso_fortran_env, only : output
+                     use, intrinsic :: ios_c_binding
                      use beef_mod
                      implicit none
                    end program foo
 
                    module bar
+                     use iso_fortran_env, only : output
+                     use, intrinsic :: ios_c_binding
                      use cheese_mod, only : bits_n_bobs
                      implicit none
                    end module bar
 
                    function baz(first, second)
+                     use iso_fortran_env, only : output
+                     use, intrinsic :: ios_c_binding
                      use teapot_mod
                      implicit none
                    end function baz
 
                    subroutine qux()
+                     use iso_fortran_env, only : output
+                     use, intrinsic :: ios_c_binding
                      use wibble_mod
                      use wubble_mod, only: stuff_n_nonsense
                      implicit none
@@ -320,6 +354,39 @@ class TestFortranAnalyser(object):
         with pytest.raises(TaskException):
             test_unit.run()
 
+    def test_mismatched_block_end(self, tmp_path: Path):
+        """
+        Ensure that the analyser handles mismatched block ends correctly.
+        """
+        source = """
+        module wibble_mod
+        contains
+          type :: thing_type
+          end if
+        end module wibble_mod
+        """
+        database = SqliteStateDatabase(tmp_path)
+        test_unit = FortranAnalyser(StringTextReader(source),
+                                    database)
+        with pytest.raises(TaskException):
+            test_unit.run()
+
+    def test_mismatched_end_name(self, tmp_path: Path):
+        """
+        Ensure that the analyser handles mismatched block end names correctly.
+        """
+        source = """
+        module wibble_mod
+          type :: thing_type
+          end type blasted_type
+        end module wibble_mod
+        """
+        database = SqliteStateDatabase(tmp_path)
+        test_unit = FortranAnalyser(StringTextReader(source),
+                                    database)
+        with pytest.raises(TaskException):
+            test_unit.run()
+
 
 class TestFortranPreProcessor(object):
     def test_preprocssor_output(self, caplog, tmp_path):
@@ -358,8 +425,8 @@ class TestFortranPreProcessor(object):
         test_unit = CommandTask(preprocessor)
         test_unit.run()
 
-        assert preprocessor.output_filename.exists
-        with open(preprocessor.output_filename, 'r') as outfile:
+        assert preprocessor.output[0].exists
+        with preprocessor.output[0].open('r') as outfile:
             outfile_content = outfile.read().strip()
 
         assert outfile_content == dedent('''\
@@ -378,8 +445,8 @@ class TestFortranPreProcessor(object):
         test_unit = CommandTask(preprocessor)
         test_unit.run()
 
-        assert preprocessor.output_filename.exists
-        with open(preprocessor.output_filename, 'r') as outfile:
+        assert preprocessor.output[0].exists
+        with preprocessor.output[0].open('r') as outfile:
             outfile_content = outfile.read().strip()
 
         assert outfile_content == dedent('''\
@@ -389,3 +456,46 @@ class TestFortranPreProcessor(object):
                    FUNCTION included_when_test_macro_not_set()
                    IMPLICIT NONE
                    END FUNCTION included_when_test_macro_not_set''')
+
+
+class TestFortranCompiler(object):
+    def test_constructor(self):
+        test_unit = FortranCompiler(Path('input.f90'),
+                                    Path('workspace'),
+                                    ['flag1', 'flag2'],
+                                    [Path('prereq1.mod'),
+                                     Path('prereq2.mod')])
+        assert test_unit.input == [Path('prereq1.mod'),
+                                   Path('prereq2.mod'),
+                                   Path('input.f90')]
+        assert test_unit.output == [Path('workspace/input.o')]
+        assert test_unit.as_list == ['gfortran', '-c', '-Jworkspace',
+                                     'flag1', 'flag2', 'input.f90',
+                                     '-o', 'workspace/input.o']
+
+
+class TestFortranLinker(object):
+    def test_constructor(self):
+        test_unit = FortranLinker(Path('workspace'),
+                                  ['flag3', 'flag4'],
+                                  Path('bin/output'))
+        test_unit.add_object(Path('an.o'))
+        assert test_unit.input == [Path('an.o')]
+        assert test_unit.output == [Path('bin/output')]
+        assert test_unit.as_list == ['gfortran', '-o', 'bin/output',
+                                     'flag3', 'flag4', 'an.o']
+
+    def test_add_object(self):
+        test_unit = FortranLinker(Path('deepspace'),
+                                  [],
+                                  Path('bin/dusty'))
+        with pytest.raises(TaskException):
+            _ = test_unit.as_list
+
+        test_unit.add_object(Path('foo.o'))
+        assert test_unit.as_list == ['gfortran', '-o', 'bin/dusty',
+                                     'foo.o']
+
+        test_unit.add_object(Path('bar.o'))
+        assert test_unit.as_list == ['gfortran', '-o', 'bin/dusty',
+                                     'foo.o', 'bar.o']

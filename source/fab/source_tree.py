@@ -11,8 +11,14 @@ from pathlib import Path
 from typing import Mapping, List, Union, Type
 
 from fab.database import FileInfoDatabase, SqliteStateDatabase
-from fab.language import Task, Analyser, CommandTask, Command
+from fab.language import \
+    Task, \
+    Analyser, \
+    CommandTask, \
+    Command, \
+    SingleFileCommand
 from fab.reader import TextReader, FileTextReader, TextReaderAdler32
+from fab.queue import QueueManager
 
 
 class TreeVisitor(ABC):
@@ -25,11 +31,14 @@ class ExtensionVisitor(TreeVisitor):
     def __init__(self,
                  extension_map: Mapping[str, Union[Type[Task], Type[Command]]],
                  command_flags_map: Mapping[Type[Command], List[str]],
-                 state: SqliteStateDatabase, workspace: Path):
+                 state: SqliteStateDatabase,
+                 workspace: Path,
+                 queue: QueueManager):
         self._extension_map = extension_map
         self._command_flags_map = command_flags_map
         self._state = state
         self._workspace = workspace
+        self._queue = queue
 
     def visit(self, candidate: Path) -> List[Path]:
         new_candidates: List[Path] = []
@@ -40,16 +49,20 @@ class ExtensionVisitor(TreeVisitor):
 
             if issubclass(task_class, Analyser):
                 task: Task = task_class(hasher, self._state)
-            elif issubclass(task_class, Command):
+            elif issubclass(task_class, SingleFileCommand):
                 flags = self._command_flags_map.get(task_class, [])
                 task = CommandTask(
                     task_class(Path(hasher.filename), self._workspace, flags))
             else:
-                message = 'Unhandled class "{cls}" in extension map.'
-                raise TypeError(
-                    message.format(cls=task_class))
-            # TODO: Eventually add to the queue here rather than running
-            new_candidates = task.run()
+                message = \
+                    f'Unhandled class "{task_class}" in extension map.'
+                raise TypeError(message)
+            # TODO: Make SQLite connection multiprocess safe
+            # self._queue.add_to_queue(task)
+            task.run()
+            new_candidates.extend(task.products)
+            # TODO: The hasher part here likely needs to be
+            #       moved once the task is run by the queue
             for _ in hasher.line_by_line():
                 pass  # Make sure we've read the whole file.
             file_info = FileInfoDatabase(self._state)
