@@ -80,6 +80,12 @@ class FileInfoDatabase(DatabaseDecorator):
                           on file_info(adler32)''']
         self.execute(queries, {})
 
+    def __iter__(self) -> Iterator[FileInfo]:
+        query = ['select * from file_info order by filename']
+        rows: DatabaseRows = self.execute(query, {})
+        for row in rows:
+            yield FileInfo(Path(row['filename']), int(row['adler32']))
+
     def add_file_info(self, filename: Path, adler32: int) -> None:
         queries = ['delete from file_info where filename=:filename',
                    '''insert into file_info (filename, adler32)
@@ -87,24 +93,6 @@ class FileInfoDatabase(DatabaseDecorator):
         self.execute(queries,
                      {'filename': str(filename),
                       'adler32': str(adler32)})
-
-    def get_all_filenames(self) -> Iterator[Path]:
-        query = ['select filename from file_info order by filename']
-        rows: DatabaseRows = self.execute(query, {})
-        for row in rows:
-            yield Path(row['filename'])
-
-    def get_file_info(self, filename: Path) -> FileInfo:
-        queries = ['''select filename, adler32 from file_info
-                          where filename=:filename''']
-        rows: DatabaseRows = self.execute(queries,
-                                          {'filename': str(filename)})
-        try:
-            row = next(rows)
-            return FileInfo(Path(row['filename']), int(row['adler32']))
-        except StopIteration:
-            raise WorkingStateException('File information not found for: '
-                                        + str(filename))
 
 
 class SqliteStateDatabase(StateDatabase):

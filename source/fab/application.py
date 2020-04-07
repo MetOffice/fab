@@ -78,8 +78,7 @@ class Fab(object):
         self._queue.check_queue_done()
 
         file_db = FileInfoDatabase(self._state)
-        for file in file_db.get_all_filenames():
-            info = file_db.get_file_info(file)
+        for info in file_db:
             print(info.filename)
             # Where files are generated in the working directory
             # by third party tools, we cannot guarantee the hashes
@@ -182,8 +181,7 @@ class Dump(object):
     def run(self, stream=sys.stdout):
         file_view = FileInfoDatabase(self._state)
         print("File View", file=stream)
-        for filename in file_view.get_all_filenames():
-            file_info = file_view.get_file_info(filename)
+        for file_info in file_view:
             print(f"  File   : {file_info.filename}", file=stream)
             # Where files are generated in the working directory
             # by third party tools, we cannot guarantee the hashes
