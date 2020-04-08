@@ -6,12 +6,12 @@
 import logging
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, Iterator, List, Union
+from typing import Iterator, Union
 
 import pytest  # type: ignore
 
-from fab.database import SqliteStateDatabase
-from fab.language import TaskException, CommandTask
+from fab.database import SqliteStateDatabase, WorkingStateException
+from fab.language import CommandTask, TaskException
 from fab.language.fortran import (FortranAnalyser,
                                   FortranCompiler,
                                   FortranInfo,
@@ -29,12 +29,32 @@ class TestFortranUnitUnresolvedID:
         test_unit = FortranUnitUnresolvedID('thumper')
         assert test_unit.name == 'thumper'
 
+    def test_equality(self):
+        test_unit = FortranUnitUnresolvedID('dumper')
+        with pytest.raises(TypeError):
+            _ = test_unit == 'Not a FortranUnitUnresolvedID'
+
+        other = FortranUnitUnresolvedID('dumper')
+        assert test_unit == other
+        assert other == test_unit
+
+        other = FortranUnitUnresolvedID('trumper')
+        assert test_unit != other
+        assert other != test_unit
+
 
 class TestFortranUnitID:
     def test_constructor(self):
         test_unit = FortranUnitID('beef', Path('cheese'))
         assert test_unit.name == 'beef'
         assert test_unit.found_in == Path('cheese')
+
+    def test_hash(self):
+        test_unit = FortranUnitID('grumper', Path('bumper'))
+        similar = FortranUnitID('grumper', Path('bumper'))
+        different = FortranUnitID('bumper', Path('grumper'))
+        assert hash(test_unit) == hash(similar)
+        assert hash(test_unit) != hash(different)
 
     def test_equality(self):
         test_unit = FortranUnitID('salt', Path('pepper'))
@@ -191,6 +211,54 @@ class TestFortranWorkingSpace:
                                                        Path('bar.F90')))) \
             == [FortranUnitUnresolvedID('baz')]
 
+    def test_get_program_unit(self, tmp_path: Path):
+        database = SqliteStateDatabase(tmp_path)
+        test_unit = FortranWorkingState(database)
+
+        # Test on an empty list
+        #
+        with pytest.raises(WorkingStateException):
+            _ = test_unit.get_program_unit('tigger')
+
+        # Test we can retrieve an item from a single element list
+        test_unit.add_fortran_program_unit(FortranUnitID('tigger',
+                                                         Path('tigger.f90')))
+        assert test_unit.get_program_unit('tigger') \
+            == [FortranInfo(FortranUnitID('tigger', Path('tigger.f90')))]
+        with pytest.raises(WorkingStateException):
+            _ = test_unit.get_program_unit('eeor')
+
+        # Test retrieval from a multi-element list and with prerequisites.
+        #
+        test_unit.add_fortran_program_unit(FortranUnitID('eeor',
+                                                         Path('eeor.f90')))
+        test_unit.add_fortran_dependency(FortranUnitID('eeor',
+                                                       Path('eeor.f90')),
+                                         'pooh')
+        test_unit.add_fortran_dependency(FortranUnitID('eeor',
+                                                       Path('eeor.f90')),
+                                         'piglet')
+        assert test_unit.get_program_unit('tigger') \
+            == [FortranInfo(FortranUnitID('tigger', Path('tigger.f90')))]
+        assert test_unit.get_program_unit('eeor') \
+            == [FortranInfo(FortranUnitID('eeor', Path('eeor.f90')),
+                            ['piglet', 'pooh'])]
+        with pytest.raises(WorkingStateException):
+            _ = test_unit.get_program_unit('pooh')
+
+        # Test a multiply defined program unit.
+        #
+        test_unit.add_fortran_program_unit(FortranUnitID('tigger',
+                                                         Path('hundred.f90')))
+        assert test_unit.get_program_unit('tigger') \
+            == [FortranInfo(FortranUnitID('tigger', Path('hundred.f90'))),
+                FortranInfo(FortranUnitID('tigger', Path('tigger.f90')))]
+        assert test_unit.get_program_unit('eeor') \
+            == [FortranInfo(FortranUnitID('eeor', Path('eeor.f90')),
+                            ['piglet', 'pooh'])]
+        with pytest.raises(WorkingStateException):
+            _ = test_unit.get_program_unit('pooh')
+
 
 class DummyReader(TextReader):
     @property
@@ -218,10 +286,10 @@ class TestFortranNormaliser(object):
 
 class TestFortranAnalyser(object):
     def test_analyser_program_units(self, caplog, tmp_path):
-        '''
+        """
         Tests that program units and the "uses" they contain are correctly
         identified.
-        '''
+        """
         caplog.set_level(logging.DEBUG)
 
         test_file: Path = tmp_path / 'test.f90'
@@ -256,42 +324,25 @@ class TestFortranAnalyser(object):
                      implicit none
                    end subroutine qux
                    '''))
-        units: List[str] = ['foo', 'bar', 'baz', 'qux']
-        prereqs: Dict[str, List[FortranUnitID]] \
-            = {'foo': [FortranUnitID('beef_mod', Path('beef.f90'))],
-               'bar': [FortranUnitID('cheese_mod', Path('cheese.f90'))],
-               'baz': [FortranUnitID('teapot_mod', Path('teapot.f90'))],
-               'qux': [FortranUnitID('wibble_mod', Path('silly.f90')),
-                       FortranUnitID('wubble_mod', Path('silly.f90'))]}
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        fortran_view = FortranWorkingState(database)
-        fortran_view.add_fortran_program_unit(
-            FortranUnitID('beef_mod', Path('beef.f90')))
-        fortran_view.add_fortran_program_unit(
-            FortranUnitID('cheese_mod', Path('cheese.f90')))
-        fortran_view.add_fortran_program_unit(
-            FortranUnitID('teapot_mod', Path('teapot.f90')))
-        fortran_view.add_fortran_program_unit(
-            FortranUnitID('wibble_mod', Path('silly.f90')))
-        fortran_view.add_fortran_program_unit(
-            FortranUnitID('wubble_mod', Path('silly.f90')))
         test_unit = FortranAnalyser(FileTextReader(test_file), database)
         test_unit.run()
-        import shutil
-        shutil.copy(str(tmp_path / 'state.db'), str(Path.home() / 'state.db'))
         working_state = FortranWorkingState(database)
-        assert working_state.program_units_from_file(test_file) == units
-        for unit in units:
-            id = FortranUnitID(unit, test_file)
-            assert working_state.filenames_from_program_unit(unit) \
-                == [test_file]
-            assert list(working_state.depends_on(id)) == prereqs[unit]
+        assert list(working_state) \
+            == [FortranInfo(FortranUnitID('bar', tmp_path/'test.f90'),
+                            ['cheese_mod']),
+                FortranInfo(FortranUnitID('baz', tmp_path/'test.f90'),
+                            ['teapot_mod']),
+                FortranInfo(FortranUnitID('foo', tmp_path/'test.f90'),
+                            ['beef_mod']),
+                FortranInfo(FortranUnitID('qux', tmp_path/'test.f90'),
+                            ['wibble_mod', 'wubble_mod'])]
 
     def test_analyser_scope(self, caplog, tmp_path):
-        '''
+        """
         Tests that the analyser is able to track scope correctly.
-        '''
+        """
         caplog.set_level(logging.DEBUG)
 
         test_file: Path = tmp_path / 'test.f90'
@@ -337,21 +388,19 @@ class TestFortranAnalyser(object):
 
                    end module
                    '''))
-        units: List[str] = ['fred', 'barney']
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
         test_unit = FortranAnalyser(FileTextReader(test_file), database)
         test_unit.run()
         working_state = FortranWorkingState(database)
-        assert working_state.program_units_from_file(test_file) == units
-        for unit in units:
-            assert working_state.filenames_from_program_unit(unit) \
-                == [test_file]
+        assert list(working_state) \
+            == [FortranInfo(FortranUnitID('barney', tmp_path/'test.f90'), []),
+                FortranInfo(FortranUnitID('fred', tmp_path/'test.f90'), [])]
 
     def test_harvested_data(self, caplog, tmp_path):
-        '''
+        """
         Checks that the analyser deals with rescanning a file.
-        '''
+        """
         caplog.set_level(logging.DEBUG)
 
         first_file: Path = tmp_path / 'other.F90'
@@ -404,10 +453,10 @@ class TestFortranAnalyser(object):
                 FortranUnitID('barney_mod', tmp_path / 'test.f90')]
 
     def test_naked_use(self, tmp_path):
-        '''
+        """
         Ensures that an exception is raised if a "use" is found outside a
         program unit.
-        '''
+        """
         test_file: Path = tmp_path / 'test.f90'
         test_file.write_text(
             dedent('''
@@ -458,9 +507,9 @@ class TestFortranAnalyser(object):
 
 class TestFortranPreProcessor(object):
     def test_preprocssor_output(self, caplog, tmp_path):
-        '''
+        """
         Tests that the processor correctly applies to the source.
-        '''
+        """
         caplog.set_level(logging.DEBUG)
 
         test_file: Path = tmp_path / 'test.F90'

@@ -1,10 +1,9 @@
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
-
-'''
+"""
 Fortran language handling classes.
-'''
+"""
 import logging
 from pathlib import Path
 import re
@@ -66,6 +65,11 @@ class FortranInfo(object):
         self.unit = unit
         self.depends_on = list(depends_on)
 
+    def __str__(self):
+        return f"Fortran program unit '{self.unit.name}' " \
+            f"from '{self.unit.found_in}' depending on: " \
+            f"{', '.join(self.depends_on)}"
+
     def __eq__(self, other):
         if not isinstance(other, FortranInfo):
             message = "Cannot compare Fortran Info with " \
@@ -78,9 +82,9 @@ class FortranInfo(object):
 
 
 class FortranWorkingState(DatabaseDecorator):
-    '''
+    """
     Maintains a database of information relating to Fortran program units.
-    '''
+    """
     # According to the Fortran spec, section 3.2.2 in
     # BS ISO/IEC 1539-1:2010, the maximum size of a name is 63 characters.
     #
@@ -117,7 +121,7 @@ class FortranWorkingState(DatabaseDecorator):
                 id integer primary key,
                 unit character({self._FORTRAN_LABEL_LENGTH}) not null,
                 found_in character({FileInfoDatabase.PATH_LENGTH}) not null,
-                dependee character({self._FORTRAN_LABEL_LENGTH}) not null,
+                prerequisite character({self._FORTRAN_LABEL_LENGTH}) not null,
                 foreign key (unit, found_in)
                 references fortran_unit (unit, found_in)
                 )'''
@@ -125,11 +129,11 @@ class FortranWorkingState(DatabaseDecorator):
         self.execute(create_prerequisite_table, {})
 
     def __iter__(self) -> Iterator[FortranInfo]:
-        query = '''select u.unit as name, u.found_in, p.dependee as prereq
+        query = '''select u.unit as name, u.found_in, p.prerequisite as prereq
                    from fortran_unit as u
                    left join fortran_prerequisite as p
                    on p.unit = u.unit and p.found_in = u.found_in
-                   order by u.unit, u.found_in, p.dependee'''
+                   order by u.unit, u.found_in, p.prerequisite'''
         rows = self.execute([query], {})
         info: Optional[FortranInfo] = None
         key: FortranUnitID = FortranUnitID('', Path())
@@ -148,14 +152,14 @@ class FortranWorkingState(DatabaseDecorator):
             yield info
 
     def add_fortran_program_unit(self, unit: FortranUnitID) -> None:
-        '''
+        """
         Creates a record of a new program unit and the file it is found in.
 
         Note that the filename is absolute meaning that if you rename or move
         the source directory nothing will match up.
 
         :param unit: Program unit identifier.
-        '''
+        """
         add_unit = [
             '''insert into fortran_unit (unit, found_in)
                    values (:unit, :filename)'''
@@ -166,14 +170,14 @@ class FortranWorkingState(DatabaseDecorator):
     def add_fortran_dependency(self,
                                unit: FortranUnitID,
                                depends_on: str) -> None:
-        '''
+        """
         Records the dependency of one unit on another.
 
         :param unit: Program unit identifier.
         :param depends_on: Name of the prerequisite unit.
-        '''
+        """
         add_dependency = [
-            '''insert into fortran_prerequisite(unit, found_in, dependee)
+            '''insert into fortran_prerequisite(unit, found_in, prerequisite)
                    values (:unit, :found_in, :depends_on)'''
         ]
         self.execute(add_dependency, {'unit': unit.name,
@@ -181,11 +185,11 @@ class FortranWorkingState(DatabaseDecorator):
                                       'depends_on': depends_on})
 
     def remove_fortran_file(self, filename: Union[Path, str]) -> None:
-        '''
+        """
         Removes all records relating of a particular source file.
 
         :param filename: File to be removed.
-        '''
+        """
         remove_file = [
             '''delete from fortran_prerequisite
                where found_in = :filename''',
@@ -193,9 +197,9 @@ class FortranWorkingState(DatabaseDecorator):
             ]
         self.execute(remove_file, {'filename': str(filename)})
 
-    def filenames_from_program_unit(self, name: str) -> List[Path]:
-        '''
-        Gets the source files in which a program unit may be found.
+    def get_program_unit(self, name: str) -> List[FortranInfo]:
+        """
+        Gets the details of program units given their name.
 
         It is possible that similarly named program units appear in multiple
         files, hence why a list is returned. It would be an error to try
@@ -203,58 +207,57 @@ class FortranWorkingState(DatabaseDecorator):
         the model of the source tree.
 
         :param name: Program unit name.
-        :return: Filenames of source files.
-        '''
-        query = '''select found_in from fortran_unit
-                   where unit=:unit
-                   order by found_in'''
+        :return: List of unit information objects.
+        """
+        query = '''select u.unit, u.found_in, p.prerequisite
+                   from fortran_unit as u
+                   left join fortran_prerequisite as p
+                   on p.unit = u.unit and p.found_in = u.found_in
+                   where u.unit=:unit
+                   order by u.unit, u.found_in, p.prerequisite'''
         rows = self.execute(query, {'unit': name})
-        filenames: List[Path] = []
+        info_list: List[FortranInfo] = []
+        previous_id = None
+        info: Optional[FortranInfo] = None
         for row in rows:
-            filenames.append(Path(row['found_in']))
-        if len(filenames) == 0:
+            unit_id = FortranUnitID(row['unit'], Path(row['found_in']))
+            if previous_id is not None and unit_id == previous_id:
+                if info is not None:
+                    info.add_prerequisite(row['prerequisite'])
+            else:  # unit_id != previous_id
+                if info is not None:
+                    info_list.append(info)
+                info = FortranInfo(unit_id)
+                if row['prerequisite'] is not None:
+                    info.add_prerequisite((row['prerequisite']))
+                previous_id = unit_id
+        if info is not None:  # We have left overs
+            info_list.append(info)
+        if len(info_list) == 0:
             message = 'Program unit "{unit}" not found in database.'
             raise WorkingStateException(message.format(unit=name))
-        return filenames
-
-    def program_units_from_file(self, filename: Path) -> List[str]:
-        '''
-        Gets the program units found in a particular source file. There may be
-        More than one.
-
-        :param filename: Source file of interest.
-        :return: Program units found therein.
-        '''
-        query = 'select unit from fortran_unit where found_in=:filename'
-        rows = self.execute(query, {'filename': str(filename)})
-        units: List[str] = []
-        for row in rows:
-            units.append(row['unit'])
-        if len(units) == 0:
-            message = 'Source file "{filename}" not found in database.'
-            raise WorkingStateException(message.format(filename=filename))
-        return units
+        return info_list
 
     def depends_on(self, unit: FortranUnitID)\
             -> Generator[FortranUnitID, None, None]:
-        '''
+        """
         Gets the prerequisite program units of a program unit.
 
         :param unit: Program unit identifier.
         :return: Prerequisite unit names. May be an empty list.
-        '''
-        query = '''select p.dependee, u.found_in
+        """
+        query = '''select p.prerequisite, u.found_in
                    from fortran_prerequisite as p
-                   left join fortran_unit as u on u.unit = p.dependee
+                   left join fortran_unit as u on u.unit = p.prerequisite
                    where p.unit=:unit and p.found_in=:filename
                    order by p.unit, u.found_in'''
         rows = self.execute(query, {'unit': unit.name,
                                     'filename': str(unit.found_in)})
         for row in rows:
             if row['found_in'] is None:
-                yield FortranUnitUnresolvedID(row['dependee'])
+                yield FortranUnitUnresolvedID(row['prerequisite'])
             else:  # row['found_in'] is not None
-                yield FortranUnitID(row['dependee'], Path(row['found_in']))
+                yield FortranUnitID(row['prerequisite'], Path(row['found_in']))
 
 
 class FortranNormaliser(TextReaderDecorator):
@@ -263,13 +266,13 @@ class FortranNormaliser(TextReaderDecorator):
         self._line_buffer = ''
 
     def line_by_line(self) -> Iterator[str]:
-        '''
+        """
         Each line of the source file is modified to ease the work of analysis.
 
         The lines are sanitised to remove comments and collapse the result
         of continuation lines whilst also trimming away as much whitespace as
         possible
-        '''
+        """
         for line in self._source.line_by_line():
             # Remove comments - we accept that an exclamation mark
             # appearing in a string will cause the rest of that line

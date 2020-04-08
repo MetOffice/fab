@@ -97,14 +97,13 @@ class Fab(object):
             print('    depends on: ' + str(fortran_info.depends_on))
 
         # Start with the top level program unit
-        found_in = fortran_db.filenames_from_program_unit(self._target)
-        if len(found_in) > 1:
-            alt_filenames = [str(path) for path in found_in]
+        target_info = fortran_db.get_program_unit(self._target)
+        if len(target_info) > 1:
+            alt_filenames = [str(info.unit.found_in) for info in target_info]
             message = f"Ambiguous top-level program unit '{self._target}', " \
                 f"found in: {', '.join(alt_filenames)}"
             raise FabException(message)
-        unit_to_process: List[FortranUnitID] = [FortranUnitID(self._target,
-                                                              found_in[0])]
+        unit_to_process: List[FortranUnitID] = [target_info[0].unit]
 
         # Initialise linker
         if self._exec_name != "":
