@@ -3,10 +3,12 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+from collections import defaultdict
 from pathlib import Path
 import sys
 from typing import Dict, List, Type, Union
 
+from fab import FabException
 from fab.database import SqliteStateDatabase
 from fab.language import \
     Task, \
@@ -16,6 +18,7 @@ from fab.language.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
     FortranPreProcessor, \
+    FortranUnitID, \
     FortranCompiler, \
     FortranLinker
 from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
@@ -78,23 +81,30 @@ class Fab(object):
         self._queue.check_queue_done()
 
         file_db = FileInfoDatabase(self._state)
-        for info in file_db:
-            print(info.filename)
+        for file_info in file_db:
+            print(file_info.filename)
             # Where files are generated in the working directory
             # by third party tools, we cannot guarantee the hashes
-            if info.filename.match(f'{self._workspace}/*'):
+            if file_info.filename.match(f'{self._workspace}/*'):
                 print('    hash: --hidden-- (generated file)')
             else:
-                print(f'    hash: {info.adler32}')
+                print(f'    hash: {file_info.adler32}')
 
         fortran_db = FortranWorkingState(self._state)
-        for info in fortran_db:
-            print(info.unit_name)
-            print('    found in: ' + str(info.found_in))
-            print('    depends on: ' + str(info.depends_on))
+        for fortran_info in fortran_db:
+            print(fortran_info.unit.name)
+            print('    found in: ' + str(fortran_info.unit.found_in))
+            print('    depends on: ' + str(fortran_info.depends_on))
 
         # Start with the top level program unit
-        unit_to_process = [self._target]
+        found_in = fortran_db.filenames_from_program_unit(self._target)
+        if len(found_in) > 1:
+            alt_filenames = [str(path) for path in found_in]
+            message = f"Ambiguous top-level program unit '{self._target}', " \
+                f"found in: {', '.join(alt_filenames)}"
+            raise FabException(message)
+        unit_to_process: List[FortranUnitID] = [FortranUnitID(self._target,
+                                                              found_in[0])]
 
         # Initialise linker
         if self._exec_name != "":
@@ -105,7 +115,7 @@ class Fab(object):
         flags = self._command_flags_map.get(FortranLinker, [])
         link_command = FortranLinker(self._workspace, flags, executable)
 
-        processed_units: List[str] = []
+        processed_units: List[FortranUnitID] = []
 
         while unit_to_process:
             # Pop pending items from start of the list
@@ -113,17 +123,16 @@ class Fab(object):
             if unit in processed_units:
                 continue
 
-            dependencies = fortran_db.depends_on(unit)
-            unit_to_process.extend(dependencies)
-
-            filenames = fortran_db.filenames_from_program_unit(unit)
-            # TODO: For now we simply can't handle this returning
-            #       multiple names; later we may be able to deal with
-            #       this via extra information in the configuration
-            if len(filenames) == 1:
-                filename = filenames[0]
-            else:
-                raise ValueError("Duplicate program unit found")
+            dependencies: Dict[str, List[FortranUnitID]] = defaultdict(list)
+            for prereq in fortran_db.depends_on(unit):
+                dependencies[prereq.name].append(prereq)
+            for name, alt_prereqs in dependencies.items():
+                if len(alt_prereqs) > 1:
+                    filenames = [str(path) for path in alt_prereqs]
+                    message = f"Ambiguous prerequiste '{name}' " \
+                        f"found in: {', '.join(filenames)}"
+                    raise FabException(message)
+                unit_to_process.append(alt_prereqs[0])
 
             # Construct names of any expected module files to
             # pass to the compiler constructor
@@ -133,20 +142,20 @@ class Fab(object):
             #       from the database
             mod_files = [Path(self._workspace /
                               dependee).with_suffix('.mod')
-                         for dependee in dependencies]
+                         for dependee in dependencies.keys()]
 
             # TODO: It would also be good here to be able to
             #       generate a list of mod files which we
             #       expect to be *produced* by the compile
             #       and pass this to the constructor for
             #       inclusion in the task's "products"
-            compiler_class = self._compiler_map[filename.suffix]
+            compiler_class = self._compiler_map[unit.found_in.suffix]
 
             if issubclass(compiler_class, FortranCompiler):
                 flags = self._command_flags_map.get(compiler_class, [])
                 compiler = CommandTask(
                     compiler_class(
-                        filename,
+                        unit.found_in,
                         self._workspace,
                         flags,
                         mod_files))
@@ -193,7 +202,7 @@ class Dump(object):
         fortran_view = FortranWorkingState(self._state)
         print("Fortran View", file=stream)
         for info in fortran_view:
-            print(f"  Program unit    : {info.unit_name}", file=stream)
-            print(f"    Found in      : {info.found_in}", file=stream)
+            print(f"  Program unit    : {info.unit.name}", file=stream)
+            print(f"    Found in      : {info.unit.found_in}", file=stream)
             print(f"    Prerequisites : {', '.join(info.depends_on)}",
                   file=stream)

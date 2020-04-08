@@ -7,3 +7,7 @@
 Flexible build system for scientific software.
 '''
 __version__ = '2020.4.dev0'
+
+
+class FabException(Exception):
+    pass

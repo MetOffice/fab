@@ -6,11 +6,11 @@
 import logging
 from pathlib import Path
 from textwrap import dedent
-from typing import Dict, Iterator, List, Sequence, Tuple, Union
+from typing import Dict, Iterator, List, Union
 
 import pytest  # type: ignore
 
-from fab.database import SqliteStateDatabase, WorkingStateException
+from fab.database import SqliteStateDatabase
 from fab.language import TaskException, CommandTask
 from fab.language.fortran import (FortranAnalyser,
                                   FortranCompiler,
@@ -18,40 +18,79 @@ from fab.language.fortran import (FortranAnalyser,
                                   FortranLinker,
                                   FortranNormaliser,
                                   FortranPreProcessor,
+                                  FortranUnitID,
+                                  FortranUnitUnresolvedID,
                                   FortranWorkingState)
 from fab.reader import FileTextReader, StringTextReader, TextReader
 
 
-class TestFortranInfo:
-    def test_default_constructor(self):
-        test_unit = FortranInfo('argle', Path('bargle/wargle.gargle'))
-        assert test_unit.unit_name == 'argle'
-        assert test_unit.found_in == Path('bargle/wargle.gargle')
-        assert test_unit.depends_on == []
+class TestFortranUnitUnresolvedID:
+    def test_constructor(self):
+        test_unit = FortranUnitUnresolvedID('thumper')
+        assert test_unit.name == 'thumper'
 
-    def test_prereq_constructor(self):
-        test_unit = FortranInfo('argle',
-                                Path('bargle/wargle.gargle'),
-                                ['cheese'])
-        assert test_unit.unit_name == 'argle'
-        assert test_unit.found_in == Path('bargle/wargle.gargle')
-        assert test_unit.depends_on == ['cheese']
+
+class TestFortranUnitID:
+    def test_constructor(self):
+        test_unit = FortranUnitID('beef', Path('cheese'))
+        assert test_unit.name == 'beef'
+        assert test_unit.found_in == Path('cheese')
 
     def test_equality(self):
-        test_unit = FortranInfo('argle', Path('bargle/wargle.gargle'), ['beef', 'cheese'])
+        test_unit = FortranUnitID('salt', Path('pepper'))
         with pytest.raises(TypeError):
-            _ = test_unit == 'not a FortranInfo'
+            _ = test_unit == 'Not a FortranUnitID'
 
-        other = FortranInfo('argle', Path('bargle/wargle.gargle'), ['beef', 'cheese'])
+        other = FortranUnitID('salt', Path('pepper'))
         assert test_unit == other
         assert other == test_unit
 
-        other = FortranInfo('argle', Path('bargle/wargle.gargle'))
+        other = FortranUnitID('stew', Path('dumplings'))
+        assert test_unit != other
+        assert other != test_unit
+
+
+class TestFortranInfo:
+    def test_default_constructor(self):
+        test_unit \
+            = FortranInfo(FortranUnitID('argle',
+                                        Path('bargle/wargle.gargle')))
+        assert test_unit.unit.name == 'argle'
+        assert test_unit.unit.found_in == Path('bargle/wargle.gargle')
+        assert test_unit.depends_on == []
+
+    def test_prereq_constructor(self):
+        test_unit \
+            = FortranInfo(FortranUnitID('argle',
+                                        Path('bargle/wargle.gargle')),
+                          ['cheese'])
+        assert test_unit.unit.name == 'argle'
+        assert test_unit.unit.found_in == Path('bargle/wargle.gargle')
+        assert test_unit.depends_on == ['cheese']
+
+    def test_equality(self):
+        test_unit \
+            = FortranInfo(FortranUnitID('argle',
+                                        Path('bargle/wargle.gargle')),
+                          ['beef', 'cheese'])
+        with pytest.raises(TypeError):
+            _ = test_unit == 'not a FortranInfo'
+
+        other = FortranInfo(FortranUnitID('argle',
+                                          Path('bargle/wargle.gargle')),
+                            ['beef', 'cheese'])
+        assert test_unit == other
+        assert other == test_unit
+
+        other = FortranInfo(FortranUnitID('argle',
+                                          Path('bargle/wargle.gargle')))
         assert test_unit != other
         assert other != test_unit
 
     def test_add_prerequisite(self):
-        test_unit = FortranInfo('argle', Path('bargle/wargle.gargle'))
+        test_unit \
+            = FortranInfo(FortranUnitID('argle',
+                                        Path('bargle/wargle.gargle')))
         assert test_unit.depends_on == []
 
         test_unit.add_prerequisite('cheese')
@@ -59,153 +98,98 @@ class TestFortranInfo:
 
 
 class TestFortranWorkingSpace:
-    def test_iterator(self, tmp_path: Path):
+    def test_add_remove_sequence(self, tmp_path: Path):
         database = SqliteStateDatabase(tmp_path)
         test_unit = FortranWorkingState(database)
         assert list(iter(test_unit)) == []
 
         # Add a file containing a program unit and an unsatisfied dependency.
         #
-        test_unit.add_fortran_program_unit('foo', 'foo.f90')
-        test_unit.add_fortran_dependency('foo', Path('foo.f90'), 'bar')
-        assert list(iter(test_unit)) == [FortranInfo('foo', Path('foo.f90'), ['bar'])]
+        test_unit.add_fortran_program_unit(FortranUnitID('foo',
+                                                         Path('foo.f90')))
+        test_unit.add_fortran_dependency(FortranUnitID('foo',
+                                                       Path('foo.f90')),
+                                         'bar')
+        assert list(iter(test_unit)) \
+            == [FortranInfo(FortranUnitID('foo', Path('foo.f90')),
+                            ['bar'])]
+        assert list(test_unit.depends_on(FortranUnitID('foo',
+                                                       Path('foo.f90')))) \
+            == [FortranUnitUnresolvedID('bar')]
 
         # Add a second file containing a second program unit.
         #
         # This satisfies the previously dangling dependency and adds a new
         # one.
         #
-        test_unit.add_fortran_program_unit('bar', 'bar.F90')
-        test_unit.add_fortran_dependency('bar', Path('bar.F90'), 'baz')
-        assert list(iter(test_unit)) == [FortranInfo('bar', Path('bar.F90'), ['baz']),
-                                         FortranInfo('foo', Path('foo.f90'), ['bar'])]
+        test_unit.add_fortran_program_unit(FortranUnitID('bar',
+                                                         Path('bar.F90')))
+        test_unit.add_fortran_dependency(FortranUnitID('bar',
+                                                       Path('bar.F90')),
+                                         'baz')
+        assert list(iter(test_unit)) \
+            == [FortranInfo(FortranUnitID('bar', Path('bar.F90')),
+                            ['baz']),
+                FortranInfo(FortranUnitID('foo', Path('foo.f90')),
+                            ['bar'])]
+        assert list(test_unit.depends_on(FortranUnitID('foo',
+                                                       Path('foo.f90')))) \
+            == [FortranUnitID('bar', Path('bar.F90'))]
+        assert list(test_unit.depends_on(FortranUnitID('bar',
+                                                       Path('bar.F90')))) \
+            == [FortranUnitUnresolvedID('baz')]
 
         # Add a third file also containing a third program unit and another
         # copy of the first.
         #
         # The new unit depends on two other units.
         #
-        test_unit.add_fortran_program_unit('baz', 'baz.F90')
-        test_unit.add_fortran_program_unit('foo', 'baz.F90')
-        test_unit.add_fortran_dependency('baz', Path('baz.F90'), 'qux')
-        test_unit.add_fortran_dependency('baz', Path('baz.F90'), 'cheese')
-        assert list(iter(test_unit)) == [FortranInfo('bar', Path('bar.F90'), ['baz']),
-                                         FortranInfo('baz', Path('baz.F90'), ['cheese', 'qux']),
-                                         FortranInfo('foo', Path('baz.F90')),
-                                         FortranInfo('foo', Path('foo.f90'), ['bar'])]
+        test_unit.add_fortran_program_unit(FortranUnitID('baz',
+                                                         Path('baz.F90')))
+        test_unit.add_fortran_program_unit(FortranUnitID('foo',
+                                                         Path('baz.F90')))
+        test_unit.add_fortran_dependency(FortranUnitID('baz',
+                                                       Path('baz.F90')),
+                                         'qux')
+        test_unit.add_fortran_dependency(FortranUnitID('baz',
+                                                       Path('baz.F90')),
+                                         'cheese')
+        assert list(iter(test_unit)) \
+            == [FortranInfo(FortranUnitID('bar', Path('bar.F90')),
+                            ['baz']),
+                FortranInfo(FortranUnitID('baz', Path('baz.F90')),
+                            ['cheese', 'qux']),
+                FortranInfo(FortranUnitID('foo', Path('baz.F90'))),
+                FortranInfo(FortranUnitID('foo', Path('foo.f90')),
+                            ['bar'])]
+        assert list(test_unit.depends_on(FortranUnitID('foo',
+                                                       Path('foo.f90')))) \
+            == [FortranUnitID('bar', Path('bar.F90'))]
+        assert list(test_unit.depends_on(FortranUnitID('foo',
+                                                       Path('baz.F90')))) \
+            == []
+        assert list(test_unit.depends_on(FortranUnitID('bar',
+                                                       Path('bar.F90')))) \
+            == [FortranUnitID('baz', Path('baz.F90'))]
+        assert list(test_unit.depends_on(FortranUnitID('baz',
+                                                       Path('baz.F90')))) \
+            == [FortranUnitUnresolvedID('qux'),
+                FortranUnitUnresolvedID('cheese')]
 
         # Remove a previously added file
         #
         test_unit.remove_fortran_file(Path('baz.F90'))
-        assert list(iter(test_unit)) == [FortranInfo('bar', Path('bar.F90'), ['baz']),
-                                         FortranInfo('foo', Path('foo.f90'), ['bar'])]
-
-    @staticmethod
-    def _check_ws(test_unit: FortranWorkingState,
-                  expected_unit: Dict[str, Sequence[Path]],
-                  expected_filename: Dict[Path, Sequence[str]],
-                  expected_dependency: Dict[Tuple[str, Path], Sequence[str]]):
-        for unit, unit_filename in expected_unit.items():
-            if unit.startswith('!'):
-                with pytest.raises(WorkingStateException):
-                    _ = test_unit.filenames_from_program_unit(unit[1:])
-            else:
-                assert test_unit.filenames_from_program_unit(unit) \
-                    == unit_filename
-
-        for filename, filename_unit in expected_filename.items():
-            if filename.suffix == '.not':
-                with pytest.raises(WorkingStateException):
-                    actual_filename: Path = filename.with_suffix('')
-                    _ = test_unit.program_units_from_file(actual_filename)
-            else:
-                assert test_unit.program_units_from_file(filename) \
-                    == filename_unit
-
-        for (unit, filename), prerequisites in expected_dependency.items():
-            assert test_unit.depends_on(unit, filename) == prerequisites
-
-    def test_add_remove_sequence(self, tmp_path):
-        '''
-        Walks a FortranWorkingState object through a sequence of adds and
-        removes checking the contents at each stage.
-        '''
-        database = SqliteStateDatabase(tmp_path)
-        test_unit = FortranWorkingState(database)
-
-        # Add a file containing a program unit and an unsatisfied dependency.
-        #
-        expected_unit = {'foo': [tmp_path / 'foo.f90'],
-                         '!bar': []}
-        expected_filename = {tmp_path / 'foo.f90': ['foo'],
-                             tmp_path / 'bar.F90.not': []}
-        expected_dependency = {('foo', tmp_path/'foo.f90'): ['bar']}
-        test_unit.add_fortran_program_unit('foo', tmp_path / 'foo.f90')
-        test_unit.add_fortran_dependency('foo', tmp_path/'foo.f90', 'bar')
-        self._check_ws(test_unit,
-                       expected_unit,
-                       expected_filename,
-                       expected_dependency)
-
-        # Add a second file containing a second program unit.
-        #
-        # This satisfies the previously dangling dependency and adds a new
-        # one.
-        #
-        expected_unit = {'foo': [tmp_path / 'foo.f90'],
-                         'bar': [tmp_path / 'bar.F90'],
-                         '!baz': []}
-        expected_filename = {tmp_path / 'foo.f90': ['foo'],
-                             tmp_path / 'bar.F90': ['bar'],
-                             tmp_path / 'baz.F90.not': []}
-        expected_dependency = {('foo', tmp_path/'foo.f90'): ['bar'],
-                               ('bar', tmp_path/'bar.F90'): ['baz']}
-        test_unit.add_fortran_program_unit('bar', tmp_path / 'bar.F90')
-        test_unit.add_fortran_dependency('bar', tmp_path/'bar.F90', 'baz')
-        self._check_ws(test_unit,
-                       expected_unit,
-                       expected_filename,
-                       expected_dependency)
-
-        # Add a third file also containing a third program unit and another
-        # copy of the first.
-        #
-        # The new unit depends on two other units.
-        #
-        expected_unit = {'bar': [tmp_path / 'bar.F90'],
-                         'baz': [tmp_path / 'baz.F90'],
-                         'foo': [tmp_path / 'baz.F90', tmp_path / 'foo.f90'],
-                         '!qux': []}
-        expected_filename = {tmp_path / 'foo.f90': ['foo'],
-                             tmp_path / 'bar.F90': ['bar'],
-                             tmp_path / 'baz.F90': ['baz', 'foo'],
-                             tmp_path / 'qux.f90.not': []}
-        expected_dependency = {('bar', tmp_path/'bar.F90'): ['baz'],
-                               ('baz', tmp_path/'baz.F90'): ['qux', 'cheese'],
-                               ('foo', tmp_path / 'foo.f90'): ['bar']}
-        test_unit.add_fortran_program_unit('baz', tmp_path / 'baz.F90')
-        test_unit.add_fortran_program_unit('foo', tmp_path / 'baz.F90')
-        test_unit.add_fortran_dependency('baz', tmp_path/'baz.F90', 'qux')
-        test_unit.add_fortran_dependency('baz', tmp_path/'baz.F90', 'cheese')
-        self._check_ws(test_unit,
-                       expected_unit,
-                       expected_filename,
-                       expected_dependency)
-
-        # Remove a previously added file
-        expected_unit = {'foo': [tmp_path / 'foo.f90'],
-                         'bar': [tmp_path / 'bar.F90'],
-                         '!baz': []}
-        expected_filename = {tmp_path / 'foo.f90': ['foo'],
-                             tmp_path / 'bar.F90': ['bar'],
-                             tmp_path / 'baz.F90.not': []}
-        test_unit.remove_fortran_file(tmp_path / 'baz.F90')
-        expected_dependency = {('foo', tmp_path/'foo.f90'): ['bar'],
-                               ('bar', tmp_path/'bar.F90'): ['baz']}
-        self._check_ws(test_unit,
-                       expected_unit,
-                       expected_filename,
-                       expected_dependency)
+        assert list(iter(test_unit)) \
+            == [FortranInfo(FortranUnitID('bar', Path('bar.F90')),
+                            ['baz']),
+                FortranInfo(FortranUnitID('foo', Path('foo.f90')),
+                            ['bar'])]
+        assert list(test_unit.depends_on(FortranUnitID('foo',
+                                                       Path('foo.f90')))) \
+            == [FortranUnitID('bar', Path('bar.F90'))]
+        assert list(test_unit.depends_on(FortranUnitID('bar',
+                                                       Path('bar.F90')))) \
+            == [FortranUnitUnresolvedID('baz')]
 
 
 class DummyReader(TextReader):
@@ -273,20 +257,36 @@ class TestFortranAnalyser(object):
                    end subroutine qux
                    '''))
         units: List[str] = ['foo', 'bar', 'baz', 'qux']
-        prereqs: Dict[str, List[str]] = {'foo': ['beef_mod'],
-                                         'bar': ['cheese_mod'],
-                                         'baz': ['teapot_mod'],
-                                         'qux': ['wibble_mod', 'wubble_mod']}
+        prereqs: Dict[str, List[FortranUnitID]] \
+            = {'foo': [FortranUnitID('beef_mod', Path('beef.f90'))],
+               'bar': [FortranUnitID('cheese_mod', Path('cheese.f90'))],
+               'baz': [FortranUnitID('teapot_mod', Path('teapot.f90'))],
+               'qux': [FortranUnitID('wibble_mod', Path('silly.f90')),
+                       FortranUnitID('wubble_mod', Path('silly.f90'))]}
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
+        fortran_view = FortranWorkingState(database)
+        fortran_view.add_fortran_program_unit(
+            FortranUnitID('beef_mod', Path('beef.f90')))
+        fortran_view.add_fortran_program_unit(
+            FortranUnitID('cheese_mod', Path('cheese.f90')))
+        fortran_view.add_fortran_program_unit(
+            FortranUnitID('teapot_mod', Path('teapot.f90')))
+        fortran_view.add_fortran_program_unit(
+            FortranUnitID('wibble_mod', Path('silly.f90')))
+        fortran_view.add_fortran_program_unit(
+            FortranUnitID('wubble_mod', Path('silly.f90')))
         test_unit = FortranAnalyser(FileTextReader(test_file), database)
         test_unit.run()
+        import shutil
+        shutil.copy(str(tmp_path / 'state.db'), str(Path.home() / 'state.db'))
         working_state = FortranWorkingState(database)
         assert working_state.program_units_from_file(test_file) == units
         for unit in units:
+            id = FortranUnitID(unit, test_file)
             assert working_state.filenames_from_program_unit(unit) \
                 == [test_file]
-            assert working_state.depends_on(unit, test_file) == prereqs[unit]
+            assert list(working_state.depends_on(id)) == prereqs[unit]
 
     def test_analyser_scope(self, caplog, tmp_path):
         '''
@@ -380,10 +380,13 @@ class TestFortranAnalyser(object):
 
         fdb = FortranWorkingState(database)
         assert list(iter(fdb)) \
-            == [FortranInfo('barney_mod', first_file),
-                FortranInfo('barney_mod', second_file),
-                FortranInfo('betty', first_file, ['barney_mod'])]
-        assert fdb.depends_on('betty', first_file) == ['barney_mod']
+            == [FortranInfo(FortranUnitID('barney_mod', first_file)),
+                FortranInfo(FortranUnitID('barney_mod', second_file)),
+                FortranInfo(FortranUnitID('betty', first_file),
+                            ['barney_mod'])]
+        assert list(fdb.depends_on(FortranUnitID('betty', first_file))) \
+            == [FortranUnitID('barney_mod', tmp_path / 'other.F90'),
+                FortranUnitID('barney_mod', tmp_path / 'test.f90')]
 
         # Repeat the scan of second_file, there should be no change.
         #
@@ -392,10 +395,13 @@ class TestFortranAnalyser(object):
 
         fdb = FortranWorkingState(database)
         assert list(iter(fdb)) \
-            == [FortranInfo('barney_mod', first_file),
-                FortranInfo('barney_mod', second_file),
-                FortranInfo('betty', first_file, ['barney_mod'])]
-        assert fdb.depends_on('betty', first_file) == ['barney_mod']
+            == [FortranInfo(FortranUnitID('barney_mod', first_file)),
+                FortranInfo(FortranUnitID('barney_mod', second_file)),
+                FortranInfo(FortranUnitID('betty', first_file),
+                            ['barney_mod'])]
+        assert list(fdb.depends_on(FortranUnitID('betty', first_file))) \
+            == [FortranUnitID('barney_mod', tmp_path / 'other.F90'),
+                FortranUnitID('barney_mod', tmp_path / 'test.f90')]
 
     def test_naked_use(self, tmp_path):
         '''

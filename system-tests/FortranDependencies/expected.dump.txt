@@ -24,4 +24,4 @@ Fortran View
     Prerequisites : constants_mod
   Program unit    : second
     Found in      : system-tests/FortranDependencies/two.f90
-    Prerequisites : constants_mod, bye_mod
+    Prerequisites : bye_mod, constants_mod

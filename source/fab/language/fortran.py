@@ -31,21 +31,47 @@ from fab.language import \
 from fab.reader import TextReader, TextReaderDecorator
 
 
+class FortranUnitUnresolvedID(object):
+    def __init__(self, name: str):
+        self.name = name
+
+    def __eq__(self, other):
+        if not isinstance(other, FortranUnitUnresolvedID):
+            message = "Cannot compare FortranPartialUnitID with " \
+                + other.__class__.__name__
+            raise TypeError(message)
+        return other.name == self.name
+
+
+class FortranUnitID(FortranUnitUnresolvedID):
+    def __init__(self, name: str, found_in: Path):
+        super().__init__(name)
+        self.found_in = found_in
+
+    def __hash__(self):
+        return hash(self.name) + hash(self.found_in)
+
+    def __eq__(self, other):
+        if not isinstance(other, FortranUnitID):
+            message = "Cannot compare FortranUnitID with " \
+                + other.__class__.__name__
+            raise TypeError(message)
+        return super().__eq__(other) and other.found_in == self.found_in
+
+
 class FortranInfo(object):
     def __init__(self,
-                 unit_name: str,
-                 found_in: Path,
+                 unit: FortranUnitID,
                  depends_on: Sequence[str] = ()):
-        self.unit_name = unit_name
-        self.found_in = found_in
+        self.unit = unit
         self.depends_on = list(depends_on)
 
     def __eq__(self, other):
         if not isinstance(other, FortranInfo):
-            raise TypeError(f"Cannot compare Fortran Info with {other.__class__.__name__}")
-        return other.unit_name == self.unit_name \
-            and other.found_in == self.found_in \
-            and other.depends_on == self.depends_on
+            message = "Cannot compare Fortran Info with " \
+                + other.__class__.__name__
+            raise TypeError(message)
+        return other.unit == self.unit and other.depends_on == self.depends_on
 
     def add_prerequisite(self, prereq: str):
         self.depends_on.append(prereq)
@@ -88,12 +114,13 @@ class FortranWorkingState(DatabaseDecorator):
         #
         create_prerequisite_table = [
             f'''create table if not exists fortran_prerequisite (
-                  id integer primary key,
-                  unit character({self._FORTRAN_LABEL_LENGTH}) not null,
-                  found_in character({FileInfoDatabase.PATH_LENGTH}) not null,
-                  dependee character({self._FORTRAN_LABEL_LENGTH}) not null,
-                  foreign key (unit, found_in) references fortran_unit (unit, found_in)
-                  )'''
+                id integer primary key,
+                unit character({self._FORTRAN_LABEL_LENGTH}) not null,
+                found_in character({FileInfoDatabase.PATH_LENGTH}) not null,
+                dependee character({self._FORTRAN_LABEL_LENGTH}) not null,
+                foreign key (unit, found_in)
+                references fortran_unit (unit, found_in)
+                )'''
         ]
         self.execute(create_prerequisite_table, {})
 
@@ -105,50 +132,53 @@ class FortranWorkingState(DatabaseDecorator):
                    order by u.unit, u.found_in, p.dependee'''
         rows = self.execute([query], {})
         info: Optional[FortranInfo] = None
-        key: Optional[Tuple[str, str]] = None
+        key: FortranUnitID = FortranUnitID('', Path())
         for row in rows:
-            if (row['name'], row['found_in']) == key:
-                info.add_prerequisite(row['prereq'])
+            if FortranUnitID(row['name'], Path(row['found_in'])) == key:
+                if info is not None:
+                    info.add_prerequisite(row['prereq'])
             else:  # (row['name'], row['found_in']) != key
                 if info is not None:
                     yield info
-                info = FortranInfo(row['name'], Path(row['found_in']))
-                key = (row['name'], row['found_in'])
-                if row['prereq'] :
+                key = FortranUnitID(row['name'], Path(row['found_in']))
+                info = FortranInfo(key)
+                if row['prereq']:
                     info.add_prerequisite(row['prereq'])
         if info is not None:  # We have left-overs
             yield info
 
-    def add_fortran_program_unit(self, name: str,
-                                 in_file: Union[Path, str]) -> None:
+    def add_fortran_program_unit(self, unit: FortranUnitID) -> None:
         '''
         Creates a record of a new program unit and the file it is found in.
 
         Note that the filename is absolute meaning that if you rename or move
         the source directory nothing will match up.
 
-        :param name: Program unit name.
-        :param in_file: Filename of source containing program unit.
+        :param unit: Program unit identifier.
         '''
         add_unit = [
             '''insert into fortran_unit (unit, found_in)
                    values (:unit, :filename)'''
         ]
-        self.execute(add_unit, {'unit': name, 'filename': str(in_file)})
+        self.execute(add_unit,
+                     {'unit': unit.name, 'filename': str(unit.found_in)})
 
-    def add_fortran_dependency(self, unit: str, found_in: Path, depends_on: str) -> None:
+    def add_fortran_dependency(self,
+                               unit: FortranUnitID,
+                               depends_on: str) -> None:
         '''
         Records the dependency of one unit on another.
 
-        :param unit: Name of the depending unit.
-        :param found_in: Source file containing unit.
-        :param depends_on:  Name of the prerequisite unit.
+        :param unit: Program unit identifier.
+        :param depends_on: Name of the prerequisite unit.
         '''
         add_dependency = [
             '''insert into fortran_prerequisite(unit, found_in, dependee)
                    values (:unit, :found_in, :depends_on)'''
         ]
-        self.execute(add_dependency, {'unit': unit, 'found_in': str(found_in), 'depends_on': depends_on})
+        self.execute(add_dependency, {'unit': unit.name,
+                                      'found_in': str(unit.found_in),
+                                      'depends_on': depends_on})
 
     def remove_fortran_file(self, filename: Union[Path, str]) -> None:
         '''
@@ -205,23 +235,26 @@ class FortranWorkingState(DatabaseDecorator):
             raise WorkingStateException(message.format(filename=filename))
         return units
 
-    def depends_on(self, unit: str, found_in: Path) -> List[str]:
+    def depends_on(self, unit: FortranUnitID)\
+            -> Generator[FortranUnitID, None, None]:
         '''
         Gets the prerequisite program units of a program unit.
 
-        :param unit: Program unit name.
-        :param found_in: Source file containing program unit.
+        :param unit: Program unit identifier.
         :return: Prerequisite unit names. May be an empty list.
         '''
-        query = '''select dependee
-                   from fortran_prerequisite
-                   where unit=:unit and found_in=:filename
-                   order by unit, found_in'''
-        rows = self.execute(query, {'unit': unit, 'filename': str(found_in)})
-        units: List[str] = []
+        query = '''select p.dependee, u.found_in
+                   from fortran_prerequisite as p
+                   left join fortran_unit as u on u.unit = p.dependee
+                   where p.unit=:unit and p.found_in=:filename
+                   order by p.unit, u.found_in'''
+        rows = self.execute(query, {'unit': unit.name,
+                                    'filename': str(unit.found_in)})
         for row in rows:
-            units.append(row['dependee'])
-        return units
+            if row['found_in'] is None:
+                yield FortranUnitUnresolvedID(row['dependee'])
+            else:  # row['found_in'] is not None
+                yield FortranUnitID(row['dependee'], Path(row['found_in']))
 
 
 class FortranNormaliser(TextReaderDecorator):
@@ -337,8 +370,8 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    self._state.add_fortran_program_unit(
-                        unit_name, self._reader.filename)
+                    unit_id = FortranUnitID(unit_name, self._reader.filename)
+                    self._state.add_fortran_program_unit(unit_id)
                     scope.append((unit_type, unit_name))
                     continue
             use_match: Optional[Match] \
@@ -353,7 +386,8 @@ class FortranAnalyser(Analyser):
                             = '"use" statement found outside program unit'
                         raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
-                    self._state.add_fortran_dependency(scope[0][1], self._reader.filename, use_name)
+                    unit_id = FortranUnitID(scope[0][1], self._reader.filename)
+                    self._state.add_fortran_dependency(unit_id, use_name)
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)
