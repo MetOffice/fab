@@ -25,16 +25,23 @@ class TextReader(ABC):
 class FileTextReader(TextReader):
     def __init__(self, filename: Path):
         self._filename: Path = filename
-        self._handle: IO[Text] = self._filename.open(encoding='utf-8')
+        self._handle = None
 
     def __del__(self):
-        self._handle.close()
+        if self._handle is not None:
+            self._handle.close()
+
+    def open(self):
+        if self._handle is None:
+            self._handle: IO[Text] = \
+                self._filename.open(encoding='utf-8')
 
     @property
     def filename(self):
         return self._filename
 
     def line_by_line(self):
+        self.open()
         for line in self._handle.readlines():
             yield line
 
