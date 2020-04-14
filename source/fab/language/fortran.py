@@ -201,7 +201,7 @@ class FortranWorkingState(DatabaseDecorator):
         """
         Gets the details of program units given their name.
 
-        It is possible that similarly named program units appear in multiple
+        It is possible that identically named program units appear in multiple
         files, hence why a list is returned. It would be an error to try
         linking these into a single executable but that is not a concern for
         the model of the source tree.
