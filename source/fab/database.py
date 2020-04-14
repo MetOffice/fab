@@ -104,19 +104,25 @@ class SqliteStateDatabase(StateDatabase):
     '''
     def __init__(self, working_directory: Path):
         self._working_directory: Path = working_directory
-
-        if not self._working_directory.exists():
-            self._working_directory.mkdir(parents=True)
-
-        self._connection: sqlite3.Connection \
-            = sqlite3.connect(str(working_directory / 'state.db'))
-        self._connection.row_factory = sqlite3.Row
+        self._connection: Optional[sqlite3.Connection] = None
 
     def __del__(self):
-        self._connection.close()
+        if self._connection is not None:
+            self._connection.close()
+
+    def get_connection(self) -> sqlite3.Connection:
+        if self._connection is None:
+            if not self._working_directory.exists():
+                self._working_directory.mkdir(parents=True)
+
+            self._connection \
+                = sqlite3.connect(str(self._working_directory / 'state.db'))
+            self._connection.row_factory = sqlite3.Row
+        return self._connection
 
     def execute(self, query: Union[Sequence[str], str],
                 inserts: Dict[str, str]) -> DatabaseRows:
+        connection = self.get_connection()
         if isinstance(query, str):
             query_list: Sequence[str] = [query]
         else:
@@ -124,7 +130,7 @@ class SqliteStateDatabase(StateDatabase):
 
         cursor = None
         for command in query_list:
-            cursor = self._connection.execute(command, inserts)
-        self._connection.commit()
+            cursor = connection.execute(command, inserts)
+        connection.commit()
 
         return DatabaseRows(cursor)

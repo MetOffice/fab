@@ -79,7 +79,15 @@ class TestDatabaseRows(object):
 
 class TestSQLiteStateDatabase(object):
     def test_constructor(self, tmp_path: Path):
-        _ = SqliteStateDatabase(tmp_path)
+        database = SqliteStateDatabase(tmp_path)
+
+        assert database._connection is None
+        assert database._working_directory == tmp_path
+
+    def test_connector(self, tmp_path: Path):
+        database = SqliteStateDatabase(tmp_path)
+
+        _ = database.get_connection()
 
         db_file = tmp_path / 'state.db'
         assert db_file.exists()
@@ -88,7 +96,9 @@ class TestSQLiteStateDatabase(object):
         connection = sqlite3.Connection(str(db_file))
         connection.close()
 
-        _ = SqliteStateDatabase(tmp_path / 'extra')
+        database = SqliteStateDatabase(tmp_path / 'extra')
+
+        _ = database.get_connection()
 
         db_file = tmp_path / 'extra' / 'state.db'
         assert db_file.exists()
