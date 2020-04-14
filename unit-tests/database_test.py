@@ -10,8 +10,7 @@ import pytest  # type: ignore
 from fab.database import (DatabaseRows,
                           FileInfo,
                           FileInfoDatabase,
-                          SqliteStateDatabase,
-                          WorkingStateException)
+                          SqliteStateDatabase)
 
 
 class TestFileInfo(object):
@@ -100,30 +99,19 @@ class TestSQLiteStateDatabase(object):
 
 
 class TestFileInfoDatabase(object):
-    def test_file_info(self, tmp_path: Path):
+    def test_iteration(self, tmp_path: Path):
         test_unit = FileInfoDatabase(SqliteStateDatabase(tmp_path))
-
-        with pytest.raises(WorkingStateException):
-            test_unit.get_file_info(Path('foo.f90'))
-        assert list(test_unit.get_all_filenames()) == []
+        assert list(iter(test_unit)) == []
 
         test_unit.add_file_info(Path('foo.f90'), 1234)
-        assert list(test_unit.get_all_filenames()) == [Path('foo.f90')]
-        assert test_unit.get_file_info(Path('foo.f90')) \
-            == FileInfo(Path('foo.f90'), 1234)
+        assert list(iter(test_unit)) == [FileInfo(Path('foo.f90'), 1234)]
 
         test_unit.add_file_info(Path('bar/baz.f90'), 5786)
-        assert list(test_unit.get_all_filenames()) == [Path('bar/baz.f90'),
-                                                       Path('foo.f90')]
-        assert test_unit.get_file_info(Path('foo.f90')) \
-            == FileInfo(Path('foo.f90'), 1234)
-        assert test_unit.get_file_info(Path('bar/baz.f90')) \
-            == FileInfo(Path('bar/baz.f90'), 5786)
+        assert list(iter(test_unit)) == [FileInfo(Path('bar/baz.f90'), 5786),
+                                         FileInfo(Path('foo.f90'), 1234)]
 
+        # Add a new version of an existing file
+        #
         test_unit.add_file_info(Path('foo.f90'), 987)
-        assert list(test_unit.get_all_filenames()) == [Path('bar/baz.f90'),
-                                                       Path('foo.f90')]
-        assert test_unit.get_file_info(Path('foo.f90')) \
-            == FileInfo(Path('foo.f90'), 987)
-        assert test_unit.get_file_info(Path('bar/baz.f90')) \
-            == FileInfo(Path('bar/baz.f90'), 5786)
+        assert list(iter(test_unit)) == [FileInfo(Path('bar/baz.f90'), 5786),
+                                         FileInfo(Path('foo.f90'), 987)]

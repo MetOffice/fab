@@ -22,4 +22,4 @@ greeting_mod
     depends on: ['constants_mod']
 second
     found in: system-tests/FortranDependencies/two.f90
-    depends on: ['constants_mod', 'bye_mod']
+    depends on: ['bye_mod', 'constants_mod']
