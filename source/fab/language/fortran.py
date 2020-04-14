@@ -36,7 +36,7 @@ class FortranUnitUnresolvedID(object):
 
     def __eq__(self, other):
         if not isinstance(other, FortranUnitUnresolvedID):
-            message = "Cannot compare FortranPartialUnitID with " \
+            message = "Cannot compare FortranUnitUnresolvedID with " \
                 + other.__class__.__name__
             raise TypeError(message)
         return other.name == self.name
