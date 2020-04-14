@@ -109,8 +109,8 @@ class FortranWorkingState(DatabaseDecorator):
 
         # Although the current unit will already have been entered into the
         # database it is not necessarily unique. We may have multiple source
-        # files which define similarly named units. Thus it can not be used as
-        # a foreign key alone.
+        # files which define identically named units. Thus it can not be used
+        # as a foreign key alone.
         #
         # Meanwhile the dependency unit may not have been encountered yet so
         # we can't expect it to be in the database. Thus it too may not be
