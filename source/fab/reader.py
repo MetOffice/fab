@@ -31,18 +31,19 @@ class FileTextReader(TextReader):
         if self._handle is not None:
             self._handle.close()
 
-    def open(self):
+    def get_handle(self):
         if self._handle is None:
             self._handle: IO[Text] = \
                 self._filename.open(encoding='utf-8')
+        return self._handle
 
     @property
     def filename(self):
         return self._filename
 
     def line_by_line(self):
-        self.open()
-        for line in self._handle.readlines():
+        handle = self.get_handle()
+        for line in handle.readlines():
             yield line
 
 
