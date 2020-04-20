@@ -78,35 +78,15 @@ class TestDatabaseRows(object):
 
 
 class TestSQLiteStateDatabase(object):
-    def test_constructor(self, tmp_path: Path):
+    def test_creation(self, tmp_path: Path):
         database = SqliteStateDatabase(tmp_path)
 
-        assert database._connection is None
-        assert database._working_directory == tmp_path
+        database.execute('''create table test_table
+                            (anything integer)''', {})
 
-    def test_connector(self, tmp_path: Path):
-        database = SqliteStateDatabase(tmp_path)
-
-        _ = database.get_connection()
-
+        # Issuing a query should have created the database
         db_file = tmp_path / 'state.db'
         assert db_file.exists()
-
-        # Check we can open the database without exceptions
-        connection = sqlite3.Connection(str(db_file))
-        connection.close()
-
-        (tmp_path / 'extra').mkdir()
-        database = SqliteStateDatabase(tmp_path / 'extra')
-
-        _ = database.get_connection()
-
-        db_file = tmp_path / 'extra' / 'state.db'
-        assert db_file.exists()
-
-        # Check we can open the database without exceptions
-        connection = sqlite3.Connection(str(db_file))
-        connection.close()
 
 
 class TestFileInfoDatabase(object):

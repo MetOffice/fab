@@ -110,7 +110,7 @@ class SqliteStateDatabase(StateDatabase):
         if self._connection is not None:
             self._connection.close()
 
-    def get_connection(self) -> sqlite3.Connection:
+    def _get_connection(self) -> sqlite3.Connection:
         if self._connection is None:
             self._connection \
                 = sqlite3.connect(str(self._working_directory / 'state.db'))
@@ -119,7 +119,7 @@ class SqliteStateDatabase(StateDatabase):
 
     def execute(self, query: Union[Sequence[str], str],
                 inserts: Dict[str, str]) -> DatabaseRows:
-        connection = self.get_connection()
+        connection = self._get_connection()
         if isinstance(query, str):
             query_list: Sequence[str] = [query]
         else:
