@@ -43,8 +43,11 @@ class Fab(object):
                  ld_flags: str,
                  n_procs: int):
 
-        self._state = SqliteStateDatabase(workspace)
         self._workspace = workspace
+        if not workspace.exists():
+            workspace.mkdir(parents=True)
+
+        self._state = SqliteStateDatabase(workspace)
         self._target = target
         self._exec_name = exec_name
 

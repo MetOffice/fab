@@ -96,6 +96,7 @@ class TestSQLiteStateDatabase(object):
         connection = sqlite3.Connection(str(db_file))
         connection.close()
 
+        (tmp_path / 'extra').mkdir()
         database = SqliteStateDatabase(tmp_path / 'extra')
 
         _ = database.get_connection()

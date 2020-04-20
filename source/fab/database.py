@@ -112,9 +112,6 @@ class SqliteStateDatabase(StateDatabase):
 
     def get_connection(self) -> sqlite3.Connection:
         if self._connection is None:
-            if not self._working_directory.exists():
-                self._working_directory.mkdir(parents=True)
-
             self._connection \
                 = sqlite3.connect(str(self._working_directory / 'state.db'))
             self._connection.row_factory = sqlite3.Row
