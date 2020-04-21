@@ -78,24 +78,30 @@ class TestDatabaseRows(object):
 
 
 class TestSQLiteStateDatabase(object):
-    def test_constructor(self, tmp_path: Path):
-        _ = SqliteStateDatabase(tmp_path)
+    def test_creation(self, tmp_path: Path):
+        database = SqliteStateDatabase(tmp_path)
 
+        database.execute('''create table first_table
+                            (anything integer)''', {})
+
+        # Issuing a query should have created the database
         db_file = tmp_path / 'state.db'
         assert db_file.exists()
 
-        # Check we can open the database without exceptions
-        connection = sqlite3.Connection(str(db_file))
-        connection.close()
+        # A second execute should work with no issue
+        database.execute('''create table second_table
+                            (anything integer)''', {})
 
-        _ = SqliteStateDatabase(tmp_path / 'extra')
+        # Since the connection should persist, removing
+        # the database at this point should cause an error
+        # when another execute is raised
+        db_file.unlink()
+        with pytest.raises(sqlite3.OperationalError):
+            database.execute('''create table third_table
+                                (anything integer)''', {})
 
-        db_file = tmp_path / 'extra' / 'state.db'
-        assert db_file.exists()
-
-        # Check we can open the database without exceptions
-        connection = sqlite3.Connection(str(db_file))
-        connection.close()
+        # And it shouldn't have created the database again
+        assert not db_file.exists()
 
 
 class TestFileInfoDatabase(object):

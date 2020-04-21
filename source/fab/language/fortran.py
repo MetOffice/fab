@@ -301,7 +301,6 @@ class FortranNormaliser(TextReaderDecorator):
 class FortranAnalyser(Analyser):
     def __init__(self, reader: TextReader, database: SqliteStateDatabase):
         super().__init__(reader, database)
-        self._state = FortranWorkingState(database)
 
     _intrinsic_modules = ['iso_fortran_env']
 
@@ -358,7 +357,8 @@ class FortranAnalyser(Analyser):
     def run(self):
         logger = logging.getLogger(__name__)
 
-        self._state.remove_fortran_file(self._reader.filename)
+        state = FortranWorkingState(self.database)
+        state.remove_fortran_file(self._reader.filename)
 
         normalised_source = FortranNormaliser(self._reader)
         scope: List[Tuple[str, str]] = []
@@ -374,7 +374,7 @@ class FortranAnalyser(Analyser):
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
                     unit_id = FortranUnitID(unit_name, self._reader.filename)
-                    self._state.add_fortran_program_unit(unit_id)
+                    state.add_fortran_program_unit(unit_id)
                     scope.append((unit_type, unit_name))
                     continue
             use_match: Optional[Match] \
@@ -390,7 +390,7 @@ class FortranAnalyser(Analyser):
                         raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
                     unit_id = FortranUnitID(scope[0][1], self._reader.filename)
-                    self._state.add_fortran_dependency(unit_id, use_name)
+                    state.add_fortran_dependency(unit_id, use_name)
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)

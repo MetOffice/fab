@@ -1,0 +1,61 @@
+#!/bin/bash
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
+#
+# This file generates a pretend project aimed at being used to run tests on
+# the core mechanics of Fab - set the value of N below to determine the size
+# of the test project.  
+#
+# It will produce:
+#  * 1 main program .F90 file
+#  * N module .F90 files each containing one subroutine
+#
+# All of these will depend on each other in a linear chain (i.e. main program
+# depends on module_1, module_1 depends on module_2, up to module_N) with each
+# layer simply calling the enclosed subroutine (until module_N which prints a
+# simple message)
+#
+# The files get created in the directory the script is run from, and you can
+# then point Fab at that directory to run the test.  The name of the main
+# program is "test" so (at time of writing) you would run it like this:
+# 
+#       fab test /path/to/big_project
+
+N=1000
+
+cat >> main.F90 <<EOF
+program test
+use module_1, ONLY: subroutine_1
+implicit none
+call subroutine_1()
+end program test
+EOF
+
+for i in $(seq 1 $((N-1))) ; do
+    j=$((i+1))
+    cat >> module_$i.F90 <<EOF
+module module_$i
+use module_$j, ONLY: subroutine_$j
+implicit none
+contains
+subroutine subroutine_$i
+implicit none
+call subroutine_$j()
+end subroutine subroutine_$i
+end module module_$i
+EOF
+done
+
+cat >> module_$N.F90 <<EOF
+module module_$N
+implicit none
+contains
+subroutine subroutine_$N
+implicit none
+print*, "We did it!"
+end subroutine subroutine_$N
+end module module_$N
+EOF
