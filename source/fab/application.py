@@ -9,9 +9,12 @@ import sys
 from typing import Dict, List, Type, Union
 
 from fab import FabException
-from fab.database import SqliteStateDatabase
+from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.explorer import ExplorerWindow
-from fab.language import Task, Command, CommandTask
+from fab.language import \
+    Task, \
+    Command, \
+    CommandTask
 from fab.language.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
@@ -19,7 +22,7 @@ from fab.language.fortran import \
     FortranUnitID, \
     FortranCompiler, \
     FortranLinker
-from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
+from fab.source_tree import TreeDescent, ExtensionVisitor
 from fab.queue import QueueManager
 
 
