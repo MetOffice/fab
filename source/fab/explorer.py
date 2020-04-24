@@ -8,8 +8,8 @@ GUI for the database explorer.
 """
 from pathlib import Path
 import tkinter as tk
-from tkinter import messagebox
 import tkinter.ttk as ttk
+from typing import Dict, Optional
 
 from fab.database import FileInfoDatabase, StateDatabase
 from fab.language.fortran import FortranWorkingState
@@ -25,47 +25,13 @@ class ExplorerWindow(tk.Frame):
         super().__init__(self._root)
         self.pack()
 
-        self._state = state
-
         self._menu_bar = MenuBar(self._root, self)
 
-        self._notebook = ttk.Notebook(self._root)
-        self._notebook.pack(expand=1, fill='both')
-
-        file_frame = tk.Frame(self._notebook)
-        self._notebook.add(file_frame, text="File view")
-
-        file_db = FileInfoDatabase(self._state)
-        self._file_list = FileListFrame(file_frame, file_db, self)
-        self._file_details = FileInfoFrame(file_frame, file_db)
-
-        fortran_frame = tk.Frame(self._notebook)
-        self._notebook.add(fortran_frame, text="Fortran view")
-
-        fortran_db = FortranWorkingState(self._state)
-        self._unit_list = UnitListFrame(fortran_frame, fortran_db, self)
-        self._unit_details = UnitInfoFrame(fortran_frame, fortran_db, self)
+        self._tabs = TabManager(self, state)
+        self._tabs.pack(expand=1, fill='both')
 
     def exit(self):
         self._root.quit()
-
-    def change_file(self, filename: Path):
-        self._file_list.change_file(filename)
-        # Use of a magic number below is alarming but ther eis no obvious way
-        # to obtain the correct value. You just have to know it.
-        #
-        # In particular ttk.Notebook.add does not seem to return it.
-        #
-        self._notebook.select(0)
-
-    def change_file_details(self, filename: Path):
-        self._file_details.change_file(filename)
-
-    def change_unit(self, unit: str):
-        self._unit_list.change_unit(unit)
-
-    def change_unit_details(self, unit: str):
-        self._unit_details.update_info(unit)
 
 
 class MenuBar(tk.Menu):
@@ -78,29 +44,65 @@ class MenuBar(tk.Menu):
         self.add_cascade(label='Application', menu=self._app_menu)
 
 
-class FileListFrame(tk.Listbox):
-    def __init__(self, parent: tk.Frame,
-                 file_db: FileInfoDatabase,
-                 window: ExplorerWindow):
-        super().__init__(parent, selectmode=tk.BROWSE, width=40)
-        self._window = window
+class TabManager(ttk.Notebook):
+    def __init__(self, parent: tk.Frame, state: StateDatabase):
+        super().__init__(parent)
 
-        self.pack(side=tk.LEFT, fill=tk.BOTH)
-        self.bind('<ButtonRelease-1>', self._file_click)
-        self._index_map = {}
-        index = 1
+        self._id_map: Dict[str, int] = {}
+
+        file_frame = FileTab(self, state)
+        self.add(file_frame, text="File view")
+        self._id_map['file'] = 0
+
+        fortran_frame = FortranTab(self, state)
+        self.add(fortran_frame, text="Fortran view")
+        self._id_map['fortran'] = 1
+
+    def select_tab(self, identifier: str) -> None:
+        self.select(self._id_map[identifier])
+
+
+class FileTab(tk.Frame):
+    def __init__(self, parent: ttk.Notebook, database: StateDatabase, ):
+        super().__init__(parent)
+
+        file_db = FileInfoDatabase(database)
+
+        self._file_list = FileListFrame(self, file_db)
+        self._file_list.pack(side=tk.LEFT, fill=tk.BOTH)
+
+        self._file_details = FileInfoFrame(self, file_db)
+        self._file_details.pack(side=tk.LEFT, fill=tk.Y)
+
+        self.select_file(self._file_list.get_selected())
+
+    def select_file(self, filename: Path) -> None:
+        self._file_list.select(filename)
+        self._file_details.select(filename)
+
+
+class FileListFrame(tk.Listbox):
+    def __init__(self, parent: FileTab, file_db: FileInfoDatabase):
+        super().__init__(parent, selectmode=tk.BROWSE, width=40)
+        self._parent = parent
+
+        self.bind('<ButtonRelease-1>', self._click)
+        self._index_map: Dict[Path, int] = {}
+        index = 0
         for file_info in file_db:
             self.insert(index, file_info.filename)
-            self._index_map[file_info.filename] = index - 1
+            self._index_map[file_info.filename] = index
             index += 1
+        self.selection_set(0)
 
-    def change_file(self, filename: Path):
+    def get_selected(self) -> Path:
+        return Path(self.get(self.curselection()))
+
+    def select(self, filename: Path) -> None:
         self.selection_set(self._index_map[filename])
-        self._window.change_file_details(filename)
 
-    def _file_click(self, event):
-        selection = self.get(self.curselection())
-        self._window.change_file_details(Path(selection))
+    def _click(self, event):
+        self._parent.select_file(self.get_selected())
 
 
 class FileInfoFrame(tk.Frame):
@@ -109,99 +111,141 @@ class FileInfoFrame(tk.Frame):
     """
     def __init__(self, parent: tk.Frame, file_db: FileInfoDatabase):
         super().__init__(parent)
-        self.pack(side=tk.LEFT, fill=tk.Y)
-
         self._file_db = file_db
 
         tk.Label(self, text='Hash :').grid(row=0, column=0, sticky=tk.E)
         self._hash_field = tk.Entry(self, width=10)
         self._hash_field.grid(row=0, column=1, sticky=tk.W)
 
-    def change_file(self, filename: Path):
+    def select(self, filename: Path):
         info = self._file_db.get_file_info(filename)
         self._hash_field.delete(0, tk.END)
-        self._hash_field.insert(0, info.adler32)
+        self._hash_field.insert(0, str(info.adler32))
 
 
-class UnitListFrame(tk.Listbox):
-    def __init__(self, parent: tk.Frame,
-                 fortran_db: FortranWorkingState,
-                 window: ExplorerWindow):
-        super().__init__(parent, selectmode=tk.BROWSE)
-        self._window = window
+class FortranTab(tk.Frame):
+    def __init__(self, parent: ttk.Notebook, database: StateDatabase, ):
+        super().__init__(parent)
 
-        self.pack(side=tk.LEFT, fill=tk.BOTH)
-        self.bind('<ButtonRelease-1>', self._fortran_click)
-        self._index_map = {}
-        index = 1
+        fortran_db = FortranWorkingState(database)
+
+        self._unit_name = UnitNameFrame(self, fortran_db)
+        self._unit_name.grid(row=0, column=0)
+
+        self._unit_filename = UnitFileFrame(self, fortran_db)
+        self._unit_filename.grid(row=0, column=1)
+
+        self._unit_details = UnitInfoFrame(self, fortran_db)
+        self._unit_details.grid(row=0, column=2)
+
+        message = "Single-click to select, double-click to jump"
+        instructions = tk.Label(self, text=message)
+        instructions.grid(row=1, column=0, columnspan=2)
+
+        self.select_unit(self._unit_name.get_selected_unit())
+
+    def select_unit(self, unit_name: str) -> None:
+        self._unit_name.select(unit_name)
+        self._unit_filename.update_with_unit(unit_name)
+        self._unit_details.update_with_file(unit_name, self._unit_filename.get_selected_file())
+
+    def select_file(self, filename: Path) -> None:
+        self._unit_filename.select(filename)
+        self._unit_details.update_with_file(self._unit_name.get_selected_unit(), filename)
+
+
+class UnitNameFrame(tk.Frame):
+    def __init__(self, parent: FortranTab, fortran_db: FortranWorkingState):
+        super().__init__(parent)
+        self._parent = parent
+        self._fortran_db = fortran_db
+
+        tk.Label(self, text="Program unit").pack(side=tk.TOP)
+
+        self._unit_list = tk.Listbox(self, exportselection=0, selectmode=tk.BROWSE)
+        self._unit_list.pack(side=tk.BOTTOM)
+        self._unit_list.bind('<ButtonRelease-1>', self._click_unit)
+        self._unit_index_map: Dict[str, int] = {}
+        index = 0
+        current_unit = ''
         for unit_info in fortran_db:
-            self.insert(index, unit_info.unit.name)
-            self._index_map[unit_info.unit.name] = index - 1
+            if unit_info.unit.name != current_unit:
+                current_unit = unit_info.unit.name
+                self._unit_list.insert(index, current_unit)
+                self._unit_index_map[current_unit] = index
+                index += 1
+        self._unit_list.selection_set(0)
+
+    def get_selected_unit(self) -> str:
+        return self._unit_list.get(self._unit_list.curselection())
+
+    def select(self, unit_name: str) -> None:
+        self._unit_list.selection_set(self._unit_index_map[unit_name])
+
+    def _click_unit(self, event):
+        self._parent.select_unit(self.get_selected_unit())
+
+
+class UnitFileFrame(tk.Frame):
+    def __init__(self, parent: FortranTab, fortran_db: FortranWorkingState):
+        super().__init__(parent)
+        self._parent = parent
+        self._fortran_db = fortran_db
+
+        tk.Label(self, text="Found in file").pack(side=tk.TOP)
+
+        self._file_index_map: Dict[Path, int] = {}
+        self._found_in_field = tk.Listbox(self, exportselection=0, selectmode=tk.BROWSE, width=40)
+        self._found_in_field.pack(side=tk.BOTTOM)
+        self._found_in_field.config(cursor='X_cursor')
+        self._found_in_field.bind('<ButtonRelease-1>', self._click_file)
+        #self._found_in_field.bind('<Double-Button-1>', self._click_file)
+
+    def update_with_unit(self, unit: str) -> None:
+        self._file_index_map = {}
+        index = 0
+        self._found_in_field.delete(0, tk.END)
+        for info in self._fortran_db.get_program_unit(unit):
+            self._found_in_field.insert(tk.END, info.unit.found_in)
+            self._file_index_map[info.unit.found_in] = index
             index += 1
+        self._found_in_field.selection_set(0)
 
-    def change_unit(self, name: str):
-        try:
-            self.selection_set(self._index_map[name])
-            self._window.change_unit_details(name)
-        except KeyError:
-            message = f"Program unit '{name}' is not in the database."
-            messagebox.showerror('Error', message)
+    def get_selected_file(self) -> Path:
+        return Path(self._found_in_field.get(self._found_in_field.curselection()))
 
-    def _fortran_click(self, event):
-        selection = self.get(self.curselection())
-        self._window.change_unit_details(selection)
+    def select(self, filename: Optional[Path]) -> None:
+        self._found_in_field.selection_set(self._file_index_map[filename])
+
+    def _click_file(self, event):
+        self._parent.select_file(self.get_selected_file())
 
 
 class UnitInfoFrame(tk.Frame):
     """
     Details of a Fortran program unit.
     """
-    def __init__(self, parent: tk.Frame,
-                 fortran_db: FortranWorkingState,
-                 window: ExplorerWindow):
+    def __init__(self, parent: tk.Frame, fortran_db: FortranWorkingState):
         super().__init__(parent)
-        self.pack(side=tk.LEFT, fill=tk.Y)
 
         self._parent = parent
         self._fortran_db = fortran_db
-        self._window = window
 
-        tk.Label(self, text='Found in').grid(row=0, column=0)
-        self._found_in_field = tk.Listbox(self, selectmode=tk.BROWSE, width=40)
-        self._found_in_field.grid(row=1, column=0)
-        self._found_in_field.config(cursor='X_cursor')
-        self._found_in_field.bind('<Double-Button-1>', self._select_file)
+        tk.Label(self, text='Prerequisites').grid(row=0, column=0)
 
-        tk.Label(self, text='Prerequisites').grid(row=0, column=1)
         self._prerequisite_field = tk.Listbox(self, selectmode=tk.BROWSE)
-        self._prerequisite_field.grid(row=1, column=1)
+        self._prerequisite_field.grid(row=1, column=0)
         self._prerequisite_field.config(cursor='X_cursor')
-        self._prerequisite_field.bind('<Double-Button-1>',
-                                      self._select_prerequisite)
+        #self._prerequisite_field.bind('<Double-Button-1>',
+        #                              self._select_prerequisite)
 
-        tk.Label(self,
-                 text="Double-click with cross pointer").grid(row=2,
-                                                              column=0,
-                                                              columnspan=2)
-
-    def update_info(self, name: str) -> None:
-        self._found_in_field.delete(0, tk.END)
+    def update_with_file(self, unit: str, filename: Path) -> None:
         self._prerequisite_field.delete(0, tk.END)
-        for unit_info in self._fortran_db.get_program_unit(name):
-            self._found_in_field.insert(tk.END, unit_info.unit.found_in)
+        for info in self._fortran_db.get_program_unit(unit):
+            if info.unit.found_in == filename:
+                for prereq in info.depends_on:
+                    self._prerequisite_field.insert(tk.END, prereq)
+        self._prerequisite_field.selection_set(0)
 
-            # TODO: This is obviously not right, it concatenates all
-            #       dependencies from all instances of the module.
-            #
-            for unit in unit_info.depends_on:
-                self._prerequisite_field.insert(tk.END, unit)
-
-    def _select_file(self, event):
-        selected = self._found_in_field.curselection()
-        selection = self._found_in_field.get(selected)
-        self._window.change_file(Path(selection))
-
-    def _select_prerequisite(self, event):
-        selected = self._prerequisite_field.curselection()
-        selection = self._prerequisite_field.get(selected)
-        self._window.change_unit(selection)
+    def select(self, unit: str, filename: Path) -> None:
+        pass

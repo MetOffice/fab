@@ -9,6 +9,8 @@ contains
 
     function fpp_choice()
 
+        use unfound_mod, only : not_there
+
         implicit none
 
         character(3) :: fpp_choice

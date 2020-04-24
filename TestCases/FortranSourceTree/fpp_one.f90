@@ -1,6 +1,8 @@
 #if CHOOSE == ONE
 module fpp_mod
 
+    use nosuch_mod, only : nonexistant
+
     implicit none
 
     public fpp_choice
