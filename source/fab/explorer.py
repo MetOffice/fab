@@ -10,7 +10,7 @@ from pathlib import Path
 import tkinter as tk
 import tkinter.messagebox as tkm
 import tkinter.ttk as ttk
-from typing import Dict, Optional
+from typing import Dict
 
 from fab.database import FileInfoDatabase, StateDatabase
 from fab.language.fortran import FortranWorkingState
@@ -153,12 +153,13 @@ class FortranTab(tk.Frame):
     def select_unit(self, unit_name: str) -> None:
         if self._unit_name.select(unit_name):
             self._unit_filename.update_with_unit(unit_name)
-            self._unit_details.update_with_file(unit_name,
-                                                self._unit_filename.get_selected_file())
+            selected = self._unit_filename.get_selected_file()
+            self._unit_details.update_with_file(unit_name, selected)
 
     def select_file(self, filename: Path) -> None:
         self._unit_filename.select(filename)
-        self._unit_details.update_with_file(self._unit_name.get_selected_unit(), filename)
+        selected = self._unit_name.get_selected_unit()
+        self._unit_details.update_with_file(selected, filename)
 
     def goto_file(self, filename: Path) -> None:
         self._parent.goto_file(filename)
@@ -172,7 +173,9 @@ class UnitNameFrame(tk.Frame):
 
         tk.Label(self, text="Program unit").pack(side=tk.TOP)
 
-        self._unit_list = tk.Listbox(self, exportselection=0, selectmode=tk.BROWSE)
+        self._unit_list = tk.Listbox(self,
+                                     exportselection=0,
+                                     selectmode=tk.BROWSE)
         self._unit_list.pack(side=tk.BOTTOM)
         self._unit_list.bind('<ButtonRelease-1>', self._click_unit)
         self._unit_index_map: Dict[str, int] = {}
@@ -212,7 +215,10 @@ class UnitFileFrame(tk.Frame):
         tk.Label(self, text="Found in file").pack(side=tk.TOP)
 
         self._file_index_map: Dict[Path, int] = {}
-        self._found_in_field = tk.Listbox(self, exportselection=0, selectmode=tk.BROWSE, width=40)
+        self._found_in_field = tk.Listbox(self,
+                                          exportselection=0,
+                                          selectmode=tk.BROWSE,
+                                          width=40)
         self._found_in_field.pack(side=tk.BOTTOM)
         self._found_in_field.config(cursor='X_cursor')
         self._found_in_field.bind('<ButtonRelease-1>', self._click)
@@ -229,9 +235,10 @@ class UnitFileFrame(tk.Frame):
         self._found_in_field.selection_set(0)
 
     def get_selected_file(self) -> Path:
-        return Path(self._found_in_field.get(self._found_in_field.curselection()))
+        selected = self._found_in_field.curselection()
+        return Path(self._found_in_field.get(selected))
 
-    def select(self, filename: Optional[Path]) -> None:
+    def select(self, filename: Path) -> None:
         self._found_in_field.selection_set(self._file_index_map[filename])
 
     def _click(self, event) -> None:
@@ -266,7 +273,8 @@ class UnitInfoFrame(tk.Frame):
         self._prerequisite_field.selection_set(0)
 
     def get_selected_prereq(self) -> str:
-        return self._prerequisite_field.get(self._prerequisite_field.curselection())
+        selected = self._prerequisite_field.curselection()
+        return self._prerequisite_field.get(selected)
 
     def _double_click(self, event) -> None:
         self._parent.select_unit(self.get_selected_prereq())
