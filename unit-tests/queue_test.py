@@ -5,7 +5,7 @@
 ##############################################################################
 
 from fab.queue import QueueManager
-from fab.language import Task
+from fab.tasks import Task
 from pathlib import Path
 import os
 

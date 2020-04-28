@@ -8,7 +8,7 @@ Classes and methods relating to the queue system
 '''
 from typing import List
 from multiprocessing import Queue, JoinableQueue, Process
-from fab.language import Task
+from fab.tasks import Task
 
 
 class StopTask(Task):

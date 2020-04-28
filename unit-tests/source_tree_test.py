@@ -8,7 +8,7 @@ import pytest  # type: ignore
 from typing import Union, List, Dict, Type
 
 from fab.database import SqliteStateDatabase
-from fab.language import Analyser, Command, SingleFileCommand, Task
+from fab.tasks import Analyser, Command, SingleFileCommand, Task
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
 from fab.queue import QueueManager
 

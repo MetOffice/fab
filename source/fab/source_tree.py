@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Mapping, List, Union, Type
 
 from fab.database import SqliteStateDatabase
-from fab.language import \
+from fab.tasks import \
     Task, \
     Analyser, \
     CommandTask, \

@@ -22,7 +22,7 @@ from fab.database import (DatabaseDecorator,
                           StateDatabase,
                           SqliteStateDatabase,
                           WorkingStateException)
-from fab.language import \
+from fab.tasks import \
     Analyser, \
     TaskException, \
     Command, \

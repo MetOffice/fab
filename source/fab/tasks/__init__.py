@@ -2,7 +2,7 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 '''
-Modules for handling different program languages appear in this package.
+Classes for defining the main task units run by Fab.
 '''
 import subprocess
 from abc import ABC, abstractmethod

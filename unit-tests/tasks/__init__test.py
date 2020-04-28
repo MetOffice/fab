@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Union, Sequence, Dict, List
 
 from fab.database import DatabaseRows, StateDatabase
-from fab.language import Analyser, Command, CommandTask, SingleFileCommand
+from fab.tasks import Analyser, Command, CommandTask, SingleFileCommand
 from fab.reader import FileTextReader, StringTextReader
 
 

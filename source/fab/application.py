@@ -11,11 +11,11 @@ from typing import Dict, List, Type, Union
 from fab import FabException
 from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.explorer import ExplorerWindow
-from fab.language import \
+from fab.tasks import \
     Task, \
     Command, \
     CommandTask
-from fab.language.fortran import \
+from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
     FortranPreProcessor, \
