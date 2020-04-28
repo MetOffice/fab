@@ -11,7 +11,8 @@ from typing import Iterator, Union
 import pytest  # type: ignore
 
 from fab.database import SqliteStateDatabase, WorkingStateException
-from fab.tasks import CommandTask, TaskException
+from fab.tasks import TaskException
+from fab.tasks.common import CommandTask
 from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranCompiler, \

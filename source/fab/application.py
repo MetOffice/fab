@@ -13,7 +13,8 @@ from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.explorer import ExplorerWindow
 from fab.tasks import \
     Task, \
-    Command, \
+    Command
+from fab.tasks.common import \
     CommandTask
 from fab.tasks.fortran import \
     FortranAnalyser, \

@@ -14,9 +14,10 @@ from fab.database import SqliteStateDatabase
 from fab.tasks import \
     Task, \
     Analyser, \
-    CommandTask, \
     Command, \
-    SingleFileCommand, \
+    SingleFileCommand
+from fab.tasks.common import \
+    CommandTask, \
     HashCalculator
 from fab.reader import TextReader, FileTextReader, TextReaderAdler32
 from fab.queue import QueueManager
