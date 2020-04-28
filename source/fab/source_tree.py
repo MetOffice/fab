@@ -19,7 +19,7 @@ from fab.tasks import \
 from fab.tasks.common import \
     CommandTask, \
     HashCalculator
-from fab.reader import TextReader, FileTextReader, TextReaderAdler32
+from fab.reader import TextReader, FileTextReader
 from fab.queue import QueueManager
 
 
@@ -47,21 +47,20 @@ class ExtensionVisitor(TreeVisitor):
         try:
             task_class = self._extension_map[candidate.suffix]
             reader: TextReader = FileTextReader(candidate)
-            hasher: TextReaderAdler32 = TextReaderAdler32(reader)
 
             if issubclass(task_class, Analyser):
-                task: Task = task_class(hasher, self._state)
+                task: Task = task_class(reader, self._state)
             elif issubclass(task_class, SingleFileCommand):
                 flags = self._command_flags_map.get(task_class, [])
                 task = CommandTask(
-                    task_class(Path(hasher.filename), self._workspace, flags))
+                    task_class(Path(reader.filename), self._workspace, flags))
             else:
                 message = \
                     f'Unhandled class "{task_class}" in extension map.'
                 raise TypeError(message)
 
             self._queue.add_to_queue(task)
-            self._queue.add_to_queue(HashCalculator(hasher, self._state))
+            self._queue.add_to_queue(HashCalculator(reader, self._state))
 
             new_candidates.extend(task.products)
 

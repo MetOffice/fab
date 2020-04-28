@@ -7,28 +7,29 @@ Tasks which are not language specific.
 import subprocess
 from typing import List
 from pathlib import Path
+from zlib import adler32
 
 from fab.tasks import Task, Command
 from fab.database import StateDatabase, FileInfoDatabase
-from fab.reader import TextReaderAdler32
+from fab.reader import TextReader
 
 
 class HashCalculator(Task):
-    def __init__(self, hasher: TextReaderAdler32, database: StateDatabase):
-        self._hasher = hasher
+    def __init__(self, reader: TextReader, database: StateDatabase):
+        self._reader = reader
         self._database = database
 
     def run(self):
-        for _ in self._hasher.line_by_line():
-            pass  # Make sure we've read the whole file
+        fhash = 1
+        for line in self._reader.line_by_line():
+            fhash = adler32(bytes(line, encoding='utf-8'), fhash)
         file_info = FileInfoDatabase(self._database)
-        file_info.add_file_info(Path(self._hasher.filename),
-                                self._hasher.hash)
+        file_info.add_file_info(Path(self._reader.filename), fhash)
 
     @property
     def prerequisites(self) -> List[Path]:
-        if isinstance(self._hasher.filename, Path):
-            return [self._hasher.filename]
+        if isinstance(self._reader.filename, Path):
+            return [self._reader.filename]
         else:
             return []
 
