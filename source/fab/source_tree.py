@@ -8,7 +8,7 @@ Descend a directory tree or trees processing source files found along the way.
 '''
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Mapping, List, Union, Type
+from typing import Mapping, List, Union, Type, Callable
 
 from fab.database import SqliteStateDatabase
 from fab.tasks import \
@@ -20,7 +20,6 @@ from fab.tasks.common import \
     CommandTask, \
     HashCalculator
 from fab.reader import TextReader, FileTextReader
-from fab.queue import QueueManager
 
 
 class TreeVisitor(ABC):
@@ -35,12 +34,12 @@ class ExtensionVisitor(TreeVisitor):
                  command_flags_map: Mapping[Type[Command], List[str]],
                  state: SqliteStateDatabase,
                  workspace: Path,
-                 queue: QueueManager):
+                 task_handler: Callable):
         self._extension_map = extension_map
         self._command_flags_map = command_flags_map
         self._state = state
         self._workspace = workspace
-        self._queue = queue
+        self._task_handler = task_handler
 
     def visit(self, candidate: Path) -> List[Path]:
         new_candidates: List[Path] = []
@@ -59,8 +58,8 @@ class ExtensionVisitor(TreeVisitor):
                     f'Unhandled class "{task_class}" in extension map.'
                 raise TypeError(message)
 
-            self._queue.add_to_queue(task)
-            self._queue.add_to_queue(HashCalculator(reader, self._state))
+            self._task_handler(task)
+            self._task_handler(HashCalculator(reader, self._state))
 
             new_candidates.extend(task.products)
 

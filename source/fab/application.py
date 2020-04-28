@@ -72,14 +72,11 @@ class Fab(object):
 
         self._queue.run()
 
-        # TODO: This is where the threads first separate
-        #       master thread stays to manage queue workers.
-        #       One thread performs descent below.
         visitor = ExtensionVisitor(self._extension_map,
                                    self._command_flags_map,
                                    self._state,
                                    self._workspace,
-                                   self._queue)
+                                   self._queue.add_to_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
 

@@ -10,28 +10,6 @@ from typing import Union, List, Dict, Type
 from fab.database import SqliteStateDatabase
 from fab.tasks import Analyser, Command, SingleFileCommand, Task
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
-from fab.queue import QueueManager
-
-from multiprocessing import Manager
-
-
-tracker = Manager().list()
-
-
-class DummyAnalyser(Analyser):
-    def run(self):
-        tracker.append(self._reader.filename)
-
-
-class DummyCommand(SingleFileCommand):
-    @property
-    def output(self) -> List[Path]:
-        return [self._workspace / 'wiggins']
-
-    @property
-    def as_list(self) -> List[str]:
-        tracker.append(self._filename)
-        return ['cp', str(self._filename), str(self.output[0])]
 
 
 class TestExtensionVisitor(object):
@@ -41,26 +19,30 @@ class TestExtensionVisitor(object):
         (tmp_path / 'directory' / 'file.foo')\
             .write_text("Second file in directory")
 
+        tracker: List[Path] = []
+
+        class DummyTask(Analyser):
+            def run(self):
+                tracker.append(self._reader.filename)
+
         db = SqliteStateDatabase(tmp_path)
         emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.foo': DummyAnalyser
+            '.foo': DummyTask
         }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        queue.run()
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
 
-        tracker[:] = []
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        tracker.clear()
 
         test_unit.visit(tmp_path / 'test.foo')
-        queue.check_queue_done()
-        assert list(tracker) == [tmp_path / 'test.foo']
+        assert tracker == [tmp_path / 'test.foo']
 
         test_unit.visit(tmp_path / 'directory' / 'file.foo')
-        queue.check_queue_done()
-        assert list(tracker) == [tmp_path / 'test.foo',
-                                 tmp_path / 'directory' / 'file.foo']
-        queue.shutdown()
+        assert tracker == [tmp_path / 'test.foo',
+                           tmp_path / 'directory' / 'file.foo']
 
     def test_command(self, tmp_path: Path):
         (tmp_path / 'test.bar').write_text("File the first")
@@ -68,46 +50,60 @@ class TestExtensionVisitor(object):
         (tmp_path / 'directory' / 'test.bar') \
             .write_text("File the second in directory")
 
+        tracker: List[Path] = []
+
+        class DummyCommand(SingleFileCommand):
+            @property
+            def output(self) -> List[Path]:
+                return [Path(tmp_path / 'wiggins')]
+
+            @property
+            def as_list(self) -> List[str]:
+                tracker.append(self._filename)
+                return ['cp', str(self._filename), str(self.output[0])]
+
         db = SqliteStateDatabase(tmp_path)
         emap: Dict[str, Union[Type[Task], Type[Command]]] = {
             '.bar': DummyCommand
         }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        queue.run()
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
 
-        tracker[:] = []
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        tracker.clear()
 
         test_unit.visit(tmp_path / 'test.bar')
-        queue.check_queue_done()
-        assert list(tracker) == [tmp_path / 'test.bar']
+        assert tracker == [tmp_path / 'test.bar']
 
         test_unit.visit(tmp_path / 'directory' / 'test.bar')
-        queue.check_queue_done()
-        assert list(tracker) == [tmp_path / 'test.bar',
-                                 tmp_path / 'directory/test.bar']
-        queue.shutdown()
+        assert tracker == [tmp_path / 'test.bar',
+                           tmp_path / 'directory/test.bar']
 
     def test_unrecognised_extension(self, tmp_path: Path):
         (tmp_path / 'test.what').write_text('Some test file')
+
+        tracker: List[Path] = []
+
+        class DummyAnalyser(Analyser):
+            def run(self):
+                tracker.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
         emap: Dict[str, Union[Type[Task], Type[Command]]] = {
             '.expected': DummyAnalyser
         }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        queue.run()
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
 
-        tracker[:] = []
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        tracker.clear()
 
         test_unit.visit(tmp_path / 'test.what')
-        queue.check_queue_done()
-        assert list(tracker) == []
-
-        queue.shutdown()
+        assert tracker == []
 
     def test_bad_extension_map(self, tmp_path: Path):
         (tmp_path / 'test.qux').write_text('Test file')
@@ -130,8 +126,11 @@ class TestExtensionVisitor(object):
             '.qux': WhatnowCommand,
             }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
+
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
         with pytest.raises(TypeError):
             test_unit.visit(tmp_path / 'test.qux')
 
