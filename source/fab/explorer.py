@@ -152,7 +152,8 @@ class FortranTab(tk.Frame):
         self._unit_details.grid(row=0, column=2, padx=5, pady=5,
                                 sticky=tk.NE+tk.SE)
 
-        message = "Single-click to select. Cross pointer indicates double-click to jump"
+        message = "Single-click to select." \
+            + " Cross pointer indicates double-click to jump"
         instructions = tk.Label(self, text=message)
         instructions.grid(row=1, column=0, columnspan=3, sticky=tk.E+tk.W)
 
