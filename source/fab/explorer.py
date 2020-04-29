@@ -23,13 +23,14 @@ class ExplorerWindow(tk.Frame):
     def __init__(self, state: StateDatabase):
         self._root = tk.Tk()
         self._root.title("Fab Database Explorer")
+        self._root.resizable(True, True)
         super().__init__(self._root)
-        self.pack()
+        self.pack(expand=True, fill=tk.BOTH)
 
         self._menu_bar = MenuBar(self._root, self)
 
         self._tabs = TabManager(self, state)
-        self._tabs.pack(expand=1, fill='both')
+        self._tabs.pack(side=tk.TOP, expand=True, fill=tk.BOTH)
 
     def exit(self):
         self._root.quit()
@@ -74,10 +75,11 @@ class FileTab(tk.Frame):
         file_db = FileInfoDatabase(database)
 
         self._file_list = FileListFrame(self, file_db)
-        self._file_list.pack(side=tk.LEFT, fill=tk.BOTH)
+        self._file_list.pack(side=tk.LEFT, padx=5, pady=5,
+                             fill=tk.BOTH, expand=True)
 
         self._file_details = FileInfoFrame(self, file_db)
-        self._file_details.pack(side=tk.LEFT, fill=tk.Y)
+        self._file_details.pack(side=tk.LEFT, padx=10, pady=10, fill=tk.Y)
 
         self.select_file(self._file_list.get_selected())
 
@@ -135,18 +137,24 @@ class FortranTab(tk.Frame):
 
         fortran_db = FortranWorkingState(database)
 
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+
         self._unit_name = UnitNameFrame(self, fortran_db)
-        self._unit_name.grid(row=0, column=0)
+        self._unit_name.grid(row=0, column=0, padx=5, pady=5,
+                             sticky=tk.N+tk.S)
 
         self._unit_filename = UnitFileFrame(self, fortran_db)
-        self._unit_filename.grid(row=0, column=1)
+        self._unit_filename.grid(row=0, column=1, padx=5, pady=5,
+                                 sticky=tk.N+tk.E+tk.S+tk.W)
 
         self._unit_details = UnitInfoFrame(self, fortran_db)
-        self._unit_details.grid(row=0, column=2)
+        self._unit_details.grid(row=0, column=2, padx=5, pady=5,
+                                sticky=tk.NE+tk.SE)
 
         message = "Single-click to select, double-click to jump"
         instructions = tk.Label(self, text=message)
-        instructions.grid(row=1, column=0, columnspan=2)
+        instructions.grid(row=1, column=0, columnspan=3, sticky=tk.E+tk.W)
 
         self.select_unit(self._unit_name.get_selected_unit())
 
@@ -176,7 +184,7 @@ class UnitNameFrame(tk.Frame):
         self._unit_list = tk.Listbox(self,
                                      exportselection=0,
                                      selectmode=tk.BROWSE)
-        self._unit_list.pack(side=tk.BOTTOM)
+        self._unit_list.pack(side=tk.TOP, fill=tk.Y, expand=True)
         self._unit_list.bind('<ButtonRelease-1>', self._click_unit)
         self._unit_index_map: Dict[str, int] = {}
         index = 0
@@ -219,7 +227,7 @@ class UnitFileFrame(tk.Frame):
                                           exportselection=0,
                                           selectmode=tk.BROWSE,
                                           width=40)
-        self._found_in_field.pack(side=tk.BOTTOM)
+        self._found_in_field.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self._found_in_field.config(cursor='X_cursor')
         self._found_in_field.bind('<ButtonRelease-1>', self._click)
         self._found_in_field.bind('<Double-Button-1>', self._double_click)
@@ -257,10 +265,12 @@ class UnitInfoFrame(tk.Frame):
         self._parent = parent
         self._fortran_db = fortran_db
 
+        self.rowconfigure(1, weight=1)
+
         tk.Label(self, text='Prerequisites').grid(row=0, column=0)
 
         self._prerequisite_field = tk.Listbox(self, selectmode=tk.BROWSE)
-        self._prerequisite_field.grid(row=1, column=0)
+        self._prerequisite_field.grid(row=1, column=0, sticky=tk.N+tk.S)
         self._prerequisite_field.config(cursor='X_cursor')
         self._prerequisite_field.bind('<Double-Button-1>', self._double_click)
 
