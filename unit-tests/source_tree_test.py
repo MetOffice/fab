@@ -8,9 +8,8 @@ import pytest  # type: ignore
 from typing import Union, List, Dict, Type
 
 from fab.database import SqliteStateDatabase
-from fab.language import Analyser, Command, SingleFileCommand, Task
+from fab.tasks import Analyser, Command, SingleFileCommand, Task
 from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
-from fab.queue import QueueManager
 
 
 class TestExtensionVisitor(object):
@@ -31,9 +30,13 @@ class TestExtensionVisitor(object):
             '.foo': DummyTask
         }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
+
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
+
         test_unit.visit(tmp_path / 'test.foo')
         assert tracker == [tmp_path / 'test.foo']
 
@@ -64,9 +67,13 @@ class TestExtensionVisitor(object):
             '.bar': DummyCommand
         }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
+
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
+
         test_unit.visit(tmp_path / 'test.bar')
         assert tracker == [tmp_path / 'test.bar']
 
@@ -80,8 +87,6 @@ class TestExtensionVisitor(object):
         tracker: List[Path] = []
 
         class DummyAnalyser(Analyser):
-            tracker: List[Path] = []
-
             def run(self):
                 tracker.append(self._reader.filename)
 
@@ -90,9 +95,13 @@ class TestExtensionVisitor(object):
             '.expected': DummyAnalyser
         }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
+
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
+
         test_unit.visit(tmp_path / 'test.what')
         assert tracker == []
 
@@ -117,8 +126,11 @@ class TestExtensionVisitor(object):
             '.qux': WhatnowCommand,
             }
         fmap: Dict[Type[Command], List[str]] = {}
-        queue = QueueManager(1)
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, queue)
+
+        def taskrunner(task):
+            task.run()
+
+        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
         with pytest.raises(TypeError):
             test_unit.visit(tmp_path / 'test.qux')
 

@@ -8,17 +8,18 @@ Descend a directory tree or trees processing source files found along the way.
 '''
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Mapping, List, Union, Type
+from typing import Mapping, List, Union, Type, Callable
 
-from fab.database import FileInfoDatabase, SqliteStateDatabase
-from fab.language import \
+from fab.database import SqliteStateDatabase
+from fab.tasks import \
     Task, \
     Analyser, \
-    CommandTask, \
     Command, \
     SingleFileCommand
-from fab.reader import TextReader, FileTextReader, TextReaderAdler32
-from fab.queue import QueueManager
+from fab.tasks.common import \
+    CommandTask, \
+    HashCalculator
+from fab.reader import TextReader, FileTextReader
 
 
 class TreeVisitor(ABC):
@@ -33,40 +34,35 @@ class ExtensionVisitor(TreeVisitor):
                  command_flags_map: Mapping[Type[Command], List[str]],
                  state: SqliteStateDatabase,
                  workspace: Path,
-                 queue: QueueManager):
+                 task_handler: Callable):
         self._extension_map = extension_map
         self._command_flags_map = command_flags_map
         self._state = state
         self._workspace = workspace
-        self._queue = queue
+        self._task_handler = task_handler
 
     def visit(self, candidate: Path) -> List[Path]:
         new_candidates: List[Path] = []
         try:
             task_class = self._extension_map[candidate.suffix]
             reader: TextReader = FileTextReader(candidate)
-            hasher: TextReaderAdler32 = TextReaderAdler32(reader)
 
             if issubclass(task_class, Analyser):
-                task: Task = task_class(hasher, self._state)
+                task: Task = task_class(reader, self._state)
             elif issubclass(task_class, SingleFileCommand):
                 flags = self._command_flags_map.get(task_class, [])
                 task = CommandTask(
-                    task_class(Path(hasher.filename), self._workspace, flags))
+                    task_class(Path(reader.filename), self._workspace, flags))
             else:
                 message = \
                     f'Unhandled class "{task_class}" in extension map.'
                 raise TypeError(message)
-            # TODO: Make SQLite connection multiprocess safe
-            # self._queue.add_to_queue(task)
-            task.run()
+
+            self._task_handler(task)
+            self._task_handler(HashCalculator(reader, self._state))
+
             new_candidates.extend(task.products)
-            # TODO: The hasher part here likely needs to be
-            #       moved once the task is run by the queue
-            for _ in hasher.line_by_line():
-                pass  # Make sure we've read the whole file.
-            file_info = FileInfoDatabase(self._state)
-            file_info.add_file_info(candidate, hasher.hash)
+
         except KeyError:
             pass
         return new_candidates

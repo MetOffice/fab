@@ -9,17 +9,21 @@ import sys
 from typing import Dict, List, Type, Union
 
 from fab import FabException
-from fab.database import SqliteStateDatabase
+from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.explorer import ExplorerWindow
-from fab.language import Task, Command, CommandTask
-from fab.language.fortran import \
+from fab.tasks import \
+    Task, \
+    Command
+from fab.tasks.common import \
+    CommandTask
+from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
     FortranPreProcessor, \
     FortranUnitID, \
     FortranCompiler, \
     FortranLinker
-from fab.source_tree import TreeDescent, ExtensionVisitor, FileInfoDatabase
+from fab.source_tree import TreeDescent, ExtensionVisitor
 from fab.queue import QueueManager
 
 
@@ -68,14 +72,11 @@ class Fab(object):
 
         self._queue.run()
 
-        # TODO: This is where the threads first separate
-        #       master thread stays to manage queue workers.
-        #       One thread performs descent below.
         visitor = ExtensionVisitor(self._extension_map,
                                    self._command_flags_map,
                                    self._state,
                                    self._workspace,
-                                   self._queue)
+                                   self._queue.add_to_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
 

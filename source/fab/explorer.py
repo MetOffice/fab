@@ -13,7 +13,7 @@ import tkinter.ttk as ttk
 from typing import Dict
 
 from fab.database import FileInfoDatabase, StateDatabase
-from fab.language.fortran import FortranWorkingState
+from fab.tasks.fortran import FortranWorkingState
 
 
 class ExplorerWindow(tk.Frame):

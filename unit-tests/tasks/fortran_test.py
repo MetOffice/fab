@@ -11,16 +11,18 @@ from typing import Iterator, Union
 import pytest  # type: ignore
 
 from fab.database import SqliteStateDatabase, WorkingStateException
-from fab.language import CommandTask, TaskException
-from fab.language.fortran import (FortranAnalyser,
-                                  FortranCompiler,
-                                  FortranInfo,
-                                  FortranLinker,
-                                  FortranNormaliser,
-                                  FortranPreProcessor,
-                                  FortranUnitID,
-                                  FortranUnitUnresolvedID,
-                                  FortranWorkingState)
+from fab.tasks import TaskException
+from fab.tasks.common import CommandTask
+from fab.tasks.fortran import \
+    FortranAnalyser, \
+    FortranCompiler, \
+    FortranInfo, \
+    FortranLinker, \
+    FortranNormaliser, \
+    FortranPreProcessor, \
+    FortranUnitID, \
+    FortranUnitUnresolvedID, \
+    FortranWorkingState
 from fab.reader import FileTextReader, StringTextReader, TextReader
 
 

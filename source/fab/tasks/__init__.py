@@ -2,9 +2,8 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 '''
-Modules for handling different program languages appear in this package.
+Base classes for defining the main task units run by Fab.
 '''
-import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
@@ -35,8 +34,8 @@ class Task(ABC):
 
 class Analyser(Task, ABC):
     def __init__(self, reader: TextReader, database: StateDatabase):
-        self._database = database
         self._reader = reader
+        self._database = database
 
     @property
     def database(self):
@@ -88,26 +87,3 @@ class SingleFileCommand(Command, ABC):
     @property
     def input(self) -> List[Path]:
         return [self._filename]
-
-
-class CommandTask(Task):
-    def __init__(self, command: Command):
-        self._command = command
-
-    def run(self):
-        if self._command.stdout:
-            process = subprocess.run(self._command.as_list,
-                                     check=True,
-                                     stdout=subprocess.PIPE)
-            with self._command.output[0].open('wb') as out_file:
-                out_file.write(process.stdout)
-        else:
-            _ = subprocess.run(self._command.as_list, check=True)
-
-    @property
-    def prerequisites(self) -> List[Path]:
-        return self._command.input
-
-    @property
-    def products(self) -> List[Path]:
-        return self._command.output

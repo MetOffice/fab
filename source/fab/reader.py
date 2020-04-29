@@ -6,7 +6,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import IO, Iterator, List, Text, Union
-from zlib import adler32
 
 
 class TextReader(ABC):
@@ -68,18 +67,3 @@ class TextReaderDecorator(TextReader, ABC):
     @property
     def filename(self):
         return self._source.filename
-
-
-class TextReaderAdler32(TextReaderDecorator):
-    def __init__(self, source: TextReader):
-        super().__init__(source)
-        self._hash = 1
-
-    @property
-    def hash(self):
-        return self._hash
-
-    def line_by_line(self):
-        for line in self._source.line_by_line():
-            self._hash = adler32(bytes(line, encoding='utf-8'), self._hash)
-            yield line

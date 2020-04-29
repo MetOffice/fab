@@ -8,7 +8,7 @@ from textwrap import dedent
 
 from pytest import fail  # type: ignore
 
-from fab.reader import FileTextReader, StringTextReader, TextReaderAdler32
+from fab.reader import FileTextReader, StringTextReader
 
 
 class TestFileTextReader:
@@ -51,19 +51,6 @@ class TestStringTextReader:
         content = [line for line in test_unit.line_by_line()]
         assert content == ['This is my test file\n',
                            'It has two lines']
-
-        # Call again on a now read file...
-        for _ in test_unit.line_by_line():
-            fail(' No lines should be generated from a read file')
-
-
-class TestTextReaderAdler32:
-    def test_all(self):
-        source = StringTextReader('Bibble\nBobble babble\n')
-        test_unit = TextReaderAdler32(source)
-        content = [line for line in test_unit.line_by_line()]
-        assert content == ['Bibble\n', 'Bobble babble\n']
-        assert test_unit.hash == 1329530643
 
         # Call again on a now read file...
         for _ in test_unit.line_by_line():
