@@ -283,6 +283,38 @@ class TestFortranNormaliser(object):
         assert result == ["write(6, '(A)') 'Look",
                           ' call the_thing( first, second, third )']
 
+    def test_get_unit_info(self, tmp_path):
+        database = SqliteStateDatabase(tmp_path)
+        test_unit = FortranWorkingState(database)
+
+        test_unit.add_fortran_program_unit(FortranUnitID('foo',
+                                                         tmp_path / 'foo.f90'))
+        test_unit.add_fortran_program_unit(FortranUnitID('bar',
+                                                         tmp_path / 'bar.F90'))
+        test_unit.add_fortran_program_unit(FortranUnitID('bar',
+                                                         tmp_path / 'brb.f90'))
+        test_unit.add_fortran_program_unit(FortranUnitID('baz',
+                                                         tmp_path / 'baz.f90'))
+        test_unit.add_fortran_dependency(FortranUnitID('bar',
+                                                       tmp_path / 'brb.f90'),
+                                         'foo')
+        test_unit.add_fortran_dependency(FortranUnitID('baz',
+                                                       tmp_path / 'baz.f90'),
+                                         'foo')
+        test_unit.add_fortran_dependency(FortranUnitID('baz',
+                                                       tmp_path / 'baz.f90'),
+                                         'bar')
+
+        assert test_unit.get_program_unit('foo') \
+            == [FortranInfo(FortranUnitID('foo', tmp_path/'foo.f90'))]
+        assert test_unit.get_program_unit('bar') \
+            == [FortranInfo(FortranUnitID('bar', tmp_path/'bar.F90')),
+                FortranInfo(FortranUnitID('bar', tmp_path/'brb.f90'),
+                            ['foo'])]
+        assert test_unit.get_program_unit('baz') \
+            == [FortranInfo(FortranUnitID('baz', tmp_path/'baz.f90'),
+                            ['bar', 'foo'])]
+
 
 class TestFortranAnalyser(object):
     def test_analyser_program_units(self, caplog, tmp_path):

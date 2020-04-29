@@ -10,10 +10,8 @@ from typing import Dict, List, Type, Union
 
 from fab import FabException
 from fab.database import SqliteStateDatabase
-from fab.language import \
-    Task, \
-    Command, \
-    CommandTask
+from fab.explorer import ExplorerWindow
+from fab.language import Task, Command, CommandTask
 from fab.language.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
@@ -208,3 +206,12 @@ class Dump(object):
             print(f"    Found in      : {info.unit.found_in}", file=stream)
             print(f"    Prerequisites : {', '.join(info.depends_on)}",
                   file=stream)
+
+
+class Explorer:
+    def __init__(self, workspace: Path):
+        self._state = SqliteStateDatabase(workspace)
+        self._window = ExplorerWindow(self._state)
+
+    def run(self):
+        self._window.mainloop()

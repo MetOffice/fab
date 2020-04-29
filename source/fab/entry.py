@@ -123,5 +123,38 @@ def dump_entry() -> None:
     application.run()
 
 
+def explorer_cli() -> argparse.Namespace:
+    """
+    Parse the command line for database explorer arguments.
+    """
+    description = "Explore a Fab state database."
+    parser = argparse.ArgumentParser(add_help=False,
+                                     description=description)
+    # We add our own help so as to capture as many permutations of how people
+    # might ask for help. The default only looks for a subset.
+    parser.add_argument('-h', '-help', '--help', action='help',
+                        help="Print this help and exit")
+    parser.add_argument('-V', '--version', action='version',
+                        version=fab.__version__,
+                        help="Print version identifier and exit")
+    parser.add_argument('-w', '--workspace', type=Path,
+                        help="Directory containing working files.")
+    return parser.parse_args()
+
+
+def fab_explorer() -> None:
+    """
+    Entry point for database exploration tool.
+    """
+    arguments = explorer_cli()
+
+    # TODO: We probably need a better default here.
+    if not arguments.workspace:
+        arguments.workspace = Path.cwd() / 'working'
+
+    application = fab.application.Explorer(arguments.workspace)
+    application.run()
+
+
 if __name__ == '__main__':
     raise Exception("Invoke using entry points only")
