@@ -71,7 +71,7 @@ def fab_entry() -> None:
         logger.setLevel(logging.WARNING)
 
     if not arguments.workspace:
-        arguments.workspace = Path.cwd() / 'working'
+        arguments.workspace = arguments.source / 'working'
 
     application = fab.application.Fab(arguments.workspace,
                                       arguments.target,
