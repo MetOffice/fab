@@ -17,8 +17,7 @@ from fab.tasks import \
     Command, \
     SingleFileCommand
 from fab.tasks.common import \
-    CommandTask, \
-    HashCalculator
+    CommandTask
 from fab.reader import TextReader, FileTextReader
 
 
@@ -59,7 +58,6 @@ class ExtensionVisitor(TreeVisitor):
                 raise TypeError(message)
 
             self._task_handler(task)
-            self._task_handler(HashCalculator(reader, self._state))
 
             new_candidates.extend(task.products)
 

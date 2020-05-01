@@ -11,11 +11,11 @@ from typing import Dict, List, Type, Union
 from fab import FabException
 from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.explorer import ExplorerWindow
+from fab.reader import FileTextReader
 from fab.tasks import \
     Task, \
     Command
-from fab.tasks.common import \
-    CommandTask
+from fab.tasks.common import CommandTask, HashCalculator
 from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranWorkingState, \
@@ -68,6 +68,12 @@ class Fab(object):
             )
         self._queue = QueueManager(n_procs - 1)
 
+    def _extend_task_queue(self, task: Task) -> None:
+        self._queue.add_to_queue(task)
+        for prereq in task.prerequisites:
+            self._queue.add_to_queue(HashCalculator(FileTextReader(prereq),
+                                                    self._state))
+
     def run(self, source: Path):
 
         self._queue.run()
@@ -76,7 +82,7 @@ class Fab(object):
                                    self._command_flags_map,
                                    self._state,
                                    self._workspace,
-                                   self._queue.add_to_queue)
+                                   self._extend_task_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
 
