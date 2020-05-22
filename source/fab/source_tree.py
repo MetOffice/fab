@@ -3,9 +3,9 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-'''
+"""
 Descend a directory tree or trees processing source files found along the way.
-'''
+"""
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Mapping, List, Union, Type, Callable
@@ -17,15 +17,14 @@ from fab.tasks import \
     Command, \
     SingleFileCommand
 from fab.tasks.common import \
-    CommandTask, \
-    HashCalculator
+    CommandTask
 from fab.reader import TextReader, FileTextReader
 
 
 class TreeVisitor(ABC):
     @abstractmethod
     def visit(self, candidate: Path) -> List[Path]:
-        raise NotImplementedError('Abstract method must be implemented')
+        raise NotImplementedError("Abstract method must be implemented")
 
 
 class ExtensionVisitor(TreeVisitor):
@@ -55,11 +54,10 @@ class ExtensionVisitor(TreeVisitor):
                     task_class(Path(reader.filename), self._workspace, flags))
             else:
                 message = \
-                    f'Unhandled class "{task_class}" in extension map.'
+                    f"Unhandled class '{task_class}' in extension map."
                 raise TypeError(message)
 
             self._task_handler(task)
-            self._task_handler(HashCalculator(reader, self._state))
 
             new_candidates.extend(task.products)
 
