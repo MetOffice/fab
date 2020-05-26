@@ -12,7 +12,10 @@ import multiprocessing
 from pathlib import Path
 import sys
 
-import fab.application
+import fab.builder
+import fab.dumper
+import fab.grabber
+import fab.explorer
 
 
 def fab_cli() -> argparse.Namespace:
@@ -71,13 +74,13 @@ def fab_entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-    application = fab.application.Fab(arguments.workspace,
-                                      arguments.target,
-                                      arguments.exec_name,
-                                      arguments.fpp_flags,
-                                      arguments.fc_flags,
-                                      arguments.ld_flags,
-                                      arguments.nprocs)
+    application = fab.builder.Fab(arguments.workspace,
+                                  arguments.target,
+                                  arguments.exec_name,
+                                  arguments.fpp_flags,
+                                  arguments.fc_flags,
+                                  arguments.ld_flags,
+                                  arguments.nprocs)
     application.run(arguments.source)
 
 
@@ -117,7 +120,7 @@ def grab_entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-        application = fab.application.Grab(arguments.workspace)
+        application = fab.grabber.Grab(arguments.workspace)
         application.run(arguments.repositories)
 
 
@@ -155,7 +158,7 @@ def dump_entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-    application = fab.application.Dump(arguments.workspace)
+    application = fab.dumper.Dump(arguments.workspace)
     application.run()
 
 
@@ -185,7 +188,7 @@ def fab_explorer() -> None:
     """
     arguments = explorer_cli()
 
-    application = fab.application.Explorer(arguments.workspace)
+    application = fab.explorer.Explorer(arguments.workspace)
     application.run()
 
 

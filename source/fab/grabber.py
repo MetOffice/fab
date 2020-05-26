@@ -3,8 +3,17 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-# Each class in application.py embodies an entire utility. In effect the
-# "unit" is the entire tool. As such any unit testing would effectively be
-# system testing.
-#
-# TODO: We may wish to consider how much stuff is in these top level objects.
+"""
+Core of the source extraction tool.
+"""
+
+from pathlib import Path
+from typing import Sequence
+
+
+class Grab(object):
+    def __init__(self, workspace: Path):
+        self._workspace = workspace
+
+    def run(self, repositories: Sequence[str]) -> None:
+        pass
