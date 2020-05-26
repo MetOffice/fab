@@ -4,6 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from collections import defaultdict
+import logging
 from pathlib import Path
 from typing import Dict, List, Type, Union
 
@@ -23,6 +24,70 @@ from fab.tasks.fortran import \
     FortranLinker
 from fab.source_tree import TreeDescent, ExtensionVisitor
 from fab.queue import QueueManager
+
+
+def fab_entry() -> None:
+    """
+    The core Fab build tool.
+    """
+    import argparse
+    import multiprocessing
+    import sys
+    import fab
+
+    logger = logging.getLogger('fab')
+    logger.addHandler(logging.StreamHandler(sys.stderr))
+
+    description = 'Flexible build system for scientific software.'
+    parser = argparse.ArgumentParser(add_help=False,
+                                     description=description)
+    parser.add_argument('-h', '-help', '--help', action='help',
+                        help='Print this help and exit')
+    parser.add_argument('-V', '--version', action='version',
+                        version=fab.__version__,
+                        help='Print version identifier and exit')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Produce a running commentary on progress')
+    parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
+                        default=Path.cwd() / 'working',
+                        help='Directory for working files.')
+    parser.add_argument('--nprocs', action='store', type=int, default=2,
+                        choices=range(2, multiprocessing.cpu_count()),
+                        help='Provide number of processors available for use,'
+                             'default is 2 if not set.')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--fpp-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran PreProcessor ')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--fc-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran Compiler')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--ld-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran Linker')
+    # TODO: Name for executable will eventually come from configuration
+    parser.add_argument('--exec-name', action='store', type=str, default='',
+                        help='Name of executable (default is the name of '
+                        'the target program)')
+    # TODO: Target/s will eventually come from configuration
+    parser.add_argument('target', action='store', type=str,
+                        help='The top level unit name to compile')
+    parser.add_argument('source', type=Path,
+                        help='The path of the source tree to build')
+    arguments = parser.parse_args()
+
+    if arguments.verbose:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
+
+    application = fab.builder.Fab(arguments.workspace,
+                                  arguments.target,
+                                  arguments.exec_name,
+                                  arguments.fpp_flags,
+                                  arguments.fc_flags,
+                                  arguments.ld_flags,
+                                  arguments.nprocs)
+    application.run(arguments.source)
 
 
 class Fab(object):

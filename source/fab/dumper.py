@@ -6,12 +6,46 @@
 """
 Core of the database dump application.
 """
-
+import logging
 from pathlib import Path
 import sys
 
 from fab.database import FileInfoDatabase, SqliteStateDatabase
 from fab.tasks.fortran import FortranWorkingState
+
+
+def dump_entry() -> None:
+    """
+    Dump a state database from a working directory.
+    """
+    import argparse
+    import fab
+
+    logger = logging.getLogger('fab-dumper')
+    logger.addHandler(logging.StreamHandler(sys.stderr))
+
+    description = 'Flexible build system for scientific software.'
+    parser = argparse.ArgumentParser(add_help=False,
+                                     description=description)
+    parser.add_argument('-h', '-help', '--help', action='help',
+                        help='Print this help and exit')
+    parser.add_argument('-V', '--version', action='version',
+                        version=fab.__version__,
+                        help='Print version identifier and exit')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Produce a running commentary on progress')
+    parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
+                        default=Path.cwd() / 'working',
+                        help='Directory for working files.')
+    arguments = parser.parse_args()
+
+    if arguments.verbose:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
+
+    application = Dump(arguments.workspace)
+    application.run()
 
 
 class Dump(object):

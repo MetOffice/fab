@@ -16,14 +16,32 @@ from fab.database import FileInfoDatabase, StateDatabase
 from fab.tasks.fortran import FortranWorkingState
 
 
-class Explorer:
-    def __init__(self, workspace: Path):
-        from fab.database import SqliteStateDatabase
-        self._state = SqliteStateDatabase(workspace)
-        self._window = ExplorerWindow(self._state)
+def explorer_entry() -> None:
+    """
+    Entry point for database exploration tool.
+    """
+    import argparse
+    import fab
+    from fab.database import SqliteStateDatabase
 
-    def run(self):
-        self._window.mainloop()
+    description = "Explore a Fab state database."
+    parser = argparse.ArgumentParser(add_help=False,
+                                     description=description)
+    # We add our own help so as to capture as many permutations of how people
+    # might ask for help. The default only looks for a subset.
+    parser.add_argument('-h', '-help', '--help', action='help',
+                        help="Print this help and exit")
+    parser.add_argument('-V', '--version', action='version',
+                        version=fab.__version__,
+                        help="Print version identifier and exit")
+    parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
+                        default=Path.cwd() / 'working',
+                        help="Directory containing working files.")
+    arguments = parser.parse_args()
+
+    state = SqliteStateDatabase(arguments.workspace)
+    window = ExplorerWindow(state)
+    window.mainloop()
 
 
 class ExplorerWindow(tk.Frame):
