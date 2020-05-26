@@ -30,6 +30,7 @@ def fab_cli() -> argparse.Namespace:
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Produce a running commentary on progress')
     parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
+                        default=Path.cwd() / 'working',
                         help='Directory for working files.')
     parser.add_argument('--nprocs', action='store', type=int, default=2,
                         choices=range(2, multiprocessing.cpu_count()),
@@ -70,9 +71,6 @@ def fab_entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-    if not arguments.workspace:
-        arguments.workspace = Path.cwd() / 'working'
-
     application = fab.application.Fab(arguments.workspace,
                                       arguments.target,
                                       arguments.exec_name,
@@ -81,6 +79,46 @@ def fab_entry() -> None:
                                       arguments.ld_flags,
                                       arguments.nprocs)
     application.run(arguments.source)
+
+
+def grab_cli() -> argparse.Namespace:
+    """
+    Parse command line arguments for extraction tool.
+    """
+    description = "Build a source tree from extracted source."
+    parser = argparse.ArgumentParser(add_help=False,
+                                     description=description)
+    parser.add_argument('-h', '-help', '--help', action='help',
+                        help="Print this help and exit.")
+    parser.add_argument('-V', '--version', action='version',
+                        version=fab.__version__,
+                        help="Print version identifier and exit.")
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help="Produce a running commentary on progress.")
+    parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
+                        default=Path.cwd() / 'working',
+                        help="Directory for working files.")
+    parser.add_argument('repositories', nargs='+', metavar='URL',
+                        help="Location from which to extract source.")
+    return parser.parse_args()
+
+
+def grab_entry() -> None:
+    """
+    Extract and merge up a source tree from several repositories.
+    """
+    logger = logging.getLogger('fab-grab')
+    logger.addHandler(logging.StreamHandler(sys.stderr))
+
+    arguments = grab_cli()
+
+    if arguments.verbose:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
+
+        application = fab.application.Grab(arguments.workspace)
+        application.run(arguments.repositories)
 
 
 def dump_cli() -> argparse.Namespace:
@@ -98,6 +136,7 @@ def dump_cli() -> argparse.Namespace:
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Produce a running commentary on progress')
     parser.add_argument('-w', '--workspace', metavar='FILENAME', type=Path,
+                        default=Path.cwd() / 'working',
                         help='Directory for working files.')
     return parser.parse_args()
 
@@ -115,9 +154,6 @@ def dump_entry() -> None:
         logger.setLevel(logging.INFO)
     else:
         logger.setLevel(logging.WARNING)
-
-    if not arguments.workspace:
-        arguments.workspace = Path.cwd() / 'working'
 
     application = fab.application.Dump(arguments.workspace)
     application.run()
@@ -138,6 +174,7 @@ def explorer_cli() -> argparse.Namespace:
                         version=fab.__version__,
                         help="Print version identifier and exit")
     parser.add_argument('-w', '--workspace', type=Path,
+                        default=Path.cwd() / 'working',
                         help="Directory containing working files.")
     return parser.parse_args()
 
@@ -147,10 +184,6 @@ def fab_explorer() -> None:
     Entry point for database exploration tool.
     """
     arguments = explorer_cli()
-
-    # TODO: We probably need a better default here.
-    if not arguments.workspace:
-        arguments.workspace = Path.cwd() / 'working'
 
     application = fab.application.Explorer(arguments.workspace)
     application.run()
