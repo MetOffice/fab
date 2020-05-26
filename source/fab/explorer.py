@@ -16,6 +16,16 @@ from fab.database import FileInfoDatabase, StateDatabase
 from fab.tasks.fortran import FortranWorkingState
 
 
+class Explorer:
+    def __init__(self, workspace: Path):
+        from fab.database import SqliteStateDatabase
+        self._state = SqliteStateDatabase(workspace)
+        self._window = ExplorerWindow(self._state)
+
+    def run(self):
+        self._window.mainloop()
+
+
 class ExplorerWindow(tk.Frame):
     """
     Main window of the database explorer.
