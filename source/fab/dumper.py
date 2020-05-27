@@ -16,7 +16,7 @@ from fab.tasks.fortran import FortranWorkingState
 
 def entry() -> None:
     """
-    Dump a state database from a working directory.
+    Entry point for the Fab state database dump tool.
     """
     import argparse
     import fab
@@ -27,6 +27,8 @@ def entry() -> None:
     description = 'Flexible build system for scientific software.'
     parser = argparse.ArgumentParser(add_help=False,
                                      description=description)
+    # We add our own help so as to capture as many permutations of how people
+    # might ask for help. The default only looks for a subset.
     parser.add_argument('-h', '-help', '--help', action='help',
                         help='Print this help and exit')
     parser.add_argument('-V', '--version', action='version',

@@ -28,7 +28,7 @@ from fab.queue import QueueManager
 
 def entry() -> None:
     """
-    The core Fab build tool.
+    Entry point for the Fab build tool.
     """
     import argparse
     import multiprocessing
@@ -41,6 +41,8 @@ def entry() -> None:
     description = 'Flexible build system for scientific software.'
     parser = argparse.ArgumentParser(add_help=False,
                                      description=description)
+    # We add our own help so as to capture as many permutations of how people
+    # might ask for help. The default only looks for a subset.
     parser.add_argument('-h', '-help', '--help', action='help',
                         help='Print this help and exit')
     parser.add_argument('-V', '--version', action='version',
@@ -67,7 +69,7 @@ def entry() -> None:
     # TODO: Name for executable will eventually come from configuration
     parser.add_argument('--exec-name', action='store', type=str, default='',
                         help='Name of executable (default is the name of '
-                        'the target program)')
+                             'the target program)')
     # TODO: Target/s will eventually come from configuration
     parser.add_argument('target', action='store', type=str,
                         help='The top level unit name to compile')
@@ -80,13 +82,13 @@ def entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-    application = fab.builder.Fab(arguments.workspace,
-                                  arguments.target,
-                                  arguments.exec_name,
-                                  arguments.fpp_flags,
-                                  arguments.fc_flags,
-                                  arguments.ld_flags,
-                                  arguments.nprocs)
+    application = Fab(arguments.workspace,
+                      arguments.target,
+                      arguments.exec_name,
+                      arguments.fpp_flags,
+                      arguments.fc_flags,
+                      arguments.ld_flags,
+                      arguments.nprocs)
     application.run(arguments.source)
 
 
@@ -172,7 +174,7 @@ class Fab(object):
         if len(target_info) > 1:
             alt_filenames = [str(info.unit.found_in) for info in target_info]
             message = f"Ambiguous top-level program unit '{self._target}', " \
-                f"found in: {', '.join(alt_filenames)}"
+                      f"found in: {', '.join(alt_filenames)}"
             raise FabException(message)
         unit_to_process: List[FortranUnitID] = [target_info[0].unit]
 
@@ -200,7 +202,7 @@ class Fab(object):
                 if len(alt_prereqs) > 1:
                     filenames = [str(path) for path in alt_prereqs]
                     message = f"Ambiguous prerequiste '{name}' " \
-                        f"found in: {', '.join(filenames)}"
+                              f"found in: {', '.join(filenames)}"
                     raise FabException(message)
                 unit_to_process.append(alt_prereqs[0])
 

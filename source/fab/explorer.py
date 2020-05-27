@@ -18,7 +18,7 @@ from fab.tasks.fortran import FortranWorkingState
 
 def entry() -> None:
     """
-    Entry point for database exploration tool.
+    Entry point for Fab database exploration tool.
     """
     import argparse
     import fab

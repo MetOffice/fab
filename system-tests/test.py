@@ -3,11 +3,11 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-'''
+"""
 System testing for Fab.
 
 Currently runs the tool as a subprocess but should also use it as a library.
-'''
+"""
 import argparse
 import datetime
 import difflib
@@ -27,19 +27,19 @@ from systest import Sequencer
 
 
 class RunTestCase(systest.TestCase):
-    '''
+    """
     Base class for tests containing useful utility functions.
-    '''
+    """
 
     def run_command_check_output(self,
                                  command: List[str],
                                  environment: Dict,
                                  expected: str):
-        '''
+        """
         Run ``command`` in the given ``environment`` and then compare
         its stdout to some ``expected`` output, raising an exception
         if either the command fails or the output disagrees.
-        '''
+        """
         thread: subprocess.Popen = subprocess.Popen(command,
                                                     env=environment,
                                                     stdout=subprocess.PIPE,
@@ -59,12 +59,12 @@ class RunTestCase(systest.TestCase):
 
     @staticmethod
     def _assert_diff(first, second):
-        '''
+        """
         Raise an exception if ``first`` and ``seconds`` are not the same.
 
         It is assumed that the arguments are multi-line strings and the
-        exception will contain a "diff" dervied from them.
-        '''
+        exception will contain a "diff" derived from them.
+        """
         if first != second:
             filename, line, _, _ = traceback.extract_stack()[-2]
             differ = difflib.Differ()
@@ -78,10 +78,10 @@ class RunTestCase(systest.TestCase):
 
 
 class ExecTestCase(RunTestCase):
-    '''
+    """
     Test case which expects to run an executable and
     compare its output with an expected result.
-    '''
+    """
 
     def __init__(self,
                  test_directory: Path,
@@ -103,29 +103,29 @@ class ExecTestCase(RunTestCase):
 
 
 class PythonTestCase(RunTestCase):
-    '''
+    """
     Test case which expects to run a Python entry point and
     compare its output with an expected result.
-    '''
+    """
 
     def __init__(self,
                  test_directory: Path,
                  working_dir: Path,
                  expectation_file: Path,
-                 entry_point: str,
+                 module: str,
                  name: str,
                  args: Sequence[str] = ()):
         super().__init__(name=name)
         self._test_directory: Path = test_directory
         self._working_dir: Path = working_dir
-        self._entry_point = entry_point
+        self._module = module
         self._arguments = args
         self._expected = expectation_file.read_text('utf-8') \
             .splitlines(keepends=True)
 
     def run(self):
-        script = 'import sys; import fab.entry; ' \
-                 f'sys.exit(fab.entry.{self._entry_point}())'
+        script = f'import sys; import fab.{self._module}; ' \
+                 f'sys.exit(fab.{self._module}.entry())'
         command = ['python3', '-c', script,
                    '-w', str(self._working_dir)]
         command.extend(self._arguments)
@@ -146,8 +146,9 @@ class PythonTestCase(RunTestCase):
 
 
 class CompiledExecTestCase(ExecTestCase):
-    '''Run the exec produced by Fab and check its output.'''
-
+    """
+    Run the exec produced by Fab and check its output.
+    """
     # The result is held in a file 'expected.exec.txt' in the test directory.
     #
     # This comment exists as the framework hijacks the docstring for output.
@@ -172,8 +173,9 @@ class CompiledExecTestCase(ExecTestCase):
 
 
 class FabTestCase(PythonTestCase):
-    '''Run Fab build tool against source tree and validate result.'''
-
+    """
+    Run Fab build tool against source tree and validate result.
+    """
     # The result is held in a file 'expected.fab.txt' in the test directory.
     #
     # This comment exists as the framework hijacks the docstring for output.
@@ -206,7 +208,7 @@ class FabTestCase(PythonTestCase):
         super().__init__(test_directory,
                          test_directory / 'working',
                          test_directory / expectation_file,
-                         'fab_entry',
+                         'builder',
                          f'{test_directory.stem} - Running Fab',
                          args)
 
@@ -217,8 +219,9 @@ class FabTestCase(PythonTestCase):
 
 
 class DumpTestCase(PythonTestCase):
-    '''Run Fab dump tool against working directory and validate result.'''
-
+    """
+    Run Fab dump tool against working directory and validate result.
+    """
     # The result is held in a file 'expected.dump.txt' in the test directory.
     #
     # This comment exists as the framework hijacks the docstring for output.
@@ -235,7 +238,7 @@ class DumpTestCase(PythonTestCase):
         super().__init__(test_directory,
                          test_directory / 'working',
                          test_directory / expectation_file,
-                         'dump_entry',
+                         'dumper',
                          f'{test_directory.stem} - Running Fab dump',
                          [])
 
