@@ -10,7 +10,6 @@ Currently runs the tool as a subprocess but should also use it as a library.
 """
 import argparse
 import datetime
-import difflib
 import logging
 from logging import StreamHandler, FileHandler
 import os.path
@@ -19,7 +18,6 @@ import shutil
 import subprocess
 import sys
 import os
-import traceback
 from typing import List, Sequence, Dict
 
 import systest  # type: ignore
@@ -34,7 +32,7 @@ class RunTestCase(systest.TestCase):
     def run_command_check_output(self,
                                  command: List[str],
                                  environment: Dict,
-                                 expected: str):
+                                 expected: List[str]):
         """
         Run ``command`` in the given ``environment`` and then compare
         its stdout to some ``expected`` output, raising an exception
@@ -54,27 +52,8 @@ class RunTestCase(systest.TestCase):
             print('    stderr: ' + stderr.decode('utf-8'))
 
         self.assert_true(thread.returncode == 0)
-        self._assert_diff(stdout.decode('utf-8').splitlines(keepends=True),
-                          expected)
-
-    @staticmethod
-    def _assert_diff(first, second):
-        """
-        Raise an exception if ``first`` and ``seconds`` are not the same.
-
-        It is assumed that the arguments are multi-line strings and the
-        exception will contain a "diff" derived from them.
-        """
-        if first != second:
-            filename, line, _, _ = traceback.extract_stack()[-2]
-            differ = difflib.Differ()
-            diff = differ.compare(first, second)
-
-            text = ''.join(diff)
-            raise systest.TestCaseFailedError(
-                '{}:{}: Mismatch found:\n{}'.format(filename,
-                                                    line,
-                                                    text))
+        lines = stdout.decode('utf-8').splitlines(keepends=True)
+        self.assert_text_equal(lines, expected)
 
 
 class ExecTestCase(RunTestCase):
@@ -84,11 +63,10 @@ class ExecTestCase(RunTestCase):
     """
 
     def __init__(self,
-                 test_directory: Path,
                  expectation_file: Path,
                  executable: Path,
                  name: str,
-                 args: Sequence[str] = ()):
+                 args: List[str] = ()):
         super().__init__(name=name)
         self._arguments = args
         self._executable = executable
@@ -165,8 +143,7 @@ class CompiledExecTestCase(ExecTestCase):
 
         executable = test_directory / 'working' / 'fab_test'
 
-        super().__init__(test_directory,
-                         test_directory / expectation_file,
+        super().__init__(test_directory / expectation_file,
                          executable,
                          f'{test_directory.stem} - Running Executable',
                          args)
@@ -288,7 +265,7 @@ if __name__ == '__main__':
         leaf += '-' + timestamp
         filename = parent / (leaf + '.log')
 
-        file_logger: FileHandler = logging.FileHandler(filename, 'w')
+        file_logger: FileHandler = logging.FileHandler(str(filename), 'w')
         fmt = '%(asctime)s %(name)s %(levelname)s %(message)s'
         file_logger.setFormatter(logging.Formatter(fmt))
         stdout_logger.setLevel(logging.DEBUG)
