@@ -56,7 +56,7 @@ def entry() -> None:
     application.run(repositories)
 
 
-def grab_entry() -> None:
+def entry() -> None:
     """
     Extract and merge up a source tree from several repositories.
     """
