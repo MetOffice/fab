@@ -26,7 +26,7 @@ from fab.source_tree import TreeDescent, ExtensionVisitor
 from fab.queue import QueueManager
 
 
-def fab_entry() -> None:
+def entry() -> None:
     """
     The core Fab build tool.
     """

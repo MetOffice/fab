@@ -16,7 +16,7 @@ from fab.database import FileInfoDatabase, StateDatabase
 from fab.tasks.fortran import FortranWorkingState
 
 
-def explorer_entry() -> None:
+def entry() -> None:
     """
     Entry point for database exploration tool.
     """

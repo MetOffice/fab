@@ -14,7 +14,7 @@ from fab.database import FileInfoDatabase, SqliteStateDatabase
 from fab.tasks.fortran import FortranWorkingState
 
 
-def dump_entry() -> None:
+def entry() -> None:
     """
     Dump a state database from a working directory.
     """
