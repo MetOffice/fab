@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Sequence
 
 
-def grab_entry() -> None:
+def entry() -> None:
     """
     Extract and merge up a source tree from several repositories.
     """
