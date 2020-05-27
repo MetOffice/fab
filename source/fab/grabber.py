@@ -47,7 +47,7 @@ def entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-        application = fab.grabber.Grab(arguments.workspace)
+        application = Grab(arguments.workspace)
         application.run(arguments.repositories)
 
 
