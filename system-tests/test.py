@@ -66,7 +66,7 @@ class ExecTestCase(RunTestCase):
                  expectation_file: Path,
                  executable: Path,
                  name: str,
-                 args: List[str] = ()):
+                 args: Sequence[str] = ()):
         super().__init__(name=name)
         self._arguments = args
         self._executable = executable
@@ -74,7 +74,7 @@ class ExecTestCase(RunTestCase):
             .splitlines(keepends=True)
 
     def run(self):
-        command = [str(self._executable)] + self._arguments
+        command = [str(self._executable)] + list(self._arguments)
 
         self.run_command_check_output(
             command, {}, self._expected)
