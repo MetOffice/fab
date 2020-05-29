@@ -10,6 +10,8 @@ import logging
 from pathlib import Path
 from typing import Sequence
 
+from fab.repository import Repository, repository_from_url
+
 
 def entry() -> None:
     """
@@ -34,11 +36,11 @@ def entry() -> None:
                         help="Print version identifier and exit.")
     parser.add_argument('-v', '--verbose', action='store_true',
                         help="Produce a running commentary on progress.")
-    parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
-                        default=Path.cwd() / 'working',
-                        help="Directory for working files.")
-    parser.add_argument('repositories', nargs='+', metavar='URL',
+    parser.add_argument('repositories', metavar='URL', nargs='+',
                         help="Location from which to extract source.")
+    parser.add_argument('destination', metavar='PATH', type=Path,
+                        default=Path.cwd() / 'source',
+                        help="Source directory to create.")
 
     arguments = parser.parse_args()
 
@@ -47,13 +49,17 @@ def entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-        application = Grab(arguments.workspace)
-        application.run(arguments.repositories)
+        application = Grab(arguments.destination)
+
+        repositories = [repository_from_url(url)
+                        for url in arguments.repositories]
+        application.run(repositories)
 
 
 class Grab(object):
-    def __init__(self, workspace: Path):
-        self._workspace = workspace
+    def __init__(self, destination: Path):
+        self._destination = destination
 
-    def run(self, repositories: Sequence[str]) -> None:
-        pass
+    def run(self, repositories: Sequence[Repository]) -> None:
+        for repo in repositories:
+            repo.extract(self._destination)

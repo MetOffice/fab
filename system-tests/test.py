@@ -8,8 +8,10 @@ System testing for Fab.
 
 Currently runs the tool as a subprocess but should also use it as a library.
 """
+from abc import ABC, ABCMeta, abstractmethod
 import argparse
 import datetime
+import filecmp
 import logging
 from logging import StreamHandler, FileHandler
 import os.path
@@ -18,97 +20,99 @@ import shutil
 import subprocess
 import sys
 import os
-from typing import List, Sequence, Dict
+from typing import Dict, List, Optional, Sequence
 
 import systest  # type: ignore
 from systest import Sequencer
 
 
-class RunTestCase(systest.TestCase):
+class TestParameters(object):
+    """
+    Holds information about the environment a test is happening in.
+    """
+    def __init__(self, test_directory: Path, tag: str):
+        self._test_dir = test_directory
+        self._tag = tag
+
+    @property
+    def test_directory(self):
+        return self._test_dir
+
+    @property
+    def work_directory(self):
+        return self._test_dir / 'working'
+
+    @property
+    def tag(self):
+        return self._tag
+
+
+class RunCommand(ABC):
     """
     Base class for tests containing useful utility functions.
     """
+    def __init__(self,
+                 parameters: TestParameters,
+                 command: List[str],
+                 environment: Dict):
+        self._parameters = parameters
+        self._command = command
+        self._environment = environment
 
-    def run_command_check_output(self,
-                                 command: List[str],
-                                 environment: Dict,
-                                 expected: List[str]):
+        self.return_code: Optional[bool] = None
+        self.standard_out: Optional[str] = None
+        self.standard_error: Optional[str] = None
+
+    @property
+    def test_parameters(self) -> TestParameters:
+        return self._parameters
+
+    @abstractmethod
+    def description(self) -> str:
+        raise NotImplementedError("Abstract methods must be implemented.")
+
+    def execute(self):
         """
-        Run ``command`` in the given ``environment`` and then compare
-        its stdout to some ``expected`` output, raising an exception
-        if either the command fails or the output disagrees.
+        Runs the command and changes state to reflect results.
         """
-        thread: subprocess.Popen = subprocess.Popen(command,
-                                                    env=environment,
+        thread: subprocess.Popen = subprocess.Popen(self._command,
+                                                    env=self._environment,
                                                     stdout=subprocess.PIPE,
                                                     stderr=subprocess.PIPE)
         stdout: bytes
         stderr: bytes
         stdout, stderr = thread.communicate()
+        self.return_code = thread.returncode
+        self.standard_out = stdout.decode('utf-8')
+        self.standard_error = stderr.decode('utf-8')
         if thread.returncode != 0:
             print('Running command failed: ', file=sys.stderr)
-            print('    command: ' + ' '.join(command), file=sys.stderr)
-            print('    stdout: ' + stdout.decode('utf-8'))
-            print('    stderr: ' + stderr.decode('utf-8'))
-
-        self.assert_true(thread.returncode == 0)
-        lines = stdout.decode('utf-8').splitlines(keepends=True)
-        self.assert_text_equal(lines, expected)
+            print('    command: ' + ' '.join(self._command), file=sys.stderr)
+            print('    stdout: ' + self.standard_out)
+            print('    stderr: ' + self.standard_error)
 
 
-class ExecTestCase(RunTestCase):
+class EnterPython(RunCommand, metaclass=ABCMeta):
     """
-    Test case which expects to run an executable and
-    compare its output with an expected result.
+    Run a Python entry point.
     """
-
     def __init__(self,
-                 expectation_file: Path,
-                 executable: Path,
-                 name: str,
-                 args: Sequence[str] = ()):
-        super().__init__(name=name)
-        self._arguments = args
-        self._executable = executable
-        self._expected = expectation_file.read_text('utf-8') \
-            .splitlines(keepends=True)
-
-    def run(self):
-        command = [str(self._executable)] + list(self._arguments)
-
-        self.run_command_check_output(
-            command, {}, self._expected)
-
-
-class PythonTestCase(RunTestCase):
-    """
-    Test case which expects to run a Python entry point and
-    compare its output with an expected result.
-    """
-
-    def __init__(self,
+                 tag: str,
                  test_directory: Path,
-                 working_dir: Path,
-                 expectation_file: Path,
                  module: str,
-                 name: str,
-                 args: Sequence[str] = ()):
-        super().__init__(name=name)
-        self._test_directory: Path = test_directory
-        self._working_dir: Path = working_dir
-        self._module = module
-        self._arguments = args
-        self._expected = expectation_file.read_text('utf-8') \
-            .splitlines(keepends=True)
+                 args: Sequence[str] = (),
+                 working_dir=True):
+        parameters = TestParameters(test_directory, tag)
 
-    def run(self):
-        script = f'import sys; import fab.{self._module}; ' \
-                 f'sys.exit(fab.{self._module}.entry())'
-        command = ['python3', '-c', script,
-                   '-w', str(self._working_dir)]
-        command.extend(self._arguments)
+        script = f'import sys; import fab.{module}; ' \
+                 f'sys.exit(fab.{module}.entry())'
+        command = ['python3', '-c', script]
+        if working_dir:
+            command.extend(['-w', str(parameters.work_directory)])
+        command.extend(args)
 
-        user_path: List[str] = os.environ.get('PATH').split(':')
+        system_path = os.environ.get('PATH') or ''
+        user_path: List[str] = system_path.split(':')
         try:
             while True:
                 user_path.remove('')
@@ -119,52 +123,34 @@ class PythonTestCase(RunTestCase):
         environment = {'PATH': ':'.join(user_path),
                        'PYTHONPATH': 'source'}
 
-        self.run_command_check_output(
-            command, environment, self._expected)
+        super().__init__(parameters, command, environment)
 
 
-class CompiledExecTestCase(ExecTestCase):
+class RunExec(RunCommand):
     """
-    Run the exec produced by Fab and check its output.
+    Run an executable produced by fab.
     """
-    # The result is held in a file 'expected.exec.txt' in the test directory.
-    #
-    # This comment exists as the framework hijacks the docstring for output.
-    #
-    def __init__(self,
-                 test_directory: Path,
-                 expectation_prefix: str = '',):
+    def __init__(self, test_directory: Path):
+        parameters = TestParameters(test_directory, 'exec')
         args: List[str] = []
-
-        expectation_file = 'expected.exec'
-        if expectation_prefix != '':
-            expectation_file += '.' + expectation_prefix
-        expectation_file += '.txt'
-
         executable = test_directory / 'working' / 'fab_test'
+        command = [str(executable)] + list(args)
+        super().__init__(parameters, command, {})
 
-        super().__init__(test_directory / expectation_file,
-                         executable,
-                         f'{test_directory.stem} - Running Executable',
-                         args)
+    def description(self) -> str:
+        return f"{self.test_parameters.test_directory.stem} - Executing"
 
 
-class FabTestCase(PythonTestCase):
+class RunFab(EnterPython):
     """
-    Run Fab build tool against source tree and validate result.
+    Run Fab build tool against a source tree.
     """
-    # The result is held in a file 'expected.fab.txt' in the test directory.
-    #
-    # This comment exists as the framework hijacks the docstring for output.
-    #
     def __init__(self,
                  test_directory: Path,
                  target: str,
-                 expectation_prefix: str = '',
                  fpp_flags: str = None,
                  fc_flags: str = None,
                  ld_flags: str = None):
-
         args: List[str] = []
         if fpp_flags:
             args.append('--fpp-flags=' + fpp_flags)
@@ -177,51 +163,125 @@ class FabTestCase(PythonTestCase):
         args.append(target)
         args.append(str(test_directory))
 
-        expectation_file = 'expected.fab'
-        if expectation_prefix != '':
-            expectation_file += '.' + expectation_prefix
-        expectation_file += '.txt'
+        super().__init__('fab', test_directory, 'builder', args)
 
-        super().__init__(test_directory,
-                         test_directory / 'working',
-                         test_directory / expectation_file,
-                         'builder',
-                         f'{test_directory.stem} - Running Fab',
-                         args)
-
-    def setup(self):
-        working_dir: Path = self._test_directory / 'working'
-        if working_dir.is_dir():
-            shutil.rmtree(str(working_dir))
+    def description(self) -> str:
+        return f"{self.test_parameters.test_directory.stem} - Building"
 
 
-class DumpTestCase(PythonTestCase):
+class RunDump(EnterPython):
     """
-    Run Fab dump tool against working directory and validate result.
+    Run Fab dump tool against working directory.
     """
-    # The result is held in a file 'expected.dump.txt' in the test directory.
-    #
-    # This comment exists as the framework hijacks the docstring for output.
-    #
-    def __init__(self,
-                 test_directory: Path,
-                 expectation_prefix: str = ''):
+    def __init__(self, test_directory: Path):
+        super().__init__('dump', test_directory, 'dumper')
 
-        expectation_file = 'expected.dump'
-        if expectation_prefix != '':
-            expectation_file += '.' + expectation_prefix
-        expectation_file += '.txt'
-
-        super().__init__(test_directory,
-                         test_directory / 'working',
-                         test_directory / expectation_file,
-                         'dumper',
-                         f'{test_directory.stem} - Running Fab dump',
-                         [])
+    def description(self) -> str:
+        return f"{self.test_parameters.test_directory.stem} - Dumping"
 
     def teardown(self):
-        working_dir: Path = self._test_directory / 'working'
-        shutil.rmtree(str(working_dir))
+        if self.test_parameters.work_directory.is_dir():
+            shutil.rmtree(str(self.test_parameters.work_directory))
+
+
+class RunGrab(EnterPython):
+    """
+    Run Fab grab tool against a repository.
+    """
+    def __init__(self, test_directory: Path, scheme: str):
+        if scheme == 'file':
+            repo_url = f'file:////{test_directory.absolute() / "repo"}'
+        elif scheme == 'svn':
+            repo_url = f'svn://localhost/repo'
+        elif scheme == 'http':
+            # TODO: This scheme is included for completeness. Currently there
+            #       is no obvious way to test this wihtout an Apache server.
+            #       Which is way too much to consider at the moment.
+            repo_url = f'http://localhost/repo'
+            raise Exception("Unable to test Subversion over HTTP protocol.")
+        else:
+            message = f"Unrecognised URl scheme '{scheme}' for Subversion."
+            raise Exception(message)
+
+        super().__init__('grab',
+                         test_directory,
+                         'grabber',
+                         [repo_url, str(test_directory / 'working')],
+                         working_dir=False)
+
+    def description(self) -> str:
+        return f"{self.test_parameters.test_directory.stem} - Grabbing"
+
+
+class CheckTask(systest.TestCase, metaclass=ABCMeta):
+    """
+    Abstract parent of all checking test cases.
+    """
+    def __init__(self, task: RunCommand, name: str):
+        super().__init__(name=name)
+        self._task = task
+
+    @property
+    def task(self):
+        return self._task
+
+    def run(self):
+        self._task.execute()
+        self.check()
+
+    @abstractmethod
+    def check(self):
+        raise NotImplementedError("Abstract methods must be implemented.")
+
+
+class CompareConsoleWithFile(CheckTask):
+    """
+    Checks console output against expected result.
+    """
+    # The expected result is held in a file "expected.<tag>[.<suffix>].txt.
+    # Where "tag" comes from the task and "suffix" is specified.
+    #
+    # This comment is here because systest highjacks the doc string for output.
+    #
+    def __init__(self, task: RunCommand, expectation_suffix=None):
+        super().__init__(task, name=task.description())
+        leaf_name = f'expected.{task.test_parameters.tag}'
+        if expectation_suffix is not None:
+            leaf_name = leaf_name + '.' + expectation_suffix
+        leaf_name = leaf_name + '.txt'
+        path = task.test_parameters.test_directory / leaf_name
+        self._expected = path.read_text().splitlines(keepends=True)
+
+    def check(self):
+        self.assert_true(self.task.return_code == 0)
+        lines = self.task.standard_out.splitlines(keepends=True)
+        self.assert_text_equal(lines, self._expected)
+
+
+class CompareFileTrees(CheckTask):
+    """
+    Checks filetree against expected result.
+    """
+    # The test tree is the tasks working directory and the expected result
+    # is in "expected".
+    #
+    # This comment is here as systest highjacks the docstring for output.
+    #
+    def __init__(self, task: RunCommand):
+        super().__init__(task, name=task.description())
+        self._expected = task.test_parameters.test_directory / 'expected'
+
+    def check(self):
+        first = self.task.test_parameters.work_directory
+        second = self._expected
+        tree_comparison = filecmp.dircmp(first, second)
+        self.assert_equal(len(tree_comparison.left_only), 0)
+        self.assert_equal(len(tree_comparison.right_only), 0)
+        _, mismatch, errors = filecmp.cmpfiles(first, second,
+                                               tree_comparison.common_files,
+                                               shallow=False)
+        self.assert_equal(len(mismatch), 0)
+        self.assert_equal(len(errors), 0)
 
 
 if __name__ == '__main__':
@@ -280,33 +340,41 @@ if __name__ == '__main__':
     #
     sequence = (
         [
-            FabTestCase(root_dir / 'MinimalFortran', 'test'),
-            CompiledExecTestCase(root_dir / 'MinimalFortran'),
-            DumpTestCase(root_dir / 'MinimalFortran')
+            CompareConsoleWithFile(RunFab(root_dir / 'MinimalFortran',
+                                          'test')),
+            CompareConsoleWithFile(RunExec(root_dir / 'MinimalFortran')),
+            CompareConsoleWithFile(RunDump(root_dir / 'MinimalFortran'))
         ],
         [
-            FabTestCase(root_dir / 'FortranDependencies', 'first'),
-            CompiledExecTestCase(root_dir / 'FortranDependencies'),
-            DumpTestCase(root_dir / 'FortranDependencies')
+            CompareConsoleWithFile(RunFab(root_dir / 'FortranDependencies',
+                                          'first')),
+            CompareConsoleWithFile(RunExec(root_dir / 'FortranDependencies')),
+            CompareConsoleWithFile(RunDump(root_dir / 'FortranDependencies'))
         ],
         [
             [
-                FabTestCase(root_dir / 'FortranPreProcess', 'stay_or_go_now',
-                            expectation_prefix='stay',
-                            fpp_flags='-DSHOULD_I_STAY=yes'),
-                CompiledExecTestCase(root_dir / 'FortranPreProcess',
-                                     expectation_prefix='stay'),
-                DumpTestCase(root_dir / 'FortranPreProcess',
-                             expectation_prefix='stay')
+                CompareConsoleWithFile(RunFab(root_dir / 'FortranPreProcess',
+                                              'stay_or_go_now',
+                                              fpp_flags='-DSHOULD_I_STAY=yes'),
+                                       expectation_suffix='stay'),
+                CompareConsoleWithFile(RunExec(root_dir / 'FortranPreProcess'),
+                                       expectation_suffix='stay'),
+                CompareConsoleWithFile(RunDump(root_dir / 'FortranPreProcess'),
+                                       expectation_suffix='stay')
             ],
             [
-                FabTestCase(root_dir / 'FortranPreProcess', 'stay_or_go_now',
-                            expectation_prefix='go'),
-                CompiledExecTestCase(root_dir / 'FortranPreProcess',
-                                     expectation_prefix='go'),
-                DumpTestCase(root_dir / 'FortranPreProcess',
-                             expectation_prefix='go')
+                CompareConsoleWithFile(RunFab(root_dir / 'FortranPreProcess',
+                                              'stay_or_go_now'),
+                                       expectation_suffix='go'),
+                CompareConsoleWithFile(RunExec(root_dir / 'FortranPreProcess'),
+                                       expectation_suffix='go'),
+                CompareConsoleWithFile(RunDump(root_dir / 'FortranPreProcess'),
+                                       expectation_suffix='go')
             ]
+        ],
+        [
+            CompareFileTrees(RunGrab(root_dir / 'SubversionRepository',
+                                     'file'))
         ]
     )
 
