@@ -92,7 +92,6 @@ class RunCommand(ABC):
         """
         Runs the command and changes state to reflect results.
         """
-        self.set_up()
         thread: subprocess.Popen = subprocess.Popen(self._command,
                                                     env=self._environment,
                                                     stdout=subprocess.PIPE,
@@ -103,7 +102,6 @@ class RunCommand(ABC):
         self.return_code = thread.returncode
         self.standard_out = stdout.decode('utf-8')
         self.standard_error = stderr.decode('utf-8')
-        self.tear_down()
 
         if self.return_code != 0:
             self._debug_output = ['Running command failed:']
@@ -151,6 +149,7 @@ class EnterPython(RunCommand, metaclass=ABCMeta):
                        'PYTHONPATH': 'source'}
 
         super().__init__(parameters, command, environment)
+        self._working_dir = working_dir
 
 
 class RunExec(RunCommand):
@@ -195,6 +194,13 @@ class RunFab(EnterPython):
     def description(self) -> str:
         return f"{self.test_parameters.test_directory.stem} - Building"
 
+    def set_up(self):
+        """
+        Ensure there's no working directory left over from previous runs.
+        """
+        if self.test_parameters.work_directory.is_dir():
+            shutil.rmtree(self.test_parameters.work_directory)
+
 
 class RunDump(EnterPython):
     """
@@ -209,6 +215,12 @@ class RunDump(EnterPython):
     def teardown(self):
         if self.test_parameters.work_directory.is_dir():
             shutil.rmtree(str(self.test_parameters.work_directory))
+
+    def tear_down(self):
+        """
+        Tidy up now we're finished with the working directroy.
+        """
+        shutil.rmtree(self.test_parameters.work_directory)
 
 
 class RunGrab(EnterPython):
@@ -245,12 +257,17 @@ class RunGrab(EnterPython):
         return f"{name} - Grabbing with {self._scheme}"
 
     def set_up(self):
+        if self.test_parameters.work_directory.is_dir():
+            shutil.rmtree(self.test_parameters.work_directory)
+
         if self._scheme == 'svn':
             command: List[str] = ['svnserve', '--root', str(self._repo_path),
                                   '-X', '--foreground']
             self._svn_server = subprocess.Popen(command)
 
     def tear_down(self):
+        shutil.rmtree(self.test_parameters.work_directory)
+
         if self._scheme == 'svn':
             self._svn_server.wait(timeout=1)
             if self._svn_server.returncode != 0:
@@ -271,6 +288,7 @@ class CheckTask(systest.TestCase, metaclass=ABCMeta):
         return self._task
 
     def run(self):
+        self.task.set_up()
         self._task.execute()
         #
         # We print this out for debug purposes. If a test fails this output
@@ -280,6 +298,7 @@ class CheckTask(systest.TestCase, metaclass=ABCMeta):
             print('\n'.join(self._task.debug_output))
         self.assert_is_none(self._task.debug_output)
         self.check()
+        self.task.tear_down()
 
     @abstractmethod
     def check(self):
