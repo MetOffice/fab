@@ -58,6 +58,7 @@ class RunCommand(ABC):
         self._parameters = parameters
         self._command = command
         self._environment = environment
+        self._debug_output: Optional[List[str]] = None
 
         self.return_code: Optional[bool] = None
         self.standard_out: Optional[str] = None
@@ -71,10 +72,27 @@ class RunCommand(ABC):
     def description(self) -> str:
         raise NotImplementedError("Abstract methods must be implemented.")
 
+    @property
+    def debug_output(self) -> Optional[List[str]]:
+        return self._debug_output
+
+    @debug_output.setter
+    def debug_output(self, additional_line: str):
+        if self._debug_output is None:
+            self._debug_output = []
+        self._debug_output.append(additional_line)
+
+    def set_up(self):
+        """
+        Called prior to the run.
+        """
+        pass
+
     def execute(self):
         """
         Runs the command and changes state to reflect results.
         """
+        self.set_up()
         thread: subprocess.Popen = subprocess.Popen(self._command,
                                                     env=self._environment,
                                                     stdout=subprocess.PIPE,
@@ -85,11 +103,20 @@ class RunCommand(ABC):
         self.return_code = thread.returncode
         self.standard_out = stdout.decode('utf-8')
         self.standard_error = stderr.decode('utf-8')
-        if thread.returncode != 0:
-            print('Running command failed: ', file=sys.stderr)
-            print('    command: ' + ' '.join(self._command), file=sys.stderr)
-            print('    stdout: ' + self.standard_out)
-            print('    stderr: ' + self.standard_error)
+        self.tear_down()
+
+        if self.return_code != 0:
+            self._debug_output = ['Running command failed:']
+            command = ' '.join(self._command)
+            self._debug_output.append(f'    command: {command}')
+            self._debug_output.append('    stdout: ' + self.standard_out)
+            self._debug_output.append('    stderr: ' + self.standard_error)
+
+    def tear_down(self):
+        """
+        Called following the run.
+        """
+        pass
 
 
 class EnterPython(RunCommand, metaclass=ABCMeta):
@@ -189,15 +216,19 @@ class RunGrab(EnterPython):
     Run Fab grab tool against a repository.
     """
     def __init__(self, test_directory: Path, scheme: str):
+        self._scheme = scheme
+        self._repo_path = test_directory.absolute() / "repo"
+        self._svn_server: Optional[subprocess.Popen] = None
+
         if scheme == 'file':
-            repo_url = f'file:////{test_directory.absolute() / "repo"}'
+            repo_url = f'file:////{self._repo_path}'
         elif scheme == 'svn':
-            repo_url = f'svn://localhost/repo'
+            repo_url = f'svn://127.0.0.1/'
         elif scheme == 'http':
             # TODO: This scheme is included for completeness. Currently there
-            #       is no obvious way to test this wihtout an Apache server.
+            #       is no obvious way to test this with out an Apache server.
             #       Which is way too much to consider at the moment.
-            repo_url = f'http://localhost/repo'
+            # repo_url = f'http://localhost/repo'
             raise Exception("Unable to test Subversion over HTTP protocol.")
         else:
             message = f"Unrecognised URl scheme '{scheme}' for Subversion."
@@ -210,7 +241,21 @@ class RunGrab(EnterPython):
                          working_dir=False)
 
     def description(self) -> str:
-        return f"{self.test_parameters.test_directory.stem} - Grabbing"
+        name = self.test_parameters.test_directory.stem
+        return f"{name} - Grabbing with {self._scheme}"
+
+    def set_up(self):
+        if self._scheme == 'svn':
+            command: List[str] = ['svnserve', '--root', str(self._repo_path),
+                                  '-X', '--foreground']
+            self._svn_server = subprocess.Popen(command)
+
+    def tear_down(self):
+        if self._scheme == 'svn':
+            self._svn_server.wait(timeout=1)
+            if self._svn_server.returncode != 0:
+                message = f"Trouble with svnserve: {self._svn_server.stderr}"
+                self.debug_output = message
 
 
 class CheckTask(systest.TestCase, metaclass=ABCMeta):
@@ -227,6 +272,13 @@ class CheckTask(systest.TestCase, metaclass=ABCMeta):
 
     def run(self):
         self._task.execute()
+        #
+        # We print this out for debug purposes. If a test fails this output
+        # should be visible.
+        #
+        if self._task.debug_output is not None:
+            print('\n'.join(self._task.debug_output))
+        self.assert_is_none(self._task.debug_output)
         self.check()
 
     @abstractmethod
@@ -374,7 +426,9 @@ if __name__ == '__main__':
         ],
         [
             CompareFileTrees(RunGrab(root_dir / 'SubversionRepository',
-                                     'file'))
+                                     'file')),
+            CompareFileTrees(RunGrab(root_dir / 'SubversionRepository',
+                                     'svn'))
         ]
     )
 
