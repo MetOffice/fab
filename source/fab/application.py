@@ -6,7 +6,7 @@
 from collections import defaultdict
 from pathlib import Path
 import sys
-from typing import Dict, List, Type, Union
+from typing import Dict, List, Sequence, Type, Union
 
 from fab import FabException
 from fab.database import SqliteStateDatabase, FileInfoDatabase
@@ -187,6 +187,14 @@ class Fab(object):
         self._queue.add_to_queue(linker)
         self._queue.check_queue_done()
         self._queue.shutdown()
+
+
+class Grab(object):
+    def __init__(self, workspace: Path):
+        self._workspace = workspace
+
+    def run(self, repositories: Sequence[str]) -> None:
+        pass
 
 
 class Dump(object):

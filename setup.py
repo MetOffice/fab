@@ -45,6 +45,7 @@ setuptools.setup(
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
     entry_points={'console_scripts': ['fab=fab.entry:fab_entry',
+                                      'fab-grab=fab.entry:grab_entry',
                                       'fab-dump=fab.entry:dump_entry'],
                   'gui_scripts': ['fab-explorer=fab.entry:fab_explorer']},
     python_requires='>=3.6, <4',
