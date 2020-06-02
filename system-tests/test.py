@@ -235,7 +235,7 @@ class RunGrab(EnterPython):
         if scheme == 'file':
             repo_url = f'file:////{self._repo_path}'
         elif scheme == 'svn':
-            repo_url = f'svn://127.0.0.1/'
+            repo_url = 'svn://127.0.0.1/'
         elif scheme == 'http':
             # TODO: This scheme is included for completeness. Currently there
             #       is no obvious way to test this with out an Apache server.

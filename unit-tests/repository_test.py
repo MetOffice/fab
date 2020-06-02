@@ -71,7 +71,7 @@ class TestSubversion:
         command: List[str] = ['svnserve', '-r', str(repo[0]), '-X']
         process = Popen(command)
 
-        test_unit = SubversionRepo(f'svn://localhost/trunk')
+        test_unit = SubversionRepo('svn://localhost/trunk')
         test_unit.extract(tmp_path)
         _tree_compare(repo[1], tmp_path)
         assert not (tmp_path / '.svn').exists()
