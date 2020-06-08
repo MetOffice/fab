@@ -49,11 +49,11 @@ def entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-        application = Grab(arguments.destination)
+    application = Grab(arguments.destination)
 
-        repositories = [repository_from_url(url)
-                        for url in arguments.repositories]
-        application.run(repositories)
+    repositories = [repository_from_url(url)
+                    for url in arguments.repositories]
+    application.run(repositories)
 
 
 class Grab(object):
