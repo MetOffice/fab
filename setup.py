@@ -44,15 +44,16 @@ setuptools.setup(
         ],
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
-    entry_points={'console_scripts': ['fab=fab.entry:fab_entry',
-                                      'fab-grab=fab.entry:grab_entry',
-                                      'fab-dump=fab.entry:dump_entry'],
-                  'gui_scripts': ['fab-explorer=fab.entry:fab_explorer']},
+    entry_points={'console_scripts': ['fab=fab.builder:entry',  # Alias
+                                      'fab-build=fab.builder:entry',
+                                      'fab-grab=fab.grabber:entry',
+                                      'fab-dump=fab.dumper:entry'],
+                  'gui_scripts': ['fab-explorer=fab.explorer:entry']},
     python_requires='>=3.6, <4',
     install_requires=[],
     extras_require={
         'dev': ['flake8', 'mypy'],
         'unit-test': ['pytest', 'pytest-cov'],
-        'system-test': ['systest']
+        'system-test': ['systest >= 5.5.0']
     }
 )

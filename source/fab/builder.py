@@ -4,13 +4,12 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from collections import defaultdict
+import logging
 from pathlib import Path
-import sys
-from typing import Dict, List, Sequence, Type, Union
+from typing import Dict, List, Type, Union
 
 from fab import FabException
 from fab.database import SqliteStateDatabase, FileInfoDatabase
-from fab.explorer import ExplorerWindow
 from fab.reader import FileTextReader
 from fab.tasks import \
     Task, \
@@ -25,6 +24,72 @@ from fab.tasks.fortran import \
     FortranLinker
 from fab.source_tree import TreeDescent, ExtensionVisitor
 from fab.queue import QueueManager
+
+
+def entry() -> None:
+    """
+    Entry point for the Fab build tool.
+    """
+    import argparse
+    import multiprocessing
+    import sys
+    import fab
+
+    logger = logging.getLogger('fab')
+    logger.addHandler(logging.StreamHandler(sys.stderr))
+
+    description = 'Flexible build system for scientific software.'
+    parser = argparse.ArgumentParser(add_help=False,
+                                     description=description)
+    # We add our own help so as to capture as many permutations of how people
+    # might ask for help. The default only looks for a subset.
+    parser.add_argument('-h', '-help', '--help', action='help',
+                        help='Print this help and exit')
+    parser.add_argument('-V', '--version', action='version',
+                        version=fab.__version__,
+                        help='Print version identifier and exit')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Produce a running commentary on progress')
+    parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
+                        default=Path.cwd() / 'working',
+                        help='Directory for working files.')
+    parser.add_argument('--nprocs', action='store', type=int, default=2,
+                        choices=range(2, multiprocessing.cpu_count()),
+                        help='Provide number of processors available for use,'
+                             'default is 2 if not set.')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--fpp-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran PreProcessor ')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--fc-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran Compiler')
+    # TODO: Flags will eventually come from configuration
+    parser.add_argument('--ld-flags', action='store', type=str, default='',
+                        help='Provide flags for Fortran Linker')
+    # TODO: Name for executable will eventually come from configuration
+    parser.add_argument('--exec-name', action='store', type=str, default='',
+                        help='Name of executable (default is the name of '
+                             'the target program)')
+    # TODO: Target/s will eventually come from configuration
+    parser.add_argument('target', action='store', type=str,
+                        help='The top level unit name to compile')
+    parser.add_argument('source', type=Path,
+                        help='The path of the source tree to build')
+    arguments = parser.parse_args()
+
+    if arguments.verbose:
+        logger.setLevel(logging.INFO)
+    else:
+        logger.setLevel(logging.WARNING)
+
+    application = Fab(arguments.workspace,
+                      arguments.target,
+                      arguments.exec_name,
+                      arguments.fpp_flags,
+                      arguments.fc_flags,
+                      arguments.ld_flags,
+                      arguments.nprocs)
+    application.run(arguments.source)
 
 
 class Fab(object):
@@ -109,7 +174,7 @@ class Fab(object):
         if len(target_info) > 1:
             alt_filenames = [str(info.unit.found_in) for info in target_info]
             message = f"Ambiguous top-level program unit '{self._target}', " \
-                f"found in: {', '.join(alt_filenames)}"
+                      f"found in: {', '.join(alt_filenames)}"
             raise FabException(message)
         unit_to_process: List[FortranUnitID] = [target_info[0].unit]
 
@@ -137,7 +202,7 @@ class Fab(object):
                 if len(alt_prereqs) > 1:
                     filenames = [str(path) for path in alt_prereqs]
                     message = f"Ambiguous prerequiste '{name}' " \
-                        f"found in: {', '.join(filenames)}"
+                              f"found in: {', '.join(filenames)}"
                     raise FabException(message)
                 unit_to_process.append(alt_prereqs[0])
 
@@ -187,46 +252,3 @@ class Fab(object):
         self._queue.add_to_queue(linker)
         self._queue.check_queue_done()
         self._queue.shutdown()
-
-
-class Grab(object):
-    def __init__(self, workspace: Path):
-        self._workspace = workspace
-
-    def run(self, repositories: Sequence[str]) -> None:
-        pass
-
-
-class Dump(object):
-    def __init__(self, workspace: Path):
-        self._workspace = workspace
-        self._state = SqliteStateDatabase(workspace)
-
-    def run(self, stream=sys.stdout):
-        file_view = FileInfoDatabase(self._state)
-        print("File View", file=stream)
-        for file_info in file_view:
-            print(f"  File   : {file_info.filename}", file=stream)
-            # Where files are generated in the working directory
-            # by third party tools, we cannot guarantee the hashes
-            if file_info.filename.match(f'{self._workspace}/*'):
-                print('    Hash : --hidden-- (generated file)')
-            else:
-                print(f"    Hash : {file_info.adler32}", file=stream)
-
-        fortran_view = FortranWorkingState(self._state)
-        print("Fortran View", file=stream)
-        for info in fortran_view:
-            print(f"  Program unit    : {info.unit.name}", file=stream)
-            print(f"    Found in      : {info.unit.found_in}", file=stream)
-            print(f"    Prerequisites : {', '.join(info.depends_on)}",
-                  file=stream)
-
-
-class Explorer:
-    def __init__(self, workspace: Path):
-        self._state = SqliteStateDatabase(workspace)
-        self._window = ExplorerWindow(self._state)
-
-    def run(self):
-        self._window.mainloop()

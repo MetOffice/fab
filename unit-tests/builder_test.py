@@ -3,7 +3,7 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-# Each class in application.py embodies an entire utility. In effect the
+# Each class in builder.py embodies an entire utility. In effect the
 # "unit" is the entire tool. As such any unit testing would effectively be
 # system testing.
 #
