@@ -44,7 +44,8 @@ setuptools.setup(
         ],
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
-    entry_points={'console_scripts': ['fab=fab.builder:entry',
+    entry_points={'console_scripts': ['fab=fab.builder:entry',  # Alias
+                                      'fab-build=fab.buioder:entry',
                                       'fab-grab=fab.grabber:entry',
                                       'fab-dump=fab.dumper:entry'],
                   'gui_scripts': ['fab-explorer=fab.explorer:entry']},
