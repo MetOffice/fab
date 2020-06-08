@@ -21,7 +21,7 @@ def entry() -> None:
     import sys
     import fab
 
-    logger = logging.getLogger('fab-grab')
+    logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
 
     description = "Build a source tree from extracted source."

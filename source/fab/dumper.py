@@ -21,7 +21,7 @@ def entry() -> None:
     import argparse
     import fab
 
-    logger = logging.getLogger('fab-dumper')
+    logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
 
     description = 'Flexible build system for scientific software.'
