@@ -36,11 +36,11 @@ def entry() -> None:
                         help="Print version identifier and exit.")
     parser.add_argument('-v', '--verbose', action='store_true',
                         help="Produce a running commentary on progress.")
-    parser.add_argument('repositories', metavar='URL', nargs='+',
-                        help="Location from which to extract source.")
     parser.add_argument('destination', metavar='PATH', type=Path,
                         default=Path.cwd() / 'source',
                         help="Source directory to create.")
+    parser.add_argument('repositories', metavar='URL', nargs='+',
+                        help="Location from which to extract source.")
 
     arguments = parser.parse_args()
 

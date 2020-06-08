@@ -249,7 +249,7 @@ class RunGrab(EnterPython):
         super().__init__('grab',
                          test_directory,
                          'grabber',
-                         [repo_url, str(test_directory / 'working')],
+                         [str(test_directory / 'working'), repo_url],
                          working_dir=False)
 
     def description(self) -> str:
