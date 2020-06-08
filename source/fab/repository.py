@@ -63,7 +63,7 @@ def repository_from_url(url: str) -> Repository:
     """
     Creates an appropriate Repository object from a given URL.
 
-    TODO: This will need to be considerably more illaborate in the future once
+    TODO: This will need to be considerably more elaborate in the future once
           we get multiple repository types on a given scheme. e.g. Both
           Subversion and Git may be accessed using HTTP URLs. Likewise both
           Subversion and file trees on disc may be accessed using "file" URLs.
