@@ -35,7 +35,7 @@ class Repository(ABC):
         Extracts the source tree to the supplied path. The source is fetched
         from the URL provided at construction.
         """
-        raise NotImplementedError("Abstract methods must be overridden.")
+        raise NotImplementedError("Abstract methods must be implemented.")
 
 
 class SubversionRepo(Repository):
