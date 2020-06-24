@@ -76,7 +76,7 @@ class GitRepo(Repository):
 
     def extract(self, target: Path):
         target.parent.mkdir(parents=True, exist_ok=True)
-        command = ['git', 'archive', '--format=tar', '--remote='+self.url]
+        command = ['git', 'archive', '--format', 'tar', '--remote', +self.url]
         print(command)
         process = Popen(command, stdout=PIPE)
         archive = TarFile(fileobj=process.stdout)
