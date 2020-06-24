@@ -69,7 +69,7 @@ class GitRepo(Repository):
     unsatisfactory. In particular it could be too slow. In that case we should
     find out if there are Python bindings for Git.
     """
-    _TIMEOUT = 4.0
+    _TIMEOUT = 4.0  # Seconds
 
     def __init__(self, url: str):
         super().__init__(url)
