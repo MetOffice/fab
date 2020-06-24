@@ -76,14 +76,13 @@ class GitRepo(Repository):
 
     def extract(self, target: Path):
         target.parent.mkdir(parents=True, exist_ok=True)
-        command = ['git', 'archive', '--format', 'tar', '--remote']
+        command = ['git', 'archive', '--format', 'tar']
         url_parts = urlparse(self.url)
         if url_parts.scheme == 'file':
-            command.append(url_parts.path)
+            process = Popen(command, cwd=url_parts.path, stdout=PIPE)
         else:
-            command.append(self._url)
-        print(command)
-        process = Popen(command, stdout=PIPE)
+            command.append('--remote', self._url)
+            process = Popen(command, stdout=PIPE)
         archive = TarFile(fileobj=process.stdout)
         archive.extractall(target)
         process.wait(self._TIMEOUT)
