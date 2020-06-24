@@ -13,7 +13,7 @@ accessing those repositories such as rsync and FTP.
 from abc import ABC, abstractmethod
 from pathlib import Path
 from subprocess import PIPE, Popen, run
-from tarfile import TarFile
+import tarfile
 from urllib.parse import urlparse
 
 from fab import FabException
@@ -56,8 +56,9 @@ class SubversionRepo(Repository):
         command = ['svn', 'export', '--force', self.url, str(target)]
         report = run(command)
         if report.returncode != 0:
-            message = f"Unable to extract Subversion repository: {self.url}\n"
-            message += report.stderr
+            message = f"Unable to extract Subversion repository: {self.url}"
+            if report.stderr is not None:
+                message += '\n' + str(report.stderr)
             raise FabException(message)
 
 
@@ -76,17 +77,11 @@ class GitRepo(Repository):
 
     def extract(self, target: Path):
         target.parent.mkdir(parents=True, exist_ok=True)
-        command = ['git', 'archive', '--format=tar', 'HEAD']
+        command = ['git', 'archive', '--format=tar', '--remote='+self.url, 'HEAD']
         url_parts = urlparse(self.url)
-        if url_parts.scheme == 'file':
-            print(command)
-            print(url_parts.path)
-            process = Popen(command, cwd=url_parts.path, stdout=PIPE)
-        else:
-            command.extend(['--remote', url_parts.geturl()])
-            process = Popen(command, stdout=PIPE)
-        #archive = TarFile(fileobj=process.stdout)
-        #archive.extractall(target)
+        process = Popen(command, stdout=PIPE)
+        archive = tarfile.open(fileobj=process.stdout, mode='r|')
+        archive.extractall(target)
         process.wait(self._TIMEOUT)
         if process.returncode != 0:
             message = f"Unable to extract Git repository: {self.url}"

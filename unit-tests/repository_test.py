@@ -10,9 +10,10 @@ import filecmp
 from pathlib import Path
 from subprocess import call, Popen
 import shutil
+import signal
 from typing import List, Tuple
 
-from pytest import fixture, raises  # type: ignore
+from pytest import fixture, mark, raises  # type: ignore
 from _pytest.tmpdir import TempPathFactory  # type: ignore
 
 from fab import FabException
@@ -80,6 +81,7 @@ class TestSubversion:
         process.wait(timeout=1)
         assert process.returncode == 0
 
+    @mark.skip(reason="Too hard to test at the moment.")
     def test_extract_from_http(self, repo: Tuple[Path, Path], tmp_path: Path):
         """
         Checks that a source tree can be extracted from a Subversion
@@ -110,13 +112,15 @@ class TestGit:
         call(command)
         for file_object in tree_path.glob('*'):
             if file_object.is_dir():
-                shutil.copytree(file_object, repo_path/file_object.name)
+                shutil.copytree(str(file_object),
+                                str(repo_path / file_object.name))
             else:
-                shutil.copy(file_object, repo_path/file_object.name)
-        command = ['git', 'add', '-A', '-v']
-        call(command)
+                shutil.copy(str(file_object),
+                            str(repo_path / file_object.name))
+        command = ['git', 'add', '-A']
+        call(command, cwd=str(repo_path))
         command = ['git', 'commit', '-m', "Initial import"]
-        call(command)
+        call(command, cwd=str(repo_path))
         return repo_path, tree_path
 
     def test_extract_from_file(self, repo: Tuple[Path, Path], tmp_path: Path):
@@ -127,6 +131,37 @@ class TestGit:
         test_unit.extract(tmp_path)
         _tree_compare(repo[1], tmp_path)
         assert not (tmp_path / '.svn').exists()
+
+    @mark.skip(reason="The daemon doesn't seem to be installed.")
+    def test_extract_from_git(self, repo: Tuple[Path, Path], tmp_path: Path):
+        """
+        Checks that a source tree can be extracted from a Git repository
+        accessed through its own protocol.
+        """
+        command: List[str] = ['git', 'daemon', '--reuseaddr',
+                              '--base-path='+str(repo[0].parent),
+                              str(repo[0])]
+        process = Popen(command)
+
+        test_unit = GitRepo('git://localhost/'+repo[0].name)
+        test_unit.extract(tmp_path)
+        _tree_compare(repo[1], tmp_path)
+        assert not (tmp_path / '.git').exists()
+
+        process.send_signal(signal.SIGTERM)
+        process.wait(timeout=2)
+        assert process.returncode == -15
+
+    @mark.skip(reason="Too hard to test at the moment.")
+    def test_extract_from_http(self, repo: Tuple[Path, Path], tmp_path: Path):
+        """
+        Checks that a source tree can be extracted from a Git repository
+        accessed through HTTP.
+
+        TODO: This is hard to test without a full Apache installation. For the
+              moment we forgo the test on the basis that it's too hard.
+        """
+        pass
 
 
 class TestRepoFromURL:
