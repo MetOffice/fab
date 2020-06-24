@@ -76,7 +76,7 @@ class GitRepo(Repository):
 
     def extract(self, target: Path):
         target.parent.mkdir(parents=True, exist_ok=True)
-        command = ['git', 'archive', '--format=tar', 'HEAD:/']
+        command = ['git', 'archive', '--format=tar', 'HEAD:.']
         url_parts = urlparse(self.url)
         if url_parts.scheme == 'file':
             print(command)
