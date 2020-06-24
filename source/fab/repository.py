@@ -12,7 +12,8 @@ accessing those repositories such as rsync and FTP.
 """
 from abc import ABC, abstractmethod
 from pathlib import Path
-from subprocess import run
+from subprocess import PIPE, Popen, run
+from tarfile import TarFile
 from urllib.parse import urlparse
 
 from fab import FabException
@@ -55,7 +56,34 @@ class SubversionRepo(Repository):
         command = ['svn', 'export', '--force', self.url, str(target)]
         report = run(command)
         if report.returncode != 0:
-            message = f"Unable to extract Subversion repository: {self.url}"
+            message = f"Unable to extract Subversion repository: {self.url}\n"
+            message += report.stderr
+            raise FabException(message)
+
+
+class GitRepo(Repository):
+    """
+    Extracts a source tree from a Git repository.
+
+    This class currently wraps the Git command-line client but that may prove
+    unsatisfactory. In particular it could be too slow. In that case we should
+    find out if there are Python bindings for Git.
+    """
+    _TIMEOUT = 4.0
+
+    def __init__(self, url: str):
+        super().__init__(url)
+
+    def extract(self, target: Path):
+        target.parent.mkdir(parents=True, exist_ok=True)
+        command = ['git', 'archive', '--format=tar', '--remote='+self.url]
+        process = Popen(command, stdout=PIPE)
+        archive = TarFile(fileobj=process.stdout)
+        archive.extractall(target)
+        process.wait(self._TIMEOUT)
+        if process.returncode != 0:
+            message = f"Unable to extract Git repository: {self.url}\n"
+            message += process.stderr
             raise FabException(message)
 
 

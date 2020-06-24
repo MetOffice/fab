@@ -9,13 +9,14 @@ Exercise the 'repository' module.
 import filecmp
 from pathlib import Path
 from subprocess import call, Popen
+import shutil
 from typing import List, Tuple
 
 from pytest import fixture, raises  # type: ignore
 from _pytest.tmpdir import TempPathFactory  # type: ignore
 
 from fab import FabException
-from fab.repository import repository_from_url, SubversionRepo
+from fab.repository import repository_from_url, GitRepo, SubversionRepo
 
 
 def _tree_compare(first: Path, second: Path) -> None:
@@ -88,6 +89,44 @@ class TestSubversion:
               moment we forgo the test on the basis that it's too hard.
         """
         pass
+
+
+class TestGit:
+    """
+    Tests of the Git repository interface.
+    """
+    @fixture(scope='class')
+    def repo(self, tmp_path_factory: TempPathFactory) -> Tuple[Path, Path]:
+        """
+        Set up a repository and return its path along with the path of the
+        original file tree.
+        """
+        tree_path = tmp_path_factory.mktemp('tree', numbered=True)
+        (tree_path / 'alpha').write_text("First file")
+        (tree_path / 'beta').mkdir()
+        (tree_path / 'beta' / 'gamma').write_text("Second file")
+        repo_path = tmp_path_factory.mktemp('repo', numbered=True)
+        command = ['git', 'init', str(repo_path)]
+        call(command)
+        for file_object in tree_path.glob('*'):
+            if file_object.is_dir():
+                shutil.copytree(file_object, repo_path/file_object.name)
+            else:
+                shutil.copy(file_object, repo_path/file_object.name)
+        command = ['git', 'add', '-A']
+        call(command)
+        command = ['git', 'commit', '-m', "Initial import"]
+        call(command)
+        return repo_path, tree_path
+
+    def test_extract_from_file(self, repo: Tuple[Path, Path], tmp_path: Path):
+        """
+        Tests that a source tree can be extracted from a local repository.
+        """
+        test_unit = GitRepo(f'file://{repo[0]}')
+        test_unit.extract(tmp_path)
+        _tree_compare(repo[1], tmp_path)
+        assert not (tmp_path / '.svn').exists()
 
 
 class TestRepoFromURL:
