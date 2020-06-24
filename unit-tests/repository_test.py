@@ -113,7 +113,7 @@ class TestGit:
                 shutil.copytree(file_object, repo_path/file_object.name)
             else:
                 shutil.copy(file_object, repo_path/file_object.name)
-        command = ['git', 'add', '-A']
+        command = ['git', 'add', '-A', '-v']
         call(command)
         command = ['git', 'commit', '-m', "Initial import"]
         call(command)
