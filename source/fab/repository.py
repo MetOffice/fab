@@ -85,8 +85,8 @@ class GitRepo(Repository):
         else:
             command.append('--remote', self._url)
             process = Popen(command, stdout=PIPE)
-        archive = TarFile(fileobj=process.stdout)
-        archive.extractall(target)
+        #archive = TarFile(fileobj=process.stdout)
+        #archive.extractall(target)
         process.wait(self._TIMEOUT)
         if process.returncode != 0:
             message = f"Unable to extract Git repository: {self.url}\n"
