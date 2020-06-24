@@ -89,8 +89,8 @@ class GitRepo(Repository):
         #archive.extractall(target)
         process.wait(self._TIMEOUT)
         if process.returncode != 0:
-            message = f"Unable to extract Git repository: {self.url}\n"
-            message += process.stderr
+            message = f"Unable to extract Git repository: {self.url}"
+            message += ('\n' + process.stderr) or ''
             raise FabException(message)
 
 
