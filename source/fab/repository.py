@@ -79,6 +79,8 @@ class GitRepo(Repository):
         command = ['git', 'archive', '--format', 'tar']
         url_parts = urlparse(self.url)
         if url_parts.scheme == 'file':
+            print(command)
+            print(url_parts.path)
             process = Popen(command, cwd=url_parts.path, stdout=PIPE)
         else:
             command.append('--remote', self._url)
