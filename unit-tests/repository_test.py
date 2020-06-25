@@ -121,7 +121,7 @@ class TestGit:
         call(command, cwd=str(repo_path))
         command = ['git', 'commit', '-m', "Initial import"]
         call(command, cwd=str(repo_path))
-        return repo_path, tree_path
+        return repo_path.absolute(), tree_path.absolute()
 
     def test_extract_from_file(self, repo: Tuple[Path, Path], tmp_path: Path):
         """
