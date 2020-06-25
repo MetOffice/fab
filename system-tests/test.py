@@ -233,26 +233,21 @@ class RunGrab(EnterPython):
         self._repo_path = test_directory.absolute() / "repo"
         self._server: Optional[subprocess.Popen] = None
 
-        if protocol == 'file':
-            repo_url = f'file:////{self._repo_path}'
-        elif protocol == 'git':
-            if repo != 'git':
-                message = "Git protocol only makes sense with a Git repo"
-                raise Exception(message)
-            repo_url = 'git://localhost/'
-        elif protocol == 'svn':
-            if repo != 'svn':
-                message = "Svn protocol only makes sense with an Svn repo"
-                raise Exception(message)
-            repo_url = 'svn://localhost/'
-        elif protocol == 'http':
+        if protocol == 'http':
             # TODO: This scheme is included for completeness. Currently there
-            #       is no obvious way to test this with out an Apache server.
-            #       Which is way too much to consider at the moment.
-            repo_url = f'http://localhost/repo'
-            raise Exception("Unable to test Subversion over HTTP protocol.")
+            #       is no obvious way to test this without an Apache server
+            #       which is way too much to consider at the moment.
+            # repo_url = f'http://localhost/repo'
+            message = "Unable to test Fetch over HTTP protocol."
+            raise NotImplementedError(message)
+
+        repo_url = f'{self._scheme}://'
+        if protocol == 'file':
+            repo_url += f'//{self._repo_path}'
+        elif protocol in ['git', 'http', 'svn']:
+            repo_url += 'localhost/'
         else:
-            message = f"Unrecognised protocol '{protocol}'"
+            message = f"Unrecognised URL sceheme '{self._scheme}'"
             raise Exception(message)
 
         super().__init__('grab',
