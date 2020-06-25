@@ -39,4 +39,6 @@ jobs:
     - name: Test with systest
       run: |
         pip install .[system-test]
+        git config --global user.email "tester@example.com"
+        git config --global user.name "Testing Tester Tests"
         python system-tests/test.py
