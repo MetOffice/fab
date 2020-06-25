@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from subprocess import PIPE, Popen, run
 import tarfile
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 from fab import FabException
 
@@ -77,8 +77,8 @@ class GitRepo(Repository):
 
     def extract(self, target: Path):
         target.parent.mkdir(parents=True, exist_ok=True)
-        command = ['git', 'archive', '--format=tar', '--remote='+self.url, 'HEAD']
-        url_parts = urlparse(self.url)
+        command = ['git', 'archive', '--format=tar',
+                   '--remote='+self.url, 'HEAD']
         process = Popen(command, stdout=PIPE)
         archive = tarfile.open(fileobj=process.stdout, mode='r|')
         archive.extractall(target)
@@ -94,13 +94,34 @@ def repository_from_url(url: str) -> Repository:
     """
     Creates an appropriate Repository object from a given URL.
 
-    TODO: This will need to be considerably more elaborate in the future once
-          we get multiple repository types on a given scheme. e.g. Both
-          Subversion and Git may be accessed using HTTP URLs. Likewise both
-          Subversion and file trees on disc may be accessed using "file" URLs.
+    An extended syntax is used for the URL scheme: <vcs>+<protocol>.
+
+    So to access a Subversion repository over HTTP the appropriate scheme
+    would be svn+http. Likewise a Git repository on the local filesystem
+    would be accessed using git+file.
+
+    This allows us to handle the problem of multiple VCSes offering file and
+    HTTP access.
+
+    The canonical form for access using a bespoke protocol would be something
+    like svn+svn. Obviously this is ugly and stupid so we accept just svn as
+    an alias.
     """
+    repo_type = {
+        'git': GitRepo,
+        'svn': SubversionRepo
+    }
     url_components = urlparse(url)
-    if url_components.scheme not in ('file', 'http', 'https', 'svn'):
-        message = "Unrecognised scheme '{scheme}' for Subversion repository"
-        raise FabException(message.format(scheme=url_components.scheme))
-    return SubversionRepo(url)
+    vcs, _, protocol = url_components.scheme.partition('+')
+    if not protocol:
+        protocol = vcs
+    if vcs not in ['git', 'svn']:
+        message = f"Unrecognised repository scheme: {vcs}+{protocol}"
+        raise FabException(message)
+    access_url = urlunparse((protocol,
+                             url_components.netloc,
+                             url_components.path,
+                             url_components.params,
+                             url_components.query,
+                             url_components.fragment))
+    return repo_type[vcs](access_url)

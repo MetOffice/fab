@@ -170,12 +170,39 @@ class TestRepoFromURL:
     """
     @fixture(scope='class',
              params=[
-                 {'url': 'svn://example.com/repo',
-                  'expect': SubversionRepo},
-                 {'url': 'http://example.com/svn',
-                  'expect': SubversionRepo},
-                 {'url': 'file:///tmp/svn',
-                  'expect': SubversionRepo}
+                 {'access_url': 'git://example.com/git',
+                  'repo_class': GitRepo,
+                  'repo_url': 'git://example.com/git'},
+                 {'access_url': 'git+file:///tmp/git',
+                  'repo_class': GitRepo,
+                  'repo_url': 'file:///tmp/git'},
+                 {'access_url': 'git+git://example.com/git',
+                  'repo_class': GitRepo,
+                  'repo_url': 'git://example.com/git'},
+                 {'access_url': 'git+http://example.com/git',
+                  'repo_class': GitRepo,
+                  'repo_url': 'http://example.com/git'},
+                 {'access_url': 'svn://example.com/svn',
+                  'repo_class': SubversionRepo,
+                  'repo_url': 'svn://example.com/svn'},
+                 {'access_url': 'svn+file:///tmp/svn',
+                  'repo_class': SubversionRepo,
+                  'repo_url': 'file:///tmp/svn'},
+                 {'access_url': 'svn+http://example.com/svn',
+                  'repo_class': SubversionRepo,
+                  'repo_url': 'http://example.com/svn'},
+                 {'access_url': 'svn+svn://example.com/svn',
+                  'repo_class': SubversionRepo,
+                  'repo_url': 'svn://example.com/svn'},
+                 {'access_url': 'file:///tmp/repo',
+                  'repo_class': FabException,
+                  'exception': "Unrecognised repository scheme: file+file"},
+                 {'access_url': 'http://example.com/repo',
+                  'repo_class': FabException,
+                  'exception': "Unrecognised repository scheme: http+http"},
+                 {'access_url': 'foo+file:///tmp/foo',
+                  'repo_class': FabException,
+                  'exception': "Unrecognised repository scheme: foo+file"}
              ])
     def cases(self, request):
         """
@@ -187,13 +214,11 @@ class TestRepoFromURL:
         """
         Checks that each URL creates an appropriate Repository object.
         """
-        repo = repository_from_url(cases['url'])
-        assert isinstance(repo, cases['expect'])
-        assert repo.url == cases['url']
-
-    def test_unknown_scheme(self):
-        """
-        Tests that using a URL with unknown scheme throws an exception.
-        """
-        with raises(FabException):
-            repository_from_url('foo://some/place')
+        if issubclass(cases['repo_class'], Exception):
+            with raises(cases['repo_class']) as ex:
+                _ = repository_from_url(cases['access_url'])
+            assert ex.value.args[0] == cases['exception']
+        else:
+            repo = repository_from_url(cases['access_url'])
+            assert isinstance(repo, cases['repo_class'])
+            assert repo.url == cases['repo_url']
