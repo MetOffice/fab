@@ -266,6 +266,7 @@ class RunGrab(EnterPython):
             shutil.rmtree(self._repo_path)
         extractor = tarfile.TarFile(self._repo_path.with_suffix('.tar'))
         extractor.extractall(path=self._repo_path.parent)
+        print(os.listdir(self._repo_path.parent))
 
         if self.test_parameters.work_directory.is_dir():
             shutil.rmtree(self.test_parameters.work_directory)

@@ -38,8 +38,5 @@ jobs:
         python -m pytest --cov=sci-fab unit-tests
     - name: Test with systest
       run: |
-        # Set up Git so it doesn't complain
-        git config --global user.email "tester@example.com"
-        git config --global user.name "Testing Tester Tests"
         pip install .[system-test]
         python system-tests/test.py
