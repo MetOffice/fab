@@ -8,7 +8,7 @@ Exercise the 'repository' module.
 """
 import filecmp
 from pathlib import Path
-from subprocess import call, Popen
+from subprocess import run, Popen
 import shutil
 import signal
 from typing import List, Tuple
@@ -45,14 +45,14 @@ class TestSubversion:
         """
         repo_path = tmp_path_factory.mktemp('repo', numbered=True)
         command = ['svnadmin', 'create', str(repo_path)]
-        call(command)
+        assert run(command).returncode == 0
         tree_path = tmp_path_factory.mktemp('tree', numbered=True)
         (tree_path / 'alpha').write_text("First file")
         (tree_path / 'beta').mkdir()
         (tree_path / 'beta' / 'gamma').write_text("Second file")
         command = ['svn', 'import', '-m', "Initial import",
                    str(tree_path), f'file://{repo_path}/trunk']
-        call(command)
+        assert run(command).returncode == 0
         return repo_path, tree_path
 
     def test_extract_from_file(self, repo: Tuple[Path, Path], tmp_path: Path):
@@ -109,7 +109,7 @@ class TestGit:
         (tree_path / 'beta' / 'gamma').write_text("Second file")
         repo_path = tmp_path_factory.mktemp('repo', numbered=True)
         command = ['git', 'init', str(repo_path)]
-        call(command)
+        assert run(command).returncode == 0
         for file_object in tree_path.glob('*'):
             if file_object.is_dir():
                 shutil.copytree(str(file_object),
@@ -118,9 +118,9 @@ class TestGit:
                 shutil.copy(str(file_object),
                             str(repo_path / file_object.name))
         command = ['git', 'add', '-A']
-        call(command, cwd=str(repo_path))
+        assert run(command, cwd=str(repo_path)).returncode == 0
         command = ['git', 'commit', '-m', "Initial import"]
-        call(command, cwd=str(repo_path))
+        assert run(command, cwd=str(repo_path)).returncode == 0
         return repo_path.absolute(), tree_path.absolute()
 
     def test_extract_from_file(self, repo: Tuple[Path, Path], tmp_path: Path):
@@ -130,7 +130,7 @@ class TestGit:
         test_unit = GitRepo(f'file://{repo[0]}')
         test_unit.extract(tmp_path)
         _tree_compare(repo[1], tmp_path)
-        assert not (tmp_path / '.svn').exists()
+        assert not (tmp_path / '.git').exists()
 
     @mark.skip(reason="The daemon doesn't seem to be installed.")
     def test_extract_from_git(self, repo: Tuple[Path, Path], tmp_path: Path):
