@@ -19,6 +19,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tarfile
 import os
 from typing import Dict, List, Optional, Sequence
 
@@ -261,6 +262,11 @@ class RunGrab(EnterPython):
         return f"{name} - Grabbing with {self._repo}+{self._protocol}"
 
     def set_up(self):
+        if self._repo_path.is_dir():
+            shutil.rmtree(self._repo_path)
+        extractor = tarfile.TarFile(self._repo_path.with_suffix('.tar'))
+        extractor.extractall(path=self._repo_path.parent)
+
         if self.test_parameters.work_directory.is_dir():
             shutil.rmtree(self.test_parameters.work_directory)
 
@@ -288,6 +294,8 @@ class RunGrab(EnterPython):
             if self._server.returncode != -15:
                 message = f"Trouble with svnserve: {self._git_server.stderr}"
                 self.debug_output = message
+
+        shutil.rmtree(self._repo_path)
 
 
 class CheckTask(systest.TestCase, metaclass=ABCMeta):
