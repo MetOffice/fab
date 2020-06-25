@@ -107,9 +107,12 @@ class TestGit:
         (tree_path / 'alpha').write_text("First file")
         (tree_path / 'beta').mkdir()
         (tree_path / 'beta' / 'gamma').write_text("Second file")
+        print(list(tree_path.glob('*')))
+
         repo_path = tmp_path_factory.mktemp('repo', numbered=True)
         command = ['git', 'init', str(repo_path)]
         assert run(command).returncode == 0
+        print(list(repo_path.glob('*')))
         for file_object in tree_path.glob('*'):
             if file_object.is_dir():
                 shutil.copytree(str(file_object),
@@ -117,6 +120,7 @@ class TestGit:
             else:
                 shutil.copy(str(file_object),
                             str(repo_path / file_object.name))
+        print(list(repo_path.glob('*')))
         command = ['git', 'add', '-A']
         assert run(command, cwd=str(repo_path)).returncode == 0
         command = ['git', 'commit', '-m', "Initial import"]
@@ -131,6 +135,7 @@ class TestGit:
         test_unit.extract(tmp_path)
         _tree_compare(repo[1], tmp_path)
         assert not (tmp_path / '.git').exists()
+        assert False
 
     @mark.skip(reason="The daemon doesn't seem to be installed.")
     def test_extract_from_git(self, repo: Tuple[Path, Path], tmp_path: Path):
