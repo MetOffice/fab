@@ -116,9 +116,9 @@ class TestGit:
         # will fail.
         #
         command = ['git', 'config', 'user.name', 'Testing Tester Tests']
-        assert run(command).returncode == 0
+        assert run(command, cwd=str(repo_path)).returncode == 0
         command = ['git', 'config', 'user.email', 'tester@example.com']
-        assert run(command).returncode == 0
+        assert run(command, cwd=str(repo_path)).returncode == 0
 
         for file_object in tree_path.glob('*'):
             if file_object.is_dir():
