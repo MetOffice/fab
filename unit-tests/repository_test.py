@@ -151,7 +151,8 @@ class TestGit:
         test_unit = GitRepo(f'file://{fake_repo}')
         with raises(FabException) as ex:
             test_unit.extract(tmp_path / 'working')
-        assert str(ex.value).startswith("Fault exporting tree from Git repository:")
+        expected = "Fault exporting tree from Git repository:"
+        assert str(ex.value).startswith(expected)
 
     @mark.skip(reason="The daemon doesn't seem to be installed.")
     def test_extract_from_git(self, repo: Tuple[Path, Path], tmp_path: Path):

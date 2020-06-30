@@ -61,19 +61,22 @@ class GitRepo(Repository):
                    'HEAD']
         process = Popen(command, stdout=PIPE, stderr=PIPE)
 
-        extract_message: Optional(str) = None
+        extract_message: Optional[str] = None
         try:
             extractor = tarfile.open(fileobj=process.stdout, mode='r|')
             extractor.extractall(target)
         except Exception as ex:
-            extract_message = "Problem extracting archived repository: " + str(ex)
+            extract_message = "Problem extracting archived repository: "
+            extract_message += str(ex)
             process.kill()
 
         process.wait(self._TIMEOUT)
         if process.returncode != 0:
-            error = [line.decode('utf-8' )for line in process.stderr.readlines()]
-            message = "Fault exporting tree from Git repository:\n"
-            message += '\n'.join(error)
+            message = "Fault exporting tree from Git repository:"
+            if process.stderr:
+                error = [line.decode('utf-8')
+                         for line in process.stderr.readlines()]
+                message += '\n' + '\n'.join(error)
             if extract_message:
                 message += '\n' + extract_message
             raise FabException(message)
