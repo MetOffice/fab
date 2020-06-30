@@ -14,6 +14,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from subprocess import PIPE, run, Popen
 import tarfile
+from typing import Optional
 from urllib.parse import urlparse, urlunparse
 
 from fab import FabException
@@ -58,16 +59,23 @@ class GitRepo(Repository):
                    '--format', 'tar',
                    '--remote', self.url,
                    'HEAD']
-        process = Popen(command, stdout=PIPE)
+        process = Popen(command, stdout=PIPE, stderr=PIPE)
 
-        extractor = tarfile.open(fileobj=process.stdout, mode='r|')
-        extractor.extractall(target)
+        extract_message: Optional(str) = None
+        try:
+            extractor = tarfile.open(fileobj=process.stdout, mode='r|')
+            extractor.extractall(target)
+        except Exception as ex:
+            extract_message = "Problem extracting archived repository: " + str(ex)
+            process.kill()
 
         process.wait(self._TIMEOUT)
         if process.returncode != 0:
-            message = "Fault exporting tree from Git repository."
-            if process.stderr:
-                message += '\n' + str(process.stderr)
+            error = [line.decode('utf-8' )for line in process.stderr.readlines()]
+            message = "Fault exporting tree from Git repository:\n"
+            message += '\n'.join(error)
+            if extract_message:
+                message += '\n' + extract_message
             raise FabException(message)
 
 

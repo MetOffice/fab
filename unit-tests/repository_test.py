@@ -142,6 +142,17 @@ class TestGit:
         _tree_compare(repo[1], tmp_path)
         assert not (tmp_path / '.git').exists()
 
+    def test_missing_repo(self, tmp_path: Path):
+        """
+        Tests that an error is returned if the repository is not there.
+        """
+        fake_repo = tmp_path / "nonsuch.repo"
+        fake_repo.mkdir()
+        test_unit = GitRepo(f'file://{fake_repo}')
+        with raises(FabException) as ex:
+            test_unit.extract(tmp_path / 'working')
+        assert str(ex.value).startswith("Fault exporting tree from Git repository:")
+
     @mark.skip(reason="The daemon doesn't seem to be installed.")
     def test_extract_from_git(self, repo: Tuple[Path, Path], tmp_path: Path):
         """
