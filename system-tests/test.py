@@ -244,10 +244,11 @@ class RunGrab(EnterPython):
         repo_url = f'{self._scheme}://'
         if protocol == 'file':
             repo_url += f'//{self._repo_path}'
-        elif protocol in ['git', 'http', 'svn']:
+        # HTTP would be included here as well if we were able to test it.
+        elif protocol in ['git', 'svn']:
             repo_url += 'localhost/'
         else:
-            message = f"Unrecognised URL sceheme '{self._scheme}'"
+            message = f"Unrecognised URL scheme '{self._scheme}'"
             raise Exception(message)
 
         super().__init__('grab',
