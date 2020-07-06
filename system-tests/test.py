@@ -19,6 +19,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from tarfile import TarFile
 import os
 from typing import Dict, List, Optional, Sequence
 
@@ -227,23 +228,27 @@ class RunGrab(EnterPython):
     """
     Run Fab grab tool against a repository.
     """
-    def __init__(self, test_directory: Path, scheme: str):
-        self._scheme = scheme
+    def __init__(self, test_directory: Path, repo: str, protocol: str):
+        self._scheme = f"{repo}+{protocol}"
         self._repo_path = test_directory.absolute() / "repo"
-        self._svn_server: Optional[subprocess.Popen] = None
+        self._server: Optional[subprocess.Popen] = None
 
-        if scheme == 'file':
-            repo_url = f'file:////{self._repo_path}'
-        elif scheme == 'svn':
-            repo_url = 'svn://127.0.0.1/'
-        elif scheme == 'http':
+        if protocol == 'http':
             # TODO: This scheme is included for completeness. Currently there
-            #       is no obvious way to test this with out an Apache server.
-            #       Which is way too much to consider at the moment.
+            #       is no obvious way to test this without an Apache server
+            #       which is way too much to consider at the moment.
             # repo_url = f'http://localhost/repo'
-            raise Exception("Unable to test Subversion over HTTP protocol.")
+            message = "Unable to test Fetch over HTTP protocol."
+            raise NotImplementedError(message)
+
+        repo_url = f'{self._scheme}://'
+        if protocol == 'file':
+            repo_url += f'//{self._repo_path}'
+        # HTTP would be included here as well if we were able to test it.
+        elif protocol in ['git', 'svn']:
+            repo_url += 'localhost/'
         else:
-            message = f"Unrecognised URl scheme '{scheme}' for Subversion."
+            message = f"Unrecognised URL scheme '{self._scheme}'"
             raise Exception(message)
 
         super().__init__('grab',
@@ -257,22 +262,36 @@ class RunGrab(EnterPython):
         return f"{name} - Grabbing with {self._scheme}"
 
     def set_up(self):
+        if self._repo_path.is_dir():
+            shutil.rmtree(self._repo_path)
+        archiver = TarFile(self._repo_path.with_suffix('.tar'))
+        archiver.extractall(self._repo_path.parent)
+
         if self.test_parameters.work_directory.is_dir():
             shutil.rmtree(self.test_parameters.work_directory)
 
-        if self._scheme == 'svn':
+        if self._scheme.endswith('+git'):
+            # TODO: We would start the daemon here
+            raise NotImplementedError("Git protocol not supported")
+        elif self._scheme.endswith('+svn'):
             command: List[str] = ['svnserve', '--root', str(self._repo_path),
                                   '-X', '--foreground']
-            self._svn_server = subprocess.Popen(command)
+            self._server = subprocess.Popen(command)
 
     def tear_down(self):
         shutil.rmtree(self.test_parameters.work_directory)
 
-        if self._scheme == 'svn':
-            self._svn_server.wait(timeout=1)
-            if self._svn_server.returncode != 0:
-                message = f"Trouble with svnserve: {self._svn_server.stderr}"
+        if self._scheme.endswith('+git'):
+            # TODO: We would kill the daemon here
+            raise NotImplementedError("Git protocol not supported")
+        elif self._scheme.endswith('+svn'):
+            self._server.wait(timeout=1)
+            if self._server.returncode != 0:
+                message = f"Trouble with svnserve: {self._server.stderr}"
                 self.debug_output = message
+
+        if self._repo_path.is_dir():
+            shutil.rmtree(self._repo_path)
 
 
 class CheckTask(systest.TestCase, metaclass=ABCMeta):
@@ -444,10 +463,14 @@ if __name__ == '__main__':
             ]
         ],
         [
+            CompareFileTrees(RunGrab(root_dir / 'GitRepository',
+                                     'git', 'file')),
+            # TODO: I can't test with the Git protocol as for some reason the
+            #       Git daemon isn't installed.
             CompareFileTrees(RunGrab(root_dir / 'SubversionRepository',
-                                     'file')),
+                                     'svn', 'file')),
             CompareFileTrees(RunGrab(root_dir / 'SubversionRepository',
-                                     'svn'))
+                                     'svn', 'svn'))
         ]
     )
 
