@@ -7,6 +7,7 @@ from collections import defaultdict
 import logging
 from pathlib import Path
 from typing import Dict, List, Type, Union
+from re import match
 
 from fab import FabException
 from fab.database import SqliteStateDatabase, FileInfoDatabase
@@ -22,7 +23,7 @@ from fab.tasks.fortran import \
     FortranUnitID, \
     FortranCompiler, \
     FortranLinker
-from fab.source_tree import TreeDescent, ExtensionVisitor
+from fab.source_tree import TreeDescent, SourceVisitor
 from fab.queue import QueueManager
 
 
@@ -93,12 +94,12 @@ def entry() -> None:
 
 
 class Fab(object):
-    _extension_map: Dict[str, Union[Type[Task], Type[Command]]] = {
-        '.f90': FortranAnalyser,
-        '.F90': FortranPreProcessor,
+    _precompile_map: Dict[str, Union[Type[Task], Type[Command]]] = {
+        r'.*\.f90': FortranAnalyser,
+        r'.*\.F90': FortranPreProcessor,
     }
-    _compiler_map: Dict[str, Type[Command]] = {
-        '.f90': FortranCompiler,
+    _compile_map: Dict[str, Type[Command]] = {
+        r'.*\.f90': FortranCompiler,
     }
 
     def __init__(self,
@@ -143,11 +144,11 @@ class Fab(object):
 
         self._queue.run()
 
-        visitor = ExtensionVisitor(self._extension_map,
-                                   self._command_flags_map,
-                                   self._state,
-                                   self._workspace,
-                                   self._extend_task_queue)
+        visitor = SourceVisitor(self._precompile_map,
+                                self._command_flags_map,
+                                self._state,
+                                self._workspace,
+                                self._extend_task_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
 
@@ -221,7 +222,14 @@ class Fab(object):
             #       expect to be *produced* by the compile
             #       and pass this to the constructor for
             #       inclusion in the task's "products"
-            compiler_class = self._compiler_map[unit.found_in.suffix]
+            compiler_class = None
+            for pattern in self._compile_map:
+                if match(pattern, str(unit.found_in)):
+                    compiler_class = self._compile_map[pattern]
+                    break
+
+            if compiler_class is None:
+                continue
 
             if issubclass(compiler_class, FortranCompiler):
                 flags = self._command_flags_map.get(compiler_class, [])

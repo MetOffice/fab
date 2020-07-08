@@ -9,6 +9,7 @@ Descend a directory tree or trees processing source files found along the way.
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Mapping, List, Union, Type, Callable
+from re import match
 
 from fab.database import SqliteStateDatabase
 from fab.tasks import \
@@ -27,14 +28,14 @@ class TreeVisitor(ABC):
         raise NotImplementedError("Abstract method must be implemented")
 
 
-class ExtensionVisitor(TreeVisitor):
+class SourceVisitor(TreeVisitor):
     def __init__(self,
-                 extension_map: Mapping[str, Union[Type[Task], Type[Command]]],
+                 source_map: Mapping[str, Union[Type[Task], Type[Command]]],
                  command_flags_map: Mapping[Type[Command], List[str]],
                  state: SqliteStateDatabase,
                  workspace: Path,
                  task_handler: Callable):
-        self._extension_map = extension_map
+        self._source_map = source_map
         self._command_flags_map = command_flags_map
         self._state = state
         self._workspace = workspace
@@ -42,27 +43,31 @@ class ExtensionVisitor(TreeVisitor):
 
     def visit(self, candidate: Path) -> List[Path]:
         new_candidates: List[Path] = []
-        try:
-            task_class = self._extension_map[candidate.suffix]
-            reader: TextReader = FileTextReader(candidate)
 
-            if issubclass(task_class, Analyser):
-                task: Task = task_class(reader, self._state)
-            elif issubclass(task_class, SingleFileCommand):
-                flags = self._command_flags_map.get(task_class, [])
-                task = CommandTask(
-                    task_class(Path(reader.filename), self._workspace, flags))
-            else:
-                message = \
-                    f"Unhandled class '{task_class}' in extension map."
-                raise TypeError(message)
+        task_class = None
+        for pattern in self._source_map:
+            if match(pattern, str(candidate)):
+                task_class = self._source_map[pattern]
+                reader: TextReader = FileTextReader(candidate)
+                break
 
-            self._task_handler(task)
+        if task_class is None:
+            return new_candidates
 
-            new_candidates.extend(task.products)
+        if issubclass(task_class, Analyser):
+            task: Task = task_class(reader, self._state)
+        elif issubclass(task_class, SingleFileCommand):
+            flags = self._command_flags_map.get(task_class, [])
+            task = CommandTask(
+                task_class(Path(reader.filename), self._workspace, flags))
+        else:
+            message = \
+                f"Unhandled class '{task_class}' in extension map."
+            raise TypeError(message)
 
-        except KeyError:
-            pass
+        self._task_handler(task)
+
+        new_candidates.extend(task.products)
         return new_candidates
 
 

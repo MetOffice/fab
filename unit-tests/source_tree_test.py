@@ -9,10 +9,10 @@ from typing import Union, List, Dict, Type
 
 from fab.database import SqliteStateDatabase
 from fab.tasks import Analyser, Command, SingleFileCommand, Task
-from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
+from fab.source_tree import SourceVisitor, TreeDescent, TreeVisitor
 
 
-class TestExtensionVisitor(object):
+class TestSourceVisitor(object):
     def test_analyser(self, tmp_path: Path):
         (tmp_path / 'test.foo').write_text("First file")
         (tmp_path / 'directory').mkdir()
@@ -27,14 +27,14 @@ class TestExtensionVisitor(object):
 
         db = SqliteStateDatabase(tmp_path)
         emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.foo': DummyTask
+            r'.*\.foo': DummyTask
         }
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.foo')
@@ -64,14 +64,14 @@ class TestExtensionVisitor(object):
 
         db = SqliteStateDatabase(tmp_path)
         emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.bar': DummyCommand
+            r'.*\.bar': DummyCommand
         }
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.bar')
@@ -92,14 +92,14 @@ class TestExtensionVisitor(object):
 
         db = SqliteStateDatabase(tmp_path)
         emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.expected': DummyAnalyser
+            r'.*\.expected': DummyAnalyser
         }
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.what')
@@ -123,14 +123,14 @@ class TestExtensionVisitor(object):
 
         db = SqliteStateDatabase(tmp_path)
         emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.qux': WhatnowCommand,
+            r'.*\.qux': WhatnowCommand,
             }
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
         with pytest.raises(TypeError):
             test_unit.visit(tmp_path / 'test.qux')
 
