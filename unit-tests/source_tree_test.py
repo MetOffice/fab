@@ -5,7 +5,7 @@
 ##############################################################################
 from pathlib import Path
 import pytest  # type: ignore
-from typing import Union, List, Dict, Type
+from typing import Union, List, Dict, Type, Tuple
 
 from fab.database import SqliteStateDatabase
 from fab.tasks import Analyser, Command, SingleFileCommand, Task
@@ -26,15 +26,15 @@ class TestSourceVisitor(object):
                 tracker.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            r'.*\.foo': DummyTask
-        }
+        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+            (r'.*\.foo', DummyTask),
+        ]
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.foo')
@@ -63,15 +63,15 @@ class TestSourceVisitor(object):
                 return ['cp', str(self._filename), str(self.output[0])]
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            r'.*\.bar': DummyCommand
-        }
+        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+            (r'.*\.bar', DummyCommand),
+        ]
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.bar')
@@ -81,7 +81,7 @@ class TestSourceVisitor(object):
         assert tracker == [tmp_path / 'test.bar',
                            tmp_path / 'directory/test.bar']
 
-    def test_unrecognised_extension(self, tmp_path: Path):
+    def test_unrecognised_pattern(self, tmp_path: Path):
         (tmp_path / 'test.what').write_text('Some test file')
 
         tracker: List[Path] = []
@@ -91,21 +91,21 @@ class TestSourceVisitor(object):
                 tracker.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            r'.*\.expected': DummyAnalyser
-        }
+        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+            (r'.*\.expected', DummyAnalyser),
+        ]
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.what')
         assert tracker == []
 
-    def test_bad_extension_map(self, tmp_path: Path):
+    def test_bad_source_map(self, tmp_path: Path):
         (tmp_path / 'test.qux').write_text('Test file')
 
         class WhatnowCommand(Command):
@@ -122,15 +122,15 @@ class TestSourceVisitor(object):
                 return []
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            r'.*\.qux': WhatnowCommand,
-            }
+        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+            (r'.*\.qux', WhatnowCommand),
+        ]
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = SourceVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         with pytest.raises(TypeError):
             test_unit.visit(tmp_path / 'test.qux')
 

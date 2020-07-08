@@ -6,7 +6,7 @@
 from collections import defaultdict
 import logging
 from pathlib import Path
-from typing import Dict, List, Type, Union
+from typing import Dict, List, Type, Union, Tuple
 from re import match
 
 from fab import FabException
@@ -94,13 +94,13 @@ def entry() -> None:
 
 
 class Fab(object):
-    _precompile_map: Dict[str, Union[Type[Task], Type[Command]]] = {
-        r'.*\.f90': FortranAnalyser,
-        r'.*\.F90': FortranPreProcessor,
-    }
-    _compile_map: Dict[str, Type[Command]] = {
-        r'.*\.f90': FortranCompiler,
-    }
+    _precompile_map: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+        (r'.*\.f90', FortranAnalyser),
+        (r'.*\.F90', FortranPreProcessor),
+    ]
+    _compile_map: List[Tuple[str, Type[Command]]] = [
+        (r'.*\.f90', FortranCompiler),
+    ]
 
     def __init__(self,
                  workspace: Path,
@@ -223,9 +223,12 @@ class Fab(object):
             #       and pass this to the constructor for
             #       inclusion in the task's "products"
             compiler_class = None
-            for pattern in self._compile_map:
+            for pattern, classname in self._compile_map:
+                # Note we keep searching through the map
+                # even after a match is found; this means that
+                # later matches will override earlier ones
                 if match(pattern, str(unit.found_in)):
-                    compiler_class = self._compile_map[pattern]
+                    compiler_class = classname
                     break
 
             if compiler_class is None:

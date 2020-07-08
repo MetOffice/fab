@@ -8,7 +8,7 @@ Descend a directory tree or trees processing source files found along the way.
 """
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Mapping, List, Union, Type, Callable
+from typing import Mapping, List, Union, Type, Callable, Tuple
 from re import match
 
 from fab.database import SqliteStateDatabase
@@ -30,7 +30,8 @@ class TreeVisitor(ABC):
 
 class SourceVisitor(TreeVisitor):
     def __init__(self,
-                 source_map: Mapping[str, Union[Type[Task], Type[Command]]],
+                 source_map:
+                     List[Tuple[str, Union[Type[Task], Type[Command]]]],
                  command_flags_map: Mapping[Type[Command], List[str]],
                  state: SqliteStateDatabase,
                  workspace: Path,
@@ -45,14 +46,17 @@ class SourceVisitor(TreeVisitor):
         new_candidates: List[Path] = []
 
         task_class = None
-        for pattern in self._source_map:
+        for pattern, classname in self._source_map:
+            # Note we keep searching through the map
+            # even after a match is found; this means that
+            # later matches will override earlier ones
             if match(pattern, str(candidate)):
-                task_class = self._source_map[pattern]
-                reader: TextReader = FileTextReader(candidate)
-                break
+                task_class = classname
 
         if task_class is None:
             return new_candidates
+
+        reader: TextReader = FileTextReader(candidate)
 
         if issubclass(task_class, Analyser):
             task: Task = task_class(reader, self._state)
