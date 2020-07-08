@@ -134,6 +134,46 @@ class TestSourceVisitor(object):
         with pytest.raises(TypeError):
             test_unit.visit(tmp_path / 'test.qux')
 
+    def test_repeated_extension(self, tmp_path: Path):
+        (tmp_path / 'test.foo').write_text("First file")
+        (tmp_path / 'directory').mkdir()
+        (tmp_path / 'directory' / 'file.foo')\
+            .write_text("Second file in directory")
+
+        trackerA: List[Path] = []
+
+        class DummyTaskA(Analyser):
+            def run(self):
+                trackerA.append(self._reader.filename)
+
+        trackerB: List[Path] = []
+
+        class DummyTaskB(Analyser):
+            def run(self):
+                trackerB.append(self._reader.filename)
+
+        db = SqliteStateDatabase(tmp_path)
+        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+            (r'.*\.foo', DummyTaskA),
+            (r'.*/directory/.*\.foo', DummyTaskB)
+        ]
+        fmap: Dict[Type[Command], List[str]] = {}
+
+        def taskrunner(task):
+            task.run()
+
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
+        trackerA.clear()
+        trackerB.clear()
+
+        test_unit.visit(tmp_path / 'test.foo')
+        assert trackerA == [tmp_path / 'test.foo']
+        assert trackerB == []
+
+        test_unit.visit(tmp_path / 'directory' / 'file.foo')
+        assert trackerA == [tmp_path / 'test.foo']
+        assert trackerB == [tmp_path / 'directory' / 'file.foo']
+
 
 class TestTreeDescent(object):
     @pytest.fixture(scope='class',
