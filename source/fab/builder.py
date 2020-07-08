@@ -229,7 +229,6 @@ class Fab(object):
                 # later matches will override earlier ones
                 if match(pattern, str(unit.found_in)):
                     compiler_class = classname
-                    break
 
             if compiler_class is None:
                 continue
