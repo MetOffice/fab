@@ -62,7 +62,7 @@ class Dump(object):
             print(f"  File   : {file_info.filename}", file=stream)
             # Where files are generated in the working directory
             # by third party tools, we cannot guarantee the hashes
-            if file_info.filename.match(f'{self._workspace}/*'):
+            if file_info.filename.match(f'{self._workspace}/phase*/*'):
                 print('    Hash : --hidden-- (generated file)')
             else:
                 print(f"    Hash : {file_info.adler32}", file=stream)

@@ -342,6 +342,14 @@ class CompareConsoleWithFile(CheckTask):
         path = task.test_parameters.test_directory / leaf_name
         self._expected = path.read_text().splitlines(keepends=True)
 
+        # Make substitutions for source / working directory in output
+        # since absolute paths are platform dependent
+        test_dir = task.test_parameters.test_directory.absolute()
+        work_dir = task.test_parameters.work_directory.absolute()
+        for iline, line in enumerate(self._expected):
+            self._expected[iline] = line.format(
+                source=str(test_dir), working=str(work_dir))
+
     def check(self):
         self.assert_true(self.task.return_code == 0)
         lines = self.task.standard_out.splitlines(keepends=True)

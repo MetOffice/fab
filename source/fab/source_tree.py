@@ -63,7 +63,7 @@ class SourceVisitor(TreeVisitor):
         if task_class is None:
             return new_candidates
 
-        reader: TextReader = FileTextReader(candidate)
+        reader: TextReader = FileTextReader(candidate.resolve())
 
         if issubclass(task_class, Analyser):
             task: Task = task_class(reader, self._state)
@@ -80,6 +80,20 @@ class SourceVisitor(TreeVisitor):
 
         new_candidates.extend(task.products)
         return new_candidates
+
+
+class CoreLinker(TreeVisitor):
+    def __init__(self, core_dir: Path, extensions: List[str]):
+        self._core_dir = core_dir
+        self._extensions = extensions
+
+    def visit(self, candidate: Path):
+        if candidate.suffix in self._extensions:
+            link = self._core_dir / candidate.name
+            if link.exists():
+                link.unlink()
+            link.symlink_to(candidate.absolute())
+        return []
 
 
 class TreeDescent(object):

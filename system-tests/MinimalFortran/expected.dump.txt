@@ -1,7 +1,7 @@
 File View
-  File   : system-tests/MinimalFortran/program.f90
+  File   : {source}/program.f90
     Hash : 779717536
 Fortran View
   Program unit    : test
-    Found in      : system-tests/MinimalFortran/program.f90
+    Found in      : {source}/program.f90
     Prerequisites : 
