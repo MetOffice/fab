@@ -5,11 +5,15 @@
 ##############################################################################
 from pathlib import Path
 import pytest  # type: ignore
-from typing import Union, List, Dict, Type, Tuple
+from typing import List, Dict, Type
 
 from fab.database import SqliteStateDatabase
-from fab.tasks import Analyser, Command, SingleFileCommand, Task
-from fab.source_tree import SourceVisitor, TreeDescent, TreeVisitor
+from fab.tasks import Analyser, Command, SingleFileCommand
+from fab.source_tree import \
+    SourceVisitor, \
+    TreeDescent, \
+    TreeVisitor, \
+    PathMap
 
 
 class TestSourceVisitor(object):
@@ -26,9 +30,9 @@ class TestSourceVisitor(object):
                 tracker.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
-        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+        smap = PathMap([
             (r'.*\.foo', DummyTask),
-        ]
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
@@ -63,9 +67,9 @@ class TestSourceVisitor(object):
                 return ['cp', str(self._filename), str(self.output[0])]
 
         db = SqliteStateDatabase(tmp_path)
-        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+        smap = PathMap([
             (r'.*\.bar', DummyCommand),
-        ]
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
@@ -91,9 +95,9 @@ class TestSourceVisitor(object):
                 tracker.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
-        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+        smap = PathMap([
             (r'.*\.expected', DummyAnalyser),
-        ]
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
@@ -122,9 +126,9 @@ class TestSourceVisitor(object):
                 return []
 
         db = SqliteStateDatabase(tmp_path)
-        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+        smap = PathMap([
             (r'.*\.qux', WhatnowCommand),
-        ]
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
@@ -153,10 +157,10 @@ class TestSourceVisitor(object):
                 trackerB.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
-        smap: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+        smap = PathMap([
             (r'.*\.foo', DummyTaskA),
             (r'.*/directory/.*\.foo', DummyTaskB)
-        ]
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):

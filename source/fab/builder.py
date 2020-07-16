@@ -6,8 +6,7 @@
 from collections import defaultdict
 import logging
 from pathlib import Path
-from typing import Dict, List, Type, Union, Tuple
-from re import match
+from typing import Dict, List, Type
 
 from fab import FabException
 from fab.database import SqliteStateDatabase, FileInfoDatabase
@@ -23,7 +22,10 @@ from fab.tasks.fortran import \
     FortranUnitID, \
     FortranCompiler, \
     FortranLinker
-from fab.source_tree import TreeDescent, SourceVisitor
+from fab.source_tree import \
+    TreeDescent, \
+    SourceVisitor, \
+    PathMap
 from fab.queue import QueueManager
 
 
@@ -94,13 +96,14 @@ def entry() -> None:
 
 
 class Fab(object):
-    _precompile_map: List[Tuple[str, Union[Type[Task], Type[Command]]]] = [
+    _precompile_map = PathMap([
         (r'.*\.f90', FortranAnalyser),
         (r'.*\.F90', FortranPreProcessor),
-    ]
-    _compile_map: List[Tuple[str, Type[Command]]] = [
+    ])
+
+    _compile_map = PathMap([
         (r'.*\.f90', FortranCompiler),
-    ]
+    ])
 
     def __init__(self,
                  workspace: Path,
@@ -222,14 +225,9 @@ class Fab(object):
             #       expect to be *produced* by the compile
             #       and pass this to the constructor for
             #       inclusion in the task's "products"
-            compiler_class = None
-            for pattern, classname in self._compile_map:
-                # Note we keep searching through the map
-                # even after a match is found; this means that
-                # later matches will override earlier ones
-                if match(pattern, str(unit.found_in)):
-                    compiler_class = classname
-
+            compiler_class = (
+                self._compile_map.get_task(unit.found_in)
+            )
             if compiler_class is None:
                 continue
 

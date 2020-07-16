@@ -6,11 +6,10 @@
 """
 Descend a directory tree or trees processing source files found along the way.
 """
+import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Mapping, List, Union, Type, Callable, Tuple
-from re import match
-
+from typing import Mapping, List, Type, Callable, Tuple, Union
 from fab.database import SqliteStateDatabase
 from fab.tasks import \
     Task, \
@@ -28,10 +27,25 @@ class TreeVisitor(ABC):
         raise NotImplementedError("Abstract method must be implemented")
 
 
+class PathMap(object):
+    def __init__(self,
+                 mapping: List[Tuple[str, Union[Type[Task], Type[Command]]]]):
+        self._mapping = mapping
+
+    def get_task(self, path: Path) -> Union[Type[Task], Type[Command], None]:
+        task = None
+        for pattern, classname in self._mapping:
+            # Note we keep searching through the map
+            # even after a match is found; this means that
+            # later matches will override earlier ones
+            if re.match(pattern, str(path)):
+                task = classname
+        return task
+
+
 class SourceVisitor(TreeVisitor):
     def __init__(self,
-                 path_map:
-                     List[Tuple[str, Union[Type[Task], Type[Command]]]],
+                 path_map: PathMap,
                  command_flags_map: Mapping[Type[Command], List[str]],
                  state: SqliteStateDatabase,
                  workspace: Path,
@@ -45,14 +59,7 @@ class SourceVisitor(TreeVisitor):
     def visit(self, candidate: Path) -> List[Path]:
         new_candidates: List[Path] = []
 
-        task_class = None
-        for pattern, classname in self._path_map:
-            # Note we keep searching through the map
-            # even after a match is found; this means that
-            # later matches will override earlier ones
-            if match(pattern, str(candidate)):
-                task_class = classname
-
+        task_class = self._path_map.get_task(candidate)
         if task_class is None:
             return new_candidates
 
