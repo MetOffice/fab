@@ -5,14 +5,18 @@
 ##############################################################################
 from pathlib import Path
 import pytest  # type: ignore
-from typing import Union, List, Dict, Type
+from typing import List, Dict, Type
 
 from fab.database import SqliteStateDatabase
-from fab.tasks import Analyser, Command, SingleFileCommand, Task
-from fab.source_tree import ExtensionVisitor, TreeDescent, TreeVisitor
+from fab.tasks import Analyser, Command, SingleFileCommand
+from fab.source_tree import \
+    SourceVisitor, \
+    TreeDescent, \
+    TreeVisitor, \
+    PathMap
 
 
-class TestExtensionVisitor(object):
+class TestSourceVisitor(object):
     def test_analyser(self, tmp_path: Path):
         (tmp_path / 'test.foo').write_text("First file")
         (tmp_path / 'directory').mkdir()
@@ -26,15 +30,15 @@ class TestExtensionVisitor(object):
                 tracker.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.foo': DummyTask
-        }
+        smap = PathMap([
+            (r'.*\.foo', DummyTask),
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.foo')
@@ -63,15 +67,15 @@ class TestExtensionVisitor(object):
                 return ['cp', str(self._filename), str(self.output[0])]
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.bar': DummyCommand
-        }
+        smap = PathMap([
+            (r'.*\.bar', DummyCommand),
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.bar')
@@ -81,7 +85,7 @@ class TestExtensionVisitor(object):
         assert tracker == [tmp_path / 'test.bar',
                            tmp_path / 'directory/test.bar']
 
-    def test_unrecognised_extension(self, tmp_path: Path):
+    def test_unrecognised_pattern(self, tmp_path: Path):
         (tmp_path / 'test.what').write_text('Some test file')
 
         tracker: List[Path] = []
@@ -91,21 +95,21 @@ class TestExtensionVisitor(object):
                 tracker.append(self._reader.filename)
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.expected': DummyAnalyser
-        }
+        smap = PathMap([
+            (r'.*\.expected', DummyAnalyser),
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         tracker.clear()
 
         test_unit.visit(tmp_path / 'test.what')
         assert tracker == []
 
-    def test_bad_extension_map(self, tmp_path: Path):
+    def test_bad_source_map(self, tmp_path: Path):
         (tmp_path / 'test.qux').write_text('Test file')
 
         class WhatnowCommand(Command):
@@ -122,17 +126,57 @@ class TestExtensionVisitor(object):
                 return []
 
         db = SqliteStateDatabase(tmp_path)
-        emap: Dict[str, Union[Type[Task], Type[Command]]] = {
-            '.qux': WhatnowCommand,
-            }
+        smap = PathMap([
+            (r'.*\.qux', WhatnowCommand),
+        ])
         fmap: Dict[Type[Command], List[str]] = {}
 
         def taskrunner(task):
             task.run()
 
-        test_unit = ExtensionVisitor(emap, fmap, db, tmp_path, taskrunner)
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
         with pytest.raises(TypeError):
             test_unit.visit(tmp_path / 'test.qux')
+
+    def test_repeated_extension(self, tmp_path: Path):
+        (tmp_path / 'test.foo').write_text("First file")
+        (tmp_path / 'directory').mkdir()
+        (tmp_path / 'directory' / 'file.foo')\
+            .write_text("Second file in directory")
+
+        trackerA: List[Path] = []
+
+        class DummyTaskA(Analyser):
+            def run(self):
+                trackerA.append(self._reader.filename)
+
+        trackerB: List[Path] = []
+
+        class DummyTaskB(Analyser):
+            def run(self):
+                trackerB.append(self._reader.filename)
+
+        db = SqliteStateDatabase(tmp_path)
+        smap = PathMap([
+            (r'.*\.foo', DummyTaskA),
+            (r'.*/directory/.*\.foo', DummyTaskB)
+        ])
+        fmap: Dict[Type[Command], List[str]] = {}
+
+        def taskrunner(task):
+            task.run()
+
+        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
+        trackerA.clear()
+        trackerB.clear()
+
+        test_unit.visit(tmp_path / 'test.foo')
+        assert trackerA == [tmp_path / 'test.foo']
+        assert trackerB == []
+
+        test_unit.visit(tmp_path / 'directory' / 'file.foo')
+        assert trackerA == [tmp_path / 'test.foo']
+        assert trackerB == [tmp_path / 'directory' / 'file.foo']
 
 
 class TestTreeDescent(object):
