@@ -102,10 +102,10 @@ class Fab(object):
 
     _phase_maps = [
         PathMap([
-            (r'.*\.f90', FortranAnalyser),
+            (r'.*\.F90', FortranPreProcessor),
         ]),
         PathMap([
-            (r'.*\.F90', FortranPreProcessor),
+            (r'.*\.f90', FortranAnalyser),
         ]),
     ]
 
