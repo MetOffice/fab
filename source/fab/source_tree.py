@@ -30,13 +30,13 @@ class TreeVisitor(ABC):
 
 class SourceVisitor(TreeVisitor):
     def __init__(self,
-                 source_map:
+                 path_map:
                      List[Tuple[str, Union[Type[Task], Type[Command]]]],
                  command_flags_map: Mapping[Type[Command], List[str]],
                  state: SqliteStateDatabase,
                  workspace: Path,
                  task_handler: Callable):
-        self._source_map = source_map
+        self._path_map = path_map
         self._command_flags_map = command_flags_map
         self._state = state
         self._workspace = workspace
@@ -46,7 +46,7 @@ class SourceVisitor(TreeVisitor):
         new_candidates: List[Path] = []
 
         task_class = None
-        for pattern, classname in self._source_map:
+        for pattern, classname in self._path_map:
             # Note we keep searching through the map
             # even after a match is found; this means that
             # later matches will override earlier ones
