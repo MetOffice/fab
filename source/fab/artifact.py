@@ -14,6 +14,10 @@ class State(ABC):
     pass
 
 
+class Unseen(State):
+    pass
+
+
 class Aware(State):
     pass
 

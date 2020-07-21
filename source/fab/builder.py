@@ -29,6 +29,7 @@ from fab.source_tree import \
     SourceVisitor, \
     PathMap
 from fab.queue import QueueManager
+from fab.engine import Engine
 
 
 def entry() -> None:
@@ -138,7 +139,9 @@ class Fab(object):
             self._command_flags_map[FortranLinker] = (
                 ld_flags.split()
             )
-        self._queue = QueueManager(n_procs - 1)
+
+        self._engine = Engine(workspace)
+        self._queue = QueueManager(n_procs - 1, self._engine)
 
     def _extend_queue(self, artifact: Artifact) -> None:
         self._queue.add_to_queue(artifact)

@@ -6,6 +6,7 @@
 '''
 Classes and methods relating to the queue system
 '''
+from pathlib import Path
 from typing import List
 from multiprocessing import Queue, JoinableQueue, Process
 from fab.artifact import Artifact
@@ -34,11 +35,11 @@ def worker(queue: JoinableQueue, engine: Engine):
 
 
 class QueueManager(object):
-    def __init__(self, n_workers: int):
+    def __init__(self, n_workers: int, engine: Engine):
         self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
         self._workers: List[int] = []
-        self._engine = Engine()
+        self._engine = engine
 
     def add_to_queue(self, artifact: Artifact):
         self._queue.put(artifact)
