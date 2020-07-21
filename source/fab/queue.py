@@ -8,32 +8,28 @@ Classes and methods relating to the queue system
 '''
 from typing import List
 from multiprocessing import Queue, JoinableQueue, Process
-from fab.tasks import Task
+from fab.artifact import Artifact
+from fab.engine import Engine
 
 
-class StopTask(Task):
-    def run(self):
-        return []
-
-    @property
-    def prerequisites(self):
-        return []
-
-    @property
-    def products(self):
-        return []
+class Stop(Artifact):
+    def __init__(self):
+        pass
 
 
-def worker(queue: JoinableQueue):
+def worker(queue: JoinableQueue, engine: Engine):
     while True:
-        task = queue.get(block=True)
-        if isinstance(task, StopTask):
+        artifact = queue.get(block=True)
+        if isinstance(artifact, Stop):
             break
-        if all([prereq.exists() for prereq in task.prerequisites]):
-            task.run()
-        else:
-            queue.put(task)
+
+        new_artifacts = engine.process(artifact)
+
+        for new_artifact in new_artifacts:
+            queue.put(new_artifact)
+
         queue.task_done()
+
     queue.task_done()
 
 
@@ -42,14 +38,16 @@ class QueueManager(object):
         self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
         self._workers: List[int] = []
+        self._engine = Engine()
 
-    def add_to_queue(self, task: Task):
-        self._queue.put(task)
+    def add_to_queue(self, artifact: Artifact):
+        self._queue.put(artifact)
 
     def run(self):
         for _ in range(self._n_workers):
             process = Process(
-                target=worker, args=(self._queue,))
+                target=worker, args=(self._queue,
+                                     self._engine))
             process.start()
             self._workers.append(process)
 
@@ -58,7 +56,7 @@ class QueueManager(object):
         self._queue.join()
 
     def shutdown(self):
-        stop = StopTask()
+        stop = Stop()
         for _ in range(self._n_workers):
             self._queue.put(stop)
         self.check_queue_done()

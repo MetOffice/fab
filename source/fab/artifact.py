@@ -6,6 +6,7 @@
 
 from pathlib import Path
 from abc import ABC
+from typing import Type
 
 
 # Classes representing possible states of an Artifact
@@ -21,7 +22,15 @@ class Seen(State):
     pass
 
 
-class Processed(State):
+class Ready(State):
+    pass
+
+
+class Prepared(State):
+    pass
+
+
+class Raw(State):
     pass
 
 
@@ -30,6 +39,10 @@ class Analysed(State):
 
 
 class Compiled(State):
+    pass
+
+
+class Linked(State):
     pass
 
 
@@ -53,8 +66,8 @@ class Executable(FileType):
 class Artifact(object):
     def __init__(self,
                  location: Path,
-                 filetype: FileType,
-                 state: State) -> None:
+                 filetype: Type[FileType],
+                 state: Type[State]) -> None:
 
         self._location = location
         self._filetype = filetype
@@ -65,9 +78,9 @@ class Artifact(object):
         return self._location
 
     @property
-    def filetype(self) -> FileType:
+    def filetype(self) -> Type[FileType]:
         return self._filetype
 
     @property
-    def state(self) -> State:
+    def state(self) -> Type[State]:
         return self._state

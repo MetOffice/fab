@@ -10,13 +10,15 @@ from typing import Dict, List, Type
 
 from fab import FabException
 from fab.database import SqliteStateDatabase, FileInfoDatabase
-from fab.reader import FileTextReader
-from fab.tasks import \
-    Task, \
-    Command
-from fab.tasks.common import CommandTask, HashCalculator
+from fab.artifact import \
+    Artifact, \
+    FortranSource, \
+    Seen, \
+    Raw, \
+    Analysed
+from fab.tasks import Command
+from fab.tasks.common import CommandTask
 from fab.tasks.fortran import \
-    FortranAnalyser, \
     FortranWorkingState, \
     FortranPreProcessor, \
     FortranUnitID, \
@@ -96,14 +98,15 @@ def entry() -> None:
 
 
 class Fab(object):
-    _precompile_map = PathMap([
-        (r'.*\.f90', FortranAnalyser),
-        (r'.*\.F90', FortranPreProcessor),
-    ])
+    _path_maps = [
+        PathMap(r'.*\.f90', FortranSource, Raw),
+        PathMap(r'.*\.F90', FortranSource, Seen),
+        PathMap(r'.*\.inc', FortranSource, Seen),
+    ]
 
-    _compile_map = PathMap([
-        (r'.*\.f90', FortranCompiler),
-    ])
+    _compile_map = [
+        PathMap(r'.*\.f90', FortranSource, Analysed),
+    ]
 
     def __init__(self,
                  workspace: Path,
@@ -137,25 +140,24 @@ class Fab(object):
             )
         self._queue = QueueManager(n_procs - 1)
 
-    def _extend_task_queue(self, task: Task) -> None:
-        self._queue.add_to_queue(task)
-        for prereq in task.prerequisites:
-            self._queue.add_to_queue(HashCalculator(FileTextReader(prereq),
-                                                    self._state))
+    def _extend_queue(self, artifact: Artifact) -> None:
+        self._queue.add_to_queue(artifact)
 
     def run(self, source: Path):
 
         self._queue.run()
 
-        visitor = SourceVisitor(self._precompile_map,
-                                self._command_flags_map,
-                                self._state,
-                                self._workspace,
-                                self._extend_task_queue)
+        visitor = SourceVisitor(self._path_maps,
+                                self._extend_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
 
         self._queue.check_queue_done()
+
+        # TODO: remove this stuff!  Aborting at this point
+        # while refactoring
+        self._queue.shutdown()
+        return
 
         file_db = FileInfoDatabase(self._state)
         for file_info in file_db:
