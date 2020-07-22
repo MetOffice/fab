@@ -21,15 +21,15 @@ from fab.tasks.common import CommandTask
 from fab.tasks.fortran import \
     FortranWorkingState, \
     FortranPreProcessor, \
+    FortranAnalyser, \
     FortranUnitID, \
     FortranCompiler, \
     FortranLinker
 from fab.source_tree import \
     TreeDescent, \
-    SourceVisitor, \
-    PathMap
+    SourceVisitor
 from fab.queue import QueueManager
-from fab.engine import Engine
+from fab.engine import Engine, PathMap
 
 
 def entry() -> None:
@@ -102,8 +102,12 @@ class Fab(object):
     _path_maps = [
         PathMap(r'.*\.f90', FortranSource, Raw),
         PathMap(r'.*\.F90', FortranSource, Seen),
-        PathMap(r'.*\.inc', FortranSource, Seen),
     ]
+
+    _task_map = {
+        (FortranSource, Raw): FortranAnalyser,
+        (FortranSource, Seen): FortranPreProcessor,
+    }
 
     _compile_map = [
         PathMap(r'.*\.f90', FortranSource, Analysed),
@@ -140,7 +144,9 @@ class Fab(object):
                 ld_flags.split()
             )
 
-        self._engine = Engine(workspace)
+        self._engine = Engine(workspace,
+                              self._path_maps,
+                              self._task_map)
         self._queue = QueueManager(n_procs - 1, self._engine)
 
     def _extend_queue(self, artifact: Artifact) -> None:
@@ -150,8 +156,7 @@ class Fab(object):
 
         self._queue.run()
 
-        visitor = SourceVisitor(self._path_maps,
-                                self._extend_queue)
+        visitor = SourceVisitor(self._extend_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
 

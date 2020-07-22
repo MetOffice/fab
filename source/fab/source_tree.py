@@ -6,11 +6,10 @@
 """
 Descend a directory tree or trees processing source files found along the way.
 """
-import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List, Callable, Type
-from fab.artifact import Artifact, FileType, State
+from typing import Callable
+from fab.artifact import Artifact, Unknown, New
 
 
 class TreeVisitor(ABC):
@@ -19,36 +18,16 @@ class TreeVisitor(ABC):
         raise NotImplementedError("Abstract method must be implemented")
 
 
-class PathMap(object):
-    def __init__(self,
-                 pattern: str,
-                 filetype: Type[FileType],
-                 state: Type[State]):
-        self._pattern = pattern
-        self._filetype = filetype
-        self._state = state
-
-    def match(self, path: Path) -> bool:
-        matched = False
-        if re.match(self._pattern, str(path)):
-            matched = True
-        return matched
-
-
 class SourceVisitor(TreeVisitor):
     def __init__(self,
-                 path_maps: List[PathMap],
                  artifact_handler: Callable):
-        self._path_maps = path_maps
         self._artifact_handler = artifact_handler
 
     def visit(self, candidate: Path) -> None:
-        for pathmap in self._path_maps:
-            if pathmap.match(candidate):
-                artifact = Artifact(candidate,
-                                    pathmap._filetype,
-                                    pathmap._state)
-                self._artifact_handler(artifact)
+        artifact = Artifact(candidate,
+                            Unknown,
+                            New)
+        self._artifact_handler(artifact)
 
 
 class TreeDescent(object):

@@ -14,7 +14,7 @@ class State(ABC):
     pass
 
 
-class Unseen(State):
+class New(State):
     pass
 
 
@@ -52,6 +52,10 @@ class Linked(State):
 
 # Classes representing possible filetypes
 class FileType(ABC):
+    pass
+
+
+class Unknown(FileType):
     pass
 
 

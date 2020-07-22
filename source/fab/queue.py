@@ -6,7 +6,6 @@
 '''
 Classes and methods relating to the queue system
 '''
-from pathlib import Path
 from typing import List
 from multiprocessing import Queue, JoinableQueue, Process
 from fab.artifact import Artifact
