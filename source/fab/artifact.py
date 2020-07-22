@@ -6,7 +6,7 @@
 
 from pathlib import Path
 from abc import ABC
-from typing import Type
+from typing import Type, List
 
 
 # Classes representing possible states of an Artifact
@@ -80,6 +80,8 @@ class Artifact(object):
         self._location = location
         self._filetype = filetype
         self._state = state
+        self._defines = []
+        self._depends_on = []
 
     @property
     def location(self) -> Path:
@@ -92,3 +94,17 @@ class Artifact(object):
     @property
     def state(self) -> Type[State]:
         return self._state
+
+    @property
+    def defines(self) -> List[str]:
+        return self._defines
+
+    @property
+    def depends_on(self) -> List[str]:
+        return self._depends_on
+
+    def add_dependency(self, dependency: str) -> None:
+        self._depends_on.append(dependency)
+
+    def add_definition(self, definition: str) -> None:
+        self._defines.append(definition)

@@ -17,8 +17,7 @@ from fab.artifact import \
     State, \
     New, \
     Unknown, \
-    Seen, \
-    Raw
+    Analysed
 from fab.tasks import Task
 from fab.tasks.common import HashCalculator
 from fab.database import SqliteStateDatabase
@@ -87,6 +86,38 @@ class Engine(object):
                 hash_calculator = HashCalculator(self._database)
                 hash_calculator.run(new_artifact)
                 new_artifacts.append(new_artifact)
+
+        elif artifact.state is Analysed:
+            # Analysed tasks are ready to be compiled, but
+            # they will be unordered;
+
+            # We need a new structure which keeps
+            # track of what Analysed files are in the
+            # system; whether they are needed by one
+            # of our targets, and whether they have
+            # been compiled, we will call this the scoreboard
+
+            #  1. Find out what units/symbols are in
+            #     this Artifact (either a database lookup
+            #     or an attribute of the Artifact?)
+            #  2. If None of these are on the scoreboard
+            #     then put the Artifact back on the queue
+            #     (we don't know if it is needed yet)
+            #  3. If one or more *are* on the scoreboard
+            #     i.   Add this Artifact to the scoreboard
+            #          in an "Analysed" state
+            #     ii.  Add each of its dependencies to the
+            #          scoreboard in "Heard of" state if
+            #          it isn't on the board already
+            #     iii. If all of its dependencies are on
+            #          the board in a "Compiled" state
+            #          then compile the Artifact.
+            #          If not then put it back on the
+            #          queue again
+            print(f'Looking at {artifact.location}')
+            print(f'    Defines   : {artifact.defines}')
+            print(f'    Depends on: {artifact.depends_on}')
+            pass
 
         else:
             # An artifact with a filetype and state set

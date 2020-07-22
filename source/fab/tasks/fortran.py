@@ -365,6 +365,10 @@ class FortranAnalyser(Task):
 
         reader = FileTextReader(artifact.location)
 
+        new_artifact = Artifact(artifact.location,
+                                artifact.filetype,
+                                Analysed)
+
         state = FortranWorkingState(self.database)
         state.remove_fortran_file(reader.filename)
 
@@ -383,6 +387,7 @@ class FortranAnalyser(Task):
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
                     unit_id = FortranUnitID(unit_name, reader.filename)
                     state.add_fortran_program_unit(unit_id)
+                    new_artifact.add_definition(unit_name)
                     scope.append((unit_type, unit_name))
                     continue
             use_match: Optional[Match] \
@@ -399,6 +404,7 @@ class FortranAnalyser(Task):
                     logger.debug('Found usage of "%s"', use_name)
                     unit_id = FortranUnitID(scope[0][1], reader.filename)
                     state.add_fortran_dependency(unit_id, use_name)
+                    new_artifact.add_dependency(use_name)
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)
@@ -467,9 +473,7 @@ class FortranAnalyser(Task):
                         raise TaskException(
                             end_message.format(**end_values))
 
-        return [Artifact(artifact.location,
-                         artifact.filetype,
-                         Analysed)]
+        return [new_artifact]
 
 
 class FortranPreProcessor(Task):
