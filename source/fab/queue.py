@@ -7,7 +7,12 @@
 Classes and methods relating to the queue system
 '''
 from typing import List
-from multiprocessing import Queue, JoinableQueue, Process
+from multiprocessing import \
+    Queue, \
+    JoinableQueue, \
+    Process, \
+    Lock, \
+    Manager
 from fab.artifact import Artifact
 from fab.engine import Engine
 
@@ -17,13 +22,15 @@ class Stop(Artifact):
         pass
 
 
-def worker(queue: JoinableQueue, engine: Engine):
+def worker(queue: JoinableQueue, engine: Engine, shared, lock):
     while True:
         artifact = queue.get(block=True)
         if isinstance(artifact, Stop):
             break
 
-        new_artifacts = engine.process(artifact)
+        new_artifacts = engine.process(artifact,
+                                       shared,
+                                       lock)
 
         for new_artifact in new_artifacts:
             queue.put(new_artifact)
@@ -39,6 +46,9 @@ class QueueManager(object):
         self._n_workers = n_workers
         self._workers: List[int] = []
         self._engine = engine
+        self._mgr = Manager()
+        self._shared = self._mgr.dict({engine.target: "HeardOf"})
+        self._lock = Lock()
 
     def add_to_queue(self, artifact: Artifact):
         self._queue.put(artifact)
@@ -47,7 +57,9 @@ class QueueManager(object):
         for _ in range(self._n_workers):
             process = Process(
                 target=worker, args=(self._queue,
-                                     self._engine))
+                                     self._engine,
+                                     self._shared,
+                                     self._lock))
             process.start()
             self._workers.append(process)
 

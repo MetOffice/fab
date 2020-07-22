@@ -151,6 +151,7 @@ class Fab(object):
         }
 
         self._engine = Engine(workspace,
+                              target,
                               path_maps,
                               task_map)
         self._queue = QueueManager(n_procs - 1, self._engine)

@@ -17,7 +17,9 @@ from fab.artifact import \
     State, \
     New, \
     Unknown, \
-    Analysed
+    Analysed, \
+    Compiled, \
+    BinaryObject
 from fab.tasks import Task
 from fab.tasks.common import HashCalculator
 from fab.database import SqliteStateDatabase
@@ -54,16 +56,22 @@ class PathMap(object):
 class Engine(object):
     def __init__(self,
                  workspace: Path,
+                 target: str,
                  pathmaps: List[PathMap],
                  taskmap: Mapping[
                      Tuple[Type[FileType], Type[State]],
                      Task]) -> None:
         self._workspace = workspace
+        self._target = target
         self._pathmaps = pathmaps
         self._taskmap = taskmap
         self._database = SqliteStateDatabase(workspace)
 
-    def process(self, artifact: Artifact) -> List[Artifact]:
+    @property
+    def target(self) -> str:
+        return self._target
+
+    def process(self, artifact: Artifact, shared, lock) -> List[Artifact]:
 
         new_artifacts = []
         # Identify tasks that are completely new
@@ -88,36 +96,58 @@ class Engine(object):
                 new_artifacts.append(new_artifact)
 
         elif artifact.state is Analysed:
-            # Analysed tasks are ready to be compiled, but
-            # they will be unordered;
 
-            # We need a new structure which keeps
-            # track of what Analysed files are in the
-            # system; whether they are needed by one
-            # of our targets, and whether they have
-            # been compiled, we will call this the scoreboard
+            # Work out whether this artifact needs to be
+            # included in the build or not - tag it as having
+            # been seen so the system knows it is Analysed
+            required = False
+            for definition in artifact.defines:
+                if definition in shared:
+                    lock.acquire()
+                    shared[definition] = "Seen"
+                    lock.release()
+                    required = True
 
-            #  1. Find out what units/symbols are in
-            #     this Artifact (either a database lookup
-            #     or an attribute of the Artifact?)
-            #  2. If None of these are on the scoreboard
-            #     then put the Artifact back on the queue
-            #     (we don't know if it is needed yet)
-            #  3. If one or more *are* on the scoreboard
-            #     i.   Add this Artifact to the scoreboard
-            #          in an "Analysed" state
-            #     ii.  Add each of its dependencies to the
-            #          scoreboard in "Heard of" state if
-            #          it isn't on the board already
-            #     iii. If all of its dependencies are on
-            #          the board in a "Compiled" state
-            #          then compile the Artifact.
-            #          If not then put it back on the
-            #          queue again
-            print(f'Looking at {artifact.location}')
-            print(f'    Defines   : {artifact.defines}')
-            print(f'    Depends on: {artifact.depends_on}')
-            pass
+            # Assuming it is needed, check its
+            # dependencies to know what needs doing
+            if required:
+                compiled = [False]*len(artifact.depends_on)
+                for idep, dependency in enumerate(artifact.depends_on):
+                    if dependency in shared:
+                        # Are the dependencies compiled?
+                        if shared[dependency] == "Compiled":
+                            compiled[idep] = True
+                    else:
+                        # If the dependency isn't in the list at all yet
+                        # then add an entry so the system knows we are
+                        # expecting it later (for the above check)
+                        lock.acquire()
+                        shared[dependency] = "HeardOf"
+                        lock.release()
+
+                # Were all the dependencies compiled?
+                if len(compiled) == 0 or all(compiled):
+                    # Don't compile right now, but we will act
+                    # like we have
+                    for definition in artifact.defines:
+                        lock.acquire()
+                        shared[definition] = "Compiled"
+                        lock.release()
+                        new_artifacts.append(
+                            Artifact(artifact.location.with_suffix('.o'),
+                                     BinaryObject,
+                                     Compiled))
+                else:
+                    # If the dependencies weren't all satisfied then
+                    # back on the queue for another pass later
+                    new_artifacts.append(artifact)
+            else:
+                # If it wasn't required, it may be later, so
+                # put it back on the queue, unless the target
+                # has been compiled, in which case it wasn't
+                # needed at all!
+                if shared[self._target] != "Compiled":
+                    new_artifacts.append(artifact)
 
         else:
             # An artifact with a filetype and state set
