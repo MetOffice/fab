@@ -28,7 +28,7 @@ from fab.tasks import \
     TaskException, \
     Command
 from fab.reader import TextReader, TextReaderDecorator, FileTextReader
-from fab.artifact import Artifact, Analysed, Raw
+from fab.artifact import Artifact, Analysed, Raw, Compiled, BinaryObject
 
 
 class FortranUnitUnresolvedID(object):
@@ -501,38 +501,30 @@ class FortranPreProcessor(Task):
                          Raw)]
 
 
-class FortranCompiler(Command):
+class FortranCompiler(Task):
 
     def __init__(self,
-                 filename: Path,
-                 workspace: Path,
+                 compiler: str,
                  flags: List[str],
-                 prerequisites: List[Path]):
-        super().__init__(workspace, flags)
-        self._filename = filename
-        self._prerequisites = prerequisites
+                 workspace: Path):
+        self._compiler = compiler
+        self._flags = flags
+        self._workspace = workspace
 
-    @property
-    def as_list(self) -> List[str]:
-        base_command = ['gfortran',
-                        '-c',
-                        '-J' + str(self._workspace),
-                        ]
-        file_args = [str(self._filename),
-                     '-o',
-                     str(self.output[0]),
-                     ]
-        return base_command + self._flags + file_args
+    def run(self, artifact: Artifact) -> List[Artifact]:
+        command = [self._compiler]
+        command.extend(self._flags)
+        command.append(artifact.location)
 
-    @property
-    def input(self) -> List[Path]:
-        return self._prerequisites + [self._filename]
+        output_file = (self._workspace /
+                       artifact.location.with_suffix('.o').name)
+        command.extend(['-o', output_file])
 
-    @property
-    def output(self) -> List[Path]:
-        object_file = (
-            self._workspace / self._filename.with_suffix('.o').name)
-        return [object_file]
+        subprocess.run(command, check=True)
+
+        return [Artifact(output_file,
+                         BinaryObject,
+                         Compiled)]
 
 
 class FortranLinker(Command):

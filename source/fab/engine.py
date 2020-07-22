@@ -130,13 +130,12 @@ class Engine(object):
                     # Don't compile right now, but we will act
                     # like we have
                     for definition in artifact.defines:
+                        task = self._taskmap[(artifact.filetype,
+                                              artifact.state)]
+                        new_artifacts.extend(task.run(artifact))
                         lock.acquire()
                         shared[definition] = "Compiled"
                         lock.release()
-                        new_artifacts.append(
-                            Artifact(artifact.location.with_suffix('.o'),
-                                     BinaryObject,
-                                     Compiled))
                 else:
                     # If the dependencies weren't all satisfied then
                     # back on the queue for another pass later
@@ -163,6 +162,6 @@ class Engine(object):
                 new_artifacts.extend(task.run(artifact))
             else:
                 print("Nothing defined in Task map for "
-                      f"{artifact.filetype}, {artifact.state}")
+                      f"{artifact.location}, {artifact.filetype}, {artifact.state}")
 
         return new_artifacts

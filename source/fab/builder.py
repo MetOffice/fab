@@ -144,10 +144,14 @@ class Fab(object):
             'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace
         )
         fortran_analyser = FortranAnalyser(workspace)
+        fortran_compiler = FortranCompiler(
+            'gfortran', ['-c', '-J', workspace], workspace
+        )
 
         task_map = {
-            (FortranSource, Raw): fortran_analyser,
             (FortranSource, Seen): fortran_preprocessor,
+            (FortranSource, Raw): fortran_analyser,
+            (FortranSource, Analysed): fortran_compiler,
         }
 
         self._engine = Engine(workspace,
