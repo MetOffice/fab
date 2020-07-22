@@ -20,6 +20,8 @@ from fab.artifact import \
     Seen, \
     Raw
 from fab.tasks import Task
+from fab.tasks.common import HashCalculator
+from fab.database import SqliteStateDatabase
 
 
 class PathMap(object):
@@ -60,6 +62,7 @@ class Engine(object):
         self._workspace = workspace
         self._pathmaps = pathmaps
         self._taskmap = taskmap
+        self._database = SqliteStateDatabase(workspace)
 
     def process(self, artifact: Artifact) -> List[Artifact]:
 
@@ -79,8 +82,10 @@ class Engine(object):
             # to create the artifact, return it so that
             # it can be added to the queue
             if new_artifact is not None:
-                # TODO: Calculate hash of file here
-                # new_artifact.set_hash(hash)
+                # TODO: Perhaps the HashCalculator doesn't need
+                # to be a Task at all anymore...?
+                hash_calculator = HashCalculator(self._database)
+                hash_calculator.run(new_artifact)
                 new_artifacts.append(new_artifact)
 
         else:
@@ -89,21 +94,14 @@ class Engine(object):
             # be used to run it (though unlike the old
             # implementation this is probably returning
             # the instance of the Task not the class)
-            task = self._taskmap[(artifact.filetype,
-                                  artifact.state)]
-            # TODO: Execute the task on the artifact
-            # here and prepare a new output artifact
-            # if isinstance(task, Analyser):
-            #    new_artifacts.append(task.run(artifact.location))
-            print(f"Would process {artifact.location} "
-                  f"here using {task}")
+            if ((artifact.filetype, artifact.state)
+                    in self._taskmap):
+                task = self._taskmap[(artifact.filetype,
+                                      artifact.state)]
 
-            # Pretending a preprocess step has been done:
-            if artifact.state is Seen:
-                new_artifact = Artifact(
-                    artifact.location.with_suffix(".f90"),
-                    artifact.filetype,
-                    Raw)
-                new_artifacts.append(new_artifact)
+                new_artifacts.extend(task.run(artifact))
+            else:
+                print("Nothing defined in Task map for "
+                      f"{artifact.filetype}, {artifact.state}")
 
         return new_artifacts

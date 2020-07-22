@@ -99,16 +99,6 @@ def entry() -> None:
 
 
 class Fab(object):
-    _path_maps = [
-        PathMap(r'.*\.f90', FortranSource, Raw),
-        PathMap(r'.*\.F90', FortranSource, Seen),
-    ]
-
-    _task_map = {
-        (FortranSource, Raw): FortranAnalyser,
-        (FortranSource, Seen): FortranPreProcessor,
-    }
-
     _compile_map = [
         PathMap(r'.*\.f90', FortranSource, Analysed),
     ]
@@ -131,10 +121,6 @@ class Fab(object):
         self._exec_name = exec_name
 
         self._command_flags_map: Dict[Type[Command], List[str]] = {}
-        if fpp_flags != '':
-            self._command_flags_map[FortranPreProcessor] = (
-                fpp_flags.split()
-            )
         if fc_flags != '':
             self._command_flags_map[FortranCompiler] = (
                 fc_flags.split()
@@ -144,9 +130,29 @@ class Fab(object):
                 ld_flags.split()
             )
 
+        path_maps = [
+            PathMap(r'.*\.f90', FortranSource, Raw),
+            PathMap(r'.*\.F90', FortranSource, Seen),
+        ]
+
+        # TODO: We setup the task instances here to
+        # avoid them being repeatedly instantiated
+        # later; with all required "static" properties.
+        # Eventually quite a few of these will probably
+        # come from the configuration instead
+        fortran_preprocessor = FortranPreProcessor(
+            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace
+        )
+        fortran_analyser = FortranAnalyser(workspace)
+
+        task_map = {
+            (FortranSource, Raw): fortran_analyser,
+            (FortranSource, Seen): fortran_preprocessor,
+        }
+
         self._engine = Engine(workspace,
-                              self._path_maps,
-                              self._task_map)
+                              path_maps,
+                              task_map)
         self._queue = QueueManager(n_procs - 1, self._engine)
 
     def _extend_queue(self, artifact: Artifact) -> None:
@@ -161,11 +167,6 @@ class Fab(object):
         descender.descend(visitor)
 
         self._queue.check_queue_done()
-
-        # TODO: remove this stuff!  Aborting at this point
-        # while refactoring
-        self._queue.shutdown()
-        return
 
         file_db = FileInfoDatabase(self._state)
         for file_info in file_db:
@@ -182,6 +183,11 @@ class Fab(object):
             print(fortran_info.unit.name)
             print('    found in: ' + str(fortran_info.unit.found_in))
             print('    depends on: ' + str(fortran_info.depends_on))
+
+        # TODO: remove this stuff!  Aborting at this point
+        # while refactoring
+        self._queue.shutdown()
+        return
 
         # Start with the top level program unit
         target_info = fortran_db.get_program_unit(self._target)

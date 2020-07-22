@@ -7,6 +7,7 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import re
+import subprocess
 from typing import (Generator,
                     Iterator,
                     List,
@@ -23,11 +24,11 @@ from fab.database import (DatabaseDecorator,
                           SqliteStateDatabase,
                           WorkingStateException)
 from fab.tasks import \
-    Analyser, \
+    Task, \
     TaskException, \
-    Command, \
-    SingleFileCommand
-from fab.reader import TextReader, TextReaderDecorator
+    Command
+from fab.reader import TextReader, TextReaderDecorator, FileTextReader
+from fab.artifact import Artifact, Analysed, Raw
 
 
 class FortranUnitUnresolvedID(object):
@@ -303,9 +304,9 @@ class FortranNormaliser(TextReaderDecorator):
             self._line_buffer = ''
 
 
-class FortranAnalyser(Analyser):
-    def __init__(self, reader: TextReader, database: SqliteStateDatabase):
-        super().__init__(reader, database)
+class FortranAnalyser(Task):
+    def __init__(self, workspace: Path):
+        self.database = SqliteStateDatabase(workspace)
 
     _intrinsic_modules = ['iso_fortran_env']
 
@@ -359,13 +360,15 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def run(self):
+    def run(self, artifact: Artifact) -> List[Artifact]:
         logger = logging.getLogger(__name__)
 
-        state = FortranWorkingState(self.database)
-        state.remove_fortran_file(self._reader.filename)
+        reader = FileTextReader(artifact.location)
 
-        normalised_source = FortranNormaliser(self._reader)
+        state = FortranWorkingState(self.database)
+        state.remove_fortran_file(reader.filename)
+
+        normalised_source = FortranNormaliser(reader)
         scope: List[Tuple[str, str]] = []
         for line in normalised_source.line_by_line():
             logger.debug(scope)
@@ -378,7 +381,7 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    unit_id = FortranUnitID(unit_name, self._reader.filename)
+                    unit_id = FortranUnitID(unit_name, reader.filename)
                     state.add_fortran_program_unit(unit_id)
                     scope.append((unit_type, unit_name))
                     continue
@@ -394,7 +397,7 @@ class FortranAnalyser(Analyser):
                             = '"use" statement found outside program unit'
                         raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
-                    unit_id = FortranUnitID(scope[0][1], self._reader.filename)
+                    unit_id = FortranUnitID(scope[0][1], reader.filename)
                     state.add_fortran_dependency(unit_id, use_name)
                 continue
 
@@ -464,19 +467,34 @@ class FortranAnalyser(Analyser):
                         raise TaskException(
                             end_message.format(**end_values))
 
+        return [Artifact(artifact.location,
+                         artifact.filetype,
+                         Analysed)]
 
-class FortranPreProcessor(SingleFileCommand):
 
-    @property
-    def as_list(self) -> List[str]:
-        base_command = ['cpp', '-traditional-cpp', '-P']
-        file_args = [str(self._filename), str(self.output[0])]
-        return base_command + self._flags + file_args
+class FortranPreProcessor(Task):
+    def __init__(self,
+                 preprocessor: str,
+                 flags: List[str],
+                 workspace: Path):
+        self._preprocessor = preprocessor
+        self._flags = flags
+        self._workspace = workspace
 
-    @property
-    def output(self) -> List[Path]:
-        return [self._workspace /
-                self._filename.with_suffix('.f90').name]
+    def run(self, artifact: Artifact) -> List[Artifact]:
+        command = [self._preprocessor]
+        command.extend(self._flags)
+        command.append(artifact.location)
+
+        output_file = (self._workspace /
+                       artifact.location.with_suffix('.f90').name)
+        command.append(output_file)
+
+        subprocess.run(command, check=True)
+
+        return [Artifact(output_file,
+                         artifact.filetype,
+                         Raw)]
 
 
 class FortranCompiler(Command):

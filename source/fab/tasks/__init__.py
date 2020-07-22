@@ -8,8 +8,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import List
 
-from fab.database import StateDatabase
-from fab.reader import TextReader
+from fab.artifact import Artifact
 
 
 class TaskException(Exception):
@@ -18,39 +17,8 @@ class TaskException(Exception):
 
 class Task(ABC):
     @abstractmethod
-    def run(self) -> None:
+    def run(self, artifact: Artifact) -> List[Artifact]:
         raise NotImplementedError('Abstract methods must be implemented')
-
-    @property
-    @abstractmethod
-    def prerequisites(self) -> List[Path]:
-        raise NotImplementedError('Abstract methods must be implemented')
-
-    @property
-    @abstractmethod
-    def products(self) -> List[Path]:
-        raise NotImplementedError('Abstract methods must be implemented')
-
-
-class Analyser(Task, ABC):
-    def __init__(self, reader: TextReader, database: StateDatabase):
-        self._reader = reader
-        self._database = database
-
-    @property
-    def database(self):
-        return self._database
-
-    @property
-    def prerequisites(self) -> List[Path]:
-        if isinstance(self._reader.filename, Path):
-            return [self._reader.filename]
-        else:
-            return []
-
-    @property
-    def products(self) -> List[Path]:
-        return []
 
 
 class Command(ABC):
