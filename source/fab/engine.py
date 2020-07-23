@@ -18,7 +18,8 @@ from fab.artifact import \
     New, \
     Unknown, \
     Analysed, \
-    Compiled
+    Compiled, \
+    Linked
 from fab.tasks import Task
 from fab.tasks.common import HashCalculator
 from fab.database import SqliteStateDatabase
@@ -163,6 +164,11 @@ class Engine(object):
                 task = self._taskmap[(artifact.filetype,
                                       artifact.state)]
                 new_artifacts.extend(task.run(objects))
+
+        elif artifact.state is Linked:
+            # Nothing to do at present with the final linked
+            # executable, but included here for completeness
+            pass
 
         else:
             # An artifact with a filetype and state set
