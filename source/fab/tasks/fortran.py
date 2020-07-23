@@ -25,10 +25,16 @@ from fab.database import (DatabaseDecorator,
                           WorkingStateException)
 from fab.tasks import \
     Task, \
-    TaskException, \
-    Command
+    TaskException
 from fab.reader import TextReader, TextReaderDecorator, FileTextReader
-from fab.artifact import Artifact, Analysed, Raw, Compiled, BinaryObject
+from fab.artifact import \
+    Artifact, \
+    Analysed, \
+    Raw, \
+    Compiled, \
+    Linked, \
+    BinaryObject, \
+    Executable
 
 
 class FortranUnitUnresolvedID(object):
@@ -522,36 +528,35 @@ class FortranCompiler(Task):
 
         subprocess.run(command, check=True)
 
-        return [Artifact(output_file,
-                         BinaryObject,
-                         Compiled)]
+        object_artifact = Artifact(output_file,
+                                   BinaryObject,
+                                   Compiled)
+        for definition in artifact.defines:
+            object_artifact.add_definition(definition)
+
+        return [object_artifact]
 
 
-class FortranLinker(Command):
+class FortranLinker(Task):
     def __init__(self,
-                 workspace: Path,
+                 linker: str,
                  flags: List[str],
+                 workspace: Path,
                  output_filename: Path):
-        super().__init__(workspace, flags)
+        self._linker = linker
+        self._flags = flags
+        self._workspace = workspace
         self._output_filename = output_filename
-        self._filenames: List[Path] = []
 
-    def add_object(self, object_filename: Path):
-        self._filenames.append(object_filename)
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        command = [self._linker]
+        command.extend(self._flags)
+        command.extend(['-o', self._workspace / self._output_filename])
+        for artifact in artifacts:
+            command.append(artifact.location)
 
-    @property
-    def as_list(self) -> List[str]:
-        if len(self._filenames) == 0:
-            message = "Tried to generate a link without object files"
-            raise TaskException(message)
-        base_command = ['gfortran', '-o', str(self._output_filename)]
-        objects = [str(filename) for filename in self._filenames]
-        return base_command + self._flags + objects
+        subprocess.run(command, check=True)
 
-    @property
-    def output(self) -> List[Path]:
-        return [self._output_filename]
-
-    @property
-    def input(self) -> List[Path]:
-        return self._filenames
+        return [Artifact(self._output_filename,
+                         Executable,
+                         Linked)]

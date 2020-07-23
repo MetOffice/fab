@@ -18,8 +18,7 @@ from fab.artifact import \
     New, \
     Unknown, \
     Analysed, \
-    Compiled, \
-    BinaryObject
+    Compiled
 from fab.tasks import Task
 from fab.tasks.common import HashCalculator
 from fab.database import SqliteStateDatabase
@@ -71,7 +70,11 @@ class Engine(object):
     def target(self) -> str:
         return self._target
 
-    def process(self, artifact: Artifact, shared, lock) -> List[Artifact]:
+    def process(self,
+                artifact: Artifact,
+                shared,
+                objects,
+                lock) -> List[Artifact]:
 
         new_artifacts = []
         # Identify tasks that are completely new
@@ -125,10 +128,9 @@ class Engine(object):
                         shared[dependency] = "HeardOf"
                         lock.release()
 
-                # Were all the dependencies compiled?
+                # If the dependencies are satisfied (or there weren't
+                # any) then the file can be compiled now
                 if len(compiled) == 0 or all(compiled):
-                    # Don't compile right now, but we will act
-                    # like we have
                     for definition in artifact.defines:
                         task = self._taskmap[(artifact.filetype,
                                               artifact.state)]
@@ -141,12 +143,26 @@ class Engine(object):
                     # back on the queue for another pass later
                     new_artifacts.append(artifact)
             else:
-                # If it wasn't required, it may be later, so
+                # If it wasn't required it could be later, so
                 # put it back on the queue, unless the target
                 # has been compiled, in which case it wasn't
                 # needed at all!
                 if shared[self._target] != "Compiled":
                     new_artifacts.append(artifact)
+
+        elif artifact.state is Compiled:
+            # Begin populating the list for linking
+            objects.append(artifact)
+            # But do not return a new artifact - this object
+            # is "done" as far as the processing is concerned
+
+            # But, if this is the file containing the target
+            # that means everything must have been compiled
+            # by this point; so we can do the linking step
+            if self._target in artifact.defines:
+                task = self._taskmap[(artifact.filetype,
+                                      artifact.state)]
+                new_artifacts.extend(task.run(objects))
 
         else:
             # An artifact with a filetype and state set
@@ -162,6 +178,8 @@ class Engine(object):
                 new_artifacts.extend(task.run(artifact))
             else:
                 print("Nothing defined in Task map for "
-                      f"{artifact.location}, {artifact.filetype}, {artifact.state}")
+                      f"{artifact.location}, "
+                      f"{artifact.filetype}, "
+                      f"{artifact.state}")
 
         return new_artifacts

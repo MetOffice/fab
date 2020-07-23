@@ -13,9 +13,11 @@ from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.artifact import \
     Artifact, \
     FortranSource, \
+    BinaryObject, \
     Seen, \
     Raw, \
-    Analysed
+    Analysed, \
+    Compiled
 from fab.tasks import Command
 from fab.tasks.common import CommandTask
 from fab.tasks.fortran import \
@@ -119,16 +121,10 @@ class Fab(object):
         self._state = SqliteStateDatabase(workspace)
         self._target = target
         self._exec_name = exec_name
+        if exec_name == '':
+            exec_name = target
 
         self._command_flags_map: Dict[Type[Command], List[str]] = {}
-        if fc_flags != '':
-            self._command_flags_map[FortranCompiler] = (
-                fc_flags.split()
-            )
-        if ld_flags != '':
-            self._command_flags_map[FortranLinker] = (
-                ld_flags.split()
-            )
 
         path_maps = [
             PathMap(r'.*\.f90', FortranSource, Raw),
@@ -145,13 +141,17 @@ class Fab(object):
         )
         fortran_analyser = FortranAnalyser(workspace)
         fortran_compiler = FortranCompiler(
-            'gfortran', ['-c', '-J', workspace], workspace
+            'gfortran', ['-c', '-J', workspace] + fc_flags.split(), workspace
+        )
+        fortran_linker = FortranLinker(
+            'gfortran', ld_flags.split(), workspace, exec_name
         )
 
         task_map = {
             (FortranSource, Seen): fortran_preprocessor,
             (FortranSource, Raw): fortran_analyser,
             (FortranSource, Analysed): fortran_compiler,
+            (BinaryObject, Compiled): fortran_linker,
         }
 
         self._engine = Engine(workspace,
@@ -189,8 +189,7 @@ class Fab(object):
             print('    found in: ' + str(fortran_info.unit.found_in))
             print('    depends on: ' + str(fortran_info.depends_on))
 
-        # TODO: remove this stuff!  Aborting at this point
-        # while refactoring
+        # The queue is done at this point
         self._queue.shutdown()
         return
 
