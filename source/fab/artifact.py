@@ -18,19 +18,7 @@ class New(State):
     pass
 
 
-class Aware(State):
-    pass
-
-
 class Seen(State):
-    pass
-
-
-class Ready(State):
-    pass
-
-
-class Prepared(State):
     pass
 
 
@@ -80,8 +68,8 @@ class Artifact(object):
         self._location = location
         self._filetype = filetype
         self._state = state
-        self._defines = []
-        self._depends_on = []
+        self._defines: List[str] = []
+        self._depends_on: List[str] = []
 
     @property
     def location(self) -> Path:

@@ -95,7 +95,7 @@ class Engine(object):
                 # TODO: Perhaps the HashCalculator doesn't need
                 # to be a Task at all anymore...?
                 hash_calculator = HashCalculator(self._database)
-                hash_calculator.run(new_artifact)
+                hash_calculator.run([new_artifact])
                 new_artifacts.append(new_artifact)
 
         elif artifact.state is Analysed:
@@ -134,7 +134,7 @@ class Engine(object):
                     for definition in artifact.defines:
                         task = self._taskmap[(artifact.filetype,
                                               artifact.state)]
-                        new_artifacts.extend(task.run(artifact))
+                        new_artifacts.extend(task.run([artifact]))
                         lock.acquire()
                         shared[definition] = "Compiled"
                         lock.release()
@@ -175,7 +175,7 @@ class Engine(object):
                 task = self._taskmap[(artifact.filetype,
                                       artifact.state)]
 
-                new_artifacts.extend(task.run(artifact))
+                new_artifacts.extend(task.run([artifact]))
             else:
                 print("Nothing defined in Task map for "
                       f"{artifact.location}, "

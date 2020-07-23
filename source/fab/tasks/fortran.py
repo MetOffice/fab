@@ -366,8 +366,15 @@ class FortranAnalyser(Task):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def run(self, artifact: Artifact) -> List[Artifact]:
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
+
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('Fortran Analyser expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
 
         reader = FileTextReader(artifact.location)
 
@@ -491,14 +498,23 @@ class FortranPreProcessor(Task):
         self._flags = flags
         self._workspace = workspace
 
-    def run(self, artifact: Artifact) -> List[Artifact]:
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('Fortran Preprocessor expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
+
+        artifact = artifacts[0]
         command = [self._preprocessor]
         command.extend(self._flags)
-        command.append(artifact.location)
+        command.append(str(artifact.location))
 
         output_file = (self._workspace /
                        artifact.location.with_suffix('.f90').name)
-        command.append(output_file)
+        command.append(str(output_file))
 
         subprocess.run(command, check=True)
 
@@ -517,14 +533,22 @@ class FortranCompiler(Task):
         self._flags = flags
         self._workspace = workspace
 
-    def run(self, artifact: Artifact) -> List[Artifact]:
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('Fortran Compiler expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
+
         command = [self._compiler]
         command.extend(self._flags)
-        command.append(artifact.location)
+        command.append(str(artifact.location))
 
         output_file = (self._workspace /
                        artifact.location.with_suffix('.o').name)
-        command.extend(['-o', output_file])
+        command.extend(['-o', str(output_file)])
 
         subprocess.run(command, check=True)
 
@@ -542,21 +566,30 @@ class FortranLinker(Task):
                  linker: str,
                  flags: List[str],
                  workspace: Path,
-                 output_filename: Path):
+                 output_filename: str):
         self._linker = linker
         self._flags = flags
         self._workspace = workspace
         self._output_filename = output_filename
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+
+        if len(artifacts) < 1:
+            msg = ('Fortran Linker expects at least one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
+
         command = [self._linker]
         command.extend(self._flags)
-        command.extend(['-o', self._workspace / self._output_filename])
+
+        output_file = self._workspace / self._output_filename
+
+        command.extend(['-o', str(output_file)])
         for artifact in artifacts:
-            command.append(artifact.location)
+            command.append(str(artifact.location))
 
         subprocess.run(command, check=True)
 
-        return [Artifact(self._output_filename,
+        return [Artifact(output_file,
                          Executable,
                          Linked)]

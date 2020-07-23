@@ -4,12 +4,10 @@
 '''
 Tasks which are not language specific.
 '''
-import subprocess
 from typing import List
-from pathlib import Path
 from zlib import adler32
 
-from fab.tasks import Task, Command
+from fab.tasks import Task, TaskException
 from fab.database import StateDatabase, FileInfoDatabase
 from fab.reader import FileTextReader
 from fab.artifact import Artifact
@@ -19,7 +17,16 @@ class HashCalculator(Task):
     def __init__(self, database: StateDatabase) -> None:
         self._database = database
 
-    def run(self, artifact: Artifact) -> List[Artifact]:
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('Hash Calculator expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+
+            raise TaskException(msg)
+
         reader = FileTextReader(artifact.location)
         fhash = 1
         for line in reader.line_by_line():
@@ -27,26 +34,3 @@ class HashCalculator(Task):
         file_info = FileInfoDatabase(self._database)
         file_info.add_file_info(artifact.location, fhash)
         return []
-
-
-class CommandTask(Task):
-    def __init__(self, command: Command):
-        self._command = command
-
-    def run(self):
-        if self._command.stdout:
-            process = subprocess.run(self._command.as_list,
-                                     check=True,
-                                     stdout=subprocess.PIPE)
-            with self._command.output[0].open('wb') as out_file:
-                out_file.write(process.stdout)
-        else:
-            _ = subprocess.run(self._command.as_list, check=True)
-
-    @property
-    def prerequisites(self) -> List[Path]:
-        return self._command.input
-
-    @property
-    def products(self) -> List[Path]:
-        return self._command.output

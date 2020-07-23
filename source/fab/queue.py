@@ -53,7 +53,7 @@ class QueueManager(object):
         self._engine = engine
         self._mgr = Manager()
         self._shared = self._mgr.dict({engine.target: "HeardOf"})
-        self._objects = self._mgr.list([])
+        self._objects: List = self._mgr.list([])
         self._lock = Lock()
 
     def add_to_queue(self, artifact: Artifact):
