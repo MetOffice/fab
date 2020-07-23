@@ -21,8 +21,9 @@ from fab.artifact import \
     Compiled, \
     Linked
 from fab.tasks import Task
-from fab.tasks.common import HashCalculator
-from fab.database import SqliteStateDatabase
+from fab.database import \
+    SqliteStateDatabase, \
+    FileInfoDatabase
 
 
 class PathMap(object):
@@ -93,10 +94,10 @@ class Engine(object):
             # to create the artifact, return it so that
             # it can be added to the queue
             if new_artifact is not None:
-                # TODO: Perhaps the HashCalculator doesn't need
-                # to be a Task at all anymore...?
-                hash_calculator = HashCalculator(self._database)
-                hash_calculator.run([new_artifact])
+                # Also store its hash in the file database
+                file_info = FileInfoDatabase(self._database)
+                file_info.add_file_info(artifact.location,
+                                        new_artifact.hash)
                 new_artifacts.append(new_artifact)
 
         elif artifact.state is Analysed:
@@ -182,10 +183,5 @@ class Engine(object):
                                       artifact.state)]
 
                 new_artifacts.extend(task.run([artifact]))
-            else:
-                print("Nothing defined in Task map for "
-                      f"{artifact.location}, "
-                      f"{artifact.filetype}, "
-                      f"{artifact.state}")
 
         return new_artifacts

@@ -6,7 +6,10 @@
 
 from pathlib import Path
 from abc import ABC
-from typing import Type, List
+from typing import Type, List, Optional
+from zlib import adler32
+
+from fab.reader import FileTextReader
 
 
 # Classes representing possible states of an Artifact
@@ -70,6 +73,7 @@ class Artifact(object):
         self._state = state
         self._defines: List[str] = []
         self._depends_on: List[str] = []
+        self._hash: Optional[int] = None
 
     @property
     def location(self) -> Path:
@@ -90,6 +94,17 @@ class Artifact(object):
     @property
     def depends_on(self) -> List[str]:
         return self._depends_on
+
+    @property
+    def hash(self) -> int:
+        # If this is the first access of the property calculate the hash
+        # and cache it for later accesses
+        if self._hash is None:
+            self._hash = 1
+            reader = FileTextReader(self.location)
+            for line in reader.line_by_line():
+                self._hash = adler32(bytes(line, encoding='utf-8'), self._hash)
+        return self._hash
 
     def add_dependency(self, dependency: str) -> None:
         self._depends_on.append(dependency)
