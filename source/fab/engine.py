@@ -74,11 +74,13 @@ class Engine(object):
 
     def process(self,
                 artifact: Artifact,
-                shared,
+                discovery,
                 objects,
                 lock) -> List[Artifact]:
 
         new_artifacts = []
+        new_discovery = {}
+        new_objects = []
         # Identify tasks that are completely new
         if (artifact.state is New
                 and artifact.filetype is Unknown):
@@ -107,10 +109,8 @@ class Engine(object):
             # been seen so the system knows it is Analysed
             required = False
             for definition in artifact.defines:
-                if definition in shared:
-                    lock.acquire()
-                    shared[definition] = "Seen"
-                    lock.release()
+                if definition in discovery:
+                    new_discovery[definition] = "Seen"
                     required = True
 
             # Assuming it is needed, check its
@@ -118,17 +118,15 @@ class Engine(object):
             if required:
                 compiled = [False]*len(artifact.depends_on)
                 for idep, dependency in enumerate(artifact.depends_on):
-                    if dependency in shared:
+                    if dependency in discovery:
                         # Are the dependencies compiled?
-                        if shared[dependency] == "Compiled":
+                        if discovery[dependency] == "Compiled":
                             compiled[idep] = True
                     else:
                         # If the dependency isn't in the list at all yet
                         # then add an entry so the system knows we are
                         # expecting it later (for the above check)
-                        lock.acquire()
-                        shared[dependency] = "HeardOf"
-                        lock.release()
+                        new_discovery[dependency] = "HeardOf"
 
                 # If the dependencies are satisfied (or there weren't
                 # any) then the file can be compiled now
@@ -137,9 +135,7 @@ class Engine(object):
                         task = self._taskmap[(artifact.filetype,
                                               artifact.state)]
                         new_artifacts.extend(task.run([artifact]))
-                        lock.acquire()
-                        shared[definition] = "Compiled"
-                        lock.release()
+                        new_discovery[definition] = "Compiled"
                 else:
                     # If the dependencies weren't all satisfied then
                     # back on the queue for another pass later
@@ -149,12 +145,12 @@ class Engine(object):
                 # put it back on the queue, unless the target
                 # has been compiled, in which case it wasn't
                 # needed at all!
-                if shared[self._target] != "Compiled":
+                if discovery[self._target] != "Compiled":
                     new_artifacts.append(artifact)
 
         elif artifact.state is Compiled:
             # Begin populating the list for linking
-            objects.append(artifact)
+            new_objects.append(artifact)
             # But do not return a new artifact - this object
             # is "done" as far as the processing is concerned
 
@@ -164,7 +160,7 @@ class Engine(object):
             if self._target in artifact.defines:
                 task = self._taskmap[(artifact.filetype,
                                       artifact.state)]
-                new_artifacts.extend(task.run(objects))
+                new_artifacts.extend(task.run(objects + [artifact]))
 
         elif artifact.state is Linked:
             # Nothing to do at present with the final linked
@@ -183,5 +179,12 @@ class Engine(object):
                                       artifact.state)]
 
                 new_artifacts.extend(task.run([artifact]))
+
+        # Update shared arrays
+        lock.acquire()
+        objects.extend(new_objects)
+        for key, value in new_discovery.items():
+            discovery[key] = value
+        lock.release()
 
         return new_artifacts

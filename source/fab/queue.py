@@ -24,7 +24,7 @@ class Stop(Artifact):
 
 def worker(queue: JoinableQueue,
            engine: Engine,
-           shared,
+           discovery,
            objects,
            lock):
     while True:
@@ -33,7 +33,7 @@ def worker(queue: JoinableQueue,
             break
 
         new_artifacts = engine.process(artifact,
-                                       shared,
+                                       discovery,
                                        objects,
                                        lock)
 
@@ -52,7 +52,7 @@ class QueueManager(object):
         self._workers: List[int] = []
         self._engine = engine
         self._mgr = Manager()
-        self._shared = self._mgr.dict({engine.target: "HeardOf"})
+        self._discovery = self._mgr.dict({engine.target: "HeardOf"})
         self._objects: List = self._mgr.list([])
         self._lock = Lock()
 
@@ -64,7 +64,7 @@ class QueueManager(object):
             process = Process(
                 target=worker, args=(self._queue,
                                      self._engine,
-                                     self._shared,
+                                     self._discovery,
                                      self._objects,
                                      self._lock))
             process.start()
