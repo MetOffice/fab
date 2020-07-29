@@ -84,6 +84,10 @@ def entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
+    # If not provided, name the exec after the target
+    if arguments.exec_name == '':
+        arguments.exec_name = arguments.target
+
     application = Fab(arguments.workspace,
                       arguments.target,
                       arguments.exec_name,
@@ -109,11 +113,6 @@ class Fab(object):
             workspace.mkdir(parents=True)
 
         self._state = SqliteStateDatabase(workspace)
-
-        # If not given, use the name of the target as the exec name
-        # TODO: Should this be in the CLI part?
-        if exec_name == '':
-            exec_name = target
 
         # Path maps tell the engine what filetype and starting state
         # the Artifacts representing any files encountered by the

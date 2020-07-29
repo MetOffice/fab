@@ -22,11 +22,11 @@ class Stop(Artifact):
         pass
 
 
-def worker(queue: JoinableQueue,
-           engine: Engine,
-           discovery,
-           objects,
-           lock):
+def _worker(queue: JoinableQueue,
+            engine: Engine,
+            discovery,
+            objects,
+            lock):
     while True:
         artifact = queue.get(block=True)
         if isinstance(artifact, Stop):
@@ -62,11 +62,11 @@ class QueueManager(object):
     def run(self):
         for _ in range(self._n_workers):
             process = Process(
-                target=worker, args=(self._queue,
-                                     self._engine,
-                                     self._discovery,
-                                     self._objects,
-                                     self._lock))
+                target=_worker, args=(self._queue,
+                                      self._engine,
+                                      self._discovery,
+                                      self._objects,
+                                      self._lock))
             process.start()
             self._workers.append(process)
 

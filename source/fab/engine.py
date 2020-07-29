@@ -32,6 +32,7 @@ class PathMap(object):
                  filetype: Type[FileType],
                  state: Type[State]):
         self._pattern = pattern
+        self._compiled = re.compile(pattern)
         self._filetype = filetype
         self._state = state
 
@@ -47,9 +48,9 @@ class PathMap(object):
     def state(self):
         return self._state
 
-    def match(self, path: Path) -> bool:
+    def __contains__(self, path: Path) -> bool:
         matched = False
-        if re.match(self.pattern, str(path)):
+        if self._compiled.match(str(path)):
             matched = True
         return matched
 
@@ -88,7 +89,7 @@ class Engine(object):
             # filetype and starting state
             new_artifact = None
             for pathmap in self._pathmaps:
-                if pathmap.match(artifact.location):
+                if artifact.location in pathmap:
                     new_artifact = Artifact(artifact.location,
                                             pathmap.filetype,
                                             pathmap.state)

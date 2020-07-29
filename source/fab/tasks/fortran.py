@@ -507,7 +507,6 @@ class FortranPreProcessor(Task):
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
 
-        artifact = artifacts[0]
         command = [self._preprocessor]
         command.extend(self._flags)
         command.append(str(artifact.location))
