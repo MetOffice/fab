@@ -106,11 +106,15 @@ class Engine(object):
         elif artifact.state is Analysed:
 
             # Work out whether this artifact needs to be
-            # included in the build or not - tag it as having
-            # been seen so the system knows it is Analysed
+            # included in the build or not - if any of its
+            # definitions are mentioned in the (shared)
+            # discovery mapping then it should be included
             required = False
             for definition in artifact.defines:
                 if definition in discovery:
+                    # Update this artifact's definition in
+                    # the discovery mapping to indicate that
+                    # it has been encountered
                     new_discovery[definition] = "Seen"
                     required = True
 
