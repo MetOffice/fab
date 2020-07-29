@@ -7,6 +7,7 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import re
+import subprocess
 from typing import (Generator,
                     Iterator,
                     List,
@@ -23,11 +24,17 @@ from fab.database import (DatabaseDecorator,
                           SqliteStateDatabase,
                           WorkingStateException)
 from fab.tasks import \
-    Analyser, \
-    TaskException, \
-    Command, \
-    SingleFileCommand
-from fab.reader import TextReader, TextReaderDecorator
+    Task, \
+    TaskException
+from fab.reader import TextReader, TextReaderDecorator, FileTextReader
+from fab.artifact import \
+    Artifact, \
+    Analysed, \
+    Raw, \
+    Compiled, \
+    Linked, \
+    BinaryObject, \
+    Executable
 
 
 class FortranUnitUnresolvedID(object):
@@ -303,9 +310,9 @@ class FortranNormaliser(TextReaderDecorator):
             self._line_buffer = ''
 
 
-class FortranAnalyser(Analyser):
-    def __init__(self, reader: TextReader, database: SqliteStateDatabase):
-        super().__init__(reader, database)
+class FortranAnalyser(Task):
+    def __init__(self, workspace: Path):
+        self.database = SqliteStateDatabase(workspace)
 
     _intrinsic_modules = ['iso_fortran_env']
 
@@ -359,13 +366,26 @@ class FortranAnalyser(Analyser):
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
 
-    def run(self):
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
 
-        state = FortranWorkingState(self.database)
-        state.remove_fortran_file(self._reader.filename)
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('Fortran Analyser expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
 
-        normalised_source = FortranNormaliser(self._reader)
+        reader = FileTextReader(artifact.location)
+
+        new_artifact = Artifact(artifact.location,
+                                artifact.filetype,
+                                Analysed)
+
+        state = FortranWorkingState(self.database)
+        state.remove_fortran_file(reader.filename)
+
+        normalised_source = FortranNormaliser(reader)
         scope: List[Tuple[str, str]] = []
         for line in normalised_source.line_by_line():
             logger.debug(scope)
@@ -378,8 +398,9 @@ class FortranAnalyser(Analyser):
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    unit_id = FortranUnitID(unit_name, self._reader.filename)
+                    unit_id = FortranUnitID(unit_name, reader.filename)
                     state.add_fortran_program_unit(unit_id)
+                    new_artifact.add_definition(unit_name)
                     scope.append((unit_type, unit_name))
                     continue
             use_match: Optional[Match] \
@@ -394,8 +415,9 @@ class FortranAnalyser(Analyser):
                             = '"use" statement found outside program unit'
                         raise TaskException(use_message)
                     logger.debug('Found usage of "%s"', use_name)
-                    unit_id = FortranUnitID(scope[0][1], self._reader.filename)
+                    unit_id = FortranUnitID(scope[0][1], reader.filename)
                     state.add_fortran_dependency(unit_id, use_name)
+                    new_artifact.add_dependency(use_name)
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)
@@ -464,80 +486,109 @@ class FortranAnalyser(Analyser):
                         raise TaskException(
                             end_message.format(**end_values))
 
-
-class FortranPreProcessor(SingleFileCommand):
-
-    @property
-    def as_list(self) -> List[str]:
-        base_command = ['cpp', '-traditional-cpp', '-P']
-        file_args = [str(self._filename), str(self.output[0])]
-        return base_command + self._flags + file_args
-
-    @property
-    def output(self) -> List[Path]:
-        return [self._workspace /
-                self._filename.with_suffix('.f90').name]
+        return [new_artifact]
 
 
-class FortranCompiler(Command):
+class FortranPreProcessor(Task):
+    def __init__(self,
+                 preprocessor: str,
+                 flags: List[str],
+                 workspace: Path):
+        self._preprocessor = preprocessor
+        self._flags = flags
+        self._workspace = workspace
+
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('Fortran Preprocessor expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
+
+        command = [self._preprocessor]
+        command.extend(self._flags)
+        command.append(str(artifact.location))
+
+        output_file = (self._workspace /
+                       artifact.location.with_suffix('.f90').name)
+        command.append(str(output_file))
+
+        subprocess.run(command, check=True)
+
+        return [Artifact(output_file,
+                         artifact.filetype,
+                         Raw)]
+
+
+class FortranCompiler(Task):
 
     def __init__(self,
-                 filename: Path,
-                 workspace: Path,
+                 compiler: str,
                  flags: List[str],
-                 prerequisites: List[Path]):
-        super().__init__(workspace, flags)
-        self._filename = filename
-        self._prerequisites = prerequisites
+                 workspace: Path):
+        self._compiler = compiler
+        self._flags = flags
+        self._workspace = workspace
 
-    @property
-    def as_list(self) -> List[str]:
-        base_command = ['gfortran',
-                        '-c',
-                        '-J' + str(self._workspace),
-                        ]
-        file_args = [str(self._filename),
-                     '-o',
-                     str(self.output[0]),
-                     ]
-        return base_command + self._flags + file_args
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
 
-    @property
-    def input(self) -> List[Path]:
-        return self._prerequisites + [self._filename]
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('Fortran Compiler expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
 
-    @property
-    def output(self) -> List[Path]:
-        object_file = (
-            self._workspace / self._filename.with_suffix('.o').name)
-        return [object_file]
+        command = [self._compiler]
+        command.extend(self._flags)
+        command.append(str(artifact.location))
+
+        output_file = (self._workspace /
+                       artifact.location.with_suffix('.o').name)
+        command.extend(['-o', str(output_file)])
+
+        subprocess.run(command, check=True)
+
+        object_artifact = Artifact(output_file,
+                                   BinaryObject,
+                                   Compiled)
+        for definition in artifact.defines:
+            object_artifact.add_definition(definition)
+
+        return [object_artifact]
 
 
-class FortranLinker(Command):
+class FortranLinker(Task):
     def __init__(self,
-                 workspace: Path,
+                 linker: str,
                  flags: List[str],
-                 output_filename: Path):
-        super().__init__(workspace, flags)
+                 workspace: Path,
+                 output_filename: str):
+        self._linker = linker
+        self._flags = flags
+        self._workspace = workspace
         self._output_filename = output_filename
-        self._filenames: List[Path] = []
 
-    def add_object(self, object_filename: Path):
-        self._filenames.append(object_filename)
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
 
-    @property
-    def as_list(self) -> List[str]:
-        if len(self._filenames) == 0:
-            message = "Tried to generate a link without object files"
-            raise TaskException(message)
-        base_command = ['gfortran', '-o', str(self._output_filename)]
-        objects = [str(filename) for filename in self._filenames]
-        return base_command + self._flags + objects
+        if len(artifacts) < 1:
+            msg = ('Fortran Linker expects at least one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
 
-    @property
-    def output(self) -> List[Path]:
-        return [self._output_filename]
+        command = [self._linker]
+        command.extend(self._flags)
 
-    @property
-    def input(self) -> List[Path]:
-        return self._filenames
+        output_file = self._workspace / self._output_filename
+
+        command.extend(['-o', str(output_file)])
+        for artifact in artifacts:
+            command.append(str(artifact.location))
+
+        subprocess.run(command, check=True)
+
+        return [Artifact(output_file,
+                         Executable,
+                         Linked)]

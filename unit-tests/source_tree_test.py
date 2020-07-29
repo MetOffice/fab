@@ -5,178 +5,41 @@
 ##############################################################################
 from pathlib import Path
 import pytest  # type: ignore
-from typing import List, Dict, Type
+from typing import List
 
-from fab.database import SqliteStateDatabase
-from fab.tasks import Analyser, Command, SingleFileCommand
 from fab.source_tree import \
     SourceVisitor, \
     TreeDescent, \
-    TreeVisitor, \
-    PathMap
+    TreeVisitor
+from fab.artifact import Unknown, New
 
 
 class TestSourceVisitor(object):
-    def test_analyser(self, tmp_path: Path):
-        (tmp_path / 'test.foo').write_text("First file")
+    def test_visit(self, tmp_path: Path):
+
+        seen = []
+
+        def handler(artifact):
+            seen.append(artifact)
+
+        test_unit = SourceVisitor(handler)
+
+        first_file = (tmp_path / 'test.foo')
         (tmp_path / 'directory').mkdir()
-        (tmp_path / 'directory' / 'file.foo')\
-            .write_text("Second file in directory")
+        second_file = (tmp_path / 'directory' / 'test.bar')
 
-        tracker: List[Path] = []
+        first_file.write_text("First file")
+        second_file.write_text("Second file in directory")
 
-        class DummyTask(Analyser):
-            def run(self):
-                tracker.append(self._reader.filename)
+        test_unit.visit(first_file)
+        assert seen[0].location == first_file
+        assert seen[0].filetype == Unknown
+        assert seen[0].state == New
 
-        db = SqliteStateDatabase(tmp_path)
-        smap = PathMap([
-            (r'.*\.foo', DummyTask),
-        ])
-        fmap: Dict[Type[Command], List[str]] = {}
-
-        def taskrunner(task):
-            task.run()
-
-        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
-        tracker.clear()
-
-        test_unit.visit(tmp_path / 'test.foo')
-        assert tracker == [tmp_path / 'test.foo']
-
-        test_unit.visit(tmp_path / 'directory' / 'file.foo')
-        assert tracker == [tmp_path / 'test.foo',
-                           tmp_path / 'directory' / 'file.foo']
-
-    def test_command(self, tmp_path: Path):
-        (tmp_path / 'test.bar').write_text("File the first")
-        (tmp_path / 'directory').mkdir()
-        (tmp_path / 'directory' / 'test.bar') \
-            .write_text("File the second in directory")
-
-        tracker: List[Path] = []
-
-        class DummyCommand(SingleFileCommand):
-            @property
-            def output(self) -> List[Path]:
-                return [Path(tmp_path / 'wiggins')]
-
-            @property
-            def as_list(self) -> List[str]:
-                tracker.append(self._filename)
-                return ['cp', str(self._filename), str(self.output[0])]
-
-        db = SqliteStateDatabase(tmp_path)
-        smap = PathMap([
-            (r'.*\.bar', DummyCommand),
-        ])
-        fmap: Dict[Type[Command], List[str]] = {}
-
-        def taskrunner(task):
-            task.run()
-
-        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
-        tracker.clear()
-
-        test_unit.visit(tmp_path / 'test.bar')
-        assert tracker == [tmp_path / 'test.bar']
-
-        test_unit.visit(tmp_path / 'directory' / 'test.bar')
-        assert tracker == [tmp_path / 'test.bar',
-                           tmp_path / 'directory/test.bar']
-
-    def test_unrecognised_pattern(self, tmp_path: Path):
-        (tmp_path / 'test.what').write_text('Some test file')
-
-        tracker: List[Path] = []
-
-        class DummyAnalyser(Analyser):
-            def run(self):
-                tracker.append(self._reader.filename)
-
-        db = SqliteStateDatabase(tmp_path)
-        smap = PathMap([
-            (r'.*\.expected', DummyAnalyser),
-        ])
-        fmap: Dict[Type[Command], List[str]] = {}
-
-        def taskrunner(task):
-            task.run()
-
-        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
-        tracker.clear()
-
-        test_unit.visit(tmp_path / 'test.what')
-        assert tracker == []
-
-    def test_bad_source_map(self, tmp_path: Path):
-        (tmp_path / 'test.qux').write_text('Test file')
-
-        class WhatnowCommand(Command):
-            @property
-            def as_list(self) -> List[str]:
-                return []
-
-            @property
-            def output(self) -> List[Path]:
-                return []
-
-            @property
-            def input(self) -> List[Path]:
-                return []
-
-        db = SqliteStateDatabase(tmp_path)
-        smap = PathMap([
-            (r'.*\.qux', WhatnowCommand),
-        ])
-        fmap: Dict[Type[Command], List[str]] = {}
-
-        def taskrunner(task):
-            task.run()
-
-        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
-        with pytest.raises(TypeError):
-            test_unit.visit(tmp_path / 'test.qux')
-
-    def test_repeated_extension(self, tmp_path: Path):
-        (tmp_path / 'test.foo').write_text("First file")
-        (tmp_path / 'directory').mkdir()
-        (tmp_path / 'directory' / 'file.foo')\
-            .write_text("Second file in directory")
-
-        trackerA: List[Path] = []
-
-        class DummyTaskA(Analyser):
-            def run(self):
-                trackerA.append(self._reader.filename)
-
-        trackerB: List[Path] = []
-
-        class DummyTaskB(Analyser):
-            def run(self):
-                trackerB.append(self._reader.filename)
-
-        db = SqliteStateDatabase(tmp_path)
-        smap = PathMap([
-            (r'.*\.foo', DummyTaskA),
-            (r'.*/directory/.*\.foo', DummyTaskB)
-        ])
-        fmap: Dict[Type[Command], List[str]] = {}
-
-        def taskrunner(task):
-            task.run()
-
-        test_unit = SourceVisitor(smap, fmap, db, tmp_path, taskrunner)
-        trackerA.clear()
-        trackerB.clear()
-
-        test_unit.visit(tmp_path / 'test.foo')
-        assert trackerA == [tmp_path / 'test.foo']
-        assert trackerB == []
-
-        test_unit.visit(tmp_path / 'directory' / 'file.foo')
-        assert trackerA == [tmp_path / 'test.foo']
-        assert trackerB == [tmp_path / 'directory' / 'file.foo']
+        test_unit.visit(second_file)
+        assert seen[1].location == second_file
+        assert seen[1].filetype == Unknown
+        assert seen[1].state == New
 
 
 class TestTreeDescent(object):
@@ -190,9 +53,8 @@ class TestTreeDescent(object):
             self._outfile = outfile
             self.visited: List[Path] = []
 
-        def visit(self, candidate: Path) -> List[Path]:
+        def visit(self, candidate: Path) -> None:
             self.visited.append(candidate)
-            return []
 
         @property
         def output(self) -> List[Path]:

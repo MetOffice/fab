@@ -5,37 +5,38 @@
 ##############################################################################
 
 from fab.queue import QueueManager
-from fab.tasks import Task
+from fab.artifact import Artifact, Unknown, New
+from fab.engine import Engine
 from pathlib import Path
-import os
+import subprocess
+from typing import List
 
 
-class DummyTask(Task):
-    def __init__(self, filename, depends_on=[]):
-        self._filename = filename
-        self._depends_on = depends_on
+class DummyEngine(Engine):
+    def __init__(self):
+        self._target = "target"
 
-    def run(self):
-        os.system("touch " + str(self._filename))
-
-    @property
-    def prerequisites(self):
-        return self._depends_on
-
-    @property
-    def products(self):
-        return [self._filename]
+    def process(self,
+                artifact: Artifact,
+                shared,
+                objects,
+                lock) -> List[Artifact]:
+        subprocess.run(['touch', str(artifact.location)], check=True)
+        return []
 
 
 def test_queue(tmp_path: Path):
 
-    q_manager = QueueManager(2)
+    dummy_engine = DummyEngine()
+
+    q_manager = QueueManager(2, dummy_engine)
     q_manager.run()
 
     for i in range(1, 4):
-        filename = tmp_path / f"file_{i}"
-        task = DummyTask(filename)
-        q_manager.add_to_queue(task)
+        artifact = Artifact(tmp_path / f"file_{i}",
+                            Unknown,
+                            New)
+        q_manager.add_to_queue(artifact)
 
     q_manager.check_queue_done()
 
@@ -46,30 +47,9 @@ def test_queue(tmp_path: Path):
     q_manager.shutdown()
 
 
-def test_check_prerequisites(tmp_path: Path):
-
-    q_manager = QueueManager(1)
-    q_manager.run()
-
-    dependant_file = tmp_path / "dependant"
-    prereq_file = tmp_path / "prereq"
-
-    dependant_task = DummyTask(dependant_file, depends_on=[prereq_file])
-    q_manager.add_to_queue(dependant_task)
-
-    prereq_task = DummyTask(prereq_file)
-    q_manager.add_to_queue(prereq_task)
-
-    q_manager.check_queue_done()
-
-    assert prereq_file.exists()
-    assert dependant_file.exists()
-
-    q_manager.shutdown()
-
-
 def test_startstop():
-    q_manager = QueueManager(1)
+    dummy_engine = DummyEngine()
+    q_manager = QueueManager(1, dummy_engine)
     q_manager.run()
     assert len(q_manager._workers) == 1
     q_manager.shutdown()

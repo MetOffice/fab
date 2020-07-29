@@ -7,49 +7,66 @@
 Classes and methods relating to the queue system
 '''
 from typing import List
-from multiprocessing import Queue, JoinableQueue, Process
-from fab.tasks import Task
+from multiprocessing import \
+    Queue, \
+    JoinableQueue, \
+    Process, \
+    Lock, \
+    Manager
+from fab.artifact import Artifact
+from fab.engine import Engine
 
 
-class StopTask(Task):
-    def run(self):
-        return []
-
-    @property
-    def prerequisites(self):
-        return []
-
-    @property
-    def products(self):
-        return []
+class Stop(Artifact):
+    def __init__(self):
+        pass
 
 
-def worker(queue: JoinableQueue):
+def _worker(queue: JoinableQueue,
+            engine: Engine,
+            discovery,
+            objects,
+            lock):
     while True:
-        task = queue.get(block=True)
-        if isinstance(task, StopTask):
+        artifact = queue.get(block=True)
+        if isinstance(artifact, Stop):
             break
-        if all([prereq.exists() for prereq in task.prerequisites]):
-            task.run()
-        else:
-            queue.put(task)
+
+        new_artifacts = engine.process(artifact,
+                                       discovery,
+                                       objects,
+                                       lock)
+
+        for new_artifact in new_artifacts:
+            queue.put(new_artifact)
+
         queue.task_done()
+
     queue.task_done()
 
 
 class QueueManager(object):
-    def __init__(self, n_workers: int):
+    def __init__(self, n_workers: int, engine: Engine):
         self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
         self._workers: List[int] = []
+        self._engine = engine
+        self._mgr = Manager()
+        self._discovery = self._mgr.dict({engine.target: "HeardOf"})
+        self._objects: List = self._mgr.list([])
+        self._lock = Lock()
 
-    def add_to_queue(self, task: Task):
-        self._queue.put(task)
+    def add_to_queue(self, artifact: Artifact):
+        self._queue.put(artifact)
 
     def run(self):
         for _ in range(self._n_workers):
             process = Process(
-                target=worker, args=(self._queue,))
+                target=_worker, args=(self._queue,
+                                      self._engine,
+                                      self._discovery,
+                                      self._objects,
+                                      self._lock))
             process.start()
             self._workers.append(process)
 
@@ -58,7 +75,7 @@ class QueueManager(object):
         self._queue.join()
 
     def shutdown(self):
-        stop = StopTask()
+        stop = Stop()
         for _ in range(self._n_workers):
             self._queue.put(stop)
         self.check_queue_done()

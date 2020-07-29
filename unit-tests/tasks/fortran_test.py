@@ -12,18 +12,16 @@ import pytest  # type: ignore
 
 from fab.database import SqliteStateDatabase, WorkingStateException
 from fab.tasks import TaskException
-from fab.tasks.common import CommandTask
 from fab.tasks.fortran import \
     FortranAnalyser, \
-    FortranCompiler, \
     FortranInfo, \
-    FortranLinker, \
     FortranNormaliser, \
     FortranPreProcessor, \
     FortranUnitID, \
     FortranUnitUnresolvedID, \
     FortranWorkingState
-from fab.reader import FileTextReader, StringTextReader, TextReader
+from fab.reader import TextReader
+from fab.artifact import Artifact, FortranSource, Raw, Analysed, Seen
 
 
 class TestFortranUnitUnresolvedID:
@@ -360,8 +358,13 @@ class TestFortranAnalyser(object):
                    '''))
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(FileTextReader(test_file), database)
-        test_unit.run()
+        test_unit = FortranAnalyser(tmp_path)
+        test_artifact = Artifact(test_file,
+                                 FortranSource,
+                                 Raw)
+        output_artifacts = test_unit.run([test_artifact])
+
+        # Confirm database is updated
         working_state = FortranWorkingState(database)
         assert list(working_state) \
             == [FortranInfo(FortranUnitID('bar', tmp_path/'test.f90'),
@@ -372,6 +375,16 @@ class TestFortranAnalyser(object):
                             ['beef_mod']),
                 FortranInfo(FortranUnitID('qux', tmp_path/'test.f90'),
                             ['wibble_mod', 'wubble_mod'])]
+
+        # Confirm returned Artifact is updated
+        assert len(output_artifacts) == 1
+        assert output_artifacts[0].defines == ['foo', 'bar', 'baz', 'qux']
+        assert output_artifacts[0].depends_on == ['beef_mod', 'cheese_mod',
+                                                  'teapot_mod', 'wibble_mod',
+                                                  'wubble_mod']
+        assert output_artifacts[0].location == test_file
+        assert output_artifacts[0].filetype is FortranSource
+        assert output_artifacts[0].state is Analysed
 
     def test_analyser_scope(self, caplog, tmp_path):
         """
@@ -424,12 +437,25 @@ class TestFortranAnalyser(object):
                    '''))
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(FileTextReader(test_file), database)
-        test_unit.run()
+        test_unit = FortranAnalyser(tmp_path)
+        test_artifact = Artifact(test_file,
+                                 FortranSource,
+                                 Raw)
+        output_artifacts = test_unit.run([test_artifact])
+
+        # Confirm database is updated
         working_state = FortranWorkingState(database)
         assert list(working_state) \
             == [FortranInfo(FortranUnitID('barney', tmp_path/'test.f90'), []),
                 FortranInfo(FortranUnitID('fred', tmp_path/'test.f90'), [])]
+
+        # Confirm returned Artifact is updated
+        assert len(output_artifacts) == 1
+        assert output_artifacts[0].defines == ['fred', 'barney']
+        assert output_artifacts[0].depends_on == []
+        assert output_artifacts[0].location == test_file
+        assert output_artifacts[0].filetype is FortranSource
+        assert output_artifacts[0].state is Analysed
 
     def test_harvested_data(self, caplog, tmp_path):
         """
@@ -456,11 +482,18 @@ class TestFortranAnalyser(object):
                    '''))
 
         database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(FileTextReader(first_file), database)
-        test_unit.run()
-        test_unit = FortranAnalyser(FileTextReader(second_file), database)
-        test_unit.run()
+        test_unit = FortranAnalyser(tmp_path)
+        first_artifact = Artifact(first_file,
+                                  FortranSource,
+                                  Raw)
+        second_artifact = Artifact(second_file,
+                                   FortranSource,
+                                   Raw)
+        # Not going to test returned objects this time
+        _ = test_unit.run([first_artifact])
+        _ = test_unit.run([second_artifact])
 
+        # Confirm the database has been updated
         fdb = FortranWorkingState(database)
         assert list(iter(fdb)) \
             == [FortranInfo(FortranUnitID('barney_mod', first_file)),
@@ -473,8 +506,7 @@ class TestFortranAnalyser(object):
 
         # Repeat the scan of second_file, there should be no change.
         #
-        test_unit = FortranAnalyser(FileTextReader(second_file), database)
-        test_unit.run()
+        _ = test_unit.run([second_artifact])
 
         fdb = FortranWorkingState(database)
         assert list(iter(fdb)) \
@@ -500,43 +532,51 @@ class TestFortranAnalyser(object):
                    end module test_mod
                    '''))
 
-        database: SqliteStateDatabase = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(FileTextReader(test_file), database)
+        test_unit = FortranAnalyser(tmp_path)
+        test_artifact = Artifact(test_file,
+                                 FortranSource,
+                                 Raw)
         with pytest.raises(TaskException):
-            test_unit.run()
+            test_unit.run([test_artifact])
 
     def test_mismatched_block_end(self, tmp_path: Path):
         """
         Ensure that the analyser handles mismatched block ends correctly.
         """
-        source = """
-        module wibble_mod
-        contains
-          type :: thing_type
-          end if
-        end module wibble_mod
-        """
-        database = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(StringTextReader(source),
-                                    database)
+        test_file: Path = tmp_path / 'test.f90'
+        test_file.write_text(
+            dedent('''
+                   module wibble_mod
+                   contains
+                     type :: thing_type
+                   end if
+                   end module wibble_mod
+                '''))
+        test_unit = FortranAnalyser(tmp_path)
+        test_artifact = Artifact(test_file,
+                                 FortranSource,
+                                 Raw)
         with pytest.raises(TaskException):
-            test_unit.run()
+            test_unit.run([test_artifact])
 
     def test_mismatched_end_name(self, tmp_path: Path):
         """
         Ensure that the analyser handles mismatched block end names correctly.
         """
-        source = """
-        module wibble_mod
-          type :: thing_type
-          end type blasted_type
-        end module wibble_mod
-        """
-        database = SqliteStateDatabase(tmp_path)
-        test_unit = FortranAnalyser(StringTextReader(source),
-                                    database)
+        test_file: Path = tmp_path / 'test.f90'
+        test_file.write_text(
+            dedent('''
+                   module wibble_mod
+                   type :: thing_type
+                   end type blasted_type
+                   end module wibble_mod
+                   '''))
+        test_unit = FortranAnalyser(tmp_path)
+        test_artifact = Artifact(test_file,
+                                 FortranSource,
+                                 Raw)
         with pytest.raises(TaskException):
-            test_unit.run()
+            test_unit.run([test_artifact])
 
 
 class TestFortranPreProcessor(object):
@@ -569,15 +609,22 @@ class TestFortranPreProcessor(object):
                    #endif
                    '''))
         # Test once with the macro set
-        preprocessor = FortranPreProcessor(
-                test_file,
-                tmp_path,
-                ['-DTEST_MACRO=test_macro', ])
-        test_unit = CommandTask(preprocessor)
-        test_unit.run()
+        test_unit = FortranPreProcessor(
+                'cpp',
+                ['-traditional-cpp', '-P', '-DTEST_MACRO=test_macro'],
+                tmp_path)
+        test_artifact = Artifact(test_file,
+                                 FortranSource,
+                                 Seen)
+        output_artifacts = test_unit.run([test_artifact])
 
-        assert preprocessor.output[0].exists
-        with preprocessor.output[0].open('r') as outfile:
+        assert len(output_artifacts) == 1
+        assert output_artifacts[0].location == test_file.with_suffix('.f90')
+        assert output_artifacts[0].filetype is FortranSource
+        assert output_artifacts[0].state is Raw
+
+        assert output_artifacts[0].location.exists
+        with output_artifacts[0].location.open('r') as outfile:
             outfile_content = outfile.read().strip()
 
         assert outfile_content == dedent('''\
@@ -589,15 +636,19 @@ class TestFortranPreProcessor(object):
                    END FUNCTION included_when_test_macro_set''')
 
         # And test again with the macro unset
-        preprocessor = FortranPreProcessor(
-                test_file,
-                tmp_path,
-                [])
-        test_unit = CommandTask(preprocessor)
-        test_unit.run()
+        test_unit = FortranPreProcessor(
+                'cpp',
+                ['-traditional-cpp', '-P'],
+                tmp_path)
+        output_artifacts = test_unit.run([test_artifact])
 
-        assert preprocessor.output[0].exists
-        with preprocessor.output[0].open('r') as outfile:
+        assert len(output_artifacts) == 1
+        assert output_artifacts[0].location == test_file.with_suffix('.f90')
+        assert output_artifacts[0].filetype is FortranSource
+        assert output_artifacts[0].state is Raw
+
+        assert output_artifacts[0].location.exists
+        with output_artifacts[0].location.open('r') as outfile:
             outfile_content = outfile.read().strip()
 
         assert outfile_content == dedent('''\
@@ -607,46 +658,3 @@ class TestFortranPreProcessor(object):
                    FUNCTION included_when_test_macro_not_set()
                    IMPLICIT NONE
                    END FUNCTION included_when_test_macro_not_set''')
-
-
-class TestFortranCompiler(object):
-    def test_constructor(self):
-        test_unit = FortranCompiler(Path('input.f90'),
-                                    Path('workspace'),
-                                    ['flag1', 'flag2'],
-                                    [Path('prereq1.mod'),
-                                     Path('prereq2.mod')])
-        assert test_unit.input == [Path('prereq1.mod'),
-                                   Path('prereq2.mod'),
-                                   Path('input.f90')]
-        assert test_unit.output == [Path('workspace/input.o')]
-        assert test_unit.as_list == ['gfortran', '-c', '-Jworkspace',
-                                     'flag1', 'flag2', 'input.f90',
-                                     '-o', 'workspace/input.o']
-
-
-class TestFortranLinker(object):
-    def test_constructor(self):
-        test_unit = FortranLinker(Path('workspace'),
-                                  ['flag3', 'flag4'],
-                                  Path('bin/output'))
-        test_unit.add_object(Path('an.o'))
-        assert test_unit.input == [Path('an.o')]
-        assert test_unit.output == [Path('bin/output')]
-        assert test_unit.as_list == ['gfortran', '-o', 'bin/output',
-                                     'flag3', 'flag4', 'an.o']
-
-    def test_add_object(self):
-        test_unit = FortranLinker(Path('deepspace'),
-                                  [],
-                                  Path('bin/dusty'))
-        with pytest.raises(TaskException):
-            _ = test_unit.as_list
-
-        test_unit.add_object(Path('foo.o'))
-        assert test_unit.as_list == ['gfortran', '-o', 'bin/dusty',
-                                     'foo.o']
-
-        test_unit.add_object(Path('bar.o'))
-        assert test_unit.as_list == ['gfortran', '-o', 'bin/dusty',
-                                     'foo.o', 'bar.o']

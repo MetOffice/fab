@@ -7,8 +7,6 @@ File View
     Hash : 374511745
   File   : system-tests/FortranPreProcess/stay_mod.f90
     Hash : 3960444120
-  File   : system-tests/FortranPreProcess/working/clash.f90
-    Hash : --hidden-- (generated file)
 Fortran View
   Program unit    : constants_mod
     Found in      : system-tests/FortranPreProcess/constants_mod.f90
