@@ -20,7 +20,6 @@ class TestArtifact:
         assert artifact.filetype is Unknown
         assert artifact.depends_on == []
         assert artifact.defines == []
-        assert artifact._hash is None
 
     def test_hash(self, tmp_path: Path):
         test_path = Path(tmp_path / 'test.foo')
@@ -29,7 +28,6 @@ class TestArtifact:
         artifact = Artifact(test_path,
                             Unknown,
                             New)
-        assert artifact._hash is None
         assert artifact.hash == expected_hash
         # Check that it is cached
         test_path.unlink()
