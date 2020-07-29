@@ -41,11 +41,6 @@ def entry() -> None:
 
     description = 'Flexible build system for scientific software.'
 
-    config = configparser.ConfigParser(allow_no_value=True)
-    config.read('config.ini')
-    settings = config['settings']
-    flags = config['flags']
-
     parser = argparse.ArgumentParser(add_help=False,
                                      description=description)
     # We add our own help so as to capture as many permutations of how people
@@ -64,22 +59,6 @@ def entry() -> None:
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
-    # TODO: Flags will eventually come from configuration
-#    parser.add_argument('--fpp-flags', action='store', type=str, default='',
-#                        help='Provide flags for Fortran PreProcessor ')
-    # TODO: Flags will eventually come from configuration
-#    parser.add_argument('--fc-flags', action='store', type=str, default='',
-#                        help='Provide flags for Fortran Compiler')
-    # TODO: Flags will eventually come from configuration
-#    parser.add_argument('--ld-flags', action='store', type=str, default='',
-#                        help='Provide flags for Fortran Linker')
-    # TODO: Name for executable will eventually come from configuration
-#    parser.add_argument('--exec-name', action='store', type=str, default='',
-#                        help='Name of executable (default is the name of '
-#                             'the target program)')
-    # TODO: Target/s will eventually come from configuration
-#    parser.add_argument('target', action='store', type=str,
-#                        help='The top level unit name to compile')
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     arguments = parser.parse_args()
@@ -89,14 +68,15 @@ def entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
+    config = configparser.ConfigParser(allow_no_value=True)
+    configfile = arguments.source/'config.ini'
+    config.read(configfile)
+    settings = config['settings']
+    flags = config['flags']
+
     application = Fab(arguments.workspace,
-                      # arguments.target,
-                      # arguments.exec_name,
                       settings['target'],
                       settings['exec-name'],
-                      # arguments.fpp_flags,
-                      # arguments.fc_flags,
-                      # arguments.ld_flags,
                       flags['fpp-flags'],
                       flags['fc-flags'],
                       flags['ld-flags'],
