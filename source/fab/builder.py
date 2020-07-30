@@ -72,15 +72,15 @@ def entry() -> None:
     else:
         logger.setLevel(logging.WARNING)
 
-    # If not provided, name the exec after the target
-    if arguments.exec_name == '':
-        arguments.exec_name = arguments.target
-
     config = configparser.ConfigParser(allow_no_value=True)
     configfile = arguments.conf_file
     config.read(configfile)
     settings = config['settings']
     flags = config['flags']
+
+    # If not provided, name the exec after the target
+    if settings['exec-name'] == '':
+        settings['exec-name'] = settings['target']
 
     application = Fab(arguments.workspace,
                       settings['target'],
