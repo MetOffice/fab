@@ -180,18 +180,16 @@ class RunFab(EnterPython):
                  fc_flags: str = None,
                  ld_flags: str = None):
         args: List[str] = []
-        # if fpp_flags:
-        #    args.append('--fpp-flags=' + fpp_flags)
-        # if fc_flags:
-        #    args.append('--fc-flags=' + fc_flags)
-        # if ld_flags:
-        #    args.append('--ld-flags=' + ld_flags)
 
-        # args.extend(['--exec-name', 'fab_test'])
-        # args.append(target)
+        if fpp_flags:
+            # different config file name for fpp flag test
+            conf_file = test_directory/('stay_config.ini')
+        else:
+            conf_file = test_directory/'config.ini'
+
         args.append(str(test_directory))
+        args.append(str(conf_file))
 
-        test_conf = test_directory/'config.ini'
         config = configparser.ConfigParser(allow_no_value=True)
         config['settings'] = {}
         settings = config['settings']
@@ -202,18 +200,16 @@ class RunFab(EnterPython):
         if fpp_flags:
             flags['fpp-flags'] = fpp_flags
         else:
-            flags['fpp-flags'] = ' '
+            flags['fpp-flags'] = ''
         if fc_flags:
             flags['fc-flags'] = fc_flags
         else:
-            flags['fc-flags'] = ' '
+            flags['fc-flags'] = ''
         if ld_flags:
             flags['ld-flags'] = ld_flags
         else:
-            flags['ld-flags'] = ' '
-        if os.path.exists(test_conf):  # Check for previous test config
-            os.remove(test_conf)       # remove previous test config
-        with open(test_conf, 'w') as configfile:
+            flags['ld-flags'] = ''
+        with open(conf_file, 'w') as configfile:
             config.write(configfile)
 
         super().__init__('fab', test_directory, 'builder', args)

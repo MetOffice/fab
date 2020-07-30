@@ -63,6 +63,8 @@ def entry() -> None:
                              'default is 2 if not set.')
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
+    parser.add_argument('conf_file', type=Path, default='config.ini',
+                        help='The path of the configuration file')
     arguments = parser.parse_args()
 
     if arguments.verbose:
@@ -75,7 +77,7 @@ def entry() -> None:
         arguments.exec_name = arguments.target
 
     config = configparser.ConfigParser(allow_no_value=True)
-    configfile = arguments.source/'config.ini'
+    configfile = arguments.conf_file
     config.read(configfile)
     settings = config['settings']
     flags = config['flags']
