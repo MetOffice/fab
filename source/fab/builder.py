@@ -10,8 +10,10 @@ from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.artifact import \
     Artifact, \
     FortranSource, \
+    CSource, \
     BinaryObject, \
     Seen, \
+    Modified, \
     Raw, \
     Analysed, \
     Compiled
@@ -21,6 +23,9 @@ from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranCompiler, \
     FortranLinker
+from fab.tasks.c import \
+    CPragmaInjector, \
+    CPreProcessor
 from fab.source_tree import \
     TreeDescent, \
     SourceVisitor
@@ -114,6 +119,8 @@ class Fab(object):
         path_maps = [
             PathMap(r'.*\.f90', FortranSource, Raw),
             PathMap(r'.*\.F90', FortranSource, Seen),
+            PathMap(r'.*\.c', CSource, Seen),
+            PathMap(r'.*\.h', CSource, Seen),
         ]
 
         # Initialise the required Tasks, providing them with any static
@@ -135,12 +142,20 @@ class Fab(object):
             'gfortran', ld_flags.split(), workspace, exec_name
         )
 
+        c_pragma_injector = CPragmaInjector(workspace)
+
+        c_preprocessor = CPreProcessor(
+            'cpp', ['-P'], workspace
+        )
+
         # The Task map tells the engine what Task it should be using
         # to deal with Artifacts depending on their type and state
         task_map = {
             (FortranSource, Seen): fortran_preprocessor,
             (FortranSource, Raw): fortran_analyser,
             (FortranSource, Analysed): fortran_compiler,
+            (CSource, Seen): c_pragma_injector,
+            (CSource, Modified): c_preprocessor,
             (BinaryObject, Compiled): fortran_linker,
         }
 

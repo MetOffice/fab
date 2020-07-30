@@ -25,6 +25,10 @@ class Seen(State):
     pass
 
 
+class Modified(State):
+    pass
+
+
 class Raw(State):
     pass
 
@@ -51,6 +55,10 @@ class Unknown(FileType):
 
 
 class FortranSource(FileType):
+    pass
+
+
+class CSource(FileType):
     pass
 
 
