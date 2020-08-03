@@ -6,7 +6,7 @@
 
 from pathlib import Path
 from abc import ABC
-from typing import Type, List, Optional
+from typing import Type, List, Optional, Union
 from zlib import adler32
 
 from fab.reader import FileTextReader
@@ -22,6 +22,10 @@ class New(State):
 
 
 class Seen(State):
+    pass
+
+
+class HeadersAnalysed(State):
     pass
 
 
@@ -62,6 +66,10 @@ class CSource(FileType):
     pass
 
 
+class CHeader(FileType):
+    pass
+
+
 class BinaryObject(FileType):
     pass
 
@@ -80,7 +88,7 @@ class Artifact(object):
         self._filetype = filetype
         self._state = state
         self._defines: List[str] = []
-        self._depends_on: List[str] = []
+        self._depends_on: List[Union[str, Path]] = []
         self._hash: Optional[int] = None
 
     @property
@@ -100,7 +108,7 @@ class Artifact(object):
         return self._defines
 
     @property
-    def depends_on(self) -> List[str]:
+    def depends_on(self) -> List[Union[str, Path]]:
         return self._depends_on
 
     @property
@@ -114,7 +122,7 @@ class Artifact(object):
                 self._hash = adler32(bytes(line, encoding='utf-8'), self._hash)
         return self._hash
 
-    def add_dependency(self, dependency: str) -> None:
+    def add_dependency(self, dependency: Union[str, Path]) -> None:
         self._depends_on.append(dependency)
 
     def add_definition(self, definition: str) -> None:

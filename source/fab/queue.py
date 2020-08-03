@@ -6,7 +6,7 @@
 '''
 Classes and methods relating to the queue system
 '''
-from typing import List
+from typing import List, Mapping
 from multiprocessing import \
     Queue, \
     JoinableQueue, \
@@ -52,7 +52,7 @@ class QueueManager(object):
         self._workers: List[int] = []
         self._engine = engine
         self._mgr = Manager()
-        self._discovery = self._mgr.dict({engine.target: "HeardOf"})
+        self._discovery: Mapping[str, str] = self._mgr.dict({})
         self._objects: List = self._mgr.list([])
         self._lock = Lock()
 

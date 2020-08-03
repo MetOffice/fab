@@ -11,12 +11,15 @@ from fab.artifact import \
     Artifact, \
     FortranSource, \
     CSource, \
+    CHeader, \
     BinaryObject, \
     Seen, \
+    HeadersAnalysed, \
     Modified, \
     Raw, \
     Analysed, \
     Compiled
+from fab.tasks import HeaderAnalyser
 from fab.tasks.fortran import \
     FortranWorkingState, \
     FortranPreProcessor, \
@@ -24,8 +27,10 @@ from fab.tasks.fortran import \
     FortranCompiler, \
     FortranLinker
 from fab.tasks.c import \
+    CWorkingState, \
     CPragmaInjector, \
-    CPreProcessor
+    CPreProcessor, \
+    CAnalyser
 from fab.source_tree import \
     TreeDescent, \
     SourceVisitor
@@ -120,7 +125,7 @@ class Fab(object):
             PathMap(r'.*\.f90', FortranSource, Raw),
             PathMap(r'.*\.F90', FortranSource, Seen),
             PathMap(r'.*\.c', CSource, Seen),
-            PathMap(r'.*\.h', CSource, Seen),
+            PathMap(r'.*\.h', CHeader, Seen),
         ]
 
         # Initialise the required Tasks, providing them with any static
@@ -142,11 +147,15 @@ class Fab(object):
             'gfortran', ld_flags.split(), workspace, exec_name
         )
 
+        header_analyser = HeaderAnalyser(workspace)
+
         c_pragma_injector = CPragmaInjector(workspace)
 
         c_preprocessor = CPreProcessor(
             'cpp', ['-P'], workspace
         )
+
+        c_analyser = CAnalyser(workspace)
 
         # The Task map tells the engine what Task it should be using
         # to deal with Artifacts depending on their type and state
@@ -154,8 +163,12 @@ class Fab(object):
             (FortranSource, Seen): fortran_preprocessor,
             (FortranSource, Raw): fortran_analyser,
             (FortranSource, Analysed): fortran_compiler,
-            (CSource, Seen): c_pragma_injector,
+            (CSource, Seen): header_analyser,
+            (CHeader, Seen): header_analyser,
+            (CSource, HeadersAnalysed): c_pragma_injector,
+            (CHeader, HeadersAnalysed): c_pragma_injector,
             (CSource, Modified): c_preprocessor,
+            (CSource, Raw): c_analyser,
             (BinaryObject, Compiled): fortran_linker,
         }
 
@@ -194,3 +207,9 @@ class Fab(object):
             print(fortran_info.unit.name)
             print('    found in: ' + str(fortran_info.unit.found_in))
             print('    depends on: ' + str(fortran_info.depends_on))
+
+        c_db = CWorkingState(self._state)
+        for c_info in c_db:
+            print(c_info.symbol.name)
+            print('    found_in: ' + str(c_info.symbol.found_in))
+            print('    depends on: ' + str(c_info.depends_on))

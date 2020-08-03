@@ -20,6 +20,9 @@ jobs:
     - name: Setup Compiler
       run: |
         sudo apt-get -y install gfortran
+    - name: Setup LibClang
+      run: |
+        sudo apt-get -y install libclang-dev
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip

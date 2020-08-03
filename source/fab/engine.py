@@ -108,21 +108,31 @@ class Engine(object):
             # Work out whether this artifact needs to be
             # included in the build or not - if any of its
             # definitions are mentioned in the (shared)
-            # discovery mapping then it should be included
+            # discovery mapping, or if it is defining
+            # the target of the build then it should be included
             required = False
             for definition in artifact.defines:
-                if definition in discovery:
-                    # Update this artifact's definition in
-                    # the discovery mapping to indicate that
-                    # it has been encountered
-                    new_discovery[definition] = "Seen"
+                # Is this the target?
+                if (definition == self.target
+                        or definition in discovery):
                     required = True
+                    break
 
-            # Assuming it is needed, check its
-            # dependencies to know what needs doing
             if required:
+                # Update the discovery list to indicate that
+                # the definitions from this Artifact are present
+                # (but not yet compiled)
+                for definition in artifact.defines:
+                    if definition not in discovery:
+                        new_discovery[definition] = "Seen"
+
+                # Now check whether the Artifact's dependencies
+                # have already been seen and compiled
                 compiled = [False]*len(artifact.depends_on)
                 for idep, dependency in enumerate(artifact.depends_on):
+                    # Only applies to str dependencies
+                    if isinstance(dependency, Path):
+                        continue
                     if dependency in discovery:
                         # Are the dependencies compiled?
                         if discovery[dependency] == "Compiled":
@@ -134,7 +144,7 @@ class Engine(object):
                         new_discovery[dependency] = "HeardOf"
 
                 # If the dependencies are satisfied (or there weren't
-                # any) then the file can be compiled now
+                # any) then this file can be compiled now
                 if len(compiled) == 0 or all(compiled):
                     for definition in artifact.defines:
                         task = self._taskmap[(artifact.filetype,
@@ -150,7 +160,8 @@ class Engine(object):
                 # put it back on the queue, unless the target
                 # has been compiled, in which case it wasn't
                 # needed at all!
-                if discovery[self._target] != "Compiled":
+                if (self._target not in discovery
+                        or discovery[self._target] != "Compiled"):
                     new_artifacts.append(artifact)
 
         elif artifact.state is Compiled:
@@ -171,19 +182,31 @@ class Engine(object):
             # Nothing to do at present with the final linked
             # executable, but included here for completeness
             pass
-
         else:
-            # An artifact with a filetype and state set
-            # will have an appropriate task that should
-            # be used to run it (though unlike the old
-            # implementation this is probably returning
-            # the instance of the Task not the class)
-            if ((artifact.filetype, artifact.state)
-                    in self._taskmap):
-                task = self._taskmap[(artifact.filetype,
-                                      artifact.state)]
+            # If the object specifies any paths in its dependencies
+            # then these must exist before it can be processed
+            # TODO: This needs more thorough logic and to come from
+            # the database eventually
+            ready = True
+            for dependency in artifact.depends_on:
+                if isinstance(dependency, Path):
+                    if not dependency.exists():
+                        ready = False
 
-                new_artifacts.extend(task.run([artifact]))
+            if ready:
+                # An artifact with a filetype and state set
+                # will have an appropriate task that should
+                # be used to run it (though unlike the old
+                # implementation this is probably returning
+                # the instance of the Task not the class)
+                if ((artifact.filetype, artifact.state)
+                        in self._taskmap):
+                    task = self._taskmap[(artifact.filetype,
+                                          artifact.state)]
+
+                    new_artifacts.extend(task.run([artifact]))
+            else:
+                new_artifacts.append(artifact)
 
         # Update shared arrays
         lock.acquire()

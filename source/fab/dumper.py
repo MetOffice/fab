@@ -12,6 +12,7 @@ import sys
 
 from fab.database import FileInfoDatabase, SqliteStateDatabase
 from fab.tasks.fortran import FortranWorkingState
+from fab.tasks.c import CWorkingState
 
 
 def entry() -> None:
@@ -68,9 +69,23 @@ class Dump(object):
                 print(f"    Hash : {file_info.adler32}", file=stream)
 
         fortran_view = FortranWorkingState(self._state)
-        print("Fortran View", file=stream)
+        header = False
         for info in fortran_view:
+            if not header:
+                print("Fortran View", file=stream)
+                header = True
             print(f"  Program unit    : {info.unit.name}", file=stream)
             print(f"    Found in      : {info.unit.found_in}", file=stream)
+            print(f"    Prerequisites : {', '.join(info.depends_on)}",
+                  file=stream)
+
+        c_view = CWorkingState(self._state)
+        header = False
+        for info in c_view:
+            if not header:
+                print("C View", file=stream)
+                header = True
+            print(f"  Symbol          : {info.symbol.name}", file=stream)
+            print(f"    Found in      : {info.symbol.found_in}", file=stream)
             print(f"    Prerequisites : {', '.join(info.depends_on)}",
                   file=stream)
