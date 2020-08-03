@@ -19,7 +19,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Setup Compiler
       run: |
-        sudo apt-get -y install gfortran
+        sudo apt-get -y install gcc gfortran
     - name: Setup LibClang
       run: |
         sudo apt-get -y install libclang-dev

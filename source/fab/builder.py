@@ -19,18 +19,18 @@ from fab.artifact import \
     Raw, \
     Analysed, \
     Compiled
-from fab.tasks import HeaderAnalyser
+from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
     FortranWorkingState, \
     FortranPreProcessor, \
     FortranAnalyser, \
-    FortranCompiler, \
-    FortranLinker
+    FortranCompiler
 from fab.tasks.c import \
     CWorkingState, \
     CPragmaInjector, \
     CPreProcessor, \
-    CAnalyser
+    CAnalyser, \
+    CCompiler
 from fab.source_tree import \
     TreeDescent, \
     SourceVisitor
@@ -141,21 +141,21 @@ class Fab(object):
             'gfortran',
             ['-c', '-J', str(workspace)] + fc_flags.split(), workspace
         )
-        # TODO: Linker class is probably generic not Fortran specific
-        # now that we are passing in the command to use?
-        fortran_linker = FortranLinker(
-            'gfortran', ld_flags.split(), workspace, exec_name
-        )
 
         header_analyser = HeaderAnalyser(workspace)
-
         c_pragma_injector = CPragmaInjector(workspace)
-
         c_preprocessor = CPreProcessor(
             'cpp', ['-P'], workspace
         )
-
         c_analyser = CAnalyser(workspace)
+        c_compiler = CCompiler(
+            'gcc', ['-c'], workspace
+        )
+
+        linker = Linker(
+            'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
+            workspace, exec_name
+        )
 
         # The Task map tells the engine what Task it should be using
         # to deal with Artifacts depending on their type and state
@@ -169,7 +169,8 @@ class Fab(object):
             (CHeader, HeadersAnalysed): c_pragma_injector,
             (CSource, Modified): c_preprocessor,
             (CSource, Raw): c_analyser,
-            (BinaryObject, Compiled): fortran_linker,
+            (CSource, Analysed): c_compiler,
+            (BinaryObject, Compiled): linker,
         }
 
         engine = Engine(workspace,

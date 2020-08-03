@@ -26,7 +26,13 @@ from fab.database import \
     SqliteStateDatabase, \
     WorkingStateException
 from fab.tasks import Task, TaskException
-from fab.artifact import Artifact, Raw, Modified, Analysed
+from fab.artifact import \
+    Artifact, \
+    Raw, \
+    Modified, \
+    Analysed, \
+    Compiled, \
+    BinaryObject
 from fab.reader import \
     TextReader, \
     FileTextReader, \
@@ -260,6 +266,122 @@ class CWorkingState(DatabaseDecorator):
                 yield CSymbolID(row['prerequisite'], Path(row['found_in']))
 
 
+class CAnalyser(Task):
+    def __init__(self, workspace: Path):
+        self.database = SqliteStateDatabase(workspace)
+
+    def _locate_include_regions(self, trans_unit) -> None:
+        # Aim is to identify where included (top level) regions
+        # start and end in the file
+        self._include_region = []
+
+        # Use a deque to implement a rolling window of 4 identifiers
+        # (enough to be sure we can spot an entire pragma)
+        identifiers: deque = deque([])
+        for token in trans_unit.cursor.get_tokens():
+            identifiers.append(token)
+            if len(identifiers) < 4:
+                continue
+            if len(identifiers) > 4:
+                identifiers.popleft()
+
+            # Trigger off of the FAB identifier only to save
+            # on joining the group too frequently
+            if identifiers[2].spelling == "FAB":
+                lineno = identifiers[2].location.line
+                full = " ".join(id.spelling for id in identifiers)
+                if full == "# pragma FAB SysIncludeStart":
+                    self._include_region.append(
+                        (lineno, "sys_include_start"))
+                elif full == "# pragma FAB SysIncludeEnd":
+                    self._include_region.append(
+                        (lineno, "sys_include_end"))
+                elif full == "# pragma FAB UsrIncludeStart":
+                    self._include_region.append(
+                        (lineno, "usr_include_start"))
+                elif full == "# pragma FAB UsrIncludeEnd":
+                    self._include_region.append(
+                        (lineno, "usr_include_end"))
+
+    def _check_for_include(self, lineno) -> Optional[str]:
+        # Check whether a given line number is in a region that
+        # has come from an include (and return what kind of include)
+        include_stack = []
+        for region_line, region_type in self._include_region:
+            if region_line > lineno:
+                break
+            if region_type.endswith("start"):
+                include_stack.append(region_type.replace("_start", ""))
+            elif region_type.endswith("end"):
+                include_stack.pop()
+        if include_stack:
+            return include_stack[-1]
+        else:
+            return None
+
+    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+
+        if len(artifacts) == 1:
+            artifact = artifacts[0]
+        else:
+            msg = ('C Analyser expects only one Artifact, '
+                   f'but was given {len(artifacts)}')
+            raise TaskException(msg)
+
+        reader = FileTextReader(artifact.location)
+
+        state = CWorkingState(self.database)
+        state.remove_c_file(reader.filename)
+
+        new_artifact = Artifact(artifact.location,
+                                artifact.filetype,
+                                Analysed)
+
+        state = CWorkingState(self.database)
+        state.remove_c_file(reader.filename)
+
+        index = clang.cindex.Index.create()
+        translation_unit = index.parse(reader.filename,
+                                       args=["-xc"])
+
+        # Create include region line mappings
+        self._locate_include_regions(translation_unit)
+
+        # Now walk the actual nodes and find all relevant external symbols
+        usr_includes = []
+        current_def = None
+        for node in translation_unit.cursor.walk_preorder():
+            if node.kind == clang.cindex.CursorKind.FUNCTION_DECL:
+                if (node.is_definition()
+                        and node.linkage == clang.cindex.LinkageKind.EXTERNAL):
+                    # This should catch function definitions which are exposed
+                    # to the rest of the application
+                    current_def = CSymbolID(node.spelling, artifact.location)
+                    state.add_c_symbol(current_def)
+                    new_artifact.add_definition(node.spelling)
+                else:
+                    # Any other declarations should be coming in via headers,
+                    # we can use the injected pragmas to work out whether these
+                    # are coming from system headers or user headers
+                    if (self._check_for_include(node.location.line)
+                            == "usr_include"):
+                        usr_includes.append(node.spelling)
+
+            elif (node.kind == clang.cindex.CursorKind.CALL_EXPR):
+                # When encountering a function call we should be able to
+                # cross-reference it with a definition seen earlier; and
+                # if it came from a user supplied header then we will
+                # consider it a dependency within the project
+                if node.spelling in usr_includes and current_def is not None:
+                    # TODO: Assumption that the most recent exposed
+                    # definition encountered above is the one which
+                    # should lodge this dependency - is that true?
+                    state.add_c_dependency(current_def, node.spelling)
+                    new_artifact.add_dependency(node.spelling)
+
+        return [new_artifact]
+
+
 class CTextReaderPragmas(TextReaderDecorator):
     """
     Reads a C source file but when encountering an #include
@@ -375,117 +497,39 @@ class CPreProcessor(Task):
                          Raw)]
 
 
-class CAnalyser(Task):
-    def __init__(self, workspace: Path):
-        self.database = SqliteStateDatabase(workspace)
+class CCompiler(Task):
 
-    def _locate_include_regions(self, trans_unit) -> None:
-        # Aim is to identify where included (top level) regions
-        # start and end in the file
-        self._include_region = []
-
-        # Use a deque to implement a rolling window of 4 identifiers
-        # (enough to be sure we can spot an entire pragma)
-        identifiers: deque = deque([])
-        for token in trans_unit.cursor.get_tokens():
-            identifiers.append(token)
-            if len(identifiers) < 4:
-                continue
-            if len(identifiers) > 4:
-                identifiers.popleft()
-
-            # Trigger off of the FAB identifier only to save
-            # on joining the group too frequently
-            if identifiers[2].spelling == "FAB":
-                lineno = identifiers[2].location.line
-                full = " ".join(id.spelling for id in identifiers)
-                if full == "# pragma FAB SysIncludeStart":
-                    self._include_region.append(
-                        (lineno, "sys_include_start"))
-                elif full == "# pragma FAB SysIncludeEnd":
-                    self._include_region.append(
-                        (lineno, "sys_include_end"))
-                elif full == "# pragma FAB UsrIncludeStart":
-                    self._include_region.append(
-                        (lineno, "usr_include_start"))
-                elif full == "# pragma FAB UsrIncludeEnd":
-                    self._include_region.append(
-                        (lineno, "usr_include_end"))
-
-    def _check_for_include(self, lineno) -> Optional[str]:
-        # Check whether a given line number is in a region that
-        # has come from an include (and return what kind of include)
-        include_stack = []
-        for region_line, region_type in self._include_region:
-            if region_line > lineno:
-                break
-            if region_type.endswith("start"):
-                include_stack.append(region_type.replace("_start", ""))
-            elif region_type.endswith("end"):
-                include_stack.pop()
-        if include_stack:
-            return include_stack[-1]
-        else:
-            return None
+    def __init__(self,
+                 compiler: str,
+                 flags: List[str],
+                 workspace: Path):
+        self._compiler = compiler
+        self._flags = flags
+        self._workspace = workspace
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
 
         if len(artifacts) == 1:
             artifact = artifacts[0]
         else:
-            msg = ('C Analyser expects only one Artifact, '
+            msg = ('C Compiler expects only one Artifact, '
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
 
-        reader = FileTextReader(artifact.location)
+        command = [self._compiler]
+        command.extend(self._flags)
+        command.append(str(artifact.location))
 
-        state = CWorkingState(self.database)
-        state.remove_c_file(reader.filename)
+        output_file = (self._workspace /
+                       artifact.location.with_suffix('.o').name)
+        command.extend(['-o', str(output_file)])
 
-        new_artifact = Artifact(artifact.location,
-                                artifact.filetype,
-                                Analysed)
+        subprocess.run(command, check=True)
 
-        state = CWorkingState(self.database)
-        state.remove_c_file(reader.filename)
+        object_artifact = Artifact(output_file,
+                                   BinaryObject,
+                                   Compiled)
+        for definition in artifact.defines:
+            object_artifact.add_definition(definition)
 
-        index = clang.cindex.Index.create()
-        translation_unit = index.parse(reader.filename,
-                                       args=["-xc"])
-
-        # Create include region line mappings
-        self._locate_include_regions(translation_unit)
-
-        # Now walk the actual nodes and find all relevant external symbols
-        usr_includes = []
-        current_def = None
-        for node in translation_unit.cursor.walk_preorder():
-            if node.kind == clang.cindex.CursorKind.FUNCTION_DECL:
-                if (node.is_definition()
-                        and node.linkage == clang.cindex.LinkageKind.EXTERNAL):
-                    # This should catch function definitions which are exposed
-                    # to the rest of the application
-                    current_def = CSymbolID(node.spelling, artifact.location)
-                    state.add_c_symbol(current_def)
-                    new_artifact.add_definition(node.spelling)
-                else:
-                    # Any other declarations should be coming in via headers,
-                    # we can use the injected pragmas to work out whether these
-                    # are coming from system headers or user headers
-                    if (self._check_for_include(node.location.line)
-                            == "usr_include"):
-                        usr_includes.append(node.spelling)
-
-            elif (node.kind == clang.cindex.CursorKind.CALL_EXPR):
-                # When encountering a function call we should be able to
-                # cross-reference it with a definition seen earlier; and
-                # if it came from a user supplied header then we will
-                # consider it a dependency within the project
-                if node.spelling in usr_includes and current_def is not None:
-                    # TODO: Assumption that the most recent exposed
-                    # definition encountered above is the one which
-                    # should lodge this dependency - is that true?
-                    state.add_c_dependency(current_def, node.spelling)
-                    new_artifact.add_dependency(node.spelling)
-
-        return []
+        return [object_artifact]

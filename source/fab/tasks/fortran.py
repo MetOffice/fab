@@ -32,9 +32,7 @@ from fab.artifact import \
     Analysed, \
     Raw, \
     Compiled, \
-    Linked, \
-    BinaryObject, \
-    Executable
+    BinaryObject
 
 
 class FortranUnitUnresolvedID(object):
@@ -558,37 +556,3 @@ class FortranCompiler(Task):
             object_artifact.add_definition(definition)
 
         return [object_artifact]
-
-
-class FortranLinker(Task):
-    def __init__(self,
-                 linker: str,
-                 flags: List[str],
-                 workspace: Path,
-                 output_filename: str):
-        self._linker = linker
-        self._flags = flags
-        self._workspace = workspace
-        self._output_filename = output_filename
-
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
-
-        if len(artifacts) < 1:
-            msg = ('Fortran Linker expects at least one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
-
-        command = [self._linker]
-        command.extend(self._flags)
-
-        output_file = self._workspace / self._output_filename
-
-        command.extend(['-o', str(output_file)])
-        for artifact in artifacts:
-            command.append(str(artifact.location))
-
-        subprocess.run(command, check=True)
-
-        return [Artifact(output_file,
-                         Executable,
-                         Linked)]
