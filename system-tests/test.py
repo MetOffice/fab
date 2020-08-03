@@ -10,7 +10,6 @@ Currently runs the tool as a subprocess but should also use it as a library.
 """
 from abc import ABC, ABCMeta, abstractmethod
 import argparse
-import configparser
 import datetime
 import filecmp
 import logging
@@ -190,27 +189,23 @@ class RunFab(EnterPython):
         args.append(str(test_directory))
         args.append(str(conf_file))
 
-        config = configparser.ConfigParser(allow_no_value=True)
-        config['settings'] = {}
-        settings = config['settings']
-        settings['target'] = target
-        settings['exec-name'] = 'fab_test'
-        config['flags'] = {}
-        flags = config['flags']
+        configfile = open(conf_file, 'wt')
+        configfile.write('[settings] \n')
+        configfile.write('target = {}\n'.format(target))
+        configfile.write('exec-name = fab_test \n')
+        configfile.write('[flags] \n')
         if fpp_flags:
-            flags['fpp-flags'] = fpp_flags
+            configfile.write('fpp-flags = {}\n'.format(fpp_flags))
         else:
-            flags['fpp-flags'] = ''
+            configfile.write('fpp-flags = ' + '\n')
         if fc_flags:
-            flags['fc-flags'] = fc_flags
+            configfile.write('fc-flags = {}\n'.format(fc_flags))
         else:
-            flags['fc-flags'] = ''
+            configfile.write('fc-flags = ' + '\n')
         if ld_flags:
-            flags['ld-flags'] = ld_flags
+            configfile.write('ld-flags = {}\n'.format(ld_flags))
         else:
-            flags['ld-flags'] = ''
-        with open(conf_file, 'w') as configfile:
-            config.write(configfile)
+            configfile.write('ld-flags = ' + '\n')
 
         super().__init__('fab', test_directory, 'builder', args)
 
