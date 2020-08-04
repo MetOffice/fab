@@ -453,6 +453,12 @@ if __name__ == '__main__':
             CompareConsoleWithFile(RunDump(root_dir / 'MinimalFortran'))
         ],
         [
+            CompareConsoleWithFile(RunFab(root_dir / 'MinimalC',
+                                          'main')),
+            CompareConsoleWithFile(RunExec(root_dir / 'MinimalC')),
+            CompareConsoleWithFile(RunDump(root_dir / 'MinimalC'))
+        ],
+        [
             CompareConsoleWithFile(RunFab(root_dir / 'FortranDependencies',
                                           'first')),
             CompareConsoleWithFile(RunExec(root_dir / 'FortranDependencies')),
