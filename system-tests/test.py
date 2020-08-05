@@ -357,11 +357,11 @@ class CompareConsoleWithFile(CheckTask):
             leaf_name = leaf_name + '.' + expectation_suffix
         leaf_name = leaf_name + '.txt'
         path = task.test_parameters.test_directory / leaf_name
-        self._expected = path.read_text().splitlines(keepends=True)
+        self._expected = path.read_text()
 
     def check(self):
         self.assert_true(self.task.return_code == 0)
-        lines = self.task.standard_out.splitlines(keepends=True)
+        lines = self.task.standard_out
         self.assert_text_equal(lines, self._expected)
 
 
