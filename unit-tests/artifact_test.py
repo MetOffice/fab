@@ -33,13 +33,22 @@ class TestArtifact:
         test_path.unlink()
         assert artifact.hash == expected_hash
 
-    def test_add_dependency(self):
+    def test_add_string_dependency(self):
         test_path = Path('/test/path')
         artifact = Artifact(test_path,
                             Unknown,
                             New)
         artifact.add_dependency("foo")
         assert artifact.depends_on == ["foo"]
+
+    def test_add_path_dependency(self):
+        test_path = Path('/test/path')
+        artifact = Artifact(test_path,
+                            Unknown,
+                            New)
+        dep = Path('/path/to/bar')
+        artifact.add_dependency(dep)
+        assert artifact.depends_on == [dep]
 
     def test_add_definition(self):
         test_path = Path('/test/path')
