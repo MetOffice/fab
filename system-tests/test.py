@@ -465,6 +465,12 @@ if __name__ == '__main__':
             CompareConsoleWithFile(RunDump(root_dir / 'FortranDependencies'))
         ],
         [
+            CompareConsoleWithFile(RunFab(root_dir / 'CUserHeader',
+                                          'main')),
+            CompareConsoleWithFile(RunExec(root_dir / 'CUserHeader')),
+            CompareConsoleWithFile(RunDump(root_dir / 'CUserHeader'))
+        ],
+        [
             [
                 CompareConsoleWithFile(RunFab(root_dir / 'FortranPreProcess',
                                               'stay_or_go_now',
