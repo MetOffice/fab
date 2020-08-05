@@ -189,23 +189,23 @@ class RunFab(EnterPython):
         args.append(str(test_directory))
         args.append(str(conf_file))
 
-        configfile = open(conf_file, 'wt')
-        configfile.write('[settings] \n')
-        configfile.write('target = {}\n'.format(target))
-        configfile.write('exec-name = fab_test \n')
-        configfile.write('[flags] \n')
-        if fpp_flags:
-            configfile.write('fpp-flags = {}\n'.format(fpp_flags))
-        else:
-            configfile.write('fpp-flags = ' + '\n')
-        if fc_flags:
-            configfile.write('fc-flags = {}\n'.format(fc_flags))
-        else:
-            configfile.write('fc-flags = ' + '\n')
-        if ld_flags:
-            configfile.write('ld-flags = {}\n'.format(ld_flags))
-        else:
-            configfile.write('ld-flags = ' + '\n')
+        with open(conf_file, 'wt') as configfile:
+            configfile.write('[settings] \n'
+                             'target = {}\n'
+                             'exec-name = fab_test \n'
+                             '[flags] \n'.format(target))
+            if fpp_flags:
+                configfile.write('fpp-flags = {}\n'.format(fpp_flags))
+            else:
+                configfile.write('fpp-flags = ' + '\n')
+            if fc_flags:
+                configfile.write('fc-flags = {}\n'.format(fc_flags))
+            else:
+                configfile.write('fc-flags = ' + '\n')
+            if ld_flags:
+                configfile.write('ld-flags = {}\n'.format(ld_flags))
+            else:
+                configfile.write('ld-flags = ' + '\n')
 
         super().__init__('fab', test_directory, 'builder', args)
 
