@@ -6,43 +6,41 @@
 '''
 Classes and methods relating to the queue system
 '''
+from queue import Empty as QueueEmpty
 from typing import List, Mapping
 from multiprocessing import \
     Queue, \
     JoinableQueue, \
     Process, \
     Lock, \
-    Manager
+    Manager, \
+    Event
 from fab.artifact import Artifact
 from fab.engine import Engine
-
-
-class Stop(Artifact):
-    def __init__(self):
-        pass
 
 
 def _worker(queue: JoinableQueue,
             engine: Engine,
             discovery,
             objects,
-            lock):
-    while True:
-        artifact = queue.get(block=True)
-        if isinstance(artifact, Stop):
-            break
+            lock,
+            stopswitch):
+    while not stopswitch.is_set():
+        try:
+            artifact = queue.get(block=True, timeout=0.5)
+        except QueueEmpty:
+            continue
 
-        new_artifacts = engine.process(artifact,
-                                       discovery,
-                                       objects,
-                                       lock)
+        try:
+            new_artifacts = engine.process(artifact,
+                                           discovery,
+                                           objects,
+                                           lock)
 
-        for new_artifact in new_artifacts:
-            queue.put(new_artifact)
-
-        queue.task_done()
-
-    queue.task_done()
+            for new_artifact in new_artifacts:
+                queue.put(new_artifact)
+        finally:
+            queue.task_done()
 
 
 class QueueManager(object):
@@ -53,6 +51,7 @@ class QueueManager(object):
         self._engine = engine
         self._mgr = Manager()
         self._discovery: Mapping[str, str] = self._mgr.dict({})
+        self._stopswitch = Event()
         self._objects: List = self._mgr.list([])
         self._lock = Lock()
 
@@ -66,7 +65,8 @@ class QueueManager(object):
                                       self._engine,
                                       self._discovery,
                                       self._objects,
-                                      self._lock))
+                                      self._lock,
+                                      self._stopswitch))
             process.start()
             self._workers.append(process)
 
@@ -75,8 +75,19 @@ class QueueManager(object):
         self._queue.join()
 
     def shutdown(self):
-        stop = Stop()
-        for _ in range(self._n_workers):
-            self._queue.put(stop)
-        self.check_queue_done()
+        # Set the stop switch and wait for workers
+        # to finish
+        self._stopswitch.set()
+        for process in self._workers:
+            process.join(10.0)
+
+        # Any that didn't finish nicely at this point
+        # can be forcibly stopped
+        for process in self._workers:
+            if process.is_alive():
+                process.terminate()
+
+        # Stop the queue
+        self._queue.close()
+        self._queue.join_thread()
         self._workers.clear()
