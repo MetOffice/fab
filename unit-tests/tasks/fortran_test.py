@@ -588,84 +588,39 @@ class TestFortranAnalyser(object):
 
 
 class TestFortranPreProcessor(object):
-    def test_preprocssor_output(self, caplog, tmp_path):
-        """
-        Tests that the processor correctly applies to the source.
-        """
-        caplog.set_level(logging.DEBUG)
+    def test_run(self, mocker, tmp_path: Path):
+        # Instantiate Preprocessor
+        workspace = tmp_path / 'working'
+        workspace.mkdir()
+        preprocessor = FortranPreProcessor('foo',
+                                           ['--bar', '--baz'],
+                                           workspace)
 
-        test_file: Path = tmp_path / 'test.F90'
-        test_file.write_text(
-            dedent('''
-                   #if defined(TEST_MACRO)
-                   SUBROUTINE included_when_test_macro_set()
-                   IMPLICIT NONE
-                   END SUBROUTINE included_when_test_macro_set
-                   #else
-                   SUBROUTINE included_when_test_macro_not_set()
-                   IMPLICIT NONE
-                   END SUBROUTINE included_when_test_macro_not_set
-                   #endif
-                   #if !defined(TEST_MACRO)
-                   FUNCTION included_when_test_macro_not_set()
-                   IMPLICIT NONE
-                   END FUNCTION included_when_test_macro_not_set
-                   #else
-                   FUNCTION included_when_test_macro_set()
-                   IMPLICIT NONE
-                   END FUNCTION included_when_test_macro_set
-                   #endif
-                   '''))
-        # Test once with the macro set
-        test_unit = FortranPreProcessor(
-                'cpp',
-                ['-traditional-cpp', '-P', '-DTEST_MACRO=test_macro'],
-                tmp_path)
-        test_artifact = Artifact(test_file,
-                                 FortranSource,
-                                 Seen)
-        output_artifacts = test_unit.run([test_artifact])
+        # Create artifact
+        artifact = Artifact(Path(tmp_path / 'foo.F90'),
+                            FortranSource,
+                            Seen)
 
-        assert len(output_artifacts) == 1
-        assert output_artifacts[0].location == test_file.with_suffix('.f90')
-        assert output_artifacts[0].filetype is FortranSource
-        assert output_artifacts[0].state is Raw
+        # Monkeypatch the subprocess call out and run
+        patched_run = mocker.patch('subprocess.run')
+        artifacts_out = preprocessor.run([artifact])
 
-        assert output_artifacts[0].location.exists
-        with output_artifacts[0].location.open('r') as outfile:
-            outfile_content = outfile.read().strip()
+        # Check that the subprocess call contained the command
+        # that we would expect based on the above
+        expected_command = ['foo',
+                            '--bar',
+                            '--baz',
+                            str(tmp_path / 'foo.F90'),
+                            str(workspace / 'foo.f90')]
+        patched_run.assert_any_call(expected_command,
+                                    check=True)
 
-        assert outfile_content == dedent('''\
-                   SUBROUTINE included_when_test_macro_set()
-                   IMPLICIT NONE
-                   END SUBROUTINE included_when_test_macro_set
-                   FUNCTION included_when_test_macro_set()
-                   IMPLICIT NONE
-                   END FUNCTION included_when_test_macro_set''')
-
-        # And test again with the macro unset
-        test_unit = FortranPreProcessor(
-                'cpp',
-                ['-traditional-cpp', '-P'],
-                tmp_path)
-        output_artifacts = test_unit.run([test_artifact])
-
-        assert len(output_artifacts) == 1
-        assert output_artifacts[0].location == test_file.with_suffix('.f90')
-        assert output_artifacts[0].filetype is FortranSource
-        assert output_artifacts[0].state is Raw
-
-        assert output_artifacts[0].location.exists
-        with output_artifacts[0].location.open('r') as outfile:
-            outfile_content = outfile.read().strip()
-
-        assert outfile_content == dedent('''\
-                   SUBROUTINE included_when_test_macro_not_set()
-                   IMPLICIT NONE
-                   END SUBROUTINE included_when_test_macro_not_set
-                   FUNCTION included_when_test_macro_not_set()
-                   IMPLICIT NONE
-                   END FUNCTION included_when_test_macro_not_set''')
+        assert len(artifacts_out) == 1
+        assert artifacts_out[0].location == workspace / 'foo.f90'
+        assert artifacts_out[0].filetype is FortranSource
+        assert artifacts_out[0].state is Raw
+        assert artifacts_out[0].depends_on == []
+        assert artifacts_out[0].defines == []
 
 
 class TestFortranCompiler(object):
