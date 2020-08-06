@@ -382,7 +382,7 @@ class CAnalyser(Task):
         return [new_artifact]
 
 
-class CTextReaderPragmas(TextReaderDecorator):
+class _CTextReaderPragmas(TextReaderDecorator):
     """
     Reads a C source file but when encountering an #include
     preprocessor directive injects a special Fab-specific
@@ -436,7 +436,7 @@ class CPragmaInjector(Task):
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
 
-        injector = CTextReaderPragmas(
+        injector = _CTextReaderPragmas(
             FileTextReader(artifact.location))
 
         output_file = self._workspace / artifact.location.name

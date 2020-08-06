@@ -17,11 +17,19 @@ from fab.tasks.fortran import \
     FortranInfo, \
     FortranNormaliser, \
     FortranPreProcessor, \
+    FortranCompiler, \
     FortranUnitID, \
     FortranUnitUnresolvedID, \
     FortranWorkingState
 from fab.reader import TextReader
-from fab.artifact import Artifact, FortranSource, Raw, Analysed, Seen
+from fab.artifact import \
+    Artifact, \
+    FortranSource, \
+    Raw, \
+    Analysed, \
+    Seen, \
+    Compiled, \
+    BinaryObject
 
 
 class TestFortranUnitUnresolvedID:
@@ -658,3 +666,40 @@ class TestFortranPreProcessor(object):
                    FUNCTION included_when_test_macro_not_set()
                    IMPLICIT NONE
                    END FUNCTION included_when_test_macro_not_set''')
+
+
+class TestFortranCompiler(object):
+    def test_run(self, mocker, tmp_path: Path):
+        # Instantiate Compiler
+        workspace = tmp_path / 'working'
+        workspace.mkdir()
+        compiler = FortranCompiler('fred',
+                                   ['--barney', '--wilma'],
+                                   workspace)
+
+        # Create artifact
+        artifact = Artifact(Path(tmp_path / 'flintstone.f90'),
+                            FortranSource,
+                            Analysed)
+
+        # Monkeypatch the subprocess call out and run
+        patched_run = mocker.patch('subprocess.run')
+        artifacts_out = compiler.run([artifact])
+
+        # Check that the subprocess call contained the command
+        # that we would expect based on the above
+        expected_command = ['fred',
+                            '--barney',
+                            '--wilma',
+                            str(tmp_path / 'flintstone.f90'),
+                            '-o',
+                            str(workspace / 'flintstone.o')]
+        patched_run.assert_any_call(expected_command,
+                                    check=True)
+
+        assert len(artifacts_out) == 1
+        assert artifacts_out[0].location == workspace / 'flintstone.o'
+        assert artifacts_out[0].filetype is BinaryObject
+        assert artifacts_out[0].state is Compiled
+        assert artifacts_out[0].depends_on == []
+        assert artifacts_out[0].defines == []
