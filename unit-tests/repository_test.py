@@ -81,7 +81,7 @@ class TestSubversion:
         # TODO: Is there a better solution such that we don't try to connect
         #       until the socket is open?
         #
-        for retry in range(3, 0 ,-1):
+        for retry in range(3, 0, -1):
             try:
                 test_unit.extract(tmp_path)
             except FabException as ex:
