@@ -179,16 +179,33 @@ class RunFab(EnterPython):
                  fc_flags: str = None,
                  ld_flags: str = None):
         args: List[str] = []
-        if fpp_flags:
-            args.append('--fpp-flags=' + fpp_flags)
-        if fc_flags:
-            args.append('--fc-flags=' + fc_flags)
-        if ld_flags:
-            args.append('--ld-flags=' + ld_flags)
 
-        args.extend(['--exec-name', 'fab_test'])
-        args.append(target)
+        if fpp_flags:
+            # different config file name for fpp flag test
+            conf_file = test_directory/('stay_config.ini')
+        else:
+            conf_file = test_directory/'config.ini'
+
         args.append(str(test_directory))
+        args.append(str(conf_file))
+
+        with open(conf_file, 'wt') as configfile:
+            configfile.write('[settings] \n'
+                             'target = {}\n'
+                             'exec-name = fab_test \n'
+                             '[flags] \n'.format(target))
+            if fpp_flags:
+                configfile.write('fpp-flags = {}\n'.format(fpp_flags))
+            else:
+                configfile.write('fpp-flags = ' + '\n')
+            if fc_flags:
+                configfile.write('fc-flags = {}\n'.format(fc_flags))
+            else:
+                configfile.write('fc-flags = ' + '\n')
+            if ld_flags:
+                configfile.write('ld-flags = {}\n'.format(ld_flags))
+            else:
+                configfile.write('ld-flags = ' + '\n')
 
         super().__init__('fab', test_directory, 'builder', args)
 
