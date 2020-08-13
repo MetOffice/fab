@@ -206,7 +206,7 @@ class RunFab(EnterPython):
                 configfile.write('ld-flags = {}\n'.format(ld_flags))
             else:
                 configfile.write('ld-flags = ' + '\n')
-
+        self.conf_file = conf_file
         super().__init__('fab', test_directory, 'builder', args)
 
     def description(self) -> str:
@@ -218,6 +218,12 @@ class RunFab(EnterPython):
         """
         if self.test_parameters.work_directory.is_dir():
             shutil.rmtree(self.test_parameters.work_directory)
+
+    def tear_down(self):
+        """
+        Clean up config files following the run.
+        """
+        os.remove(self.conf_file)
 
 
 class RunDump(EnterPython):
