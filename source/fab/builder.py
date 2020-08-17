@@ -145,7 +145,7 @@ class Fab(object):
         header_analyser = HeaderAnalyser(workspace)
         c_pragma_injector = CPragmaInjector(workspace)
         c_preprocessor = CPreProcessor(
-            'cpp', ['-P'], workspace
+            'cpp', [], workspace
         )
         c_analyser = CAnalyser(workspace)
         c_compiler = CCompiler(

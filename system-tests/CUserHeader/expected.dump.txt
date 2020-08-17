@@ -4,7 +4,7 @@ File View
   File   : system-tests/CUserHeader/whatnumber.c
     Hash : 152004089
   File   : system-tests/CUserHeader/whatnumber.h
-    Hash : 2131318568
+    Hash : 3592050052
 C View
   Symbol          : main
     Found in      : system-tests/CUserHeader/working/mainprog.c

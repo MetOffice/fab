@@ -1,4 +1,4 @@
-#if !defined(WHATNUMBER)
+#ifndef WHATNUMBER
 #define WHATNUMBER
 /* (c) Crown copyright Met Office. All rights reserved.
   For further details please refer to the file COPYRIGHT

@@ -10,7 +10,11 @@ from typing import \
     List, \
     Mapping, \
     Tuple, \
-    Type
+    Type, \
+    Dict
+from enum import Enum, auto
+from multiprocessing.synchronize import Lock as LockT
+
 from fab.artifact import \
     Artifact, \
     FileType, \
@@ -24,6 +28,12 @@ from fab.tasks import Task
 from fab.database import \
     SqliteStateDatabase, \
     FileInfoDatabase
+
+
+class DiscoveryState(Enum):
+    AWARE_OF = auto()
+    SEEN = auto()
+    COMPILED = auto()
 
 
 class PathMap(object):
@@ -75,13 +85,13 @@ class Engine(object):
 
     def process(self,
                 artifact: Artifact,
-                discovery,
-                objects,
-                lock) -> List[Artifact]:
+                discovery: Dict[str, DiscoveryState],
+                objects: List[Artifact],
+                lock: LockT) -> List[Artifact]:
 
-        new_artifacts = []
-        new_discovery = {}
-        new_objects = []
+        new_artifacts: List[Artifact] = []
+        new_discovery: Dict[str, DiscoveryState] = {}
+        new_objects: List[Artifact] = []
         # Identify tasks that are completely new
         if (artifact.state is New
                 and artifact.filetype is Unknown):
@@ -110,6 +120,12 @@ class Engine(object):
             # definitions are mentioned in the (shared)
             # discovery mapping, or if it is defining
             # the target of the build then it should be included
+
+            # TODO: Looping through a list of what could
+            # eventually contain every unit/symbol in the build has
+            # the potential to become an issue for performance.
+            # Longer term we probably want to drop using the shared
+            # discovery array in favour of database lookups
             required = False
             for definition in artifact.defines:
                 # Is this the target?
@@ -124,7 +140,7 @@ class Engine(object):
                 # (but not yet compiled)
                 for definition in artifact.defines:
                     if definition not in discovery:
-                        new_discovery[definition] = "Seen"
+                        new_discovery[definition] = DiscoveryState.SEEN
 
                 # Now check whether the Artifact's dependencies
                 # have already been seen and compiled
@@ -135,13 +151,13 @@ class Engine(object):
                         continue
                     if dependency in discovery:
                         # Are the dependencies compiled?
-                        if discovery[dependency] == "Compiled":
+                        if discovery[dependency] == DiscoveryState.COMPILED:
                             compiled[idep] = True
                     else:
                         # If the dependency isn't in the list at all yet
                         # then add an entry so the system knows we are
                         # expecting it later (for the above check)
-                        new_discovery[dependency] = "HeardOf"
+                        new_discovery[dependency] = DiscoveryState.AWARE_OF
 
                 # If the dependencies are satisfied (or there weren't
                 # any) then this file can be compiled now
@@ -150,7 +166,7 @@ class Engine(object):
                         task = self._taskmap[(artifact.filetype,
                                               artifact.state)]
                         new_artifacts.extend(task.run([artifact]))
-                        new_discovery[definition] = "Compiled"
+                        new_discovery[definition] = DiscoveryState.COMPILED
                 else:
                     # If the dependencies weren't all satisfied then
                     # back on the queue for another pass later
@@ -161,7 +177,7 @@ class Engine(object):
                 # has been compiled, in which case it wasn't
                 # needed at all!
                 if (self._target not in discovery
-                        or discovery[self._target] != "Compiled"):
+                        or discovery[self._target] != DiscoveryState.COMPILED):
                     new_artifacts.append(artifact)
 
         elif artifact.state is Compiled:

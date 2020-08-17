@@ -6,8 +6,9 @@
 '''
 Classes and methods relating to the queue system
 '''
+import warnings
 from queue import Empty as QueueEmpty
-from typing import List, Mapping
+from typing import List, Dict
 from multiprocessing import \
     Queue, \
     JoinableQueue, \
@@ -15,16 +16,19 @@ from multiprocessing import \
     Lock, \
     Manager, \
     Event
+from multiprocessing.synchronize import Lock as LockT
+from multiprocessing.synchronize import Event as EventT
+
 from fab.artifact import Artifact
-from fab.engine import Engine
+from fab.engine import Engine, DiscoveryState
 
 
 def _worker(queue: JoinableQueue,
             engine: Engine,
-            discovery,
-            objects,
-            lock,
-            stopswitch):
+            discovery: Dict[str, DiscoveryState],
+            objects: List[Artifact],
+            lock: LockT,
+            stopswitch: EventT):
     while not stopswitch.is_set():
         try:
             artifact = queue.get(block=True, timeout=0.5)
@@ -50,9 +54,9 @@ class QueueManager(object):
         self._workers: List[int] = []
         self._engine = engine
         self._mgr = Manager()
-        self._discovery: Mapping[str, str] = self._mgr.dict({})
-        self._stopswitch = Event()
-        self._objects: List = self._mgr.list([])
+        self._discovery: Dict[str, DiscoveryState] = self._mgr.dict({})
+        self._stopswitch: EventT = Event()
+        self._objects: List[Artifact] = self._mgr.list([])
         self._lock = Lock()
 
     def add_to_queue(self, artifact: Artifact):
@@ -83,8 +87,10 @@ class QueueManager(object):
 
         # Any that didn't finish nicely at this point
         # can be forcibly stopped
-        for process in self._workers:
+        for i_worker, process in enumerate(self._workers):
             if process.is_alive():
+                msg = f"Terminating thread {i_worker}..."
+                warnings.warn(msg)
                 process.terminate()
 
         # Stop the queue
