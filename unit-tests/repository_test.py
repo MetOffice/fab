@@ -11,6 +11,7 @@ from pathlib import Path
 from subprocess import run, Popen
 import shutil
 import signal
+import time
 from typing import List, Tuple
 
 from pytest import fixture, mark, raises  # type: ignore
@@ -87,6 +88,7 @@ class TestSubversion:
             except FabException as ex:
                 if range == 0:
                     raise ex
+                time.sleep(1.0)
             else:
                 break
         _tree_compare(repo[1], tmp_path)
