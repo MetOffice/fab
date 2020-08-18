@@ -6,7 +6,7 @@
 '''
 Classes and methods relating to the queue system
 '''
-import warnings
+import logging
 from queue import Empty as QueueEmpty
 from typing import List, Dict
 from multiprocessing import \
@@ -58,6 +58,7 @@ class QueueManager(object):
         self._stopswitch: EventT = Event()
         self._objects: List[Artifact] = self._mgr.list([])
         self._lock = Lock()
+        self.logger = logging.getLogger(__name__)
 
     def add_to_queue(self, artifact: Artifact):
         self._queue.put(artifact)
@@ -90,7 +91,7 @@ class QueueManager(object):
         for i_worker, process in enumerate(self._workers):
             if process.is_alive():
                 msg = f"Terminating thread {i_worker}..."
-                warnings.warn(msg)
+                self.logger.warn(msg)
                 process.terminate()
 
         # Stop the queue
