@@ -182,14 +182,14 @@ class RunFab(EnterPython):
 
         if fpp_flags:
             # different config file name for fpp flag test
-            conf_file = test_directory/('stay_config.ini')
+            self.conf_file = test_directory/('stay_config.ini')
         else:
-            conf_file = test_directory/'config.ini'
+            self.conf_file = test_directory/'config.ini'
 
         args.append(str(test_directory))
-        args.append(str(conf_file))
+        args.append(str(self.conf_file))
 
-        with open(conf_file, 'wt') as configfile:
+        with open(self.conf_file, 'wt') as configfile:
             configfile.write('[settings] \n'
                              'target = {}\n'
                              'exec-name = fab_test \n'
@@ -206,7 +206,6 @@ class RunFab(EnterPython):
                 configfile.write('ld-flags = {}\n'.format(ld_flags))
             else:
                 configfile.write('ld-flags = ' + '\n')
-        self.conf_file = conf_file
         super().__init__('fab', test_directory, 'builder', args)
 
     def description(self) -> str:
@@ -223,7 +222,7 @@ class RunFab(EnterPython):
         """
         Clean up config files following the run.
         """
-        os.remove(self.conf_file)
+        self.conf_file.unlink()
 
 
 class RunDump(EnterPython):
