@@ -1,0 +1,14 @@
+File View
+  File   : system-tests/CUserHeader/mainprog.c
+    Hash : 193488364
+  File   : system-tests/CUserHeader/whatnumber.c
+    Hash : 152004089
+  File   : system-tests/CUserHeader/whatnumber.h
+    Hash : 3592050052
+C View
+  Symbol          : main
+    Found in      : system-tests/CUserHeader/working/mainprog.c
+    Prerequisites : whatnumber
+  Symbol          : whatnumber
+    Found in      : system-tests/CUserHeader/working/whatnumber.c
+    Prerequisites : 

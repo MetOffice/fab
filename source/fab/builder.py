@@ -10,17 +10,27 @@ from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.artifact import \
     Artifact, \
     FortranSource, \
+    CSource, \
+    CHeader, \
     BinaryObject, \
     Seen, \
+    HeadersAnalysed, \
+    Modified, \
     Raw, \
     Analysed, \
     Compiled
+from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
     FortranWorkingState, \
     FortranPreProcessor, \
     FortranAnalyser, \
-    FortranCompiler, \
-    FortranLinker
+    FortranCompiler
+from fab.tasks.c import \
+    CWorkingState, \
+    CPragmaInjector, \
+    CPreProcessor, \
+    CAnalyser, \
+    CCompiler
 from fab.source_tree import \
     TreeDescent, \
     SourceVisitor
@@ -114,6 +124,8 @@ class Fab(object):
         path_maps = [
             PathMap(r'.*\.f90', FortranSource, Raw),
             PathMap(r'.*\.F90', FortranSource, Seen),
+            PathMap(r'.*\.c', CSource, Seen),
+            PathMap(r'.*\.h', CHeader, Seen),
         ]
 
         # Initialise the required Tasks, providing them with any static
@@ -129,10 +141,20 @@ class Fab(object):
             'gfortran',
             ['-c', '-J', str(workspace)] + fc_flags.split(), workspace
         )
-        # TODO: Linker class is probably generic not Fortran specific
-        # now that we are passing in the command to use?
-        fortran_linker = FortranLinker(
-            'gfortran', ld_flags.split(), workspace, exec_name
+
+        header_analyser = HeaderAnalyser(workspace)
+        c_pragma_injector = CPragmaInjector(workspace)
+        c_preprocessor = CPreProcessor(
+            'cpp', [], workspace
+        )
+        c_analyser = CAnalyser(workspace)
+        c_compiler = CCompiler(
+            'gcc', ['-c'], workspace
+        )
+
+        linker = Linker(
+            'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
+            workspace, exec_name
         )
 
         # The Task map tells the engine what Task it should be using
@@ -141,7 +163,14 @@ class Fab(object):
             (FortranSource, Seen): fortran_preprocessor,
             (FortranSource, Raw): fortran_analyser,
             (FortranSource, Analysed): fortran_compiler,
-            (BinaryObject, Compiled): fortran_linker,
+            (CSource, Seen): header_analyser,
+            (CHeader, Seen): header_analyser,
+            (CSource, HeadersAnalysed): c_pragma_injector,
+            (CHeader, HeadersAnalysed): c_pragma_injector,
+            (CSource, Modified): c_preprocessor,
+            (CSource, Raw): c_analyser,
+            (CSource, Analysed): c_compiler,
+            (BinaryObject, Compiled): linker,
         }
 
         engine = Engine(workspace,
@@ -179,3 +208,9 @@ class Fab(object):
             print(fortran_info.unit.name)
             print('    found in: ' + str(fortran_info.unit.found_in))
             print('    depends on: ' + str(fortran_info.depends_on))
+
+        c_db = CWorkingState(self._state)
+        for c_info in c_db:
+            print(c_info.symbol.name)
+            print('    found_in: ' + str(c_info.symbol.found_in))
+            print('    depends on: ' + str(c_info.depends_on))
