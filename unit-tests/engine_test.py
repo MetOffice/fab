@@ -5,9 +5,10 @@
 ##############################################################################
 
 from pathlib import Path
-from typing import List, Mapping, Tuple, Type
+from typing import List, Mapping, Dict, Tuple, Type
+from multiprocessing.synchronize import Lock as LockT
 
-from fab.engine import PathMap, Engine
+from fab.engine import PathMap, Engine, DiscoveryState
 from fab.artifact import Artifact, State, FileType, Unknown, New
 from fab.tasks import Task
 
@@ -36,7 +37,10 @@ class DummyTask(Task):
         return [new_artifact]
 
 
-class DummyLock(object):
+class DummyLock(LockT):
+    def __init__(self):
+        pass
+
     def acquire(self):
         pass
 
@@ -88,8 +92,8 @@ class TestEngine:
                             Unknown,
                             New)
 
-        discovery: Mapping[str, str] = {}
-        objects: List[str] = []
+        discovery: Dict[str, DiscoveryState] = {}
+        objects: List[Artifact] = []
         lock = DummyLock()
 
         new_artifact = engine.process(artifact,

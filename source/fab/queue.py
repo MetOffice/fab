@@ -6,43 +6,45 @@
 '''
 Classes and methods relating to the queue system
 '''
-from typing import List
+import logging
+from queue import Empty as QueueEmpty
+from typing import List, Dict
 from multiprocessing import \
     Queue, \
     JoinableQueue, \
     Process, \
     Lock, \
-    Manager
+    Manager, \
+    Event
+from multiprocessing.synchronize import Lock as LockT
+from multiprocessing.synchronize import Event as EventT
+
 from fab.artifact import Artifact
-from fab.engine import Engine
-
-
-class Stop(Artifact):
-    def __init__(self):
-        pass
+from fab.engine import Engine, DiscoveryState
 
 
 def _worker(queue: JoinableQueue,
             engine: Engine,
-            discovery,
-            objects,
-            lock):
-    while True:
-        artifact = queue.get(block=True)
-        if isinstance(artifact, Stop):
-            break
+            discovery: Dict[str, DiscoveryState],
+            objects: List[Artifact],
+            lock: LockT,
+            stopswitch: EventT):
+    while not stopswitch.is_set():
+        try:
+            artifact = queue.get(block=True, timeout=0.5)
+        except QueueEmpty:
+            continue
 
-        new_artifacts = engine.process(artifact,
-                                       discovery,
-                                       objects,
-                                       lock)
+        try:
+            new_artifacts = engine.process(artifact,
+                                           discovery,
+                                           objects,
+                                           lock)
 
-        for new_artifact in new_artifacts:
-            queue.put(new_artifact)
-
-        queue.task_done()
-
-    queue.task_done()
+            for new_artifact in new_artifacts:
+                queue.put(new_artifact)
+        finally:
+            queue.task_done()
 
 
 class QueueManager(object):
@@ -52,9 +54,11 @@ class QueueManager(object):
         self._workers: List[int] = []
         self._engine = engine
         self._mgr = Manager()
-        self._discovery = self._mgr.dict({engine.target: "HeardOf"})
-        self._objects: List = self._mgr.list([])
+        self._discovery: Dict[str, DiscoveryState] = self._mgr.dict({})
+        self._stopswitch: EventT = Event()
+        self._objects: List[Artifact] = self._mgr.list([])
         self._lock = Lock()
+        self.logger = logging.getLogger(__name__)
 
     def add_to_queue(self, artifact: Artifact):
         self._queue.put(artifact)
@@ -66,7 +70,8 @@ class QueueManager(object):
                                       self._engine,
                                       self._discovery,
                                       self._objects,
-                                      self._lock))
+                                      self._lock,
+                                      self._stopswitch))
             process.start()
             self._workers.append(process)
 
@@ -75,8 +80,21 @@ class QueueManager(object):
         self._queue.join()
 
     def shutdown(self):
-        stop = Stop()
-        for _ in range(self._n_workers):
-            self._queue.put(stop)
-        self.check_queue_done()
+        # Set the stop switch and wait for workers
+        # to finish
+        self._stopswitch.set()
+        for process in self._workers:
+            process.join(10.0)
+
+        # Any that didn't finish nicely at this point
+        # can be forcibly stopped
+        for i_worker, process in enumerate(self._workers):
+            if process.is_alive():
+                msg = f"Terminating thread {i_worker}..."
+                self.logger.warn(msg)
+                process.terminate()
+
+        # Stop the queue
+        self._queue.close()
+        self._queue.join_thread()
         self._workers.clear()

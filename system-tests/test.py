@@ -357,11 +357,11 @@ class CompareConsoleWithFile(CheckTask):
             leaf_name = leaf_name + '.' + expectation_suffix
         leaf_name = leaf_name + '.txt'
         path = task.test_parameters.test_directory / leaf_name
-        self._expected = path.read_text().splitlines(keepends=True)
+        self._expected = path.read_text()
 
     def check(self):
         self.assert_true(self.task.return_code == 0)
-        lines = self.task.standard_out.splitlines(keepends=True)
+        lines = self.task.standard_out
         self.assert_text_equal(lines, self._expected)
 
 
@@ -453,10 +453,22 @@ if __name__ == '__main__':
             CompareConsoleWithFile(RunDump(root_dir / 'MinimalFortran'))
         ],
         [
+            CompareConsoleWithFile(RunFab(root_dir / 'MinimalC',
+                                          'main')),
+            CompareConsoleWithFile(RunExec(root_dir / 'MinimalC')),
+            CompareConsoleWithFile(RunDump(root_dir / 'MinimalC'))
+        ],
+        [
             CompareConsoleWithFile(RunFab(root_dir / 'FortranDependencies',
                                           'first')),
             CompareConsoleWithFile(RunExec(root_dir / 'FortranDependencies')),
             CompareConsoleWithFile(RunDump(root_dir / 'FortranDependencies'))
+        ],
+        [
+            CompareConsoleWithFile(RunFab(root_dir / 'CUserHeader',
+                                          'main')),
+            CompareConsoleWithFile(RunExec(root_dir / 'CUserHeader')),
+            CompareConsoleWithFile(RunDump(root_dir / 'CUserHeader'))
         ],
         [
             [
