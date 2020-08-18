@@ -11,6 +11,7 @@ from pathlib import Path
 from subprocess import run, Popen
 import shutil
 import signal
+import time
 from typing import List, Tuple
 
 from pytest import fixture, mark, raises  # type: ignore
@@ -74,7 +75,22 @@ class TestSubversion:
         process = Popen(command)
 
         test_unit = SubversionRepo('svn://localhost/trunk')
-        test_unit.extract(tmp_path)
+        #
+        # It seems there can be a delay between the server starting and the
+        # listen socket opening. Thus we have a number of retries.
+        #
+        # TODO: Is there a better solution such that we don't try to connect
+        #       until the socket is open?
+        #
+        for retry in range(3, 0, -1):
+            try:
+                test_unit.extract(tmp_path)
+            except FabException as ex:
+                if range == 0:
+                    raise ex
+                time.sleep(1.0)
+            else:
+                break
         _tree_compare(repo[1], tmp_path)
         assert not (tmp_path / '.svn').exists()
 
