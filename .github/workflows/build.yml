@@ -45,4 +45,4 @@ jobs:
     - name: Test with systest
       run: |
         pip install .[system-test]
-        python system-tests/test.py
+        python -m pytest --cov=sci-fab system-tests

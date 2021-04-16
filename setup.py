@@ -54,6 +54,6 @@ setuptools.setup(
     extras_require={
         'dev': ['flake8', 'mypy'],
         'unit-test': ['pytest', 'pytest-cov', 'pytest-mock'],
-        'system-test': ['systest >= 5.5.0']
+        'system-test': ['pytest', 'pytest-cov', 'pytest-mock']
     }
 )
