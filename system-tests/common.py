@@ -9,11 +9,7 @@ System testing for Fab.
 Currently runs the tool as a subprocess but should also use it as a library.
 """
 from abc import ABC, ABCMeta, abstractmethod
-import argparse
-import datetime
 import filecmp
-import logging
-from logging import StreamHandler, FileHandler
 import os.path
 from pathlib import Path
 import shutil
@@ -22,9 +18,6 @@ import sys
 from tarfile import TarFile
 import os
 from typing import Dict, List, Optional, Sequence
-
-import systest  # type: ignore
-from systest import Sequencer
 
 
 class TestParameters(object):
@@ -316,12 +309,12 @@ class RunGrab(EnterPython):
             shutil.rmtree(self._repo_path)
 
 
-class CheckTask(systest.TestCase, metaclass=ABCMeta):
+class CheckTask(object, metaclass=ABCMeta):
     """
     Abstract parent of all checking test cases.
     """
     def __init__(self, task: RunCommand, name: str):
-        super().__init__(name=name)
+        self._name = name
         self._task = task
 
     @property
@@ -329,7 +322,7 @@ class CheckTask(systest.TestCase, metaclass=ABCMeta):
         return self._task
 
     def run(self):
-        self.task.set_up()
+        self._task.set_up()
         self._task.execute()
         #
         # We print this out for debug purposes. If a test fails this output
@@ -337,7 +330,6 @@ class CheckTask(systest.TestCase, metaclass=ABCMeta):
         #
         if self._task.debug_output is not None:
             print('\n'.join(self._task.debug_output))
-        self.assert_is_none(self._task.debug_output)
         self.check()
         self.task.tear_down()
 
@@ -352,9 +344,6 @@ class CompareConsoleWithFile(CheckTask):
     """
     # The expected result is held in a file "expected.<tag>[.<suffix>].txt.
     # Where "tag" comes from the task and "suffix" is specified.
-    #
-    # This comment is here because systest highjacks the doc string for output.
-    #
     def __init__(self, task: RunCommand, expectation_suffix=None):
         super().__init__(task, name=task.description())
         leaf_name = f'expected.{task.test_parameters.tag}'
@@ -365,9 +354,9 @@ class CompareConsoleWithFile(CheckTask):
         self._expected = path.read_text()
 
     def check(self):
-        self.assert_true(self.task.return_code == 0)
+        assert self.task.return_code == 0
         lines = self.task.standard_out
-        self.assert_text_equal(lines, self._expected)
+        assert lines == self._expected
 
 
 class CompareFileTrees(CheckTask):
@@ -376,9 +365,6 @@ class CompareFileTrees(CheckTask):
     """
     # The test tree is the tasks working directory and the expected result
     # is in "expected".
-    #
-    # This comment is here as systest highjacks the docstring for output.
-    #
     def __init__(self, task: RunCommand):
         super().__init__(task, name=task.description())
         self._expected = task.test_parameters.test_directory / 'expected'
@@ -387,139 +373,10 @@ class CompareFileTrees(CheckTask):
         first = self.task.test_parameters.work_directory
         second = self._expected
         tree_comparison = filecmp.dircmp(first, second)
-        self.assert_equal(len(tree_comparison.left_only), 0)
-        self.assert_equal(len(tree_comparison.right_only), 0)
+        assert len(tree_comparison.left_only) == 0
+        assert len(tree_comparison.right_only) == 0
         _, mismatch, errors = filecmp.cmpfiles(first, second,
                                                tree_comparison.common_files,
                                                shallow=False)
-        self.assert_equal(len(mismatch), 0)
-        self.assert_equal(len(errors), 0)
-
-
-if __name__ == '__main__':
-    description = 'Perform Fab system tests'
-    cli_parser = argparse.ArgumentParser(description=description,
-                                         add_help=False)
-    cli_parser.add_argument('-help', '-h', '--help', action='help',
-                            help='Display this help message and exit')
-    cli_parser.add_argument('-g', '--graph', metavar='FILENAME',
-                            nargs='?', const='fab',
-                            action='store', type=Path,
-                            help='Generate report of test run as graph')
-    cli_parser.add_argument('-j', '--json', action='store', metavar='FILENAME',
-                            nargs='?', const='fab',
-                            type=Path,
-                            help='Generate report of test run as JSON')
-    cli_parser.add_argument('-l', '--log', action='store', metavar='FILENAME',
-                            nargs='?', const='systest', type=Path,
-                            help='Generate log file')
-    arguments = cli_parser.parse_args()
-
-    # We set up logging by hand rather than calling systest.configure_logging
-    # as we want finer control over where things end up. In particular we don't
-    # want to generate a log file unless requested.
-    #
-    logging.getLogger('systest').setLevel(logging.DEBUG)
-
-    stdout_logger: StreamHandler = logging.StreamHandler()
-    stdout_logger.setFormatter(systest.ColorFormatter())
-    stdout_logger.setLevel(logging.INFO)
-    logging.getLogger('systest').addHandler(stdout_logger)
-
-    if arguments.log:
-        parent: Path = arguments.log.parent
-        if not parent.exists():
-            parent.mkdir(parents=True)
-
-        leaf: str = arguments.log.stem
-        fmt: str = '%Y_%m_%d_%H_%M_%S.%f'
-        timestamp: str = datetime.datetime.now().strftime(fmt)
-        leaf += '-' + timestamp
-        filename = parent / (leaf + '.log')
-
-        file_logger: FileHandler = logging.FileHandler(str(filename), 'w')
-        fmt = '%(asctime)s %(name)s %(levelname)s %(message)s'
-        file_logger.setFormatter(logging.Formatter(fmt))
-        stdout_logger.setLevel(logging.DEBUG)
-        logging.getLogger('systest').addHandler(file_logger)
-
-    # Tests are performed serially in list order. Where a tuple is found in
-    # the list, those tests are run in parallel.
-    #
-    root_dir = Path(__file__).parent
-
-    # In the sequence structure: Lists are serial while tuples are parallel.
-    #
-    sequence = (
-        [
-            CompareConsoleWithFile(RunFab(root_dir / 'MinimalFortran',
-                                          'test')),
-            CompareConsoleWithFile(RunExec(root_dir / 'MinimalFortran')),
-            CompareConsoleWithFile(RunDump(root_dir / 'MinimalFortran'))
-        ],
-        [
-            CompareConsoleWithFile(RunFab(root_dir / 'MinimalC',
-                                          'main')),
-            CompareConsoleWithFile(RunExec(root_dir / 'MinimalC')),
-            CompareConsoleWithFile(RunDump(root_dir / 'MinimalC'))
-        ],
-        [
-            CompareConsoleWithFile(RunFab(root_dir / 'FortranDependencies',
-                                          'first')),
-            CompareConsoleWithFile(RunExec(root_dir / 'FortranDependencies')),
-            CompareConsoleWithFile(RunDump(root_dir / 'FortranDependencies'))
-        ],
-        [
-            CompareConsoleWithFile(RunFab(root_dir / 'CUserHeader',
-                                          'main')),
-            CompareConsoleWithFile(RunExec(root_dir / 'CUserHeader')),
-            CompareConsoleWithFile(RunDump(root_dir / 'CUserHeader'))
-        ],
-        [
-            [
-                CompareConsoleWithFile(RunFab(root_dir / 'FortranPreProcess',
-                                              'stay_or_go_now',
-                                              fpp_flags='-DSHOULD_I_STAY=yes'),
-                                       expectation_suffix='stay'),
-                CompareConsoleWithFile(RunExec(root_dir / 'FortranPreProcess'),
-                                       expectation_suffix='stay'),
-                CompareConsoleWithFile(RunDump(root_dir / 'FortranPreProcess'),
-                                       expectation_suffix='stay')
-            ],
-            [
-                CompareConsoleWithFile(RunFab(root_dir / 'FortranPreProcess',
-                                              'stay_or_go_now'),
-                                       expectation_suffix='go'),
-                CompareConsoleWithFile(RunExec(root_dir / 'FortranPreProcess'),
-                                       expectation_suffix='go'),
-                CompareConsoleWithFile(RunDump(root_dir / 'FortranPreProcess'),
-                                       expectation_suffix='go')
-            ]
-        ],
-        [
-            CompareFileTrees(RunGrab(root_dir / 'GitRepository',
-                                     'git', 'file')),
-            # TODO: I can't test with the Git protocol as for some reason the
-            #       Git daemon isn't installed.
-            CompareFileTrees(RunGrab(root_dir / 'SubversionRepository',
-                                     'svn', 'file')),
-            CompareFileTrees(RunGrab(root_dir / 'SubversionRepository',
-                                     'svn', 'svn'))
-        ]
-    )
-
-    sequencer: Sequencer = systest.Sequencer('Fab system tests')
-    tallies = sequencer.run(sequence)
-
-    summary = sequencer.summary()
-    systest.log_lines(summary)
-
-    if arguments.graph:
-        sequencer._report_dot(str(arguments.graph))
-    if arguments.json:
-        sequencer._report_json(str(arguments.json))
-
-    if tallies.failed > 0:
-        sys.exit(1)
-    else:
-        sys.exit(0)
+        assert len(mismatch) == 0
+        assert len(errors) == 0
