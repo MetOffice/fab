@@ -309,7 +309,7 @@ class RunGrab(EnterPython):
             shutil.rmtree(self._repo_path)
 
 
-class CheckTask(object, metaclass=ABCMeta):
+class CheckTask(ABC, metaclass=ABCMeta):
     """
     Abstract parent of all checking test cases.
     """
@@ -341,9 +341,10 @@ class CheckTask(object, metaclass=ABCMeta):
 class CompareConsoleWithFile(CheckTask):
     """
     Checks console output against expected result.
+
+    The expected result is held in a file "expected.<tag>[.<suffix>].txt.
+    Where "tag" comes from the task and "suffix" is specified.
     """
-    # The expected result is held in a file "expected.<tag>[.<suffix>].txt.
-    # Where "tag" comes from the task and "suffix" is specified.
     def __init__(self, task: RunCommand, expectation_suffix=None):
         super().__init__(task, name=task.description())
         leaf_name = f'expected.{task.test_parameters.tag}'
@@ -362,9 +363,10 @@ class CompareConsoleWithFile(CheckTask):
 class CompareFileTrees(CheckTask):
     """
     Checks filetree against expected result.
+
+    The test tree is the tasks working directory and the expected result
+    is in "expected".
     """
-    # The test tree is the tasks working directory and the expected result
-    # is in "expected".
     def __init__(self, task: RunCommand):
         super().__init__(task, name=task.description())
         self._expected = task.test_parameters.test_directory / 'expected'
