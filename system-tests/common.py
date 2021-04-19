@@ -309,7 +309,7 @@ class RunGrab(EnterPython):
             shutil.rmtree(self._repo_path)
 
 
-class CheckTask(ABC, metaclass=ABCMeta):
+class CheckTask(ABC):
     """
     Abstract parent of all checking test cases.
     """

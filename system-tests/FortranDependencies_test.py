@@ -6,7 +6,7 @@
 from pathlib import Path
 from common import CompareConsoleWithFile, RunFab, RunExec, RunDump
 
-TEST_PATH = Path('system-tests/FortranDependencies')
+TEST_PATH = Path('system-tests') / Path(__file__).name.split('_test.py')[0]
 
 
 def test_fab():

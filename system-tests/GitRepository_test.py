@@ -6,7 +6,7 @@
 from pathlib import Path
 from common import CompareFileTrees, RunGrab
 
-TEST_PATH = Path('system-tests/GitRepository')
+TEST_PATH = Path('system-tests') / Path(__file__).name.split('_test.py')[0]
 
 
 def test_grab():
