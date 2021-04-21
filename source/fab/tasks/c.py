@@ -4,6 +4,7 @@
 """
 C language handling classes.
 """
+import logging
 import subprocess
 import re
 import clang.cindex  # type: ignore
@@ -320,6 +321,7 @@ class CAnalyser(Task):
             return None
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
 
         if len(artifacts) == 1:
             artifact = artifacts[0]
@@ -351,11 +353,14 @@ class CAnalyser(Task):
         usr_includes = []
         current_def = None
         for node in translation_unit.cursor.walk_preorder():
+            logger.debug('Considering node: %s', node.spelling)
             if node.kind == clang.cindex.CursorKind.FUNCTION_DECL:
+                logger.debug('  * Is a function declaration')
                 if (node.is_definition()
                         and node.linkage == clang.cindex.LinkageKind.EXTERNAL):
                     # This should catch function definitions which are exposed
                     # to the rest of the application
+                    logger.debug('  * Is defined in this file')
                     current_def = CSymbolID(node.spelling, artifact.location)
                     state.add_c_symbol(current_def)
                     new_artifact.add_definition(node.spelling)
@@ -365,6 +370,7 @@ class CAnalyser(Task):
                     # are coming from system headers or user headers
                     if (self._check_for_include(node.location.line)
                             == "usr_include"):
+                        logger.debug('  * Is not defined in this file')
                         usr_includes.append(node.spelling)
 
             elif (node.kind == clang.cindex.CursorKind.CALL_EXPR):
@@ -372,10 +378,12 @@ class CAnalyser(Task):
                 # cross-reference it with a definition seen earlier; and
                 # if it came from a user supplied header then we will
                 # consider it a dependency within the project
+                logger.debug('  * Is a function call')
                 if node.spelling in usr_includes and current_def is not None:
                     # TODO: Assumption that the most recent exposed
                     # definition encountered above is the one which
                     # should lodge this dependency - is that true?
+                    logger.debug('  * Not a std function (so a dependency)')
                     state.add_c_dependency(current_def, node.spelling)
                     new_artifact.add_dependency(node.spelling)
 
@@ -428,6 +436,7 @@ class CPragmaInjector(Task):
         self._workspace = workspace
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
 
         if len(artifacts) == 1:
             artifact = artifacts[0]
@@ -436,6 +445,7 @@ class CPragmaInjector(Task):
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
 
+        logger.debug('Injecting pragmas into: %s', artifact.location)
         injector = _CTextReaderPragmas(
             FileTextReader(artifact.location))
 
@@ -466,6 +476,7 @@ class CPreProcessor(Task):
         self._workspace = workspace
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
 
         if len(artifacts) == 1:
             artifact = artifacts[0]
@@ -484,12 +495,14 @@ class CPreProcessor(Task):
                        artifact.location.with_suffix('.fabcpp').name)
 
         command.append(str(output_file))
+        logger.debug('Running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         # Overwrite actual output file
         final_output = (self._workspace /
                         artifact.location.name)
         command = ["mv", str(output_file), str(final_output)]
+        logger.debug('Running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         return [Artifact(final_output,
@@ -508,6 +521,7 @@ class CCompiler(Task):
         self._workspace = workspace
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
 
         if len(artifacts) == 1:
             artifact = artifacts[0]
@@ -524,6 +538,7 @@ class CCompiler(Task):
                        artifact.location.with_suffix('.o').name)
         command.extend(['-o', str(output_file)])
 
+        logger.debug('Running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         object_artifact = Artifact(output_file,

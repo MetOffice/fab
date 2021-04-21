@@ -382,6 +382,7 @@ class FortranAnalyser(Task):
 
         state = FortranWorkingState(self.database)
         state.remove_fortran_file(reader.filename)
+        logger.debug('Analysing: %s', reader.filename)
 
         normalised_source = FortranNormaliser(reader)
         scope: List[Tuple[str, str]] = []
@@ -497,6 +498,7 @@ class FortranPreProcessor(Task):
         self._workspace = workspace
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
 
         if len(artifacts) == 1:
             artifact = artifacts[0]
@@ -513,6 +515,7 @@ class FortranPreProcessor(Task):
                        artifact.location.with_suffix('.f90').name)
         command.append(str(output_file))
 
+        logger.debug('Running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         return [Artifact(output_file,
@@ -531,6 +534,7 @@ class FortranCompiler(Task):
         self._workspace = workspace
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
 
         if len(artifacts) == 1:
             artifact = artifacts[0]
@@ -547,6 +551,7 @@ class FortranCompiler(Task):
                        artifact.location.with_suffix('.o').name)
         command.extend(['-o', str(output_file)])
 
+        logger.debug('Running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         object_artifact = Artifact(output_file,
