@@ -35,17 +35,17 @@ def entry() -> None:
     parser.add_argument('-V', '--version', action='version',
                         version=fab.__version__,
                         help='Print version identifier and exit')
-    parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Produce a running commentary on progress')
+    parser.add_argument('-v', '--verbose', action='count', default=0,
+                        help='Increase verbosity (may be specified once '
+                             'for moderate and twice for debug verbosity)')
     parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
                         default=Path.cwd() / 'working',
                         help='Directory for working files.')
     arguments = parser.parse_args()
 
-    if arguments.verbose:
-        logger.setLevel(logging.INFO)
-    else:
-        logger.setLevel(logging.WARNING)
+    verbosity_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+    verbosity = min(arguments.verbose, 2)
+    logger.setLevel(verbosity_levels[verbosity])
 
     application = Dump(arguments.workspace)
     application.run()

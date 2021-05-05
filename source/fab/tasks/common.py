@@ -2,6 +2,7 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 
+import logging
 import re
 import subprocess
 from typing import List, Optional, Match
@@ -28,6 +29,7 @@ class Linker(Task):
         self._output_filename = output_filename
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
 
         if len(artifacts) < 1:
             msg = ('Linker expects at least one Artifact, '
@@ -44,6 +46,7 @@ class Linker(Task):
 
         command.extend(self._flags)
 
+        logger.debug('Running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         return [Artifact(output_file,
@@ -59,6 +62,8 @@ class HeaderAnalyser(Task):
         self._workspace = workspace
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+        logger = logging.getLogger(__name__)
+
         if len(artifacts) == 1:
             artifact = artifacts[0]
         else:
@@ -71,13 +76,16 @@ class HeaderAnalyser(Task):
                                 HeadersAnalysed)
 
         reader = FileTextReader(artifact.location)
+        logger.debug('Looking for headers in: %s', reader.filename)
         for line in reader.line_by_line():
             include_match: Optional[Match] \
                 = self._include_pattern.match(line)
             if include_match:
                 include: str = include_match.group(1)
+                logger.debug('Found header: %s', include)
                 if include.startswith(('"', "'")):
                     include = include.strip('"').strip("'")
+                    logger.debug('  * User header; adding dependency')
                     new_artifact.add_dependency(
                         Path(self._workspace / include))
 
