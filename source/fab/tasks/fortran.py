@@ -471,11 +471,13 @@ class FortranAnalyser(Task):
                         # for Fortran module dependencies, only using the
                         # symbol name. Longer term we probably need a more
                         # elegant solution
+                        logger.debug('In an interface block; so a dependency')
                         unit_id = FortranUnitID(scope[0][1], reader.filename)
                         state.add_fortran_dependency(unit_id, cbind_name)
                         new_artifact.add_dependency(cbind_name)
                     else:
                         # Add to the C database
+                        logger.debug('Not an interface block; so a definition')
                         symbol_id = CSymbolID(cbind_name, reader.filename)
                         cstate.add_c_symbol(symbol_id)
                         new_artifact.add_definition(cbind_name)
