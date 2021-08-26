@@ -26,6 +26,7 @@ from fab.database import (DatabaseDecorator,
 from fab.tasks import \
     Task, \
     TaskException
+from fab.tasks.c import CWorkingState, CSymbolID
 from fab.reader import TextReader, TextReaderDecorator, FileTextReader
 from fab.artifact import \
     Artifact, \
@@ -324,6 +325,7 @@ class FortranAnalyser(Task):
     _scope_block_re: str = r'associate|block|critical|do|if|select'
     _iface_block_re: str = r'interface'
     _type_block_re: str = r'type'
+    _bind_stmt_re: str = r'bind'
 
     _program_unit_re: str = r'^\s*({unit_type_re})\s*({name_re})' \
                             .format(unit_type_re=_unit_block_re,
@@ -355,6 +357,10 @@ class FortranAnalyser(Task):
         = r'^\s*use((\s*,\s*non_intrinsic)?\s*::)?\s*({name_re})' \
           .format(name_re=_name_re)
 
+    _cbind_statement_re: str \
+        = r'.*\W+{bind_re}\s*\(\s*c\s*(\)|,\s*name\s*=\s*(\S+)\s*\)).*' \
+          .format(bind_re=_bind_stmt_re)
+
     _program_unit_pattern: Pattern = re.compile(_program_unit_re,
                                                 re.IGNORECASE)
     _scoping_pattern: Pattern = re.compile(_scoping_re, re.IGNORECASE)
@@ -363,6 +369,7 @@ class FortranAnalyser(Task):
     _type_pattern: Pattern = re.compile(_type_re, re.IGNORECASE)
     _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
     _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
+    _cbind_pattern: Pattern = re.compile(_cbind_statement_re, re.IGNORECASE)
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
@@ -384,6 +391,11 @@ class FortranAnalyser(Task):
         state.remove_fortran_file(reader.filename)
         logger.debug('Analysing: %s', reader.filename)
 
+        # If this file defines any C symbol bindings it may also
+        # end up with an entry in the C part of the database
+        cstate = CWorkingState(self.database)
+        cstate.remove_c_file(reader.filename)
+
         normalised_source = FortranNormaliser(reader)
         scope: List[Tuple[str, str]] = []
         for line in normalised_source.line_by_line():
@@ -393,7 +405,7 @@ class FortranAnalyser(Task):
             if len(scope) == 0:
                 unit_match: Optional[Match] \
                     = self._program_unit_pattern.match(line)
-                if unit_match:
+                if unit_match is not None:
                     unit_type: str = unit_match.group(1).lower()
                     unit_name: str = unit_match.group(2).lower()
                     logger.debug('Found %s called "%s"', unit_type, unit_name)
@@ -404,7 +416,7 @@ class FortranAnalyser(Task):
                     continue
             use_match: Optional[Match] \
                 = self._use_pattern.match(line)
-            if use_match:
+            if use_match is not None:
                 use_name: str = use_match.group(3).lower()
                 if use_name in self._intrinsic_modules:
                     logger.debug('Ignoring intrinsic module "%s"', use_name)
@@ -420,7 +432,7 @@ class FortranAnalyser(Task):
                 continue
 
             block_match: Optional[Match] = self._scoping_pattern.match(line)
-            if block_match:
+            if block_match is not None:
                 # Beware we want the value of a different group to the one we
                 # check the presence of.
                 #
@@ -433,16 +445,72 @@ class FortranAnalyser(Task):
 
             proc_match: Optional[Match] \
                 = self._procedure_pattern.match(line)
-            if proc_match:
+            if proc_match is not None:
                 proc_nature = proc_match.group(1).lower()
                 proc_name = proc_match.group(2).lower()
                 logger.debug('Found %s called "%s"', proc_nature, proc_name)
-                # Note: We append a tuple so double brackets.
                 scope.append((proc_nature, proc_name))
+
+                # Check for the procedure being symbol-bound to C
+                cbind_match: Optional[Match] \
+                    = self._cbind_pattern.match(line)
+                if cbind_match is not None:
+                    cbind_name = cbind_match.group(2)
+                    # The name keyword on the bind statement is optional.
+                    # If it doesn't exist, the procedure name is used
+                    if cbind_name is None:
+                        cbind_name = proc_name
+                    cbind_name = cbind_name.lower().strip("'\"")
+                    logger.debug('Bound to C symbol "%s"', cbind_name)
+                    # A bind within an interface block means this is
+                    # exposure of a C-defined function to Fortran,
+                    # otherwise it is going the other way (allowing C
+                    # code to call the Fortran procedure)
+                    if any([stype == "interface" for stype, _ in scope]):
+                        # TODO: This is sort of hijacking the mechanism used
+                        # for Fortran module dependencies, only using the
+                        # symbol name. Longer term we probably need a more
+                        # elegant solution
+                        logger.debug('In an interface block; so a dependency')
+                        unit_id = FortranUnitID(scope[0][1], reader.filename)
+                        state.add_fortran_dependency(unit_id, cbind_name)
+                        new_artifact.add_dependency(cbind_name)
+                    else:
+                        # Add to the C database
+                        logger.debug('Not an interface block; so a definition')
+                        symbol_id = CSymbolID(cbind_name, reader.filename)
+                        cstate.add_c_symbol(symbol_id)
+                        new_artifact.add_definition(cbind_name)
                 continue
 
+            cbind_match = self._cbind_pattern.match(line)
+            if cbind_match is not None:
+                # This should be a line binding from C to a variable definition
+                # (procedure binds are dealt with above)
+                cbind_name = cbind_match.group(2)
+
+                # The name keyword on the bind statement is optional.
+                # If it doesn't exist, the Fortran variable name is used
+                if cbind_name is None:
+                    var_search = re.search(r'.*::\s*(\w+)', line)
+                    if var_search:
+                        cbind_name = var_search.group(1)
+                    else:
+                        cbind_message \
+                            = 'failed to find variable name ' \
+                              'on C bound variable'
+                        raise TaskException(cbind_message)
+
+                cbind_name = cbind_name.lower().strip("'\"")
+                logger.debug('Found C bound variable called "%s"', cbind_name)
+
+                # Add to the C database
+                symbol_id = CSymbolID(cbind_name, reader.filename)
+                cstate.add_c_symbol(symbol_id)
+                new_artifact.add_definition(cbind_name)
+
             iface_match: Optional[Match] = self._interface_pattern.match(line)
-            if iface_match:
+            if iface_match is not None:
                 iface_name = iface_match.group(1) \
                              and iface_match.group(1).lower()
                 logger.debug('Found interface called "%s"', iface_name)
@@ -450,14 +518,14 @@ class FortranAnalyser(Task):
                 continue
 
             type_match: Optional[Match] = self._type_pattern.match(line)
-            if type_match:
+            if type_match is not None:
                 type_name = type_match.group(3).lower()
                 logger.debug('Found type called "%s"', type_name)
                 scope.append(('type', type_name))
                 continue
 
             end_match: Optional[Match] = self._end_block_pattern.match(line)
-            if end_match:
+            if end_match is not None:
                 end_nature: str = end_match.group(1) \
                     and end_match.group(1).lower()
                 end_name: str = end_match.group(2) \
