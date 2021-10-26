@@ -9,5 +9,3 @@ dependencies:
   - libclang
   - python-clang
   - mypy
-  - pip:
-    - systest
