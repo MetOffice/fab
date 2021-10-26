@@ -91,6 +91,9 @@ class Artifact(object):
         self._depends_on: List[Union[str, Path]] = []
         self._hash: Optional[int] = None
 
+    def __str__(self):
+        return f"Artifact at {self._location} is {self._state}"
+
     @property
     def location(self) -> Path:
         return self._location

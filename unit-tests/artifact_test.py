@@ -21,6 +21,9 @@ class TestArtifact:
         assert artifact.depends_on == []
         assert artifact.defines == []
 
+    def test_str(self, tmp_path: Path):
+        assert str(Artifact(Path("/folder/file"), Unknown, New)) == "Artifact at /folder/file is <class 'fab.artifact.New'>"
+
     def test_hash(self, tmp_path: Path):
         test_path = Path(tmp_path / 'test.foo')
         test_path.write_text("Lorem ipsum dolor sit")
