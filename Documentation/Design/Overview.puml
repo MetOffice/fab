@@ -1,37 +1,29 @@
 @startuml
-'https://plantuml.com/activity-diagram-beta
 
-start
-:ClickServlet.handleRequest();
-:new page;
-if (Page.onSecurityCheck) then (true)
-  :Page.onInit();
-  if (isForward?) then (no)
-    :Process controls;
-    if (continue processing?) then (no)
-      stop
-    endif
+partition "file walking" {
+    (*) --> "TreeDescent.descend()"
+    "TreeDescent.descend()" -->[file path] SourceVisitor.visit()
+}
 
-    if (isPost?) then (yes)
-      :Page.onPost();
-    else (no)
-      :Page.onGet();
-    endif
-    :Page.onRender();
-  endif
-else (false)
-endif
+"SourceVisitor.visit()" -->[artifact] "Fab._queue"
 
-if (do redirect?) then (yes)
-  :redirect process;
-else
-  if (do forward?) then (yes)
-    :Forward request;
-  else (no)
-    :Render page template;
-  endif
-endif
+"Fab._queue" -->[artifact] "queue _worker"
 
-stop
+"queue _worker" -->[artifact] "Engine.process()"
+
+"Engine.process()" -->[call] "<b>tasks</b>
+preprocessors
+analysers
+compilers
+linkers
+pragma injectors
+c/fortran processors
+" as tasks
+
+tasks -->[artifacts] "Engine.process()"
+
+"Engine.process()" -->[artifacts] "queue _worker"
+
+"queue _worker" -->[artifacts] "Fab._queue"
 
 @enduml
