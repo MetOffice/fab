@@ -138,7 +138,12 @@ class SqliteStateDatabase(StateDatabase):
 
         cursor = None
         for command in query_list:
-            cursor = connection.execute(command, inserts)
+            try:
+                cursor = connection.execute(command, inserts)
+            except sqlite3.IntegrityError as err:
+                raise ValueError(f"Error executing query '{command}': {err}")
+
         connection.commit()
 
+        # todo: investigate - the cursor is replaced with each command we execute
         return DatabaseRows(cursor)

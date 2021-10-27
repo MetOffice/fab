@@ -1,0 +1,13 @@
+name: sci-fab
+dependencies:
+  - flake8
+  - libclang
+  - mypy
+  - python=3.8
+  - pip=21.2.4
+  - pytest
+  - python-clang
+  - pytest-cov
+  - pytest-mock
+  - pip:
+      - fparser

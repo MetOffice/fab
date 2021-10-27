@@ -21,6 +21,7 @@ from multiprocessing.synchronize import Event as EventT
 
 from fab.artifact import Artifact
 from fab.engine import Engine, DiscoveryState
+from fab.tasks import TaskException
 
 
 def _worker(queue: JoinableQueue,
@@ -28,7 +29,11 @@ def _worker(queue: JoinableQueue,
             discovery: Dict[str, DiscoveryState],
             objects: List[Artifact],
             lock: LockT,
-            stopswitch: EventT):
+            stopswitch: EventT,
+            stop_on_error: bool = True):
+
+    logger = logging.getLogger(__file__)
+
     while not stopswitch.is_set():
         try:
             artifact = queue.get(block=True, timeout=0.5)
@@ -43,16 +48,29 @@ def _worker(queue: JoinableQueue,
 
             for new_artifact in new_artifacts:
                 queue.put(new_artifact)
+        except TaskException as err:
+            logger.error(f"ERROR processing {artifact._location}:\n  {err}")
+            if (stop_on_error):
+                stopswitch.set()
+                print("Please exit with ctrl-c")
+        except Exception as err:
+            # logger.error(f"UNKNOWN ERROR '{type(err)}' processing {artifact._location}:\n  {err}")
+            logger.exception(f"UNKNOWN ERROR '{type(err)}' processing {artifact._location}:\n  {err}")
+            if (stop_on_error):
+                stopswitch.set()
+                print("Please exit with ctrl-c")
         finally:
             queue.task_done()
 
 
 class QueueManager(object):
-    def __init__(self, n_workers: int, engine: Engine):
+    def __init__(self, n_workers: int, engine: Engine,
+                 stop_on_error: bool = True):
         self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
         self._workers: List[int] = []
         self._engine = engine
+        self._stop_on_error = stop_on_error
         self._mgr = Manager()
         self._discovery: Dict[str, DiscoveryState] = self._mgr.dict({})
         self._stopswitch: EventT = Event()
@@ -71,7 +89,8 @@ class QueueManager(object):
                                       self._discovery,
                                       self._objects,
                                       self._lock,
-                                      self._stopswitch))
+                                      self._stopswitch,
+                                      self._stop_on_error))
             process.start()
             self._workers.append(process)
 

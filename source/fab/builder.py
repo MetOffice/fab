@@ -3,8 +3,12 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+import argparse
+import configparser
 import logging
+import multiprocessing
 from pathlib import Path
+import sys
 
 from fab.database import SqliteStateDatabase, FileInfoDatabase
 from fab.artifact import \
@@ -38,18 +42,28 @@ from fab.queue import QueueManager
 from fab.engine import Engine, PathMap
 
 
+logger = logging.getLogger('fab')
+logger.addHandler(logging.StreamHandler(sys.stderr))
+
+
+def read_config(conf_file):
+    config = configparser.ConfigParser(allow_no_value=True)
+    configfile = conf_file
+    config.read(configfile)
+
+    skip_files = []
+    if skip_files_config := config['settings']['skip-files-list']:
+        for line in open(skip_files_config, "rt"):
+            skip_files.append(line.strip())
+
+    return config, skip_files
+
+
 def entry() -> None:
     """
     Entry point for the Fab build tool.
     """
-    import argparse
-    import configparser
-    import multiprocessing
-    import sys
     import fab
-
-    logger = logging.getLogger('fab')
-    logger.addHandler(logging.StreamHandler(sys.stderr))
 
     description = 'Flexible build system for scientific software.'
 
@@ -72,6 +86,7 @@ def entry() -> None:
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
+    parser.add_argument('--stop-on-error', action="store_true")
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     parser.add_argument('conf_file', type=Path, default='config.ini',
@@ -82,9 +97,7 @@ def entry() -> None:
     verbosity = min(arguments.verbose, 2)
     logger.setLevel(verbosity_levels[verbosity])
 
-    config = configparser.ConfigParser(allow_no_value=True)
-    configfile = arguments.conf_file
-    config.read(configfile)
+    config, skip_files = read_config(arguments.conf_file)
     settings = config['settings']
     flags = config['flags']
 
@@ -92,13 +105,15 @@ def entry() -> None:
     if settings['exec-name'] == '':
         settings['exec-name'] = settings['target']
 
-    application = Fab(arguments.workspace,
-                      settings['target'],
-                      settings['exec-name'],
-                      flags['fpp-flags'],
-                      flags['fc-flags'],
-                      flags['ld-flags'],
-                      arguments.nprocs)
+    application = Fab(workspace=arguments.workspace,
+                      target=settings['target'],
+                      exec_name=settings['exec-name'],
+                      fpp_flags=flags['fpp-flags'],
+                      fc_flags=flags['fc-flags'],
+                      ld_flags=flags['ld-flags'],
+                      n_procs=arguments.nprocs,
+                      stop_on_error=arguments.stop_on_error,
+                      skip_files=skip_files)
     application.run(arguments.source)
 
 
@@ -110,7 +125,10 @@ class Fab(object):
                  fpp_flags: str,
                  fc_flags: str,
                  ld_flags: str,
-                 n_procs: int):
+                 n_procs: int,
+                 stop_on_error: bool = True,
+                 skip_files=None):
+        self.skip_files = skip_files or []
 
         self._workspace = workspace
         if not workspace.exists():
@@ -177,9 +195,12 @@ class Fab(object):
                         target,
                         path_maps,
                         task_map)
-        self._queue = QueueManager(n_procs - 1, engine)
+        self._queue = QueueManager(n_procs - 1, engine, stop_on_error)
 
     def _extend_queue(self, artifact: Artifact) -> None:
+        if str(artifact.location.parts[-1]) in self.skip_files:
+            logger.warning(f"skipping {artifact.location}")
+            return
         self._queue.add_to_queue(artifact)
 
     def run(self, source: Path):

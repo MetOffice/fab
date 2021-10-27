@@ -17,6 +17,10 @@ from typing import (Generator,
                     Sequence,
                     Tuple,
                     Union)
+from fparser.two.Fortran2003 import Char_Literal_Constant, Function_Stmt, Interface_Block, Language_Binding_Spec, Module_Stmt, Name, Program_Stmt, Subroutine_Stmt, Use_Stmt
+
+from fparser.two.parser import ParserFactory
+from fparser.common.readfortran import FortranFileReader
 
 from fab.database import (DatabaseDecorator,
                           FileInfoDatabase,
@@ -271,109 +275,46 @@ class FortranWorkingState(DatabaseDecorator):
                 yield FortranUnitID(row['prerequisite'], Path(row['found_in']))
 
 
-class FortranNormaliser(TextReaderDecorator):
-    def __init__(self, source: TextReader):
-        super().__init__(source)
-        self._line_buffer = ''
+def iter_content(obj):
+    """
+    Recursively iterate through everything in an fparser object's content heirarchy.   
+    """
+    if not hasattr(obj, "content"):
+        return
+    for child in obj.content:
+        yield child
+        for grand_child in iter_content(child):
+            yield grand_child
 
-    def line_by_line(self) -> Iterator[str]:
-        """
-        Each line of the source file is modified to ease the work of analysis.
 
-        The lines are sanitised to remove comments and collapse the result
-        of continuation lines whilst also trimming away as much whitespace as
-        possible
-        """
-        for line in self._source.line_by_line():
-            # Remove comments - we accept that an exclamation mark
-            # appearing in a string will cause the rest of that line
-            # to be blanked out, but the things we wish to parse
-            # later shouldn't appear after a string on a line anyway
-            line = re.sub(r'!.*', '', line)
+# TODO: Unit test
+def has_ancestor_type(obj, obj_type):
+    """Recursively check if an object has an ancestor of the given type."""
+    if not obj.parent:
+        return False
 
-            # If the line is empty, go onto the next
-            if line.strip() == '':
-                continue
+    if type(obj.parent) == obj_type:
+        return True
 
-            # Deal with continuations by removing them to collapse
-            # the lines together
-            self._line_buffer += line
-            if '&' in self._line_buffer:
-                self._line_buffer = re.sub(r'&\s*$', '', self._line_buffer)
-                continue
+    return has_ancestor_type(obj.parent, obj_type)
 
-            # Before output, minimise whitespace but add a space on the end
-            # of the line.
-            line_buffer = re.sub(r'\s+', r' ', self._line_buffer)
-            yield line_buffer.rstrip()
-            self._line_buffer = ''
+
+def typed_child(parent, child_type):
+    """Look for a child of a certain type"""
+    children = list(filter(lambda child: type(child) == child_type, parent.children))
+    assert len(children) <= 1, f"too many children found of type {child_type}"
+    return (children or [None])[0]
 
 
 class FortranAnalyser(Task):
-    def __init__(self, workspace: Path):
-        self.database = SqliteStateDatabase(workspace)
 
     _intrinsic_modules = ['iso_fortran_env']
 
-    _letters: str = r'abcdefghijklmnopqrstuvwxyz'
-    _digits: str = r'1234567890'
-    _underscore: str = r'_'
-    _alphanumeric_re: str = '[' + _letters + _digits + _underscore + ']'
-    _name_re: str = '[' + _letters + ']' + _alphanumeric_re + '*'
-    _procedure_block_re: str = r'function|subroutine'
-    _unit_block_re: str = r'program|module|' + _procedure_block_re
-    _scope_block_re: str = r'associate|block|critical|do|if|select'
-    _iface_block_re: str = r'interface'
-    _type_block_re: str = r'type'
-    _bind_stmt_re: str = r'bind'
-
-    _program_unit_re: str = r'^\s*({unit_type_re})\s*({name_re})' \
-                            .format(unit_type_re=_unit_block_re,
-                                    name_re=_name_re)
-    _scoping_re: str = r'^\s*(({name_re})\s*:)?\s*({scope_type_re})' \
-                       .format(scope_type_re=_scope_block_re,
-                               name_re=_name_re)
-    _procedure_re: str = r'^\s*({procedure_block_re})\s*({name_re})' \
-                         .format(procedure_block_re=_procedure_block_re,
-                                 name_re=_name_re)
-    _interface_re: str = r'^\s*{iface_block_re}\s*({name_re})?' \
-                         .format(iface_block_re=_iface_block_re,
-                                 name_re=_name_re)
-    _type_re: str = r'^\s*{type_block_re}' \
-                    r'((\s*,\s*[^,]+)*\s*::)?' \
-                    r'\s*({name_re})'.format(type_block_re=_type_block_re,
-                                             name_re=_name_re)
-    _end_block_re: str \
-        = r'^\s*end' \
-          r'\s*({scope_block_re}|{iface_block_re}' \
-          r'|{type_block_re}|{unit_type_re})?' \
-          r'\s*({name_re})?'.format(scope_block_re=_scope_block_re,
-                                    iface_block_re=_iface_block_re,
-                                    type_block_re=_type_block_re,
-                                    unit_type_re=_unit_block_re,
-                                    name_re=_name_re)
-
-    _use_statement_re: str \
-        = r'^\s*use((\s*,\s*non_intrinsic)?\s*::)?\s*({name_re})' \
-          .format(name_re=_name_re)
-
-    _cbind_statement_re: str \
-        = r'.*\W+{bind_re}\s*\(\s*c\s*(\)|,\s*name\s*=\s*(\S+)\s*\)).*' \
-          .format(bind_re=_bind_stmt_re)
-
-    _program_unit_pattern: Pattern = re.compile(_program_unit_re,
-                                                re.IGNORECASE)
-    _scoping_pattern: Pattern = re.compile(_scoping_re, re.IGNORECASE)
-    _procedure_pattern: Pattern = re.compile(_procedure_re, re.IGNORECASE)
-    _interface_pattern: Pattern = re.compile(_interface_re, re.IGNORECASE)
-    _type_pattern: Pattern = re.compile(_type_re, re.IGNORECASE)
-    _end_block_pattern: Pattern = re.compile(_end_block_re, re.IGNORECASE)
-    _use_pattern: Pattern = re.compile(_use_statement_re, re.IGNORECASE)
-    _cbind_pattern: Pattern = re.compile(_cbind_statement_re, re.IGNORECASE)
+    def __init__(self, workspace: Path):
+        self.database = SqliteStateDatabase(workspace)
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
-
         if len(artifacts) == 1:
             artifact = artifacts[0]
         else:
@@ -381,177 +322,103 @@ class FortranAnalyser(Task):
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
 
-        reader = FileTextReader(artifact.location)
-
-        new_artifact = Artifact(artifact.location,
-                                artifact.filetype,
-                                Analysed)
-
         state = FortranWorkingState(self.database)
-        state.remove_fortran_file(reader.filename)
-        logger.debug('Analysing: %s', reader.filename)
-
+        state.remove_fortran_file(artifact.location)
         # If this file defines any C symbol bindings it may also
         # end up with an entry in the C part of the database
         cstate = CWorkingState(self.database)
-        cstate.remove_c_file(reader.filename)
+        cstate.remove_c_file(artifact.location)
 
-        normalised_source = FortranNormaliser(reader)
-        scope: List[Tuple[str, str]] = []
-        for line in normalised_source.line_by_line():
-            logger.debug(scope)
-            logger.debug('Considering: %s', line)
+        new_artifact = Artifact(artifact.location, artifact.filetype, Analysed)
+        logger.debug(f"analysing {artifact.location}")
 
-            if len(scope) == 0:
-                unit_match: Optional[Match] \
-                    = self._program_unit_pattern.match(line)
-                if unit_match is not None:
-                    unit_type: str = unit_match.group(1).lower()
-                    unit_name: str = unit_match.group(2).lower()
-                    logger.debug('Found %s called "%s"', unit_type, unit_name)
-                    unit_id = FortranUnitID(unit_name, reader.filename)
-                    state.add_fortran_program_unit(unit_id)
-                    new_artifact.add_definition(unit_name)
-                    scope.append((unit_type, unit_name))
-                    continue
-            use_match: Optional[Match] \
-                = self._use_pattern.match(line)
-            if use_match is not None:
-                use_name: str = use_match.group(3).lower()
-                if use_name in self._intrinsic_modules:
-                    logger.debug('Ignoring intrinsic module "%s"', use_name)
-                else:
-                    if len(scope) == 0:
-                        use_message \
-                            = '"use" statement found outside program unit'
-                        raise TaskException(use_message)
-                    logger.debug('Found usage of "%s"', use_name)
-                    unit_id = FortranUnitID(scope[0][1], reader.filename)
+        # parse the fortran into a tree
+        reader = FortranFileReader(str(artifact.location))  # ignore_comments=False
+        f2008_parser = ParserFactory().create(std="f2008")
+        tree = f2008_parser(reader)
+        if tree.content[0] == None:
+            logger.warning(f"Empty tree found when parsing {artifact.location}")
+            return []
+
+        module_name = None
+        deps = set()
+
+        # find the top level program unit first
+        for obj in iter_content(tree):
+            if type(obj) in [Module_Stmt, Program_Stmt, Function_Stmt, Subroutine_Stmt]:
+                module_name = str(obj.get_name())
+                # logger.debug(f"top level unit: {module_name} {type(obj)}")
+
+                unit_id = FortranUnitID(module_name, artifact.location)
+                state.add_fortran_program_unit(unit_id)
+                new_artifact.add_definition(module_name)
+                break
+        if not module_name:
+            raise RuntimeError("Error finding top level program unit")
+
+
+        # see what else is in the tree
+        for obj in iter_content(tree):
+            obj_type = type(obj)
+            
+            if obj_type == Use_Stmt:
+                use_name = typed_child(obj, Name)
+                if not use_name:
+                    raise TaskException("ERROR finding name in use statement:", obj.string)
+                use_name = use_name.string
+
+                if use_name not in self._intrinsic_modules and use_name not in deps:
+                    # logger.debug(f"dependency {module_name}")
+                    unit_id = FortranUnitID(module_name, artifact.location)
                     state.add_fortran_dependency(unit_id, use_name)
                     new_artifact.add_dependency(use_name)
-                continue
+                    deps.add(use_name)
 
-            block_match: Optional[Match] = self._scoping_pattern.match(line)
-            if block_match is not None:
-                # Beware we want the value of a different group to the one we
-                # check the presence of.
-                #
-                block_name: str = block_match.group(1) \
-                                  and block_match.group(2).lower()
-                block_nature: str = block_match.group(3).lower()
-                logger.debug('Found %s called "%s"', block_nature, block_name)
-                scope.append((block_nature, block_name))
-                continue
+            elif obj_type == Function_Stmt:
+                bind = typed_child(obj, Language_Binding_Spec)
+                if bind:
+                    name = typed_child(bind, Char_Literal_Constant)
+                    if not name:
+                        raise TaskException(f"Could not get name of function binding: {obj.string}")
+                    bind_name = name.string
 
-            proc_match: Optional[Match] \
-                = self._procedure_pattern.match(line)
-            if proc_match is not None:
-                proc_nature = proc_match.group(1).lower()
-                proc_name = proc_match.group(2).lower()
-                logger.debug('Found %s called "%s"', proc_nature, proc_name)
-                scope.append((proc_nature, proc_name))
+                    # importing a c function into fortran, i.e binding within an interface block
+                    if has_ancestor_type(obj, Interface_Block):
+                        logger.debug(f"function binding import {bind_name}")
 
-                # Check for the procedure being symbol-bound to C
-                cbind_match: Optional[Match] \
-                    = self._cbind_pattern.match(line)
-                if cbind_match is not None:
-                    cbind_name = cbind_match.group(2)
-                    # The name keyword on the bind statement is optional.
-                    # If it doesn't exist, the procedure name is used
-                    if cbind_name is None:
-                        cbind_name = proc_name
-                    cbind_name = cbind_name.lower().strip("'\"")
-                    logger.debug('Bound to C symbol "%s"', cbind_name)
-                    # A bind within an interface block means this is
-                    # exposure of a C-defined function to Fortran,
-                    # otherwise it is going the other way (allowing C
-                    # code to call the Fortran procedure)
-                    if any([stype == "interface" for stype, _ in scope]):
                         # TODO: This is sort of hijacking the mechanism used
                         # for Fortran module dependencies, only using the
                         # symbol name. Longer term we probably need a more
                         # elegant solution
-                        logger.debug('In an interface block; so a dependency')
-                        unit_id = FortranUnitID(scope[0][1], reader.filename)
-                        state.add_fortran_dependency(unit_id, cbind_name)
-                        new_artifact.add_dependency(cbind_name)
-                    else:
-                        # Add to the C database
-                        logger.debug('Not an interface block; so a definition')
-                        symbol_id = CSymbolID(cbind_name, reader.filename)
-                        cstate.add_c_symbol(symbol_id)
-                        new_artifact.add_definition(cbind_name)
-                continue
+                        # TODO: what if this is also the program unit? Check if that's possible /ok.
+                        unit_id = FortranUnitID(module_name, artifact.location)
+                        state.add_fortran_dependency(unit_id, bind_name)
+                        new_artifact.add_dependency(bind_name)  # todo: don't do this twice - is that done downstream?
 
-            cbind_match = self._cbind_pattern.match(line)
-            if cbind_match is not None:
+                    # exporting from fortran to c, i.e binding without an interface block
+                    else:
+                        logger.debug(f"function binding export {bind_name}")
+                        # TODO: this does not occur in jules, so is not yet tested on a real repo
+                        # Add to the C database
+                        symbol_id = CSymbolID(bind_name, artifact.location)
+                        cstate.add_c_symbol(symbol_id)
+                        new_artifact.add_definition(bind_name)
+
+            # TODO: (NOT PRESENT IN JULES) variable binding
+            elif obj_type == "foo":
+                raise NotImplementedError
+
                 # This should be a line binding from C to a variable definition
                 # (procedure binds are dealt with above)
-                cbind_name = cbind_match.group(2)
-
                 # The name keyword on the bind statement is optional.
                 # If it doesn't exist, the Fortran variable name is used
-                if cbind_name is None:
-                    var_search = re.search(r'.*::\s*(\w+)', line)
-                    if var_search:
-                        cbind_name = var_search.group(1)
-                    else:
-                        cbind_message \
-                            = 'failed to find variable name ' \
-                              'on C bound variable'
-                        raise TaskException(cbind_message)
 
-                cbind_name = cbind_name.lower().strip("'\"")
-                logger.debug('Found C bound variable called "%s"', cbind_name)
+                # logger.debug('Found C bound variable called "%s"', bind_name)
 
                 # Add to the C database
-                symbol_id = CSymbolID(cbind_name, reader.filename)
-                cstate.add_c_symbol(symbol_id)
-                new_artifact.add_definition(cbind_name)
-
-            iface_match: Optional[Match] = self._interface_pattern.match(line)
-            if iface_match is not None:
-                iface_name = iface_match.group(1) \
-                             and iface_match.group(1).lower()
-                logger.debug('Found interface called "%s"', iface_name)
-                scope.append(('interface', iface_name))
-                continue
-
-            type_match: Optional[Match] = self._type_pattern.match(line)
-            if type_match is not None:
-                type_name = type_match.group(3).lower()
-                logger.debug('Found type called "%s"', type_name)
-                scope.append(('type', type_name))
-                continue
-
-            end_match: Optional[Match] = self._end_block_pattern.match(line)
-            if end_match is not None:
-                end_nature: str = end_match.group(1) \
-                    and end_match.group(1).lower()
-                end_name: str = end_match.group(2) \
-                    and end_match.group(2).lower()
-                logger.debug('Found end of %s called %s',
-                             end_nature, end_name)
-                exp: Tuple[str, str] = scope.pop()
-
-                if end_nature is not None:
-                    if end_nature != exp[0]:
-                        end_message = 'Expected end of {exp} "{name}" ' \
-                                      'but found {found}'
-                        end_values = {'exp': exp[0],
-                                      'name': exp[1],
-                                      'found': end_nature}
-                        raise TaskException(
-                            end_message.format(**end_values))
-                if end_name is not None:
-                    if end_name != exp[1]:
-                        end_message = 'Expected end of {exp} "{name}" ' \
-                                      'but found end of {found}'
-                        end_values = {'exp': exp[0],
-                                      'name': exp[1],
-                                      'found': end_name}
-                        raise TaskException(
-                            end_message.format(**end_values))
+                # symbol_id = CSymbolID(cbind_name, reader.filename)
+                # cstate.add_c_symbol(symbol_id)
+                # new_artifact.add_definition(cbind_name)
 
         return [new_artifact]
 
@@ -583,7 +450,7 @@ class FortranPreProcessor(Task):
                        artifact.location.with_suffix('.f90').name)
         command.append(str(output_file))
 
-        logger.debug('Running command: ' + ' '.join(command))
+        logger.debug('Preprocessor running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         return [Artifact(output_file,
@@ -619,7 +486,7 @@ class FortranCompiler(Task):
                        artifact.location.with_suffix('.o').name)
         command.extend(['-o', str(output_file)])
 
-        logger.debug('Running command: ' + ' '.join(command))
+        logger.debug('Compiler running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         object_artifact = Artifact(output_file,
