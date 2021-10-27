@@ -7,8 +7,6 @@
 Classes and methods relating to the queue system
 '''
 import logging
-import sys
-import traceback
 from queue import Empty as QueueEmpty
 from typing import List, Dict
 from multiprocessing import \
@@ -33,6 +31,8 @@ def _worker(queue: JoinableQueue,
             lock: LockT,
             stopswitch: EventT):
 
+    logger = logging.getLogger(__file__)
+
     while not stopswitch.is_set():
         try:
             artifact = queue.get(block=True, timeout=0.5)
@@ -48,13 +48,9 @@ def _worker(queue: JoinableQueue,
             for new_artifact in new_artifacts:
                 queue.put(new_artifact)
         except TaskException as err:
-            print("ERROR processing", artifact)
-            traceback.print_exc()
-            # todo: sys.exit does not stop the entire program, it just stops the worker process.
-            #       See "Joining processes that use queues" here:
-            #       https://docs.python.org/3/library/multiprocessing.html#all-start-methods
+            logger.exception(f"ERROR processing {artifact}")
+            stopswitch.set()
             print("Please exit with ctrl-c")
-            sys.exit(1)
         finally:
             queue.task_done()
 
