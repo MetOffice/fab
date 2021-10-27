@@ -537,19 +537,21 @@ class FortranAnalyser(Task):
                 if end_nature is not None:
                     if end_nature != exp[0]:
                         end_message = 'Expected end of {exp} "{name}" ' \
-                                      'but found {found}'
+                                      'but found {found}: {line}'
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
-                                      'found': end_nature}
+                                      'found': end_nature,
+                                      'line': line}
                         raise TaskException(
                             end_message.format(**end_values))
                 if end_name is not None:
                     if end_name != exp[1]:
                         end_message = 'Expected end of {exp} "{name}" ' \
-                                      'but found end of {found}'
+                                      'but found end of {found}: {line}'
                         end_values = {'exp': exp[0],
                                       'name': exp[1],
-                                      'found': end_name}
+                                      'found': end_name,
+                                      'line': line}
                         raise TaskException(
                             end_message.format(**end_values))
 

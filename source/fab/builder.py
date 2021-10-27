@@ -72,6 +72,7 @@ def entry() -> None:
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
+    parser.add_argument('--stop-on-error', default=True)
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     parser.add_argument('conf_file', type=Path, default='config.ini',
@@ -98,7 +99,8 @@ def entry() -> None:
                       flags['fpp-flags'],
                       flags['fc-flags'],
                       flags['ld-flags'],
-                      arguments.nprocs)
+                      arguments.nprocs,
+                      arguments.stop_on_error)
     application.run(arguments.source)
 
 
@@ -110,7 +112,8 @@ class Fab(object):
                  fpp_flags: str,
                  fc_flags: str,
                  ld_flags: str,
-                 n_procs: int):
+                 n_procs: int,
+                 stop_on_error: bool=True):
 
         self._workspace = workspace
         if not workspace.exists():
@@ -177,7 +180,7 @@ class Fab(object):
                         target,
                         path_maps,
                         task_map)
-        self._queue = QueueManager(n_procs - 1, engine)
+        self._queue = QueueManager(n_procs - 1, engine, stop_on_error)
 
     def _extend_queue(self, artifact: Artifact) -> None:
         self._queue.add_to_queue(artifact)
