@@ -33,15 +33,11 @@ def _worker(queue: JoinableQueue,
             lock: LockT,
             stopswitch: EventT):
 
-    logger = logging.getLogger(__name__)
-
     while not stopswitch.is_set():
         try:
             artifact = queue.get(block=True, timeout=0.5)
         except QueueEmpty:
             continue
-
-        logger.info(artifact)
 
         try:
             new_artifacts = engine.process(artifact,
@@ -55,8 +51,8 @@ def _worker(queue: JoinableQueue,
             print("ERROR processing", artifact)
             traceback.print_exc()
             # todo: sys.exit does not stop the entire program, it just stops the worker process.
-            #       I think this is because we're using the anti pattern "Joining processes that use queues",
-            #       described here:  https://docs.python.org/3/library/multiprocessing.html#all-start-methods
+            #       See "Joining processes that use queues" here:
+            #       https://docs.python.org/3/library/multiprocessing.html#all-start-methods
             print("Please exit with ctrl-c")
             sys.exit(1)
         finally:
