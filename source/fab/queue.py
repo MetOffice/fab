@@ -49,7 +49,7 @@ def _worker(queue: JoinableQueue,
             for new_artifact in new_artifacts:
                 queue.put(new_artifact)
         except TaskException as err:
-            logger.exception(f"ERROR processing {artifact._location}")
+            logger.error(f"ERROR processing {artifact._location}:\n  {err}")
             if (stop_on_error):
                 stopswitch.set()
                 print("Please exit with ctrl-c")
