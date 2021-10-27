@@ -72,7 +72,7 @@ def entry() -> None:
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
-    parser.add_argument('--stop-on-error', default=True)
+    parser.add_argument('--stop-on-error', default=True, action="store_true")
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     parser.add_argument('conf_file', type=Path, default='config.ini',
