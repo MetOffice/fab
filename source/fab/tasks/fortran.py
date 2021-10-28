@@ -320,7 +320,7 @@ class FortranAnalyser(Task):
     _underscore: str = r'_'
     _alphanumeric_re: str = '[' + _letters + _digits + _underscore + ']'
     _name_re: str = '[' + _letters + ']' + _alphanumeric_re + '*'
-    _procedure_block_re: str = r'function|subroutine'
+    _procedure_block_re: str = r'function|logical function|subroutine'
     _unit_block_re: str = r'program|module|' + _procedure_block_re
     _scope_block_re: str = r'associate|block|critical|do|if|select'
     _iface_block_re: str = r'interface'
@@ -446,7 +446,7 @@ class FortranAnalyser(Task):
             proc_match: Optional[Match] \
                 = self._procedure_pattern.match(line)
             if proc_match is not None:
-                proc_nature = proc_match.group(1).lower()
+                proc_nature = proc_match.group(1).lower().replace("logical", "").strip()
                 proc_name = proc_match.group(2).lower()
                 logger.debug('Found %s called "%s"', proc_nature, proc_name)
                 scope.append((proc_nature, proc_name))
