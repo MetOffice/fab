@@ -436,6 +436,13 @@ class FortranAnalyser(Task):
                 # Beware we want the value of a different group to the one we
                 # check the presence of.
                 #
+
+                # skip any IF without a THEN
+                # todo: discuss what can go in here - might it need a scope?
+                stripped = line.lower().strip()
+                if stripped.startswith("if") and "then" not in stripped:
+                    continue
+
                 block_name: str = block_match.group(1) \
                                   and block_match.group(2).lower()
                 block_nature: str = block_match.group(3).lower()
