@@ -113,7 +113,7 @@ class Fab(object):
                  fc_flags: str,
                  ld_flags: str,
                  n_procs: int,
-                 stop_on_error: bool=True):
+                 stop_on_error: bool = True):
 
         self._workspace = workspace
         if not workspace.exists():

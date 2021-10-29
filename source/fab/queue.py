@@ -30,7 +30,7 @@ def _worker(queue: JoinableQueue,
             objects: List[Artifact],
             lock: LockT,
             stopswitch: EventT,
-            stop_on_error: bool=True):
+            stop_on_error: bool = True):
 
     logger = logging.getLogger(__file__)
 
@@ -58,7 +58,8 @@ def _worker(queue: JoinableQueue,
 
 
 class QueueManager(object):
-    def __init__(self, n_workers: int, engine: Engine, stop_on_error: bool=True):
+    def __init__(self, n_workers: int, engine: Engine,
+                 stop_on_error: bool = True):
         self._queue: Queue = JoinableQueue()
         self._n_workers = n_workers
         self._workers: List[int] = []
