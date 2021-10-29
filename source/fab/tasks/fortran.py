@@ -446,7 +446,8 @@ class FortranAnalyser(Task):
             proc_match: Optional[Match] \
                 = self._procedure_pattern.match(line)
             if proc_match is not None:
-                proc_nature = proc_match.group(1).lower().replace("logical", "").strip()
+                proc_nature = proc_match.group(1).lower()
+                proc_nature = proc_nature.replace("logical", "").strip()
                 proc_name = proc_match.group(2).lower()
                 logger.debug('Found %s called "%s"', proc_nature, proc_name)
                 scope.append((proc_nature, proc_name))
