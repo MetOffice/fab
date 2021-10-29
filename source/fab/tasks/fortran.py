@@ -444,7 +444,7 @@ class FortranAnalyser(Task):
                     continue
 
                 block_name: str = block_match.group(1) \
-                                  and block_match.group(2).lower()
+                    and block_match.group(2).lower()
                 block_nature: str = block_match.group(3).lower()
                 logger.debug('Found %s called "%s"', block_nature, block_name)
                 scope.append((block_nature, block_name))
