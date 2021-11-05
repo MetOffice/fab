@@ -8,6 +8,7 @@ import configparser
 import logging
 import multiprocessing
 from pathlib import Path
+import shutil
 import sys
 
 from fab.database import SqliteStateDatabase, FileInfoDatabase
@@ -208,14 +209,16 @@ class Fab(object):
         self._queue.run()
 
         # first, we need to copy over all the ancillary files
+        # TODO: inc files are being removed, so this step should eventually be removed
         def copy_acillary_file(artifact):
             if str(artifact.location).endswith(".inc"):
-                pass
+                print("copying ancillary file", artifact.location)
+                shutil.copy(artifact.location, self._workspace)
         visitor = SourceVisitor(copy_acillary_file)
         descender = TreeDescent(source)
         descender.descend(visitor)
 
-        # now do the main run
+        # now do the main fab run
         visitor = SourceVisitor(self._extend_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)

@@ -444,6 +444,8 @@ class FortranPreProcessor(Task):
 
         command = [self._preprocessor]
         command.extend(self._flags)
+        # find ancillary inc files already copied across
+        command.extend(["-I", str(self._workspace)])
         command.append(str(artifact.location))
 
         output_file = (self._workspace /
