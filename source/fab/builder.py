@@ -88,6 +88,7 @@ def entry() -> None:
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
     parser.add_argument('--stop-on-error', action="store_true")
+    parser.add_argument('--skip-if-exists', action="store_true")
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     parser.add_argument('conf_file', type=Path, default='config.ini',
@@ -114,7 +115,8 @@ def entry() -> None:
                       ld_flags=flags['ld-flags'],
                       n_procs=arguments.nprocs,
                       stop_on_error=arguments.stop_on_error,
-                      skip_files=skip_files)
+                      skip_files=skip_files,
+                      skip_if_exists=arguments.skip_if_exists)
     application.run(arguments.source)
 
 
@@ -128,7 +130,8 @@ class Fab(object):
                  ld_flags: str,
                  n_procs: int,
                  stop_on_error: bool = True,
-                 skip_files=None):
+                 skip_files=None,
+                 skip_if_exists=False):
         self.skip_files = skip_files or []
 
         self._workspace = workspace
@@ -153,12 +156,14 @@ class Fab(object):
         # properties via the configuration (at Task runtime, to allow for
         # file-specific overrides?)
         fortran_preprocessor = FortranPreProcessor(
-            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace
+            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace,
+            skip_if_exists=skip_if_exists
         )
         fortran_analyser = FortranAnalyser(workspace)
         fortran_compiler = FortranCompiler(
             'gfortran',
-            ['-c', '-J', str(workspace)] + fc_flags.split(), workspace
+            ['-c', '-J', str(workspace)] + fc_flags.split(), workspace,
+            skip_if_exists=skip_if_exists
         )
 
         header_analyser = HeaderAnalyser(workspace)

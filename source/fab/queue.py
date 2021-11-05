@@ -38,6 +38,7 @@ def _worker(queue: JoinableQueue,
         try:
             artifact = queue.get(block=True, timeout=0.5)
         except QueueEmpty:
+            logger.debug("QueueEmpty")
             continue
 
         try:

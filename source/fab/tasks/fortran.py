@@ -427,10 +427,12 @@ class FortranPreProcessor(Task):
     def __init__(self,
                  preprocessor: str,
                  flags: List[str],
-                 workspace: Path):
+                 workspace: Path,
+                 skip_if_exists: bool = False):
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
+        self._skip_if_exists = skip_if_exists
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
@@ -452,8 +454,11 @@ class FortranPreProcessor(Task):
                        artifact.location.with_suffix('.f90').name)
         command.append(str(output_file))
 
-        logger.debug('Preprocessor running command: ' + ' '.join(command))
-        subprocess.run(command, check=True)
+        if self._skip_if_exists and output_file.exists():
+            logger.debug(f'Preprocessor skipping {output_file}')
+        else:
+            logger.debug('Preprocessor running command: ' + ' '.join(command))
+            subprocess.run(command, check=True)
 
         return [Artifact(output_file,
                          artifact.filetype,
@@ -465,10 +470,12 @@ class FortranCompiler(Task):
     def __init__(self,
                  compiler: str,
                  flags: List[str],
-                 workspace: Path):
+                 workspace: Path,
+                 skip_if_exists: bool = False):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
+        self._skip_if_exists = skip_if_exists
 
     def run(self, artifacts: List[Artifact]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
@@ -488,8 +495,11 @@ class FortranCompiler(Task):
                        artifact.location.with_suffix('.o').name)
         command.extend(['-o', str(output_file)])
 
-        logger.debug('Compiler running command: ' + ' '.join(command))
-        subprocess.run(command, check=True)
+        if self._skip_if_exists and output_file.exists():
+            logger.debug(f'Compiler skipping {output_file}')
+        else:
+            logger.debug('Compiler running command: ' + ' '.join(command))
+            subprocess.run(command, check=True)
 
         object_artifact = Artifact(output_file,
                                    BinaryObject,
