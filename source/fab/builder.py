@@ -207,6 +207,15 @@ class Fab(object):
 
         self._queue.run()
 
+        # first, we need to copy over all the ancillary files
+        def copy_acillary_file(artifact):
+            if str(artifact.location).endswith(".inc"):
+                pass
+        visitor = SourceVisitor(copy_acillary_file)
+        descender = TreeDescent(source)
+        descender.descend(visitor)
+
+        # now do the main run
         visitor = SourceVisitor(self._extend_queue)
         descender = TreeDescent(source)
         descender.descend(visitor)
