@@ -7,7 +7,7 @@ conda env create -f environment.yml
 Activate the new environment
 
 ```
-conda activate fab
+conda activate sci-fab
 ```
 
 Install fab (from the fab folder)
