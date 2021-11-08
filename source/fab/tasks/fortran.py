@@ -4,9 +4,9 @@
 """
 Fortran language handling classes.
 """
+import datetime
 import logging
 from pathlib import Path
-import re
 import subprocess
 from typing import (Generator,
                     Iterator,
@@ -38,6 +38,10 @@ from fab.artifact import \
     Raw, \
     Compiled, \
     BinaryObject
+
+
+# todo: remove
+debug_start = datetime.datetime.now()
 
 
 class FortranUnitUnresolvedID(object):
@@ -310,6 +314,9 @@ class FortranAnalyser(Task):
 
     _intrinsic_modules = ['iso_fortran_env']
 
+    debug_print = True
+
+
     def __init__(self, workspace: Path):
         self.database = SqliteStateDatabase(workspace)
 
@@ -321,6 +328,12 @@ class FortranAnalyser(Task):
             msg = ('Fortran Analyser expects only one Artifact, '
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
+
+        # todo: del
+        if self.debug_print:
+            print("reached analyser after", datetime.datetime.now() - debug_start)
+            self.debug_print = False
+
 
         state = FortranWorkingState(self.database)
         state.remove_fortran_file(artifact.location)
@@ -467,6 +480,8 @@ class FortranPreProcessor(Task):
 
 class FortranCompiler(Task):
 
+    debug_print = True
+
     def __init__(self,
                  compiler: str,
                  flags: List[str],
@@ -486,6 +501,17 @@ class FortranCompiler(Task):
             msg = ('Fortran Compiler expects only one Artifact, '
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
+
+
+        # todo: del
+        if self.debug_print:
+            print("reached compiler after", datetime.datetime.now() - debug_start)
+            self.debug_print = False
+
+        if "qsat_mod" in str(artifact.location):
+            print("reached qstat_mod after", datetime.datetime.now() - debug_start)
+            print("breakpoint here")
+
 
         command = [self._compiler]
         command.extend(self._flags)
@@ -508,3 +534,4 @@ class FortranCompiler(Task):
             object_artifact.add_definition(definition)
 
         return [object_artifact]
+
