@@ -4,7 +4,6 @@
 """
 Fortran language handling classes.
 """
-import datetime
 import logging
 from pathlib import Path
 import subprocess
@@ -38,10 +37,6 @@ from fab.artifact import \
     Raw, \
     Compiled, \
     BinaryObject
-
-
-# todo: remove
-debug_start = datetime.datetime.now()
 
 
 class FortranUnitUnresolvedID(object):
@@ -306,16 +301,14 @@ def has_ancestor_type(obj, obj_type):
 def typed_child(parent, child_type):
     """Look for a child of a certain type"""
     children = list(filter(lambda child: type(child) == child_type, parent.children))
-    assert len(children) <= 1, f"too many children found of type {child_type}"
+    if len(children) > 1:
+        raise ValueError(f"too many children found of type {child_type}")
     return (children or [None])[0]
 
 
 class FortranAnalyser(Task):
 
     _intrinsic_modules = ['iso_fortran_env']
-
-    debug_print = True
-
 
     def __init__(self, workspace: Path):
         self.database = SqliteStateDatabase(workspace)
@@ -328,12 +321,6 @@ class FortranAnalyser(Task):
             msg = ('Fortran Analyser expects only one Artifact, '
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
-
-        # todo: del
-        if self.debug_print:
-            print("reached analyser after", datetime.datetime.now() - debug_start)
-            self.debug_print = False
-
 
         state = FortranWorkingState(self.database)
         state.remove_fortran_file(artifact.location)
@@ -360,7 +347,6 @@ class FortranAnalyser(Task):
         for obj in iter_content(tree):
             if type(obj) in [Module_Stmt, Program_Stmt, Function_Stmt, Subroutine_Stmt]:
                 module_name = str(obj.get_name())
-                # logger.debug(f"top level unit: {module_name} {type(obj)}")
 
                 unit_id = FortranUnitID(module_name, artifact.location)
                 state.add_fortran_program_unit(unit_id)
@@ -480,8 +466,6 @@ class FortranPreProcessor(Task):
 
 class FortranCompiler(Task):
 
-    debug_print = True
-
     def __init__(self,
                  compiler: str,
                  flags: List[str],
@@ -501,17 +485,6 @@ class FortranCompiler(Task):
             msg = ('Fortran Compiler expects only one Artifact, '
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
-
-
-        # todo: del
-        if self.debug_print:
-            print("reached compiler after", datetime.datetime.now() - debug_start)
-            self.debug_print = False
-
-        if "qsat_mod" in str(artifact.location):
-            print("reached qstat_mod after", datetime.datetime.now() - debug_start)
-            print("breakpoint here")
-
 
         command = [self._compiler]
         command.extend(self._flags)

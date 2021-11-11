@@ -5,10 +5,8 @@
 ##############################################################################
 import argparse
 import configparser
-import datetime
 import logging
 import multiprocessing
-from collections import defaultdict
 from pathlib import Path
 import shutil
 import sys
@@ -89,7 +87,6 @@ def entry() -> None:
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
-    parser.add_argument('--stop-on-error', action="store_true")
     parser.add_argument('--skip-if-exists', action="store_true")
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
@@ -116,7 +113,6 @@ def entry() -> None:
                       fc_flags=flags['fc-flags'],
                       ld_flags=flags['ld-flags'],
                       n_procs=arguments.nprocs,
-                      stop_on_error=arguments.stop_on_error,
                       skip_files=skip_files,
                       skip_if_exists=arguments.skip_if_exists)
     application.run(arguments.source)
@@ -216,7 +212,7 @@ class Fab(object):
         self._queue.run()
 
         # first, we need to copy over all the ancillary files
-        # TODO: inc files are being removed, so this step should eventually be removed
+        # TODO: inc files are being removed, so this step should eventually be unnecessary
         def copy_acillary_file(artifact):
             if str(artifact.location).endswith(".inc"):
                 print("copying ancillary file", artifact.location)

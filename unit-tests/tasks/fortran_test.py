@@ -19,7 +19,7 @@ from fab.tasks.fortran import \
     FortranCompiler, \
     FortranUnitID, \
     FortranUnitUnresolvedID, \
-    FortranWorkingState
+    FortranWorkingState, iter_content, has_ancestor_type, typed_child
 from fab.tasks.c import \
     CInfo, \
     CSymbolID, \
@@ -685,3 +685,80 @@ class TestFortranCompiler(object):
         assert artifacts_out[0].state is Compiled
         assert artifacts_out[0].depends_on == []
         assert artifacts_out[0].defines == []
+
+
+class TestIterContent(object):
+    # test iter_content()
+
+    class MockNode(object):
+        def __init__(self, name):
+            self.name = name
+
+    class MockParent(MockNode):
+        def __init__(self, name, content):
+            super().__init__(name)
+            self.content = content
+
+    def test(self):
+
+        mock_tree = self.MockParent("root", [
+            self.MockParent("monty", [
+                self.MockParent("python's", [
+                    self.MockNode("flying")
+                ])
+            ]),
+            self.MockNode("circus")
+        ])
+
+        content = list(iter_content(mock_tree))
+        names = [i.name for i in content]
+        assert names == ['monty', "python's", 'flying', 'circus']
+
+
+class TestHasAncestorType(object):
+    # test has_ancestor_type()
+
+    class TypeA(object):
+        def __init__(self, child=None):
+            self.parent = None
+            if child:
+                child.parent = self
+
+    class TypeB(object):
+        def __init__(self, child=None):
+            self.parent = None
+            if child:
+                child.parent = self
+
+    def test_true(self):
+        self.TypeA(self.TypeB(grandchild := self.TypeB()))
+        assert has_ancestor_type(grandchild, self.TypeA)
+
+    def test_false(self):
+        self.TypeB(self.TypeB(grandchild := self.TypeB()))
+        assert not has_ancestor_type(grandchild, self.TypeA)
+
+
+class TestTypedChild(object):
+    # test typed_child()
+
+    class TypeA(object):
+        def __init__(self, children=None):
+            self.children = children
+
+    class TypeB(object):
+        def __init__(self, children=None):
+            self.children = children
+
+    def test_zero(self):
+        parent = self.TypeB(children=[self.TypeB(), self.TypeB()])
+        assert typed_child(parent, self.TypeA) == None
+
+    def test_one(self):
+        parent = self.TypeB(children=[self.TypeB(), self.TypeA()])
+        assert typed_child(parent, self.TypeA)
+
+    def test_two(self):
+        parent = self.TypeB(children=[self.TypeA(), self.TypeA()])
+        with pytest.raises(ValueError):
+            typed_child(parent, self.TypeA)

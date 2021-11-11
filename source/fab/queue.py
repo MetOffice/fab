@@ -55,7 +55,6 @@ def _worker(queue: JoinableQueue,
                 stopswitch.set()
                 print("Please exit with ctrl-c")
         except Exception as err:
-            # logger.error(f"UNKNOWN ERROR '{type(err)}' processing {artifact._location}:\n  {err}")
             logger.exception(f"UNKNOWN ERROR '{type(err)}' processing {artifact._location}:\n  {err}")
             if (stop_on_error):
                 stopswitch.set()
