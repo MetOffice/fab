@@ -72,7 +72,6 @@ def entry() -> None:
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
-    parser.add_argument('--stop-on-error', action="store_true")
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build')
     parser.add_argument('conf_file', type=Path, default='config.ini',
@@ -99,8 +98,7 @@ def entry() -> None:
                       flags['fpp-flags'],
                       flags['fc-flags'],
                       flags['ld-flags'],
-                      arguments.nprocs,
-                      arguments.stop_on_error)
+                      arguments.nprocs)
     application.run(arguments.source)
 
 
