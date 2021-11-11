@@ -286,7 +286,6 @@ def iter_content(obj):
             yield grand_child
 
 
-# TODO: Unit test
 def has_ancestor_type(obj, obj_type):
     """Recursively check if an object has an ancestor of the given type."""
     if not obj.parent:
@@ -299,7 +298,12 @@ def has_ancestor_type(obj, obj_type):
 
 
 def typed_child(parent, child_type):
-    """Look for a child of a certain type"""
+    """
+    Look for a child of a certain type.
+
+    Returns the child or None.
+    Raises ValueError if more than one child of the given type is found.
+    """
     children = list(filter(lambda child: type(child) == child_type, parent.children))
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
@@ -367,7 +371,7 @@ class FortranAnalyser(Task):
                 use_name = use_name.string
 
                 if use_name not in self._intrinsic_modules and use_name not in deps:
-                    # logger.debug(f"dependency {module_name}")
+                    # found a new dependency
                     unit_id = FortranUnitID(module_name, artifact.location)
                     state.add_fortran_dependency(unit_id, use_name)
                     new_artifact.add_dependency(use_name)
