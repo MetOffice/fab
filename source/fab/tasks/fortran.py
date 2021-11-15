@@ -37,6 +37,7 @@ from fab.artifact import \
     Raw, \
     Compiled, \
     BinaryObject
+from fab.tree import ProgramUnit
 
 
 class FortranUnitUnresolvedID(object):
@@ -310,6 +311,10 @@ def typed_child(parent, child_type):
     return (children or [None])[0]
 
 
+
+
+
+
 class FortranAnalyser(Task):
 
     _intrinsic_modules = ['iso_fortran_env']
@@ -317,32 +322,27 @@ class FortranAnalyser(Task):
     def __init__(self, workspace: Path):
         self.database = SqliteStateDatabase(workspace)
 
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('Fortran Analyser expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
 
         state = FortranWorkingState(self.database)
-        state.remove_fortran_file(artifact.location)
+        state.remove_fortran_file(fpath)
         # If this file defines any C symbol bindings it may also
         # end up with an entry in the C part of the database
         cstate = CWorkingState(self.database)
-        cstate.remove_c_file(artifact.location)
+        cstate.remove_c_file(fpath)
 
-        new_artifact = Artifact(artifact.location, artifact.filetype, Analysed)
-        logger.debug(f"analysing {artifact.location}")
+        # new_artifact = Artifact(fpath, artifact.filetype, Analysed)
+        program_unit = None
+        logger.debug(f"analysing {fpath}")
 
         # parse the fortran into a tree
-        reader = FortranFileReader(str(artifact.location))  # ignore_comments=False
+        reader = FortranFileReader(str(fpath))  # ignore_comments=False
         f2008_parser = ParserFactory().create(std="f2008")
         tree = f2008_parser(reader)
         if tree.content[0] == None:
-            logger.warning(f"Empty tree found when parsing {artifact.location}")
-            return []
+            logger.warning(f"Empty tree found when parsing {fpath}")
+            return None
 
         module_name = None
         deps = set()
@@ -352,12 +352,12 @@ class FortranAnalyser(Task):
             if type(obj) in [Module_Stmt, Program_Stmt, Function_Stmt, Subroutine_Stmt]:
                 module_name = str(obj.get_name())
 
-                unit_id = FortranUnitID(module_name, artifact.location)
+                unit_id = FortranUnitID(module_name, fpath)
                 state.add_fortran_program_unit(unit_id)
-                new_artifact.add_definition(module_name)
+                program_unit = ProgramUnit(module_name, fpath)
                 break
         if not module_name:
-            raise RuntimeError("Error finding top level program unit")
+            return RuntimeError("Error finding top level program unit")
 
 
         # see what else is in the tree
@@ -372,9 +372,9 @@ class FortranAnalyser(Task):
 
                 if use_name not in self._intrinsic_modules and use_name not in deps:
                     # found a new dependency
-                    unit_id = FortranUnitID(module_name, artifact.location)
+                    unit_id = FortranUnitID(module_name, fpath)
                     state.add_fortran_dependency(unit_id, use_name)
-                    new_artifact.add_dependency(use_name)
+                    program_unit.deps.add(use_name)
                     deps.add(use_name)
 
             elif obj_type == Function_Stmt:
@@ -394,18 +394,18 @@ class FortranAnalyser(Task):
                         # symbol name. Longer term we probably need a more
                         # elegant solution
                         # TODO: what if this is also the program unit? Check if that's possible /ok.
-                        unit_id = FortranUnitID(module_name, artifact.location)
+                        unit_id = FortranUnitID(module_name, fpath)
                         state.add_fortran_dependency(unit_id, bind_name)
-                        new_artifact.add_dependency(bind_name)  # todo: don't do this twice - is that done downstream?
+                        program_unit.deps.add(bind_name)
 
                     # exporting from fortran to c, i.e binding without an interface block
                     else:
                         logger.debug(f"function binding export {bind_name}")
                         # TODO: this does not occur in jules, so is not yet tested on a real repo
                         # Add to the C database
-                        symbol_id = CSymbolID(bind_name, artifact.location)
+                        symbol_id = CSymbolID(bind_name, fpath)
                         cstate.add_c_symbol(symbol_id)
-                        new_artifact.add_definition(bind_name)
+                        program_unit.deps.add(bind_name)
 
             # TODO: (NOT PRESENT IN JULES) variable binding
             elif obj_type == "foo":
@@ -423,7 +423,7 @@ class FortranAnalyser(Task):
                 # cstate.add_c_symbol(symbol_id)
                 # new_artifact.add_definition(cbind_name)
 
-        return [new_artifact]
+        return program_unit
 
 
 class FortranPreProcessor(Task):
@@ -437,35 +437,33 @@ class FortranPreProcessor(Task):
         self._workspace = workspace
         self._skip_if_exists = skip_if_exists
 
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    def run(self, fpath: Path) -> Path:
         logger = logging.getLogger(__name__)
 
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('Fortran Preprocessor expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
+        # if len(artifacts) == 1:
+        #     artifact = artifacts[0]
+        # else:
+        #     msg = ('Fortran Preprocessor expects only one Artifact, '
+        #            f'but was given {len(artifacts)}')
+        #     raise TaskException(msg)
 
         command = [self._preprocessor]
         command.extend(self._flags)
+
         # find ancillary inc files already copied across
         command.extend(["-I", str(self._workspace)])
-        command.append(str(artifact.location))
+        command.append(str(fpath))
 
-        output_file = (self._workspace /
-                       artifact.location.with_suffix('.f90').name)
-        command.append(str(output_file))
+        output_fpath = (self._workspace / fpath.with_suffix('.f90').name)
+        command.append(str(output_fpath))
 
-        if self._skip_if_exists and output_file.exists():
-            logger.debug(f'Preprocessor skipping {output_file}')
+        if self._skip_if_exists and output_fpath.exists():
+            logger.debug(f'Preprocessor skipping {output_fpath}')
         else:
             logger.debug('Preprocessor running command: ' + ' '.join(command))
             subprocess.run(command, check=True)
 
-        return [Artifact(output_file,
-                         artifact.filetype,
-                         Raw)]
+        return output_fpath
 
 
 class FortranCompiler(Task):
@@ -480,35 +478,20 @@ class FortranCompiler(Task):
         self._workspace = workspace
         self._skip_if_exists = skip_if_exists
 
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    def run(self, fpath: Path) -> Path:
         logger = logging.getLogger(__name__)
-
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('Fortran Compiler expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
 
         command = [self._compiler]
         command.extend(self._flags)
-        command.append(str(artifact.location))
+        command.append(str(fpath))
 
-        output_file = (self._workspace /
-                       artifact.location.with_suffix('.o').name)
-        command.extend(['-o', str(output_file)])
+        output_fpath = (self._workspace / fpath.with_suffix('.o').name)
+        command.extend(['-o', str(output_fpath)])
 
-        if self._skip_if_exists and output_file.exists():
-            logger.debug(f'Compiler skipping {output_file}')
+        if self._skip_if_exists and output_fpath.exists():
+            logger.debug(f'Compiler skipping {output_fpath}')
         else:
             logger.debug('Compiler running command: ' + ' '.join(command))
             subprocess.run(command, check=True)
 
-        object_artifact = Artifact(output_file,
-                                   BinaryObject,
-                                   Compiled)
-        for definition in artifact.defines:
-            object_artifact.add_definition(definition)
-
-        return [object_artifact]
-
+        return output_fpath

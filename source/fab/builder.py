@@ -12,18 +12,7 @@ import shutil
 import sys
 
 from fab.database import SqliteStateDatabase, FileInfoDatabase
-from fab.artifact import \
-    Artifact, \
-    FortranSource, \
-    CSource, \
-    CHeader, \
-    BinaryObject, \
-    Seen, \
-    HeadersAnalysed, \
-    Modified, \
-    Raw, \
-    Analysed, \
-    Compiled
+
 from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
     FortranWorkingState, \
@@ -36,12 +25,8 @@ from fab.tasks.c import \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
-from fab.source_tree import \
-    TreeDescent, \
-    SourceVisitor
-from fab.queue import QueueManager
-from fab.engine import Engine, PathMap
-
+from fab.source_tree import get_fpaths_by_type, file_walk
+from fab.tree import build_tree, ProgramUnit, by_type
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -131,6 +116,7 @@ class Fab(object):
                  skip_files=None,
                  skip_if_exists=False):
         self.skip_files = skip_files or []
+        self.n_procs = n_procs
 
         self._workspace = workspace
         if not workspace.exists():
@@ -141,24 +127,24 @@ class Fab(object):
         # Path maps tell the engine what filetype and starting state
         # the Artifacts representing any files encountered by the
         # initial descent should have
-        path_maps = [
-            PathMap(r'.*\.f90', FortranSource, Raw),
-            PathMap(r'.*\.F90', FortranSource, Seen),
-            PathMap(r'.*\.c', CSource, Seen),
-            PathMap(r'.*\.h', CHeader, Seen),
-        ]
+        # path_maps = [
+        #     PathMap(r'.*\.f90', FortranSource, Raw),
+        #     PathMap(r'.*\.F90', FortranSource, Seen),
+        #     PathMap(r'.*\.c', CSource, Seen),
+        #     PathMap(r'.*\.h', CHeader, Seen),
+        # ]
 
         # Initialise the required Tasks, providing them with any static
         # properties such as flags to use, workspace location etc
         # TODO: Eventually the tasks may instead access many of these
         # properties via the configuration (at Task runtime, to allow for
         # file-specific overrides?)
-        fortran_preprocessor = FortranPreProcessor(
+        self.fortran_preprocessor = FortranPreProcessor(
             'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace,
             skip_if_exists=skip_if_exists
         )
-        fortran_analyser = FortranAnalyser(workspace)
-        fortran_compiler = FortranCompiler(
+        self.fortran_analyser = FortranAnalyser(workspace)
+        self.fortran_compiler = FortranCompiler(
             'gfortran',
             ['-c', '-J', str(workspace)] + fc_flags.split(), workspace,
             skip_if_exists=skip_if_exists
@@ -179,55 +165,112 @@ class Fab(object):
             workspace, exec_name
         )
 
-        # The Task map tells the engine what Task it should be using
-        # to deal with Artifacts depending on their type and state
-        task_map = {
-            (FortranSource, Seen): fortran_preprocessor,
-            (FortranSource, Raw): fortran_analyser,
-            (FortranSource, Analysed): fortran_compiler,
-            (CSource, Seen): header_analyser,
-            (CHeader, Seen): header_analyser,
-            (CSource, HeadersAnalysed): c_pragma_injector,
-            (CHeader, HeadersAnalysed): c_pragma_injector,
-            (CSource, Modified): c_preprocessor,
-            (CSource, Raw): c_analyser,
-            (CSource, Analysed): c_compiler,
-            (BinaryObject, Compiled): linker,
-        }
+        # # The Task map tells the engine what Task it should be using
+        # # to deal with Artifacts depending on their type and state
+        # task_map = {
+        #     (FortranSource, Seen): fortran_preprocessor,
+        #     (FortranSource, Raw): fortran_analyser,
+        #     (FortranSource, Analysed): fortran_compiler,
+        #     (CSource, Seen): header_analyser,
+        #     (CHeader, Seen): header_analyser,
+        #     (CSource, HeadersAnalysed): c_pragma_injector,
+        #     (CHeader, HeadersAnalysed): c_pragma_injector,
+        #     (CSource, Modified): c_preprocessor,
+        #     (CSource, Raw): c_analyser,
+        #     (CSource, Analysed): c_compiler,
+        #     (BinaryObject, Compiled): linker,
+        # }
 
-        engine = Engine(workspace,
-                        target,
-                        path_maps,
-                        task_map)
-        self._queue = QueueManager(n_procs - 1, engine, stop_on_error)
+        # engine = Engine(workspace,
+        #                 target,
+        #                 path_maps,
+        #                 task_map)
+        # self._queue = QueueManager(n_procs - 1, engine, stop_on_error)
 
-    def _extend_queue(self, artifact: Artifact) -> None:
-        if str(artifact.location.parts[-1]) in self.skip_files:
-            logger.warning(f"skipping {artifact.location}")
-            return
-        self._queue.add_to_queue(artifact)
+    # def _extend_queue(self, artifact: Artifact) -> None:
+    #     if str(artifact.location.parts[-1]) in self.skip_files:
+    #         logger.warning(f"skipping {artifact.location}")
+    #         return
+    #     self._queue.add_to_queue(artifact)
+
 
     def run(self, source: Path):
 
-        self._queue.run()
+        fpaths = list(file_walk(source))
+        fpaths_by_type = get_fpaths_by_type(fpaths)
 
-        # first, we need to copy over all the ancillary files
-        # TODO: inc files are being removed, so this step should eventually be unnecessary
-        def copy_acillary_file(artifact):
-            if str(artifact.location).endswith(".inc"):
-                print("copying ancillary file", artifact.location)
-                shutil.copy(artifact.location, self._workspace)
-        visitor = SourceVisitor(copy_acillary_file)
-        descender = TreeDescent(source)
-        descender.descend(visitor)
+        # First, we need to copy over all the ancillary files.
+        # .inc files are being removed, so this step should eventually be unnecessary.
+        for fpath in fpaths:
+            if str(fpath).endswith(".inc"):
+                print("copying ancillary file", fpath)
+                shutil.copy(fpath, self._workspace)
 
-        # now do the main fab run
-        visitor = SourceVisitor(self._extend_queue)
-        descender = TreeDescent(source)
-        descender.descend(visitor)
+        #
+        with multiprocessing.Pool(self.n_procs) as p:
 
-        self._queue.check_queue_done()
-        self._queue.shutdown()
+            # preprocess
+            preprocessed_fortran = p.imap_unordered(
+                self.fortran_preprocessor.run, fpaths_by_type[".F90"])
+
+            # todo: preprocess c
+            # preprocessed_c = p.imap_unordered(
+            #     self.fortran_preprocessor.run, fpaths_by_type["c"])
+
+
+            # for debugging view
+            preprocessed_fortran = list(preprocessed_fortran)
+
+
+            # analyse dependencies
+            analysed_fortran = p.imap_unordered(
+                self.fortran_analyser.run, preprocessed_fortran)
+            analysed_fortran = by_type(analysed_fortran)
+            if analysed_fortran[Exception]:
+                raise Exception("there were errors analysing fortran:",
+                                analysed_fortran[Exception])
+
+            # todo: analyse c dependencies
+            # analysed_c = p.imap_unordered(
+            #     self.c_analyser.run, preprocessed_c)
+
+
+            # build the tree - should this be a combination of c and fortran>?
+            tree = build_tree(analysed_fortran[ProgramUnit])
+
+            # work out the compile order
+            # todo: layers? vs skipping? [vs other?]
+            exit(0)
+            compile_order = ["foo"]
+
+            # not quite this next line, a bit more…
+            compiled_files = p.imap(self.fortran_compiler.run, compile_order)
+
+
+
+
+        #
+        # # self._queue.run()
+        #
+        # # first, we need to copy over all the ancillary files
+        # # TODO: inc files are being removed, so this step should eventually be unnecessary
+        # def copy_acillary_file(artifact):
+        #     if str(artifact.location).endswith(".inc"):
+        #         print("copying ancillary file", artifact.location)
+        #         shutil.copy(artifact.location, self._workspace)
+        # visitor = SourceVisitor(copy_acillary_file)
+        # descender = TreeDescent(source)
+        # descender.descend(visitor)
+        #
+        # # now do the main fab run
+        # visitor = SourceVisitor(self._extend_queue)
+        # descender = TreeDescent(source)
+        # descender.descend(visitor)
+        #
+        # self._queue.check_queue_done()
+        # self._queue.shutdown()
+
+
 
         file_db = FileInfoDatabase(self._state)
         for file_info in file_db:

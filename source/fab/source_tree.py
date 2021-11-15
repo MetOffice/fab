@@ -4,45 +4,27 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-Descend a directory tree or trees processing source files found along the way.
+Descend a directory tree.
 """
-from abc import ABC, abstractmethod
+from collections import defaultdict
 from pathlib import Path
-from typing import Callable
-from fab.artifact import Artifact, Unknown, New
+from typing import Iterator, List
 
 
-class TreeVisitor(ABC):
-    @abstractmethod
-    def visit(self, candidate: Path) -> None:
-        raise NotImplementedError("Abstract method must be implemented")
+def file_walk(path: Path) -> Iterator[Path]:
+    assert path.is_dir()
+
+    for i in path.iterdir():
+        if i.is_dir():
+            yield from file_walk(i)
+        else:
+            yield i
 
 
-class SourceVisitor(TreeVisitor):
-    def __init__(self,
-                 artifact_handler: Callable):
-        self._artifact_handler = artifact_handler
+def get_fpaths_by_type(fpaths: List[Path]):
 
-    def visit(self, candidate: Path) -> None:
-        artifact = Artifact(candidate,
-                            Unknown,
-                            New)
-        self._artifact_handler(artifact)
+    fpaths_by_type = defaultdict(list)
+    for fpath in fpaths:
+        fpaths_by_type[fpath.suffix].append(fpath)
 
-
-class TreeDescent(object):
-    def __init__(self, root: Path):
-        self._root = root
-
-    def descend(self, visitor: TreeVisitor):
-        to_visit = [self._root]
-        while len(to_visit) > 0:
-            candidate: Path = to_visit.pop()
-            if candidate.is_dir():
-                to_visit.extend(sorted(candidate.iterdir()))
-                continue
-
-            # At this point the object should be a file, directories having
-            # been dealt with previously.
-            #
-            visitor.visit(candidate)
+    return fpaths_by_type
