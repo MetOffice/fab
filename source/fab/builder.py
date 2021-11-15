@@ -7,6 +7,7 @@ import argparse
 import configparser
 import logging
 import multiprocessing
+from functools import partial
 from pathlib import Path
 import shutil
 import sys
@@ -26,7 +27,7 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.source_tree import get_fpaths_by_type, file_walk
-from fab.tree import build_tree, ProgramUnit, by_type
+from fab.tree import build_tree, ProgramUnit, by_type, get_compile_order
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -115,12 +116,15 @@ class Fab(object):
                  stop_on_error: bool = True,
                  skip_files=None,
                  skip_if_exists=False):
-        self.skip_files = skip_files or []
-        self.n_procs = n_procs
 
+        self.n_procs = n_procs
+        self.target = target
         self._workspace = workspace
         if not workspace.exists():
             workspace.mkdir(parents=True)
+        self.skip_files = skip_files or []
+        self.fc_flags = fc_flags
+        self.skip_if_exists = skip_if_exists
 
         self._state = SqliteStateDatabase(workspace)
 
@@ -144,11 +148,6 @@ class Fab(object):
             skip_if_exists=skip_if_exists
         )
         self.fortran_analyser = FortranAnalyser(workspace)
-        self.fortran_compiler = FortranCompiler(
-            'gfortran',
-            ['-c', '-J', str(workspace)] + fc_flags.split(), workspace,
-            skip_if_exists=skip_if_exists
-        )
 
         header_analyser = HeaderAnalyser(workspace)
         c_pragma_injector = CPragmaInjector(workspace)
@@ -197,10 +196,12 @@ class Fab(object):
     def run(self, source: Path):
 
         fpaths = list(file_walk(source))
+        # fpaths = list(file_walk(source, self.skip_files))  # todo
         fpaths_by_type = get_fpaths_by_type(fpaths)
 
         # First, we need to copy over all the ancillary files.
         # .inc files are being removed, so this step should eventually be unnecessary.
+        # xxx fpaths_by_type[".F90"]
         for fpath in fpaths:
             if str(fpath).endswith(".inc"):
                 print("copying ancillary file", fpath)
@@ -213,16 +214,19 @@ class Fab(object):
             preprocessed_fortran = p.imap_unordered(
                 self.fortran_preprocessor.run, fpaths_by_type[".F90"])
 
+
+            # debugging
+            preprocessed_fortran = list(preprocessed_fortran)
+
+
             # todo: preprocess c
             # preprocessed_c = p.imap_unordered(
             #     self.fortran_preprocessor.run, fpaths_by_type["c"])
 
 
-            # for debugging view
-            preprocessed_fortran = list(preprocessed_fortran)
-
 
             # analyse dependencies
+            # todo: load analysis results from previous run
             analysed_fortran = p.imap_unordered(
                 self.fortran_analyser.run, preprocessed_fortran)
             analysed_fortran = by_type(analysed_fortran)
@@ -237,14 +241,26 @@ class Fab(object):
 
             # build the tree - should this be a combination of c and fortran>?
             tree = build_tree(analysed_fortran[ProgramUnit])
+            root = tree[self.target]
 
-            # work out the compile order
             # todo: layers? vs skipping? [vs other?]
-            exit(0)
-            compile_order = ["foo"]
+            # todo: not necessary?
+            compile_order = get_compile_order(root, tree)
 
             # not quite this next line, a bit more…
-            compiled_files = p.imap(self.fortran_compiler.run, compile_order)
+
+            # todo: tree is written and read from multiple processes
+            self.fortran_compiler = FortranCompiler(
+                'gfortran',
+                ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+                self._workspace, tree=tree, skip_if_exists=self.skip_if_exists)
+
+            compiled_files = []
+            while any(filter(lambda pu: not pu.compiled, compile_order)):
+                this_pass = p.map(self.fortran_compiler.run, compile_order)
+                this_pass = by_type(this_pass)[Path]
+                logger.debug(f"compiled {len(this_pass)} files")
+                compiled_files.extend(this_pass)
 
 
 

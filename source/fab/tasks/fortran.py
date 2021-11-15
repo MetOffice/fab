@@ -7,6 +7,7 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import subprocess
+from time import perf_counter
 from typing import (Generator,
                     Iterator,
                     List,
@@ -15,7 +16,7 @@ from typing import (Generator,
                     Pattern,
                     Sequence,
                     Tuple,
-                    Union)
+                    Union, Dict)
 from fparser.two.Fortran2003 import Char_Literal_Constant, Function_Stmt, Interface_Block, Language_Binding_Spec, Module_Stmt, Name, Program_Stmt, Subroutine_Stmt, Use_Stmt
 
 from fparser.two.parser import ParserFactory
@@ -28,7 +29,7 @@ from fab.database import (DatabaseDecorator,
                           WorkingStateException)
 from fab.tasks import \
     Task, \
-    TaskException
+    TaskException, timed_method
 from fab.tasks.c import CWorkingState, CSymbolID
 from fab.reader import TextReader, TextReaderDecorator, FileTextReader
 from fab.artifact import \
@@ -315,13 +316,14 @@ def typed_child(parent, child_type):
 
 
 
-class FortranAnalyser(Task):
+class FortranAnalyser(object):
 
     _intrinsic_modules = ['iso_fortran_env']
 
     def __init__(self, workspace: Path):
         self.database = SqliteStateDatabase(workspace)
 
+    @timed_method
     def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
@@ -426,7 +428,7 @@ class FortranAnalyser(Task):
         return program_unit
 
 
-class FortranPreProcessor(Task):
+class FortranPreProcessor(object):
     def __init__(self,
                  preprocessor: str,
                  flags: List[str],
@@ -437,7 +439,8 @@ class FortranPreProcessor(Task):
         self._workspace = workspace
         self._skip_if_exists = skip_if_exists
 
-    def run(self, fpath: Path) -> Path:
+    @timed_method
+    def run(self, fpath):
         logger = logging.getLogger(__name__)
 
         # if len(artifacts) == 1:
@@ -466,32 +469,51 @@ class FortranPreProcessor(Task):
         return output_fpath
 
 
-class FortranCompiler(Task):
+class FortranCompiler(object):
 
     def __init__(self,
                  compiler: str,
                  flags: List[str],
                  workspace: Path,
+                 tree: Dict[str, ProgramUnit],
                  skip_if_exists: bool = False):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
+        self.tree = tree
         self._skip_if_exists = skip_if_exists
 
-    def run(self, fpath: Path) -> Path:
+    @timed_method
+    def run(self, program_unit: ProgramUnit):
         logger = logging.getLogger(__name__)
+
+        # is it already compiled?
+        if program_unit.compiled:
+            return None
+
+        # do the dependencies exist?
+        for dep in program_unit.deps:
+            if not self.tree[dep].compiled:
+                return None
 
         command = [self._compiler]
         command.extend(self._flags)
-        command.append(str(fpath))
+        command.append(str(program_unit.fpath))
 
-        output_fpath = (self._workspace / fpath.with_suffix('.o').name)
+        output_fpath = (self._workspace / program_unit.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_fpath)])
 
         if self._skip_if_exists and output_fpath.exists():
             logger.debug(f'Compiler skipping {output_fpath}')
         else:
             logger.debug('Compiler running command: ' + ' '.join(command))
-            subprocess.run(command, check=True)
+            try:
+                res = subprocess.run(command, check=True)
+                if res != 0:
+                    return Exception("The compiler exited with non zero")
+            # todo: not idiomatic
+            except Exception as err:
+                return Exception("Error calling compiler:", err)
 
+        program_unit.compiled = True
         return output_fpath

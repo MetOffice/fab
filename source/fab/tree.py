@@ -2,19 +2,19 @@ from collections import defaultdict
 from pathlib import Path
 
 
-# todo: might be better as a named tuple, if there's no methods
-from typing import List
+from typing import List, Dict
 
 
+# todo: might be better as a named tuple, as there's no methods
 class ProgramUnit(object):
-    """A program unit in a file with dependencies"""
     def __init__(self, name: str, fpath: Path):
         self.name = name
         self.fpath = fpath
         self.deps = set()
+        self.compiled = False
 
 
-def build_tree(program_units: List[ProgramUnit]):
+def build_tree(program_units: List[ProgramUnit]) -> Dict[str, ProgramUnit]:
     """
     Put the list program units into a dict, keyed on name.
     """
@@ -24,15 +24,17 @@ def build_tree(program_units: List[ProgramUnit]):
     return tree
 
 
-# def walk_tree(node, all_nodes, compile_order=None):
-#     compile_order = compile_order or []
-#     if node.deps:
-#         for dep in node.deps:
-#             walk_tree(dep, compile_order)
-#     else:
-#         if node not in compile_order:
-#             compile_order.append(node)
-#     return compile_order
+def get_compile_order(node, tree, compile_order=None):
+    compile_order = compile_order or []
+
+    if node.deps:
+        for dep in node.deps:
+            get_compile_order(tree[dep], tree, compile_order=compile_order)
+    else:
+        if node not in compile_order:
+            compile_order.append(node)
+
+    return compile_order
 
 
 # todo: don't leave this here
