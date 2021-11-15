@@ -323,7 +323,7 @@ class FortranAnalyser(object):
     def __init__(self, workspace: Path):
         self.database = SqliteStateDatabase(workspace)
 
-    @timed_method
+    # @timed_method
     def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
@@ -439,7 +439,7 @@ class FortranPreProcessor(object):
         self._workspace = workspace
         self._skip_if_exists = skip_if_exists
 
-    @timed_method
+    # @timed_method
     def run(self, fpath):
         logger = logging.getLogger(__name__)
 
@@ -483,7 +483,7 @@ class FortranCompiler(object):
         self.tree = tree
         self._skip_if_exists = skip_if_exists
 
-    @timed_method
+    # @timed_method
     def run(self, program_unit: ProgramUnit):
         logger = logging.getLogger(__name__)
 
