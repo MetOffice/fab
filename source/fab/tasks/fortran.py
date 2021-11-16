@@ -474,8 +474,8 @@ class FortranPreProcessor(object):
 # todo: better as a named tuple?
 class CompiledProgramUnit(object):
     def __init__(self, program_unit, output_fpath):
-        self.output_fpath = output_fpath
         self.program_unit = program_unit
+        self.output_fpath = output_fpath
 
 
 class FortranCompiler(object):

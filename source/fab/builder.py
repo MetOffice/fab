@@ -262,9 +262,13 @@ class Fab(object):
         # build the tree - should this be a combination of c and fortran>?
         logger.debug("building dependency tree from analysis results")
         tree = build_tree(analysed_fortran[ProgramUnit])
+        logger.debug(f"tree size {len(tree)}")
         root = tree[self.target]
 
-
+        # root deps
+        # {'output_mod', 'update_mod', 'gridmean_fluxes', 'model_time_mod', 'jules_print_mgr',
+        # 'time_varying_input_mod', 'init_mod', 'jules_fields_mod', 'cable_fields_mod', 'io_constants',
+        # 'jules_final_mod', 'jules_forcing_mod'}
 
         # logger.debug("calculating compile order")
         # compile_order = get_compile_order(root, tree)
@@ -286,7 +290,7 @@ class Fab(object):
         # calc_zw_jls_mod.f90
         #    jules_hydrology_mod
 
-        already_compiled = set()
+        already_compiled_names = set()
         while to_compile:
 
             # find what to compile next
@@ -295,27 +299,37 @@ class Fab(object):
                 # all deps ready?
                 can_compile = True
                 for dep in pu.deps:
-                    if dep not in already_compiled:
+                    if dep not in already_compiled_names:
                         can_compile = False
                         break
                 if can_compile:
                     compile_next.append(pu)
 
+            logger.debug(f"trying to compile {len(compile_next)} of {len(to_compile)} remaining files")
+
             with multiprocessing.Pool(self.n_procs) as p:  # todo: move outside while loop?
                 this_pass = p.map(self.fortran_compiler.run, compile_next)
+
+            # nothing compiled?
+            compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
+            if len(compiled_this_pass) == 0:
+                logger.error("nothing compiled this pass")
+                break
 
             # todo: any errors?
 
             # remove compiled files from list
-            # CompiledProgramUnit
-            compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
             logger.debug(f"compiled {len(compiled_this_pass)} files")
 
-            # ProgramUnit
-            compiled_program_units = {i.program_unit for i in compiled_this_pass}
-            already_compiled.update(compiled_program_units)
-            to_compile.difference_update(compiled_program_units)
+            # ProgramUnit - not the same as passed in, due to mp copying
+            compiled_names = {i.program_unit.name for i in compiled_this_pass}
+            logger.debug(f"compiled_names {compiled_names}")
+            already_compiled_names.update(compiled_names)
 
+            # to_compile.difference_update(compiled_program_units)
+            logger.debug(f"to_compile {len(to_compile)} before remove")
+            to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
+            logger.debug(f"to_compile {len(to_compile)} after remove")
 
 
 
@@ -346,25 +360,25 @@ class Fab(object):
         # self._queue.shutdown()
 
 
-
-        file_db = FileInfoDatabase(self._state)
-        for file_info in file_db:
-            print(file_info.filename)
-            # Where files are generated in the working directory
-            # by third party tools, we cannot guarantee the hashes
-            if file_info.filename.match(f'{self._workspace}/*'):
-                print('    hash: --hidden-- (generated file)')
-            else:
-                print(f'    hash: {file_info.adler32}')
-
-        fortran_db = FortranWorkingState(self._state)
-        for fortran_info in fortran_db:
-            print(fortran_info.unit.name)
-            print('    found in: ' + str(fortran_info.unit.found_in))
-            print('    depends on: ' + str(fortran_info.depends_on))
-
-        c_db = CWorkingState(self._state)
-        for c_info in c_db:
-            print(c_info.symbol.name)
-            print('    found_in: ' + str(c_info.symbol.found_in))
-            print('    depends on: ' + str(c_info.depends_on))
+        #
+        # file_db = FileInfoDatabase(self._state)
+        # for file_info in file_db:
+        #     print(file_info.filename)
+        #     # Where files are generated in the working directory
+        #     # by third party tools, we cannot guarantee the hashes
+        #     if file_info.filename.match(f'{self._workspace}/*'):
+        #         print('    hash: --hidden-- (generated file)')
+        #     else:
+        #         print(f'    hash: {file_info.adler32}')
+        #
+        # fortran_db = FortranWorkingState(self._state)
+        # for fortran_info in fortran_db:
+        #     print(fortran_info.unit.name)
+        #     print('    found in: ' + str(fortran_info.unit.found_in))
+        #     print('    depends on: ' + str(fortran_info.depends_on))
+        #
+        # c_db = CWorkingState(self._state)
+        # for c_info in c_db:
+        #     print(c_info.symbol.name)
+        #     print('    found_in: ' + str(c_info.symbol.found_in))
+        #     print('    depends on: ' + str(c_info.depends_on))
