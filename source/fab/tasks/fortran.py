@@ -16,7 +16,7 @@ from typing import (Generator,
                     Pattern,
                     Sequence,
                     Tuple,
-                    Union, Dict)
+                    Union, Dict, Set)
 from fparser.two.Fortran2003 import Char_Literal_Constant, Function_Stmt, Interface_Block, Language_Binding_Spec, Module_Stmt, Name, Program_Stmt, Subroutine_Stmt, Use_Stmt
 
 from fparser.two.parser import ParserFactory
@@ -38,7 +38,7 @@ from fab.artifact import \
     Raw, \
     Compiled, \
     BinaryObject
-from fab.tree import ProgramUnit
+from fab.tree import ProgramUnit, EmptyProgramUnit
 
 
 class FortranUnitUnresolvedID(object):
@@ -322,6 +322,7 @@ class FortranAnalyser(object):
 
     def __init__(self, workspace: Path):
         self.database = SqliteStateDatabase(workspace)
+        self.f2008_parser = ParserFactory().create(std="f2008")
 
     # @timed_method
     def run(self, fpath: Path):
@@ -340,11 +341,10 @@ class FortranAnalyser(object):
 
         # parse the fortran into a tree
         reader = FortranFileReader(str(fpath))  # ignore_comments=False
-        f2008_parser = ParserFactory().create(std="f2008")
-        tree = f2008_parser(reader)
+        tree = self.f2008_parser(reader)
         if tree.content[0] == None:
             logger.warning(f"Empty tree found when parsing {fpath}")
-            return None
+            return EmptyProgramUnit(fpath)
 
         module_name = None
         deps = set()
@@ -360,6 +360,7 @@ class FortranAnalyser(object):
                 break
         if not module_name:
             return RuntimeError("Error finding top level program unit")
+            # raise RuntimeError("Error finding top level program unit")
 
 
         # see what else is in the tree
@@ -425,6 +426,7 @@ class FortranAnalyser(object):
                 # cstate.add_c_symbol(symbol_id)
                 # new_artifact.add_definition(cbind_name)
 
+        logger.debug(f"    analysed {fpath}")
         return program_unit
 
 
@@ -469,6 +471,13 @@ class FortranPreProcessor(object):
         return output_fpath
 
 
+# todo: better as a named tuple?
+class CompiledProgramUnit(object):
+    def __init__(self, program_unit, output_fpath):
+        self.output_fpath = output_fpath
+        self.program_unit = program_unit
+
+
 class FortranCompiler(object):
 
     def __init__(self,
@@ -487,15 +496,6 @@ class FortranCompiler(object):
     def run(self, program_unit: ProgramUnit):
         logger = logging.getLogger(__name__)
 
-        # is it already compiled?
-        if program_unit.compiled:
-            return None
-
-        # do the dependencies exist?
-        for dep in program_unit.deps:
-            if not self.tree[dep].compiled:
-                return None
-
         command = [self._compiler]
         command.extend(self._flags)
         command.append(str(program_unit.fpath))
@@ -509,11 +509,12 @@ class FortranCompiler(object):
             logger.debug('Compiler running command: ' + ' '.join(command))
             try:
                 res = subprocess.run(command, check=True)
-                if res != 0:
+                if res.returncode != 0:
+                    # todo: specific exception
                     return Exception("The compiler exited with non zero")
             # todo: not idiomatic
             except Exception as err:
+                # todo: specific exception
                 return Exception("Error calling compiler:", err)
 
-        program_unit.compiled = True
-        return output_fpath
+        return CompiledProgramUnit(program_unit, output_fpath)

@@ -11,7 +11,11 @@ class ProgramUnit(object):
         self.name = name
         self.fpath = fpath
         self.deps = set()
-        self.compiled = False
+
+
+class EmptyProgramUnit(object):
+    def __init__(self, fpath):
+        self.fpath = fpath
 
 
 def build_tree(program_units: List[ProgramUnit]) -> Dict[str, ProgramUnit]:

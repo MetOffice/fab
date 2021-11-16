@@ -11,13 +11,18 @@ from pathlib import Path
 from typing import Iterator, List
 
 
-def file_walk(path: Path) -> Iterator[Path]:
+def file_walk(path: Path, skip_files=None, logger=None) -> Iterator[Path]:
+    skip_files = skip_files or []
     assert path.is_dir()
 
     for i in path.iterdir():
         if i.is_dir():
-            yield from file_walk(i)
+            yield from file_walk(i, skip_files=skip_files, logger=logger)
         else:
+            if i.parts[-1] in skip_files:
+                if logger:
+                    logger.debug(f"skipping {i}")
+                continue
             yield i
 
 
