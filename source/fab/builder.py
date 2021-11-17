@@ -5,7 +5,7 @@
 ##############################################################################
 import argparse
 import configparser
-from typing import Dict
+from typing import Dict, List
 
 import graphviz
 import logging
@@ -79,7 +79,7 @@ def entry() -> None:
                              'default is 2 if not set.')
     parser.add_argument('--skip-if-exists', action="store_true")
     parser.add_argument('source', type=Path,
-                        help='The path of the source tree to build')
+                        help='The path of the source tree to build. Accepts a comma separated list.')
     parser.add_argument('conf_file', type=Path, default='config.ini',
                         help='The path of the configuration file')
     arguments = parser.parse_args()
@@ -105,7 +105,7 @@ def entry() -> None:
                       n_procs=arguments.nprocs,
                       skip_files=skip_files,
                       skip_if_exists=arguments.skip_if_exists)
-    application.run(arguments.source)
+    application.run(arguments.source.split(','))
 
 
 class Fab(object):
@@ -196,9 +196,11 @@ class Fab(object):
     #         return
     #     self._queue.add_to_queue(artifact)
 
-    def run(self, source: Path):
+    def run(self, source_paths: List[Path]):
 
-        fpaths = list(file_walk(source, self.skip_files, logger))
+        fpaths = []
+        for source_path in source_paths:
+            fpaths.extend(file_walk(source_path, self.skip_files, logger))
         fpaths_by_type = get_fpaths_by_type(fpaths)
 
         # First, we need to copy over all the ancillary files.
@@ -264,36 +266,40 @@ class Fab(object):
 
         # build the tree - should this be a combination of c and fortran?
         logger.debug("building dependency tree from analysis results")
-        tree = build_tree(analysed_fortran[ProgramUnit])  # all files
-        logger.debug(f"tree size (all files) {len(tree)}")
+        all_tree = build_tree(analysed_fortran[ProgramUnit])  # all files
+        logger.debug(f"tree size (all files) {len(all_tree)}")
         # root = tree[self.target]
 
         # filter for the build target - also ensures all required deps have been analysed
-        def foo(tree, target, result=None) -> Dict[str, ProgramUnit]:
+        missing = set()
+        def foo(all_tree, target, result=None) -> Dict[str, ProgramUnit]:
             result = result or dict()
-            node = tree[target]
+            node = all_tree[target]
             result[node.name] = node
             for dep in node.deps:
-                if not tree.get(dep):
-                    logger.error(f"missing dep '{dep}, can't build '{target}'")
+                if not all_tree.get(dep):
+                    # logger.debug(f"missing dep, '{target}' requires '{dep}")
+                    missing.add(dep)
                     continue
-                foo(tree, dep, result=result)
+                foo(all_tree, dep, result=result)
             return result
 
-        target_tree = foo(tree, self.target)
+        target_tree = foo(all_tree, self.target)
         logger.debug(f"tree size (target '{self.target}') {len(target_tree)}")
+        if missing:
+            logger.debug(f"missing deps {missing}")
+        else:
+            logger.debug("no deps missing")
 
 
-        # draw the tree
-        my_graph = graphviz.Digraph('my_graph', engine='neato')
-        for pu in target_tree.values():
-            my_graph.node(pu.name)
-            for dep in pu.deps:
-                my_graph.edge(pu.name, dep)
-        logger.debug("rendering dependencies")
-        my_graph.render(filename='fortran_deps.svg')
-
-        exit(0)
+        # # draw the tree
+        # my_graph = graphviz.Digraph('my_graph', engine='neato')
+        # for pu in target_tree.values():
+        #     my_graph.node(pu.name)
+        #     for dep in pu.deps:
+        #         my_graph.edge(pu.name, dep)
+        # logger.debug("rendering dependencies")
+        # my_graph.render(filename='fortran_deps.svg')
 
 
 
@@ -304,7 +310,7 @@ class Fab(object):
 
         # logger.debug("calculating compile order")
         # compile_order = get_compile_order(root, tree)
-        to_compile = set(tree.values())
+        to_compile = set(all_tree.values())
 
 
 
@@ -317,7 +323,7 @@ class Fab(object):
         self.fortran_compiler = FortranCompiler(
             'gfortran',
             ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-            self._workspace, tree=tree, skip_if_exists=self.skip_if_exists)
+            self._workspace, tree=all_tree, skip_if_exists=self.skip_if_exists)
 
         # calc_zw_jls_mod.f90
         #    jules_hydrology_mod

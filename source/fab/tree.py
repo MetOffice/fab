@@ -12,6 +12,9 @@ class ProgramUnit(object):
         self.fpath = fpath
         self.deps = set()
 
+    def __str__(self):
+        return f"ProgramUnit {self.name} {self.fpath} {self.deps}"
+
 
 class EmptyProgramUnit(object):
     def __init__(self, fpath):
