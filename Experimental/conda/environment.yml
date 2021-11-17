@@ -11,3 +11,4 @@ dependencies:
   - pytest-mock
   - pip:
       - fparser
+      - graphviz

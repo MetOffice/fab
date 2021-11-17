@@ -5,6 +5,9 @@
 ##############################################################################
 import argparse
 import configparser
+from typing import Dict
+
+import graphviz
 import logging
 import multiprocessing
 import pickle
@@ -259,11 +262,43 @@ class Fab(object):
         # analysed_c = p.imap_unordered(
         #     self.c_analyser.run, preprocessed_c)
 
-        # build the tree - should this be a combination of c and fortran>?
+        # build the tree - should this be a combination of c and fortran?
         logger.debug("building dependency tree from analysis results")
-        tree = build_tree(analysed_fortran[ProgramUnit])
-        logger.debug(f"tree size {len(tree)}")
-        root = tree[self.target]
+        tree = build_tree(analysed_fortran[ProgramUnit])  # all files
+        logger.debug(f"tree size (all files) {len(tree)}")
+        # root = tree[self.target]
+
+        # filter for the build target - also ensures all required deps have been analysed
+        def foo(tree, target, result=None) -> Dict[str, ProgramUnit]:
+            result = result or dict()
+            node = tree[target]
+            result[node.name] = node
+            for dep in node.deps:
+                if not tree.get(dep):
+                    logger.error(f"missing dep '{dep}, can't build '{target}'")
+                    continue
+                foo(tree, dep, result=result)
+            return result
+
+        target_tree = foo(tree, self.target)
+        logger.debug(f"tree size (target '{self.target}') {len(target_tree)}")
+
+
+        # draw the tree
+        my_graph = graphviz.Digraph('my_graph')
+        # for pu in tree.values():
+        for pu in target_tree.values():
+            my_graph.node(pu.name)
+            for dep in pu.deps:
+                my_graph.edge(pu.name, dep)
+        # my_graph.view()
+        logger.debug("rendering dependencies")
+        my_graph.render(filename='fortran_deps.svg')
+        logger.debug("    rendered dependencies")
+
+        exit(0)
+
+
 
         # root deps
         # {'output_mod', 'update_mod', 'gridmean_fluxes', 'model_time_mod', 'jules_print_mgr',
