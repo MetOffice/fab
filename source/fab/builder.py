@@ -218,9 +218,6 @@ class Fab(object):
             preprocessed_fortran = p.map(
                 self.fortran_preprocessor.run, fpaths_by_type[".F90"])
 
-        # debugging
-        # preprocessed_fortran = list(preprocessed_fortran)
-
         # todo: preprocess c
         # preprocessed_c = p.imap_unordered(
         #     self.fortran_preprocessor.run, fpaths_by_type["c"])
@@ -235,16 +232,13 @@ class Fab(object):
             with open(analysis_pickle, "rb") as infile:
                 analysed_fortran = pickle.load(infile)
         else:
-            # logger.info("analysing dependencies - multiprocessed")
             # analyse dependencies
+            # logger.info("analysing dependencies - multiprocessed")
             # with multiprocessing.Pool(self.n_procs) as p:
-            #     # analysed_fortran = p.imap_unordered(
-            #     analysed_fortran = p.map(
+            #     analysed_fortran = p.imap_unordered(
             #         self.fortran_analyser.run, preprocessed_fortran)
 
             logger.info("analysing dependencies - no multiprocessing")
-            # analysed_fortran = map(
-            #     self.fortran_analyser.run, preprocessed_fortran)
             analysed_fortran = []
             for ppf in preprocessed_fortran:
                 analysed_fortran.append(self.fortran_analyser.run(ppf))
@@ -272,16 +266,18 @@ class Fab(object):
 
         # filter for the build target - also ensures all required deps have been analysed
         missing = set()
-        def foo(all_tree, target, result=None) -> Dict[str, ProgramUnit]:
+        def foo(all_tree, target, result=None, indent=0) -> Dict[str, ProgramUnit]:
+            logger.debug("----" * indent + target)
+
             result = result or dict()
             node = all_tree[target]
             result[node.name] = node
-            for dep in node.deps:
+            for dep in sorted(node.deps):
                 if not all_tree.get(dep):
-                    # logger.debug(f"missing dep, '{target}' requires '{dep}")
+                    logger.debug("----" * indent + "!!!!" + dep)
                     missing.add(dep)
                     continue
-                foo(all_tree, dep, result=result)
+                foo(all_tree, dep, result=result, indent=indent+1)
             return result
 
         target_tree = foo(all_tree, self.target)
@@ -293,13 +289,17 @@ class Fab(object):
 
 
         # # draw the tree
-        # my_graph = graphviz.Digraph('my_graph', engine='neato')
+        # # my_graph = graphviz.Digraph('my_graph')
+        # # my_graph = graphviz.Digraph('my_graph', engine='neato')
+        # my_graph = graphviz.Digraph('my_graph', engine='twopi')
         # for pu in target_tree.values():
         #     my_graph.node(pu.name)
         #     for dep in pu.deps:
         #         my_graph.edge(pu.name, dep)
         # logger.debug("rendering dependencies")
         # my_graph.render(filename='fortran_deps.svg')
+        #
+        # exit(0)
 
 
 
@@ -310,7 +310,7 @@ class Fab(object):
 
         # logger.debug("calculating compile order")
         # compile_order = get_compile_order(root, tree)
-        to_compile = set(all_tree.values())
+        to_compile = set(target_tree.values())
 
 
 
@@ -346,8 +346,12 @@ class Fab(object):
 
             logger.debug(f"trying to compile {len(compile_next)} of {len(to_compile)} remaining files")
 
-            with multiprocessing.Pool(self.n_procs) as p:  # todo: move outside while loop?
-                this_pass = p.map(self.fortran_compiler.run, compile_next)
+            # with multiprocessing.Pool(self.n_procs) as p:  # todo: move outside while loop?
+            #     this_pass = p.map(self.fortran_compiler.run, compile_next)
+
+            this_pass = []
+            for f in compile_next:
+                this_pass.append(self.fortran_compiler.run(f))
 
             # nothing compiled?
             compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
@@ -368,6 +372,13 @@ class Fab(object):
 
             # to_compile.difference_update(compiled_program_units)
             to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
+
+
+
+        if to_compile:
+            logger.warning(f"there were still {len(to_compile)} files left to compile")
+            for pu in to_compile:
+                logger.debug(pu.name)
 
 
         logger.warning("WE ARE AWESOME!")
