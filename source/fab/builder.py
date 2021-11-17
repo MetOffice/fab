@@ -285,16 +285,13 @@ class Fab(object):
 
 
         # draw the tree
-        my_graph = graphviz.Digraph('my_graph')
-        # for pu in tree.values():
+        my_graph = graphviz.Digraph('my_graph', engine='neato')
         for pu in target_tree.values():
             my_graph.node(pu.name)
             for dep in pu.deps:
                 my_graph.edge(pu.name, dep)
-        # my_graph.view()
         logger.debug("rendering dependencies")
         my_graph.render(filename='fortran_deps.svg')
-        logger.debug("    rendered dependencies")
 
         exit(0)
 
