@@ -329,6 +329,7 @@ class Fab(object):
         #    jules_hydrology_mod
 
         already_compiled_names = set()
+        per_pass = []
         while to_compile:
 
             # find what to compile next
@@ -350,6 +351,7 @@ class Fab(object):
 
             # nothing compiled?
             compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
+            per_pass.append(len(compiled_this_pass))
             if len(compiled_this_pass) == 0:
                 logger.error("nothing compiled this pass")
                 break
@@ -365,14 +367,13 @@ class Fab(object):
             already_compiled_names.update(compiled_names)
 
             # to_compile.difference_update(compiled_program_units)
-            logger.debug(f"to_compile {len(to_compile)} before remove")
             to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
-            logger.debug(f"to_compile {len(to_compile)} after remove")
-
 
 
         logger.warning("WE ARE AWESOME!")
 
+        logger.debug(f"per_pass {per_pass}")
+        logger.debug(f"total {sum(per_pass)}")
 
 
 
