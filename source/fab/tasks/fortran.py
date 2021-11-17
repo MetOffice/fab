@@ -456,7 +456,7 @@ class FortranPreProcessor(object):
         command.extend(self._flags)
 
         # find ancillary inc files already copied across
-        command.extend(["-I", str(self._workspace)])
+        command.extend(["-I", str(self._workspace)])  # todo: revisit this
         command.append(str(fpath))
 
         output_fpath = (self._workspace / fpath.with_suffix('.f90').name)

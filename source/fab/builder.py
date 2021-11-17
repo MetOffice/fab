@@ -163,7 +163,7 @@ class Fab(object):
             'gcc', ['-c'], workspace
         )
 
-        linker = Linker(
+        self.linker = Linker(
             'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
             workspace, exec_name
         )
@@ -328,6 +328,7 @@ class Fab(object):
         # calc_zw_jls_mod.f90
         #    jules_hydrology_mod
 
+        all_compiled = []  # todo: use set
         already_compiled_names = set()
         per_pass = []
         while to_compile:
@@ -368,6 +369,7 @@ class Fab(object):
             # ProgramUnit - not the same as passed in, due to mp copying
             compiled_names = {i.program_unit.name for i in compiled_this_pass}
             logger.debug(f"compiled_names {compiled_names}")
+            all_compiled.extend(compiled_this_pass)
             already_compiled_names.update(compiled_names)
 
             # to_compile.difference_update(compiled_program_units)
@@ -381,10 +383,16 @@ class Fab(object):
                 logger.debug(pu.name)
 
 
-        logger.warning("WE ARE AWESOME!")
 
         logger.debug(f"per_pass {per_pass}")
         logger.debug(f"total {sum(per_pass)}")
+
+
+
+
+        logger.debug("linking")
+        self.linker.run(all_compiled)
+        logger.warning("WE ARE AWESOME!")
 
 
 
