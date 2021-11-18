@@ -21,6 +21,7 @@ class EmptyProgramUnit(object):
         self.fpath = fpath
 
 
+# todo: this seems misnamed
 def build_tree(program_units: List[ProgramUnit]) -> Dict[str, ProgramUnit]:
     """
     Put the list program units into a dict, keyed on name.
@@ -31,17 +32,43 @@ def build_tree(program_units: List[ProgramUnit]) -> Dict[str, ProgramUnit]:
     return tree
 
 
-def get_compile_order(node, tree, compile_order=None):
-    compile_order = compile_order or []
+def extract_sub_tree(
+        src_tree, key, _result=None, _missing=None, logger=None, indent=0):
+    """blurb"""
 
-    if node.deps:
-        for dep in node.deps:
-            get_compile_order(tree[dep], tree, compile_order=compile_order)
-    else:
-        if node not in compile_order:
-            compile_order.append(node)
+    _result = _result or dict()
+    _missing = _missing or set()
 
-    return compile_order
+    if logger:
+        logger.debug("----" * indent + key)
+
+    node = src_tree[key]
+    _result[node.name] = node
+    for dep in sorted(node.deps):
+        if not src_tree.get(dep):
+            if logger:
+                logger.debug("----" * indent + "!!!!" + dep)
+            _missing.add(dep)
+            continue
+        extract_sub_tree(
+            src_tree, dep, _result=_result, _missing=_missing, logger=logger, indent=indent + 1)
+        
+    return _result, _missing
+
+
+
+
+# def get_compile_order(node, tree, compile_order=None):
+#     compile_order = compile_order or []
+# 
+#     if node.deps:
+#         for dep in node.deps:
+#             get_compile_order(tree[dep], tree, compile_order=compile_order)
+#     else:
+#         if node not in compile_order:
+#             compile_order.append(node)
+# 
+#     return compile_order
 
 
 # todo: don't leave this here

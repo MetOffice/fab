@@ -7,16 +7,14 @@ import argparse
 import configparser
 from typing import Dict, List
 
-import graphviz
 import logging
 import multiprocessing
 import pickle
-from functools import partial
 from pathlib import Path
 import shutil
 import sys
 
-from fab.database import SqliteStateDatabase, FileInfoDatabase
+from fab.database import SqliteStateDatabase
 
 from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
@@ -31,7 +29,7 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.source_tree import get_fpaths_by_type, file_walk
-from fab.tree import build_tree, ProgramUnit, by_type, get_compile_order
+from fab.tree import build_tree, ProgramUnit, by_type, extract_sub_tree
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -132,15 +130,6 @@ class Fab(object):
 
         self._state = SqliteStateDatabase(workspace)
 
-        # Path maps tell the engine what filetype and starting state
-        # the Artifacts representing any files encountered by the
-        # initial descent should have
-        # path_maps = [
-        #     PathMap(r'.*\.f90', FortranSource, Raw),
-        #     PathMap(r'.*\.F90', FortranSource, Seen),
-        #     PathMap(r'.*\.c', CSource, Seen),
-        #     PathMap(r'.*\.h', CHeader, Seen),
-        # ]
 
         # Initialise the required Tasks, providing them with any static
         # properties such as flags to use, workspace location etc
@@ -152,6 +141,11 @@ class Fab(object):
             skip_if_exists=skip_if_exists
         )
         self.fortran_analyser = FortranAnalyser(workspace)
+
+        self.fortran_compiler = FortranCompiler(
+            'gfortran',
+            ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+            self._workspace, skip_if_exists=self.skip_if_exists)
 
         header_analyser = HeaderAnalyser(workspace)
         c_pragma_injector = CPragmaInjector(workspace)
@@ -168,165 +162,54 @@ class Fab(object):
             workspace, exec_name
         )
 
-        # # The Task map tells the engine what Task it should be using
-        # # to deal with Artifacts depending on their type and state
-        # task_map = {
-        #     (FortranSource, Seen): fortran_preprocessor,
-        #     (FortranSource, Raw): fortran_analyser,
-        #     (FortranSource, Analysed): fortran_compiler,
-        #     (CSource, Seen): header_analyser,
-        #     (CHeader, Seen): header_analyser,
-        #     (CSource, HeadersAnalysed): c_pragma_injector,
-        #     (CHeader, HeadersAnalysed): c_pragma_injector,
-        #     (CSource, Modified): c_preprocessor,
-        #     (CSource, Raw): c_analyser,
-        #     (CSource, Analysed): c_compiler,
-        #     (BinaryObject, Compiled): linker,
-        # }
-
-        # engine = Engine(workspace,
-        #                 target,
-        #                 path_maps,
-        #                 task_map)
-        # self._queue = QueueManager(n_procs - 1, engine, stop_on_error)
-
-    # def _extend_queue(self, artifact: Artifact) -> None:
-    #     if str(artifact.location.parts[-1]) in self.skip_files:
-    #         logger.warning(f"skipping {artifact.location}")
-    #         return
-    #     self._queue.add_to_queue(artifact)
 
     def run(self, source_paths: List[Path]):
 
+        # walk the source folder
         fpaths = []
         for source_path in source_paths:
             fpaths.extend(file_walk(source_path, self.skip_files, logger))
         fpaths_by_type = get_fpaths_by_type(fpaths)
 
-        # First, we need to copy over all the ancillary files.
+        # Copy all the ancillary files.
         # .inc files are being removed, so this step should eventually be unnecessary.
-        # xxx fpaths_by_type[".F90"]
-        for fpath in fpaths:
-            if str(fpath).endswith(".inc"):
-                print("copying ancillary file", fpath)
-                shutil.copy(fpath, self._workspace)
+        logger.info("copying ancillary files")
+        for fpath in fpaths_by_type[".inc"]:
+            logger.debug(f"copying ancillary file {fpath}")
+            shutil.copy(fpath, self._workspace)
 
         # preprocess
         logger.info("preprocessing")
         with multiprocessing.Pool(self.n_procs) as p:
+            # todo: unordered
             # preprocessed_fortran = p.imap_unordered(
             preprocessed_fortran = p.map(
                 self.fortran_preprocessor.run, fpaths_by_type[".F90"])
 
-        # todo: preprocess c
-        # preprocessed_c = p.imap_unordered(
-        #     self.fortran_preprocessor.run, fpaths_by_type["c"])
+        logger.info("analysing dependencies")
+        analysed_fortran = self.analyse_fortran(preprocessed_fortran)
 
-        # load analysis results from previous run
-
-        # for now, just a pickle but we plan to save to a data store as we go, very soon,
-        # to cater for interrupted runs
-        analysis_pickle = self._workspace / "__analysis_f.pickle"
-        if analysis_pickle.exists():
-            logger.debug("loading fortran analysis from pickle")
-            with open(analysis_pickle, "rb") as infile:
-                analysed_fortran = pickle.load(infile)
-        else:
-            # analyse dependencies
-            # logger.info("analysing dependencies - multiprocessed")
-            # with multiprocessing.Pool(self.n_procs) as p:
-            #     analysed_fortran = p.imap_unordered(
-            #         self.fortran_analyser.run, preprocessed_fortran)
-
-            logger.info("analysing dependencies - no multiprocessing")
-            analysed_fortran = []
-            for ppf in preprocessed_fortran:
-                analysed_fortran.append(self.fortran_analyser.run(ppf))
-
-            logger.debug("grouping analysed fortran")
-            analysed_fortran = by_type(analysed_fortran)
-            if analysed_fortran[Exception]:
-                logger.error("there were errors analysing fortran:",
-                             analysed_fortran[Exception])
-                raise Exception("there were errors analysing fortran:",
-                                analysed_fortran[Exception])
-            logger.debug("writing fortran analysis to pickle")
-            with open(analysis_pickle, "wb") as outfile:
-                pickle.dump(analysed_fortran, outfile)
-
-        # todo: analyse c dependencies
-        # analysed_c = p.imap_unordered(
-        #     self.c_analyser.run, preprocessed_c)
-
-        # build the tree - should this be a combination of c and fortran?
-        logger.debug("building dependency tree from analysis results")
+        logger.info("building dependency tree")
         all_tree = build_tree(analysed_fortran[ProgramUnit])  # all files
-        logger.debug(f"tree size (all files) {len(all_tree)}")
-        # root = tree[self.target]
 
         # filter for the build target - also ensures all required deps have been analysed
-        missing = set()
-        def foo(all_tree, target, result=None, indent=0) -> Dict[str, ProgramUnit]:
-            logger.debug("----" * indent + target)
-
-            result = result or dict()
-            node = all_tree[target]
-            result[node.name] = node
-            for dep in sorted(node.deps):
-                if not all_tree.get(dep):
-                    logger.debug("----" * indent + "!!!!" + dep)
-                    missing.add(dep)
-                    continue
-                foo(all_tree, dep, result=result, indent=indent+1)
-            return result
-
-        target_tree = foo(all_tree, self.target)
-        logger.debug(f"tree size (target '{self.target}') {len(target_tree)}")
+        logger.info("extracting target sub tree")
+        target_tree, missing = extract_sub_tree(all_tree, self.target, logger=logger)
         if missing:
-            logger.debug(f"missing deps {missing}")
+            logger.warning(f"missing deps {missing}")
         else:
-            logger.debug("no deps missing")
+            logger.info("no missing deps")
 
-
-        # # draw the tree
-        # # my_graph = graphviz.Digraph('my_graph')
-        # # my_graph = graphviz.Digraph('my_graph', engine='neato')
-        # my_graph = graphviz.Digraph('my_graph', engine='twopi')
-        # for pu in target_tree.values():
-        #     my_graph.node(pu.name)
-        #     for dep in pu.deps:
-        #         my_graph.edge(pu.name, dep)
-        # logger.debug("rendering dependencies")
-        # my_graph.render(filename='fortran_deps.svg')
-        #
-        # exit(0)
+        logger.info(f"tree size (all files) {len(all_tree)}")
+        logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
 
 
 
-        # root deps
-        # {'output_mod', 'update_mod', 'gridmean_fluxes', 'model_time_mod', 'jules_print_mgr',
-        # 'time_varying_input_mod', 'init_mod', 'jules_fields_mod', 'cable_fields_mod', 'io_constants',
-        # 'jules_final_mod', 'jules_forcing_mod'}
-
-        # logger.debug("calculating compile order")
-        # compile_order = get_compile_order(root, tree)
+        # compile
+        logger.info("compiling")
         to_compile = set(target_tree.values())
 
 
-
-
-
-        # not quite this next line, a bit more…
-        logger.info("compiling")
-
-        # todo: tree is written and read from multiple processes
-        self.fortran_compiler = FortranCompiler(
-            'gfortran',
-            ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-            self._workspace, tree=all_tree, skip_if_exists=self.skip_if_exists)
-
-        # calc_zw_jls_mod.f90
-        #    jules_hydrology_mod
 
         all_compiled = []  # todo: use set
         already_compiled_names = set()
@@ -345,7 +228,7 @@ class Fab(object):
                 if can_compile:
                     compile_next.append(pu)
 
-            logger.debug(f"trying to compile {len(compile_next)} of {len(to_compile)} remaining files")
+            logger.info(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
 
             # with multiprocessing.Pool(self.n_procs) as p:  # todo: move outside while loop?
             #     this_pass = p.map(self.fortran_compiler.run, compile_next)
@@ -375,24 +258,20 @@ class Fab(object):
             # to_compile.difference_update(compiled_program_units)
             to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
 
-
-
         if to_compile:
             logger.warning(f"there were still {len(to_compile)} files left to compile")
             for pu in to_compile:
-                logger.debug(pu.name)
+                logger.warning(pu.name)
 
-
-
-        logger.debug(f"per_pass {per_pass}")
-        logger.debug(f"total {sum(per_pass)}")
+        logger.debug(f"compiled per pass {per_pass}")
+        logger.info(f"total compiled {sum(per_pass)}")
 
 
 
 
-        logger.debug("linking")
-        self.linker.run(all_compiled)
-        logger.warning("WE ARE AWESOME!")
+        # logger.debug("linking")
+        # self.linker.run(all_compiled)
+        # logger.warning("WE ARE AWESOME!")
 
 
 
@@ -440,3 +319,38 @@ class Fab(object):
         #     print(c_info.symbol.name)
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
+
+
+    def analyse_fortran(self, preprocessed_fortran):
+
+        # Load analysis results from previous run.
+        # For now, just a pickle.
+        # todo: We plan to save to a data store as we go, for interrupted runs
+        analysis_pickle = self._workspace / "__analysis_f.pickle"
+        if analysis_pickle.exists():
+            logger.debug("loading fortran analysis from pickle")
+            with open(analysis_pickle, "rb") as infile:
+                analysed_fortran = pickle.load(infile)
+        else:
+            # analyse dependencies
+            # logger.info("analysing dependencies - multiprocessed")
+            # with multiprocessing.Pool(self.n_procs) as p:
+            #     analysed_fortran = p.imap_unordered(
+            #         self.fortran_analyser.run, preprocessed_fortran)
+
+            analysed_fortran = []
+            for ppf in preprocessed_fortran:
+                analysed_fortran.append(self.fortran_analyser.run(ppf))
+
+            analysed_fortran = by_type(analysed_fortran)
+            if analysed_fortran[Exception]:
+                logger.error("there were errors analysing fortran:",
+                             analysed_fortran[Exception])
+                raise Exception("there were errors analysing fortran:",
+                                analysed_fortran[Exception])
+
+            logger.debug("writing fortran analysis to pickle")
+            with open(analysis_pickle, "wb") as outfile:
+                pickle.dump(analysed_fortran, outfile)
+
+        return analysed_fortran

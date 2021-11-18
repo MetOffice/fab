@@ -484,12 +484,10 @@ class FortranCompiler(object):
                  compiler: str,
                  flags: List[str],
                  workspace: Path,
-                 tree: Dict[str, ProgramUnit],
                  skip_if_exists: bool = False):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
-        self.tree = tree
         self._skip_if_exists = skip_if_exists
 
     # @timed_method
