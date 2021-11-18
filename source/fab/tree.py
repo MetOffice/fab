@@ -1,8 +1,9 @@
+import logging
 from collections import defaultdict
 from pathlib import Path
 
 
-from typing import List, Dict
+logger = logging.getLogger(__name__)
 
 
 # todo: might be better as a named tuple, as there's no methods
@@ -21,26 +22,14 @@ class EmptyProgramUnit(object):
         self.fpath = fpath
 
 
-# todo: this seems misnamed
-def build_tree(program_units: List[ProgramUnit]) -> Dict[str, ProgramUnit]:
-    """
-    Put the list program units into a dict, keyed on name.
-    """
-    tree = dict()
-    for p in program_units:
-        tree[p.name] = p
-    return tree
-
-
 def extract_sub_tree(
-        src_tree, key, _result=None, _missing=None, logger=None, indent=0):
+        src_tree, key, _result=None, _missing=None, indent=0):
     """blurb"""
 
     _result = _result or dict()
     _missing = _missing or set()
 
-    if logger:
-        logger.debug("----" * indent + key)
+    logger.debug("----" * indent + key)
 
     node = src_tree[key]
     _result[node.name] = node
@@ -51,24 +40,9 @@ def extract_sub_tree(
             _missing.add(dep)
             continue
         extract_sub_tree(
-            src_tree, dep, _result=_result, _missing=_missing, logger=logger, indent=indent + 1)
+            src_tree, dep, _result=_result, _missing=_missing, indent=indent + 1)
         
     return _result, _missing
-
-
-
-
-# def get_compile_order(node, tree, compile_order=None):
-#     compile_order = compile_order or []
-# 
-#     if node.deps:
-#         for dep in node.deps:
-#             get_compile_order(tree[dep], tree, compile_order=compile_order)
-#     else:
-#         if node not in compile_order:
-#             compile_order.append(node)
-# 
-#     return compile_order
 
 
 # todo: don't leave this here

@@ -29,7 +29,7 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.source_tree import get_fpaths_by_type, file_walk
-from fab.tree import build_tree, ProgramUnit, by_type, extract_sub_tree
+from fab.tree import ProgramUnit, by_type, extract_sub_tree
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -171,107 +171,30 @@ class Fab(object):
             fpaths.extend(file_walk(source_path, self.skip_files, logger))
         fpaths_by_type = get_fpaths_by_type(fpaths)
 
-        # Copy all the ancillary files.
-        # .inc files are being removed, so this step should eventually be unnecessary.
-        logger.info("copying ancillary files")
-        for fpath in fpaths_by_type[".inc"]:
-            logger.debug(f"copying ancillary file {fpath}")
-            shutil.copy(fpath, self._workspace)
+        self.copy_ancillary_files(fpaths_by_type)
 
-        # preprocess
-        logger.info("preprocessing")
-        with multiprocessing.Pool(self.n_procs) as p:
-            # todo: unordered
-            # preprocessed_fortran = p.imap_unordered(
-            preprocessed_fortran = p.map(
-                self.fortran_preprocessor.run, fpaths_by_type[".F90"])
+        preprocessed_fortran = self.preprocess(fpaths_by_type)
 
-        logger.info("analysing dependencies")
         analysed_fortran = self.analyse_fortran(preprocessed_fortran)
 
-        logger.info("building dependency tree")
-        all_tree = build_tree(analysed_fortran[ProgramUnit])  # all files
 
-        # filter for the build target - also ensures all required deps have been analysed
-        logger.info("extracting target sub tree")
-        target_tree, missing = extract_sub_tree(all_tree, self.target, logger=logger)
+        logger.info("\nextracting target sub tree")
+        target_tree, missing = extract_sub_tree(analysed_fortran, self.target)
         if missing:
             logger.warning(f"missing deps {missing}")
         else:
             logger.info("no missing deps")
 
-        logger.info(f"tree size (all files) {len(all_tree)}")
+        logger.info(f"tree size (all files) {len(analysed_fortran)}")
         logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
 
 
+        all_compiled = self.compile(target_tree)
 
-        # compile
-        logger.info("compiling")
-        to_compile = set(target_tree.values())
-
-
-
-        all_compiled = []  # todo: use set
-        already_compiled_names = set()
-        per_pass = []
-        while to_compile:
-
-            # find what to compile next
-            compile_next = []
-            for pu in to_compile:
-                # all deps ready?
-                can_compile = True
-                for dep in pu.deps:
-                    if dep not in already_compiled_names:
-                        can_compile = False
-                        break
-                if can_compile:
-                    compile_next.append(pu)
-
-            logger.info(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
-
-            # with multiprocessing.Pool(self.n_procs) as p:  # todo: move outside while loop?
-            #     this_pass = p.map(self.fortran_compiler.run, compile_next)
-
-            this_pass = []
-            for f in compile_next:
-                this_pass.append(self.fortran_compiler.run(f))
-
-            # nothing compiled?
-            compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
-            per_pass.append(len(compiled_this_pass))
-            if len(compiled_this_pass) == 0:
-                logger.error("nothing compiled this pass")
-                break
-
-            # todo: any errors?
-
-            # remove compiled files from list
-            logger.debug(f"compiled {len(compiled_this_pass)} files")
-
-            # ProgramUnit - not the same as passed in, due to mp copying
-            compiled_names = {i.program_unit.name for i in compiled_this_pass}
-            logger.debug(f"compiled_names {compiled_names}")
-            all_compiled.extend(compiled_this_pass)
-            already_compiled_names.update(compiled_names)
-
-            # to_compile.difference_update(compiled_program_units)
-            to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
-
-        if to_compile:
-            logger.warning(f"there were still {len(to_compile)} files left to compile")
-            for pu in to_compile:
-                logger.warning(pu.name)
-
-        logger.debug(f"compiled per pass {per_pass}")
-        logger.info(f"total compiled {sum(per_pass)}")
-
-
-
-
-        # logger.debug("linking")
+        # logger.debug("\nlinking")
         # self.linker.run(all_compiled)
-        # logger.warning("WE ARE AWESOME!")
+
+        logger.warning("\nfinished")
 
 
 
@@ -320,8 +243,81 @@ class Fab(object):
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
 
+    def copy_ancillary_files(self, fpaths_by_type):
+        logger.info("\ncopying ancillary files")
+        for fpath in fpaths_by_type[".inc"]:
+            logger.debug(f"copying ancillary file {fpath}")
+            shutil.copy(fpath, self._workspace)
+
+    def preprocess(self, fpaths_by_type):
+        logger.info("\npreprocessing")
+        with multiprocessing.Pool(self.n_procs) as p:
+            # todo: unordered
+            # preprocessed_fortran = p.imap_unordered(
+            preprocessed_fortran = p.map(
+                self.fortran_preprocessor.run, fpaths_by_type[".F90"])
+        return preprocessed_fortran
+
+    def compile(self, target_tree):
+        logger.info(f"\ncompiling {len(target_tree)} files")
+
+        to_compile = set(target_tree.values())
+        all_compiled = []  # todo: use set
+        already_compiled_names = set()
+        per_pass = []
+        while to_compile:
+
+            # find what to compile next
+            compile_next = []
+            for pu in to_compile:
+                # all deps ready?
+                can_compile = True
+                for dep in pu.deps:
+                    if dep not in already_compiled_names:
+                        can_compile = False
+                        break
+                if can_compile:
+                    compile_next.append(pu)
+
+            logger.debug(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
+
+            # with multiprocessing.Pool(self.n_procs) as p:  # todo: move outside while loop?
+            #     this_pass = p.map(self.fortran_compiler.run, compile_next)
+
+            this_pass = []
+            for f in compile_next:
+                this_pass.append(self.fortran_compiler.run(f))
+
+            # nothing compiled?
+            compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
+            per_pass.append(len(compiled_this_pass))
+            if len(compiled_this_pass) == 0:
+                logger.error("nothing compiled this pass")
+                break
+
+            # todo: any errors?
+
+            # remove compiled files from list
+            logger.debug(f"compiled {len(compiled_this_pass)} files")
+
+            # ProgramUnit - not the same as passed in, due to mp copying
+            compiled_names = {i.program_unit.name for i in compiled_this_pass}
+            logger.debug(f"compiled_names {compiled_names}")
+            all_compiled.extend(compiled_this_pass)
+            already_compiled_names.update(compiled_names)
+
+            # to_compile.difference_update(compiled_program_units)
+            to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
+        if to_compile:
+            logger.warning(f"there were still {len(to_compile)} files left to compile")
+            for pu in to_compile:
+                logger.warning(pu.name)
+        logger.debug(f"compiled per pass {per_pass}")
+        logger.info(f"total compiled {sum(per_pass)}")
+        return all_compiled
 
     def analyse_fortran(self, preprocessed_fortran):
+        logger.info("\nanalysing dependencies")
 
         # Load analysis results from previous run.
         # For now, just a pickle.
@@ -330,7 +326,7 @@ class Fab(object):
         if analysis_pickle.exists():
             logger.debug("loading fortran analysis from pickle")
             with open(analysis_pickle, "rb") as infile:
-                analysed_fortran = pickle.load(infile)
+                program_units = pickle.load(infile)
         else:
             # analyse dependencies
             # logger.info("analysing dependencies - multiprocessed")
@@ -338,19 +334,23 @@ class Fab(object):
             #     analysed_fortran = p.imap_unordered(
             #         self.fortran_analyser.run, preprocessed_fortran)
 
-            analysed_fortran = []
+            program_units = []
             for ppf in preprocessed_fortran:
-                analysed_fortran.append(self.fortran_analyser.run(ppf))
+                program_units.append(self.fortran_analyser.run(ppf))
 
-            analysed_fortran = by_type(analysed_fortran)
-            if analysed_fortran[Exception]:
+            program_units = by_type(program_units)
+            if program_units[Exception]:
                 logger.error("there were errors analysing fortran:",
-                             analysed_fortran[Exception])
+                             program_units[Exception])
                 raise Exception("there were errors analysing fortran:",
-                                analysed_fortran[Exception])
+                                program_units[Exception])
 
             logger.debug("writing fortran analysis to pickle")
             with open(analysis_pickle, "wb") as outfile:
-                pickle.dump(analysed_fortran, outfile)
+                pickle.dump(program_units, outfile)
 
-        return analysed_fortran
+        tree = dict()
+        for p in program_units[ProgramUnit]:
+            tree[p.name] = p
+
+        return tree
