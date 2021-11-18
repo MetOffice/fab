@@ -343,7 +343,7 @@ class FortranAnalyser(object):
         reader = FortranFileReader(str(fpath))  # ignore_comments=False
         tree = self.f2008_parser(reader)
         if tree.content[0] == None:
-            logger.warning(f"Empty tree found when parsing {fpath}")
+            logger.debug(f"Empty tree found when parsing {fpath}")
             return EmptyProgramUnit(fpath)
 
         module_name = None

@@ -5,6 +5,7 @@
 ##############################################################################
 import argparse
 import configparser
+from time import perf_counter, sleep
 from typing import Dict, List
 
 import logging
@@ -251,15 +252,61 @@ class Fab(object):
 
     def preprocess(self, fpaths_by_type):
         logger.info("\npreprocessing")
+        start = perf_counter()
+
         with multiprocessing.Pool(self.n_procs) as p:
-            # todo: unordered
-            # preprocessed_fortran = p.imap_unordered(
-            preprocessed_fortran = p.map(
+            # we could consider using imap_unordered here
+            preprocessed_fortran = p.map(  # 2.3s / 3
                 self.fortran_preprocessor.run, fpaths_by_type[".F90"])
+
+            preprocessed_fortran = list(preprocessed_fortran)
+
+        logger.info(f"preprocess took {perf_counter() - start}")
         return preprocessed_fortran
+
+    def analyse_fortran(self, preprocessed_fortran):
+        logger.info("\nanalysing dependencies")
+        start = perf_counter()
+
+        # Load analysis results from previous run.
+        # For now, just a pickle.
+        # todo: We plan to save to a data store as we go, for interrupted runs
+        analysis_pickle = self._workspace / "__analysis_f.pickle"
+        if analysis_pickle.exists():
+            logger.debug("loading fortran analysis from pickle")
+            with open(analysis_pickle, "rb") as infile:
+                program_units = pickle.load(infile)
+        else:
+            with multiprocessing.Pool(self.n_procs) as p:
+                program_units = p.map(
+                    self.fortran_analyser.run, preprocessed_fortran)
+
+            # program_units = []
+            # for ppf in preprocessed_fortran:
+            #     program_units.append(self.fortran_analyser.run(ppf))
+
+            program_units = by_type(program_units)
+            if program_units[Exception]:
+                logger.error("there were errors analysing fortran:",
+                             program_units[Exception])
+                raise Exception("there were errors analysing fortran:",
+                                program_units[Exception])
+
+            logger.debug("writing fortran analysis to pickle")
+            with open(analysis_pickle, "wb") as outfile:
+                pickle.dump(program_units, outfile)
+
+        tree = dict()
+        for p in program_units[ProgramUnit]:
+            tree[p.name] = p
+
+        logger.info(f"analysis took {perf_counter() - start}")
+        return tree
 
     def compile(self, target_tree):
         logger.info(f"\ncompiling {len(target_tree)} files")
+        start = perf_counter()
+
 
         to_compile = set(target_tree.values())
         all_compiled = []  # todo: use set
@@ -281,12 +328,12 @@ class Fab(object):
 
             logger.debug(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
 
-            # with multiprocessing.Pool(self.n_procs) as p:  # todo: move outside while loop?
-            #     this_pass = p.map(self.fortran_compiler.run, compile_next)
+            with multiprocessing.Pool(self.n_procs) as p:
+                this_pass = p.map(self.fortran_compiler.run, compile_next)
 
-            this_pass = []
-            for f in compile_next:
-                this_pass.append(self.fortran_compiler.run(f))
+            # this_pass = []
+            # for f in compile_next:
+            #     this_pass.append(self.fortran_compiler.run(f))
 
             # nothing compiled?
             compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
@@ -314,43 +361,6 @@ class Fab(object):
                 logger.warning(pu.name)
         logger.debug(f"compiled per pass {per_pass}")
         logger.info(f"total compiled {sum(per_pass)}")
+
+        logger.info(f"compilation took {perf_counter() - start}")
         return all_compiled
-
-    def analyse_fortran(self, preprocessed_fortran):
-        logger.info("\nanalysing dependencies")
-
-        # Load analysis results from previous run.
-        # For now, just a pickle.
-        # todo: We plan to save to a data store as we go, for interrupted runs
-        analysis_pickle = self._workspace / "__analysis_f.pickle"
-        if analysis_pickle.exists():
-            logger.debug("loading fortran analysis from pickle")
-            with open(analysis_pickle, "rb") as infile:
-                program_units = pickle.load(infile)
-        else:
-            # analyse dependencies
-            # logger.info("analysing dependencies - multiprocessed")
-            # with multiprocessing.Pool(self.n_procs) as p:
-            #     analysed_fortran = p.imap_unordered(
-            #         self.fortran_analyser.run, preprocessed_fortran)
-
-            program_units = []
-            for ppf in preprocessed_fortran:
-                program_units.append(self.fortran_analyser.run(ppf))
-
-            program_units = by_type(program_units)
-            if program_units[Exception]:
-                logger.error("there were errors analysing fortran:",
-                             program_units[Exception])
-                raise Exception("there were errors analysing fortran:",
-                                program_units[Exception])
-
-            logger.debug("writing fortran analysis to pickle")
-            with open(analysis_pickle, "wb") as outfile:
-                pickle.dump(program_units, outfile)
-
-        tree = dict()
-        for p in program_units[ProgramUnit]:
-            tree[p.name] = p
-
-        return tree
