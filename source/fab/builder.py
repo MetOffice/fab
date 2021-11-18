@@ -31,6 +31,7 @@ from fab.tasks.c import \
     CCompiler
 from fab.source_tree import get_fpaths_by_type, file_walk
 from fab.tree import ProgramUnit, by_type, extract_sub_tree
+from fab.util import log_or_dot_finish
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -145,6 +146,7 @@ class Fab(object):
 
         self.fortran_compiler = FortranCompiler(
             'gfortran',
+            # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
             ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             self._workspace, skip_if_exists=self.skip_if_exists)
 
@@ -159,7 +161,9 @@ class Fab(object):
         )
 
         self.linker = Linker(
-            'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
+            # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
+            # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
+            '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
             workspace, exec_name
         )
 
@@ -192,8 +196,8 @@ class Fab(object):
 
         all_compiled = self.compile(target_tree)
 
-        # logger.debug("\nlinking")
-        # self.linker.run(all_compiled)
+        logger.info("\nlinking")
+        self.linker.run(all_compiled)
 
         logger.warning("\nfinished")
 
@@ -244,8 +248,9 @@ class Fab(object):
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
 
+
     def copy_ancillary_files(self, fpaths_by_type):
-        logger.info("\ncopying ancillary files")
+        logger.info(f"\ncopying {len(fpaths_by_type['.inc'])} ancillary files")
         for fpath in fpaths_by_type[".inc"]:
             logger.debug(f"copying ancillary file {fpath}")
             shutil.copy(fpath, self._workspace)
@@ -261,6 +266,7 @@ class Fab(object):
 
             preprocessed_fortran = list(preprocessed_fortran)
 
+        log_or_dot_finish(logger)
         logger.info(f"preprocess took {perf_counter() - start}")
         return preprocessed_fortran
 
@@ -300,6 +306,7 @@ class Fab(object):
         for p in program_units[ProgramUnit]:
             tree[p.name] = p
 
+        log_or_dot_finish(logger)
         logger.info(f"analysis took {perf_counter() - start}")
         return tree
 
@@ -362,5 +369,6 @@ class Fab(object):
         logger.debug(f"compiled per pass {per_pass}")
         logger.info(f"total compiled {sum(per_pass)}")
 
+        log_or_dot_finish(logger)
         logger.info(f"compilation took {perf_counter() - start}")
         return all_compiled

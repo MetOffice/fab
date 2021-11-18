@@ -39,6 +39,7 @@ from fab.artifact import \
     Compiled, \
     BinaryObject
 from fab.tree import ProgramUnit, EmptyProgramUnit
+from fab.util import log_or_dot
 
 
 class FortranUnitUnresolvedID(object):
@@ -337,7 +338,8 @@ class FortranAnalyser(object):
 
         # new_artifact = Artifact(fpath, artifact.filetype, Analysed)
         program_unit = None
-        logger.debug(f"analysing {fpath}")
+        # logger.debug(f"analysing {fpath}")
+        log_or_dot(logger, f"analysing {fpath}")
 
         # parse the fortran into a tree
         reader = FortranFileReader(str(fpath))  # ignore_comments=False
@@ -463,9 +465,11 @@ class FortranPreProcessor(object):
         command.append(str(output_fpath))
 
         if self._skip_if_exists and output_fpath.exists():
-            logger.debug(f'Preprocessor skipping {output_fpath}')
+            # logger.debug(f'Preprocessor skipping {output_fpath}')
+            log_or_dot(logger, f'Preprocessor skipping {output_fpath}')
         else:
-            logger.debug('Preprocessor running command: ' + ' '.join(command))
+            # logger.debug('Preprocessor running command: ' + ' '.join(command))
+            log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
             subprocess.run(command, check=True)
 
         return output_fpath
@@ -502,9 +506,9 @@ class FortranCompiler(object):
         command.extend(['-o', str(output_fpath)])
 
         if self._skip_if_exists and output_fpath.exists():
-            logger.debug(f'Compiler skipping {output_fpath}')
+            log_or_dot(logger, f'Compiler skipping {output_fpath}')
         else:
-            logger.debug('Compiler running command: ' + ' '.join(command))
+            log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
             try:
                 res = subprocess.run(command, check=True)
                 if res.returncode != 0:
