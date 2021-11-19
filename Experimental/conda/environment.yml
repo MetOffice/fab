@@ -3,6 +3,7 @@ dependencies:
   - flake8
   - libclang
   - mypy
+  - openmpi
   - python=3.8
   - pip=21.2.4
   - pytest

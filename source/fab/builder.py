@@ -160,6 +160,9 @@ class Fab(object):
             'gcc', ['-c'], workspace
         )
 
+        # export OMPI_FC=gfortran
+        # https://www.open-mpi.org/faq/?category=mpi-apps#general-build
+        # steve thinks we might have to use mpif90
         self.linker = Linker(
             # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
             # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
@@ -179,6 +182,7 @@ class Fab(object):
         self.copy_ancillary_files(fpaths_by_type)
 
         preprocessed_fortran = self.preprocess(fpaths_by_type)
+        # preprocessed_fortran = fpaths_by_type['.inc'] + self.preprocess(fpaths_by_type)
 
         analysed_fortran = self.analyse_fortran(preprocessed_fortran)
 
@@ -200,29 +204,6 @@ class Fab(object):
         self.linker.run(all_compiled)
 
         logger.warning("\nfinished")
-
-
-
-        #
-        # # self._queue.run()
-        #
-        # # first, we need to copy over all the ancillary files
-        # # TODO: inc files are being removed, so this step should eventually be unnecessary
-        # def copy_acillary_file(artifact):
-        #     if str(artifact.location).endswith(".inc"):
-        #         print("copying ancillary file", artifact.location)
-        #         shutil.copy(artifact.location, self._workspace)
-        # visitor = SourceVisitor(copy_acillary_file)
-        # descender = TreeDescent(source)
-        # descender.descend(visitor)
-        #
-        # # now do the main fab run
-        # visitor = SourceVisitor(self._extend_queue)
-        # descender = TreeDescent(source)
-        # descender.descend(visitor)
-        #
-        # self._queue.check_queue_done()
-        # self._queue.shutdown()
 
 
         #
@@ -366,9 +347,9 @@ class Fab(object):
             logger.warning(f"there were still {len(to_compile)} files left to compile")
             for pu in to_compile:
                 logger.warning(pu.name)
-        logger.debug(f"compiled per pass {per_pass}")
-        logger.info(f"total compiled {sum(per_pass)}")
 
         log_or_dot_finish(logger)
+        logger.debug(f"compiled per pass {per_pass}")
+        logger.info(f"total compiled {sum(per_pass)}")
         logger.info(f"compilation took {perf_counter() - start}")
         return all_compiled
