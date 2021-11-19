@@ -104,7 +104,8 @@ def entry() -> None:
                       ld_flags=flags['ld-flags'],
                       n_procs=arguments.nprocs,
                       skip_files=skip_files,
-                      skip_if_exists=arguments.skip_if_exists)
+                      skip_if_exists=arguments.skip_if_exists,
+                      unreferenced_deps=settings['unreferenced-dependencies'].split(','))
     application.run(arguments.source.split(','))
 
 
@@ -119,7 +120,8 @@ class Fab(object):
                  n_procs: int,
                  stop_on_error: bool = True,
                  skip_files=None,
-                 skip_if_exists=False):
+                 skip_if_exists=False,
+                 unreferenced_deps=None):
 
         self.n_procs = n_procs
         self.target = target
@@ -129,6 +131,7 @@ class Fab(object):
         self.skip_files = skip_files or []
         self.fc_flags = fc_flags
         self.skip_if_exists = skip_if_exists
+        self.unreferenced_deps = unreferenced_deps or []
 
         self._state = SqliteStateDatabase(workspace)
 
@@ -184,9 +187,10 @@ class Fab(object):
         preprocessed_fortran = self.preprocess(fpaths_by_type)
         # preprocessed_fortran = fpaths_by_type['.inc'] + self.preprocess(fpaths_by_type)
 
+        # analyse ALL files to get deps
         analysed_fortran = self.analyse_fortran(preprocessed_fortran)
 
-
+        # pull out just those required to build the target
         logger.info("\nextracting target sub tree")
         target_tree, missing = extract_sub_tree(analysed_fortran, self.target)
         if missing:
@@ -197,7 +201,24 @@ class Fab(object):
         logger.info(f"tree size (all files) {len(analysed_fortran)}")
         logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
 
+        # Add any unreferenced dependencies
+        # (where a fortran routine is called without a use statement).
+        def foo(dep):
+            pu = analysed_fortran.get(dep)
 
+            if not pu:
+                logger.warning(f"couldn't find {dep}")
+
+            if dep not in target_tree:
+                logger.warning(f"Adding unreferenced dependency {dep}")
+                target_tree[dep] = pu
+
+            for sub in pu.deps:
+                foo(sub)
+        for dep in self.unreferenced_deps:
+            foo(dep)
+
+        #
         all_compiled = self.compile(target_tree)
 
         logger.info("\nlinking")
