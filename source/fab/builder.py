@@ -177,36 +177,39 @@ class Fab(object):
 
     def run(self, source_paths: List[Path]):
 
-        # walk the source folder
+        # walk each source folder
         preprocessed_fortran = []
         for source_root in source_paths:
             fpaths = file_walk(source_root, self.skip_files, logger)
-
             fpaths_by_type = get_fpaths_by_type(fpaths)
 
+            # copy inc files
             # todo: keep folder structure for inc files too?
             self.copy_ancillary_files(fpaths_by_type)
 
+            # Preprocess the source files - output into the workspace folder
+            # Note: some files may end up empty, depending on #ifdefs
             preprocessed_fortran.extend(
                 self.preprocess(fpaths_by_type, source_root))
 
-
-        # analyse ALL files to get deps
+        # Analyse all files, identifying the program unit name and deps for each file.
+        # We get back a dict which maps a program unit name to a ProgramUnit.
+        # The dependency tree is implicit in this flat dict.
         analysed_fortran = self.analyse_fortran(preprocessed_fortran)
 
-        # pull out just those required to build the target
+        # Pull out the program units required to build the target.
         logger.info("\nextracting target sub tree")
         target_tree, missing = extract_sub_tree(analysed_fortran, self.target, verbose=False)
         if missing:
             logger.warning(f"missing deps {missing}")
         else:
             logger.info("no missing deps")
-
         logger.info(f"tree size (all files) {len(analysed_fortran)}")
         logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
 
         # Add any unreferenced dependencies
         # (where a fortran routine is called without a use statement).
+        # Todo: replace this with call analysis?
         def foo(dep):
             pu = analysed_fortran.get(dep)
 
@@ -223,7 +226,7 @@ class Fab(object):
         for dep in self.unreferenced_deps:
             foo(dep)
 
-        #
+        # compile everything we need to build the target
         all_compiled = self.compile(target_tree)
 
         logger.info("\nlinking")
@@ -270,6 +273,7 @@ class Fab(object):
         for fpath in fpaths_by_type[".F90"]:
 
             # todo: duplicated snippet from run()
+            # todo: include source root leaf, e.g src or util.
             rel_fpath = fpath.relative_to(source_root)
             output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
 
@@ -306,14 +310,12 @@ class Fab(object):
             with open(analysis_pickle, "rb") as infile:
                 program_units = pickle.load(infile)
         else:
+            # Analyse everything
             with multiprocessing.Pool(self.n_procs) as p:
                 program_units = p.map(
                     self.fortran_analyser.run, preprocessed_fortran)
 
-            # program_units = []
-            # for ppf in preprocessed_fortran:
-            #     program_units.append(self.fortran_analyser.run(ppf))
-
+            # See what we got!
             program_units = by_type(program_units)
             if program_units[Exception]:
                 logger.error("there were errors analysing fortran:",
@@ -324,6 +326,10 @@ class Fab(object):
             logger.debug("writing fortran analysis to pickle")
             with open(analysis_pickle, "wb") as outfile:
                 pickle.dump(program_units, outfile)
+
+        # Note: We might have some EmptyProgramUnits at this stage,
+        # e.g if the preprocessor produced empty files.
+        # We ignore them from here on.
 
         tree = dict()
         for p in program_units[ProgramUnit]:

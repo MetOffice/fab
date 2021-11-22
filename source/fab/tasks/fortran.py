@@ -428,7 +428,7 @@ class FortranAnalyser(object):
                 # cstate.add_c_symbol(symbol_id)
                 # new_artifact.add_definition(cbind_name)
 
-        logger.debug(f"    analysed {fpath}")
+        logger.debug(f"    analysed {program_unit.name}")
         return program_unit
 
 
