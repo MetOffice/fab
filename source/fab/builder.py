@@ -196,7 +196,7 @@ class Fab(object):
 
         # pull out just those required to build the target
         logger.info("\nextracting target sub tree")
-        target_tree, missing = extract_sub_tree(analysed_fortran, self.target)
+        target_tree, missing = extract_sub_tree(analysed_fortran, self.target, verbose=False)
         if missing:
             logger.warning(f"missing deps {missing}")
         else:
@@ -211,7 +211,8 @@ class Fab(object):
             pu = analysed_fortran.get(dep)
 
             if not pu:
-                logger.warning(f"couldn't find {dep}")
+                logger.warning(f"couldn't find dep {dep}")
+                return
 
             if dep not in target_tree:
                 logger.warning(f"Adding unreferenced dependency {dep}")

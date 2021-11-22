@@ -23,19 +23,20 @@ class EmptyProgramUnit(object):
 
 
 def extract_sub_tree(
-        src_tree, key, _result=None, _missing=None, indent=0):
+        src_tree, key, _result=None, _missing=None, indent=0, verbose=False):
     """blurb"""
 
     _result = _result or dict()
     _missing = _missing or set()
 
-    logger.debug("----" * indent + key)
+    if verbose:
+        logger.debug("----" * indent + key)
 
     node = src_tree[key]
     _result[node.name] = node
     for dep in sorted(node.deps):
         if not src_tree.get(dep):
-            if logger:
+            if logger and verbose:
                 logger.debug("----" * indent + "!!!!" + dep)
             _missing.add(dep)
             continue
