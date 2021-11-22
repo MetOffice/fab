@@ -26,7 +26,7 @@ def file_walk(path: Path, skip_files=None, logger=None) -> Iterator[Path]:
             yield i
 
 
-def get_fpaths_by_type(fpaths: List[Path]):
+def get_fpaths_by_type(fpaths: Iterator[Path]):
 
     fpaths_by_type = defaultdict(list)
     for fpath in fpaths:

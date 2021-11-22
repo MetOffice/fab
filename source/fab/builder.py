@@ -78,6 +78,7 @@ def entry() -> None:
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
     parser.add_argument('--skip-if-exists', action="store_true")
+    # todo: this won't work with multiple source folders
     parser.add_argument('source', type=Path,
                         help='The path of the source tree to build. Accepts a comma separated list.')
     parser.add_argument('conf_file', type=Path, default='config.ini',
@@ -177,15 +178,18 @@ class Fab(object):
     def run(self, source_paths: List[Path]):
 
         # walk the source folder
-        fpaths = []
-        for source_path in source_paths:
-            fpaths.extend(file_walk(source_path, self.skip_files, logger))
-        fpaths_by_type = get_fpaths_by_type(fpaths)
+        preprocessed_fortran = []
+        for source_root in source_paths:
+            fpaths = file_walk(source_root, self.skip_files, logger)
 
-        self.copy_ancillary_files(fpaths_by_type)
+            fpaths_by_type = get_fpaths_by_type(fpaths)
 
-        preprocessed_fortran = self.preprocess(fpaths_by_type)
-        # preprocessed_fortran = fpaths_by_type['.inc'] + self.preprocess(fpaths_by_type)
+            # todo: keep folder structure for inc files too?
+            self.copy_ancillary_files(fpaths_by_type)
+
+            preprocessed_fortran.extend(
+                self.preprocess(fpaths_by_type, source_root))
+
 
         # analyse ALL files to get deps
         analysed_fortran = self.analyse_fortran(preprocessed_fortran)
@@ -257,14 +261,30 @@ class Fab(object):
             logger.debug(f"copying ancillary file {fpath}")
             shutil.copy(fpath, self._workspace)
 
-    def preprocess(self, fpaths_by_type):
-        logger.info("\npreprocessing")
+    def preprocess(self, fpaths_by_type, source_root):
+        logger.info(f"\npreprocessing {source_root}")
         start = perf_counter()
 
+        # create output folder structure
+        for fpath in fpaths_by_type[".F90"]:
+
+            # todo: duplicated snippet from run()
+            rel_fpath = fpath.relative_to(source_root)
+            output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
+
+            if not output_fpath.parent.exists():
+                logger.debug(f"creating output folder {output_fpath.parent}")
+                output_fpath.parent.mkdir(parents=True)
+
+        fpaths_with_root = zip(
+            fpaths_by_type[".F90"],
+            [source_root] * len(fpaths_by_type[".F90"]))
+
         with multiprocessing.Pool(self.n_procs) as p:
-            # we could consider using imap_unordered here
-            preprocessed_fortran = p.map(  # 2.3s / 3
-                self.fortran_preprocessor.run, fpaths_by_type[".F90"])
+            # preprocessed_fortran = p.map(  # 2.3s / 3
+                # self.fortran_preprocessor.run, fpaths_by_type[".F90"])
+            preprocessed_fortran = p.starmap(  # 2.3s / 3
+                self.fortran_preprocessor.run, fpaths_with_root)
 
             preprocessed_fortran = list(preprocessed_fortran)
 

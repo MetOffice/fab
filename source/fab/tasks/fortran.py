@@ -444,7 +444,7 @@ class FortranPreProcessor(object):
         self._skip_if_exists = skip_if_exists
 
     # @timed_method
-    def run(self, fpath):
+    def run(self, fpath: Path, source_root: Path):
         logger = logging.getLogger(__name__)
 
         # if len(artifacts) == 1:
@@ -459,9 +459,12 @@ class FortranPreProcessor(object):
 
         # find ancillary inc files already copied across
         command.extend(["-I", str(self._workspace)])  # todo: revisit this
+
         command.append(str(fpath))
 
-        output_fpath = (self._workspace / fpath.with_suffix('.f90').name)
+        # output_fpath = (self._workspace / fpath.with_suffix('.f90').name)
+        rel_fpath = fpath.relative_to(source_root)
+        output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
         command.append(str(output_fpath))
 
         if self._skip_if_exists and output_fpath.exists():
