@@ -192,29 +192,30 @@ class Fab(object):
             preprocessed_fortran.extend(
                 self.preprocess(fpaths_by_type, source_root))
 
-        # Analyse all files, identifying the program unit name and deps for each file.
-        # We get back a dict which maps a program unit name to a ProgramUnit.
+        # Analyse ALL files, identifying the program unit name and deps for each file.
+        # We get back a dict of ProgramUnits.
         # The dependency tree is implicit in this flat dict.
-        analysed_fortran = self.analyse_fortran(preprocessed_fortran)
+        analysed_everything = self.analyse_fortran(preprocessed_fortran)
 
         # Pull out the program units required to build the target.
         logger.info("\nextracting target sub tree")
-        target_tree, missing = extract_sub_tree(analysed_fortran, self.target, verbose=False)
+        target_tree, missing = extract_sub_tree(analysed_everything, self.target, verbose=False)
         if missing:
             logger.warning(f"missing deps {missing}")
         else:
             logger.info("no missing deps")
-        logger.info(f"tree size (all files) {len(analysed_fortran)}")
+        logger.info(f"tree size (all files) {len(analysed_everything)}")
         logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
 
-        # Add any unreferenced dependencies
+        # Add any unreferenced dependencies - and their dependencies
         # (where a fortran routine is called without a use statement).
+        # This is driven by the config list "unreferenced-dependencies"
         # Todo: replace this with call analysis?
         def foo(dep):
-            pu = analysed_fortran.get(dep)
-
+            pu = analysed_everything.get(dep)
             if not pu:
-                logger.warning(f"couldn't find dep {dep}")
+                if dep != "mpi":  # todo: remove this if?
+                    logger.warning(f"couldn't find dep {dep}")
                 return
 
             if dep not in target_tree:
@@ -333,7 +334,17 @@ class Fab(object):
 
         tree = dict()
         for p in program_units[ProgramUnit]:
+
+            # Note: we can't record the program unit by the program unit name,
+            # it has to be recorded by the file name.
+            # Analysis breaks when the program unit name doesn't match
+            # the filename, e.g "subroutine vgrav" in "vgrav_jls.f90".
             tree[p.name] = p
+
+            # # Record the program unit by it's file name, not it's program unit name.
+            # # Todo: So what's the point of reading and storing the program unit name now?
+            # filename = p.fpath.with_suffix('').name
+            # tree[filename] = p
 
         log_or_dot_finish(logger)
         logger.info(f"analysis took {perf_counter() - start}")

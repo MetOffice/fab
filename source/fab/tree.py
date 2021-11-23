@@ -9,9 +9,16 @@ logger = logging.getLogger(__name__)
 # todo: might be better as a named tuple, as there's no methods
 class ProgramUnit(object):
     def __init__(self, name: str, fpath: Path):
-        self.name = name
+        self.name = name.lower()
         self.fpath = fpath
-        self.deps = set()
+        self._deps = set()
+
+    def add_dep(self, dep):
+        self._deps.add(dep.lower())
+
+    @property
+    def deps(self):
+        return self._deps
 
     def __str__(self):
         return f"ProgramUnit {self.name} {self.fpath} {self.deps}"

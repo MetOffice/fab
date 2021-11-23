@@ -379,7 +379,7 @@ class FortranAnalyser(object):
                     # found a new dependency
                     unit_id = FortranUnitID(module_name, fpath)
                     state.add_fortran_dependency(unit_id, use_name)
-                    program_unit.deps.add(use_name)
+                    program_unit.add_dep(use_name)
                     deps.add(use_name)
 
             elif obj_type == Function_Stmt:
@@ -401,7 +401,7 @@ class FortranAnalyser(object):
                         # TODO: what if this is also the program unit? Check if that's possible /ok.
                         unit_id = FortranUnitID(module_name, fpath)
                         state.add_fortran_dependency(unit_id, bind_name)
-                        program_unit.deps.add(bind_name)
+                        program_unit.add_dep(bind_name)
 
                     # exporting from fortran to c, i.e binding without an interface block
                     else:
@@ -410,7 +410,7 @@ class FortranAnalyser(object):
                         # Add to the C database
                         symbol_id = CSymbolID(bind_name, fpath)
                         cstate.add_c_symbol(symbol_id)
-                        program_unit.deps.add(bind_name)
+                        program_unit.add_dep(bind_name)
 
             # TODO: (NOT PRESENT IN JULES) variable binding
             elif obj_type == "foo":
@@ -462,6 +462,7 @@ class FortranPreProcessor(object):
 
         command.append(str(fpath))
 
+        # todo: add utils & src!!
         # output_fpath = (self._workspace / fpath.with_suffix('.f90').name)
         rel_fpath = fpath.relative_to(source_root)
         output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
