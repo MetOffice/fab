@@ -43,6 +43,7 @@ def read_config(conf_file):
     config.read(configfile)
 
     skip_files = []
+    # todo: don't use walrus operator, and set the Python version to [3.6?] in env and setup.
     if skip_files_config := config['settings']['skip-files-list']:
         for line in open(skip_files_config, "rt"):
             skip_files.append(line.strip())

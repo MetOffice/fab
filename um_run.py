@@ -1,14 +1,14 @@
 #
 # cli equivalent:
-#   fab ~/svn/jules/trunk/src jules.config -w ~/git/fab/tmp-workspace-jules --stop-on-error -vv
+#   fab ~/svn/um/trunk/src um.config -w ~/git/fab/tmp-workspace-um --stop-on-error -vv
 #
 # optionally (default):
 #   --nprocs 2
 #
-# cli also needs jules.config:
+# cli also needs um.config:
 #     [settings]
-#     target = jules
-#     exec-name = jules.exe
+#     target = um
+#     exec-name = um
 #
 #     [flags]
 #     fpp-flags =
@@ -28,22 +28,16 @@ from fab.builder import Fab, read_config
 def main():
 
     # argparser = ArgumentParser()
-    # argparser.add_argument("jules_path", required=False, default="~/svn/trunk")
+    # argparser.add_argument("um_path", required=False, default="~/svn/trunk")
     # args = argparser.parse_args()
 
-    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace-jules"
-    # todo: remove bblay
+    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace-um"
     src_paths: List[Path] = [
-        Path('~/svn/jules/trunk/src'),
-        Path('~/svn/jules/trunk/utils'),
+        Path(os.path.expanduser('~/svn/um/trunk/src')),
+        Path(os.path.expanduser('~/svn/um/trunk/utils')),
     ]
 
-    # src_paths: List[Path] = [
-    #     Path(args.jules_path) / 'src',
-    #     Path(args.jules_path) / 'utils',
-    # ]
-
-    config, skip_files = read_config("jules.config")
+    config, skip_files = read_config("um.config")
     settings = config['settings']
     flags = config['flags']
 
