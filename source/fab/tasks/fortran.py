@@ -469,12 +469,13 @@ class FortranPreProcessor(object):
         command.append(str(output_fpath))
 
         if self._skip_if_exists and output_fpath.exists():
-            # logger.debug(f'Preprocessor skipping {output_fpath}')
             log_or_dot(logger, f'Preprocessor skipping {output_fpath}')
         else:
-            # logger.debug('Preprocessor running command: ' + ' '.join(command))
             log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
-            subprocess.run(command, check=True)
+            try:
+                subprocess.run(command, check=True, capture_output=True)
+            except subprocess.CalledProcessError as err:
+                return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
         return output_fpath
 

@@ -5,13 +5,14 @@
 ##############################################################################
 import argparse
 import configparser
+import subprocess
 from time import perf_counter, sleep
 from typing import Dict, List
 
 import logging
 import multiprocessing
 import pickle
-from pathlib import Path
+from pathlib import Path, PosixPath
 import shutil
 import sys
 
@@ -120,7 +121,7 @@ class Fab(object):
                  fc_flags: str,
                  ld_flags: str,
                  n_procs: int,
-                 stop_on_error: bool = True,
+                 stop_on_error: bool = True,  # todo: i think we accidentally stopped using this
                  skip_files=None,
                  skip_if_exists=False,
                  unreferenced_deps=None):
@@ -263,7 +264,8 @@ class Fab(object):
 
     def copy_ancillary_files(self, fpaths_by_type):
         logger.info(f"\ncopying {len(fpaths_by_type['.inc'])} ancillary files")
-        for fpath in fpaths_by_type[".inc"]:
+        # todo: this should be in the project config
+        for fpath in fpaths_by_type[".inc"] + fpaths_by_type[".h"]:
             logger.debug(f"copying ancillary file {fpath}")
             shutil.copy(fpath, self._workspace)
 
@@ -292,12 +294,20 @@ class Fab(object):
                 # self.fortran_preprocessor.run, fpaths_by_type[".F90"])
             preprocessed_fortran = p.starmap(  # 2.3s / 3
                 self.fortran_preprocessor.run, fpaths_with_root)
+        preprocessed_fortran = by_type(preprocessed_fortran)
 
-            preprocessed_fortran = list(preprocessed_fortran)
+        # any errors?
+        if preprocessed_fortran[Exception]:
+            formatted_errors = "\n\n".join(map(str, preprocessed_fortran[Exception]))
+            raise Exception(
+                f"{formatted_errors}"
+                f"\n\n{len(preprocessed_fortran[Exception])} "
+                f"Error(s) found during preprocessing: "
+            )
 
         log_or_dot_finish(logger)
         logger.info(f"preprocess took {perf_counter() - start}")
-        return preprocessed_fortran
+        return preprocessed_fortran[PosixPath]
 
     def analyse_fortran(self, preprocessed_fortran):
         logger.info("\nanalysing dependencies")
@@ -320,7 +330,7 @@ class Fab(object):
             # See what we got!
             program_units = by_type(program_units)
             if program_units[Exception]:
-                logger.error("there were errors analysing fortran:",
+                logger.error(f"{len(program_units[Exception])} errors analysing fortran:",
                              program_units[Exception])
                 raise Exception("there were errors analysing fortran:",
                                 program_units[Exception])

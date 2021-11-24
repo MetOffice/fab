@@ -34,7 +34,6 @@ def main():
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace-um"
     src_paths: List[Path] = [
         Path(os.path.expanduser('~/svn/um/trunk/src')),
-        Path(os.path.expanduser('~/svn/um/trunk/utils')),
     ]
 
     config, skip_files = read_config("um.config")
