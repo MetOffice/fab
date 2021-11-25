@@ -34,14 +34,9 @@ def main():
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace-jules"
     # todo: remove bblay
     src_paths: List[Path] = [
-        Path('~/svn/jules/trunk/src'),
-        Path('~/svn/jules/trunk/utils'),
+        Path(os.path.expanduser('~/svn/jules/trunk/src')),
+        Path(os.path.expanduser('~/svn/jules/trunk/utils')),
     ]
-
-    # src_paths: List[Path] = [
-    #     Path(args.jules_path) / 'src',
-    #     Path(args.jules_path) / 'utils',
-    # ]
 
     config, skip_files = read_config("jules.config")
     settings = config['settings']
@@ -56,12 +51,11 @@ def main():
                  n_procs=3,  # should be able to pass in 1, but it subtracts 1!
                  stop_on_error=True,
                  skip_files=skip_files,
-                 skip_if_exists=True,
                  unreferenced_deps=settings['unreferenced-dependencies'].split(','))
 
     logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     my_fab.run(source_paths=src_paths)
 

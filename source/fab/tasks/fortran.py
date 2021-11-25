@@ -436,15 +436,15 @@ class FortranPreProcessor(object):
     def __init__(self,
                  preprocessor: str,
                  flags: List[str],
-                 workspace: Path,
-                 skip_if_exists: bool = False):
+                 workspace: Path):
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
-        self._skip_if_exists = skip_if_exists
 
     # @timed_method
-    def run(self, fpath: Path, source_root: Path):
+    # def run(self, fpath: Path, source_root: Path):
+    def run(self, args):
+        fpath, source_root = args
         logger = logging.getLogger(__name__)
 
         # if len(artifacts) == 1:
@@ -468,14 +468,11 @@ class FortranPreProcessor(object):
         output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
         command.append(str(output_fpath))
 
-        if self._skip_if_exists and output_fpath.exists():
-            log_or_dot(logger, f'Preprocessor skipping {output_fpath}')
-        else:
-            log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
-            try:
-                subprocess.run(command, check=True, capture_output=True)
-            except subprocess.CalledProcessError as err:
-                return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
+        try:
+            subprocess.run(command, check=True, capture_output=True)
+        except subprocess.CalledProcessError as err:
+            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
         return output_fpath
 
@@ -492,12 +489,10 @@ class FortranCompiler(object):
     def __init__(self,
                  compiler: str,
                  flags: List[str],
-                 workspace: Path,
-                 skip_if_exists: bool = False):
+                 workspace: Path):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
-        self._skip_if_exists = skip_if_exists
 
     # @timed_method
     def run(self, program_unit: ProgramUnit):
@@ -510,18 +505,15 @@ class FortranCompiler(object):
         output_fpath = (self._workspace / program_unit.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_fpath)])
 
-        if self._skip_if_exists and output_fpath.exists():
-            log_or_dot(logger, f'Compiler skipping {output_fpath}')
-        else:
-            log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
-            try:
-                res = subprocess.run(command, check=True)
-                if res.returncode != 0:
-                    # todo: specific exception
-                    return Exception("The compiler exited with non zero")
-            # todo: not idiomatic
-            except Exception as err:
+        log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
+        try:
+            res = subprocess.run(command, check=True)
+            if res.returncode != 0:
                 # todo: specific exception
-                return Exception("Error calling compiler:", err)
+                return Exception("The compiler exited with non zero")
+        # todo: not idiomatic
+        except Exception as err:
+            # todo: specific exception
+            return Exception("Error calling compiler:", err)
 
         return CompiledProgramUnit(program_unit, output_fpath)

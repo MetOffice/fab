@@ -8,10 +8,10 @@ logger = logging.getLogger(__name__)
 
 # todo: might be better as a named tuple, as there's no methods
 class ProgramUnit(object):
-    def __init__(self, name: str, fpath: Path):
+    def __init__(self, name: str, fpath: Path, deps=None):
         self.name = name.lower()
         self.fpath = fpath
-        self._deps = set()
+        self._deps = deps or set()
 
     def add_dep(self, dep):
         self._deps.add(dep.lower())

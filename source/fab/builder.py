@@ -5,6 +5,8 @@
 ##############################################################################
 import argparse
 import configparser
+import csv
+import hashlib
 import subprocess
 from time import perf_counter, sleep
 from typing import Dict, List
@@ -31,8 +33,8 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.source_tree import get_fpaths_by_type, file_walk
-from fab.tree import ProgramUnit, by_type, extract_sub_tree
-from fab.util import log_or_dot_finish
+from fab.tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
+from fab.util import log_or_dot_finish, do_hash
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -107,7 +109,6 @@ def entry() -> None:
                       ld_flags=flags['ld-flags'],
                       n_procs=arguments.nprocs,
                       skip_files=skip_files,
-                      skip_if_exists=arguments.skip_if_exists,
                       unreferenced_deps=settings['unreferenced-dependencies'].split(','))
     application.run(arguments.source.split(','))
 
@@ -123,7 +124,6 @@ class Fab(object):
                  n_procs: int,
                  stop_on_error: bool = True,  # todo: i think we accidentally stopped using this
                  skip_files=None,
-                 skip_if_exists=False,
                  unreferenced_deps=None):
 
         self.n_procs = n_procs
@@ -133,7 +133,6 @@ class Fab(object):
             workspace.mkdir(parents=True)
         self.skip_files = skip_files or []
         self.fc_flags = fc_flags
-        self.skip_if_exists = skip_if_exists
         self.unreferenced_deps = unreferenced_deps or []
 
         self._state = SqliteStateDatabase(workspace)
@@ -145,16 +144,14 @@ class Fab(object):
         # properties via the configuration (at Task runtime, to allow for
         # file-specific overrides?)
         self.fortran_preprocessor = FortranPreProcessor(
-            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace,
-            skip_if_exists=skip_if_exists
-        )
+            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace)
         self.fortran_analyser = FortranAnalyser(workspace)
 
         self.fortran_compiler = FortranCompiler(
             'gfortran',
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
             ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-            self._workspace, skip_if_exists=self.skip_if_exists)
+            self._workspace)
 
         header_analyser = HeaderAnalyser(workspace)
         c_pragma_injector = CPragmaInjector(workspace)
@@ -194,10 +191,25 @@ class Fab(object):
             preprocessed_fortran.extend(
                 self.preprocess(fpaths_by_type, source_root))
 
+
+
+
+        # hash everything
+        start = perf_counter()
+        with multiprocessing.Pool(self.n_procs) as p:
+            latest_file_hashes = p.imap_unordered(
+                do_hash, preprocessed_fortran)
+            latest_file_hashes = {fh.fpath: fh.hash for fh in latest_file_hashes}
+        print(f"hashing {len(latest_file_hashes)} files took", perf_counter() - start)
+
+
+
+
         # Analyse ALL files, identifying the program unit name and deps for each file.
         # We get back a dict of ProgramUnits.
         # The dependency tree is implicit in this flat dict.
-        analysed_everything = self.analyse_fortran(preprocessed_fortran)
+        # analysed_everything = self.analyse_fortran(preprocessed_fortran)
+        analysed_everything = self.analyse_fortran(latest_file_hashes)
 
         # Pull out the program units required to build the target.
         logger.info("\nextracting target sub tree")
@@ -263,14 +275,15 @@ class Fab(object):
 
 
     def copy_ancillary_files(self, fpaths_by_type):
-        logger.info(f"\ncopying {len(fpaths_by_type['.inc'])} ancillary files")
-        # todo: this should be in the project config
-        for fpath in fpaths_by_type[".inc"] + fpaths_by_type[".h"]:
+        # todo: ancillary file types should be in the project config?
+        ancillary_files = fpaths_by_type[".inc"] + fpaths_by_type[".h"]
+        logger.info(f"\ncopying {len(ancillary_files)} ancillary files")
+        for fpath in ancillary_files:
             logger.debug(f"copying ancillary file {fpath}")
             shutil.copy(fpath, self._workspace)
 
     def preprocess(self, fpaths_by_type, source_root):
-        logger.info(f"\npreprocessing {source_root}")
+        logger.info(f"\npreprocessing {len(fpaths_by_type['.F90'])} files in {source_root}")
         start = perf_counter()
 
         # create output folder structure
@@ -290,11 +303,18 @@ class Fab(object):
             [source_root] * len(fpaths_by_type[".F90"]))
 
         with multiprocessing.Pool(self.n_procs) as p:
-            # preprocessed_fortran = p.map(  # 2.3s / 3
+            # preprocessed_fortran = p.map(
                 # self.fortran_preprocessor.run, fpaths_by_type[".F90"])
-            preprocessed_fortran = p.starmap(  # 2.3s / 3
+            # preprocessed_fortran = p.starmap(
+            #     self.fortran_preprocessor.run, fpaths_with_root)
+            # preprocessed_fortran = p.map(
+            #     self.fortran_preprocessor.run, fpaths_with_root)
+            # preprocessed_fortran = p.imap(
+            #     self.fortran_preprocessor.run, fpaths_with_root)
+            preprocessed_fortran = p.imap_unordered(
                 self.fortran_preprocessor.run, fpaths_with_root)
-        preprocessed_fortran = by_type(preprocessed_fortran)
+
+            preprocessed_fortran = by_type(preprocessed_fortran)
 
         # any errors?
         if preprocessed_fortran[Exception]:
@@ -309,53 +329,90 @@ class Fab(object):
         logger.info(f"preprocess took {perf_counter() - start}")
         return preprocessed_fortran[PosixPath]
 
-    def analyse_fortran(self, preprocessed_fortran):
+    def analyse_fortran(self, latest_file_hashes):
         logger.info("\nanalysing dependencies")
         start = perf_counter()
 
+
+
+
+
         # Load analysis results from previous run.
-        # For now, just a pickle.
-        # todo: We plan to save to a data store as we go, for interrupted runs
-        analysis_pickle = self._workspace / "__analysis_f.pickle"
-        if analysis_pickle.exists():
-            logger.debug("loading fortran analysis from pickle")
-            with open(analysis_pickle, "rb") as infile:
-                program_units = pickle.load(infile)
-        else:
-            # Analyse everything
-            with multiprocessing.Pool(self.n_procs) as p:
-                program_units = p.map(
-                    self.fortran_analyser.run, preprocessed_fortran)
+        prev_results = dict()
+        with open("__analysis.csv", "wt") as csv_file:
+            dict_reader = csv.DictReader(csv_file)
+            for row in dict_reader:
+                pu = ProgramUnit(name=row['name'], fpath=Path(row['fpath']), deps=row['deps'].split(';'))
 
-            # See what we got!
-            program_units = by_type(program_units)
-            if program_units[Exception]:
-                logger.error(f"{len(program_units[Exception])} errors analysing fortran:",
-                             program_units[Exception])
-                raise Exception("there were errors analysing fortran:",
-                                program_units[Exception])
+                prev_results[row['path']] = row
 
-            logger.debug("writing fortran analysis to pickle")
-            with open(analysis_pickle, "wb") as outfile:
-                pickle.dump(program_units, outfile)
 
-        # Note: We might have some EmptyProgramUnits at this stage,
-        # e.g if the preprocessor produced empty files.
-        # We ignore them from here on.
 
+        # subtract already analysed from preprocessed_fortran
+        to_analyse = []
+        unchanged = []
+        for latest_file_hash in latest_file_hashes:
+            result = prev_results.get(latest_file_hash.fpath)
+            if not result or result['hash'] != latest_file_hash.hash:
+                to_analyse.append(latest_file_hash.fpath)
+            else:
+                unchanged.append(result)
+
+        outfile = open("__analysis.csv", "w")
+        dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
+        writer.writeheader()
+        for result in unchanged:
+        # write unchanged
+
+        # Analyse everything
+        with multiprocessing.Pool(self.n_procs) as p:
+            # program_units = p.map(
+            #     self.fortran_analyser.run, preprocessed_fortran)
+            analysis_results = p.imap_unordered(
+                self.fortran_analyser.run, to_analyse)
+
+            exceptions = set()
+            program_units = set()
+            for pu in analysis_results:
+                if type(pu) == EmptyProgramUnit:
+                    # We might have some EmptyProgramUnits at this stage,
+                    # e.g if the preprocessor produced empty files.
+                    # We ignore them from here on.
+                    continue
+                elif type(pu) == Exception:
+                    exceptions.add(pu)
+                elif type(pu) == ProgramUnit:
+                    program_units.add(pu)
+
+                    # write
+                    deps_str = ';'.join(pu.deps)
+                    # outfile.write(f"{pu.name},{pu.fpath},{deps_str},{hashxxx}")
+                    dict_writer.writerow({'name': pu.name, 'fpath': pu.fpath, 'deps': deps_str, 'hash': latest_file_hashes[pu.fpath]})
+
+                    # todo: batch write? might not be necessary - i think both python and the os will buffer
+
+                else:
+                    raise RuntimeError(f"Unexpected analysis result type: {type(pu)}")
+
+        outfile.close()
+
+
+
+
+
+
+        # Errors?
+        if exceptions:
+            logger.error(f"{len(exceptions)} errors analysing fortran:",
+                         exceptions)
+            raise Exception("there were errors analysing fortran:",
+                            exceptions)
+
+        # Put the program units into a dict, keyed by name.
+        # The dependency tree is implicit, since deps are keys into the dict.
         tree = dict()
-        for p in program_units[ProgramUnit]:
-
-            # Note: we can't record the program unit by the program unit name,
-            # it has to be recorded by the file name.
-            # Analysis breaks when the program unit name doesn't match
-            # the filename, e.g "subroutine vgrav" in "vgrav_jls.f90".
+        for p in program_units:
             tree[p.name] = p
-
-            # # Record the program unit by it's file name, not it's program unit name.
-            # # Todo: So what's the point of reading and storing the program unit name now?
-            # filename = p.fpath.with_suffix('').name
-            # tree[filename] = p
 
         log_or_dot_finish(logger)
         logger.info(f"analysis took {perf_counter() - start}")
