@@ -8,8 +8,9 @@ import configparser
 import csv
 import hashlib
 import subprocess
+from collections import namedtuple
 from time import perf_counter, sleep
-from typing import Dict, List
+from typing import Dict, List, Set, Tuple
 
 import logging
 import multiprocessing
@@ -32,9 +33,8 @@ from fab.tasks.c import \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
-from fab.source_tree import get_fpaths_by_type, file_walk
 from fab.tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
-from fab.util import log_or_dot_finish, do_hash
+from fab.util import log_or_dot_finish, do_hash, file_walk, get_fpaths_by_type, HashedFile
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -197,9 +197,8 @@ class Fab(object):
         # hash everything
         start = perf_counter()
         with multiprocessing.Pool(self.n_procs) as p:
-            latest_file_hashes = p.imap_unordered(
-                do_hash, preprocessed_fortran)
-            latest_file_hashes = {fh.fpath: fh.hash for fh in latest_file_hashes}
+            results = p.imap_unordered(do_hash, preprocessed_fortran)
+            latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
         print(f"hashing {len(latest_file_hashes)} files took", perf_counter() - start)
 
 
@@ -303,14 +302,7 @@ class Fab(object):
             [source_root] * len(fpaths_by_type[".F90"]))
 
         with multiprocessing.Pool(self.n_procs) as p:
-            # preprocessed_fortran = p.map(
-                # self.fortran_preprocessor.run, fpaths_by_type[".F90"])
-            # preprocessed_fortran = p.starmap(
-            #     self.fortran_preprocessor.run, fpaths_with_root)
-            # preprocessed_fortran = p.map(
-            #     self.fortran_preprocessor.run, fpaths_with_root)
-            # preprocessed_fortran = p.imap(
-            #     self.fortran_preprocessor.run, fpaths_with_root)
+
             preprocessed_fortran = p.imap_unordered(
                 self.fortran_preprocessor.run, fpaths_with_root)
 
@@ -329,68 +321,71 @@ class Fab(object):
         logger.info(f"preprocess took {perf_counter() - start}")
         return preprocessed_fortran[PosixPath]
 
-    def analyse_fortran(self, latest_file_hashes):
+    def analyse_fortran(self, latest_file_hashes: Dict[Path, int]):
         logger.info("\nanalysing dependencies")
         start = perf_counter()
 
 
 
 
-
         # Load analysis results from previous run.
-        prev_results = dict()
-        with open("__analysis.csv", "wt") as csv_file:
-            dict_reader = csv.DictReader(csv_file)
-            for row in dict_reader:
-                pu = ProgramUnit(name=row['name'], fpath=Path(row['fpath']), deps=row['deps'].split(';'))
+        # Includes the hash of the file when we last analysed it.
+        # Note: it would be easy to switch to a database instead of a csv file
+        prev_results: Dict[Path, ProgramUnit] = dict()
+        try:
+            with open(self._workspace / "__analysis.csv", "rt") as csv_file:
+                dict_reader = csv.DictReader(csv_file)
+                for row in dict_reader:
+                    # file no longer there?
+                    fpath = Path(row['fpath'])
+                    if fpath not in latest_file_hashes:
+                        logger.info(f"a file has gone: {row['fpath']}")
+                        continue
+                    # ok, we have previously analysed this file
+                    pu = ProgramUnit(
+                        name=row['name'],
+                        fpath=fpath,
+                        file_hash=row['hash'],
+                        deps=row['deps'].split(';'))
+                    prev_results[pu.fpath] = pu
+        except FileNotFoundError:
+            pass
 
-                prev_results[row['path']] = row
-
-
-
-        # subtract already analysed from preprocessed_fortran
-        to_analyse = []
-        unchanged = []
-        for latest_file_hash in latest_file_hashes:
-            result = prev_results.get(latest_file_hash.fpath)
-            if not result or result['hash'] != latest_file_hash.hash:
-                to_analyse.append(latest_file_hash.fpath)
+        # work out what needs to be reanalysed
+        unchanged: Set[ProgramUnit] = set()
+        to_analyse: Set[HashedFile] = set()
+        for latest_fpath, latest_hash in latest_file_hashes.items():
+            # what happened last time we analysed this file?
+            prev_pu = prev_results.get(latest_fpath)
+            if (not prev_pu) or prev_pu.hash != latest_hash:
+                to_analyse.add(HashedFile(latest_fpath, latest_hash))
             else:
-                unchanged.append(result)
+                unchanged.add(prev_pu)
 
-        outfile = open("__analysis.csv", "w")
+        # start a new progress file containing anything that's still valid from the last run
+        unchanged_rows = (pu.as_dict() for pu in unchanged)
+        logger.debug(f"already analysed {[r.fpath for r in unchanged_rows]}")
+
+        outfile = open(self._workspace / "__analysis.csv", "wt")
         dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
-        writer.writeheader()
-        for result in unchanged:
-        # write unchanged
+        dict_writer.writeheader()
+        dict_writer.writerows(unchanged_rows)
 
         # Analyse everything
         with multiprocessing.Pool(self.n_procs) as p:
-            # program_units = p.map(
-            #     self.fortran_analyser.run, preprocessed_fortran)
             analysis_results = p.imap_unordered(
                 self.fortran_analyser.run, to_analyse)
 
             exceptions = set()
-            program_units = set()
+            new_program_units: Set[ProgramUnit] = set()
             for pu in analysis_results:
-                if type(pu) == EmptyProgramUnit:
-                    # We might have some EmptyProgramUnits at this stage,
-                    # e.g if the preprocessor produced empty files.
-                    # We ignore them from here on.
+                if isinstance(pu, EmptyProgramUnit):
                     continue
-                elif type(pu) == Exception:
+                elif isinstance(pu, Exception):
                     exceptions.add(pu)
-                elif type(pu) == ProgramUnit:
-                    program_units.add(pu)
-
-                    # write
-                    deps_str = ';'.join(pu.deps)
-                    # outfile.write(f"{pu.name},{pu.fpath},{deps_str},{hashxxx}")
-                    dict_writer.writerow({'name': pu.name, 'fpath': pu.fpath, 'deps': deps_str, 'hash': latest_file_hashes[pu.fpath]})
-
-                    # todo: batch write? might not be necessary - i think both python and the os will buffer
-
+                elif isinstance(pu, ProgramUnit):
+                    new_program_units.add(pu)
+                    dict_writer.writerow(pu.as_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {type(pu)}")
 
@@ -411,7 +406,7 @@ class Fab(object):
         # Put the program units into a dict, keyed by name.
         # The dependency tree is implicit, since deps are keys into the dict.
         tree = dict()
-        for p in program_units:
+        for p in unchanged.union(new_program_units):
             tree[p.name] = p
 
         log_or_dot_finish(logger)

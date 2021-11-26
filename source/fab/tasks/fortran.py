@@ -39,7 +39,7 @@ from fab.artifact import \
     Compiled, \
     BinaryObject
 from fab.tree import ProgramUnit, EmptyProgramUnit
-from fab.util import log_or_dot
+from fab.util import log_or_dot, HashedFile
 
 
 class FortranUnitUnresolvedID(object):
@@ -326,7 +326,9 @@ class FortranAnalyser(object):
         self.f2008_parser = ParserFactory().create(std="f2008")
 
     # @timed_method
-    def run(self, fpath: Path):
+    # def run(self, fpath: FileHash):
+    def run(self, hashed_file: HashedFile):
+        fpath, hash = hashed_file
         logger = logging.getLogger(__name__)
 
         state = FortranWorkingState(self.database)
@@ -358,7 +360,7 @@ class FortranAnalyser(object):
 
                 unit_id = FortranUnitID(module_name, fpath)
                 state.add_fortran_program_unit(unit_id)
-                program_unit = ProgramUnit(module_name, fpath)
+                program_unit = ProgramUnit(module_name, fpath, hash)
                 break
         if not module_name:
             return RuntimeError("Error finding top level program unit")
@@ -447,13 +449,6 @@ class FortranPreProcessor(object):
         fpath, source_root = args
         logger = logging.getLogger(__name__)
 
-        # if len(artifacts) == 1:
-        #     artifact = artifacts[0]
-        # else:
-        #     msg = ('Fortran Preprocessor expects only one Artifact, '
-        #            f'but was given {len(artifacts)}')
-        #     raise TaskException(msg)
-
         command = [self._preprocessor]
         command.extend(self._flags)
 
@@ -463,16 +458,20 @@ class FortranPreProcessor(object):
         command.append(str(fpath))
 
         # todo: add utils & src!!
-        # output_fpath = (self._workspace / fpath.with_suffix('.f90').name)
         rel_fpath = fpath.relative_to(source_root)
         output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
         command.append(str(output_fpath))
 
         log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
-        try:
-            subprocess.run(command, check=True, capture_output=True)
-        except subprocess.CalledProcessError as err:
-            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+
+        #
+        # TODO: DISABLED FOR DEBUGGING - RE-ENABLE !!!
+        #
+
+        # try:
+        #     subprocess.run(command, check=True, capture_output=True)
+        # except subprocess.CalledProcessError as err:
+        #     return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
         return output_fpath
 

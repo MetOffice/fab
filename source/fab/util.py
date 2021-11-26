@@ -1,6 +1,7 @@
 import logging
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from pathlib import Path
+from typing import Iterator
 
 
 def log_or_dot(logger, msg):
@@ -15,9 +16,33 @@ def log_or_dot_finish(logger):
         print('')
 
 
-FileHash = namedtuple("FileHash", ['fpath', 'hash'])
+HashedFile = namedtuple("HashedFile", ['fpath', 'hash'])
 
 
 def do_hash(fpath: Path):
     with open(fpath) as infile:
-        return FileHash(fpath, hash(infile.read()))
+        return HashedFile(fpath, hash(infile.read()))
+
+
+def file_walk(path: Path, skip_files=None, logger=None) -> Iterator[Path]:
+    skip_files = skip_files or []
+    assert path.is_dir()
+
+    for i in path.iterdir():
+        if i.is_dir():
+            yield from file_walk(i, skip_files=skip_files, logger=logger)
+        else:
+            if i.parts[-1] in skip_files:
+                if logger:
+                    logger.debug(f"skipping {i}")
+                continue
+            yield i
+
+
+def get_fpaths_by_type(fpaths: Iterator[Path]):
+
+    fpaths_by_type = defaultdict(list)
+    for fpath in fpaths:
+        fpaths_by_type[fpath.suffix].append(fpath)
+
+    return fpaths_by_type

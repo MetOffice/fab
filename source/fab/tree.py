@@ -8,9 +8,10 @@ logger = logging.getLogger(__name__)
 
 # todo: might be better as a named tuple, as there's no methods
 class ProgramUnit(object):
-    def __init__(self, name: str, fpath: Path, deps=None):
+    def __init__(self, name: str, fpath: Path, file_hash, deps=None):
         self.name = name.lower()
         self.fpath = fpath
+        self.hash = file_hash
         self._deps = deps or set()
 
     def add_dep(self, dep):
@@ -21,7 +22,17 @@ class ProgramUnit(object):
         return self._deps
 
     def __str__(self):
-        return f"ProgramUnit {self.name} {self.fpath} {self.deps}"
+        return f"ProgramUnit {self.name} {self.fpath} {self.hash} {self.deps}"
+
+    # todo: poor name, and does it even belong in here?
+    def as_dict(self):
+        """Serialise"""
+        return {'name': self.name, 'fpath': self.fpath, 'hash': self.hash, 'deps': ';'.join(self.deps)}
+
+    @classmethod
+    def from_dict(cls, d):
+        """Deserialise"""
+        return cls(name=d['name'], fpath=Path(d['fpath']), file_hash=d['hash'], deps=d['deps'].split(';'))
 
 
 class EmptyProgramUnit(object):
