@@ -1,4 +1,5 @@
 import logging
+import zlib
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from typing import Iterator
@@ -20,8 +21,17 @@ HashedFile = namedtuple("HashedFile", ['fpath', 'hash'])
 
 
 def do_hash(fpath: Path):
-    with open(fpath) as infile:
-        return HashedFile(fpath, hash(infile.read()))
+
+    with open(fpath, "rb") as infile:
+        a = zlib.crc32(bytes(infile.read()))
+        if str(fpath).endswith("ptr.f90"):
+            print(fpath, a)
+    with open(fpath, "rb") as infile:
+        b = zlib.crc32(bytes(infile.read()))
+    assert a == b
+
+    with open(fpath, "rb") as infile:
+        return HashedFile(fpath, zlib.crc32(bytes(infile.read())))
 
 
 def file_walk(path: Path, skip_files=None, logger=None) -> Iterator[Path]:
