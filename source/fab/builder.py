@@ -124,7 +124,8 @@ class Fab(object):
                  n_procs: int,
                  stop_on_error: bool = True,  # todo: i think we accidentally stopped using this
                  skip_files=None,
-                 unreferenced_deps=None):
+                 unreferenced_deps=None,
+                 use_multiprocessing=True):
 
         self.n_procs = n_procs
         self.target = target
@@ -134,6 +135,7 @@ class Fab(object):
         self.skip_files = skip_files or []
         self.fc_flags = fc_flags
         self.unreferenced_deps = unreferenced_deps or []
+        self.use_multiprocessing = use_multiprocessing
 
         self._state = SqliteStateDatabase(workspace)
 
@@ -275,12 +277,15 @@ class Fab(object):
             fpaths_by_type[".F90"],
             [source_root] * len(fpaths_by_type[".F90"]))
 
-        with multiprocessing.Pool(self.n_procs) as p:
+        if self.use_multiprocessing:
+            with multiprocessing.Pool(self.n_procs) as p:
+                preprocessed_fortran = p.map(
+                    self.fortran_preprocessor.run, fpaths_with_root)
+        else:
+            preprocessed_fortran = [self.fortran_preprocessor.run(f) for f in fpaths_with_root]
 
-            preprocessed_fortran = p.imap_unordered(
-                self.fortran_preprocessor.run, fpaths_with_root)
+        preprocessed_fortran = by_type(preprocessed_fortran)
 
-            preprocessed_fortran = by_type(preprocessed_fortran)
 
         # any errors?
         if preprocessed_fortran[Exception]:
@@ -297,9 +302,15 @@ class Fab(object):
 
     def get_latest_checksums(self, preprocessed_fortran):
         start = perf_counter()
-        with multiprocessing.Pool(self.n_procs) as p:
-            results = p.imap_unordered(do_checksum, preprocessed_fortran)
-            latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
+
+        if self.use_multiprocessing:
+            with multiprocessing.Pool(self.n_procs) as p:
+                results = p.map(do_checksum, preprocessed_fortran)
+        else:
+            results = [do_checksum(f) for f in preprocessed_fortran]
+
+        latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
+
         logger.info(f"\nhashing {len(latest_file_hashes)} files took {perf_counter() - start}")
         return latest_file_hashes
 
@@ -364,15 +375,13 @@ class Fab(object):
         dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
         dict_writer.writeheader()
         dict_writer.writerows(unchanged_rows)
+        outfile.flush()
 
         # Analyse everything
-        # new_program_units: Set[ProgramUnit] = set()
         new_program_units: List[ProgramUnit] = []
         exceptions = set()
-        with multiprocessing.Pool(self.n_procs) as p:
-            analysis_results = p.imap_unordered(
-                self.fortran_analyser.run, to_analyse)
 
+        def foo(analysis_results):
             for pu in analysis_results:
                 if isinstance(pu, EmptyProgramUnit):
                     continue
@@ -386,6 +395,20 @@ class Fab(object):
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {type(pu)}")
 
+        if self.use_multiprocessing:
+            with multiprocessing.Pool(self.n_procs) as p:
+                analysis_results = p.imap_unordered(
+                    self.fortran_analyser.run, to_analyse)
+                # We cannot refactor out this call, which is in both the if and else
+                # because we're using imap. We need to use the iterator before it goes out of scope
+                # otherwise it can hang waiting for processes it never got round to create.
+                # Todo: Is this an accurate description of the error?
+                foo(analysis_results)
+        else:
+            analysis_results = (self.fortran_analyser.run(a) for a in to_analyse)
+            foo(analysis_results)
+
+
         outfile.close()
 
 
@@ -395,10 +418,9 @@ class Fab(object):
 
         # Errors?
         if exceptions:
-            logger.error(f"{len(exceptions)} errors analysing fortran:",
-                         exceptions)
-            raise Exception("there were errors analysing fortran:",
-                            exceptions)
+            # logger.error(f"{len(exceptions)} errors analysing fortran:\n{exceptions}")
+            ex_str = "\n\n".join(map(str, exceptions))
+            raise Exception(f"{len(exceptions)} errors analysing fortran:\n{ex_str}")
 
         # Put the program units into a dict, keyed by name.
         # The dependency tree is implicit, since deps are keys into the dict.
@@ -466,8 +488,11 @@ class Fab(object):
 
             logger.debug(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
 
-            with multiprocessing.Pool(self.n_procs) as p:
-                this_pass = p.map(self.fortran_compiler.run, compile_next)
+            if self.use_multiprocessing:
+                with multiprocessing.Pool(self.n_procs) as p:
+                    this_pass = p.map(self.fortran_compiler.run, compile_next)
+            else:
+                this_pass = [self.fortran_compiler.run(f) for f in compile_next]
 
             # this_pass = []
             # for f in compile_next:

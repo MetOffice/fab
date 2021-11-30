@@ -21,6 +21,7 @@ from fparser.two.Fortran2003 import Char_Literal_Constant, Function_Stmt, Interf
 
 from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranFileReader
+from fparser.two.utils import FortranSyntaxError
 
 from fab.database import (DatabaseDecorator,
                           FileInfoDatabase,
@@ -323,6 +324,8 @@ class FortranAnalyser(object):
 
     def __init__(self, workspace: Path):
         self.database = SqliteStateDatabase(workspace)
+
+        # todo: should we create this each time?
         self.f2008_parser = ParserFactory().create(std="f2008")
 
     # @timed_method
@@ -346,7 +349,17 @@ class FortranAnalyser(object):
         # parse the fortran into a tree
         # todo: Matthew said there's a llightweight read mode coming?
         reader = FortranFileReader(str(fpath))  # ignore_comments=False
-        tree = self.f2008_parser(reader)
+        reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
+        try:
+            tree = self.f2008_parser(reader)
+        except FortranSyntaxError as err:
+            logger.error(f"\nsyntax error in {fpath}\n{err}")
+            return err
+        except Exception as err:
+            logger.error(f"\nunhandled {type(err)} error in {fpath}\n{err}")
+            return err
+
+        # did it find anything?
         if tree.content[0] == None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             return EmptyProgramUnit(fpath)
@@ -356,12 +369,22 @@ class FortranAnalyser(object):
 
         # find the top level program unit first
         for obj in iter_content(tree):
-            if type(obj) in [Module_Stmt, Program_Stmt, Function_Stmt, Subroutine_Stmt]:
+            if isinstance(obj, (Module_Stmt, Program_Stmt, Subroutine_Stmt)):
                 module_name = str(obj.get_name())
 
-                unit_id = FortranUnitID(module_name, fpath)
-                state.add_fortran_program_unit(unit_id)
+                # unit_id = FortranUnitID(module_name, fpath)
+                # state.add_fortran_program_unit(unit_id)
+
                 program_unit = ProgramUnit(module_name, fpath, hash)
+                break
+            elif isinstance(obj, Function_Stmt):
+                # todo: this is not nice - can't we have a get_name() method on functions?
+                _, name, _, _ = obj.items
+
+                # unit_id = FortranUnitID(module_name, fpath)
+                # state.add_fortran_program_unit(unit_id)
+
+                program_unit = ProgramUnit(name.string, fpath, hash)
                 break
         if not module_name:
             return RuntimeError("Error finding top level program unit")
@@ -380,8 +403,9 @@ class FortranAnalyser(object):
 
                 if use_name not in self._intrinsic_modules and use_name not in deps:
                     # found a new dependency
-                    unit_id = FortranUnitID(module_name, fpath)
-                    state.add_fortran_dependency(unit_id, use_name)
+                    # unit_id = FortranUnitID(module_name, fpath)
+                    # state.add_fortran_dependency(unit_id, use_name)
+
                     program_unit.add_dep(use_name)
                     deps.add(use_name)
 
@@ -402,8 +426,9 @@ class FortranAnalyser(object):
                         # symbol name. Longer term we probably need a more
                         # elegant solution
                         # TODO: what if this is also the program unit? Check if that's possible /ok.
-                        unit_id = FortranUnitID(module_name, fpath)
-                        state.add_fortran_dependency(unit_id, bind_name)
+                        # unit_id = FortranUnitID(module_name, fpath)
+                        # state.add_fortran_dependency(unit_id, bind_name)
+
                         program_unit.add_dep(bind_name)
 
                     # exporting from fortran to c, i.e binding without an interface block
@@ -411,13 +436,15 @@ class FortranAnalyser(object):
                         logger.debug(f"function binding export {bind_name}")
                         # TODO: this does not occur in jules, so is not yet tested on a real repo
                         # Add to the C database
-                        symbol_id = CSymbolID(bind_name, fpath)
-                        cstate.add_c_symbol(symbol_id)
+                        # symbol_id = CSymbolID(bind_name, fpath)
+                        # cstate.add_c_symbol(symbol_id)
+
                         program_unit.add_dep(bind_name)
 
             # TODO: (NOT PRESENT IN JULES) variable binding
             elif obj_type == "foo":
-                raise NotImplementedError
+                # raise NotImplementedError
+                return NotImplementedError("variable bindings not yet implemented")
 
                 # This should be a line binding from C to a variable definition
                 # (procedure binds are dealt with above)
