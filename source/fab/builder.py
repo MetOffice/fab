@@ -241,7 +241,7 @@ class Fab(object):
             preprocessed_fortran.extend(
                 self.preprocess_fortran(fpaths_by_type, source_root))
 
-        logger.info(f"pre-processing {len(source_paths)} folders took {perf_counter() - start}")
+        logger.info(f"\npre-processing {len(source_paths)} folders took {perf_counter() - start}")
         return preprocessed_fortran
 
     def copy_ancillary_files(self, fpaths_by_type):
@@ -377,6 +377,8 @@ class Fab(object):
                 if isinstance(pu, EmptyProgramUnit):
                     continue
                 elif isinstance(pu, Exception):
+                    # logger.error(f"There was an error analysing a file: {pu}")
+                    # print(f"pppThere was an error analysing a file: {pu}")
                     exceptions.add(pu)
                 elif isinstance(pu, ProgramUnit):
                     new_program_units.append(pu)

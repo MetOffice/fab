@@ -348,7 +348,7 @@ class FortranAnalyser(object):
         reader = FortranFileReader(str(fpath))  # ignore_comments=False
         tree = self.f2008_parser(reader)
         if tree.content[0] == None:
-            logger.debug(f"Empty tree found when parsing {fpath}")
+            logger.debug(f"  empty tree found when parsing {fpath}")
             return EmptyProgramUnit(fpath)
 
         module_name = None
@@ -469,10 +469,10 @@ class FortranPreProcessor(object):
         # TODO: DISABLED FOR DEBUGGING - RE-ENABLE !!!
         #
 
-        try:
-            subprocess.run(command, check=True, capture_output=True)
-        except subprocess.CalledProcessError as err:
-            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+        # try:
+        #     subprocess.run(command, check=True, capture_output=True)
+        # except subprocess.CalledProcessError as err:
+        #     return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
         return output_fpath
 

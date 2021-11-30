@@ -52,8 +52,8 @@ def main():
                  unreferenced_deps=settings['unreferenced-dependencies'].split(','))
 
     logger = logging.getLogger('fab')
-    # logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
 
     my_fab.run(source_paths=src_paths)
 
