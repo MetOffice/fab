@@ -300,7 +300,7 @@ class Fab(object):
         with multiprocessing.Pool(self.n_procs) as p:
             results = p.imap_unordered(do_checksum, preprocessed_fortran)
             latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
-        logger.info(f"hashing {len(latest_file_hashes)} files took {perf_counter() - start}")
+        logger.info(f"\nhashing {len(latest_file_hashes)} files took {perf_counter() - start}")
         return latest_file_hashes
 
     def analyse_fortran(self, latest_file_hashes: Dict[Path, int]):
@@ -420,6 +420,8 @@ class Fab(object):
         return target_tree
 
     def add_unreferenced_deps(self, analysed_everything, target_tree):
+        logger.info(f"Adding unreferenced dependencies")
+
         def foo(dep):
             pu = analysed_everything.get(dep)
             if not pu:
@@ -428,7 +430,7 @@ class Fab(object):
                 return
 
             if dep not in target_tree:
-                logger.warning(f"Adding unreferenced dependency {dep}")
+                logger.debug(f"Adding unreferenced dependency {dep}")
                 target_tree[dep] = pu
 
             for sub in pu.deps:
