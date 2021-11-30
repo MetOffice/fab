@@ -34,7 +34,7 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
-from fab.util import log_or_dot_finish, do_hash, file_walk, get_fpaths_by_type, HashedFile
+from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -176,69 +176,21 @@ class Fab(object):
 
     def run(self, source_paths: List[Path]):
 
-        # walk each source folder
-        preprocessed_fortran = []
-        for source_root in source_paths:
-            fpaths = file_walk(source_root, self.skip_files, logger)
-            fpaths_by_type = get_fpaths_by_type(fpaths)
+        preprocessed_fortran = self.preprocess(source_paths)
 
-            # copy inc files
-            # todo: keep folder structure for inc files too?
-            self.copy_ancillary_files(fpaths_by_type)
-
-            # Preprocess the source files - output into the workspace folder
-            # Note: some files may end up empty, depending on #ifdefs
-            preprocessed_fortran.extend(
-                self.preprocess(fpaths_by_type, source_root))
-
-
-
-
-        # hash everything
-        start = perf_counter()
-        with multiprocessing.Pool(self.n_procs) as p:
-            results = p.imap_unordered(do_hash, preprocessed_fortran)
-            latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
-        print(f"hashing {len(latest_file_hashes)} files took", perf_counter() - start)
-
-
-
+        latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
 
         # Analyse ALL files, identifying the program unit name and deps for each file.
-        # We get back a dict of ProgramUnits.
-        # The dependency tree is implicit in this flat dict.
-        # analysed_everything = self.analyse_fortran(preprocessed_fortran)
+        # We get back a flat dict of ProgramUnits, in which the dependency tree is implicit.
         analysed_everything = self.analyse_fortran(latest_file_hashes)
 
         # Pull out the program units required to build the target.
-        logger.info("\nextracting target sub tree")
-        target_tree, missing = extract_sub_tree(analysed_everything, self.target, verbose=False)
-        if missing:
-            logger.warning(f"missing deps {missing}")
-        else:
-            logger.info("no missing deps")
-        logger.info(f"tree size (all files) {len(analysed_everything)}")
-        logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
+        target_tree = self.extract_target_tree(analysed_everything)
 
-        # Add any unreferenced dependencies - and their dependencies
-        # (where a fortran routine is called without a use statement).
+        # Recursively add any unreferenced dependencies
+        # (a fortran routine called without a use statement).
         # This is driven by the config list "unreferenced-dependencies"
-        # Todo: replace this with call analysis?
-        def foo(dep):
-            pu = analysed_everything.get(dep)
-            if not pu:
-                if dep != "mpi":  # todo: remove this if?
-                    logger.warning(f"couldn't find dep {dep}")
-                return
-
-            if dep not in target_tree:
-                logger.warning(f"Adding unreferenced dependency {dep}")
-                target_tree[dep] = pu
-
-            for sub in pu.deps:
-                foo(sub)
-        for dep in self.unreferenced_deps:
-            foo(dep)
+        self.add_unreferenced_deps(analysed_everything, target_tree)
 
         # compile everything we need to build the target
         all_compiled = self.compile(target_tree)
@@ -247,7 +199,6 @@ class Fab(object):
         self.linker.run(all_compiled)
 
         logger.warning("\nfinished")
-
 
         #
         # file_db = FileInfoDatabase(self._state)
@@ -272,17 +223,39 @@ class Fab(object):
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
 
+    def preprocess(self, source_paths):
+        start = perf_counter()
+        preprocessed_fortran = []
+        for source_root in source_paths:
+            logger.info(f"\npre-processing {source_root}")
+            fpaths = file_walk(source_root, self.skip_files, logger)
+            fpaths_by_type = get_fpaths_by_type(fpaths)
+
+            # copy inc files
+            # todo: keep folder structure for inc files too?
+            self.copy_ancillary_files(fpaths_by_type)
+
+            # Preprocess the source files - output into the workspace folder
+            # Note: some files may end up empty, depending on #ifdefs
+            preprocessed_fortran.extend(
+                self.preprocess_fortran(fpaths_by_type, source_root))
+
+        logger.info(f"pre-processing {len(source_paths)} folders took {perf_counter() - start}")
+        return preprocessed_fortran
 
     def copy_ancillary_files(self, fpaths_by_type):
-        # todo: ancillary file types should be in the project config?
+        start = perf_counter()
         ancillary_files = fpaths_by_type[".inc"] + fpaths_by_type[".h"]
-        logger.info(f"\ncopying {len(ancillary_files)} ancillary files")
+
+        # todo: ancillary file types should be in the project config?
         for fpath in ancillary_files:
             logger.debug(f"copying ancillary file {fpath}")
             shutil.copy(fpath, self._workspace)
 
-    def preprocess(self, fpaths_by_type, source_root):
-        logger.info(f"\npreprocessing {len(fpaths_by_type['.F90'])} files in {source_root}")
+        logger.info(f"copying {len(ancillary_files)} ancillary files took {perf_counter() - start}")
+
+    def preprocess_fortran(self, fpaths_by_type, source_root):
+        logger.info(f"pre-processing {len(fpaths_by_type['.F90'])} files in {source_root}")
         start = perf_counter()
 
         # create output folder structure
@@ -318,8 +291,16 @@ class Fab(object):
             )
 
         log_or_dot_finish(logger)
-        logger.info(f"preprocess took {perf_counter() - start}")
+        logger.info(f"pre-processing {len(fpaths_by_type['.F90'])} files in {source_root} took {perf_counter() - start}")
         return preprocessed_fortran[PosixPath]
+
+    def get_latest_checksums(self, preprocessed_fortran):
+        start = perf_counter()
+        with multiprocessing.Pool(self.n_procs) as p:
+            results = p.imap_unordered(do_checksum, preprocessed_fortran)
+            latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
+        logger.info(f"hashing {len(latest_file_hashes)} files took {perf_counter() - start}")
+        return latest_file_hashes
 
     def analyse_fortran(self, latest_file_hashes: Dict[Path, int]):
         logger.info("\nanalysing dependencies")
@@ -345,26 +326,37 @@ class Fab(object):
                     pu = ProgramUnit(
                         name=row['name'],
                         fpath=fpath,
-                        file_hash=row['hash'],
+                        file_hash=int(row['hash']),
                         deps=row['deps'].split(';'))
                     prev_results[pu.fpath] = pu
+            logger.info("loaded previous analysis results")
         except FileNotFoundError:
+            logger.info("no previous analysis results")
             pass
 
         # work out what needs to be reanalysed
-        unchanged: Set[ProgramUnit] = set()
-        to_analyse: Set[HashedFile] = set()
-        for latest_fpath, latest_hash in latest_file_hashes.items():
+        # unchanged: Set[ProgramUnit] = set()
+        # to_analyse: Set[HashedFile] = set()
+        # sorted for easier debugging
+        unchanged: List[ProgramUnit] = []
+        to_analyse: List[HashedFile] = []
+        latest_file_hashes = sorted(latest_file_hashes.items())
+        # for latest_fpath, latest_hash in latest_file_hashes.items():
+        for latest_fpath, latest_hash in latest_file_hashes:
             # what happened last time we analysed this file?
             prev_pu = prev_results.get(latest_fpath)
             if (not prev_pu) or prev_pu.hash != latest_hash:
-                to_analyse.add(HashedFile(latest_fpath, latest_hash))
+                # to_analyse.add(HashedFile(latest_fpath, latest_hash))
+                to_analyse.append(HashedFile(latest_fpath, latest_hash))
             else:
-                unchanged.add(prev_pu)
+                # unchanged.add(prev_pu)
+                unchanged.append(prev_pu)
 
+        logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
+
+        # todo: use a database here? do a proper pros/cons with the wider team
         # start a new progress file containing anything that's still valid from the last run
         unchanged_rows = (pu.as_dict() for pu in unchanged)
-        logger.debug(f"already analysed {[r.fpath for r in unchanged_rows]}")
 
         outfile = open(self._workspace / "__analysis.csv", "wt")
         dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
@@ -412,6 +404,35 @@ class Fab(object):
         log_or_dot_finish(logger)
         logger.info(f"analysis took {perf_counter() - start}")
         return tree
+
+    def extract_target_tree(self, analysed_everything):
+        logger.info("\nextracting target sub tree")
+        target_tree, missing = extract_sub_tree(analysed_everything, self.target, verbose=False)
+        if missing:
+            logger.warning(f"missing deps {missing}")
+        else:
+            logger.info("no missing deps")
+        logger.info(f"tree size (all files) {len(analysed_everything)}")
+        logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
+        return target_tree
+
+    def add_unreferenced_deps(self, analysed_everything, target_tree):
+        def foo(dep):
+            pu = analysed_everything.get(dep)
+            if not pu:
+                if dep != "mpi":  # todo: remove this if?
+                    logger.warning(f"couldn't find dep {dep}")
+                return
+
+            if dep not in target_tree:
+                logger.warning(f"Adding unreferenced dependency {dep}")
+                target_tree[dep] = pu
+
+            for sub in pu.deps:
+                foo(sub)
+
+        for dep in self.unreferenced_deps:
+            foo(dep)
 
     def compile(self, target_tree):
         logger.info(f"\ncompiling {len(target_tree)} files")

@@ -20,16 +20,7 @@ def log_or_dot_finish(logger):
 HashedFile = namedtuple("HashedFile", ['fpath', 'hash'])
 
 
-def do_hash(fpath: Path):
-
-    with open(fpath, "rb") as infile:
-        a = zlib.crc32(bytes(infile.read()))
-        if str(fpath).endswith("ptr.f90"):
-            print(fpath, a)
-    with open(fpath, "rb") as infile:
-        b = zlib.crc32(bytes(infile.read()))
-    assert a == b
-
+def do_checksum(fpath: Path):
     with open(fpath, "rb") as infile:
         return HashedFile(fpath, zlib.crc32(bytes(infile.read())))
 

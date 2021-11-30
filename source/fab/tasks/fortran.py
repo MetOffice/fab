@@ -344,6 +344,7 @@ class FortranAnalyser(object):
         log_or_dot(logger, f"analysing {fpath}")
 
         # parse the fortran into a tree
+        # todo: Matthew said there's a llightweight read mode coming?
         reader = FortranFileReader(str(fpath))  # ignore_comments=False
         tree = self.f2008_parser(reader)
         if tree.content[0] == None:
@@ -467,7 +468,7 @@ class FortranPreProcessor(object):
         #
         # TODO: DISABLED FOR DEBUGGING - RE-ENABLE !!!
         #
-
+        #
         # try:
         #     subprocess.run(command, check=True, capture_output=True)
         # except subprocess.CalledProcessError as err:
