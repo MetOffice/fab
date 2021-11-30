@@ -9,12 +9,19 @@ logger = logging.getLogger(__name__)
 # todo: might be better as a named tuple, as there's no methods
 class ProgramUnit(object):
     def __init__(self, name: str, fpath: Path, file_hash, deps=None):
+
+        if deps:
+            for dep in deps:
+                if (not dep) or len(dep) == 0:
+                    raise ValueError("Bad deps")
+
         self.name = name.lower()
         self.fpath = fpath
         self.hash = file_hash
         self._deps = deps or set()
 
     def add_dep(self, dep):
+        assert dep and len(dep)
         self._deps.add(dep.lower())
 
     @property

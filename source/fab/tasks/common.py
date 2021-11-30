@@ -47,7 +47,7 @@ class Linker(Task):
 
         command.extend(self._flags)
 
-        logger.info('Running command: ' + ' '.join(command))
+        logger.debug('Running command: ' + ' '.join(command))
         subprocess.run(command, check=True)
 
         return [Artifact(output_file,

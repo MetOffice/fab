@@ -175,6 +175,7 @@ class Fab(object):
 
 
     def run(self, source_paths: List[Path]):
+        start = perf_counter()
 
         preprocessed_fortran = self.preprocess(source_paths)
 
@@ -198,7 +199,7 @@ class Fab(object):
         logger.info("\nlinking")
         self.linker.run(all_compiled)
 
-        logger.warning("\nfinished")
+        logger.warning(f"\nfinished, took {perf_counter() - start}")
 
         #
         # file_db = FileInfoDatabase(self._state)
@@ -323,11 +324,12 @@ class Fab(object):
                         logger.info(f"a file has gone: {row['fpath']}")
                         continue
                     # ok, we have previously analysed this file
+                    deps = row['deps'].split(';') if len(row['deps']) else None
                     pu = ProgramUnit(
                         name=row['name'],
                         fpath=fpath,
                         file_hash=int(row['hash']),
-                        deps=row['deps'].split(';'))
+                        deps=deps)
                     prev_results[pu.fpath] = pu
             logger.info("loaded previous analysis results")
         except FileNotFoundError:
@@ -364,19 +366,20 @@ class Fab(object):
         dict_writer.writerows(unchanged_rows)
 
         # Analyse everything
+        # new_program_units: Set[ProgramUnit] = set()
+        new_program_units: List[ProgramUnit] = []
+        exceptions = set()
         with multiprocessing.Pool(self.n_procs) as p:
             analysis_results = p.imap_unordered(
                 self.fortran_analyser.run, to_analyse)
 
-            exceptions = set()
-            new_program_units: Set[ProgramUnit] = set()
             for pu in analysis_results:
                 if isinstance(pu, EmptyProgramUnit):
                     continue
                 elif isinstance(pu, Exception):
                     exceptions.add(pu)
                 elif isinstance(pu, ProgramUnit):
-                    new_program_units.add(pu)
+                    new_program_units.append(pu)
                     dict_writer.writerow(pu.as_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {type(pu)}")
@@ -398,7 +401,7 @@ class Fab(object):
         # Put the program units into a dict, keyed by name.
         # The dependency tree is implicit, since deps are keys into the dict.
         tree = dict()
-        for p in unchanged.union(new_program_units):
+        for p in unchanged + new_program_units:
             tree[p.name] = p
 
         log_or_dot_finish(logger)
@@ -421,7 +424,7 @@ class Fab(object):
             pu = analysed_everything.get(dep)
             if not pu:
                 if dep != "mpi":  # todo: remove this if?
-                    logger.warning(f"couldn't find dep {dep}")
+                    logger.warning(f"couldn't find dep '{dep}'")
                 return
 
             if dep not in target_tree:

@@ -468,11 +468,11 @@ class FortranPreProcessor(object):
         #
         # TODO: DISABLED FOR DEBUGGING - RE-ENABLE !!!
         #
-        #
-        # try:
-        #     subprocess.run(command, check=True, capture_output=True)
-        # except subprocess.CalledProcessError as err:
-        #     return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+
+        try:
+            subprocess.run(command, check=True, capture_output=True)
+        except subprocess.CalledProcessError as err:
+            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
         return output_fpath
 
