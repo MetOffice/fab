@@ -353,11 +353,10 @@ class FortranAnalyser(object):
         try:
             tree = self.f2008_parser(reader)
         except FortranSyntaxError as err:
-            logger.error(f"\nsyntax error in {fpath}\n{err}")
-            return err
+            # we can't return a FortranSyntaxError, it breaks multiprocessing!
+            return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
-            logger.error(f"\nunhandled {type(err)} error in {fpath}\n{err}")
-            return err
+            return Exception(f"unhandled {type(err)} error in {fpath}\n{err}")
 
         # did it find anything?
         if tree.content[0] == None:
@@ -371,25 +370,19 @@ class FortranAnalyser(object):
         for obj in iter_content(tree):
             if isinstance(obj, (Module_Stmt, Program_Stmt, Subroutine_Stmt)):
                 module_name = str(obj.get_name())
-
                 # unit_id = FortranUnitID(module_name, fpath)
                 # state.add_fortran_program_unit(unit_id)
-
-                program_unit = ProgramUnit(module_name, fpath, hash)
                 break
             elif isinstance(obj, Function_Stmt):
                 # todo: this is not nice - can't we have a get_name() method on functions?
                 _, name, _, _ = obj.items
-
+                module_name = name.string
                 # unit_id = FortranUnitID(module_name, fpath)
                 # state.add_fortran_program_unit(unit_id)
-
-                program_unit = ProgramUnit(name.string, fpath, hash)
                 break
         if not module_name:
-            return RuntimeError("Error finding top level program unit")
-            # raise RuntimeError("Error finding top level program unit")
-
+            return RuntimeError(f"Error finding top level program unit in {fpath}")
+        program_unit = ProgramUnit(module_name, fpath, hash)
 
         # see what else is in the tree
         for obj in iter_content(tree):
@@ -443,8 +436,7 @@ class FortranAnalyser(object):
 
             # TODO: (NOT PRESENT IN JULES) variable binding
             elif obj_type == "foo":
-                # raise NotImplementedError
-                return NotImplementedError("variable bindings not yet implemented")
+                return NotImplementedError(f"variable bindings not yet implemented {fpath}")
 
                 # This should be a line binding from C to a variable definition
                 # (procedure binds are dealt with above)
@@ -493,13 +485,18 @@ class FortranPreProcessor(object):
         log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
 
         #
-        # TODO: DISABLED FOR DEBUGGING - RE-ENABLE !!!
+        # TODO: FOR DEBUGGING - REMOVE !!!
+        #
+        if output_fpath.exists():
+            return output_fpath
+        #
+        #
         #
 
-        # try:
-        #     subprocess.run(command, check=True, capture_output=True)
-        # except subprocess.CalledProcessError as err:
-        #     return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+        try:
+            subprocess.run(command, check=True, capture_output=True)
+        except subprocess.CalledProcessError as err:
+            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
         return output_fpath
 

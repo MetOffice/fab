@@ -46,11 +46,12 @@ def main():
                  fpp_flags=flags['fpp-flags'],
                  fc_flags=flags['fc-flags'],
                  ld_flags=flags['ld-flags'],
-                 n_procs=3,  # should be able to pass in 1, but it subtracts 1!
+                 n_procs=3,
+                 # n_procs=1,
                  stop_on_error=True,
                  skip_files=skip_files,
                  unreferenced_deps=settings['unreferenced-dependencies'].split(','),
-                 use_multiprocessing=False
+                 # use_multiprocessing=False
                  )
 
     logger = logging.getLogger('fab')

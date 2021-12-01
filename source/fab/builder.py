@@ -386,14 +386,13 @@ class Fab(object):
                 if isinstance(pu, EmptyProgramUnit):
                     continue
                 elif isinstance(pu, Exception):
-                    # logger.error(f"There was an error analysing a file: {pu}")
-                    # print(f"pppThere was an error analysing a file: {pu}")
+                    logger.error(f"\n{pu}")
                     exceptions.add(pu)
                 elif isinstance(pu, ProgramUnit):
                     new_program_units.append(pu)
                     dict_writer.writerow(pu.as_dict())
                 else:
-                    raise RuntimeError(f"Unexpected analysis result type: {type(pu)}")
+                    raise RuntimeError(f"Unexpected analysis result type: {pu}")
 
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
@@ -414,13 +413,15 @@ class Fab(object):
 
 
 
+        log_or_dot_finish(logger)
+        logger.info(f"analysis took {perf_counter() - start}")
 
 
         # Errors?
         if exceptions:
-            # logger.error(f"{len(exceptions)} errors analysing fortran:\n{exceptions}")
             ex_str = "\n\n".join(map(str, exceptions))
-            raise Exception(f"{len(exceptions)} errors analysing fortran:\n{ex_str}")
+            logger.error(f"{len(exceptions)} errors analysing fortran")
+            exit(1)
 
         # Put the program units into a dict, keyed by name.
         # The dependency tree is implicit, since deps are keys into the dict.
@@ -428,8 +429,6 @@ class Fab(object):
         for p in unchanged + new_program_units:
             tree[p.name] = p
 
-        log_or_dot_finish(logger)
-        logger.info(f"analysis took {perf_counter() - start}")
         return tree
 
     def extract_target_tree(self, analysed_everything):
