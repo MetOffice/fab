@@ -487,8 +487,8 @@ class FortranPreProcessor(object):
         #
         # TODO: FOR DEBUGGING - REMOVE !!!
         #
-        if output_fpath.exists():
-            return output_fpath
+        # if output_fpath.exists():
+        #     return output_fpath
         #
         #
         #

@@ -421,7 +421,7 @@ class Fab(object):
         if exceptions:
             ex_str = "\n\n".join(map(str, exceptions))
             logger.error(f"{len(exceptions)} errors analysing fortran")
-            exit(1)
+            # exit(1)
 
         # Put the program units into a dict, keyed by name.
         # The dependency tree is implicit, since deps are keys into the dict.
