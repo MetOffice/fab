@@ -8,6 +8,7 @@ import configparser
 import csv
 import hashlib
 import subprocess
+import cProfile
 from collections import namedtuple
 from time import perf_counter, sleep
 from typing import Dict, List, Set, Tuple
@@ -51,7 +52,11 @@ def read_config(conf_file):
         for line in open(skip_files_config, "rt"):
             skip_files.append(line.strip())
 
-    return config, skip_files
+    unreferenced_deps = filter(
+        lambda i: bool(i),
+        [i.strip() for i in config['settings']['unreferenced-dependencies']])
+
+    return config, skip_files, unreferenced_deps
 
 
 def entry() -> None:
@@ -93,7 +98,7 @@ def entry() -> None:
     verbosity = min(arguments.verbose, 2)
     logger.setLevel(verbosity_levels[verbosity])
 
-    config, skip_files = read_config(arguments.conf_file)
+    config, skip_files, unreferenced_deps = read_config(arguments.conf_file)
     settings = config['settings']
     flags = config['flags']
 
@@ -109,7 +114,7 @@ def entry() -> None:
                       ld_flags=flags['ld-flags'],
                       n_procs=arguments.nprocs,
                       skip_files=skip_files,
-                      unreferenced_deps=settings['unreferenced-dependencies'].split(','))
+                      unreferenced_deps=unreferenced_deps)
     application.run(arguments.source.split(','))
 
 
@@ -125,7 +130,8 @@ class Fab(object):
                  stop_on_error: bool = True,  # todo: i think we accidentally stopped using this
                  skip_files=None,
                  unreferenced_deps=None,
-                 use_multiprocessing=True):
+                 use_multiprocessing=True,
+                 debug_skip=False):
 
         self.n_procs = n_procs
         self.target = target
@@ -146,7 +152,8 @@ class Fab(object):
         # properties via the configuration (at Task runtime, to allow for
         # file-specific overrides?)
         self.fortran_preprocessor = FortranPreProcessor(
-            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace)
+            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace,
+            debug_skip=debug_skip)
         self.fortran_analyser = FortranAnalyser(workspace)
 
         self.fortran_compiler = FortranCompiler(
@@ -171,6 +178,7 @@ class Fab(object):
         self.linker = Linker(
             # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
             # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
+
             '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
             workspace, exec_name
         )
@@ -188,7 +196,9 @@ class Fab(object):
         analysed_everything = self.analyse_fortran(latest_file_hashes)
 
         # Pull out the program units required to build the target.
+        # with cProfile.Profile() as profiler:
         target_tree = self.extract_target_tree(analysed_everything)
+        # profiler.dump_stats('extract_target_tree.pstats')
 
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
@@ -366,6 +376,7 @@ class Fab(object):
                 unchanged.append(prev_pu)
 
         logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
+        logger.debug(f"{[u.name for u in unchanged]}")
 
         # todo: use a database here? do a proper pros/cons with the wider team
         # start a new progress file containing anything that's still valid from the last run
@@ -433,16 +444,22 @@ class Fab(object):
 
     def extract_target_tree(self, analysed_everything):
         logger.info("\nextracting target sub tree")
+        start = perf_counter()
+
         target_tree, missing = extract_sub_tree(analysed_everything, self.target, verbose=False)
         if missing:
             logger.warning(f"missing deps {missing}")
         else:
             logger.info("no missing deps")
+
+        logger.info(f"extracting target tree took {perf_counter() - start}")
         logger.info(f"tree size (all files) {len(analysed_everything)}")
         logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
         return target_tree
 
     def add_unreferenced_deps(self, analysed_everything, target_tree):
+        if not self.unreferenced_deps:
+            return
         logger.info(f"Adding unreferenced dependencies")
 
         def foo(dep):
@@ -517,13 +534,19 @@ class Fab(object):
 
             # to_compile.difference_update(compiled_program_units)
             to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
-        if to_compile:
-            logger.warning(f"there were still {len(to_compile)} files left to compile")
-            for pu in to_compile:
-                logger.warning(pu.name)
 
         log_or_dot_finish(logger)
         logger.debug(f"compiled per pass {per_pass}")
         logger.info(f"total compiled {sum(per_pass)}")
         logger.info(f"compilation took {perf_counter() - start}")
+
+        if to_compile:
+            logger.debug(f"there were still {len(to_compile)} files left to compile")
+            for pu in to_compile:
+                logger.debug(pu.name)
+            logger.warning(f"there were still {len(to_compile)} files left to compile")
+            exit(1)
+
         return all_compiled
+
+

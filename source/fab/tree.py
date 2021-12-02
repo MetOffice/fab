@@ -49,17 +49,29 @@ class EmptyProgramUnit(object):
 
 def extract_sub_tree(
         src_tree, key, _result=None, _missing=None, indent=0, verbose=False):
-    """blurb"""
+    """
+    Extract a sub tree from a tree.
+
+    Extracts a dict of program units, required to build the target,
+    from the full dict of all program units.
+
+    todo: better docstring
+    """
 
     _result = _result or dict()
     _missing = _missing or set()
+
+    # is this node already in the target tree?
+    if key in _result:
+        return
 
     if verbose:
         logger.debug("----" * indent + key)
 
     node = src_tree[key]
-    _result[node.name] = node
-    for dep in sorted(node.deps):
+    assert node.name == key
+    _result[key] = node
+    for dep in sorted(node.deps):  # sorted for readability
         if not src_tree.get(dep):
             if logger and verbose:
                 logger.debug("----" * indent + "!!!!" + dep)

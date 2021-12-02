@@ -36,7 +36,7 @@ def main():
         Path(os.path.expanduser('~/svn/um/trunk/src')),
     ]
 
-    config, skip_files = read_config("um.config")
+    config, skip_files, unreferenced_deps = read_config("um.config")
     settings = config['settings']
     flags = config['flags']
 
@@ -50,9 +50,9 @@ def main():
                  # n_procs=1,
                  stop_on_error=True,
                  skip_files=skip_files,
-                 unreferenced_deps=settings['unreferenced-dependencies'].split(','),
+                 unreferenced_deps=unreferenced_deps,
                  # use_multiprocessing=False
-                 )
+                 debug_skip=True)
 
     logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)

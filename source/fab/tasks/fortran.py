@@ -326,11 +326,15 @@ class FortranAnalyser(object):
         self.database = SqliteStateDatabase(workspace)
 
         # todo: should we create this each time?
-        self.f2008_parser = ParserFactory().create(std="f2008")
+        # self.f2008_parser = ParserFactory().create(std="f2008")
 
     # @timed_method
     # def run(self, fpath: FileHash):
     def run(self, hashed_file: HashedFile):
+
+        self.f2008_parser = ParserFactory().create(std="f2008")
+
+
         fpath, hash = hashed_file
         logger = logging.getLogger(__name__)
 
@@ -458,10 +462,12 @@ class FortranPreProcessor(object):
     def __init__(self,
                  preprocessor: str,
                  flags: List[str],
-                 workspace: Path):
+                 workspace: Path,
+                 debug_skip=False):
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
+        self.debug_skip = debug_skip
 
     # @timed_method
     # def run(self, fpath: Path, source_root: Path):
@@ -487,11 +493,12 @@ class FortranPreProcessor(object):
         #
         # TODO: FOR DEBUGGING - REMOVE !!!
         #
-        # if output_fpath.exists():
-        #     return output_fpath
-        #
-        #
-        #
+        if self.debug_skip:
+            if output_fpath.exists():
+                return output_fpath
+
+
+
 
         try:
             subprocess.run(command, check=True, capture_output=True)

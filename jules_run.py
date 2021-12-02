@@ -51,7 +51,7 @@ def main():
                  n_procs=3,  # should be able to pass in 1, but it subtracts 1!
                  stop_on_error=True,
                  skip_files=skip_files,
-                 unreferenced_deps=settings['unreferenced-dependencies'].split(','))
+                 unreferenced_deps=unreferenced_deps)
 
     logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)
