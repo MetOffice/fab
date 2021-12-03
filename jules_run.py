@@ -38,7 +38,7 @@ def main():
         Path(os.path.expanduser('~/svn/jules/trunk/utils')),
     ]
 
-    config, skip_files = read_config("jules.config")
+    config, skip_files, unreferenced_deps = read_config("jules.config")
     settings = config['settings']
     flags = config['flags']
 
@@ -51,7 +51,8 @@ def main():
                  n_procs=3,  # should be able to pass in 1, but it subtracts 1!
                  stop_on_error=True,
                  skip_files=skip_files,
-                 unreferenced_deps=unreferenced_deps)
+                 unreferenced_deps=unreferenced_deps,
+                 debug_skip=True)
 
     logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)

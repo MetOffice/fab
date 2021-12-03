@@ -9,7 +9,7 @@ import csv
 import hashlib
 import subprocess
 import cProfile
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from time import perf_counter, sleep
 from typing import Dict, List, Set, Tuple
 
@@ -52,9 +52,9 @@ def read_config(conf_file):
         for line in open(skip_files_config, "rt"):
             skip_files.append(line.strip())
 
-    unreferenced_deps = filter(
+    unreferenced_deps = sorted(filter(
         lambda i: bool(i),
-        [i.strip() for i in config['settings']['unreferenced-dependencies']])
+        [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')]))
 
     return config, skip_files, unreferenced_deps
 
@@ -204,6 +204,8 @@ class Fab(object):
         # (a fortran routine called without a use statement).
         # This is driven by the config list "unreferenced-dependencies"
         self.add_unreferenced_deps(analysed_everything, target_tree)
+
+        self.validate_target_tree(target_tree)
 
         # compile everything we need to build the target
         all_compiled = self.compile(target_tree)
@@ -490,19 +492,30 @@ class Fab(object):
         per_pass = []
         while to_compile:
 
+            logger.info(f"checking {len(to_compile)} program units")
+
             # find what to compile next
             compile_next = []
+            not_ready = {}
             for pu in to_compile:
                 # all deps ready?
-                can_compile = True
-                for dep in pu.deps:
-                    if dep not in already_compiled_names:
-                        can_compile = False
-                        break
-                if can_compile:
+                unfulfilled = [dep for dep in pu.deps if dep not in already_compiled_names]
+                if not unfulfilled:
                     compile_next.append(pu)
+                else:
+                    not_ready[pu.name] = unfulfilled
 
-            logger.debug(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
+            for pu_name, deps in not_ready.items():
+                logger.info(f"not ready to compile {pu_name}, needs {', '.join(deps)}")
+            logger.info(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
+
+            # report if unable to compile everything
+            if len(to_compile) and not compile_next:
+                all_unfulfilled = set()
+                for values in not_ready.values():
+                    all_unfulfilled = all_unfulfilled.union(values)
+                logger.error(f"All unfulfilled deps: {', '.join(all_unfulfilled)}")
+                exit(1)
 
             if self.use_multiprocessing:
                 with multiprocessing.Pool(self.n_procs) as p:
@@ -510,18 +523,24 @@ class Fab(object):
             else:
                 this_pass = [self.fortran_compiler.run(f) for f in compile_next]
 
-            # this_pass = []
-            # for f in compile_next:
-            #     this_pass.append(self.fortran_compiler.run(f))
 
-            # nothing compiled?
+            # any errors?
+            errors = []
+            for i in this_pass:
+                if isinstance(i, Exception):
+                    errors.append(i)
+            logger.error(f"\nThere were {len(errors)} compile errors this pass\n\n")
+            if errors:
+                err_str = "\n\n".join(map(str, errors))
+                logger.error(err_str)
+                exit(1)
+
+            # check what we did compile
             compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
             per_pass.append(len(compiled_this_pass))
             if len(compiled_this_pass) == 0:
                 logger.error("nothing compiled this pass")
                 break
-
-            # todo: any errors?
 
             # remove compiled files from list
             logger.debug(f"compiled {len(compiled_this_pass)} files")
@@ -532,7 +551,7 @@ class Fab(object):
             all_compiled.extend(compiled_this_pass)
             already_compiled_names.update(compiled_names)
 
-            # to_compile.difference_update(compiled_program_units)
+            # remove from remaining to compile
             to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
 
         log_or_dot_finish(logger)
@@ -544,9 +563,19 @@ class Fab(object):
             logger.debug(f"there were still {len(to_compile)} files left to compile")
             for pu in to_compile:
                 logger.debug(pu.name)
-            logger.warning(f"there were still {len(to_compile)} files left to compile")
+            logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 
         return all_compiled
 
+    def validate_target_tree(self, target_tree):
+        """If any dep is not in the tree, then it's unknown code and we won't be able to compile."""
+        missing = set()
+        for pu in target_tree.values():
+            missing = missing.union(
+                [dep for dep in pu.deps if dep not in target_tree])
+
+        if missing:
+            logger.error(f"Unknown dependencies, cannot build: {', '.join(sorted(missing))}")
+            exit(1)
 

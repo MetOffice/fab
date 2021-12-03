@@ -412,7 +412,7 @@ class FortranAnalyser(object):
                     name = typed_child(bind, Char_Literal_Constant)
                     if not name:
                         raise TaskException(f"Could not get name of function binding: {obj.string}")
-                    bind_name = name.string
+                    bind_name = name.string.replace('"', '')
 
                     # importing a c function into fortran, i.e binding within an interface block
                     if has_ancestor_type(obj, Interface_Block):
@@ -430,7 +430,7 @@ class FortranAnalyser(object):
 
                     # exporting from fortran to c, i.e binding without an interface block
                     else:
-                        logger.debug(f"function binding export {bind_name}")
+                        return NotImplementedError(f"function binding export {bind_name}")
                         # TODO: this does not occur in jules, so is not yet tested on a real repo
                         # Add to the C database
                         # symbol_id = CSymbolID(bind_name, fpath)
@@ -529,6 +529,7 @@ class FortranCompiler(object):
     def run(self, program_unit: ProgramUnit):
         logger = logging.getLogger(__name__)
 
+
         command = [self._compiler]
         command.extend(self._flags)
         command.append(str(program_unit.fpath))
@@ -536,6 +537,7 @@ class FortranCompiler(object):
         output_fpath = (self._workspace / program_unit.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_fpath)])
 
+        # logger.info(program_unit.name)
         log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
         try:
             res = subprocess.run(command, check=True)

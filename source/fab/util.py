@@ -1,4 +1,5 @@
 import logging
+import sys
 import zlib
 from collections import namedtuple, defaultdict
 from pathlib import Path
@@ -10,6 +11,7 @@ def log_or_dot(logger, msg):
         logger.debug(msg)
     elif logger.isEnabledFor(logging.INFO):
         print('.', end='')
+        # sys.stdout.flush()
 
 
 def log_or_dot_finish(logger):

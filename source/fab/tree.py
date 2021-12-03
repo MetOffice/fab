@@ -84,6 +84,7 @@ def extract_sub_tree(
 
 
 # todo: don't leave this here
+# TODO: This doesn't work with exceptions very well, yet
 def by_type(iterable):
     result = defaultdict(set)
     for i in iterable:
