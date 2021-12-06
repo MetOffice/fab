@@ -7,16 +7,11 @@ Fortran language handling classes.
 import logging
 from pathlib import Path
 import subprocess
-from time import perf_counter
 from typing import (Generator,
-                    Iterator,
                     List,
-                    Match,
                     Optional,
-                    Pattern,
                     Sequence,
-                    Tuple,
-                    Union, Dict, Set)
+                    Union)
 from fparser.two.Fortran2003 import Char_Literal_Constant, Function_Stmt, Interface_Block, Language_Binding_Spec, Module_Stmt, Name, Program_Stmt, Subroutine_Stmt, Use_Stmt
 
 from fparser.two.parser import ParserFactory
@@ -28,18 +23,10 @@ from fab.database import (DatabaseDecorator,
                           StateDatabase,
                           SqliteStateDatabase,
                           WorkingStateException)
-from fab.tasks import \
-    Task, \
-    TaskException, timed_method
+from fab.tasks import  TaskException
 from fab.tasks.c import CWorkingState, CSymbolID
-from fab.reader import TextReader, TextReaderDecorator, FileTextReader
-from fab.artifact import \
-    Artifact, \
-    Analysed, \
-    Raw, \
-    Compiled, \
-    BinaryObject
-from fab.tree import ProgramUnit, EmptyProgramUnit
+
+from fab.dep_tree import ProgramUnit, EmptyProgramUnit
 from fab.util import log_or_dot, HashedFile
 
 
@@ -458,54 +445,71 @@ class FortranAnalyser(object):
         return program_unit
 
 
-class FortranPreProcessor(object):
-    def __init__(self,
-                 preprocessor: str,
-                 flags: List[str],
-                 workspace: Path,
-                 debug_skip=False):
-        self._preprocessor = preprocessor
-        self._flags = flags
-        self._workspace = workspace
-        self.debug_skip = debug_skip
-
-    # @timed_method
-    # def run(self, fpath: Path, source_root: Path):
-    def run(self, args):
-        fpath, source_root = args
-        logger = logging.getLogger(__name__)
-
-        command = [self._preprocessor]
-        command.extend(self._flags)
-
-        # find ancillary inc files already copied across
-        command.extend(["-I", str(self._workspace)])  # todo: revisit this
-
-        command.append(str(fpath))
-
-        # todo: add utils & src!!
-        rel_fpath = fpath.relative_to(source_root)
-        output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
-        command.append(str(output_fpath))
-
-        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
-
-        #
-        # TODO: FOR DEBUGGING - REMOVE !!!
-        #
-        if self.debug_skip:
-            if output_fpath.exists():
-                return output_fpath
-
-
-
-
-        try:
-            subprocess.run(command, check=True, capture_output=True)
-        except subprocess.CalledProcessError as err:
-            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
-
-        return output_fpath
+# class FortranPreProcessor(object):
+#     def __init__(self,
+#                  preprocessor: str,
+#                  flags: List[str],
+#                  workspace: Path,
+#                  debug_skip=False,
+#                  include_paths: List[Path]=None):
+#         self._preprocessor = preprocessor
+#         self._flags = flags
+#         self._workspace = workspace
+#         self.debug_skip = debug_skip
+#         self.include_paths = include_paths or []
+#
+#     def get_include_paths(self, fpath: Path) -> List[str]:
+#         """
+#         Resolve any relative paths as to the folder containing the source file.
+#
+#         """
+#         # Start off with the the workspace root because we copy the inc files there.
+#         # Todo: inc files are going to be removed
+#         result = ["-I", str(self._workspace)]
+#
+#         # Add all the other include folders
+#         for inc_path in self.include_paths:
+#             if inc_path.is_absolute():
+#                 result.extend(["-I", str(inc_path)])
+#             else:
+#                 result.extend(["-I", str(fpath.parent / inc_path)])
+#
+#         return result
+#
+#     def get_output_path(self, fpath: Path, source_root):
+#         rel_fpath = fpath.relative_to(source_root.parent)
+#         output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
+#         return output_fpath
+#
+#     # @timed_method
+#     # def run(self, fpath: Path, source_root: Path):
+#     def run(self, args):
+#         fpath, source_root = args
+#         logger = logging.getLogger(__name__)
+#
+#         command = [self._preprocessor]
+#         command.extend(self._flags)
+#         command.extend(self.get_include_paths(fpath))
+#         command.append(str(fpath))
+#
+#         output_fpath = self.get_output_path(fpath, source_root)
+#         command.append(str(output_fpath))
+#
+#         #
+#         # TODO: FOR DEBUGGING - REMOVE !!!
+#         #
+#         if self.debug_skip:
+#             if output_fpath.exists():
+#                 return output_fpath
+#
+#         log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
+#
+#         try:
+#             subprocess.run(command, check=True, capture_output=True)
+#         except subprocess.CalledProcessError as err:
+#             return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+#
+#         return output_fpath
 
 
 # todo: better as a named tuple?

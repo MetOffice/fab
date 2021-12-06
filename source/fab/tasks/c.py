@@ -38,6 +38,7 @@ from fab.reader import \
     TextReader, \
     FileTextReader, \
     TextReaderDecorator
+from fab.util import log_or_dot
 
 
 class CSymbolUnresolvedID(object):
@@ -493,47 +494,118 @@ class CPragmaInjector(Task):
 
 
 class CPreProcessor(Task):
+    # def __init__(self,
+    #              preprocessor: str,
+    #              flags: List[str],
+    #              workspace: Path):
+    #     self._preprocessor = preprocessor
+    #     self._flags = flags
+    #     self._workspace = workspace
+    #
+    # def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    #     logger = logging.getLogger(__name__)
+    #
+    #     if len(artifacts) == 1:
+    #         artifact = artifacts[0]
+    #     else:
+    #         msg = ('C Preprocessor expects only one Artifact, '
+    #                f'but was given {len(artifacts)}')
+    #         raise TaskException(msg)
+    #
+    #     command = [self._preprocessor]
+    #     command.extend(self._flags)
+    #     command.append(str(artifact.location))
+    #
+    #     # Use temporary output name (in case the given tool
+    #     # can't operate in-place)
+    #     output_file = (self._workspace /
+    #                    artifact.location.with_suffix('.fabcpp').name)
+    #
+    #     command.append(str(output_file))
+    #     logger.debug('Running command: ' + ' '.join(command))
+    #     subprocess.run(command, check=True)
+    #
+    #     # Overwrite actual output file
+    #     final_output = (self._workspace /
+    #                     artifact.location.name)
+    #     command = ["mv", str(output_file), str(final_output)]
+    #     logger.debug('Running command: ' + ' '.join(command))
+    #     subprocess.run(command, check=True)
+    #
+    #     return [Artifact(final_output,
+    #                      artifact.filetype,
+    #                      Raw)]
+
     def __init__(self,
                  preprocessor: str,
                  flags: List[str],
-                 workspace: Path):
+                 workspace: Path,
+                 include_paths: List[Path]=None,
+                 output_suffix=".c",
+                 debug_skip=False,
+                 ):
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
+        self.output_suffix = output_suffix
+        self.include_paths = include_paths or []
+        self.debug_skip = debug_skip
 
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    def get_include_paths(self, fpath: Path) -> List[str]:
+        """
+        Resolve any relative paths as to the folder containing the source file.
+
+        """
+        # Start off with the the workspace root because we copy the inc files there.
+        # Todo: inc files are going to be removed
+        result = ["-I", str(self._workspace)]
+
+        # Add all the other include folders
+        for inc_path in self.include_paths:
+            if inc_path.is_absolute():
+                result.extend(["-I", str(inc_path)])
+            else:
+                result.extend(["-I", str(fpath.parent / inc_path)])
+
+        return result
+
+    def get_output_path(self, fpath: Path, source_root):
+        rel_fpath = fpath.relative_to(source_root.parent)
+        output_fpath = (self._workspace / rel_fpath.with_suffix(self.output_suffix))
+        return output_fpath
+
+    # @timed_method
+    # def run(self, fpath: Path, source_root: Path):
+    def run(self, args):
+        fpath, source_root = args
         logger = logging.getLogger(__name__)
-
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('C Preprocessor expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
 
         command = [self._preprocessor]
         command.extend(self._flags)
-        command.append(str(artifact.location))
+        command.extend(self.get_include_paths(fpath))
+        command.append(str(fpath))
 
-        # Use temporary output name (in case the given tool
+        # Todo: The Use temporary output name (in case the given tool
         # can't operate in-place)
-        output_file = (self._workspace /
-                       artifact.location.with_suffix('.fabcpp').name)
 
-        command.append(str(output_file))
-        logger.debug('Running command: ' + ' '.join(command))
-        subprocess.run(command, check=True)
+        output_fpath = self.get_output_path(fpath, source_root)
+        command.append(str(output_fpath))
 
-        # Overwrite actual output file
-        final_output = (self._workspace /
-                        artifact.location.name)
-        command = ["mv", str(output_file), str(final_output)]
-        logger.debug('Running command: ' + ' '.join(command))
-        subprocess.run(command, check=True)
+        #
+        # TODO: FOR DEBUGGING - REMOVE !!!
+        #
+        if self.debug_skip:
+            if output_fpath.exists():
+                return output_fpath
 
-        return [Artifact(final_output,
-                         artifact.filetype,
-                         Raw)]
+        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
+
+        try:
+            subprocess.run(command, check=True, capture_output=True)
+        except subprocess.CalledProcessError as err:
+            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+
+        return output_fpath
 
 
 class CCompiler(Task):

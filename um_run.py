@@ -15,28 +15,20 @@
 #     fc-flags =
 #     ld-flags =
 #
+
 import os
 import logging
-# from argparse import ArgumentParser
 
 from pathlib import Path
-from typing import List
 
 from fab.builder import Fab, read_config
 
 
 def main():
 
-    # argparser = ArgumentParser()
-    # argparser.add_argument("um_path", required=False, default="~/svn/trunk")
-    # args = argparser.parse_args()
-
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace-um"
-    src_paths: List[Path] = [
-        Path(os.path.expanduser('~/svn/um/trunk/src')),
-    ]
 
-    config, skip_files, unreferenced_deps = read_config("um.config")
+    config = read_config("um.config")
     settings = config['settings']
     flags = config['flags']
 
@@ -49,16 +41,17 @@ def main():
                  n_procs=3,
                  # n_procs=1,
                  stop_on_error=True,
-                 skip_files=skip_files,
-                 unreferenced_deps=unreferenced_deps,
+                 skip_files=config.skip_files,
+                 unreferenced_deps=config.unreferenced_deps,
                  # use_multiprocessing=False
-                 debug_skip=True)
+                 debug_skip=True,
+                 include_paths=config.include_paths)
 
     logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 
-    my_fab.run(source_paths=src_paths)
+    my_fab.run(source_paths=config.src_paths)
 
 
 if __name__ == '__main__':

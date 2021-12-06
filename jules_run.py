@@ -33,12 +33,12 @@ def main():
 
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace-jules"
     # todo: remove bblay
-    src_paths: List[Path] = [
-        Path(os.path.expanduser('~/svn/jules/trunk/src')),
-        Path(os.path.expanduser('~/svn/jules/trunk/utils')),
-    ]
+    # src_paths: List[Path] = [
+    #     Path(os.path.expanduser('~/svn/jules/trunk/src')),
+    #     Path(os.path.expanduser('~/svn/jules/trunk/utils')),
+    # ]
 
-    config, skip_files, unreferenced_deps = read_config("jules.config")
+    config = read_config("jules.config")
     settings = config['settings']
     flags = config['flags']
 
@@ -50,15 +50,15 @@ def main():
                  ld_flags=flags['ld-flags'],
                  n_procs=3,  # should be able to pass in 1, but it subtracts 1!
                  stop_on_error=True,
-                 skip_files=skip_files,
-                 unreferenced_deps=unreferenced_deps,
+                 skip_files=config.skip_files,
+                 unreferenced_deps=config.unreferenced_deps,
                  debug_skip=True)
 
     logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 
-    my_fab.run(source_paths=src_paths)
+    my_fab.run(source_paths=config.src_paths)
 
 
 if __name__ == '__main__':

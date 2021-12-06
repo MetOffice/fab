@@ -7,6 +7,7 @@ import argparse
 import configparser
 import csv
 import hashlib
+import os
 import subprocess
 import cProfile
 from collections import namedtuple, defaultdict
@@ -15,7 +16,6 @@ from typing import Dict, List, Set, Tuple
 
 import logging
 import multiprocessing
-import pickle
 from pathlib import Path, PosixPath
 import shutil
 import sys
@@ -24,17 +24,15 @@ from fab.database import SqliteStateDatabase
 
 from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
-    FortranWorkingState, \
     FortranPreProcessor, \
     FortranAnalyser, \
     FortranCompiler, CompiledProgramUnit
 from fab.tasks.c import \
-    CWorkingState, \
     CPragmaInjector, \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
-from fab.tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
+from fab.dep_tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
 from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile
 
 logger = logging.getLogger('fab')
@@ -42,21 +40,31 @@ logger.addHandler(logging.StreamHandler(sys.stderr))
 
 
 def read_config(conf_file):
-    config = configparser.ConfigParser(allow_no_value=True)
-    configfile = conf_file
-    config.read(configfile)
+    """
+    Read the config file.
 
-    skip_files = []
+    Adds processed attributes from the lists:
+     - skip_files
+     - unreferenced_deps
+     - src_paths
+    """
+    config = configparser.ConfigParser(allow_no_value=True)
+    config.read(conf_file)
+
+    config.skip_files = []
     # todo: don't use walrus operator, and set the Python version to [3.6?] in env and setup.
     if skip_files_config := config['settings']['skip-files-list']:
         for line in open(skip_files_config, "rt"):
-            skip_files.append(line.strip())
+            config.skip_files.append(line.strip())
 
-    unreferenced_deps = sorted(filter(
+    config.unreferenced_deps = sorted(filter(
         lambda i: bool(i),
         [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')]))
 
-    return config, skip_files, unreferenced_deps
+    config.src_paths = [Path(os.path.expanduser(i)) for i in config['settings']['src-paths'].split(',')]
+    config.include_paths = [Path(os.path.expanduser(i)) for i in config['settings']['include-paths'].split(',')]
+
+    return config
 
 
 def entry() -> None:
@@ -131,7 +139,8 @@ class Fab(object):
                  skip_files=None,
                  unreferenced_deps=None,
                  use_multiprocessing=True,
-                 debug_skip=False):
+                 debug_skip=False,
+                 include_paths=None):
 
         self.n_procs = n_procs
         self.target = target
@@ -142,6 +151,7 @@ class Fab(object):
         self.fc_flags = fc_flags
         self.unreferenced_deps = unreferenced_deps or []
         self.use_multiprocessing = use_multiprocessing
+        # self.include_paths = include_paths or []
 
         self._state = SqliteStateDatabase(workspace)
 
@@ -151,8 +161,13 @@ class Fab(object):
         # TODO: Eventually the tasks may instead access many of these
         # properties via the configuration (at Task runtime, to allow for
         # file-specific overrides?)
-        self.fortran_preprocessor = FortranPreProcessor(
-            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace,
+        # self.fortran_preprocessor = FortranPreProcessor(
+        self.fortran_preprocessor = CPreProcessor(
+            preprocessor='cpp',
+            flags=['-traditional-cpp', '-P'] + fpp_flags.split(),
+            workspace=workspace,
+            include_paths=include_paths,
+            output_suffix=".f90",
             debug_skip=debug_skip)
         self.fortran_analyser = FortranAnalyser(workspace)
 
@@ -164,8 +179,11 @@ class Fab(object):
 
         header_analyser = HeaderAnalyser(workspace)
         c_pragma_injector = CPragmaInjector(workspace)
-        c_preprocessor = CPreProcessor(
-            'cpp', [], workspace
+        self.c_preprocessor = CPreProcessor(
+            preprocessor='cpp',
+            flags=[],
+            workspace=workspace,
+            output_suffix=".c",
         )
         c_analyser = CAnalyser(workspace)
         c_compiler = CCompiler(
@@ -187,7 +205,16 @@ class Fab(object):
     def run(self, source_paths: List[Path]):
         start = perf_counter()
 
-        preprocessed_fortran = self.preprocess(source_paths)
+        all_source = self.walk_source_folders(source_paths)
+
+        # Copy ancillary files, such as Fortran inc and C files
+        self.copy_ancillary_files(all_source)
+
+        # Before calling the C pre-processor, we mark the include regions
+        # so we can later tell if they are system or user includes.
+        # self.c_pragmas(all_source)
+
+        preprocessed_fortran = self.preprocess(all_source)
 
         latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
 
@@ -238,66 +265,100 @@ class Fab(object):
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
 
-    def preprocess(self, source_paths):
+
+    def walk_source_folders(self, source_paths) -> Dict[str, Dict[str, List[Path]]]:
+        """
+        Get all files in the folder and subfolders.
+
+        Returns a dict[source_folder][extension] = file_list
+        """
+        all_source = dict()
+        for source_path in source_paths:
+            paths = file_walk(source_path, self.skip_files, logger)
+            if not paths:
+                logger.warning(f"no files found in {source_path}")
+            all_source[source_path] = get_fpaths_by_type(paths)
+        return all_source
+
+    # todo: multiprocessing
+    # todo: ancillary file types should be in the project config?
+    def copy_ancillary_files(self, all_source: Dict[str, Dict[str, List[Path]]]):
+        """
+        Copy inc and .h files into the workspace.
+
+        Required for preprocessing
+        Copies everything to the workspace root.
+        Checks for name clash.
+
+        """
         start = perf_counter()
+        copied = set()
+
+        # inc files all go in the root - they're going to be removed altogether, soon
+        for _, files_by_type in all_source.items():
+            for fpath in files_by_type[".inc"]:
+
+                logger.debug(f"copying inc file {fpath}")
+                if fpath.name in copied:
+                    logger.error(f"name clash for ancillary file: {fpath}")
+                    exit(1)
+
+                shutil.copy(fpath, self._workspace)
+                copied.add(fpath.name)
+
+        # header files go into the same folder structure they came from
+        for source_root, files_by_type in all_source.items():
+            for fpath in files_by_type[".h"]:
+
+                if fpath.name in copied:
+                    logger.error(f"name clash for ancillary file: {fpath}")
+                    exit(1)
+
+                rel_path = fpath.relative_to(source_root)
+                logger.debug(f"copying header file {fpath} to {rel_path}")
+
+                shutil.copy(fpath, self._workspace / rel_path)
+                copied.add(fpath.name)
+
+        logger.info(f"copying {len(copied)} ancillary files took {perf_counter() - start}")
+
+    def preprocess(self, all_source: Dict[str, Dict[str, List]]):
+        start = perf_counter()
+
+        # Preprocess the source files - output into the workspace folder
+        # Note: some files may end up empty, depending on #ifdefs
         preprocessed_fortran = []
-        for source_root in source_paths:
-            logger.info(f"\npre-processing {source_root}")
-            fpaths = file_walk(source_root, self.skip_files, logger)
-            fpaths_by_type = get_fpaths_by_type(fpaths)
+        preprocessed_c = []
+        for source_root, files_by_type in all_source.items():
+            preprocessed_fortran += self.preprocess_foo(
+                files_by_type=files_by_type, suffix=".F90",
+                source_root=source_root, preprocessor=self.fortran_preprocessor)
+            preprocessed_c += self.preprocess_foo(
+                files_by_type=files_by_type, suffix=".c",
+                source_root=source_root, preprocessor=self.c_preprocessor)
 
-            # copy inc files
-            # todo: keep folder structure for inc files too?
-            self.copy_ancillary_files(fpaths_by_type)
-
-            # Preprocess the source files - output into the workspace folder
-            # Note: some files may end up empty, depending on #ifdefs
-            preprocessed_fortran.extend(
-                self.preprocess_fortran(fpaths_by_type, source_root))
-
-        logger.info(f"\npre-processing {len(source_paths)} folders took {perf_counter() - start}")
+        logger.info(f"\npre-processing {len(all_source)} folders took {perf_counter() - start}")
         return preprocessed_fortran
 
-    def copy_ancillary_files(self, fpaths_by_type):
-        start = perf_counter()
-        ancillary_files = fpaths_by_type[".inc"] + fpaths_by_type[".h"]
-
-        # todo: ancillary file types should be in the project config?
-        for fpath in ancillary_files:
-            logger.debug(f"copying ancillary file {fpath}")
-            shutil.copy(fpath, self._workspace)
-
-        logger.info(f"copying {len(ancillary_files)} ancillary files took {perf_counter() - start}")
-
-    def preprocess_fortran(self, fpaths_by_type, source_root):
-        logger.info(f"pre-processing {len(fpaths_by_type['.F90'])} files in {source_root}")
+    def preprocess_foo(self, files_by_type, suffix, source_root, preprocessor):
         start = perf_counter()
 
-        # create output folder structure
-        for fpath in fpaths_by_type[".F90"]:
+        fpaths = files_by_type[suffix]
+        logger.info(f"\npre-processing {len(fpaths)} {suffix} files in {source_root}")
 
-            # todo: duplicated snippet from run()
-            # todo: include source root leaf, e.g src or util.
-            rel_fpath = fpath.relative_to(source_root)
-            output_fpath = (self._workspace / rel_fpath.with_suffix('.f90'))
+        self.create_output_folders(fpaths, source_root)
 
-            if not output_fpath.parent.exists():
-                logger.debug(f"creating output folder {output_fpath.parent}")
-                output_fpath.parent.mkdir(parents=True)
+        fpaths_with_root = zip(fpaths, [source_root] * len(fpaths))
 
-        fpaths_with_root = zip(
-            fpaths_by_type[".F90"],
-            [source_root] * len(fpaths_by_type[".F90"]))
-
+        # fortran
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
                 preprocessed_fortran = p.map(
-                    self.fortran_preprocessor.run, fpaths_with_root)
+                    preprocessor.run, fpaths_with_root)
         else:
             preprocessed_fortran = [self.fortran_preprocessor.run(f) for f in fpaths_with_root]
 
         preprocessed_fortran = by_type(preprocessed_fortran)
-
 
         # any errors?
         if preprocessed_fortran[Exception]:
@@ -309,8 +370,18 @@ class Fab(object):
             )
 
         log_or_dot_finish(logger)
-        logger.info(f"pre-processing {len(fpaths_by_type['.F90'])} files in {source_root} took {perf_counter() - start}")
+        logger.info(f"pre-processing {len(fpaths)} files in {source_root} took {perf_counter() - start}")
         return preprocessed_fortran[PosixPath]
+
+    def create_output_folders(self, fpaths, source_root: Path):
+        """Create output folder structure from source files and source root."""
+        # todo: make a set first, to reduce the number of calls to exists()
+        for fpath in fpaths:
+            output_fpath = self.fortran_preprocessor.get_output_path(fpath, source_root)
+
+            if not output_fpath.parent.exists():
+                logger.debug(f"creating output folder {output_fpath.parent}")
+                output_fpath.parent.mkdir(parents=True)
 
     def get_latest_checksums(self, preprocessed_fortran):
         start = perf_counter()
@@ -362,10 +433,9 @@ class Fab(object):
         # work out what needs to be reanalysed
         # unchanged: Set[ProgramUnit] = set()
         # to_analyse: Set[HashedFile] = set()
-        # sorted for easier debugging
         unchanged: List[ProgramUnit] = []
         to_analyse: List[HashedFile] = []
-        latest_file_hashes = sorted(latest_file_hashes.items())
+        latest_file_hashes = sorted(latest_file_hashes.items())  # sorted for easier debugging
         # for latest_fpath, latest_hash in latest_file_hashes.items():
         for latest_fpath, latest_hash in latest_file_hashes:
             # what happened last time we analysed this file?
@@ -394,7 +464,7 @@ class Fab(object):
         new_program_units: List[ProgramUnit] = []
         exceptions = set()
 
-        def foo(analysis_results):
+        def process_analysis_results(analysis_results):
             for pu in analysis_results:
                 if isinstance(pu, EmptyProgramUnit):
                     continue
@@ -415,10 +485,10 @@ class Fab(object):
                 # because we're using imap. We need to use the iterator before it goes out of scope
                 # otherwise it can hang waiting for processes it never got round to create.
                 # Todo: Is this an accurate description of the error?
-                foo(analysis_results)
+                process_analysis_results(analysis_results)
         else:
             analysis_results = (self.fortran_analyser.run(a) for a in to_analyse)
-            foo(analysis_results)
+            process_analysis_results(analysis_results)
 
 
         outfile.close()
@@ -578,4 +648,6 @@ class Fab(object):
         if missing:
             logger.error(f"Unknown dependencies, cannot build: {', '.join(sorted(missing))}")
             exit(1)
+
+
 
