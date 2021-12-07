@@ -1,9 +1,10 @@
 import logging
-import sys
 import zlib
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from typing import Iterator, Dict, List
+
+from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
 
 
 def log_or_dot(logger, msg):
@@ -60,3 +61,14 @@ def get_fpaths_by_type(fpaths: Iterator[Path]) -> Dict[str, List]:
 
     return fpaths_by_type
 
+
+def ensure_output_folder(fpath: Path, workspace):
+    """Ensure the output folder exists for a file in the source folder."""
+    try:
+        rel_folder = fpath.relative_to(workspace / SOURCE_ROOT)
+    except ValueError:
+        return
+    output_folder = workspace / OUTPUT_ROOT / rel_folder
+    if not output_folder.exists():
+        # logger.debug(f"creating output folder {output_folder}")
+        output_folder.mkdir(parents=True)

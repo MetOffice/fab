@@ -6,13 +6,9 @@
 import argparse
 import configparser
 import csv
-import hashlib
 import os
-import subprocess
-import cProfile
-from collections import namedtuple, defaultdict
-from time import perf_counter, sleep
-from typing import Dict, List, Set, Tuple
+from time import perf_counter
+from typing import Dict, List
 
 import logging
 import multiprocessing
@@ -20,11 +16,12 @@ from pathlib import Path, PosixPath
 import shutil
 import sys
 
+from fab.constants import OUTPUT_ROOT, SOURCE_ROOT
 from fab.database import SqliteStateDatabase
+from fab.tasks import Task
 
 from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
-    FortranPreProcessor, \
     FortranAnalyser, \
     FortranCompiler, CompiledProgramUnit
 from fab.tasks.c import \
@@ -46,7 +43,10 @@ def read_config(conf_file):
     Adds processed attributes from the lists:
      - skip_files
      - unreferenced_deps
-     - src_paths
+     - include_paths
+
+    Relative include paths are relative to the location of each file being processed.
+    Absolute include paths (beggining with /) are relative to the workspace root.
     """
     config = configparser.ConfigParser(allow_no_value=True)
     config.read(conf_file)
@@ -61,7 +61,7 @@ def read_config(conf_file):
         lambda i: bool(i),
         [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')]))
 
-    config.src_paths = [Path(os.path.expanduser(i)) for i in config['settings']['src-paths'].split(',')]
+    # config.src_paths = [Path(os.path.expanduser(i)) for i in config['settings']['src-paths'].split(',')]
     config.include_paths = [Path(os.path.expanduser(i)) for i in config['settings']['include-paths'].split(',')]
 
     return config
@@ -128,6 +128,7 @@ def entry() -> None:
 
 class Fab(object):
     def __init__(self,
+                 include_paths: List[Path],
                  workspace: Path,
                  target: str,
                  exec_name: str,
@@ -140,8 +141,9 @@ class Fab(object):
                  unreferenced_deps=None,
                  use_multiprocessing=True,
                  debug_skip=False,
-                 include_paths=None):
+    ):
 
+        # self.source_paths = source_paths
         self.n_procs = n_procs
         self.target = target
         self._workspace = workspace
@@ -202,24 +204,29 @@ class Fab(object):
         )
 
 
-    def run(self, source_paths: List[Path]):
+    def run(self):
         start = perf_counter()
 
-        all_source = self.walk_source_folders(source_paths)
+        all_source = self.walk_source_folder()
 
         # Copy ancillary files, such as Fortran inc and C files
         self.copy_ancillary_files(all_source)
 
         # Before calling the C pre-processor, we mark the include regions
-        # so we can later tell if they are system or user includes.
-        # self.c_pragmas(all_source)
+        # so we can tell if they are system or user includes after preprocessing.
+        pragmad_c = self.c_pragmas(all_source[".c"])
 
-        preprocessed_fortran = self.preprocess(all_source)
+        preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
+        preprocessed_fortran = self.preprocess(
+            fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
 
-        latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
+
+        exit(0)
+
 
         # Analyse ALL files, identifying the program unit name and deps for each file.
         # We get back a flat dict of ProgramUnits, in which the dependency tree is implicit.
+        latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
         analysed_everything = self.analyse_fortran(latest_file_hashes)
 
         # Pull out the program units required to build the target.
@@ -266,23 +273,25 @@ class Fab(object):
         #     print('    depends on: ' + str(c_info.depends_on))
 
 
-    def walk_source_folders(self, source_paths) -> Dict[str, Dict[str, List[Path]]]:
+    def walk_source_folder(self) -> Dict[str, List[Path]]:
         """
         Get all files in the folder and subfolders.
 
         Returns a dict[source_folder][extension] = file_list
         """
-        all_source = dict()
-        for source_path in source_paths:
-            paths = file_walk(source_path, self.skip_files, logger)
-            if not paths:
-                logger.warning(f"no files found in {source_path}")
-            all_source[source_path] = get_fpaths_by_type(paths)
-        return all_source
+        start = perf_counter()
+        # all_source = dict()
+        paths = file_walk(self._workspace / SOURCE_ROOT, self.skip_files, logger)
+        if not paths:
+            logger.warning(f"no source files found")
+            exit(1)
+        fpaths_by_type = get_fpaths_by_type(paths)
+        logger.info(f"walking source folder took {perf_counter() - start}")
+        return fpaths_by_type
 
     # todo: multiprocessing
     # todo: ancillary file types should be in the project config?
-    def copy_ancillary_files(self, all_source: Dict[str, Dict[str, List[Path]]]):
+    def copy_ancillary_files(self, files_by_type: Dict[str, List[Path]]):
         """
         Copy inc and .h files into the workspace.
 
@@ -292,96 +301,58 @@ class Fab(object):
 
         """
         start = perf_counter()
-        copied = set()
 
         # inc files all go in the root - they're going to be removed altogether, soon
-        for _, files_by_type in all_source.items():
-            for fpath in files_by_type[".inc"]:
+        inc_copied = set()
+        for fpath in files_by_type[".inc"]:
+            logger.debug(f"copying inc file {fpath}")
+            if fpath.name in inc_copied:
+                logger.error(f"name clash for ancillary file: {fpath}")
+                exit(1)
 
-                logger.debug(f"copying inc file {fpath}")
-                if fpath.name in copied:
-                    logger.error(f"name clash for ancillary file: {fpath}")
-                    exit(1)
-
-                shutil.copy(fpath, self._workspace)
-                copied.add(fpath.name)
+            shutil.copy(fpath, self._workspace / OUTPUT_ROOT)
+            inc_copied.add(fpath.name)
 
         # header files go into the same folder structure they came from
-        for source_root, files_by_type in all_source.items():
-            for fpath in files_by_type[".h"]:
+        for fpath in files_by_type[".h"]:
+            rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
+            dest_path = self._workspace / OUTPUT_ROOT / rel_path
 
-                if fpath.name in copied:
-                    logger.error(f"name clash for ancillary file: {fpath}")
-                    exit(1)
+            logger.debug(f"copying header file {fpath} to {dest_path}")
+            shutil.copy(fpath, dest_path)
 
-                rel_path = fpath.relative_to(source_root)
-                logger.debug(f"copying header file {fpath} to {rel_path}")
+        logger.info(f"copying ancillary files took {perf_counter() - start}")
 
-                shutil.copy(fpath, self._workspace / rel_path)
-                copied.add(fpath.name)
-
-        logger.info(f"copying {len(copied)} ancillary files took {perf_counter() - start}")
-
-    def preprocess(self, all_source: Dict[str, Dict[str, List]]):
+    def c_pragmas(self, fpaths: List[Path]):
         start = perf_counter()
 
-        # Preprocess the source files - output into the workspace folder
-        # Note: some files may end up empty, depending on #ifdefs
-        preprocessed_fortran = []
-        preprocessed_c = []
-        for source_root, files_by_type in all_source.items():
-            preprocessed_fortran += self.preprocess_foo(
-                files_by_type=files_by_type, suffix=".F90",
-                source_root=source_root, preprocessor=self.fortran_preprocessor)
-            preprocessed_c += self.preprocess_foo(
-                files_by_type=files_by_type, suffix=".c",
-                source_root=source_root, preprocessor=self.c_preprocessor)
+        pragmad_c = []
 
-        logger.info(f"\npre-processing {len(all_source)} folders took {perf_counter() - start}")
-        return preprocessed_fortran
+        return pragmad_c
 
-    def preprocess_foo(self, files_by_type, suffix, source_root, preprocessor):
+
+    def preprocess(self, fpaths, preprocessor: Task):
         start = perf_counter()
 
-        fpaths = files_by_type[suffix]
-        logger.info(f"\npre-processing {len(fpaths)} {suffix} files in {source_root}")
-
-        self.create_output_folders(fpaths, source_root)
-
-        fpaths_with_root = zip(fpaths, [source_root] * len(fpaths))
-
-        # fortran
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
-                preprocessed_fortran = p.map(
-                    preprocessor.run, fpaths_with_root)
+                results = p.map(preprocessor.run, fpaths)
         else:
-            preprocessed_fortran = [self.fortran_preprocessor.run(f) for f in fpaths_with_root]
-
-        preprocessed_fortran = by_type(preprocessed_fortran)
+            results = [preprocessor.run(f) for f in fpaths]
+        results = by_type(results)
 
         # any errors?
-        if preprocessed_fortran[Exception]:
-            formatted_errors = "\n\n".join(map(str, preprocessed_fortran[Exception]))
+        if results[Exception]:
+            formatted_errors = "\n\n".join(map(str, results[Exception]))
             raise Exception(
                 f"{formatted_errors}"
-                f"\n\n{len(preprocessed_fortran[Exception])} "
+                f"\n\n{len(results[Exception])} "
                 f"Error(s) found during preprocessing: "
             )
 
         log_or_dot_finish(logger)
-        logger.info(f"pre-processing {len(fpaths)} files in {source_root} took {perf_counter() - start}")
-        return preprocessed_fortran[PosixPath]
-
-    def create_output_folders(self, fpaths, source_root: Path):
-        """Create output folder structure from source files and source root."""
-        # todo: make a set first, to reduce the number of calls to exists()
-        for fpath in fpaths:
-            output_fpath = self.fortran_preprocessor.get_output_path(fpath, source_root)
-
-            if not output_fpath.parent.exists():
-                logger.debug(f"creating output folder {output_fpath.parent}")
-                output_fpath.parent.mkdir(parents=True)
+        logger.info(f"pre-processing {preprocessor.__class__.__name__} took {perf_counter() - start}")
+        return results[PosixPath]
 
     def get_latest_checksums(self, preprocessed_fortran):
         start = perf_counter()

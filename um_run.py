@@ -26,8 +26,21 @@ from fab.builder import Fab, read_config
 
 def main():
 
-    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace-um"
+    # config
+    project_name = "um"
+    src_paths = {
+        os.path.expanduser("~/svn/um/trunk/src"): "um",
+    }
 
+    #
+    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
+
+    # # TODO: This will be part of grab/extract
+    # # Copy all source into workspace
+    # for src_path, label in src_paths.items():
+    #     shutil.copytree(src_path, workspace / SOURCE_NAME / label, dirs_exist_ok=True)
+
+    # fab build stuff
     config = read_config("um.config")
     settings = config['settings']
     flags = config['flags']
@@ -51,7 +64,7 @@ def main():
     # logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 
-    my_fab.run(source_paths=config.src_paths)
+    my_fab.run()
 
 
 if __name__ == '__main__':

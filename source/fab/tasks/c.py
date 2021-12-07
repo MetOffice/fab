@@ -5,6 +5,7 @@
 C language handling classes.
 """
 import logging
+import shutil
 import subprocess
 import re
 import clang.cindex  # type: ignore
@@ -19,6 +20,8 @@ from typing import \
     Generator, \
     Union
 from pathlib import Path
+
+from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
 
 from fab.database import \
     StateDatabase, \
@@ -38,7 +41,7 @@ from fab.reader import \
     TextReader, \
     FileTextReader, \
     TextReaderDecorator
-from fab.util import log_or_dot
+from fab.util import log_or_dot, ensure_output_folder
 
 
 class CSymbolUnresolvedID(object):
@@ -443,6 +446,7 @@ class _CTextReaderPragmas(TextReaderDecorator):
                 # TODO: Is this sufficient?  Or do the pragmas
                 #       need to include identifying info
                 #       e.g. the name of the original include?
+                # TODO: DO we need to mark system includes?
                 if include.startswith('<'):
                     yield '#pragma FAB SysIncludeStart\n'
                     yield line
@@ -462,35 +466,29 @@ class CPragmaInjector(Task):
     def __init__(self, workspace: Path):
         self._workspace = workspace
 
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('C Pragma Injector expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
+        logger.debug('Injecting pragmas into: %s', fpath)
+        injector = _CTextReaderPragmas(FileTextReader(fpath))
 
-        logger.debug('Injecting pragmas into: %s', artifact.location)
-        injector = _CTextReaderPragmas(
-            FileTextReader(artifact.location))
+        rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
+        output_file = self._workspace / OUTPUT_ROOT / rel_path
+        ensure_output_folder(output_file)
 
-        output_file = self._workspace / artifact.location.name
-
-        out_lines = [line for line in injector.line_by_line()]
+        out_lines = (line for line in injector.line_by_line())
 
         with output_file.open('w') as out_file:
             for line in out_lines:
                 out_file.write(line)
 
-        new_artifact = Artifact(output_file,
-                                artifact.filetype,
-                                Modified)
-        for dependency in artifact.depends_on:
-            new_artifact.add_dependency(dependency)
+        # new_artifact = Artifact(output_file,
+        #                         artifact.filetype,
+        #                         Modified)
+        # for dependency in artifact.depends_on:
+        #     new_artifact.add_dependency(dependency)
 
-        return [new_artifact]
+        return out_file
 
 
 class CPreProcessor(Task):
@@ -569,15 +567,8 @@ class CPreProcessor(Task):
 
         return result
 
-    def get_output_path(self, fpath: Path, source_root):
-        rel_fpath = fpath.relative_to(source_root.parent)
-        output_fpath = (self._workspace / rel_fpath.with_suffix(self.output_suffix))
-        return output_fpath
-
     # @timed_method
-    # def run(self, fpath: Path, source_root: Path):
-    def run(self, args):
-        fpath, source_root = args
+    def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
         command = [self._preprocessor]
@@ -585,26 +576,30 @@ class CPreProcessor(Task):
         command.extend(self.get_include_paths(fpath))
         command.append(str(fpath))
 
-        # Todo: The Use temporary output name (in case the given tool
-        # can't operate in-place)
+        # are we processing a file in the source or the output folder?
+        try:
+            rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
+            output_fpath = self._workspace / OUTPUT_ROOT / rel_path
+        except ValueError:
+            output_fpath = fpath.with_suffix(self.output_suffix)
+        ensure_output_folder(output_fpath, self._workspace)
 
-        output_fpath = self.get_output_path(fpath, source_root)
-        command.append(str(output_fpath))
-
-        #
-        # TODO: FOR DEBUGGING - REMOVE !!!
-        #
+        # todo: for debugging
         if self.debug_skip:
             if output_fpath.exists():
                 return output_fpath
 
-        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
+        # Use temporary output name (in case the given tool can't operate in-place)
+        temp_fpath = output_fpath.with_suffix(".tmp_pp")
+        command.append(str(temp_fpath))
 
+        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
         try:
             subprocess.run(command, check=True, capture_output=True)
         except subprocess.CalledProcessError as err:
             return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
+        shutil.copy(temp_fpath, output_fpath)
         return output_fpath
 
 
