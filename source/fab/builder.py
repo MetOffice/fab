@@ -30,7 +30,7 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.dep_tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
-from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile
+from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile, ensure_output_folder
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -321,6 +321,7 @@ class Fab(object):
             rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
             dest_path = self._workspace / OUTPUT_ROOT / rel_path
 
+            ensure_output_folder(fpath=dest_path, workspace=self._workspace)
             logger.debug(f"copying header file {fpath} to {dest_path}")
             shutil.copy(fpath, dest_path)
 

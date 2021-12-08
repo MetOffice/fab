@@ -474,7 +474,7 @@ class CPragmaInjector(Task):
 
         rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
         output_file = self._workspace / OUTPUT_ROOT / rel_path
-        ensure_output_folder(output_file)
+        ensure_output_folder(fpath=output_file, workspace=self._workspace)
 
         out_lines = (line for line in injector.line_by_line())
 
@@ -582,7 +582,7 @@ class CPreProcessor(Task):
             output_fpath = self._workspace / OUTPUT_ROOT / rel_path
         except ValueError:
             output_fpath = fpath.with_suffix(self.output_suffix)
-        ensure_output_folder(output_fpath, self._workspace)
+        ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
 
         # todo: for debugging
         if self.debug_skip:
