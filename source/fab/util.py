@@ -64,11 +64,12 @@ def get_fpaths_by_type(fpaths: Iterator[Path]) -> Dict[str, List]:
 
 def ensure_output_folder(fpath: Path, workspace):
     """Ensure the output folder exists for a file in the source folder."""
+    # Todo: not robust against a file name clashing with the path, e.g an "output" file broke this
     try:
-        rel_folder = fpath.relative_to(workspace / SOURCE_ROOT)
+        fpath.relative_to(workspace / OUTPUT_ROOT)  # is_relative_to() in Python 3.9
     except ValueError:
         return
-    output_folder = workspace / OUTPUT_ROOT / rel_folder
+    output_folder = fpath.parent
     if not output_folder.exists():
         # logger.debug(f"creating output folder {output_folder}")
         output_folder.mkdir(parents=True)

@@ -147,13 +147,16 @@ class Fab(object):
         self.n_procs = n_procs
         self.target = target
         self._workspace = workspace
-        if not workspace.exists():
-            workspace.mkdir(parents=True)
         self.skip_files = skip_files or []
         self.fc_flags = fc_flags
         self.unreferenced_deps = unreferenced_deps or []
         self.use_multiprocessing = use_multiprocessing
         # self.include_paths = include_paths or []
+
+        if not workspace.exists():
+            workspace.mkdir(parents=True)
+        if not (workspace / OUTPUT_ROOT).exists():
+            (workspace / OUTPUT_ROOT).mkdir()
 
         self._state = SqliteStateDatabase(workspace)
 

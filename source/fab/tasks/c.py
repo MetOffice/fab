@@ -554,9 +554,9 @@ class CPreProcessor(Task):
         Resolve any relative paths as to the folder containing the source file.
 
         """
-        # Start off with the the workspace root because we copy the inc files there.
+        # Start off with the the workspace output root because we copy the inc files there.
         # Todo: inc files are going to be removed
-        result = ["-I", str(self._workspace)]
+        result = ["-I", str(self._workspace / OUTPUT_ROOT)]
 
         # Add all the other include folders
         for inc_path in self.include_paths:
