@@ -30,7 +30,8 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.dep_tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
-from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile, ensure_output_folder
+from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile, ensure_output_folder, \
+    time_logger
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -183,12 +184,13 @@ class Fab(object):
             self._workspace)
 
         header_analyser = HeaderAnalyser(workspace)
-        c_pragma_injector = CPragmaInjector(workspace)
+        self.c_pragma_injector = CPragmaInjector(workspace)
         self.c_preprocessor = CPreProcessor(
             preprocessor='cpp',
             flags=[],
             workspace=workspace,
             output_suffix=".c",
+            include_paths=include_paths,
         )
         c_analyser = CAnalyser(workspace)
         c_compiler = CCompiler(
@@ -208,29 +210,35 @@ class Fab(object):
 
 
     def run(self):
-        start = perf_counter()
 
-        all_source = self.walk_source_folder()
+        # todo: consider pre-compile all c, then all f
+        #       which includes pragmas, preprocess, hash and analysis
+
+        with time_logger("walking source"):
+            all_source = self.walk_source_folder()
 
         # Copy ancillary files, such as Fortran inc and C files
-        self.copy_ancillary_files(all_source)
+        with time_logger("copying ancillary files"):
+            self.copy_ancillary_files(all_source)
 
         # Before calling the C pre-processor, we mark the include regions
         # so we can tell if they are system or user includes after preprocessing.
-        pragmad_c = self.c_pragmas(all_source[".c"])
+        with time_logger("adding pragmas to c"):
+            pragmad_c = self.c_pragmas(all_source[".c"])
 
-        preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
-        preprocessed_fortran = self.preprocess(
-            fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
+        with time_logger("preprocessing c"):
+            preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
 
+        with time_logger("preprocessing fortran"):
+            preprocessed_fortran = self.preprocess(
+                fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
 
-        exit(0)
-
-
-        # Analyse ALL files, identifying the program unit name and deps for each file.
+        # Analyse all fortran files, identifying the program unit name and deps for each file.
         # We get back a flat dict of ProgramUnits, in which the dependency tree is implicit.
         latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
-        analysed_everything = self.analyse_fortran(latest_file_hashes)
+        analysed_fortran = self.analyse_fortran(latest_file_hashes)
+        analysed_c = self.analyse_c(latest_file_hashes)
+        analysed_everything = xxx
 
         # Pull out the program units required to build the target.
         # with cProfile.Profile() as profiler:
@@ -250,7 +258,6 @@ class Fab(object):
         logger.info("\nlinking")
         self.linker.run(all_compiled)
 
-        logger.warning(f"\nfinished, took {perf_counter() - start}")
 
         #
         # file_db = FileInfoDatabase(self._state)
@@ -282,14 +289,11 @@ class Fab(object):
 
         Returns a dict[source_folder][extension] = file_list
         """
-        start = perf_counter()
-        # all_source = dict()
         paths = file_walk(self._workspace / SOURCE_ROOT, self.skip_files, logger)
         if not paths:
             logger.warning(f"no source files found")
             exit(1)
         fpaths_by_type = get_fpaths_by_type(paths)
-        logger.info(f"walking source folder took {perf_counter() - start}")
         return fpaths_by_type
 
     # todo: multiprocessing
@@ -303,8 +307,6 @@ class Fab(object):
         Checks for name clash.
 
         """
-        start = perf_counter()
-
         # inc files all go in the root - they're going to be removed altogether, soon
         inc_copied = set()
         for fpath in files_by_type[".inc"]:
@@ -325,19 +327,16 @@ class Fab(object):
             logger.debug(f"copying header file {fpath} to {dest_path}")
             shutil.copy(fpath, dest_path)
 
-        logger.info(f"copying ancillary files took {perf_counter() - start}")
-
     def c_pragmas(self, fpaths: List[Path]):
-        start = perf_counter()
+        if self.use_multiprocessing:
+            with multiprocessing.Pool(self.n_procs) as p:
+                results = p.map(self.c_pragma_injector.run, fpaths)
+        else:
+            results = [self.c_pragma_injector.run(f) for f in fpaths]
 
-        pragmad_c = []
-
-        return pragmad_c
-
+        return results
 
     def preprocess(self, fpaths, preprocessor: Task):
-        start = perf_counter()
-
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
                 results = p.map(preprocessor.run, fpaths)
@@ -355,7 +354,6 @@ class Fab(object):
             )
 
         log_or_dot_finish(logger)
-        logger.info(f"pre-processing {preprocessor.__class__.__name__} took {perf_counter() - start}")
         return results[PosixPath]
 
     def get_latest_checksums(self, preprocessed_fortran):
@@ -376,54 +374,7 @@ class Fab(object):
         logger.info("\nanalysing dependencies")
         start = perf_counter()
 
-
-
-
-        # Load analysis results from previous run.
-        # Includes the hash of the file when we last analysed it.
-        # Note: it would be easy to switch to a database instead of a csv file
-        prev_results: Dict[Path, ProgramUnit] = dict()
-        try:
-            with open(self._workspace / "__analysis.csv", "rt") as csv_file:
-                dict_reader = csv.DictReader(csv_file)
-                for row in dict_reader:
-                    # file no longer there?
-                    fpath = Path(row['fpath'])
-                    if fpath not in latest_file_hashes:
-                        logger.info(f"a file has gone: {row['fpath']}")
-                        continue
-                    # ok, we have previously analysed this file
-                    deps = row['deps'].split(';') if len(row['deps']) else None
-                    pu = ProgramUnit(
-                        name=row['name'],
-                        fpath=fpath,
-                        file_hash=int(row['hash']),
-                        deps=deps)
-                    prev_results[pu.fpath] = pu
-            logger.info("loaded previous analysis results")
-        except FileNotFoundError:
-            logger.info("no previous analysis results")
-            pass
-
-        # work out what needs to be reanalysed
-        # unchanged: Set[ProgramUnit] = set()
-        # to_analyse: Set[HashedFile] = set()
-        unchanged: List[ProgramUnit] = []
-        to_analyse: List[HashedFile] = []
-        latest_file_hashes = sorted(latest_file_hashes.items())  # sorted for easier debugging
-        # for latest_fpath, latest_hash in latest_file_hashes.items():
-        for latest_fpath, latest_hash in latest_file_hashes:
-            # what happened last time we analysed this file?
-            prev_pu = prev_results.get(latest_fpath)
-            if (not prev_pu) or prev_pu.hash != latest_hash:
-                # to_analyse.add(HashedFile(latest_fpath, latest_hash))
-                to_analyse.append(HashedFile(latest_fpath, latest_hash))
-            else:
-                # unchanged.add(prev_pu)
-                unchanged.append(prev_pu)
-
-        logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
-        logger.debug(f"{[u.name for u in unchanged]}")
+        to_analyse, unchanged = self.load_analysis_results(latest_file_hashes)
 
         # todo: use a database here? do a proper pros/cons with the wider team
         # start a new progress file containing anything that's still valid from the last run
@@ -488,6 +439,52 @@ class Fab(object):
             tree[p.name] = p
 
         return tree
+
+    def load_analysis_results(self, latest_file_hashes):
+        # Load analysis results from previous run.
+        # Includes the hash of the file when we last analysed it.
+        # Note: it would be easy to switch to a database instead of a csv file
+        prev_results: Dict[Path, ProgramUnit] = dict()
+        try:
+            with open(self._workspace / "__analysis.csv", "rt") as csv_file:
+                dict_reader = csv.DictReader(csv_file)
+                for row in dict_reader:
+                    # file no longer there?
+                    fpath = Path(row['fpath'])
+                    if fpath not in latest_file_hashes:
+                        logger.info(f"a file has gone: {row['fpath']}")
+                        continue
+                    # ok, we have previously analysed this file
+                    deps = row['deps'].split(';') if len(row['deps']) else None
+                    pu = ProgramUnit(
+                        name=row['name'],
+                        fpath=fpath,
+                        file_hash=int(row['hash']),
+                        deps=deps)
+                    prev_results[pu.fpath] = pu
+            logger.info("loaded previous analysis results")
+        except FileNotFoundError:
+            logger.info("no previous analysis results")
+            pass
+        # work out what needs to be reanalysed
+        # unchanged: Set[ProgramUnit] = set()
+        # to_analyse: Set[HashedFile] = set()
+        unchanged: List[ProgramUnit] = []
+        to_analyse: List[HashedFile] = []
+        latest_file_hashes = sorted(latest_file_hashes.items())  # sorted for easier debugging
+        # for latest_fpath, latest_hash in latest_file_hashes.items():
+        for latest_fpath, latest_hash in latest_file_hashes:
+            # what happened last time we analysed this file?
+            prev_pu = prev_results.get(latest_fpath)
+            if (not prev_pu) or prev_pu.hash != latest_hash:
+                # to_analyse.add(HashedFile(latest_fpath, latest_hash))
+                to_analyse.append(HashedFile(latest_fpath, latest_hash))
+            else:
+                # unchanged.add(prev_pu)
+                unchanged.append(prev_pu)
+        logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
+        logger.debug(f"{[u.name for u in unchanged]}")
+        return to_analyse, unchanged
 
     def extract_target_tree(self, analysed_everything):
         logger.info("\nextracting target sub tree")

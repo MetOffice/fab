@@ -1,10 +1,15 @@
 import logging
 import zlib
 from collections import namedtuple, defaultdict
+from contextlib import contextmanager
 from pathlib import Path
+from time import perf_counter
 from typing import Iterator, Dict, List
 
 from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
+
+
+logger = logging.getLogger('fab')
 
 
 def log_or_dot(logger, msg):
@@ -73,3 +78,10 @@ def ensure_output_folder(fpath: Path, workspace):
     if not output_folder.exists():
         # logger.debug(f"creating output folder {output_folder}")
         output_folder.mkdir(parents=True)
+
+
+@contextmanager
+def time_logger(label):
+    start = perf_counter()
+    yield None
+    logger.info(f"{label} took {perf_counter() - start}")

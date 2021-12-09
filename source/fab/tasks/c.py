@@ -467,18 +467,19 @@ class CPragmaInjector(Task):
         self._workspace = workspace
 
     def run(self, fpath: Path):
+        # todo: error handling
         logger = logging.getLogger(__name__)
 
         logger.debug('Injecting pragmas into: %s', fpath)
         injector = _CTextReaderPragmas(FileTextReader(fpath))
 
         rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
-        output_file = self._workspace / OUTPUT_ROOT / rel_path
-        ensure_output_folder(fpath=output_file, workspace=self._workspace)
+        output_fpath = self._workspace / OUTPUT_ROOT / rel_path
+        ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
 
         out_lines = (line for line in injector.line_by_line())
 
-        with output_file.open('w') as out_file:
+        with output_fpath.open('w') as out_file:
             for line in out_lines:
                 out_file.write(line)
 
@@ -488,7 +489,7 @@ class CPragmaInjector(Task):
         # for dependency in artifact.depends_on:
         #     new_artifact.add_dependency(dependency)
 
-        return out_file
+        return output_fpath
 
 
 class CPreProcessor(Task):
@@ -561,8 +562,12 @@ class CPreProcessor(Task):
         # Add all the other include folders
         for inc_path in self.include_paths:
             if inc_path.is_absolute():
+                # E.g a project include folder (relative to the workspace)
+                rel_path = inc_path.parts[1:]
+                inc_path = (self._workspace / OUTPUT_ROOT).joinpath(*rel_path)
                 result.extend(["-I", str(inc_path)])
             else:
+                # E.g an include subfolder below a c file
                 result.extend(["-I", str(fpath.parent / inc_path)])
 
         return result
@@ -599,7 +604,7 @@ class CPreProcessor(Task):
         except subprocess.CalledProcessError as err:
             return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
-        shutil.copy(temp_fpath, output_fpath)
+        shutil.move(temp_fpath, output_fpath)
         return output_fpath
 
 

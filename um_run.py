@@ -18,10 +18,14 @@
 
 import os
 import logging
+import shutil
 
 from pathlib import Path
 
+from fab.constants import SOURCE_ROOT
+
 from fab.builder import Fab, read_config
+from fab.util import file_walk, time_logger
 
 
 def main():
@@ -30,15 +34,53 @@ def main():
     project_name = "um"
     src_paths = {
         os.path.expanduser("~/svn/um/trunk/src"): "um",
+        # os.path.expanduser("~/svn/shumlib/trunk"): "shumlib",
     }
 
     #
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
 
-    # # TODO: This will be part of grab/extract
-    # # Copy all source into workspace
-    # for src_path, label in src_paths.items():
-    #     shutil.copytree(src_path, workspace / SOURCE_NAME / label, dirs_exist_ok=True)
+    sim_grab = False
+
+
+    # TODO: This will be part of grab/extract
+    if sim_grab:
+        # Copy all source into workspace
+        for src_path, label in src_paths.items():
+            shutil.copytree(src_path, workspace / SOURCE_ROOT / label, dirs_exist_ok=True)
+
+        # shum partial
+        # shum_excl = / common / src / shumlib_version.c
+        shum_excl = ["common/src/shumlib_version.c", "Makefile"]
+        shum_incl = [
+            "shum_wgdos_packing/src",
+            "shum_string_conv/src",
+            "shum_latlon_eq_grids/src",
+            "shum_horizontal_field_interp/src",
+            "shum_spiral_search/src",
+            "shum_constants/src",
+            "shum_thread_utils/src",
+            "shum_data_conv/src",
+            "shum_number_tools/src",
+            "shum_byteswap/src",
+            "common/src",
+        ]
+
+        shum_src = Path(os.path.expanduser("~/svn/shumlib/trunk"))
+        for fpath in file_walk(shum_src):
+            if any([i in str(fpath) for i in shum_excl]):
+                continue
+            if any([i in str(fpath) for i in shum_incl]):
+                rel_path = fpath.relative_to(shum_src)
+                output_fpath = workspace / SOURCE_ROOT / "shumlib" / rel_path
+                if not output_fpath.parent.exists():
+                    output_fpath.parent.mkdir(parents=True)
+                shutil.copy(fpath, output_fpath)
+
+    ### END OF DONE-BYGRAB STUFF
+
+
+
 
     # fab build stuff
     config = read_config("um.config")
@@ -56,7 +98,7 @@ def main():
                  stop_on_error=True,
                  skip_files=config.skip_files,
                  unreferenced_deps=config.unreferenced_deps,
-                 # use_multiprocessing=False,
+                 use_multiprocessing=False,
                  debug_skip=True,
                  include_paths=config.include_paths)
 
@@ -64,7 +106,8 @@ def main():
     # logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 
-    my_fab.run()
+    with time_logger("fab run"):
+        my_fab.run()
 
 
 if __name__ == '__main__':
