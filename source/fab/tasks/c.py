@@ -21,6 +21,8 @@ from typing import \
     Union
 from pathlib import Path
 
+from fab.dep_tree import ProgramUnit
+
 from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
 
 from fab.database import \
@@ -324,27 +326,22 @@ class CAnalyser(Task):
         else:
             return None
 
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('C Analyser expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
+        reader = FileTextReader(str(fpath))
 
-        reader = FileTextReader(artifact.location)
+        # state = CWorkingState(self.database)
+        # state.remove_c_file(reader.filename)
+        #
+        # new_artifact = Artifact(artifact.location,
+        #                         artifact.filetype,
+        #                         Analysed)
+        #
+        # state = CWorkingState(self.database)
+        # state.remove_c_file(reader.filename)
 
-        state = CWorkingState(self.database)
-        state.remove_c_file(reader.filename)
-
-        new_artifact = Artifact(artifact.location,
-                                artifact.filetype,
-                                Analysed)
-
-        state = CWorkingState(self.database)
-        state.remove_c_file(reader.filename)
+        pu = ProgramUnit(name=str(fpath), fpath=fpath)
 
         index = clang.cindex.Index.create()
         translation_unit = index.parse(reader.filename,
@@ -358,26 +355,36 @@ class CAnalyser(Task):
         external_vars = []
         current_def = None
         for node in translation_unit.cursor.walk_preorder():
-            if node.spelling != '':
-                logger.debug('Considering node: %s', node.spelling)
+            if not node.spelling:
+                continue
+
+            # ignore sys include stuff
+            if self._check_for_include(node.location.line) == "sys_include":
+                continue
+
+            logger.debug('Considering node: %s', node.spelling)
+
             if node.kind == clang.cindex.CursorKind.FUNCTION_DECL:
                 logger.debug('  * Is a function declaration')
                 if (node.is_definition()
                         and node.linkage == clang.cindex.LinkageKind.EXTERNAL):
+
+
                     # This should catch function definitions which are exposed
                     # to the rest of the application
                     logger.debug('  * Is defined in this file')
-                    current_def = CSymbolID(node.spelling, artifact.location)
-                    state.add_c_symbol(current_def)
-                    new_artifact.add_definition(node.spelling)
+                    # current_def = CSymbolID(node.spelling, artifact.location)
+                    # state.add_c_symbol(current_def)
+                    # new_artifact.add_definition(node.spelling)
+                    pu.add_symbol_definition(node.spelling)
                 else:
                     # Any other declarations should be coming in via headers,
                     # we can use the injected pragmas to work out whether these
                     # are coming from system headers or user headers
-                    if (self._check_for_include(node.location.line)
-                            == "usr_include"):
-                        logger.debug('  * Is not defined in this file')
-                        usr_includes.append(node.spelling)
+                    assert self._check_for_include(node.location.line) == "usr_include"
+                    logger.debug('  * Is not defined in this file')
+                    usr_includes.append(node.spelling)
+                    # pu.add_symbol_dependency(node.spelling)
 
             elif node.kind == clang.cindex.CursorKind.CALL_EXPR:
                 # When encountering a function call we should be able to

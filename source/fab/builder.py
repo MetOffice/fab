@@ -7,8 +7,9 @@ import argparse
 import configparser
 import csv
 import os
+from collections import defaultdict
 from time import perf_counter
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import logging
 import multiprocessing
@@ -192,7 +193,7 @@ class Fab(object):
             output_suffix=".c",
             include_paths=include_paths,
         )
-        c_analyser = CAnalyser(workspace)
+        self.c_analyser = CAnalyser(workspace)
         c_compiler = CCompiler(
             'gcc', ['-c'], workspace
         )
@@ -233,12 +234,42 @@ class Fab(object):
             preprocessed_fortran = self.preprocess(
                 fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
 
+
+
+
+        # preprocess -> fortran and c filenames
+
+        # all file analysis -> set of SourceFile(filename, [symbols], [symbol_deps])
+
+        # make symbol table -> dict(symbol, SourceFile)
+
+        # symbol lookup, turn symbol deps into file deps -> dict(filename, SourceFile)
+
+        # target tree extraction (as is)
+
+
+
+
+
         # Analyse all fortran files, identifying the program unit name and deps for each file.
         # We get back a flat dict of ProgramUnits, in which the dependency tree is implicit.
-        latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
-        analysed_fortran = self.analyse_fortran(latest_file_hashes)
-        analysed_c = self.analyse_c(latest_file_hashes)
-        analysed_everything = xxx
+        # latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
+        latest_file_hashes = self.get_latest_checksums(preprocessed_c)
+        to_analyse, unchanged = self.load_analysis_results(latest_file_hashes)
+
+        to_analyse_by_type = defaultdict(list)
+        for hashed_file in to_analyse:
+            to_analyse_by_type[hashed_file.fpath.suffix] = hashed_file
+
+        analysed_c, c_symbols = self.analyse_c(to_analyse_by_type[".c"])
+        analysed_fortran = self.analyse_fortran(to_analyse_by_type[".f90"])
+        analysed_everything = analysed_fortran + analysed_c
+
+
+
+        # turn symbol deps into file deps
+
+
 
         # Pull out the program units required to build the target.
         # with cProfile.Profile() as profiler:
@@ -336,6 +367,10 @@ class Fab(object):
 
         return results
 
+    def analyse_c(self, fpaths: List[Path]):
+        results = [self.c_analyser.run(f) for f in fpaths]
+        exit(0)
+
     def preprocess(self, fpaths, preprocessor: Task):
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
@@ -356,7 +391,7 @@ class Fab(object):
         log_or_dot_finish(logger)
         return results[PosixPath]
 
-    def get_latest_checksums(self, preprocessed_fortran):
+    def get_latest_checksums(self, preprocessed_fortran) -> Dict[Path, int]:
         start = perf_counter()
 
         if self.use_multiprocessing:
@@ -370,11 +405,9 @@ class Fab(object):
         logger.info(f"\nhashing {len(latest_file_hashes)} files took {perf_counter() - start}")
         return latest_file_hashes
 
-    def analyse_fortran(self, latest_file_hashes: Dict[Path, int]):
+    def analyse_fortran(self, fpaths):
         logger.info("\nanalysing dependencies")
         start = perf_counter()
-
-        to_analyse, unchanged = self.load_analysis_results(latest_file_hashes)
 
         # todo: use a database here? do a proper pros/cons with the wider team
         # start a new progress file containing anything that's still valid from the last run
@@ -440,7 +473,7 @@ class Fab(object):
 
         return tree
 
-    def load_analysis_results(self, latest_file_hashes):
+    def load_analysis_results(self, latest_file_hashes) -> Tuple[List[HashedFile], List[ProgramUnit]]:
         # Load analysis results from previous run.
         # Includes the hash of the file when we last analysed it.
         # Note: it would be easy to switch to a database instead of a csv file
@@ -466,6 +499,7 @@ class Fab(object):
         except FileNotFoundError:
             logger.info("no previous analysis results")
             pass
+
         # work out what needs to be reanalysed
         # unchanged: Set[ProgramUnit] = set()
         # to_analyse: Set[HashedFile] = set()
@@ -484,6 +518,7 @@ class Fab(object):
                 unchanged.append(prev_pu)
         logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
         logger.debug(f"{[u.name for u in unchanged]}")
+
         return to_analyse, unchanged
 
     def extract_target_tree(self, analysed_everything):
@@ -620,6 +655,7 @@ class Fab(object):
         if missing:
             logger.error(f"Unknown dependencies, cannot build: {', '.join(sorted(missing))}")
             exit(1)
+
 
 
 
