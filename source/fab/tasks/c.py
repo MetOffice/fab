@@ -21,7 +21,7 @@ from typing import \
     Union
 from pathlib import Path
 
-from fab.dep_tree import ProgramUnit
+from fab.dep_tree import AnalysedFile
 
 from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
 
@@ -341,7 +341,7 @@ class CAnalyser(Task):
         # state = CWorkingState(self.database)
         # state.remove_c_file(reader.filename)
 
-        pu = ProgramUnit(name=str(fpath), fpath=fpath)
+        pu = AnalysedFile(name=str(fpath), fpath=fpath)
 
         index = clang.cindex.Index.create()
         translation_unit = index.parse(reader.filename,
@@ -376,7 +376,7 @@ class CAnalyser(Task):
                     # current_def = CSymbolID(node.spelling, artifact.location)
                     # state.add_c_symbol(current_def)
                     # new_artifact.add_definition(node.spelling)
-                    pu.add_symbol_definition(node.spelling)
+                    pu.add_symbol_def(node.spelling)
                 else:
                     # Any other declarations should be coming in via headers,
                     # we can use the injected pragmas to work out whether these

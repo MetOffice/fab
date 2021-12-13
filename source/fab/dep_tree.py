@@ -1,48 +1,68 @@
 import logging
 from collections import defaultdict
 from pathlib import Path
-
+from typing import Set
 
 logger = logging.getLogger(__name__)
 
 
+FPATH = 'fpath'
+HASH = 'hash'
+SYMBOL_DEPS = 'symbol_deps'
+SYMBOL_DEFS = 'symbol_defs'
+
+
 # todo: might be better as a named tuple, as there's no methods
-class ProgramUnit(object):
-    def __init__(self, name: str, fpath: Path, file_hash, deps=None):
+class AnalysedFile(object):
 
-        if deps:
-            for dep in deps:
-                if (not dep) or len(dep) == 0:
-                    raise ValueError("Bad deps")
-
-        self.name = name.lower()
+    def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None):
         self.fpath = fpath
         self.hash = file_hash
-        self._deps = deps or set()
+        self.symbol_deps: Set[str] = symbol_deps or set()
+        self.symbol_defs: Set[str] = symbol_defs or set()
 
-    def add_dep(self, dep):
-        assert dep and len(dep)
-        self._deps.add(dep.lower())
+        self.file_deps: Set[Path] = set()
+
+        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol_dependencies"
+        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol_definitions"
+
+    def add_symbol_dep(self, name):
+        assert name and len(name)
+        self.symbol_deps.add(name.lower())
+
+    def add_symbol_def(self, name):
+        assert name and len(name)
+        self.symbol_deps.add(name.lower())
 
     @property
     def deps(self):
-        return self._deps
+        return self.symbol_deps
 
     def __str__(self):
-        return f"ProgramUnit {self.name} {self.fpath} {self.hash} {self.deps}"
+        return f"ProgramUnit {self.fpath} {self.hash} {self.symbol_deps} {self.symbol_defs}"
 
     # todo: poor name, and does it even belong in here?
     def as_dict(self):
         """Serialise"""
-        return {'name': self.name, 'fpath': self.fpath, 'hash': self.hash, 'deps': ';'.join(self.deps)}
+        return {
+            FPATH: self.fpath,
+            HASH: self.hash,
+            SYMBOL_DEPS: ';'.join(self.symbol_deps),
+            SYMBOL_DEFS: ';'.join(self.symbol_defs),
+        }
 
     @classmethod
     def from_dict(cls, d):
         """Deserialise"""
-        return cls(name=d['name'], fpath=Path(d['fpath']), file_hash=d['hash'], deps=d['deps'].split(';'))
+        return cls(
+            fpath=Path(d[FPATH]),
+            file_hash=d[HASH],
+            symbol_deps=d[SYMBOL_DEPS].split(';'),
+            symbol_defs=d[SYMBOL_DEFS].split(';'),
+        )
 
 
-class EmptyProgramUnit(object):
+class EmptySourceFile(object):
     def __init__(self, fpath):
         self.fpath = fpath
 

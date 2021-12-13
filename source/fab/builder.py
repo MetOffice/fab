@@ -30,7 +30,7 @@ from fab.tasks.c import \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
-from fab.dep_tree import ProgramUnit, by_type, extract_sub_tree, EmptyProgramUnit
+from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile
 from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile, ensure_output_folder, \
     time_logger
 
@@ -176,7 +176,7 @@ class Fab(object):
             include_paths=include_paths,
             output_suffix=".f90",
             debug_skip=debug_skip)
-        self.fortran_analyser = FortranAnalyser(workspace)
+        self.fortran_analyser = FortranAnalyser()
 
         self.fortran_compiler = FortranCompiler(
             'gfortran',
@@ -227,17 +227,16 @@ class Fab(object):
         with time_logger("adding pragmas to c"):
             pragmad_c = self.c_pragmas(all_source[".c"])
 
+        # preprocess -> fortran and c filenames
         with time_logger("preprocessing c"):
             preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
-
         with time_logger("preprocessing fortran"):
             preprocessed_fortran = self.preprocess(
                 fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
+        preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran + preprocessed_c)
 
 
 
-
-        # preprocess -> fortran and c filenames
 
         # all file analysis -> set of SourceFile(filename, [symbols], [symbol_deps])
 
@@ -250,20 +249,40 @@ class Fab(object):
 
 
 
-
         # Analyse all fortran files, identifying the program unit name and deps for each file.
         # We get back a flat dict of ProgramUnits, in which the dependency tree is implicit.
-        # latest_file_hashes = self.get_latest_checksums(preprocessed_fortran)
-        latest_file_hashes = self.get_latest_checksums(preprocessed_c)
-        to_analyse, unchanged = self.load_analysis_results(latest_file_hashes)
+        to_analyse, unchanged = self.load_analysis_results(preprocessed_hashes)
+        analysis_progress_file, dict_writer = self.start_recording_analysis_progress(unchanged)
 
+        # ugly - move into the load func?
         to_analyse_by_type = defaultdict(list)
         for hashed_file in to_analyse:
             to_analyse_by_type[hashed_file.fpath.suffix] = hashed_file
 
-        analysed_c, c_symbols = self.analyse_c(to_analyse_by_type[".c"])
-        analysed_fortran = self.analyse_fortran(to_analyse_by_type[".f90"])
-        analysed_everything = analysed_fortran + analysed_c
+        analysed_fortran, fortran_exceptions = self.analyse(
+            fpaths=to_analyse_by_type[".f90"], analyser=self.fortran_analyser.run, dict_writer=dict_writer)
+        analysed_c, c_exceptions = self.analyse(
+            fpaths=to_analyse_by_type[".c"], analyser=self.c_analyser.run, dict_writer=dict_writer)
+
+        analysis_progress_file.close()
+
+        # Errors?
+        all_exceptions = fortran_exceptions + c_exceptions
+        if all_exceptions:
+            logger.error(f"{len(all_exceptions)} errors analysing fortran")
+            exit(1)
+
+        all_analysed = analysed_fortran + analysed_c
+
+        exit(0)
+
+
+        # Put the program units into a dict, keyed by name.
+        # The dependency tree is implicit, since deps are keys into the dict.
+        # tree = dict()
+        # for p in unchanged + new_program_units:
+        #     tree[p.name] = p
+
 
 
 
@@ -367,11 +386,7 @@ class Fab(object):
 
         return results
 
-    def analyse_c(self, fpaths: List[Path]):
-        results = [self.c_analyser.run(f) for f in fpaths]
-        exit(0)
-
-    def preprocess(self, fpaths, preprocessor: Task):
+    def preprocess(self, fpaths, preprocessor: Task) -> List[Path]:
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
                 results = p.map(preprocessor.run, fpaths)
@@ -391,93 +406,21 @@ class Fab(object):
         log_or_dot_finish(logger)
         return results[PosixPath]
 
-    def get_latest_checksums(self, preprocessed_fortran) -> Dict[Path, int]:
-        start = perf_counter()
-
+    def get_latest_checksums(self, fpaths: List[Path]) -> Dict[Path, int]:
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
-                results = p.map(do_checksum, preprocessed_fortran)
+                results = p.map(do_checksum, fpaths)
         else:
-            results = [do_checksum(f) for f in preprocessed_fortran]
+            results = [do_checksum(f) for f in fpaths]
 
         latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
-
-        logger.info(f"\nhashing {len(latest_file_hashes)} files took {perf_counter() - start}")
         return latest_file_hashes
 
-    def analyse_fortran(self, fpaths):
-        logger.info("\nanalysing dependencies")
-        start = perf_counter()
-
-        # todo: use a database here? do a proper pros/cons with the wider team
-        # start a new progress file containing anything that's still valid from the last run
-        unchanged_rows = (pu.as_dict() for pu in unchanged)
-
-        outfile = open(self._workspace / "__analysis.csv", "wt")
-        dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
-        dict_writer.writeheader()
-        dict_writer.writerows(unchanged_rows)
-        outfile.flush()
-
-        # Analyse everything
-        new_program_units: List[ProgramUnit] = []
-        exceptions = set()
-
-        def process_analysis_results(analysis_results):
-            for pu in analysis_results:
-                if isinstance(pu, EmptyProgramUnit):
-                    continue
-                elif isinstance(pu, Exception):
-                    logger.error(f"\n{pu}")
-                    exceptions.add(pu)
-                elif isinstance(pu, ProgramUnit):
-                    new_program_units.append(pu)
-                    dict_writer.writerow(pu.as_dict())
-                else:
-                    raise RuntimeError(f"Unexpected analysis result type: {pu}")
-
-        if self.use_multiprocessing:
-            with multiprocessing.Pool(self.n_procs) as p:
-                analysis_results = p.imap_unordered(
-                    self.fortran_analyser.run, to_analyse)
-                # We cannot refactor out this call, which is in both the if and else
-                # because we're using imap. We need to use the iterator before it goes out of scope
-                # otherwise it can hang waiting for processes it never got round to create.
-                # Todo: Is this an accurate description of the error?
-                process_analysis_results(analysis_results)
-        else:
-            analysis_results = (self.fortran_analyser.run(a) for a in to_analyse)
-            process_analysis_results(analysis_results)
-
-
-        outfile.close()
-
-
-
-
-        log_or_dot_finish(logger)
-        logger.info(f"analysis took {perf_counter() - start}")
-
-
-        # Errors?
-        if exceptions:
-            ex_str = "\n\n".join(map(str, exceptions))
-            logger.error(f"{len(exceptions)} errors analysing fortran")
-            # exit(1)
-
-        # Put the program units into a dict, keyed by name.
-        # The dependency tree is implicit, since deps are keys into the dict.
-        tree = dict()
-        for p in unchanged + new_program_units:
-            tree[p.name] = p
-
-        return tree
-
-    def load_analysis_results(self, latest_file_hashes) -> Tuple[List[HashedFile], List[ProgramUnit]]:
+    def load_analysis_results(self, latest_file_hashes) -> Tuple[List[HashedFile], List[AnalysedFile]]:
         # Load analysis results from previous run.
         # Includes the hash of the file when we last analysed it.
         # Note: it would be easy to switch to a database instead of a csv file
-        prev_results: Dict[Path, ProgramUnit] = dict()
+        prev_results: Dict[Path, AnalysedFile] = dict()
         try:
             with open(self._workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
@@ -489,11 +432,11 @@ class Fab(object):
                         continue
                     # ok, we have previously analysed this file
                     deps = row['deps'].split(';') if len(row['deps']) else None
-                    pu = ProgramUnit(
+                    pu = AnalysedFile(
                         name=row['name'],
                         fpath=fpath,
                         file_hash=int(row['hash']),
-                        deps=deps)
+                        symbol_deps=deps)
                     prev_results[pu.fpath] = pu
             logger.info("loaded previous analysis results")
         except FileNotFoundError:
@@ -503,7 +446,7 @@ class Fab(object):
         # work out what needs to be reanalysed
         # unchanged: Set[ProgramUnit] = set()
         # to_analyse: Set[HashedFile] = set()
-        unchanged: List[ProgramUnit] = []
+        unchanged: List[AnalysedFile] = []
         to_analyse: List[HashedFile] = []
         latest_file_hashes = sorted(latest_file_hashes.items())  # sorted for easier debugging
         # for latest_fpath, latest_hash in latest_file_hashes.items():
@@ -520,6 +463,48 @@ class Fab(object):
         logger.debug(f"{[u.name for u in unchanged]}")
 
         return to_analyse, unchanged
+
+    def start_recording_analysis_progress(self, unchanged: List[AnalysedFile]):
+        # todo: use a database here? do a proper pros/cons with the wider team
+        # start a new progress file containing anything that's still valid from the last run
+        unchanged_rows = (pu.as_dict() for pu in unchanged)
+        outfile = open(self._workspace / "__analysis.csv", "wt")
+        dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
+        dict_writer.writeheader()
+        dict_writer.writerows(unchanged_rows)
+        outfile.flush()
+        return outfile, dict_writer
+
+    def analyse(self, fpaths: List[HashedFile], analyser, dict_writer: csv.DictWriter):
+        """
+        Pass the files to the analyser and process the results.
+
+        Returns a list of analysed files and a list of exceptions
+
+        """
+        new_program_units: List[AnalysedFile] = []
+        exceptions = set()
+
+        if self.use_multiprocessing:
+            with multiprocessing.Pool(self.n_procs) as p:
+                analysis_results = p.imap_unordered(analyser, fpaths)
+        else:
+            analysis_results = (analyser(a) for a in fpaths)  # generator
+
+        for pu in analysis_results:
+            if isinstance(pu, EmptySourceFile):
+                continue
+            elif isinstance(pu, Exception):
+                logger.error(f"\n{pu}")
+                exceptions.add(pu)
+            elif isinstance(pu, AnalysedFile):
+                new_program_units.append(pu)
+                dict_writer.writerow(pu.as_dict())
+            else:
+                raise RuntimeError(f"Unexpected analysis result type: {pu}")
+
+        log_or_dot_finish(logger)
+        return new_program_units, exceptions
 
     def extract_target_tree(self, analysed_everything):
         logger.info("\nextracting target sub tree")

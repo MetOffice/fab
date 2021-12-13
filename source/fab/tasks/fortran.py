@@ -12,10 +12,10 @@ from typing import (Generator,
                     Optional,
                     Sequence,
                     Union)
-from fparser.two.Fortran2003 import Char_Literal_Constant, Function_Stmt, Interface_Block, Language_Binding_Spec, Module_Stmt, Name, Program_Stmt, Subroutine_Stmt, Use_Stmt
-
+from fparser.two.Fortran2003 import Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, \
+    Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name
 from fparser.two.parser import ParserFactory
-from fparser.common.readfortran import FortranFileReader
+from fparser.common.readfortran import FortranFileReader, Comment
 from fparser.two.utils import FortranSyntaxError
 
 from fab.database import (DatabaseDecorator,
@@ -26,7 +26,7 @@ from fab.database import (DatabaseDecorator,
 from fab.tasks import  TaskException
 from fab.tasks.c import CWorkingState, CSymbolID
 
-from fab.dep_tree import ProgramUnit, EmptyProgramUnit
+from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.util import log_or_dot, HashedFile
 
 
@@ -309,42 +309,25 @@ class FortranAnalyser(object):
 
     _intrinsic_modules = ['iso_fortran_env']
 
-    def __init__(self, workspace: Path):
-        self.database = SqliteStateDatabase(workspace)
-
+    def __init__(self):
         # todo: should we create this each time?
-        # self.f2008_parser = ParserFactory().create(std="f2008")
+        self.f2008_parser = ParserFactory().create(std="f2008")
 
     # @timed_method
     # def run(self, fpath: FileHash):
     def run(self, hashed_file: HashedFile):
-
-        self.f2008_parser = ParserFactory().create(std="f2008")
-
-
         fpath, hash = hashed_file
         logger = logging.getLogger(__name__)
-
-        state = FortranWorkingState(self.database)
-        state.remove_fortran_file(fpath)
-        # If this file defines any C symbol bindings it may also
-        # end up with an entry in the C part of the database
-        cstate = CWorkingState(self.database)
-        cstate.remove_c_file(fpath)
-
-        # new_artifact = Artifact(fpath, artifact.filetype, Analysed)
-        program_unit = None
-        # logger.debug(f"analysing {fpath}")
         log_or_dot(logger, f"analysing {fpath}")
 
         # parse the fortran into a tree
-        # todo: Matthew said there's a llightweight read mode coming?
-        reader = FortranFileReader(str(fpath))  # ignore_comments=False
+        # todo: Matthew said there's a lightweight read mode coming?
+        reader = FortranFileReader(str(fpath), ignore_comments=False)
         reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
         try:
             tree = self.f2008_parser(reader)
         except FortranSyntaxError as err:
-            # we can't return a FortranSyntaxError, it breaks multiprocessing!
+            # we can't return the FortranSyntaxError, it breaks multiprocessing!
             return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
             return Exception(f"unhandled {type(err)} error in {fpath}\n{err}")
@@ -352,48 +335,40 @@ class FortranAnalyser(object):
         # did it find anything?
         if tree.content[0] == None:
             logger.debug(f"  empty tree found when parsing {fpath}")
-            return EmptyProgramUnit(fpath)
+            return EmptySourceFile(fpath)
 
-        module_name = None
-        deps = set()
+        analysed_file = AnalysedFile(fpath=fpath, file_hash=hash)
 
-        # find the top level program unit first
-        for obj in iter_content(tree):
-            if isinstance(obj, (Module_Stmt, Program_Stmt, Subroutine_Stmt)):
-                module_name = str(obj.get_name())
-                # unit_id = FortranUnitID(module_name, fpath)
-                # state.add_fortran_program_unit(unit_id)
-                break
-            elif isinstance(obj, Function_Stmt):
-                # todo: this is not nice - can't we have a get_name() method on functions?
-                _, name, _, _ = obj.items
-                module_name = name.string
-                # unit_id = FortranUnitID(module_name, fpath)
-                # state.add_fortran_program_unit(unit_id)
-                break
-        if not module_name:
-            return RuntimeError(f"Error finding top level program unit in {fpath}")
-        program_unit = ProgramUnit(module_name, fpath, hash)
+
+
+        # TODO:
+        # - parse external symbol defs -> add symbol dep
+        # - ? record ALL top level things, including functions, which externs can then refer to ?
+        #   - ? or just force non module stuff to use the undeclared deps list ?
+
+
 
         # see what else is in the tree
         for obj in iter_content(tree):
             obj_type = type(obj)
             
+            # including a module
             if obj_type == Use_Stmt:
                 use_name = typed_child(obj, Name)
                 if not use_name:
                     raise TaskException("ERROR finding name in use statement:", obj.string)
                 use_name = use_name.string
 
-                if use_name not in self._intrinsic_modules and use_name not in deps:
-                    # found a new dependency
-                    # unit_id = FortranUnitID(module_name, fpath)
-                    # state.add_fortran_dependency(unit_id, use_name)
+                if use_name not in self._intrinsic_modules:
+                    # found a dependency on fortran
+                    analysed_file.add_symbol_dep(use_name)
 
-                    program_unit.add_dep(use_name)
-                    deps.add(use_name)
+            # defning a module or program
+            elif obj_type in (Module_Stmt, Program_Stmt):
+                analysed_file.add_symbol_def(str(obj.get_name()))
 
-            elif obj_type == Function_Stmt:
+            # function binding
+            elif obj_type in (Subroutine_Stmt, Function_Stmt):
                 bind = typed_child(obj, Language_Binding_Spec)
                 if bind:
                     name = typed_child(bind, Char_Literal_Constant)
@@ -403,29 +378,24 @@ class FortranAnalyser(object):
 
                     # importing a c function into fortran, i.e binding within an interface block
                     if has_ancestor_type(obj, Interface_Block):
+                        # found a dependency on C
                         logger.debug(f"function binding import {bind_name}")
-
-                        # TODO: This is sort of hijacking the mechanism used
-                        # for Fortran module dependencies, only using the
-                        # symbol name. Longer term we probably need a more
-                        # elegant solution
-                        # TODO: what if this is also the program unit? Check if that's possible /ok.
-                        # unit_id = FortranUnitID(module_name, fpath)
-                        # state.add_fortran_dependency(unit_id, bind_name)
-
-                        program_unit.add_dep(bind_name)
+                        analysed_file.add_symbol_dep(bind_name)
 
                     # exporting from fortran to c, i.e binding without an interface block
                     else:
-                        return NotImplementedError(f"function binding export {bind_name}")
-                        # TODO: this does not occur in jules, so is not yet tested on a real repo
-                        # Add to the C database
-                        # symbol_id = CSymbolID(bind_name, fpath)
-                        # cstate.add_c_symbol(symbol_id)
+                        analysed_file.add_symbol_def(bind_name)
 
-                        program_unit.add_dep(bind_name)
+                # We're not recording fortran function defs at the moment.
+                # We're not sure if it's possible to identify function calls,
+                # as the syntax is ambiguous, identical to array access.
+                # elif not has_ancestor_type(obj, Module_Stmt):
+                #     if obj_type == Subroutine_Stmt:
+                #         analysed_file.add_symbol_def(str(obj.get_name()))
+                #     if obj_type == Function_Stmt:
+                #         _, name, _, _ = obj.items
+                #         analysed_file.add_symbol_def(name.string)
 
-            # TODO: (NOT PRESENT IN JULES) variable binding
             elif obj_type == "foo":
                 return NotImplementedError(f"variable bindings not yet implemented {fpath}")
 
@@ -441,8 +411,13 @@ class FortranAnalyser(object):
                 # cstate.add_c_symbol(symbol_id)
                 # new_artifact.add_definition(cbind_name)
 
-        logger.debug(f"    analysed {program_unit.name}")
-        return program_unit
+            # Handle the UM special comments declaring file dependencies.
+            # Be sure to alert the user that this practice is deprecated.
+            elif obj_type == Comment:
+                pass
+
+        logger.debug(f"    analysed {analysed_file.fpath}")
+        return analysed_file
 
 
 # class FortranPreProcessor(object):
@@ -530,7 +505,7 @@ class FortranCompiler(object):
         self._workspace = workspace
 
     # @timed_method
-    def run(self, program_unit: ProgramUnit):
+    def run(self, program_unit: AnalysedFile):
         logger = logging.getLogger(__name__)
 
 
