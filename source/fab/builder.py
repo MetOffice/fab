@@ -236,17 +236,16 @@ class Fab(object):
         preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran + preprocessed_c)
 
 
-
-
         # all file analysis -> set of SourceFile(filename, [symbols], [symbol_deps])
 
         # make symbol table -> dict(symbol, SourceFile)
 
-        # symbol lookup, turn symbol deps into file deps -> dict(filename, SourceFile)
+        # file deps lookup:
+        #  - turn symbol deps into file deps -> dict(filename, SourceFile)
+        #  - find the files for UM file deps
+        #    - use analysis results? (so we can ignore duplicate files with empty output)
 
         # target tree extraction (as is)
-
-
 
 
         # Analyse all fortran files, identifying the program unit name and deps for each file.

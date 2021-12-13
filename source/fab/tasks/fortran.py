@@ -13,9 +13,9 @@ from typing import (Generator,
                     Sequence,
                     Union)
 from fparser.two.Fortran2003 import Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, \
-    Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name
+    Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name, Comment
 from fparser.two.parser import ParserFactory
-from fparser.common.readfortran import FortranFileReader, Comment
+from fparser.common.readfortran import FortranFileReader
 from fparser.two.utils import FortranSyntaxError
 
 from fab.database import (DatabaseDecorator,
@@ -386,15 +386,13 @@ class FortranAnalyser(object):
                     else:
                         analysed_file.add_symbol_def(bind_name)
 
-                # We're not recording fortran function defs at the moment.
-                # We're not sure if it's possible to identify function calls,
-                # as the syntax is ambiguous, identical to array access.
-                # elif not has_ancestor_type(obj, Module_Stmt):
-                #     if obj_type == Subroutine_Stmt:
-                #         analysed_file.add_symbol_def(str(obj.get_name()))
-                #     if obj_type == Function_Stmt:
-                #         _, name, _, _ = obj.items
-                #         analysed_file.add_symbol_def(name.string)
+                # not bound, just record the presence of the fortran symbol
+                elif not has_ancestor_type(obj, Module_Stmt):
+                    if obj_type == Subroutine_Stmt:
+                        analysed_file.add_symbol_def(str(obj.get_name()))
+                    if obj_type == Function_Stmt:
+                        _, name, _, _ = obj.items
+                        analysed_file.add_symbol_def(name.string)
 
             elif obj_type == "foo":
                 return NotImplementedError(f"variable bindings not yet implemented {fpath}")
@@ -413,8 +411,17 @@ class FortranAnalyser(object):
 
             # Handle the UM special comments declaring file dependencies.
             # Be sure to alert the user that this practice is deprecated.
+            # TODO: error handling in case we catch a genuine comment
+            # TODO: separate this project-specific code from teh generic f analyser?
             elif obj_type == Comment:
-                pass
+                depends_str = "DEPENDS ON:"
+                if depends_str in obj.items[0]:
+                    dep = obj.items[0].split(depends_str)[-1].strip()
+                    # without .o means a fortran symbol
+                    if dep.endswith(".o"):
+                        analysed_file.add_file_dep(dep.replace(".o", ".c"))
+                    else:
+                        analysed_file.add_symbol_dep(dep)
 
         logger.debug(f"    analysed {analysed_file.fpath}")
         return analysed_file

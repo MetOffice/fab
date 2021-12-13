@@ -8,38 +8,43 @@ logger = logging.getLogger(__name__)
 
 FPATH = 'fpath'
 HASH = 'hash'
-SYMBOL_DEPS = 'symbol_deps'
 SYMBOL_DEFS = 'symbol_defs'
+SYMBOL_DEPS = 'symbol_deps'
+FILE_DEPS = 'file_deps'
 
 
 # todo: might be better as a named tuple, as there's no methods
 class AnalysedFile(object):
 
-    def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None):
+    def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None):
         self.fpath = fpath
         self.hash = file_hash
-        self.symbol_deps: Set[str] = symbol_deps or set()
         self.symbol_defs: Set[str] = symbol_defs or set()
+        self.symbol_deps: Set[str] = symbol_deps or set()
+        self.file_deps: Set[Path] = file_deps or set()
 
-        self.file_deps: Set[Path] = set()
+        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
+        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
+        # assert all([f and len(str(f)) for f in self.file_deps]), "bad file dependencies"
 
-        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol_dependencies"
-        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol_definitions"
+    def add_symbol_def(self, name):
+        assert name and len(name)
+        self.symbol_defs.add(name.lower())
 
     def add_symbol_dep(self, name):
         assert name and len(name)
         self.symbol_deps.add(name.lower())
 
-    def add_symbol_def(self, name):
+    def add_file_dep(self, name):
         assert name and len(name)
-        self.symbol_deps.add(name.lower())
+        self.file_deps.add(name)
 
-    @property
-    def deps(self):
-        return self.symbol_deps
+    # @property
+    # def deps(self):
+    #     return self.symbol_deps
 
     def __str__(self):
-        return f"ProgramUnit {self.fpath} {self.hash} {self.symbol_deps} {self.symbol_defs}"
+        return f"ProgramUnit {self.fpath} {self.hash} {self.symbol_defs} {self.symbol_deps} {self.file_deps}"
 
     # todo: poor name, and does it even belong in here?
     def as_dict(self):
