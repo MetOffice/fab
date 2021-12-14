@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from fab.dep_tree import AnalysedFile
+
 from fab.tasks.fortran import FortranAnalyser
 from fab.util import HashedFile
 
@@ -12,13 +14,14 @@ def create_fortran_file(folder, content):
 
 # todo: test function binding
 def test_simple_result(tmp_path):
-    result = FortranAnalyser().run(HashedFile(Path("test_analyser.f90"), None))
+    fpath = Path("test_analyser.f90")
+    result = FortranAnalyser().run(HashedFile(fpath, None))
 
-    assert not isinstance(result, Exception)
-    assert result.symbol_defs == {"foo_mod"}
-    assert result.symbol_deps == {"bar_mod"}
-    assert result.file_deps == {"some_file.f90"}
-
-
-# todo:
-#  - indented depend comment
+    expected = AnalysedFile(
+        fpath=fpath,
+        file_hash=None,
+        symbol_deps={'monty_func', 'bar_mod'},
+        symbol_defs={'external_sub', 'foo_mod', 'external_func'},
+        file_deps={'some_file.c'}
+    )
+    assert result == expected

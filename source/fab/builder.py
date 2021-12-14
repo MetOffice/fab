@@ -9,7 +9,7 @@ import csv
 import os
 from collections import defaultdict
 from time import perf_counter
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Set
 
 import logging
 import multiprocessing
@@ -236,9 +236,6 @@ class Fab(object):
         preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran + preprocessed_c)
 
 
-        # all file analysis -> set of SourceFile(filename, [symbols], [symbol_deps])
-
-        # make symbol table -> dict(symbol, SourceFile)
 
         # file deps lookup:
         #  - turn symbol deps into file deps -> dict(filename, SourceFile)
@@ -248,16 +245,16 @@ class Fab(object):
         # target tree extraction (as is)
 
 
-        # Analyse all fortran files, identifying the program unit name and deps for each file.
-        # We get back a flat dict of ProgramUnits, in which the dependency tree is implicit.
+        # All file analysis
+        # todo: clean up
         to_analyse, unchanged = self.load_analysis_results(preprocessed_hashes)
         analysis_progress_file, dict_writer = self.start_recording_analysis_progress(unchanged)
-
         # ugly - move into the load func?
         to_analyse_by_type = defaultdict(list)
         for hashed_file in to_analyse:
             to_analyse_by_type[hashed_file.fpath.suffix] = hashed_file
 
+        # todo: return sets of files
         analysed_fortran, fortran_exceptions = self.analyse(
             fpaths=to_analyse_by_type[".f90"], analyser=self.fortran_analyser.run, dict_writer=dict_writer)
         analysed_c, c_exceptions = self.analyse(
@@ -272,6 +269,14 @@ class Fab(object):
             exit(1)
 
         all_analysed = analysed_fortran + analysed_c
+
+
+
+
+
+        # Make symbol table -> dict(symbol, SourceFile)
+        all_analysed_files = analysed_fortran + analysed_c
+        symbols = self.gen_symbol_table(all_analysed_files)
 
         exit(0)
 
@@ -331,6 +336,12 @@ class Fab(object):
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
 
+    def gen_symbol_table(self, all_analysed_files):
+        symbols = dict()
+        for source_file in all_analysed_files:
+            for symbol_def in source_file.symbol_defs:
+                symbols[symbol_def] = source_file.fpath
+        return symbols
 
     def walk_source_folder(self) -> Dict[str, List[Path]]:
         """

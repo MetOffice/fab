@@ -39,12 +39,17 @@ class AnalysedFile(object):
         assert name and len(name)
         self.file_deps.add(name)
 
-    # @property
-    # def deps(self):
-    #     return self.symbol_deps
-
     def __str__(self):
         return f"ProgramUnit {self.fpath} {self.hash} {self.symbol_defs} {self.symbol_deps} {self.file_deps}"
+
+    def __eq__(self, other):
+        return (
+            self.fpath == other.fpath and
+            self.hash == other.hash and
+            self.symbol_defs == other.symbol_defs and
+            self.symbol_deps == other.symbol_deps and
+            self.file_deps == other.file_deps
+        )
 
     # todo: poor name, and does it even belong in here?
     def as_dict(self):

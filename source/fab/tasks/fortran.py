@@ -363,7 +363,7 @@ class FortranAnalyser(object):
                     # found a dependency on fortran
                     analysed_file.add_symbol_dep(use_name)
 
-            # defning a module or program
+            # defining a module or program
             elif obj_type in (Module_Stmt, Program_Stmt):
                 analysed_file.add_symbol_def(str(obj.get_name()))
 
@@ -387,6 +387,7 @@ class FortranAnalyser(object):
                         analysed_file.add_symbol_def(bind_name)
 
                 # not bound, just record the presence of the fortran symbol
+                # we don't need to record stuff in modules (we think!)
                 elif not has_ancestor_type(obj, Module):
                     if obj_type == Subroutine_Stmt:
                         analysed_file.add_symbol_def(str(obj.get_name()))
@@ -420,6 +421,7 @@ class FortranAnalyser(object):
                     # without .o means a fortran symbol
                     if dep.endswith(".o"):
                         analysed_file.add_file_dep(dep.replace(".o", ".c"))
+                    # with .o means a c file
                     else:
                         analysed_file.add_symbol_dep(dep)
 
