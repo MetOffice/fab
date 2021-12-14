@@ -5,6 +5,7 @@
 Fortran language handling classes.
 """
 import logging
+import warnings
 from pathlib import Path
 import subprocess
 from typing import (Generator,
@@ -410,18 +411,19 @@ class FortranAnalyser(object):
                 # cstate.add_c_symbol(symbol_id)
                 # new_artifact.add_definition(cbind_name)
 
-            # Handle the UM special comments declaring file dependencies.
+            # Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
             # Be sure to alert the user that this practice is deprecated.
             # TODO: error handling in case we catch a genuine comment
-            # TODO: separate this project-specific code from teh generic f analyser?
+            # TODO: separate this project-specific code from the generic f analyser?
             elif obj_type == Comment:
                 depends_str = "DEPENDS ON:"
+                warnings.warn("deprecated 'DEPENDS ON:' comment found in code")
                 if depends_str in obj.items[0]:
                     dep = obj.items[0].split(depends_str)[-1].strip()
-                    # without .o means a fortran symbol
-                    if dep.endswith(".o"):
-                        analysed_file.add_file_dep(dep.replace(".o", ".c"))
                     # with .o means a c file
+                    if dep.endswith(".o"):
+                        analysed_file.mo_commented_file_deps.add(dep.replace(".o", ".c"))
+                    # without .o means a fortran symbol
                     else:
                         analysed_file.add_symbol_dep(dep)
 

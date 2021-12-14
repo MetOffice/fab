@@ -9,7 +9,7 @@ import csv
 import os
 from collections import defaultdict
 from time import perf_counter
-from typing import Dict, List, Tuple, Set
+from typing import Dict, List, Tuple, Set, Iterable
 
 import logging
 import multiprocessing
@@ -30,7 +30,7 @@ from fab.tasks.c import \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
-from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile
+from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, mo_commented_file_deps
 from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile, ensure_output_folder, \
     time_logger
 
@@ -230,19 +230,14 @@ class Fab(object):
         # preprocess -> fortran and c filenames
         with time_logger("preprocessing c"):
             preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
+
         with time_logger("preprocessing fortran"):
             preprocessed_fortran = self.preprocess(
                 fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
-        preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran + preprocessed_c)
+
+        preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran | preprocessed_c)
 
 
-
-        # file deps lookup:
-        #  - turn symbol deps into file deps -> dict(filename, SourceFile)
-        #  - find the files for UM file deps
-        #    - use analysis results? (so we can ignore duplicate files with empty output)
-
-        # target tree extraction (as is)
 
 
         # All file analysis
@@ -263,37 +258,44 @@ class Fab(object):
         analysis_progress_file.close()
 
         # Errors?
-        all_exceptions = fortran_exceptions + c_exceptions
+        all_exceptions = fortran_exceptions | c_exceptions
         if all_exceptions:
             logger.error(f"{len(all_exceptions)} errors analysing fortran")
             exit(1)
 
-        all_analysed = analysed_fortran + analysed_c
 
 
 
-
+        #
+        all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_fortran + analysed_c}
 
         # Make symbol table -> dict(symbol, SourceFile)
-        all_analysed_files = analysed_fortran + analysed_c
-        symbols = self.gen_symbol_table(all_analysed_files)
+        symbols: Dict[str, Path] = self.gen_symbol_table(all_analysed_files)
+
+        # turn symbol deps into file deps
+        for analysed_file in all_analysed_files.values():
+            for symbol_dep in analysed_file.symbol_deps:
+                # todo: does file_deps belong in there?
+                analysed_file.file_deps.add(symbols[symbol_dep])
+
+        #  find the files for UM "DEPENDS ON:" commented file deps
+        mo_commented_file_deps(analysed_fortran, analysed_c)
+
+        # target tree extraction (as is)
+        target_tree = self.extract_target_tree(all_analysed_files, symbols)
+
+
+
+
 
         exit(0)
-
-
-        # turn .o file deps into .c file PATHS (where we've foudn them)
-        # turn symbol deps into file deps
-
-
-        # make the dict (also is an implicit tree)
-        # foo[file path] = AnalysedFile(deps=[file paths...]
 
 
 
 
         # Pull out the program units required to build the target.
         # with cProfile.Profile() as profiler:
-        target_tree = self.extract_target_tree(analysed_everything)
+        # target_tree = self.extract_target_tree(analysed_everything)
         # profiler.dump_stats('extract_target_tree.pstats')
 
         # Recursively add any unreferenced dependencies
@@ -333,9 +335,9 @@ class Fab(object):
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
 
-    def gen_symbol_table(self, all_analysed_files):
+    def gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
         symbols = dict()
-        for source_file in all_analysed_files:
+        for source_file in all_analysed_files.values():
             for symbol_def in source_file.symbol_defs:
                 symbols[symbol_def] = source_file.fpath
         return symbols
@@ -393,7 +395,7 @@ class Fab(object):
 
         return results
 
-    def preprocess(self, fpaths, preprocessor: Task) -> List[Path]:
+    def preprocess(self, fpaths, preprocessor: Task) -> Set[Path]:
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
                 results = p.map(preprocessor.run, fpaths)
@@ -413,7 +415,7 @@ class Fab(object):
         log_or_dot_finish(logger)
         return results[PosixPath]
 
-    def get_latest_checksums(self, fpaths: List[Path]) -> Dict[Path, int]:
+    def get_latest_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
                 results = p.map(do_checksum, fpaths)
@@ -513,17 +515,16 @@ class Fab(object):
         log_or_dot_finish(logger)
         return new_program_units, exceptions
 
-    def extract_target_tree(self, analysed_everything):
-        logger.info("\nextracting target sub tree")
-        start = perf_counter()
+    def extract_target_tree(self, analysed_everything: Dict[Path, AnalysedFile], symbols: Dict[str, Path]):
 
-        target_tree, missing = extract_sub_tree(analysed_everything, self.target, verbose=False)
+        root_file = symbols[self.target]
+
+        target_tree, missing = extract_sub_tree(analysed_everything, root_file, verbose=False)
         if missing:
             logger.warning(f"missing deps {missing}")
         else:
             logger.info("no missing deps")
 
-        logger.info(f"extracting target tree took {perf_counter() - start}")
         logger.info(f"tree size (all files) {len(analysed_everything)}")
         logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
         return target_tree
