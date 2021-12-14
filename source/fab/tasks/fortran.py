@@ -13,7 +13,7 @@ from typing import (Generator,
                     Sequence,
                     Union)
 from fparser.two.Fortran2003 import Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, \
-    Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name, Comment
+    Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name, Comment, Module
 from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranFileReader
 from fparser.two.utils import FortranSyntaxError
@@ -387,7 +387,7 @@ class FortranAnalyser(object):
                         analysed_file.add_symbol_def(bind_name)
 
                 # not bound, just record the presence of the fortran symbol
-                elif not has_ancestor_type(obj, Module_Stmt):
+                elif not has_ancestor_type(obj, Module):
                     if obj_type == Subroutine_Stmt:
                         analysed_file.add_symbol_def(str(obj.get_name()))
                     if obj_type == Function_Stmt:
