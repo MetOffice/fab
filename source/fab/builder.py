@@ -281,16 +281,13 @@ class Fab(object):
         exit(0)
 
 
-        # Put the program units into a dict, keyed by name.
-        # The dependency tree is implicit, since deps are keys into the dict.
-        # tree = dict()
-        # for p in unchanged + new_program_units:
-        #     tree[p.name] = p
-
-
-
-
+        # turn .o file deps into .c file PATHS (where we've foudn them)
         # turn symbol deps into file deps
+
+
+        # make the dict (also is an implicit tree)
+        # foo[file path] = AnalysedFile(deps=[file paths...]
+
 
 
 
