@@ -6,25 +6,25 @@ from typing import Set, Dict, List
 logger = logging.getLogger(__name__)
 
 
-FPATH = 'fpath'
-HASH = 'hash'
-SYMBOL_DEFS = 'symbol_defs'
-SYMBOL_DEPS = 'symbol_deps'
-FILE_DEPS = 'file_deps'
+# FPATH = 'fpath'
+# HASH = 'hash'
+# SYMBOL_DEFS = 'symbol_defs'
+# SYMBOL_DEPS = 'symbol_deps'
+# FILE_DEPS = 'file_deps'
 
 
 # todo: might be better as a named tuple, as there's no methods
 class AnalysedFile(object):
 
-    def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None, um_comment_file_deps=None):
+    def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None, mo_commented_file_deps=None):
         self.fpath = fpath
-        self.hash = file_hash
+        self.file_hash = file_hash
         self.symbol_defs: Set[str] = symbol_defs or set()
         self.symbol_deps: Set[str] = symbol_deps or set()
         self.file_deps: Set[Path] = file_deps or set()
 
         # dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file
-        self.mo_commented_file_deps: Set[str] = um_comment_file_deps or set()
+        self.mo_commented_file_deps: Set[str] = mo_commented_file_deps or set()
 
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
@@ -43,36 +43,48 @@ class AnalysedFile(object):
         self.file_deps.add(name)
 
     def __str__(self):
-        return f"ProgramUnit {self.fpath} {self.hash} {self.symbol_defs} {self.symbol_deps} {self.file_deps}"
+        return f"AnalysedFile {self.fpath} {self.file_hash} {self.symbol_defs} {self.symbol_deps} {self.file_deps}"
 
     def __eq__(self, other):
         return (
                 self.fpath == other.fpath and
-                self.hash == other.hash and
+                self.file_hash == other.file_hash and
                 self.symbol_defs == other.symbol_defs and
                 self.symbol_deps == other.symbol_deps and
                 self.file_deps == other.file_deps and
                 self.mo_commented_file_deps == other.mo_commented_file_deps
         )
 
+    #
+    # this stuff is for reading and writing
+    #
+
+    @classmethod
+    def field_names(cls):
+        return ['fpath', 'file_hash', 'symbol_defs', 'symbol_deps', 'file_deps', 'mo_commented_file_deps']
+
     # todo: poor name, and does it even belong in here?
     def as_dict(self):
         """Serialise"""
         return {
-            FPATH: self.fpath,
-            HASH: self.hash,
-            SYMBOL_DEPS: ';'.join(self.symbol_deps),
-            SYMBOL_DEFS: ';'.join(self.symbol_defs),
+            "fpath": self.fpath,
+            "file_hash": self.file_hash,
+            "symbol_deps": ';'.join(self.symbol_deps),
+            "symbol_defs": ';'.join(self.symbol_defs),
+            "file_deps": ';'.join(map(str, self.file_deps)),
+            "mo_commented_file_deps": ';'.join(self.mo_commented_file_deps),
         }
 
     @classmethod
     def from_dict(cls, d):
         """Deserialise"""
         return cls(
-            fpath=Path(d[FPATH]),
-            file_hash=d[HASH],
-            symbol_deps=d[SYMBOL_DEPS].split(';'),
-            symbol_defs=d[SYMBOL_DEFS].split(';'),
+            fpath=Path(d["fpath"]),
+            file_hash=int(d["file_hash"]),
+            symbol_deps=d["symbol_deps"].split(';') if d["symbol_deps"] else [],
+            symbol_defs=d["symbol_defs"].split(';') if d["symbol_defs"] else [],
+            file_deps=map(Path, d["file_deps"].split(';')) if d["file_deps"] else [],
+            mo_commented_file_deps=d["mo_commented_file_deps"].split(';') if d["mo_commented_file_deps"] else [],
         )
 
 

@@ -8,6 +8,7 @@ import configparser
 import csv
 import os
 from collections import defaultdict
+from contextlib import contextmanager
 from time import perf_counter
 from typing import Dict, List, Tuple, Set, Iterable
 
@@ -31,7 +32,7 @@ from fab.tasks.c import \
     CAnalyser, \
     CCompiler
 from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, mo_commented_file_deps
-from fab.util import log_or_dot_finish, do_checksum, file_walk, get_fpaths_by_type, HashedFile, ensure_output_folder, \
+from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
     time_logger
 
 logger = logging.getLogger('fab')
@@ -59,9 +60,9 @@ def read_config(conf_file):
         for line in open(skip_files_config, "rt"):
             config.skip_files.append(line.strip())
 
-    config.unreferenced_deps = sorted(filter(
+    config.unreferenced_deps = filter(
         lambda i: bool(i),
-        [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')]))
+        [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')])
 
     # config.src_paths = [Path(os.path.expanduser(i)) for i in config['settings']['src-paths'].split(',')]
     config.include_paths = [Path(os.path.expanduser(i)) for i in config['settings']['include-paths'].split(',')]
@@ -212,22 +213,15 @@ class Fab(object):
 
     def run(self):
 
-        # todo: consider pre-compile all c, then all f
-        #       which includes pragmas, preprocess, hash and analysis
-
         with time_logger("walking source"):
             all_source = self.walk_source_folder()
 
-        # Copy ancillary files, such as Fortran inc and C files
         with time_logger("copying ancillary files"):
             self.copy_ancillary_files(all_source)
 
-        # Before calling the C pre-processor, we mark the include regions
-        # so we can tell if they are system or user includes after preprocessing.
         with time_logger("adding pragmas to c"):
             pragmad_c = self.c_pragmas(all_source[".c"])
 
-        # preprocess -> fortran and c filenames
         with time_logger("preprocessing c"):
             preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
 
@@ -235,48 +229,26 @@ class Fab(object):
             preprocessed_fortran = self.preprocess(
                 fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
 
+        # take hashes of all the files we preprocessed
         preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran | preprocessed_c)
 
+        # analyse c and fortran
+        with self.analysis_progress(preprocessed_hashes) as (unchanged, to_analyse, analysis_dict_writer):
+            analysed_c, analysed_fortran = self.analyse(to_analyse, analysis_dict_writer)
+        all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
 
-
-
-        # All file analysis
-        # todo: clean up
-        to_analyse, unchanged = self.load_analysis_results(preprocessed_hashes)
-        analysis_progress_file, dict_writer = self.start_recording_analysis_progress(unchanged)
-        # ugly - move into the load func?
-        to_analyse_by_type = defaultdict(list)
-        for hashed_file in to_analyse:
-            to_analyse_by_type[hashed_file.fpath.suffix] = hashed_file
-
-        # todo: return sets of files
-        analysed_fortran, fortran_exceptions = self.analyse(
-            fpaths=to_analyse_by_type[".f90"], analyser=self.fortran_analyser.run, dict_writer=dict_writer)
-        analysed_c, c_exceptions = self.analyse(
-            fpaths=to_analyse_by_type[".c"], analyser=self.c_analyser.run, dict_writer=dict_writer)
-
-        analysis_progress_file.close()
-
-        # Errors?
-        all_exceptions = fortran_exceptions | c_exceptions
-        if all_exceptions:
-            logger.error(f"{len(all_exceptions)} errors analysing fortran")
-            exit(1)
-
-
-
-
-        #
-        all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_fortran + analysed_c}
-
-        # Make symbol table -> dict(symbol, SourceFile)
+        # Make "external" symbol table
         symbols: Dict[str, Path] = self.gen_symbol_table(all_analysed_files)
 
         # turn symbol deps into file deps
         for analysed_file in all_analysed_files.values():
             for symbol_dep in analysed_file.symbol_deps:
                 # todo: does file_deps belong in there?
-                analysed_file.file_deps.add(symbols[symbol_dep])
+                found_dep = symbols.get(symbol_dep)
+                if not found_dep:
+                    logger.info(f"(might not matter) not found {symbol_dep} for {analysed_file}")
+                    continue
+                analysed_file.file_deps.add(found_dep)
 
         #  find the files for UM "DEPENDS ON:" commented file deps
         mo_commented_file_deps(analysed_fortran, analysed_c)
@@ -301,6 +273,7 @@ class Fab(object):
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
         # This is driven by the config list "unreferenced-dependencies"
+        # todo: list those which are already found, e.g from the new comments deps
         self.add_unreferenced_deps(analysed_everything, target_tree)
 
         self.validate_target_tree(target_tree)
@@ -310,7 +283,6 @@ class Fab(object):
 
         logger.info("\nlinking")
         self.linker.run(all_compiled)
-
 
         #
         # file_db = FileInfoDatabase(self._state)
@@ -335,6 +307,27 @@ class Fab(object):
         #     print('    found_in: ' + str(c_info.symbol.found_in))
         #     print('    depends on: ' + str(c_info.depends_on))
 
+    def analyse(self, to_analyse_by_type: Dict[str, List[HashedFile]], analysis_dict_writer: csv.DictWriter) \
+            -> Tuple[List[AnalysedFile], List[AnalysedFile]]:
+
+        logger.info("analyse")
+
+        with time_logger("analysing fortran"):
+            analysed_fortran, fortran_exceptions = self.analyse_file_type(
+                fpaths=to_analyse_by_type[".f90"], analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
+
+        with time_logger("analysing c"):
+            analysed_c, c_exceptions = self.analyse_file_type(
+                fpaths=to_analyse_by_type[".c"], analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
+
+        # analysis errors?
+        all_exceptions = fortran_exceptions | c_exceptions
+        if all_exceptions:
+            logger.error(f"{len(all_exceptions)} errors analysing fortran")
+            exit(1)
+
+        return analysed_c, analysed_fortran
+
     def gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
         symbols = dict()
         for source_file in all_analysed_files.values():
@@ -348,11 +341,21 @@ class Fab(object):
 
         Returns a dict[source_folder][extension] = file_list
         """
-        paths = file_walk(self._workspace / SOURCE_ROOT, self.skip_files, logger)
-        if not paths:
+        fpaths = file_walk(self._workspace / SOURCE_ROOT, self.skip_files, logger)
+        if not fpaths:
             logger.warning(f"no source files found")
             exit(1)
-        fpaths_by_type = get_fpaths_by_type(paths)
+
+        fpaths_by_type = defaultdict(list)
+        for fpath in fpaths:
+            fpaths_by_type[fpath.suffix].append(fpath)
+
+            # mirror the source folders in the output folder because some cli commands we call require them to exist
+            rel_fpath = fpath.relative_to(self._workspace / SOURCE_ROOT)
+            output_folder = (self._workspace / OUTPUT_ROOT / rel_fpath).parent
+            if not output_folder.exists():
+                output_folder.mkdir(parents=True)
+
         return fpaths_by_type
 
     # todo: multiprocessing
@@ -382,7 +385,7 @@ class Fab(object):
             rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
             dest_path = self._workspace / OUTPUT_ROOT / rel_path
 
-            ensure_output_folder(fpath=dest_path, workspace=self._workspace)
+            # ensure_output_folder(fpath=dest_path, workspace=self._workspace)
             logger.debug(f"copying header file {fpath} to {dest_path}")
             shutil.copy(fpath, dest_path)
 
@@ -422,8 +425,31 @@ class Fab(object):
         else:
             results = [do_checksum(f) for f in fpaths]
 
-        latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.hash for fh in results}
+        latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in results}
         return latest_file_hashes
+
+    @contextmanager
+    def analysis_progress(self, preprocessed_hashes) -> Tuple[List[AnalysedFile], Dict[str, List[HashedFile]], csv.DictWriter]:
+        """Open a new analysis progress file, populated with work already done in previous runs."""
+
+        with time_logger("loading analysis results"):
+            to_analyse, unchanged = self.load_analysis_results(preprocessed_hashes)
+
+        with time_logger("starting analysis progress"):
+            unchanged_rows = (pu.as_dict() for pu in unchanged)
+            analysis_progress_file = open(self._workspace / "__analysis.csv", "wt")
+            analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
+            analysis_dict_writer.writeheader()
+            analysis_dict_writer.writerows(unchanged_rows)
+            analysis_progress_file.flush()
+
+        to_analyse_by_type: Dict[List[HashedFile]] = defaultdict(list)
+        for hashed_file in to_analyse:
+            to_analyse_by_type[hashed_file.fpath.suffix].append(hashed_file)
+
+        yield unchanged, to_analyse_by_type, analysis_dict_writer
+
+        analysis_progress_file.close()
 
     def load_analysis_results(self, latest_file_hashes) -> Tuple[List[HashedFile], List[AnalysedFile]]:
         # Load analysis results from previous run.
@@ -434,19 +460,16 @@ class Fab(object):
             with open(self._workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
+                    current_file = AnalysedFile.from_dict(row)
+
                     # file no longer there?
-                    fpath = Path(row['fpath'])
-                    if fpath not in latest_file_hashes:
-                        logger.info(f"a file has gone: {row['fpath']}")
+                    if current_file.fpath not in latest_file_hashes:
+                        logger.info(f"a file has gone: {current_file.fpath}")
                         continue
+
                     # ok, we have previously analysed this file
-                    deps = row['deps'].split(';') if len(row['deps']) else None
-                    pu = AnalysedFile(
-                        name=row['name'],
-                        fpath=fpath,
-                        file_hash=int(row['hash']),
-                        symbol_deps=deps)
-                    prev_results[pu.fpath] = pu
+                    prev_results[current_file.fpath] = current_file
+
             logger.info("loaded previous analysis results")
         except FileNotFoundError:
             logger.info("no previous analysis results")
@@ -457,40 +480,39 @@ class Fab(object):
         # to_analyse: Set[HashedFile] = set()
         unchanged: List[AnalysedFile] = []
         to_analyse: List[HashedFile] = []
-        latest_file_hashes = sorted(latest_file_hashes.items())  # sorted for easier debugging
-        # for latest_fpath, latest_hash in latest_file_hashes.items():
-        for latest_fpath, latest_hash in latest_file_hashes:
+        for latest_fpath, latest_hash in latest_file_hashes.items():
             # what happened last time we analysed this file?
             prev_pu = prev_results.get(latest_fpath)
-            if (not prev_pu) or prev_pu.hash != latest_hash:
+            if (not prev_pu) or prev_pu.file_hash != latest_hash:
                 # to_analyse.add(HashedFile(latest_fpath, latest_hash))
                 to_analyse.append(HashedFile(latest_fpath, latest_hash))
             else:
                 # unchanged.add(prev_pu)
                 unchanged.append(prev_pu)
         logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
-        logger.debug(f"{[u.name for u in unchanged]}")
+        logger.debug(f"{[u.fpath for u in unchanged]}")
 
         return to_analyse, unchanged
 
-    def start_recording_analysis_progress(self, unchanged: List[AnalysedFile]):
-        # todo: use a database here? do a proper pros/cons with the wider team
-        # start a new progress file containing anything that's still valid from the last run
-        unchanged_rows = (pu.as_dict() for pu in unchanged)
-        outfile = open(self._workspace / "__analysis.csv", "wt")
-        dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
-        dict_writer.writeheader()
-        dict_writer.writerows(unchanged_rows)
-        outfile.flush()
-        return outfile, dict_writer
+    # def start_recording_analysis_progress(self, unchanged: List[AnalysedFile]):
+    #     # todo: use a database here? do a proper pros/cons with the wider team
+    #     # start a new progress file containing anything that's still valid from the last run
+    #     unchanged_rows = (pu.as_dict() for pu in unchanged)
+    #     outfile = open(self._workspace / "__analysis.csv", "wt")
+    #     dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
+    #     dict_writer.writeheader()
+    #     dict_writer.writerows(unchanged_rows)
+    #     outfile.flush()
+    #     return outfile, dict_writer
 
-    def analyse(self, fpaths: List[HashedFile], analyser, dict_writer: csv.DictWriter):
+    def analyse_file_type(self, fpaths: List[HashedFile], analyser, dict_writer: csv.DictWriter) -> Tuple[ List[AnalysedFile], Set[Exception]]:
         """
         Pass the files to the analyser and process the results.
 
         Returns a list of analysed files and a list of exceptions
 
         """
+        # todo: return a set?
         new_program_units: List[AnalysedFile] = []
         exceptions = set()
 

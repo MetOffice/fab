@@ -43,7 +43,7 @@ from fab.reader import \
     TextReader, \
     FileTextReader, \
     TextReaderDecorator
-from fab.util import log_or_dot, ensure_output_folder
+from fab.util import log_or_dot
 
 
 class CSymbolUnresolvedID(object):
@@ -482,7 +482,7 @@ class CPragmaInjector(Task):
 
         rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
         output_fpath = self._workspace / OUTPUT_ROOT / rel_path
-        ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
+        # ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
 
         out_lines = (line for line in injector.line_by_line())
 
@@ -591,10 +591,10 @@ class CPreProcessor(Task):
         # are we processing a file in the source or the output folder?
         try:
             rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
-            output_fpath = self._workspace / OUTPUT_ROOT / rel_path
+            output_fpath = (self._workspace / OUTPUT_ROOT / rel_path).with_suffix(self.output_suffix)
         except ValueError:
             output_fpath = fpath.with_suffix(self.output_suffix)
-        ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
+        # ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
 
         # todo: for debugging
         if self.debug_skip:

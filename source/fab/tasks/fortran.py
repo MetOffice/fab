@@ -313,11 +313,14 @@ class FortranAnalyser(object):
     def __init__(self):
         # todo: should we create this each time?
         self.f2008_parser = ParserFactory().create(std="f2008")
+        pass
 
     # @timed_method
     # def run(self, fpath: FileHash):
     def run(self, hashed_file: HashedFile):
-        fpath, hash = hashed_file
+        # self.f2008_parser = ParserFactory().create(std="f2008")
+
+        fpath, file_hash = hashed_file
         logger = logging.getLogger(__name__)
         log_or_dot(logger, f"analysing {fpath}")
 
@@ -338,7 +341,7 @@ class FortranAnalyser(object):
             logger.debug(f"  empty tree found when parsing {fpath}")
             return EmptySourceFile(fpath)
 
-        analysed_file = AnalysedFile(fpath=fpath, file_hash=hash)
+        analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
 
 
@@ -417,8 +420,8 @@ class FortranAnalyser(object):
             # TODO: separate this project-specific code from the generic f analyser?
             elif obj_type == Comment:
                 depends_str = "DEPENDS ON:"
-                warnings.warn("deprecated 'DEPENDS ON:' comment found in code")
                 if depends_str in obj.items[0]:
+                    warnings.warn("deprecated 'DEPENDS ON:' comment found in code")
                     dep = obj.items[0].split(depends_str)[-1].strip()
                     # with .o means a c file
                     if dep.endswith(".o"):

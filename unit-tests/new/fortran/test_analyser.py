@@ -23,6 +23,6 @@ def test_simple_result(tmp_path):
         symbol_deps={'monty_func', 'bar_mod'},
         symbol_defs={'external_sub', 'foo_mod', 'external_func'},
         file_deps=set(),
-        um_comment_file_deps={'some_file.c'},
+        mo_commented_file_deps={'some_file.c'},
     )
     assert result == expected

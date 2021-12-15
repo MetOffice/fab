@@ -25,7 +25,7 @@ def log_or_dot_finish(logger):
         print('')
 
 
-HashedFile = namedtuple("HashedFile", ['fpath', 'hash'])
+HashedFile = namedtuple("HashedFile", ['fpath', 'file_hash'])
 
 
 def do_checksum(fpath: Path):
@@ -48,40 +48,34 @@ def file_walk(path: Path, skip_files=None, logger=None) -> Iterator[Path]:
             yield i
 
 
-def get_fpaths_by_type(fpaths: Iterator[Path]) -> Dict[str, List]:
-    """
-    Group a list of paths according to their extensions.
-
-    We use sorted lists instead of a sets for repeatable output which is easier to scan.
-    """
-
-    fpaths_by_type = defaultdict(list)
-    for fpath in fpaths:
-        fpaths_by_type[fpath.suffix].append(fpath)
-
-    # sort for repeatable output which is easier to scan
-    # we might eventually sort hefty tasks to the front
-    for key in fpaths_by_type:
-        fpaths_by_type[key] = sorted(fpaths_by_type[key])
-
-    return fpaths_by_type
+# def get_fpaths_by_type(fpaths: Iterator[Path]) -> Dict[str, List]:
+#     """
+#     Group a list of paths according to their extensions.
+#
+#     """
+#     fpaths_by_type = defaultdict(list)
+#     for fpath in fpaths:
+#         fpaths_by_type[fpath.suffix].append(fpath)
+#
+#     return fpaths_by_type
 
 
-def ensure_output_folder(fpath: Path, workspace):
-    """Ensure the output folder exists for a file in the source folder."""
-    # Todo: not robust against a file name clashing with the path, e.g an "output" file broke this
-    try:
-        fpath.relative_to(workspace / OUTPUT_ROOT)  # is_relative_to() in Python 3.9
-    except ValueError:
-        return
-    output_folder = fpath.parent
-    if not output_folder.exists():
-        # logger.debug(f"creating output folder {output_folder}")
-        output_folder.mkdir(parents=True)
+# def ensure_output_folder(fpath: Path, workspace):
+#     """Ensure the output folder exists for a file in the source folder."""
+#     # Todo: not robust against a file name clashing with the path, e.g an "output" file broke this
+#     try:
+#         fpath.relative_to(workspace / OUTPUT_ROOT)  # is_relative_to() in Python 3.9
+#     except ValueError:
+#         return
+#     output_folder = fpath.parent
+#     if not output_folder.exists():
+#         # logger.debug(f"creating output folder {output_folder}")
+#         output_folder.mkdir(parents=True)
 
 
 @contextmanager
 def time_logger(label):
+    logger.debug(label)
     start = perf_counter()
     yield None
     logger.info(f"{label} took {perf_counter() - start}")
