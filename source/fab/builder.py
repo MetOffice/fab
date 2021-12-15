@@ -535,6 +535,7 @@ class Fab(object):
                     dict_writer.writerow(pu.as_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {pu}")
+                log_or_dot_finish(logger)
 
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
@@ -545,7 +546,6 @@ class Fab(object):
             analysis_results = (analyser(a) for a in fpaths)  # generator
             iterate_results_DO_NOT_REFACTOR_AWAY(analysis_results)
 
-        log_or_dot_finish(logger)
         return new_program_units, exceptions
 
     def extract_target_tree(self, analysed_everything: Dict[Path, AnalysedFile], symbols: Dict[str, Path]):
@@ -688,7 +688,7 @@ class Fab(object):
         missing = set()
         for pu in target_tree.values():
             missing = missing.union(
-                [dep for dep in pu.deps if dep not in target_tree])
+                [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
 
         if missing:
             logger.error(f"Unknown dependencies, cannot build: {', '.join(sorted(missing))}")
