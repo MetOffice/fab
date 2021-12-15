@@ -7,6 +7,7 @@ import argparse
 import configparser
 import csv
 import os
+import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from time import perf_counter
@@ -152,7 +153,7 @@ class Fab(object):
         self._workspace = workspace
         self.skip_files = skip_files or []
         self.fc_flags = fc_flags
-        self.unreferenced_deps = unreferenced_deps or []
+        self.unreferenced_deps: List[str] = unreferenced_deps or []
         self.use_multiprocessing = use_multiprocessing
         # self.include_paths = include_paths or []
 
@@ -261,9 +262,6 @@ class Fab(object):
         with time_logger("extracting target tree"):
             target_tree = self.extract_target_tree(all_analysed_files, symbols)
 
-        exit(0)
-
-
 
 
         # Pull out the program units required to build the target.
@@ -275,7 +273,7 @@ class Fab(object):
         # (a fortran routine called without a use statement).
         # This is driven by the config list "unreferenced-dependencies"
         # todo: list those which are already found, e.g from the new comments deps
-        self.add_unreferenced_deps(analysed_everything, target_tree)
+        self.add_unreferenced_deps(symbols, all_analysed_files, target_tree)
 
         self.validate_target_tree(target_tree)
 
@@ -564,27 +562,39 @@ class Fab(object):
         logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
         return target_tree
 
-    def add_unreferenced_deps(self, analysed_everything, target_tree):
+    def add_unreferenced_deps(
+            self, symbols: Dict[str, Path], all_analysed_files: Dict[Path, AnalysedFile], target_tree):
+        """
+        Add files to the target tree.
+
+        """
         if not self.unreferenced_deps:
             return
         logger.info(f"Adding unreferenced dependencies")
 
-        def foo(dep):
-            pu = analysed_everything.get(dep)
-            if not pu:
-                if dep != "mpi":  # todo: remove this if?
-                    logger.warning(f"couldn't find dep '{dep}'")
+        def add_files_for_symbol(symbol_dep):
+
+            # what file is the symbol in?
+            analysed_fpath = symbols.get(symbol_dep)
+            if not analysed_fpath:
+                warnings.warn(f"no file found for unreferenced dependency {symbol_dep}")
+                return
+            analysed_file = all_analysed_files[analysed_fpath]
+
+            if not analysed_file:
+                warnings.warn(f"couldn't find file for symbol dep '{symbol_dep}'")
                 return
 
-            if dep not in target_tree:
-                logger.debug(f"Adding unreferenced dependency {dep}")
-                target_tree[dep] = pu
+            if analysed_file.fpath not in target_tree:
+                logger.debug(f"Adding unreferenced dependency {symbol_dep}")
+                target_tree[analysed_file.fpath] = analysed_file
 
-            for sub in pu.deps:
-                foo(sub)
+            # include the file's deps
+            for file_dep in analysed_file.file_deps:
+                add_files_for_symbol(file_dep)
 
-        for dep in self.unreferenced_deps:
-            foo(dep)
+        for symbol_dep in self.unreferenced_deps:
+            add_files_for_symbol(symbol_dep)
 
     def compile(self, target_tree):
         logger.info(f"\ncompiling {len(target_tree)} files")
@@ -683,7 +693,3 @@ class Fab(object):
         if missing:
             logger.error(f"Unknown dependencies, cannot build: {', '.join(sorted(missing))}")
             exit(1)
-
-
-
-
