@@ -54,17 +54,16 @@ def main():
                  fc_flags=flags['fc-flags'],
                  ld_flags=flags['ld-flags'],
                  n_procs=3,
-                 # n_procs=1,
                  stop_on_error=True,
                  skip_files=config.skip_files,
                  unreferenced_deps=config.unreferenced_deps,
                  # use_multiprocessing=False,
-                 debug_skip=True,
+                 # debug_skip=True,
                  include_paths=config.include_paths)
 
     logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     my_fab.run()
 

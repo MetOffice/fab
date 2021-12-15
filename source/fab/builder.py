@@ -230,7 +230,8 @@ class Fab(object):
                 fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
 
         # take hashes of all the files we preprocessed
-        preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran | preprocessed_c)
+        with time_logger("getting file hashes"):
+            preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran | preprocessed_c)
 
         # analyse c and fortran
         with self.analysis_progress(preprocessed_hashes) as (unchanged, to_analyse, analysis_dict_writer):
@@ -238,27 +239,27 @@ class Fab(object):
         all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
 
         # Make "external" symbol table
-        symbols: Dict[str, Path] = self.gen_symbol_table(all_analysed_files)
+        with time_logger("creating symbol lookup"):
+            symbols: Dict[str, Path] = self.gen_symbol_table(all_analysed_files)
 
         # turn symbol deps into file deps
-        for analysed_file in all_analysed_files.values():
-            for symbol_dep in analysed_file.symbol_deps:
-                # todo: does file_deps belong in there?
-                found_dep = symbols.get(symbol_dep)
-                if not found_dep:
-                    logger.info(f"(might not matter) not found {symbol_dep} for {analysed_file}")
-                    continue
-                analysed_file.file_deps.add(found_dep)
+        with time_logger("converting symbol to file deps"):
+            for analysed_file in all_analysed_files.values():
+                for symbol_dep in analysed_file.symbol_deps:
+                    # todo: does file_deps belong in there?
+                    found_dep = symbols.get(symbol_dep)
+                    if not found_dep:
+                        logger.debug(f"(might not matter) not found {symbol_dep} for {analysed_file}")
+                        continue
+                    analysed_file.file_deps.add(found_dep)
 
         #  find the files for UM "DEPENDS ON:" commented file deps
-        mo_commented_file_deps(analysed_fortran, analysed_c)
+        with time_logger("processing MO 'DEPENDS ON:' file dependency comments"):
+            mo_commented_file_deps(analysed_fortran, analysed_c)
 
         # target tree extraction (as is)
-        target_tree = self.extract_target_tree(all_analysed_files, symbols)
-
-
-
-
+        with time_logger("extracting target tree"):
+            target_tree = self.extract_target_tree(all_analysed_files, symbols)
 
         exit(0)
 
@@ -490,7 +491,7 @@ class Fab(object):
                 # unchanged.add(prev_pu)
                 unchanged.append(prev_pu)
         logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
-        logger.debug(f"{[u.fpath for u in unchanged]}")
+        logger.debug(f"unchanged:\n{[u.fpath for u in unchanged]}")
 
         return to_analyse, unchanged
 
@@ -516,23 +517,35 @@ class Fab(object):
         new_program_units: List[AnalysedFile] = []
         exceptions = set()
 
+        def iterate_results_DO_NOT_REFACTOR_AWAY(analysis_results):
+            """
+            WARNING: Do not pull this loop out into the code because we MUST iterate through the results
+            from imap INSIDE the context manager - otherwise "something bad" happens...
+
+            ..."something bad" seems to be that we jump out of the context before it gets a chance to
+            create any workers, so the target function never gets called and the results iteration hangs.
+
+            """
+            for pu in analysis_results:
+                if isinstance(pu, EmptySourceFile):
+                    continue
+                elif isinstance(pu, Exception):
+                    logger.error(f"\n{pu}")
+                    exceptions.add(pu)
+                elif isinstance(pu, AnalysedFile):
+                    new_program_units.append(pu)
+                    dict_writer.writerow(pu.as_dict())
+                else:
+                    raise RuntimeError(f"Unexpected analysis result type: {pu}")
+
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
+                # We use imap because we want to save progress as we go
                 analysis_results = p.imap_unordered(analyser, fpaths)
+                iterate_results_DO_NOT_REFACTOR_AWAY(analysis_results)
         else:
             analysis_results = (analyser(a) for a in fpaths)  # generator
-
-        for pu in analysis_results:
-            if isinstance(pu, EmptySourceFile):
-                continue
-            elif isinstance(pu, Exception):
-                logger.error(f"\n{pu}")
-                exceptions.add(pu)
-            elif isinstance(pu, AnalysedFile):
-                new_program_units.append(pu)
-                dict_writer.writerow(pu.as_dict())
-            else:
-                raise RuntimeError(f"Unexpected analysis result type: {pu}")
+            iterate_results_DO_NOT_REFACTOR_AWAY(analysis_results)
 
         log_or_dot_finish(logger)
         return new_program_units, exceptions

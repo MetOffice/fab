@@ -318,7 +318,6 @@ class FortranAnalyser(object):
     # @timed_method
     # def run(self, fpath: FileHash):
     def run(self, hashed_file: HashedFile):
-        # self.f2008_parser = ParserFactory().create(std="f2008")
 
         fpath, file_hash = hashed_file
         logger = logging.getLogger(__name__)
@@ -332,8 +331,10 @@ class FortranAnalyser(object):
             tree = self.f2008_parser(reader)
         except FortranSyntaxError as err:
             # we can't return the FortranSyntaxError, it breaks multiprocessing!
+            logger.error(f"syntax error in {fpath}\n{err}")
             return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
+            logger.error(f"unhandled {type(err)} error in {fpath}\n{err}")
             return Exception(f"unhandled {type(err)} error in {fpath}\n{err}")
 
         # did it find anything?
@@ -383,7 +384,7 @@ class FortranAnalyser(object):
                     # importing a c function into fortran, i.e binding within an interface block
                     if has_ancestor_type(obj, Interface_Block):
                         # found a dependency on C
-                        logger.debug(f"function binding import {bind_name}")
+                        logger.debug(f"found function binding import '{bind_name}'")
                         analysed_file.add_symbol_dep(bind_name)
 
                     # exporting from fortran to c, i.e binding without an interface block
