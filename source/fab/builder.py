@@ -26,7 +26,7 @@ from fab.tasks import Task
 from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
     FortranAnalyser, \
-    FortranCompiler, CompiledProgramUnit
+    FortranCompiler, CompiledFile
 from fab.tasks.c import \
     CPragmaInjector, \
     CPreProcessor, \
@@ -258,23 +258,19 @@ class Fab(object):
 
         # target tree extraction (as is)
         with time_logger("extracting target tree"):
-            target_tree = self.extract_target_tree(all_analysed_files, symbols)
-
-        # Pull out the program units required to build the target.
-        # with cProfile.Profile() as profiler:
-        # target_tree = self.extract_target_tree(analysed_everything)
-        # profiler.dump_stats('extract_target_tree.pstats')
+            build_tree = extract_sub_tree(all_analysed_files, symbols[self.target], verbose=False)
+        logger.info(f"tree size (all files) {len(all_analysed_files)}")
+        logger.info(f"tree size (target '{self.target}') {len(build_tree)}")
 
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
         # This is driven by the config list "unreferenced-dependencies"
-        # todo: list those which are already found, e.g from the new comments deps
-        self.add_unreferenced_deps(symbols, all_analysed_files, target_tree)
+        self.add_unreferenced_deps(symbols, all_analysed_files, build_tree)
 
-        self.validate_target_tree(target_tree)
+        self.validate_target_tree(build_tree)
 
         # compile everything we need to build the target
-        all_compiled = self.compile(target_tree)
+        all_compiled = self.compile(build_tree)
 
         logger.info("\nlinking")
         self.linker.run(all_compiled)
@@ -521,7 +517,7 @@ class Fab(object):
             from imap INSIDE the context manager - otherwise "something bad" happens...
 
             ..."something bad" seems to be that we jump out of the context before it gets a chance to
-            create any workers, so the target function never gets called and the results iteration hangs.
+            create any workers, so the target function never runs and the iteration over results will hang.
 
             """
             for pu in analysis_results:
@@ -535,7 +531,7 @@ class Fab(object):
                     dict_writer.writerow(pu.as_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {pu}")
-                log_or_dot_finish(logger)
+            log_or_dot_finish(logger)
 
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
@@ -548,31 +544,39 @@ class Fab(object):
 
         return new_program_units, exceptions
 
-    def extract_target_tree(self, analysed_everything: Dict[Path, AnalysedFile], symbols: Dict[str, Path]):
-
-        root_file = symbols[self.target]
-
-        target_tree, missing = extract_sub_tree(analysed_everything, root_file, verbose=False)
-        if missing:
-            logger.warning(f"missing deps {missing}")
-        else:
-            logger.info("no missing deps")
-
-        logger.info(f"tree size (all files) {len(analysed_everything)}")
-        logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
-        return target_tree
+    # def extract_target_tree(self, analysed_everything: Dict[Path, AnalysedFile], symbols: Dict[str, Path]):
+    #     """
+    #
+    #
+    #     """
+    #
+    #     root_file = symbols[self.target]
+    #
+    #     target_tree, missing = extract_sub_tree(analysed_everything, root_file, verbose=False)
+    #     if missing:
+    #         logger.warning(f"missing deps {missing}")
+    #     else:
+    #         logger.info("no missing deps")
+    #
+    #     logger.info(f"tree size (all files) {len(analysed_everything)}")
+    #     logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
+    #     return target_tree
 
     def add_unreferenced_deps(
-            self, symbols: Dict[str, Path], all_analysed_files: Dict[Path, AnalysedFile], target_tree):
+            self, symbols: Dict[str, Path], all_analysed_files: Dict[Path, AnalysedFile],
+            build_tree: Dict[Path, AnalysedFile]):
         """
         Add files to the target tree.
 
         """
+
+        # todo: list those which are already found, e.g from the new comments deps
+
         if not self.unreferenced_deps:
             return
         logger.info(f"Adding unreferenced dependencies")
 
-        def add_files_for_symbol(symbol_dep):
+        for symbol_dep in self.unreferenced_deps:
 
             # what file is the symbol in?
             analysed_fpath = symbols.get(symbol_dep)
@@ -581,54 +585,55 @@ class Fab(object):
                 return
             analysed_file = all_analysed_files[analysed_fpath]
 
+            # was it found and analysed?
             if not analysed_file:
                 warnings.warn(f"couldn't find file for symbol dep '{symbol_dep}'")
                 return
 
-            if analysed_file.fpath not in target_tree:
-                logger.debug(f"Adding unreferenced dependency {symbol_dep}")
-                target_tree[analysed_file.fpath] = analysed_file
+            # is it already in the build tree?
+            if analysed_file.fpath in build_tree:
+                logger.info(f"file {analysed_file.fpath} for unreferenced dependency {symbol_dep} "
+                            f"is already in the build tree")
+                continue
 
-            # include the file's deps
-            for file_dep in analysed_file.file_deps:
-                add_files_for_symbol(file_dep)
+            # add it
+            sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
+            build_tree.update(sub_tree)
 
-        for symbol_dep in self.unreferenced_deps:
-            add_files_for_symbol(symbol_dep)
-
-    def compile(self, target_tree):
+    def compile(self, target_tree: Dict[Path, AnalysedFile]):
         logger.info(f"\ncompiling {len(target_tree)} files")
         start = perf_counter()
 
         to_compile = set(target_tree.values())
         all_compiled = []  # todo: use set
-        already_compiled_names = set()
+        already_compiled_files = set()
         per_pass = []
         while to_compile:
 
-            logger.info(f"checking {len(to_compile)} program units")
+            # logger.info(f"checking {len(to_compile)} program units")
 
             # find what to compile next
             compile_next = []
             not_ready = {}
-            for pu in to_compile:
+            for af in to_compile:
                 # all deps ready?
-                unfulfilled = [dep for dep in pu.deps if dep not in already_compiled_names]
+                unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files]
                 if not unfulfilled:
-                    compile_next.append(pu)
+                    compile_next.append(af)
                 else:
-                    not_ready[pu.name] = unfulfilled
+                    not_ready[af.fpath] = unfulfilled
 
-            for pu_name, deps in not_ready.items():
-                logger.info(f"not ready to compile {pu_name}, needs {', '.join(deps)}")
-            logger.info(f"compiling {len(compile_next)} of {len(to_compile)} remaining files")
+            # for fpath, deps in not_ready.items():
+            #     logger.info(f"not ready to compile {fpath}, needs {', '.join(map(str, deps))}")
+            # logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
+            print(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files", end='')
 
             # report if unable to compile everything
             if len(to_compile) and not compile_next:
                 all_unfulfilled = set()
                 for values in not_ready.values():
                     all_unfulfilled = all_unfulfilled.union(values)
-                logger.error(f"All unfulfilled deps: {', '.join(all_unfulfilled)}")
+                logger.error(f"All unfulfilled deps: {', '.join(map(str, all_unfulfilled))}")
                 exit(1)
 
             if self.use_multiprocessing:
@@ -638,18 +643,20 @@ class Fab(object):
                 this_pass = [self.fortran_compiler.run(f) for f in compile_next]
 
             # any errors?
+            # todo: improve by_type pattern to handle all exceptions as one
             errors = []
             for i in this_pass:
                 if isinstance(i, Exception):
                     errors.append(i)
-            logger.error(f"\nThere were {len(errors)} compile errors this pass\n\n")
+            if len(errors):
+                logger.error(f"\nThere were {len(errors)} compile errors this pass\n\n")
             if errors:
                 err_str = "\n\n".join(map(str, errors))
                 logger.error(err_str)
                 exit(1)
 
             # check what we did compile
-            compiled_this_pass = by_type(this_pass)[CompiledProgramUnit]
+            compiled_this_pass = by_type(this_pass)[CompiledFile]
             per_pass.append(len(compiled_this_pass))
             if len(compiled_this_pass) == 0:
                 logger.error("nothing compiled this pass")
@@ -659,13 +666,13 @@ class Fab(object):
             logger.debug(f"compiled {len(compiled_this_pass)} files")
 
             # ProgramUnit - not the same as passed in, due to mp copying
-            compiled_names = {i.program_unit.name for i in compiled_this_pass}
-            logger.debug(f"compiled_names {compiled_names}")
+            compiled_fpaths = {i.analysed_file.fpath for i in compiled_this_pass}
+            logger.debug(f"compiled_names {compiled_fpaths}")
             all_compiled.extend(compiled_this_pass)
-            already_compiled_names.update(compiled_names)
+            already_compiled_files.update(compiled_fpaths)
 
             # remove from remaining to compile
-            to_compile = list(filter(lambda pu: pu.name not in compiled_names, to_compile))
+            to_compile = list(filter(lambda af: af.fpath not in compiled_fpaths, to_compile))
 
         log_or_dot_finish(logger)
         logger.debug(f"compiled per pass {per_pass}")
@@ -674,20 +681,24 @@ class Fab(object):
 
         if to_compile:
             logger.debug(f"there were still {len(to_compile)} files left to compile")
-            for pu in to_compile:
-                logger.debug(pu.name)
+            for af in to_compile:
+                logger.debug(af.name)
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 
         return all_compiled
 
     def validate_target_tree(self, target_tree):
-        """If any dep is not in the tree, then it's unknown code and we won't be able to compile."""
+        """
+        If any dep is not in the tree, then it's unknown code and we won't be able to compile.
+
+        This was added as a helpful message when building the unreferenced dependencies list.
+        """
         missing = set()
         for pu in target_tree.values():
             missing = missing.union(
                 [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
 
         if missing:
-            logger.error(f"Unknown dependencies, cannot build: {', '.join(sorted(missing))}")
-            exit(1)
+            logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
+            # exit(1)

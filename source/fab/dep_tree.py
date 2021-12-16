@@ -1,16 +1,9 @@
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Set, Dict, List
+from typing import Set, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
-
-
-# FPATH = 'fpath'
-# HASH = 'hash'
-# SYMBOL_DEFS = 'symbol_defs'
-# SYMBOL_DEPS = 'symbol_deps'
-# FILE_DEPS = 'file_deps'
 
 
 # todo: might be better as a named tuple, as there's no methods
@@ -55,6 +48,17 @@ class AnalysedFile(object):
                 self.mo_commented_file_deps == other.mo_commented_file_deps
         )
 
+    def __hash__(self):
+        return hash((
+            self.fpath,
+            self.file_hash,
+            # todo: eww
+            tuple(sorted(self.symbol_defs)),
+            tuple(sorted(self.symbol_deps)),
+            tuple(sorted(self.file_deps)),
+            tuple(sorted(self.mo_commented_file_deps)),
+        ))
+
     #
     # this stuff is for reading and writing
     #
@@ -94,7 +98,8 @@ class EmptySourceFile(object):
 
 
 def extract_sub_tree(
-        src_tree: Dict[Path, AnalysedFile], key: Path, _result=None, _missing=None, indent=0, verbose=False):
+        src_tree: Dict[Path, AnalysedFile], key: Path, verbose=False) \
+        -> Dict[Path, AnalysedFile]:
     """
     Extract a sub tree from a tree.
 
@@ -104,22 +109,30 @@ def extract_sub_tree(
     todo: better docstring
     """
 
-    _result = _result or dict()
-    _missing = _missing or set()
+    result = dict()
+    missing = set()
+
+    _extract_sub_tree(src_tree=src_tree, key=key, result=result, missing=missing, verbose=verbose)
+
+    if missing:
+        logger.warning(f"{key} has missing deps: {missing}")
+
+    return result
+
+
+def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, result, missing, verbose, indent=0):
 
     # is this node already in the target tree?
-    if key in _result:
+    if key in result:
         return
 
     if verbose:
         logger.debug("----" * indent + str(key))
 
-    # find the root of the subtree
+    # add it to the output tree
     node = src_tree[key]
     assert node.fpath == key
-
-    # add it to the output tree
-    _result[key] = node
+    result[key] = node
 
     # add its child deps
     for file_dep in node.file_deps:
@@ -128,14 +141,13 @@ def extract_sub_tree(
         if not src_tree.get(file_dep):
             if logger and verbose:
                 logger.debug("----" * indent + "!!!!" + str(file_dep))
-            _missing.add(file_dep)
+            missing.add(file_dep)
             continue
 
         # add this child dep
-        extract_sub_tree(
-            src_tree, file_dep, _result=_result, _missing=_missing, indent=indent + 1)
-        
-    return _result, _missing
+        _extract_sub_tree(
+            src_tree=src_tree, key=file_dep, result=result, missing=missing, verbose=verbose, indent=indent + 1)
+
 
 
 # todo: don't leave this here

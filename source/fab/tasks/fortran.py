@@ -503,9 +503,9 @@ class FortranAnalyser(object):
 
 
 # todo: better as a named tuple?
-class CompiledProgramUnit(object):
-    def __init__(self, program_unit, output_fpath):
-        self.program_unit = program_unit
+class CompiledFile(object):
+    def __init__(self, analysed_file, output_fpath):
+        self.analysed_file = analysed_file
         self.output_fpath = output_fpath
 
 
@@ -520,15 +520,14 @@ class FortranCompiler(object):
         self._workspace = workspace
 
     # @timed_method
-    def run(self, program_unit: AnalysedFile):
+    def run(self, analysed_file: AnalysedFile):
         logger = logging.getLogger(__name__)
-
 
         command = [self._compiler]
         command.extend(self._flags)
-        command.append(str(program_unit.fpath))
+        command.append(str(analysed_file.fpath))
 
-        output_fpath = (self._workspace / program_unit.fpath.with_suffix('.o').name)
+        output_fpath = (self._workspace / analysed_file.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_fpath)])
 
         # logger.info(program_unit.name)
@@ -543,4 +542,4 @@ class FortranCompiler(object):
             # todo: specific exception
             return Exception("Error calling compiler:", err)
 
-        return CompiledProgramUnit(program_unit, output_fpath)
+        return CompiledFile(analysed_file, output_fpath)

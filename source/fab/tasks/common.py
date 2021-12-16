@@ -15,7 +15,7 @@ from fab.artifact import \
     Linked
 from fab.tasks import Task, TaskException
 from fab.reader import FileTextReader
-from fab.tasks.fortran import CompiledProgramUnit
+from fab.tasks.fortran import CompiledFile
 
 
 class Linker(Task):
@@ -29,7 +29,7 @@ class Linker(Task):
         self._workspace = workspace
         self._output_filename = output_filename
 
-    def run(self, artifacts: List[CompiledProgramUnit]) -> List[Artifact]:
+    def run(self, artifacts: List[CompiledFile]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
 
         if len(artifacts) < 1:
