@@ -582,13 +582,13 @@ class Fab(object):
             analysed_fpath = symbols.get(symbol_dep)
             if not analysed_fpath:
                 warnings.warn(f"no file found for unreferenced dependency {symbol_dep}")
-                return
+                continue
             analysed_file = all_analysed_files[analysed_fpath]
 
             # was it found and analysed?
             if not analysed_file:
                 warnings.warn(f"couldn't find file for symbol dep '{symbol_dep}'")
-                return
+                continue
 
             # is it already in the build tree?
             if analysed_file.fpath in build_tree:
