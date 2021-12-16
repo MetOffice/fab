@@ -50,7 +50,7 @@ def read_config(conf_file):
      - include_paths
 
     Relative include paths are relative to the location of each file being processed.
-    Absolute include paths (beggining with /) are relative to the workspace root.
+    Absolute include paths (beginning with /) are relative to the workspace root.
     """
     config = configparser.ConfigParser(allow_no_value=True)
     config.read(conf_file)
@@ -164,7 +164,6 @@ class Fab(object):
 
         self._state = SqliteStateDatabase(workspace)
 
-
         # Initialise the required Tasks, providing them with any static
         # properties such as flags to use, workspace location etc
         # TODO: Eventually the tasks may instead access many of these
@@ -210,7 +209,6 @@ class Fab(object):
             '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
             workspace, exec_name
         )
-
 
     def run(self):
 
@@ -261,8 +259,6 @@ class Fab(object):
         # target tree extraction (as is)
         with time_logger("extracting target tree"):
             target_tree = self.extract_target_tree(all_analysed_files, symbols)
-
-
 
         # Pull out the program units required to build the target.
         # with cProfile.Profile() as profiler:
@@ -428,7 +424,8 @@ class Fab(object):
         return latest_file_hashes
 
     @contextmanager
-    def analysis_progress(self, preprocessed_hashes) -> Tuple[List[AnalysedFile], Dict[str, List[HashedFile]], csv.DictWriter]:
+    def analysis_progress(self, preprocessed_hashes) -> Tuple[List[AnalysedFile],
+                                                              Dict[str, List[HashedFile]], csv.DictWriter]:
         """Open a new analysis progress file, populated with work already done in previous runs."""
 
         with time_logger("loading analysis results"):
@@ -504,7 +501,10 @@ class Fab(object):
     #     outfile.flush()
     #     return outfile, dict_writer
 
-    def analyse_file_type(self, fpaths: List[HashedFile], analyser, dict_writer: csv.DictWriter) -> Tuple[ List[AnalysedFile], Set[Exception]]:
+    def analyse_file_type(self,
+                          fpaths: List[HashedFile],
+                          analyser,
+                          dict_writer: csv.DictWriter) -> Tuple[List[AnalysedFile], Set[Exception]]:
         """
         Pass the files to the analyser and process the results.
 
@@ -535,6 +535,7 @@ class Fab(object):
                     dict_writer.writerow(pu.as_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {pu}")
+                log_or_dot_finish(logger)
 
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
@@ -545,7 +546,6 @@ class Fab(object):
             analysis_results = (analyser(a) for a in fpaths)  # generator
             iterate_results_DO_NOT_REFACTOR_AWAY(analysis_results)
 
-        log_or_dot_finish(logger)
         return new_program_units, exceptions
 
     def extract_target_tree(self, analysed_everything: Dict[Path, AnalysedFile], symbols: Dict[str, Path]):
@@ -600,7 +600,6 @@ class Fab(object):
         logger.info(f"\ncompiling {len(target_tree)} files")
         start = perf_counter()
 
-
         to_compile = set(target_tree.values())
         all_compiled = []  # todo: use set
         already_compiled_names = set()
@@ -637,7 +636,6 @@ class Fab(object):
                     this_pass = p.map(self.fortran_compiler.run, compile_next)
             else:
                 this_pass = [self.fortran_compiler.run(f) for f in compile_next]
-
 
             # any errors?
             errors = []
@@ -688,7 +686,7 @@ class Fab(object):
         missing = set()
         for pu in target_tree.values():
             missing = missing.union(
-                [dep for dep in pu.deps if dep not in target_tree])
+                [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
 
         if missing:
             logger.error(f"Unknown dependencies, cannot build: {', '.join(sorted(missing))}")
