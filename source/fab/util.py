@@ -75,7 +75,7 @@ def file_walk(path: Path, skip_files=None, logger=None) -> Iterator[Path]:
 
 @contextmanager
 def time_logger(label):
-    logger.debug(label)
+    logger.info("\n" + label)
     start = perf_counter()
     yield None
     logger.info(f"{label} took {perf_counter() - start}")

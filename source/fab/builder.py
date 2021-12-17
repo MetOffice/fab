@@ -301,7 +301,7 @@ class Fab(object):
     def analyse(self, to_analyse_by_type: Dict[str, List[HashedFile]], analysis_dict_writer: csv.DictWriter) \
             -> Tuple[List[AnalysedFile], List[AnalysedFile]]:
 
-        logger.info("analyse")
+        # logger.info("analyse")
 
         with time_logger("analysing fortran"):
             analysed_fortran, fortran_exceptions = self.analyse_file_type(
