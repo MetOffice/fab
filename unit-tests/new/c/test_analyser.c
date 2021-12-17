@@ -19,6 +19,7 @@ extern int var_extern_decl;     // external linkage, not a definition
 
 int var_def = 1;                // external linkage, is a definition
 static int var_static_def = 1;  // internal linkage, is a definition
+extern int var_extern_def = 1;  // external linkage, is a definition
 
 
 int func_decl();                // external linkage, not a definition
@@ -36,7 +37,15 @@ static int func_static_def() {  // internal linkage, is a definition
 
 void main(void) {               // external linkage, is a definition
 
+   // must
     var_static_decl = 1;        // invalid linkage, not a definition
+
+    // explore
+    usr_var = 1;
+    var_decl = 1;
+    var_extern_decl = 1;
+    var_def = 1;
+    var_extern_def = 1;
 
 
     printf("%i\n",

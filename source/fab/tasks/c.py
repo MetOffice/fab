@@ -369,6 +369,7 @@ class CAnalyser(Task):
             logger.debug('Considering node: %s', node.spelling)
 
             if node.kind == clang.cindex.CursorKind.FUNCTION_DECL:
+            # if node.kind == clang.cindex.CursorKind.VAR_DECL:
                 logger.debug('  * Is a function declaration')
                 if node.is_definition():
                     # only global functions can be used by other files, not static functions
@@ -379,6 +380,7 @@ class CAnalyser(Task):
                         # current_def = CSymbolID(node.spelling, artifact.location)
                         # state.add_c_symbol(current_def)
                         # new_artifact.add_definition(node.spelling)
+                        # todo: ignore if inside user pragmas?
                         af.add_symbol_def(node.spelling)
                 else:
                     # Any other declarations should be coming in via headers,
@@ -407,10 +409,21 @@ class CAnalyser(Task):
             elif node.kind == clang.cindex.CursorKind.VAR_DECL:
                 # Variable definitions can be external too, lodge any
                 # encountered in user headers here
+                # logger.debug('  * Is a variable declaration')
+                # if (not node.is_definition()) and node.linkage == clang.cindex.LinkageKind.EXTERNAL:
+                #     if self._check_for_include(node.location.line) == "usr_include":
+                #         logger.debug('  * Is defined elsewhere in the project')
+                #         usr_vars.append(node.spelling)
+
                 logger.debug('  * Is a variable declaration')
-                if (not node.is_definition()) and node.linkage == clang.cindex.LinkageKind.EXTERNAL:
+                if node.is_definition():
+                    if node.linkage == clang.cindex.LinkageKind.EXTERNAL:
+                        logger.debug('  * Is defined in this file')
+                        # todo: ignore if inside user pragmas?
+                        af.add_symbol_def(node.spelling)
+                else:
                     if self._check_for_include(node.location.line) == "usr_include":
-                        logger.debug('  * Is defined elsewhere in the project')
+                        logger.debug('  * Is not defined in this file')
                         usr_vars.append(node.spelling)
 
             elif node.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
