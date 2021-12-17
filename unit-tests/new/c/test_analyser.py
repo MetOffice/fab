@@ -13,9 +13,9 @@ def test_simple_result(tmp_path):
     expected = AnalysedFile(
         fpath=fpath,
         file_hash=None,
-        symbol_deps={'monty_func', 'bar_mod'},
-        symbol_defs={'external_sub', 'foo_mod', 'external_func'},
+        symbol_deps={'usr_var', 'usr_func'},
+        symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
         file_deps=set(),
-        mo_commented_file_deps={'some_file.c'},
+        mo_commented_file_deps=set(),
     )
     assert result == expected
