@@ -94,12 +94,11 @@ def main():
                  fc_flags=flags['fc-flags'],
                  ld_flags=flags['ld-flags'],
                  n_procs=3,
-                 # n_procs=1,
                  stop_on_error=True,
                  skip_files=config.skip_files,
                  unreferenced_deps=config.unreferenced_deps,
-                 use_multiprocessing=False,
-                 debug_skip=True,
+                 # use_multiprocessing=False,
+                 # debug_skip=True,
                  include_paths=config.include_paths)
 
     logger = logging.getLogger('fab')

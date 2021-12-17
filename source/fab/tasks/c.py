@@ -43,7 +43,7 @@ from fab.reader import \
     TextReader, \
     FileTextReader, \
     TextReaderDecorator
-from fab.util import log_or_dot
+from fab.util import log_or_dot, HashedFile
 
 
 class CSymbolUnresolvedID(object):
@@ -274,8 +274,9 @@ class CWorkingState(DatabaseDecorator):
 
 
 class CAnalyser(Task):
-    def __init__(self, workspace: Path):
-        self.database = SqliteStateDatabase(workspace)
+    def __init__(self):
+        # self.database = SqliteStateDatabase(workspace)
+        pass
 
     def _locate_include_regions(self, trans_unit) -> None:
         # Aim is to identify where included (top level) regions
@@ -326,10 +327,12 @@ class CAnalyser(Task):
         else:
             return None
 
-    def run(self, fpath: Path):
+    def run(self, hashed_file: HashedFile):
+        fpath, file_hash = hashed_file
         logger = logging.getLogger(__name__)
+        log_or_dot(logger, f"analysing {fpath}")
 
-        reader = FileTextReader(str(fpath))
+        reader = FileTextReader(fpath)
 
         # state = CWorkingState(self.database)
         # state.remove_c_file(reader.filename)
@@ -341,7 +344,7 @@ class CAnalyser(Task):
         # state = CWorkingState(self.database)
         # state.remove_c_file(reader.filename)
 
-        pu = AnalysedFile(name=str(fpath), fpath=fpath)
+        af = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
         index = clang.cindex.Index.create()
         translation_unit = index.parse(reader.filename,
@@ -351,9 +354,10 @@ class CAnalyser(Task):
         self._locate_include_regions(translation_unit)
 
         # Now walk the actual nodes and find all relevant external symbols
-        usr_includes = []
-        external_vars = []
-        current_def = None
+        usr_funcs = []
+        usr_vars = []
+
+        # current_def = None
         for node in translation_unit.cursor.walk_preorder():
             if not node.spelling:
                 continue
@@ -366,25 +370,22 @@ class CAnalyser(Task):
 
             if node.kind == clang.cindex.CursorKind.FUNCTION_DECL:
                 logger.debug('  * Is a function declaration')
-                if (node.is_definition()
-                        and node.linkage == clang.cindex.LinkageKind.EXTERNAL):
-
-
-                    # This should catch function definitions which are exposed
-                    # to the rest of the application
-                    logger.debug('  * Is defined in this file')
-                    # current_def = CSymbolID(node.spelling, artifact.location)
-                    # state.add_c_symbol(current_def)
-                    # new_artifact.add_definition(node.spelling)
-                    pu.add_symbol_def(node.spelling)
+                if node.is_definition():
+                    # only global functions can be used by other files, not static functions
+                    if node.linkage == clang.cindex.LinkageKind.EXTERNAL:
+                        # This should catch function definitions which are exposed
+                        # to the rest of the application
+                        logger.debug('  * Is defined in this file')
+                        # current_def = CSymbolID(node.spelling, artifact.location)
+                        # state.add_c_symbol(current_def)
+                        # new_artifact.add_definition(node.spelling)
+                        af.add_symbol_def(node.spelling)
                 else:
                     # Any other declarations should be coming in via headers,
                     # we can use the injected pragmas to work out whether these
                     # are coming from system headers or user headers
-                    assert self._check_for_include(node.location.line) == "usr_include"
                     logger.debug('  * Is not defined in this file')
-                    usr_includes.append(node.spelling)
-                    # pu.add_symbol_dependency(node.spelling)
+                    usr_funcs.append(node.spelling)
 
             elif node.kind == clang.cindex.CursorKind.CALL_EXPR:
                 # When encountering a function call we should be able to
@@ -392,39 +393,40 @@ class CAnalyser(Task):
                 # if it came from a user supplied header then we will
                 # consider it a dependency within the project
                 logger.debug('  * Is a function call')
-                if node.spelling in usr_includes and current_def is not None:
+                # if node.spelling in usr_funcs and current_def is not None:
+                if node.spelling in usr_funcs:
                     # TODO: Assumption that the most recent exposed
                     # definition encountered above is the one which
                     # should lodge this dependency - is that true?
                     logger.debug('  * Not a std function (so a dependency)')
-                    state.add_c_dependency(current_def, node.spelling)
-                    new_artifact.add_dependency(node.spelling)
+                    # state.add_c_dependency(current_def, node.spelling)
+                    # new_artifact.add_dependency(node.spelling)
+                    af.add_symbol_dep(node.spelling)
 
             elif node.kind == clang.cindex.CursorKind.VAR_DECL:
                 # Variable definitions can be external too, lodge any
                 # encountered in user headers here
                 logger.debug('  * Is a variable declaration')
-                if ((not node.is_definition())
-                        and node.linkage == clang.cindex.LinkageKind.EXTERNAL):
-                    if (self._check_for_include(node.location.line)
-                            == "usr_include"):
+                if (not node.is_definition()) and node.linkage == clang.cindex.LinkageKind.EXTERNAL:
+                    if self._check_for_include(node.location.line) == "usr_include":
                         logger.debug('  * Is defined elsewhere in the project')
-                        external_vars.append(node.spelling)
+                        usr_vars.append(node.spelling)
 
             elif node.kind == clang.cindex.CursorKind.DECL_REF_EXPR:
                 # Find references to variables which came in externally (as
                 # captured by the list above)
                 logger.debug('  * Is a reference to a variable')
-                if node.spelling in external_vars and current_def is not None:
+                # if node.spelling in usr_vars and current_def is not None:
+                if node.spelling in usr_vars:
                     # TODO: Assumption that the most recent exposed
                     # definition encountered above is the one which
                     # should lodge this dependency - is that true?
-                    logger.debug(
-                        '  * From elsewhere in the project (so a dependency)')
-                    state.add_c_dependency(current_def, node.spelling)
-                    new_artifact.add_dependency(node.spelling)
+                    logger.debug('  * From elsewhere in the project (so a dependency)')
+                    # state.add_c_dependency(current_def, node.spelling)
+                    # new_artifact.add_dependency(node.spelling)
+                    af.add_symbol_dep(node.spelling)
 
-        return [new_artifact]
+        return af
 
 
 class _CTextReaderPragmas(TextReaderDecorator):

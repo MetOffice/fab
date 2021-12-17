@@ -194,7 +194,7 @@ class Fab(object):
             output_suffix=".c",
             include_paths=include_paths,
         )
-        self.c_analyser = CAnalyser(workspace)
+        self.c_analyser = CAnalyser()
         c_compiler = CCompiler(
             'gcc', ['-c'], workspace
         )
