@@ -1,42 +1,42 @@
 
 #pragma FAB SysIncludeStart
 //#include <stdio.h>
-void func printf(char* f, int a);
-int sys_var;
-int sys_func(void);
+extern int printf (const char *__restrict __format, ...);
+int sys_var;                    // external linkage, not a definition
+int sys_func(void);             // external linkage, not a definition
 #pragma FAB SysIncludeEnd
 
 
 #pragma FAB UsrIncludeStart
-int usr_var;
-int usr_func(void);
+int usr_var;                    // external linkage, not a definition
+int usr_func(void);             // external linkage, not a definition
 #pragma FAB UsrIncludeEnd
 
 
-int var_decl;
-static int var_static_decl;
-extern int var_extern_decl; //
+int var_decl;                   // external linkage, not a definition
+static int var_static_decl;     // internal linkage, not a definition
+extern int var_extern_decl;     // external linkage, not a definition
 
-int var_def = 1;
-static int var_static_def = 1;
+int var_def = 1;                // external linkage, is a definition
+static int var_static_def = 1;  // internal linkage, is a definition
 
 
-int func_decl(); //
-static int func_static_decl(); //
-extern int func_extern_decl();
+int func_decl();                // external linkage, not a definition
+static int func_static_decl();  // internal linkage, not a definition
+extern int func_extern_decl();  // external linkage, not a definition
 
-int func_def() {
+int func_def() {                // external linkage, is a definition
     return 1;
 }
 
-static int func_static_def() {
+static int func_static_def() {  // internal linkage, is a definition
     return 1;
 }
 
 
-void main(void) {
+void main(void) {               // external linkage, is a definition
 
-    var_static_decl = 1;
+    var_static_decl = 1;        // invalid linkage, not a definition
 
 
     printf("%i\n",
@@ -49,10 +49,10 @@ void main(void) {
     );
 }
 
-int func_decl() {
+int func_decl() {               // external linkage, is a definition
     return 1;
 }
 
-static int func_static_decl() {
+static int func_static_decl() { // internal linkage, is a definition
     return 1;
 }

@@ -384,8 +384,9 @@ class CAnalyser(Task):
                     # Any other declarations should be coming in via headers,
                     # we can use the injected pragmas to work out whether these
                     # are coming from system headers or user headers
-                    logger.debug('  * Is not defined in this file')
-                    usr_funcs.append(node.spelling)
+                    if self._check_for_include(node.location.line) == "usr_include":
+                        logger.debug('  * Is not defined in this file')
+                        usr_funcs.append(node.spelling)
 
             elif node.kind == clang.cindex.CursorKind.CALL_EXPR:
                 # When encountering a function call we should be able to
