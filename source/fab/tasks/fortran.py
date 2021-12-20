@@ -313,7 +313,9 @@ class FortranAnalyser(object):
     def __init__(self):
         # todo: should we create this each time?
         self.f2008_parser = ParserFactory().create(std="f2008")
-        pass
+
+        # Warn the user if the code still includes this deprecated dependency mechanism
+        self.depends_on_comment_found = False
 
     # @timed_method
     # def run(self, fpath: FileHash):
@@ -331,10 +333,10 @@ class FortranAnalyser(object):
             tree = self.f2008_parser(reader)
         except FortranSyntaxError as err:
             # we can't return the FortranSyntaxError, it breaks multiprocessing!
-            logger.error(f"syntax error in {fpath}\n{err}")
+            logger.error(f"\nsyntax error in {fpath}\n{err}")
             return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
-            logger.error(f"unhandled {type(err)} error in {fpath}\n{err}")
+            logger.error(f"\nunhandled {type(err)} error in {fpath}\n{err}")
             return Exception(f"unhandled {type(err)} error in {fpath}\n{err}")
 
         # did it find anything?
@@ -361,7 +363,7 @@ class FortranAnalyser(object):
             if obj_type == Use_Stmt:
                 use_name = typed_child(obj, Name)
                 if not use_name:
-                    raise TaskException("ERROR finding name in use statement:", obj.string)
+                    return TaskException("ERROR finding name in use statement:", obj.string)
                 use_name = use_name.string
 
                 if use_name not in self._intrinsic_modules:
@@ -378,7 +380,7 @@ class FortranAnalyser(object):
                 if bind:
                     name = typed_child(bind, Char_Literal_Constant)
                     if not name:
-                        raise TaskException(f"Could not get name of function binding: {obj.string}")
+                        return TaskException(f"Could not get name of function binding: {obj.string}")
                     bind_name = name.string.replace('"', '')
 
                     # importing a c function into fortran, i.e binding within an interface block
@@ -422,7 +424,7 @@ class FortranAnalyser(object):
             elif obj_type == Comment:
                 depends_str = "DEPENDS ON:"
                 if depends_str in obj.items[0]:
-                    warnings.warn("deprecated 'DEPENDS ON:' comment found in code")
+                    self.depends_on_comment_found = True
                     dep = obj.items[0].split(depends_str)[-1].strip()
                     # with .o means a c file
                     if dep.endswith(".o"):

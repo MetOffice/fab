@@ -270,7 +270,7 @@ class Fab(object):
         self.validate_target_tree(build_tree)
 
         # compile everything we need to build the target
-        all_compiled = self.compile(build_tree)
+        all_compiled = self.compile_fortran(build_tree)
 
         logger.info("\nlinking")
         self.linker.run(all_compiled)
@@ -306,6 +306,9 @@ class Fab(object):
         with time_logger("analysing fortran"):
             analysed_fortran, fortran_exceptions = self.analyse_file_type(
                 fpaths=to_analyse_by_type[".f90"], analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
+        # did we find naughty code?
+        if self.fortran_analyser.depends_on_comment_found:
+            warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
         with time_logger("analysing c"):
             analysed_c, c_exceptions = self.analyse_file_type(
@@ -314,8 +317,8 @@ class Fab(object):
         # analysis errors?
         all_exceptions = fortran_exceptions | c_exceptions
         if all_exceptions:
-            logger.error(f"{len(all_exceptions)} errors analysing fortran")
-            exit(1)
+            logger.error(f"{len(all_exceptions)} analysis errors")
+            # exit(1)
 
         return analysed_c, analysed_fortran
 
@@ -520,17 +523,17 @@ class Fab(object):
             create any workers, so the target function never runs and the iteration over results will hang.
 
             """
-            for pu in analysis_results:
-                if isinstance(pu, EmptySourceFile):
+            for af in analysis_results:
+                if isinstance(af, EmptySourceFile):
                     continue
-                elif isinstance(pu, Exception):
-                    logger.error(f"\n{pu}")
-                    exceptions.add(pu)
-                elif isinstance(pu, AnalysedFile):
-                    new_program_units.append(pu)
-                    dict_writer.writerow(pu.as_dict())
+                elif isinstance(af, Exception):
+                    logger.error(f"\n{af}")
+                    exceptions.add(af)
+                elif isinstance(af, AnalysedFile):
+                    new_program_units.append(af)
+                    dict_writer.writerow(af.as_dict())
                 else:
-                    raise RuntimeError(f"Unexpected analysis result type: {pu}")
+                    raise RuntimeError(f"Unexpected analysis result type: {af}")
             log_or_dot_finish(logger)
 
         if self.use_multiprocessing:
@@ -543,24 +546,6 @@ class Fab(object):
             iterate_results_DO_NOT_REFACTOR_AWAY(analysis_results)
 
         return new_program_units, exceptions
-
-    # def extract_target_tree(self, analysed_everything: Dict[Path, AnalysedFile], symbols: Dict[str, Path]):
-    #     """
-    #
-    #
-    #     """
-    #
-    #     root_file = symbols[self.target]
-    #
-    #     target_tree, missing = extract_sub_tree(analysed_everything, root_file, verbose=False)
-    #     if missing:
-    #         logger.warning(f"missing deps {missing}")
-    #     else:
-    #         logger.info("no missing deps")
-    #
-    #     logger.info(f"tree size (all files) {len(analysed_everything)}")
-    #     logger.info(f"tree size (target '{self.target}') {len(target_tree)}")
-    #     return target_tree
 
     def add_unreferenced_deps(
             self, symbols: Dict[str, Path], all_analysed_files: Dict[Path, AnalysedFile],
@@ -600,17 +585,23 @@ class Fab(object):
             sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
             build_tree.update(sub_tree)
 
-    def compile(self, target_tree: Dict[Path, AnalysedFile]):
-        logger.info(f"\ncompiling {len(target_tree)} files")
+
+    def compile(self):
+        pass
+
+    def compile_c(self, build_tree: Dict[Path, AnalysedFile]):
+        compiled_c = None
+        return compiled_c
+
+    def compile_fortran(self, build_tree: Dict[Path, AnalysedFile]):
+        logger.info(f"\ncompiling {len(build_tree)} files")
         start = perf_counter()
 
-        to_compile = set(target_tree.values())
+        to_compile = set(build_tree.values())
         all_compiled = []  # todo: use set
         already_compiled_files = set()
         per_pass = []
         while to_compile:
-
-            # logger.info(f"checking {len(to_compile)} program units")
 
             # find what to compile next
             compile_next = []
@@ -623,9 +614,6 @@ class Fab(object):
                 else:
                     not_ready[af.fpath] = unfulfilled
 
-            # for fpath, deps in not_ready.items():
-            #     logger.info(f"not ready to compile {fpath}, needs {', '.join(map(str, deps))}")
-            # logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
             print(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files", end='')
 
             # report if unable to compile everything
