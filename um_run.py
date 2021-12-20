@@ -99,7 +99,7 @@ def main():
                  skip_files=config.skip_files,
                  unreferenced_deps=config.unreferenced_deps,
                  # use_multiprocessing=False,
-                 debug_skip=True,
+                 # debug_skip=True,
                  include_paths=config.include_paths)
 
     logger = logging.getLogger('fab')

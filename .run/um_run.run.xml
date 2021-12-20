@@ -6,7 +6,6 @@
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
       <env name="OMPI_FC" value="gfortran" />
-      <env name="UM_JULES" value="1" />
     </envs>
     <option name="SDK_HOME" value="" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
