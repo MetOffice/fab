@@ -15,7 +15,7 @@ from fab.artifact import \
     Linked
 from fab.tasks import Task, TaskException
 from fab.reader import FileTextReader
-from fab.tasks.fortran import CompiledFile
+from fab.util import CompiledFile
 
 
 class Linker(Task):

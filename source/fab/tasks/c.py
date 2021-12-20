@@ -29,21 +29,14 @@ from fab.database import \
     StateDatabase, \
     DatabaseDecorator, \
     FileInfoDatabase, \
-    SqliteStateDatabase, \
     WorkingStateException
 from fab.tasks import Task, TaskException
-from fab.artifact import \
-    Artifact, \
-    Raw, \
-    Modified, \
-    Analysed, \
-    Compiled, \
-    BinaryObject
+
 from fab.reader import \
     TextReader, \
     FileTextReader, \
     TextReaderDecorator
-from fab.util import log_or_dot, HashedFile
+from fab.util import log_or_dot, HashedFile, CompiledFile
 
 
 class CSymbolUnresolvedID(object):
@@ -586,31 +579,30 @@ class CCompiler(Task):
         self._flags = flags
         self._workspace = workspace
 
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
+    def run(self, af: AnalysedFile):
         logger = logging.getLogger(__name__)
-
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('C Compiler expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
 
         command = [self._compiler]
         command.extend(self._flags)
-        command.append(str(artifact.location))
+        command.append(str(af.fpath))
 
-        output_file = (self._workspace /
-                       artifact.location.with_suffix('.o').name)
+        output_file = (self._workspace / af.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_file)])
 
         logger.debug('Running command: ' + ' '.join(command))
-        subprocess.run(command, check=True)
 
-        object_artifact = Artifact(output_file,
-                                   BinaryObject,
-                                   Compiled)
-        for definition in artifact.defines:
-            object_artifact.add_definition(definition)
+        try:
+            res = subprocess.run(command, check=True)
+            if res.returncode != 0:
+                # todo: specific exception
+                return Exception("The compiler exited with non zero")
+        except Exception as err:
+            return Exception(f"error compiling {af.fpath}: {err}")
 
-        return [object_artifact]
+        # object_artifact = Artifact(output_file, BinaryObject, Compiled)
+        # for definition in artifact.defines:
+        #     object_artifact.add_definition(definition)
+
+        # return [object_artifact]
+
+        return CompiledFile(af, output_file)

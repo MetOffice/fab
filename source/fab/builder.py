@@ -26,7 +26,7 @@ from fab.tasks import Task
 from fab.tasks.common import Linker, HeaderAnalyser
 from fab.tasks.fortran import \
     FortranAnalyser, \
-    FortranCompiler, CompiledFile
+    FortranCompiler
 from fab.tasks.c import \
     CPragmaInjector, \
     CPreProcessor, \
@@ -34,7 +34,7 @@ from fab.tasks.c import \
     CCompiler
 from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, mo_commented_file_deps
 from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
-    time_logger
+    time_logger, CompiledFile
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -195,8 +195,8 @@ class Fab(object):
             include_paths=include_paths,
         )
         self.c_analyser = CAnalyser()
-        c_compiler = CCompiler(
-            'gcc', ['-c'], workspace
+        self.c_compiler = CCompiler(
+            'gcc', ['-c', '-std=c99'], workspace
         )
 
         # export OMPI_FC=gfortran
@@ -270,7 +270,8 @@ class Fab(object):
         self.validate_target_tree(build_tree)
 
         # compile everything we need to build the target
-        all_compiled = self.compile_fortran(build_tree)
+        with time_logger("compiling"):
+            all_compiled = self.compile(build_tree)
 
         logger.info("\nlinking")
         self.linker.run(all_compiled)
@@ -585,19 +586,39 @@ class Fab(object):
             sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
             build_tree.update(sub_tree)
 
+    def compile(self, build_tree):
 
-    def compile(self):
-        pass
+        c_files: Set[AnalysedFile] = {af for af in build_tree.values() if af.fpath.suffix == ".c"}  # todo: filter?
+        self.compile_c(c_files)
 
-    def compile_c(self, build_tree: Dict[Path, AnalysedFile]):
-        compiled_c = None
+        fortran_files: Set[AnalysedFile] = {af for af in build_tree.values() if af.fpath.suffix == ".f90"}
+        self.compile_fortran(fortran_files)
+
+        all_compiled: Set[CompiledFile] = set()
+        return all_compiled
+
+    def compile_c(self, to_compile: Set[AnalysedFile]):
+        logger.info(f"compiling {len(to_compile)} c files")
+        if self.use_multiprocessing:
+            with multiprocessing.Pool(self.n_procs) as p:
+                results = p.map(self.c_compiler.run, to_compile)
+        else:
+            results = [self.c_compiler.run(c) for c in to_compile]
+
+        errors = [result for result in results if isinstance(result, Exception)]
+        if errors:
+            err_msg = '\n\n'.join(map(str, errors))
+            logger.error(f"There were {len(errors)} errors compiling {len(to_compile)} c files:\n{err_msg}")
+            exit(1)
+
+        compiled_c = [result for result in results if isinstance(result, CompiledFile)]
+        logger.info(f"compiled {len(compiled_c)} c files")
         return compiled_c
 
-    def compile_fortran(self, build_tree: Dict[Path, AnalysedFile]):
-        logger.info(f"\ncompiling {len(build_tree)} files")
+    def compile_fortran(self, to_compile: Set[AnalysedFile]):
+        logger.info(f"\ncompiling {len(to_compile)} fortran files")
         start = perf_counter()
 
-        to_compile = set(build_tree.values())
         all_compiled = []  # todo: use set
         already_compiled_files = set()
         per_pass = []
@@ -608,7 +629,7 @@ class Fab(object):
             not_ready = {}
             for af in to_compile:
                 # all deps ready?
-                unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files]
+                unfulfilled = filter(lambda dep: dep not in already_compiled_files, af.file_deps)
                 if not unfulfilled:
                     compile_next.append(af)
                 else:
@@ -670,7 +691,7 @@ class Fab(object):
         if to_compile:
             logger.debug(f"there were still {len(to_compile)} files left to compile")
             for af in to_compile:
-                logger.debug(af.name)
+                logger.debug(af.fpath)
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 

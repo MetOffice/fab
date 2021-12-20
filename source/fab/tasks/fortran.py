@@ -5,30 +5,21 @@
 Fortran language handling classes.
 """
 import logging
-import warnings
 from pathlib import Path
 import subprocess
-from typing import (Generator,
-                    List,
-                    Optional,
-                    Sequence,
-                    Union)
+from typing import Generator, List, Optional, Sequence, Union
+
 from fparser.two.Fortran2003 import Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, \
     Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name, Comment, Module
 from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranFileReader
 from fparser.two.utils import FortranSyntaxError
 
-from fab.database import (DatabaseDecorator,
-                          FileInfoDatabase,
-                          StateDatabase,
-                          SqliteStateDatabase,
-                          WorkingStateException)
+from fab.database import DatabaseDecorator, FileInfoDatabase, StateDatabase, WorkingStateException
 from fab.tasks import  TaskException
-from fab.tasks.c import CWorkingState, CSymbolID
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
-from fab.util import log_or_dot, HashedFile
+from fab.util import log_or_dot, HashedFile, CompiledFile
 
 
 class FortranUnitUnresolvedID(object):
@@ -380,6 +371,7 @@ class FortranAnalyser(object):
                 if bind:
                     name = typed_child(bind, Char_Literal_Constant)
                     if not name:
+                        # TODO: use the fortran name, lower case
                         return TaskException(f"Could not get name of function binding: {obj.string}")
                     bind_name = name.string.replace('"', '')
 
@@ -504,19 +496,9 @@ class FortranAnalyser(object):
 #         return output_fpath
 
 
-# todo: better as a named tuple?
-class CompiledFile(object):
-    def __init__(self, analysed_file, output_fpath):
-        self.analysed_file = analysed_file
-        self.output_fpath = output_fpath
-
-
 class FortranCompiler(object):
 
-    def __init__(self,
-                 compiler: str,
-                 flags: List[str],
-                 workspace: Path):
+    def __init__(self, compiler: str, flags: List[str], workspace: Path):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace

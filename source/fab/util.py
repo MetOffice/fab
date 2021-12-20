@@ -79,3 +79,10 @@ def time_logger(label):
     start = perf_counter()
     yield None
     logger.info(f"{label} took {perf_counter() - start}")
+
+
+# todo: better as a named tuple?
+class CompiledFile(object):
+    def __init__(self, analysed_file, output_fpath):
+        self.analysed_file = analysed_file
+        self.output_fpath = output_fpath
