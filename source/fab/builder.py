@@ -270,6 +270,7 @@ class Fab(object):
         self.validate_target_tree(build_tree)
 
         # compile everything we need to build the target
+        # todo: output into the folder structuresto avoid name clash
         with time_logger("compiling"):
             all_compiled = self.compile(build_tree)
 
@@ -629,13 +630,13 @@ class Fab(object):
             not_ready = {}
             for af in to_compile:
                 # all deps ready?
-                unfulfilled = filter(lambda dep: dep not in already_compiled_files, af.file_deps)
+                unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files and dep.suffix == '.f90']
                 if not unfulfilled:
                     compile_next.append(af)
                 else:
                     not_ready[af.fpath] = unfulfilled
 
-            print(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files", end='')
+            logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
 
             # report if unable to compile everything
             if len(to_compile) and not compile_next:

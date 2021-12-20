@@ -34,23 +34,23 @@ def main():
     project_name = "um"
     src_paths = {
         os.path.expanduser("~/svn/um/trunk/src"): "um",
-        # os.path.expanduser("~/svn/shumlib/trunk"): "shumlib",
+        os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
     }
 
     #
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
 
-    sim_grab = False
+    simulate_grab = False
+    # simulate_grab = True
 
 
     # TODO: This will be part of grab/extract
-    if sim_grab:
+    if simulate_grab:
         # Copy all source into workspace
         for src_path, label in src_paths.items():
             shutil.copytree(src_path, workspace / SOURCE_ROOT / label, dirs_exist_ok=True)
 
         # shum partial
-        # shum_excl = / common / src / shumlib_version.c
         shum_excl = ["common/src/shumlib_version.c", "Makefile"]
         shum_incl = [
             "shum_wgdos_packing/src",
@@ -78,6 +78,7 @@ def main():
                 shutil.copy(fpath, output_fpath)
 
     ### END OF DONE-BYGRAB STUFF
+
 
 
 
