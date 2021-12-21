@@ -346,6 +346,11 @@ class FortranAnalyser(object):
 
 
 
+        # if "corr_k_single.f90" in fpath.parts:
+        #     print("foo")
+
+
+
         # see what else is in the tree
         for obj in iter_content(tree):
             obj_type = type(obj)
@@ -365,8 +370,9 @@ class FortranAnalyser(object):
             elif obj_type in (Module_Stmt, Program_Stmt):
                 analysed_file.add_symbol_def(str(obj.get_name()))
 
-            # function binding
+            # function
             elif obj_type in (Subroutine_Stmt, Function_Stmt):
+                # binding?
                 bind = typed_child(obj, Language_Binding_Spec)
                 if bind:
                     name = typed_child(bind, Char_Literal_Constant)
@@ -387,7 +393,7 @@ class FortranAnalyser(object):
 
                 # not bound, just record the presence of the fortran symbol
                 # we don't need to record stuff in modules (we think!)
-                elif not has_ancestor_type(obj, Module):
+                elif not has_ancestor_type(obj, Module) and not has_ancestor_type(obj, Interface_Block):
                     if obj_type == Subroutine_Stmt:
                         analysed_file.add_symbol_def(str(obj.get_name()))
                     if obj_type == Function_Stmt:

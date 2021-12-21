@@ -10,6 +10,7 @@ import os
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
+from datetime import datetime
 from time import perf_counter
 from typing import Dict, List, Tuple, Set, Iterable
 
@@ -32,12 +33,15 @@ from fab.tasks.c import \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
-from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, mo_commented_file_deps
+from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, add_mo_commented_file_deps
 from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
     time_logger, CompiledFile
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
+
+
+runtime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
 def read_config(conf_file):
@@ -145,6 +149,7 @@ class Fab(object):
                  unreferenced_deps=None,
                  use_multiprocessing=True,
                  debug_skip=False,
+                 dump_source_tree=False,
     ):
 
         # self.source_paths = source_paths
@@ -155,6 +160,7 @@ class Fab(object):
         self.fc_flags = fc_flags
         self.unreferenced_deps: List[str] = unreferenced_deps or []
         self.use_multiprocessing = use_multiprocessing
+        self.dump_source_tree = dump_source_tree
         # self.include_paths = include_paths or []
 
         if not workspace.exists():
@@ -182,7 +188,13 @@ class Fab(object):
         self.fortran_compiler = FortranCompiler(
             'gfortran',
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
+
             ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+            # ['-std=gnu', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+            # ['-std=legacy', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+            # ['-std=f2008', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+            # ['-std=f2008ts', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+
             self._workspace)
 
         header_analyser = HeaderAnalyser(workspace)
@@ -218,18 +230,19 @@ class Fab(object):
         with time_logger("copying ancillary files"):
             self.copy_ancillary_files(all_source)
 
-        with time_logger("adding pragmas to c"):
-            pragmad_c = self.c_pragmas(all_source[".c"])
+        c_source_files = all_source[".c"]
+        with time_logger(f"adding pragmas to {len(c_source_files)} c source files"):
+            pragmad_c = self.c_pragmas(c_source_files)
 
-        with time_logger("preprocessing c"):
+        with time_logger(f"preprocessing {len(pragmad_c)} pragma'd c files"):
             preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
 
-        with time_logger("preprocessing fortran"):
-            preprocessed_fortran = self.preprocess(
-                fpaths=all_source[".F90"] + all_source[".f90"], preprocessor=self.fortran_preprocessor)
+        fortran_source_files = all_source[".F90"] + all_source[".f90"]
+        with time_logger(f"preprocessing {len(fortran_source_files)} fortran source files"):
+            preprocessed_fortran = self.preprocess(fpaths=fortran_source_files, preprocessor=self.fortran_preprocessor)
 
         # take hashes of all the files we preprocessed
-        with time_logger("getting file hashes"):
+        with time_logger(f"getting {len(preprocessed_fortran) + len(preprocessed_c)} file hashes"):
             preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran | preprocessed_c)
 
         # analyse c and fortran
@@ -237,37 +250,58 @@ class Fab(object):
             analysed_c, analysed_fortran = self.analyse(to_analyse, analysis_dict_writer)
         all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
 
+        if self.dump_source_tree:
+            with open(datetime.now().strftime(f"tmp/af1_{runtime_str}.txt"), "wt") as outfile:
+                sorted_files = sorted(all_analysed_files.values(), key=lambda af: af.fpath)
+                for af in sorted_files:
+                    af.dump(outfile)
+
         # Make "external" symbol table
         with time_logger("creating symbol lookup"):
             symbols: Dict[str, Path] = self.gen_symbol_table(all_analysed_files)
 
         # turn symbol deps into file deps
+        deps_not_found = set()
         with time_logger("converting symbol to file deps"):
             for analysed_file in all_analysed_files.values():
                 for symbol_dep in analysed_file.symbol_deps:
                     # todo: does file_deps belong in there?
-                    found_dep = symbols.get(symbol_dep)
-                    if not found_dep:
+                    file_dep = symbols.get(symbol_dep)
+                    if not file_dep:
+                        deps_not_found.add(symbol_dep)
                         logger.debug(f"(might not matter) not found {symbol_dep} for {analysed_file}")
                         continue
-                    analysed_file.file_deps.add(found_dep)
+                    analysed_file.file_deps.add(file_dep)
+        if deps_not_found:
+            logger.info(f"{len(deps_not_found)} deps not found")
 
         #  find the files for UM "DEPENDS ON:" commented file deps
-        with time_logger("processing MO 'DEPENDS ON:' file dependency comments"):
-            mo_commented_file_deps(analysed_fortran, analysed_c)
+        with time_logger("adding MO 'DEPENDS ON:' file dependency comments"):
+            add_mo_commented_file_deps(analysed_fortran, analysed_c)
+
+
+        if self.dump_source_tree:
+            with open(datetime.now().strftime(f"tmp/af2_{runtime_str}.txt"), "wt") as outfile:
+                sorted_files = sorted(all_analysed_files.values(), key=lambda af: af.fpath)
+                for af in sorted_files:
+                    af.dump(outfile)
+
+        exit(0)
 
         # target tree extraction (as is)
         with time_logger("extracting target tree"):
             build_tree = extract_sub_tree(all_analysed_files, symbols[self.target], verbose=False)
-        logger.info(f"tree size (all files) {len(all_analysed_files)}")
-        logger.info(f"tree size (target '{self.target}') {len(build_tree)}")
+        logger.info(f"source tree size {len(all_analysed_files)}")
+        logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.target]}')")
+
+        exit(0)
 
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
         # This is driven by the config list "unreferenced-dependencies"
         self.add_unreferenced_deps(symbols, all_analysed_files, build_tree)
 
-        self.validate_target_tree(build_tree)
+        self.validate_build_tree(build_tree)
 
         # compile everything we need to build the target
         # todo: output into the folder structuresto avoid name clash
@@ -303,18 +337,18 @@ class Fab(object):
     def analyse(self, to_analyse_by_type: Dict[str, List[HashedFile]], analysis_dict_writer: csv.DictWriter) \
             -> Tuple[List[AnalysedFile], List[AnalysedFile]]:
 
-        # logger.info("analyse")
-
-        with time_logger("analysing fortran"):
+        fortran_files = to_analyse_by_type[".f90"]
+        with time_logger(f"analysing {len(fortran_files)} fortran files"):
             analysed_fortran, fortran_exceptions = self.analyse_file_type(
-                fpaths=to_analyse_by_type[".f90"], analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
-        # did we find naughty code?
+                fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
+        # did we find naughty fortran code?
         if self.fortran_analyser.depends_on_comment_found:
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
-        with time_logger("analysing c"):
+        c_files = to_analyse_by_type[".c"]
+        with time_logger(f"analysing {len(c_files)} c files"):
             analysed_c, c_exceptions = self.analyse_file_type(
-                fpaths=to_analyse_by_type[".c"], analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
+                fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
 
         # analysis errors?
         all_exceptions = fortran_exceptions | c_exceptions
@@ -326,9 +360,21 @@ class Fab(object):
 
     def gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
         symbols = dict()
+        duplicates = []
         for source_file in all_analysed_files.values():
             for symbol_def in source_file.symbol_defs:
+                if symbol_def in symbols:
+                    duplicates.append(ValueError(
+                        f"duplicate symbol '{symbol_def}' defined in {source_file.fpath} "
+                        f"already found in {symbols[symbol_def]}"))
+                    continue
                 symbols[symbol_def] = source_file.fpath
+
+        if duplicates:
+            err_msg = "\n".join(map(str, duplicates))
+            logger.error(f"Errors found while generating symbol table:\n{err_msg}")
+            exit(1)
+
         return symbols
 
     def walk_source_folder(self) -> Dict[str, List[Path]]:
@@ -467,7 +513,7 @@ class Fab(object):
                     # ok, we have previously analysed this file
                     prev_results[current_file.fpath] = current_file
 
-            logger.info("loaded previous analysis results")
+            logger.info(f"loaded {len(prev_results)} previous analysis results")
         except FileNotFoundError:
             logger.info("no previous analysis results")
             pass
@@ -698,7 +744,7 @@ class Fab(object):
 
         return all_compiled
 
-    def validate_target_tree(self, target_tree):
+    def validate_build_tree(self, target_tree):
         """
         If any dep is not in the tree, then it's unknown code and we won't be able to compile.
 

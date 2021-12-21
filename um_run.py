@@ -99,8 +99,9 @@ def main():
                  skip_files=config.skip_files,
                  unreferenced_deps=config.unreferenced_deps,
                  # use_multiprocessing=False,
-                 # debug_skip=True,
-                 include_paths=config.include_paths)
+                 debug_skip=True,
+                 include_paths=config.include_paths,
+                 dump_source_tree=True)
 
     logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)

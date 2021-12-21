@@ -35,6 +35,13 @@ class AnalysedFile(object):
         assert name and len(name)
         self.file_deps.add(name)
 
+    def dump(self, outfile):
+        outfile.write(f"{self.fpath} {self.file_hash}\n"
+                      f"  symb defs: {sorted(self.symbol_defs)}\n"
+                      f"  symb deps: {sorted(self.symbol_deps)}\n"
+                      f"  file deps: {sorted(self.file_deps)}\n"
+                      f"  modo deps: {sorted(self.mo_commented_file_deps)}\n")
+
     def __str__(self):
         return f"AnalysedFile {self.fpath} {self.file_hash} {self.symbol_defs} {self.symbol_deps} {self.file_deps}"
 
@@ -45,7 +52,7 @@ class AnalysedFile(object):
                 self.symbol_defs == other.symbol_defs and
                 self.symbol_deps == other.symbol_deps and
                 self.file_deps == other.file_deps and
-                self.mo_commented_file_deps == other.mo_commented_file_deps
+                self.mo_commented_file_deps == other.add_mo_commented_file_deps
         )
 
     def __hash__(self):
@@ -112,7 +119,7 @@ def extract_sub_tree(
     result = dict()
     missing = set()
 
-    _extract_sub_tree(src_tree=src_tree, key=key, result=result, missing=missing, verbose=verbose)
+    _extract_sub_tree(src_tree=src_tree, key=key, dst_tree=result, missing=missing, verbose=verbose)
 
     if missing:
         logger.warning(f"{key} has missing deps: {missing}")
@@ -120,10 +127,10 @@ def extract_sub_tree(
     return result
 
 
-def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, result, missing, verbose, indent=0):
+def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, dst_tree, missing, verbose, indent=0):
 
     # is this node already in the target tree?
-    if key in result:
+    if key in dst_tree:
         return
 
     if verbose:
@@ -132,7 +139,7 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, result, mis
     # add it to the output tree
     node = src_tree[key]
     assert node.fpath == key
-    result[key] = node
+    dst_tree[key] = node
 
     # add its child deps
     for file_dep in node.file_deps:
@@ -146,7 +153,7 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, result, mis
 
         # add this child dep
         _extract_sub_tree(
-            src_tree=src_tree, key=file_dep, result=result, missing=missing, verbose=verbose, indent=indent + 1)
+            src_tree=src_tree, key=file_dep, dst_tree=dst_tree, missing=missing, verbose=verbose, indent=indent + 1)
 
 
 
@@ -160,11 +167,16 @@ def by_type(iterable):
     return result
 
 
-def mo_commented_file_deps(analysed_fortran: List[AnalysedFile], analysed_c: List[AnalysedFile]):
+def add_mo_commented_file_deps(analysed_fortran: List[AnalysedFile], analysed_c: List[AnalysedFile]):
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
+
+    (These do not include "DEPENDS ON:" code comments which refer to symbols)
     """
     lookup = {c.fpath.name: c for c in analysed_c}
+    num_found = 0
     for f in analysed_fortran:
+        num_found += len(f.mo_commented_file_deps)
         for dep in f.mo_commented_file_deps:
             f.file_deps.add(lookup[dep])
+    logger.info(f"processed {num_found} DEPENDS ON file dependencies")

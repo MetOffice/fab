@@ -551,9 +551,8 @@ class CPreProcessor(Task):
         # ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
 
         # todo: for debugging
-        if self.debug_skip:
-            if output_fpath.exists():
-                return output_fpath
+        if self.debug_skip and output_fpath.exists():
+            return output_fpath
 
         # Use temporary output name (in case the given tool can't operate in-place)
         temp_fpath = output_fpath.with_suffix(".tmp_pp")
