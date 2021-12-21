@@ -192,10 +192,13 @@ class Fab(object):
             ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=gnu', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=legacy', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+
+            # ['-std=f2003', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=f2008', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=f2008ts', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
 
-            self._workspace)
+            self._workspace
+        )
 
         header_analyser = HeaderAnalyser(workspace)
         self.c_pragma_injector = CPragmaInjector(workspace)
@@ -286,15 +289,14 @@ class Fab(object):
                 for af in sorted_files:
                     af.dump(outfile)
 
-        exit(0)
 
+        # TODO: document this: when there's duplicate symbols, the size of the (possibly wrong) build tree can vary...
         # target tree extraction (as is)
         with time_logger("extracting target tree"):
             build_tree = extract_sub_tree(all_analysed_files, symbols[self.target], verbose=False)
         logger.info(f"source tree size {len(all_analysed_files)}")
         logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.target]}')")
 
-        exit(0)
 
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
@@ -372,8 +374,8 @@ class Fab(object):
 
         if duplicates:
             err_msg = "\n".join(map(str, duplicates))
-            logger.error(f"Errors found while generating symbol table:\n{err_msg}")
-            exit(1)
+            logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
+            # exit(1)
 
         return symbols
 

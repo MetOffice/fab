@@ -302,7 +302,7 @@ class FortranAnalyser(object):
     _intrinsic_modules = ['iso_fortran_env']
 
     def __init__(self):
-        # todo: should we create this each time?
+        # todo: fortran version in config?
         self.f2008_parser = ParserFactory().create(std="f2008")
 
         # Warn the user if the code still includes this deprecated dependency mechanism
