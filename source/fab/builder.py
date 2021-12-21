@@ -186,7 +186,9 @@ class Fab(object):
         self.fortran_analyser = FortranAnalyser()
 
         self.fortran_compiler = FortranCompiler(
-            'gfortran',
+            # 'gfortran',
+            os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
 
             ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
@@ -725,7 +727,7 @@ class Fab(object):
 
             # ProgramUnit - not the same as passed in, due to mp copying
             compiled_fpaths = {i.analysed_file.fpath for i in compiled_this_pass}
-            logger.debug(f"compiled_names {compiled_fpaths}")
+            # logger.debug(f"compiled_names {compiled_fpaths}")
             all_compiled.extend(compiled_this_pass)
             already_compiled_files.update(compiled_fpaths)
 

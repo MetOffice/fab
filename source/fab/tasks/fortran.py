@@ -514,8 +514,25 @@ class FortranCompiler(object):
         logger = logging.getLogger(__name__)
 
         command = [self._compiler]
-        command.extend(self._flags)
+        # command.extend(self._flags)
+
+        # DEBUG
+        interop_test = [
+            # "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib/shum_byteswap/src/f_shum_byteswap.f90"
+            "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib",
+        ]
+        do_interop_thing = any(str(analysed_file.fpath).startswith(i) for i in interop_test)
+        if do_interop_thing:
+            logger.info("INTEROP!")
+            command.extend(['-std=f2018', '-c', '-J', str(self._workspace)])
+            # command.extend(['-c', '-J', str(self._workspace)])
+        else:
+            command.extend(self._flags)
+
         command.append(str(analysed_file.fpath))
+
+
+
 
         output_fpath = (self._workspace / analysed_file.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_fpath)])

@@ -99,15 +99,15 @@ def main():
         stop_on_error=True,
         skip_files=config.skip_files,
         unreferenced_deps=config.unreferenced_deps,
-        # use_multiprocessing=False,
+        use_multiprocessing=False,
         debug_skip=True,
         include_paths=config.include_paths,
-        dump_source_tree=True
+        # dump_source_tree=True
      )
 
     logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     with time_logger("fab run"):
         my_fab.run()
