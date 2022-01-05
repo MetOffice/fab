@@ -77,7 +77,33 @@ def main():
                     output_fpath.parent.mkdir(parents=True)
                 shutil.copy(fpath, output_fpath)
 
-    ### END OF DONE-BYGRAB STUFF
+    ### END OF DONE BY GRAB STUFF
+
+
+
+
+
+
+
+
+
+
+
+# hierarchy of config
+#
+# site (sys admin)
+# project (source code)
+# overrides
+# blocked overrides
+#
+# what ought to inherit from env
+# num cores in submit script, mem
+# batch manager assigns resources
+# project board in about amonth
+
+
+
+
 
 
     class Thing(object):
@@ -136,6 +162,9 @@ def main():
     # replace single flag
     action = set(fc_flags, "-O", "1")           -> ["-foo=bar", "-O2"]  -> ["-foo=bar", "-O1"]
     action = set(fc_flags, "-std", "f2018")     -> ["-foo=bar", "-std=gnu"] -> ["-foo=bar", "-std=2018"]
+
+
+
 
 
 
