@@ -20,6 +20,7 @@ from pathlib import Path, PosixPath
 import shutil
 import sys
 
+from config_sketch import FlagsConfig
 from fab.constants import OUTPUT_ROOT, SOURCE_ROOT
 from fab.database import SqliteStateDatabase
 from fab.tasks import Task
@@ -116,7 +117,7 @@ def entry() -> None:
 
     config, skip_files, unreferenced_deps = read_config(arguments.conf_file)
     settings = config['settings']
-    flags = config['flags']
+    # flags = config['flags']
 
     # If not provided, name the exec after the target
     if settings['exec-name'] == '':
@@ -140,8 +141,8 @@ class Fab(object):
                  workspace: Path,
                  target: str,
                  exec_name: str,
-                 fpp_flags: str,
-                 fc_flags: str,
+                 fpp_flags: FlagsConfig,
+                 fc_flags: FlagsConfig,
                  ld_flags: str,
                  n_procs: int,
                  stop_on_error: bool = True,  # todo: i think we accidentally stopped using this
@@ -177,8 +178,9 @@ class Fab(object):
         # file-specific overrides?)
         # self.fortran_preprocessor = FortranPreProcessor(
         self.fortran_preprocessor = CPreProcessor(
-            preprocessor='cpp',
-            flags=['-traditional-cpp', '-P'] + fpp_flags.split(),
+            # preprocessor='cpp',
+            preprocessor=['cpp', '-traditional-cpp', '-P'],
+            flags=fpp_flags,
             workspace=workspace,
             include_paths=include_paths,
             output_suffix=".f90",
@@ -187,11 +189,16 @@ class Fab(object):
 
         self.fortran_compiler = FortranCompiler(
             # 'gfortran',
-            os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+            # compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+            # todo: make configurable
+            compiler=[
+                os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+                '-c', '-J', workspace
+            ],
 
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
 
-            ['-c', '-J', str(self._workspace)] + self.fc_flags.split(),
+            flags=self.fc_flags,
             # ['-std=gnu', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=legacy', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
 
@@ -199,14 +206,14 @@ class Fab(object):
             # ['-std=f2008', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=f2008ts', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
 
-            self._workspace
+            workspace=self._workspace
         )
 
         header_analyser = HeaderAnalyser(workspace)
         self.c_pragma_injector = CPragmaInjector(workspace)
         self.c_preprocessor = CPreProcessor(
-            preprocessor='cpp',
-            flags=[],
+            preprocessor=['cpp'],
+            flags=FlagsConfig(),  # just a blank one
             workspace=workspace,
             output_suffix=".c",
             include_paths=include_paths,

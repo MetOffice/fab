@@ -15,6 +15,7 @@ from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranFileReader
 from fparser.two.utils import FortranSyntaxError
 
+from config_sketch import FlagsConfig
 from fab.database import DatabaseDecorator, FileInfoDatabase, StateDatabase, WorkingStateException
 from fab.tasks import  TaskException
 
@@ -504,7 +505,7 @@ class FortranAnalyser(object):
 
 class FortranCompiler(object):
 
-    def __init__(self, compiler: str, flags: List[str], workspace: Path):
+    def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
@@ -513,21 +514,33 @@ class FortranCompiler(object):
     def run(self, analysed_file: AnalysedFile):
         logger = logging.getLogger(__name__)
 
-        command = [self._compiler]
+        command = [*self._compiler]
         # command.extend(self._flags)
 
-        # DEBUG
-        interop_test = [
-            # "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib/shum_byteswap/src/f_shum_byteswap.f90"
-            "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib",
-        ]
-        do_interop_thing = any(str(analysed_file.fpath).startswith(i) for i in interop_test)
-        if do_interop_thing:
-            logger.info("INTEROP!")
-            command.extend(['-std=f2018', '-c', '-J', str(self._workspace)])
-            # command.extend(['-c', '-J', str(self._workspace)])
-        else:
-            command.extend(self._flags)
+
+
+        #
+        # # DEBUG
+        # interop_test = [
+        #     # "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib/shum_byteswap/src/f_shum_byteswap.f90"
+        #     "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib",
+        # ]
+        # do_interop_thing = any(str(analysed_file.fpath).startswith(i) for i in interop_test)
+        # if do_interop_thing:
+        #     logger.info("INTEROP!")
+        #     command.extend(['-std=f2018', '-c', '-J', str(self._workspace)])
+        #     # command.extend(['-c', '-J', str(self._workspace)])
+        # else:
+        #     command.extend(self._flags)
+
+
+
+        # becomes
+        command.extend(self._flags.flags_for_path(analysed_file.fpath))
+
+
+
+
 
         command.append(str(analysed_file.fpath))
 

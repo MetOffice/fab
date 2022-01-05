@@ -21,6 +21,7 @@ from typing import \
     Union
 from pathlib import Path
 
+from config_sketch import FlagsConfig
 from fab.dep_tree import AnalysedFile
 
 from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
@@ -497,8 +498,8 @@ class CPreProcessor(Task):
     #                      Raw)]
 
     def __init__(self,
-                 preprocessor: str,
-                 flags: List[str],
+                 preprocessor: List[str],
+                 flags: FlagsConfig,
                  workspace: Path,
                  include_paths: List[Path]=None,
                  output_suffix=".c",
@@ -537,8 +538,11 @@ class CPreProcessor(Task):
     def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
-        command = [self._preprocessor]
-        command.extend(self._flags)
+        command = [*self._preprocessor]
+
+        # command.extend(self._flags)
+        command.extend(self._flags.flags_for_path(fpath))
+
         command.extend(self.get_include_paths(fpath))
         command.append(str(fpath))
 
