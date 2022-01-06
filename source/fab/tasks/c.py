@@ -37,7 +37,7 @@ from fab.reader import \
     TextReader, \
     FileTextReader, \
     TextReaderDecorator
-from fab.util import log_or_dot, HashedFile, CompiledFile
+from fab.util import log_or_dot, HashedFile, CompiledFile, fixup_command_includes
 
 
 class CSymbolUnresolvedID(object):
@@ -501,7 +501,7 @@ class CPreProcessor(Task):
                  preprocessor: List[str],
                  flags: FlagsConfig,
                  workspace: Path,
-                 include_paths: List[Path]=None,
+                 # include_paths: List[Path]=None,
                  output_suffix=".c",
                  debug_skip=False,
                  ):
@@ -509,30 +509,30 @@ class CPreProcessor(Task):
         self._flags = flags
         self._workspace = workspace
         self.output_suffix = output_suffix
-        self.include_paths = include_paths or []
+        # self.include_paths = include_paths or []
         self.debug_skip = debug_skip
 
-    def get_include_paths(self, fpath: Path) -> List[str]:
-        """
-        Resolve any relative paths as to the folder containing the source file.
-
-        """
-        # Start off with the the workspace output root because we copy the inc files there.
-        # Todo: inc files are going to be removed
-        result = ["-I", str(self._workspace / OUTPUT_ROOT)]
-
-        # Add all the other include folders
-        for inc_path in self.include_paths:
-            if inc_path.is_absolute():
-                # E.g a project include folder (relative to the workspace)
-                rel_path = inc_path.parts[1:]
-                inc_path = (self._workspace / OUTPUT_ROOT).joinpath(*rel_path)
-                result.extend(["-I", str(inc_path)])
-            else:
-                # E.g an include subfolder below a c file
-                result.extend(["-I", str(fpath.parent / inc_path)])
-
-        return result
+    # def get_include_paths(self, fpath: Path) -> List[str]:
+    #     """
+    #     Resolve any relative paths as to the folder containing the source file.
+    #
+    #     """
+    #     # Start off with the the workspace output root because we copy the inc files there.
+    #     # Todo: inc files are going to be removed
+    #     result = ["-I", str(self._workspace / OUTPUT_ROOT)]
+    #
+    #     # Add all the other include folders
+    #     for inc_path in self.include_paths:
+    #         if inc_path.is_absolute():
+    #             # E.g a project include folder (relative to the workspace)
+    #             rel_path = inc_path.parts[1:]
+    #             inc_path = (self._workspace / OUTPUT_ROOT).joinpath(*rel_path)
+    #             result.extend(["-I", str(inc_path)])
+    #         else:
+    #             # E.g an include subfolder below a c file
+    #             result.extend(["-I", str(fpath.parent / inc_path)])
+    #
+    #     return result
 
     # @timed_method
     def run(self, fpath: Path):
@@ -543,7 +543,19 @@ class CPreProcessor(Task):
         # command.extend(self._flags)
         command.extend(self._flags.flags_for_path(fpath))
 
-        command.extend(self.get_include_paths(fpath))
+        # for i in range(len(command)):
+        #     command[i] = command[i].format(kwargs={"output": self._workspace / OUTPUT_ROOT, "relative": fpath.parent})
+
+
+        # the flags we were given might contain include folders which need to be converted into absolute paths
+        fixup_command_includes(
+            command=command,
+            output_root=self._workspace / OUTPUT_ROOT,
+            file_path=fpath)
+
+
+
+        # command.extend(self.get_include_paths(fpath))
         command.append(str(fpath))
 
         # are we processing a file in the source or the output folder?

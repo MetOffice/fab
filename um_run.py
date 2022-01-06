@@ -23,7 +23,7 @@ import shutil
 from pathlib import Path
 
 from config_sketch import PathFlags, FlagsConfig
-from fab.constants import SOURCE_ROOT
+from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
 
 from fab.builder import Fab, read_config
 from fab.util import file_walk, time_logger
@@ -31,10 +31,29 @@ from fab.util import file_walk, time_logger
 
 def get_um_flag_config(workspace):
 
+    # todo: simplification: copy all files to output folder?
+    #       that would make fpp and cpp path matching rules consitent (and shorter)
+
+    # todo: docstring about relative and absolute (=output) include paths
+    #       this is quite tightly coupled to the preprocessor
+
     # fpp
+    cpp_flag_config = FlagsConfig(
+        # todo: bundle (some of) these with the 'cpp' definintion?
+        path_flags=[
+            PathFlags(path_filter="tmp-workspace/um/output/um",
+                      add=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+            PathFlags(path_filter="tmp-workspace/um/output/shumlib",
+                      add=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+        ])
+
     fpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
-        path_flags=[PathFlags(add=['-DUM_JULES'])])
+        path_flags=[
+            PathFlags(path_filter="tmp-workspace/um/source/jules", add=['-DUM_JULES']),
+            PathFlags(path_filter="tmp-workspace/um/source/gcom", add=['-I', '/gcom/include']),
+            PathFlags(path_filter="tmp-workspace/um/source/um", add=['-I', 'include']),
+        ])
 
     # fc
     # todo: bundle these with the gfortran definition
@@ -49,7 +68,7 @@ def get_um_flag_config(workspace):
         # path_flags=[um_fc_flags, shum_fc_flags])
         path_flags=[um_fc_flags])
 
-    return fpp_flag_config, fc_flag_config
+    return cpp_flag_config, fpp_flag_config, fc_flag_config
 
 
 def main():
@@ -60,17 +79,18 @@ def main():
         os.path.expanduser("~/svn/um/trunk/src"): "um",
         os.path.expanduser("~/svn/jules/trunk/src"): "jules",
         os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
+        os.path.expanduser("~/svn/gcom/trunk/build"): "gcom",
     }
 
     #
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
 
     # Copy all source into workspace
-    # mgrab_will_do_this(src_paths, workspace)  # , logger)
+    # grab_will_do_this(src_paths, workspace)  # , logger)
 
     ### END OF DONE BY GRAB STUFF
 
-    fpp_flag_config, fc_flag_config = get_um_flag_config(workspace)
+    cpp_flag_config, fpp_flag_config, fc_flag_config = get_um_flag_config(workspace)
 
 
 # hierarchy of config
@@ -97,7 +117,7 @@ def main():
         # fab behaviour
         n_procs=3,
         stop_on_error=True,
-        use_multiprocessing=False,
+        # use_multiprocessing=False,
         debug_skip=True,
         # dump_source_tree=True
 
@@ -105,17 +125,18 @@ def main():
         workspace=workspace,
         target=settings['target'],
         exec_name=settings['exec-name'],
+        cpp_flags=cpp_flag_config,
         fpp_flags=fpp_flag_config,
         fc_flags=fc_flag_config,
         ld_flags="",
         skip_files=config.skip_files,
         unreferenced_deps=config.unreferenced_deps,
-        include_paths=config.include_paths,  # todo: not clear if for pp or comp
+        # include_paths=config.include_paths,  # todo: not clear if for pp or comp
      )
 
     logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     with time_logger("fab run"):
         my_fab.run()

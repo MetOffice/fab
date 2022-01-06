@@ -32,7 +32,7 @@ from typing import List, Optional
 
 class PathFlags(object):
     """Flags for a path."""
-    def __init__(self, add=None, path_filter=None):
+    def __init__(self, path_filter=None, add=None):
         self.path_filter = path_filter or ""
         self.add = add
 

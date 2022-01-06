@@ -71,7 +71,7 @@ def read_config(conf_file):
         [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')]))
 
     # config.src_paths = [Path(os.path.expanduser(i)) for i in config['settings']['src-paths'].split(',')]
-    config.include_paths = [Path(os.path.expanduser(i)) for i in config['settings']['include-paths'].split(',')]
+    # config.include_paths = [Path(os.path.expanduser(i)) for i in config['settings']['include-paths'].split(',')]
 
     return config
 
@@ -137,10 +137,11 @@ def entry() -> None:
 
 class Fab(object):
     def __init__(self,
-                 include_paths: List[Path],
+                 # include_paths: List[Path],
                  workspace: Path,
                  target: str,
                  exec_name: str,
+                 cpp_flags: FlagsConfig,
                  fpp_flags: FlagsConfig,
                  fc_flags: FlagsConfig,
                  ld_flags: str,
@@ -182,7 +183,7 @@ class Fab(object):
             preprocessor=['cpp', '-traditional-cpp', '-P'],
             flags=fpp_flags,
             workspace=workspace,
-            include_paths=include_paths,
+            # include_paths=include_paths,
             output_suffix=".f90",
             debug_skip=debug_skip)
         self.fortran_analyser = FortranAnalyser()
@@ -213,10 +214,10 @@ class Fab(object):
         self.c_pragma_injector = CPragmaInjector(workspace)
         self.c_preprocessor = CPreProcessor(
             preprocessor=['cpp'],
-            flags=FlagsConfig(),  # just a blank one
+            flags=cpp_flags,
             workspace=workspace,
             output_suffix=".c",
-            include_paths=include_paths,
+            # include_paths=include_paths,
         )
         self.c_analyser = CAnalyser()
         self.c_compiler = CCompiler(

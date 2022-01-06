@@ -86,3 +86,34 @@ class CompiledFile(object):
     def __init__(self, analysed_file, output_fpath):
         self.analysed_file = analysed_file
         self.output_fpath = output_fpath
+
+
+def fixup_command_includes(command, output_root, file_path):
+    """
+
+    E.g:
+
+        fixup_command_includes(
+            command=['-I', '/abs_inc', '-I', 'rel_inc'],
+            output_root=Path('/home/usr/me/git/proj/output'),
+            file_path=Path('/home/usr/me/git/proj/output/sub/file.f90')
+        )
+
+        >>> ['-I', '/home/usr/me/git/proj/output/abs_inc', '-I', '/home/usr/me/git/proj/output/sub/rel_inc']
+
+    """
+
+    for i in range(len(command)):
+        part = command[i]
+
+        if part == "-I":
+            inc_path = Path(command[i+1])
+
+            if inc_path.is_absolute():
+                rel_path = inc_path.parts[1:]  # take off the leading slash
+                new_inc_path = output_root.joinpath(*rel_path)
+                command[i+1] = str(new_inc_path)
+            else:
+                # E.g an include subfolder below a c file
+                command[i+1] = str(file_path.parent / inc_path)
+

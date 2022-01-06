@@ -9,6 +9,7 @@ from pathlib import Path
 import subprocess
 from typing import Generator, List, Optional, Sequence, Union
 
+from fab.constants import OUTPUT_ROOT
 from fparser.two.Fortran2003 import Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, \
     Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name, Comment, Module
 from fparser.two.parser import ParserFactory
@@ -20,7 +21,7 @@ from fab.database import DatabaseDecorator, FileInfoDatabase, StateDatabase, Wor
 from fab.tasks import  TaskException
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
-from fab.util import log_or_dot, HashedFile, CompiledFile
+from fab.util import log_or_dot, HashedFile, CompiledFile, fixup_command_includes
 
 
 class FortranUnitUnresolvedID(object):
@@ -517,35 +518,15 @@ class FortranCompiler(object):
         command = [*self._compiler]
         # command.extend(self._flags)
 
-
-
-        #
-        # # DEBUG
-        # interop_test = [
-        #     # "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib/shum_byteswap/src/f_shum_byteswap.f90"
-        #     "/home/h02/bblay/git/fab/tmp-workspace/um/output/shumlib",
-        # ]
-        # do_interop_thing = any(str(analysed_file.fpath).startswith(i) for i in interop_test)
-        # if do_interop_thing:
-        #     logger.info("INTEROP!")
-        #     command.extend(['-std=f2018', '-c', '-J', str(self._workspace)])
-        #     # command.extend(['-c', '-J', str(self._workspace)])
-        # else:
-        #     command.extend(self._flags)
-
-
-
-        # becomes
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
 
-
-
-
+        # # the flags we were given might contain include folders which need to be converted into absolute paths
+        # fixup_command_includes(
+        #     command=command,
+        #     output_root=self._workspace / OUTPUT_ROOT,
+        #     file_path=analysed_file.fpath)
 
         command.append(str(analysed_file.fpath))
-
-
-
 
         output_fpath = (self._workspace / analysed_file.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_fpath)])
