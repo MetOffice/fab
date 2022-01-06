@@ -553,10 +553,10 @@ class FortranCompiler(object):
         # logger.info(program_unit.name)
         log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
         try:
-            res = subprocess.run(command, check=True)
+            res = subprocess.run(command, capture_output=True)
             if res.returncode != 0:
                 # todo: specific exception
-                return Exception("The compiler exited with non zero")
+                return Exception(f"The compiler exited with non zero: {res.stderr.decode()}")
         # todo: not idiomatic
         except Exception as err:
             # todo: specific exception

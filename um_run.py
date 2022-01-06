@@ -57,6 +57,7 @@ def main():
     project_name = "um"
     src_paths = {
         os.path.expanduser("~/svn/um/trunk/src"): "um",
+        os.path.expanduser("~/svn/jules/trunk/src"): "jules",
         os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
     }
 
@@ -64,7 +65,7 @@ def main():
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
 
     # Copy all source into workspace
-    # grab_will_do_this(src_paths, workspace, logger)
+    # mgrab_will_do_this(src_paths, workspace)  # , logger)
 
     ### END OF DONE BY GRAB STUFF
 
@@ -119,8 +120,8 @@ def main():
         my_fab.run()
 
 
-def grab_will_do_this(src_paths, workspace, logger):
-    logger.info("faking grab")
+def grab_will_do_this(src_paths, workspace):  #, logger):
+    #logger.info("faking grab")
     for src_path, label in src_paths.items():
         shutil.copytree(src_path, workspace / SOURCE_ROOT / label, dirs_exist_ok=True)
     # shum partial
