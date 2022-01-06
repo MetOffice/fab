@@ -178,5 +178,5 @@ def add_mo_commented_file_deps(analysed_fortran: List[AnalysedFile], analysed_c:
     for f in analysed_fortran:
         num_found += len(f.mo_commented_file_deps)
         for dep in f.mo_commented_file_deps:
-            f.file_deps.add(lookup[dep])
+            f.file_deps.add(lookup[dep].fpath)
     logger.info(f"processed {num_found} DEPENDS ON file dependencies")

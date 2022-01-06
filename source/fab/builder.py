@@ -66,9 +66,9 @@ def read_config(conf_file):
         for line in open(skip_files_config, "rt"):
             config.skip_files.append(line.strip())
 
-    config.unreferenced_deps = filter(
+    config.unreferenced_deps = list(filter(
         lambda i: bool(i),
-        [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')])
+        [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')]))
 
     # config.src_paths = [Path(os.path.expanduser(i)) for i in config['settings']['src-paths'].split(',')]
     config.include_paths = [Path(os.path.expanduser(i)) for i in config['settings']['include-paths'].split(',')]
@@ -193,7 +193,7 @@ class Fab(object):
             # todo: make configurable
             compiler=[
                 os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
-                '-c', '-J', workspace
+                '-c', '-J', str(workspace)
             ],
 
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
@@ -290,7 +290,6 @@ class Fab(object):
         #  find the files for UM "DEPENDS ON:" commented file deps
         with time_logger("adding MO 'DEPENDS ON:' file dependency comments"):
             add_mo_commented_file_deps(analysed_fortran, analysed_c)
-
 
         if self.dump_source_tree:
             with open(datetime.now().strftime(f"tmp/af2_{runtime_str}.txt"), "wt") as outfile:
@@ -618,7 +617,7 @@ class Fab(object):
 
         if not self.unreferenced_deps:
             return
-        logger.info(f"Adding unreferenced dependencies")
+        logger.info(f"Adding {len(self.unreferenced_deps or [])} unreferenced dependencies")
 
         for symbol_dep in self.unreferenced_deps:
 

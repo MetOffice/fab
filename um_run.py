@@ -95,7 +95,7 @@ def main():
         # fab behaviour
         n_procs=3,
         stop_on_error=True,
-        # use_multiprocessing=False,
+        use_multiprocessing=False,
         debug_skip=True,
         # dump_source_tree=True
 
