@@ -40,13 +40,14 @@ def get_um_flag_config(workspace):
     # todo: bundle these with the gfortran definition
     um_fc_flags = PathFlags()
 
-    shum_fc_flags = PathFlags(
-        path_filter="tmp-workspace/um/output/shumlib/",
-        # add=['-std=f2018']
-    )
+    # shum_fc_flags = PathFlags(
+    #     path_filter="tmp-workspace/um/output/shumlib/",
+    #     # add=['-std=f2018']
+    # )
 
     fc_flag_config = FlagsConfig(
-        path_flags=[um_fc_flags, shum_fc_flags])
+        # path_flags=[um_fc_flags, shum_fc_flags])
+        path_flags=[um_fc_flags])
 
     return fpp_flag_config, fc_flag_config
 
