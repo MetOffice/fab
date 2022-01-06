@@ -42,7 +42,7 @@ def get_um_flag_config(workspace):
 
     shum_fc_flags = PathFlags(
         path_filter="tmp-workspace/um/output/shumlib/",
-        add=['-std=f2018']
+        # add=['-std=f2018']
     )
 
     fc_flag_config = FlagsConfig(
@@ -112,8 +112,8 @@ def main():
      )
 
     logger = logging.getLogger('fab')
-    # logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
 
     with time_logger("fab run"):
         my_fab.run()
