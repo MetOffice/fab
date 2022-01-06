@@ -1,6 +1,13 @@
 from typing import List, Optional
 
 
+# Todo: We don't actually need per-folder/file flags yet.
+#       We wrote this because shumlib needs f2018 dialect so we wanted to add the -std=f2018 flag for shumlib.
+#       That meant we needed to upgrade gfortran.
+#       However, upgrading gfortran was enough to compile shumlib - we didn't actually need the -std=2018 flag.
+#       (the vdi gfortran 4.8.5 defaults -std to 95 but 11.2 defaults to the "latest" f standard)
+
+
 # class SetFlags(object):
 #     """Overwrite"""
 #     def __init__(self, flags):
