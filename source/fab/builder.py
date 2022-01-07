@@ -394,7 +394,7 @@ class Fab(object):
 
         Returns a dict[source_folder][extension] = file_list
         """
-        fpaths = file_walk(self._workspace / SOURCE_ROOT, self.skip_files, logger)
+        fpaths = file_walk(self._workspace / OUTPUT_ROOT, self.skip_files, logger)
         if not fpaths:
             logger.warning(f"no source files found")
             exit(1)

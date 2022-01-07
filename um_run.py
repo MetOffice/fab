@@ -19,23 +19,59 @@
 import os
 import logging
 import shutil
+from collections import namedtuple
 
 from pathlib import Path
 
-from config_sketch import PathFlags, FlagsConfig
+from config_sketch import PathFlags, FlagsConfig, PathFilter
 from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
 
 from fab.builder import Fab, read_config
 from fab.util import file_walk, time_logger
 
 
-def get_um_flag_config(workspace):
+ConfigSketch = namedtuple(
+    'ConfigSketch',
+    ['project_name', 'grab_config', 'extract_config', 'cpp_flag_config', 'fpp_flag_config', 'fc_flag_config']
+)
 
-    # todo: simplification: copy all files to output folder?
-    #       that would make fpp and cpp path matching rules consitent (and shorter)
+
+# hierarchy of config
+#
+# site (sys admin)
+# project (source code)
+# overrides
+# blocked overrides
+#
+# what ought to inherit from env
+# num cores in submit script, mem
+# batch manager assigns resources
+# project board in about amonth
+
+
+def um_atmos_safe_config():
 
     # todo: docstring about relative and absolute (=output) include paths
     #       this is quite tightly coupled to the preprocessor
+
+    # grab
+    grab_config = {
+        os.path.expanduser("~/svn/um/trunk/src"): "um",
+        os.path.expanduser("~/svn/jules/trunk/src"): "jules",
+        os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
+        os.path.expanduser("~/svn/gcom/trunk/build"): "gcom",
+    }
+
+    # extract
+    extract_config = [
+        PathFilter(['src/atmosphere/convection/comorph/interface/standalone/'], include=False),
+
+        PathFilter(['socrates/'], include=False),
+        PathFilter(['socrates/nlte', '/socrates/radiance_core'], include=True),
+
+        PathFilter(['src/scm/'], include=False),
+        PathFilter(['src/scm/stub', 'src/scm/modules/s_scmop_mod.F90', 'src/scm/modules/s_scmop_mod.F90'], include=True)
+    ]
 
     # fpp
     cpp_flag_config = FlagsConfig(
@@ -55,58 +91,32 @@ def get_um_flag_config(workspace):
             PathFlags(path_filter="tmp-workspace/um/source/um", add=['-I', 'include']),
         ])
 
-    # fc
     # todo: bundle these with the gfortran definition
-    um_fc_flags = PathFlags()
+    fc_flag_config = FlagsConfig()
 
-    # shum_fc_flags = PathFlags(
-    #     path_filter="tmp-workspace/um/output/shumlib/",
-    #     # add=['-std=f2018']
-    # )
-
-    fc_flag_config = FlagsConfig(
-        # path_flags=[um_fc_flags, shum_fc_flags])
-        path_flags=[um_fc_flags])
-
-    return cpp_flag_config, fpp_flag_config, fc_flag_config
+    return ConfigSketch(
+        project_name='um',
+        grab_config=grab_config,
+        extract_config=extract_config,
+        cpp_flag_config=cpp_flag_config,
+        fpp_flag_config=fpp_flag_config,
+        fc_flag_config=fc_flag_config,
+    )
 
 
 def main():
 
     # config
-    project_name = "um"
-    src_paths = {
-        os.path.expanduser("~/svn/um/trunk/src"): "um",
-        os.path.expanduser("~/svn/jules/trunk/src"): "jules",
-        os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
-        os.path.expanduser("~/svn/gcom/trunk/build"): "gcom",
-    }
+    config_sketch = um_atmos_safe_config()
+    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
 
-    #
-    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
+    # Get source repos
+    # grab_will_do_this(config_sketch.grab_config, workspace)
 
-    # Copy all source into workspace
-    # grab_will_do_this(src_paths, workspace)  # , logger)
+    # Extract the files we want to build
+    extract_will_do_this(config_sketch.extract_config, workspace)
 
-    ### END OF DONE BY GRAB STUFF
-
-    cpp_flag_config, fpp_flag_config, fc_flag_config = get_um_flag_config(workspace)
-
-
-# hierarchy of config
-#
-# site (sys admin)
-# project (source code)
-# overrides
-# blocked overrides
-#
-# what ought to inherit from env
-# num cores in submit script, mem
-# batch manager assigns resources
-# project board in about amonth
-
-
-
+    exit(0)
 
     # fab build stuff
     config = read_config("um.config")
@@ -171,6 +181,31 @@ def grab_will_do_this(src_paths, workspace):  #, logger):
             if not output_fpath.parent.exists():
                 output_fpath.parent.mkdir(parents=True)
             shutil.copy(fpath, output_fpath)
+
+
+def extract_will_do_this(path_filters, workspace):
+    source_folder = workspace / SOURCE_ROOT
+    output_folder = workspace / OUTPUT_ROOT
+
+    for fpath in file_walk(source_folder):
+
+        include = True
+        for path_filter in path_filters:
+            res = path_filter.check(fpath)
+            if res is not None:
+                include = res
+
+        # copy it to the build folder?
+        if include:
+            rel_path = fpath.relative_to(source_folder)
+            dest_path = output_folder / rel_path
+            # make sure the folder exists
+            if not dest_path.parent.exists():
+                os.makedirs(dest_path.parent)
+            shutil.copy(fpath, dest_path)
+
+        # else:
+        #     print("excluding", fpath)
 
 
 if __name__ == '__main__':
