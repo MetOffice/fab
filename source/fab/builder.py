@@ -39,7 +39,7 @@ from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
     time_logger, CompiledFile
 
 logger = logging.getLogger('fab')
-logger.addHandler(logging.StreamHandler(sys.stderr))
+# logger.addHandler(logging.StreamHandler(sys.stderr))
 
 
 runtime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -183,8 +183,6 @@ class Fab(object):
             preprocessor=['cpp', '-traditional-cpp', '-P'],
             flags=fpp_flags,
             workspace=workspace,
-            # include_paths=include_paths,
-            output_suffix=".f90",
             debug_skip=debug_skip)
         self.fortran_analyser = FortranAnalyser()
 
@@ -211,13 +209,11 @@ class Fab(object):
         )
 
         header_analyser = HeaderAnalyser(workspace)
-        self.c_pragma_injector = CPragmaInjector(workspace)
+        # self.c_pragma_injector = CPragmaInjector(workspace)
         self.c_preprocessor = CPreProcessor(
             preprocessor=['cpp'],
             flags=cpp_flags,
             workspace=workspace,
-            output_suffix=".c",
-            # include_paths=include_paths,
         )
         self.c_analyser = CAnalyser()
         self.c_compiler = CCompiler(
@@ -237,9 +233,10 @@ class Fab(object):
 
     def run(self):
 
-        with time_logger("walking source"):
-            all_source = self.walk_source_folder()
+        with time_logger("walking build folder"):
+            all_source = self.walk_build_folder()
 
+        # todo: replace with big include path?
         with time_logger("copying ancillary files"):
             self.copy_ancillary_files(all_source)
 
@@ -348,16 +345,16 @@ class Fab(object):
     def analyse(self, to_analyse_by_type: Dict[str, List[HashedFile]], analysis_dict_writer: csv.DictWriter) \
             -> Tuple[List[AnalysedFile], List[AnalysedFile]]:
 
-        fortran_files = to_analyse_by_type[".f90"]
-        with time_logger(f"analysing {len(fortran_files)} fortran files"):
+        fortran_files = to_analyse_by_type[".f90_preproc"]
+        with time_logger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             analysed_fortran, fortran_exceptions = self.analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
         # did we find naughty fortran code?
         if self.fortran_analyser.depends_on_comment_found:
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
-        c_files = to_analyse_by_type[".c"]
-        with time_logger(f"analysing {len(c_files)} c files"):
+        c_files = to_analyse_by_type[".c_preproc"]
+        with time_logger(f"analysing {len(c_files)} preprocessed c files"):
             analysed_c, c_exceptions = self.analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
 
@@ -388,13 +385,13 @@ class Fab(object):
 
         return symbols
 
-    def walk_source_folder(self) -> Dict[str, List[Path]]:
+    def walk_build_folder(self) -> Dict[str, List[Path]]:
         """
         Get all files in the folder and subfolders.
 
         Returns a dict[source_folder][extension] = file_list
         """
-        fpaths = file_walk(self._workspace / OUTPUT_ROOT, self.skip_files, logger)
+        fpaths = file_walk(self._workspace / OUTPUT_ROOT)
         if not fpaths:
             logger.warning(f"no source files found")
             exit(1)
@@ -402,12 +399,6 @@ class Fab(object):
         fpaths_by_type = defaultdict(list)
         for fpath in fpaths:
             fpaths_by_type[fpath.suffix].append(fpath)
-
-            # mirror the source folders in the output folder because some cli commands we call require them to exist
-            rel_fpath = fpath.relative_to(self._workspace / SOURCE_ROOT)
-            output_folder = (self._workspace / OUTPUT_ROOT / rel_fpath).parent
-            if not output_folder.exists():
-                output_folder.mkdir(parents=True)
 
         return fpaths_by_type
 
@@ -425,6 +416,12 @@ class Fab(object):
         # inc files all go in the root - they're going to be removed altogether, soon
         inc_copied = set()
         for fpath in files_by_type[".inc"]:
+
+            # don't copy form the output root to the output root!
+            # (i.e ancillary files from a previous run)
+            if fpath.parent == self._workspace / OUTPUT_ROOT:
+                continue
+
             logger.debug(f"copying inc file {fpath}")
             if fpath.name in inc_copied:
                 logger.error(f"name clash for ancillary file: {fpath}")
@@ -433,21 +430,12 @@ class Fab(object):
             shutil.copy(fpath, self._workspace / OUTPUT_ROOT)
             inc_copied.add(fpath.name)
 
-        # header files go into the same folder structure they came from
-        for fpath in files_by_type[".h"]:
-            rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
-            dest_path = self._workspace / OUTPUT_ROOT / rel_path
-
-            # ensure_output_folder(fpath=dest_path, workspace=self._workspace)
-            logger.debug(f"copying header file {fpath} to {dest_path}")
-            shutil.copy(fpath, dest_path)
-
     def c_pragmas(self, fpaths: List[Path]):
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
-                results = p.map(self.c_pragma_injector.run, fpaths)
+                results = p.map(CPragmaInjector, fpaths)
         else:
-            results = [self.c_pragma_injector.run(f) for f in fpaths]
+            results = [CPragmaInjector(f) for f in fpaths]
 
         return results
 

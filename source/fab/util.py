@@ -1,12 +1,11 @@
 import logging
 import zlib
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Dict, List
+from typing import Iterator
 
-from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
 
 
 logger = logging.getLogger('fab')
@@ -33,18 +32,12 @@ def do_checksum(fpath: Path):
         return HashedFile(fpath, zlib.crc32(bytes(infile.read())))
 
 
-def file_walk(path: Path, skip_files=None, logger=None) -> Iterator[Path]:
-    skip_files = skip_files or []
+def file_walk(path: Path) -> Iterator[Path]:
     assert path.is_dir()
-
     for i in path.iterdir():
         if i.is_dir():
-            yield from file_walk(i, skip_files=skip_files, logger=logger)
+            yield from file_walk(i)
         else:
-            if i.parts[-1] in skip_files:
-                if logger:
-                    logger.debug(f"skipping {i}")
-                continue
             yield i
 
 

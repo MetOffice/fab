@@ -382,197 +382,88 @@ class CAnalyser(Task):
         return af
 
 
-class _CTextReaderPragmas(TextReaderDecorator):
+def _CTextReaderPragmas(fpath):
     """
     Reads a C source file but when encountering an #include
     preprocessor directive injects a special Fab-specific
     #pragma which can be picked up later by the Analyser
     after the preprocessing
     """
-    def __init__(self, source: TextReader):
-        super().__init__(source)
-        self._line_buffer = ''
 
     _include_re: str = r'^\s*#include\s+(\S+)'
     _include_pattern: Pattern = re.compile(_include_re)
 
-    def line_by_line(self) -> Iterator[str]:
-        for line in self._source.line_by_line():
-            include_match: Optional[Match] \
-                = self._include_pattern.match(line)
-            if include_match:
-                # For valid C the first character of the matched
-                # part of the group will indicate whether this is
-                # a system library include or a user include
-                include: str = include_match.group(1)
-                # TODO: Is this sufficient?  Or do the pragmas
-                #       need to include identifying info
-                #       e.g. the name of the original include?
-                # TODO: DO we need to mark system includes?
-                if include.startswith('<'):
-                    yield '#pragma FAB SysIncludeStart\n'
-                    yield line
-                    yield '#pragma FAB SysIncludeEnd\n'
-                elif include.startswith(('"', "'")):
-                    yield '#pragma FAB UsrIncludeStart\n'
-                    yield line
-                    yield '#pragma FAB UsrIncludeEnd\n'
-                else:
-                    msg = 'Found badly formatted #include'
-                    raise TaskException(msg)
-            else:
+    for line in open(fpath, 'rt', encoding='utf-8'):
+        include_match: Optional[Match]  = _include_pattern.match(line)
+        if include_match:
+            # For valid C the first character of the matched
+            # part of the group will indicate whether this is
+            # a system library include or a user include
+            include: str = include_match.group(1)
+            # TODO: Is this sufficient?  Or do the pragmas
+            #       need to include identifying info
+            #       e.g. the name of the original include?
+            # TODO: DO we need to mark system includes?
+            if include.startswith('<'):
+                yield '#pragma FAB SysIncludeStart\n'
                 yield line
+                yield '#pragma FAB SysIncludeEnd\n'
+            elif include.startswith(('"', "'")):
+                yield '#pragma FAB UsrIncludeStart\n'
+                yield line
+                yield '#pragma FAB UsrIncludeEnd\n'
+            else:
+                msg = 'Found badly formatted #include'
+                raise TaskException(msg)
+        else:
+            yield line
 
 
-class CPragmaInjector(Task):
-    def __init__(self, workspace: Path):
-        self._workspace = workspace
+def CPragmaInjector(fpath: Path):
 
-    def run(self, fpath: Path):
-        # todo: error handling
-        logger = logging.getLogger(__name__)
+    # todo: error handling
+    logger = logging.getLogger(__name__)
+    logger.debug('Injecting pragmas into: %s', fpath)
 
-        logger.debug('Injecting pragmas into: %s', fpath)
-        injector = _CTextReaderPragmas(FileTextReader(fpath))
+    tmp_output_fpath = fpath.parent / (fpath.name + ".prag")
+    tmp_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
 
-        rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
-        output_fpath = self._workspace / OUTPUT_ROOT / rel_path
-        # ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
-
-        out_lines = (line for line in injector.line_by_line())
-
-        with output_fpath.open('w') as out_file:
-            for line in out_lines:
-                out_file.write(line)
-
-        # new_artifact = Artifact(output_file,
-        #                         artifact.filetype,
-        #                         Modified)
-        # for dependency in artifact.depends_on:
-        #     new_artifact.add_dependency(dependency)
-
-        return output_fpath
+    shutil.move(tmp_output_fpath, fpath)
+    return fpath
 
 
 class CPreProcessor(Task):
-    # def __init__(self,
-    #              preprocessor: str,
-    #              flags: List[str],
-    #              workspace: Path):
-    #     self._preprocessor = preprocessor
-    #     self._flags = flags
-    #     self._workspace = workspace
-    #
-    # def run(self, artifacts: List[Artifact]) -> List[Artifact]:
-    #     logger = logging.getLogger(__name__)
-    #
-    #     if len(artifacts) == 1:
-    #         artifact = artifacts[0]
-    #     else:
-    #         msg = ('C Preprocessor expects only one Artifact, '
-    #                f'but was given {len(artifacts)}')
-    #         raise TaskException(msg)
-    #
-    #     command = [self._preprocessor]
-    #     command.extend(self._flags)
-    #     command.append(str(artifact.location))
-    #
-    #     # Use temporary output name (in case the given tool
-    #     # can't operate in-place)
-    #     output_file = (self._workspace /
-    #                    artifact.location.with_suffix('.fabcpp').name)
-    #
-    #     command.append(str(output_file))
-    #     logger.debug('Running command: ' + ' '.join(command))
-    #     subprocess.run(command, check=True)
-    #
-    #     # Overwrite actual output file
-    #     final_output = (self._workspace /
-    #                     artifact.location.name)
-    #     command = ["mv", str(output_file), str(final_output)]
-    #     logger.debug('Running command: ' + ' '.join(command))
-    #     subprocess.run(command, check=True)
-    #
-    #     return [Artifact(final_output,
-    #                      artifact.filetype,
-    #                      Raw)]
 
     def __init__(self,
                  preprocessor: List[str],
                  flags: FlagsConfig,
                  workspace: Path,
-                 # include_paths: List[Path]=None,
-                 output_suffix=".c",
+                 # output_suffix=".c",
                  debug_skip=False,
                  ):
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
-        self.output_suffix = output_suffix
-        # self.include_paths = include_paths or []
+        # self.output_suffix = output_suffix
         self.debug_skip = debug_skip
 
-    # def get_include_paths(self, fpath: Path) -> List[str]:
-    #     """
-    #     Resolve any relative paths as to the folder containing the source file.
-    #
-    #     """
-    #     # Start off with the the workspace output root because we copy the inc files there.
-    #     # Todo: inc files are going to be removed
-    #     result = ["-I", str(self._workspace / OUTPUT_ROOT)]
-    #
-    #     # Add all the other include folders
-    #     for inc_path in self.include_paths:
-    #         if inc_path.is_absolute():
-    #             # E.g a project include folder (relative to the workspace)
-    #             rel_path = inc_path.parts[1:]
-    #             inc_path = (self._workspace / OUTPUT_ROOT).joinpath(*rel_path)
-    #             result.extend(["-I", str(inc_path)])
-    #         else:
-    #             # E.g an include subfolder below a c file
-    #             result.extend(["-I", str(fpath.parent / inc_path)])
-    #
-    #     return result
-
-    # @timed_method
     def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
         command = [*self._preprocessor]
-
-        # command.extend(self._flags)
         command.extend(self._flags.flags_for_path(fpath))
 
-        # for i in range(len(command)):
-        #     command[i] = command[i].format(kwargs={"output": self._workspace / OUTPUT_ROOT, "relative": fpath.parent})
-
-
         # the flags we were given might contain include folders which need to be converted into absolute paths
-        fixup_command_includes(
-            command=command,
-            output_root=self._workspace / OUTPUT_ROOT,
-            file_path=fpath)
+        fixup_command_includes(command=command, output_root=self._workspace / OUTPUT_ROOT, file_path=fpath)
 
-
-
-        # command.extend(self.get_include_paths(fpath))
+        # input and output files
         command.append(str(fpath))
+        tmp_output_fpath = fpath.parent / (fpath.name + '.preproc')
+        command.append(str(tmp_output_fpath))
 
-        # are we processing a file in the source or the output folder?
-        try:
-            rel_path = fpath.relative_to(self._workspace / SOURCE_ROOT)
-            output_fpath = (self._workspace / OUTPUT_ROOT / rel_path).with_suffix(self.output_suffix)
-        except ValueError:
-            output_fpath = fpath.with_suffix(self.output_suffix)
-        # ensure_output_folder(fpath=output_fpath, workspace=self._workspace)
-
-        # todo: for debugging
-        if self.debug_skip and output_fpath.exists():
-            return output_fpath
-
-        # Use temporary output name (in case the given tool can't operate in-place)
-        temp_fpath = output_fpath.with_suffix(".tmp_pp")
-        command.append(str(temp_fpath))
+        # for dev speed (at this point...)
+        if self.debug_skip and tmp_output_fpath.exists():
+            return tmp_output_fpath
 
         log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
         try:
@@ -580,8 +471,11 @@ class CPreProcessor(Task):
         except subprocess.CalledProcessError as err:
             return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
-        shutil.move(temp_fpath, output_fpath)
-        return output_fpath
+        # we copy instead of move to enable the time-saving skip, above
+        # shutil.move(tmp_output_fpath, fpath)
+        shutil.copy(tmp_output_fpath, fpath)
+
+        return fpath
 
 
 class CCompiler(Task):

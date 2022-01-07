@@ -19,6 +19,7 @@
 import os
 import logging
 import shutil
+import sys
 from collections import namedtuple
 
 from pathlib import Path
@@ -70,7 +71,9 @@ def um_atmos_safe_config():
         PathFilter(['socrates/nlte', '/socrates/radiance_core'], include=True),
 
         PathFilter(['src/scm/'], include=False),
-        PathFilter(['src/scm/stub', 'src/scm/modules/s_scmop_mod.F90', 'src/scm/modules/s_scmop_mod.F90'], include=True)
+        PathFilter(['src/scm/stub', 'src/scm/modules/s_scmop_mod.F90', 'src/scm/modules/s_scmop_mod.F90'], include=True),
+
+        PathFilter(['jules/control/standalone/'], include=False),
     ]
 
     # fpp
@@ -86,9 +89,9 @@ def um_atmos_safe_config():
     fpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
-            PathFlags(path_filter="tmp-workspace/um/source/jules", add=['-DUM_JULES']),
-            PathFlags(path_filter="tmp-workspace/um/source/gcom", add=['-I', '/gcom/include']),
-            PathFlags(path_filter="tmp-workspace/um/source/um", add=['-I', 'include']),
+            PathFlags(path_filter="tmp-workspace/um/output/jules", add=['-DUM_JULES']),
+            PathFlags(path_filter="tmp-workspace/um/output/gcom", add=['-I', '/gcom/include']),
+            PathFlags(path_filter="tmp-workspace/um/output/um", add=['-I', 'include']),
         ])
 
     # todo: bundle these with the gfortran definition
@@ -106,17 +109,21 @@ def um_atmos_safe_config():
 
 def main():
 
+    logger = logging.getLogger('fab')
+    logger.addHandler(logging.StreamHandler(sys.stderr))
+
     # config
     config_sketch = um_atmos_safe_config()
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
 
     # Get source repos
-    # grab_will_do_this(config_sketch.grab_config, workspace)
+    # with time_logger("grabbing"):
+    #     grab_will_do_this(config_sketch.grab_config, workspace)
 
     # Extract the files we want to build
-    extract_will_do_this(config_sketch.extract_config, workspace)
+    with time_logger("extracting"):
+        extract_will_do_this(config_sketch.extract_config, workspace)
 
-    exit(0)
 
     # fab build stuff
     config = read_config("um.config")
@@ -135,9 +142,9 @@ def main():
         workspace=workspace,
         target=settings['target'],
         exec_name=settings['exec-name'],
-        cpp_flags=cpp_flag_config,
-        fpp_flags=fpp_flag_config,
-        fc_flags=fc_flag_config,
+        cpp_flags=config_sketch.cpp_flag_config,
+        fpp_flags=config_sketch.fpp_flag_config,
+        fc_flags=config_sketch.fc_flag_config,
         ld_flags="",
         skip_files=config.skip_files,
         unreferenced_deps=config.unreferenced_deps,
@@ -145,8 +152,8 @@ def main():
      )
 
     logger = logging.getLogger('fab')
-    # logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
 
     with time_logger("fab run"):
         my_fab.run()
@@ -156,6 +163,8 @@ def grab_will_do_this(src_paths, workspace):  #, logger):
     #logger.info("faking grab")
     for src_path, label in src_paths.items():
         shutil.copytree(src_path, workspace / SOURCE_ROOT / label, dirs_exist_ok=True)
+
+    # todo: move into config
     # shum partial
     shum_excl = ["common/src/shumlib_version.c", "Makefile"]
     shum_incl = [
