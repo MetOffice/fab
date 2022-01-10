@@ -24,7 +24,7 @@ from pathlib import Path
 from config_sketch import FlagsConfig
 from fab.dep_tree import AnalysedFile
 
-from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
+from fab.constants import SOURCE_ROOT, BUILD_OUTPUT
 
 from fab.database import \
     StateDatabase, \
@@ -433,37 +433,41 @@ def CPragmaInjector(fpath: Path):
 
 
 class CPreProcessor(Task):
+    """Used for both C and Fortran"""
 
     def __init__(self,
                  preprocessor: List[str],
                  flags: FlagsConfig,
                  workspace: Path,
-                 # output_suffix=".c",
-                 debug_skip=False,
+                 output_suffix=".c",  # but is also used for fortran
+                 # debug_skip=False,
                  ):
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
-        # self.output_suffix = output_suffix
-        self.debug_skip = debug_skip
+        self.output_suffix = output_suffix
+        # self.debug_skip = debug_skip
 
     def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
+
+        # todo: we don't need a temp file for fortran, it already gets a new suffix, .F90 -> .f90
+        output_fpath = fpath.with_suffix(self.output_suffix)
+        tmp_output_fpath = fpath.parent / (fpath.name + '.preproc')
+
+        # # for dev speed
+        # if self.debug_skip and output_fpath.exists():
+        #     return output_fpath
 
         command = [*self._preprocessor]
         command.extend(self._flags.flags_for_path(fpath))
 
         # the flags we were given might contain include folders which need to be converted into absolute paths
-        fixup_command_includes(command=command, output_root=self._workspace / OUTPUT_ROOT, file_path=fpath)
+        fixup_command_includes(command=command, output_root=self._workspace / BUILD_OUTPUT, file_path=fpath)
 
         # input and output files
         command.append(str(fpath))
-        tmp_output_fpath = fpath.parent / (fpath.name + '.preproc')
         command.append(str(tmp_output_fpath))
-
-        # for dev speed (at this point...)
-        if self.debug_skip and tmp_output_fpath.exists():
-            return tmp_output_fpath
 
         log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
         try:
@@ -471,11 +475,12 @@ class CPreProcessor(Task):
         except subprocess.CalledProcessError as err:
             return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
 
+        shutil.move(tmp_output_fpath, output_fpath)
         # we copy instead of move to enable the time-saving skip, above
-        # shutil.move(tmp_output_fpath, fpath)
-        shutil.copy(tmp_output_fpath, fpath)
+        # todo:WE CAN'T KEEP THIS SKIP - INCLUDE FILES MAY HAVE CHANGED!!!
+        # shutil.copy(tmp_output_fpath, output_fpath)
 
-        return fpath
+        return output_fpath
 
 
 class CCompiler(Task):

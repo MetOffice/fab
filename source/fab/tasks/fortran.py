@@ -9,7 +9,7 @@ from pathlib import Path
 import subprocess
 from typing import Generator, List, Optional, Sequence, Union
 
-from fab.constants import OUTPUT_ROOT
+from fab.constants import BUILD_OUTPUT
 from fparser.two.Fortran2003 import Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, \
     Language_Binding_Spec, Char_Literal_Constant, Interface_Block, Name, Comment, Module
 from fparser.two.parser import ParserFactory

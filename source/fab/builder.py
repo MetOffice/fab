@@ -21,7 +21,7 @@ import shutil
 import sys
 
 from config_sketch import FlagsConfig
-from fab.constants import OUTPUT_ROOT, SOURCE_ROOT
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, BUILD_SOURCE
 from fab.database import SqliteStateDatabase
 from fab.tasks import Task
 
@@ -150,7 +150,7 @@ class Fab(object):
                  skip_files=None,
                  unreferenced_deps=None,
                  use_multiprocessing=True,
-                 debug_skip=False,
+                 # debug_skip=False,
                  dump_source_tree=False,
     ):
 
@@ -167,8 +167,8 @@ class Fab(object):
 
         if not workspace.exists():
             workspace.mkdir(parents=True)
-        if not (workspace / OUTPUT_ROOT).exists():
-            (workspace / OUTPUT_ROOT).mkdir()
+        if not (workspace / BUILD_OUTPUT).exists():
+            (workspace / BUILD_OUTPUT).mkdir()
 
         self._state = SqliteStateDatabase(workspace)
 
@@ -183,7 +183,9 @@ class Fab(object):
             preprocessor=['cpp', '-traditional-cpp', '-P'],
             flags=fpp_flags,
             workspace=workspace,
-            debug_skip=debug_skip)
+            output_suffix=".f90",
+            # debug_skip=debug_skip,
+        )
         self.fortran_analyser = FortranAnalyser()
 
         self.fortran_compiler = FortranCompiler(
@@ -233,12 +235,16 @@ class Fab(object):
 
     def run(self):
 
+        # todo: 23s on vdi
+        with time_logger("copying build tree"):
+            self.copy_build_tree()
+
         with time_logger("walking build folder"):
             all_source = self.walk_build_folder()
 
         # todo: replace with big include path?
-        with time_logger("copying ancillary files"):
-            self.copy_ancillary_files(all_source)
+        with time_logger("copying inc files to root"):
+            self.copy_inc_files(all_source)
 
         c_source_files = all_source[".c"]
         with time_logger(f"adding pragmas to {len(c_source_files)} c source files"):
@@ -385,13 +391,16 @@ class Fab(object):
 
         return symbols
 
+    def copy_build_tree(self):
+        shutil.copytree(self._workspace / BUILD_SOURCE, self._workspace / BUILD_OUTPUT, dirs_exist_ok=True)
+
     def walk_build_folder(self) -> Dict[str, List[Path]]:
         """
         Get all files in the folder and subfolders.
 
         Returns a dict[source_folder][extension] = file_list
         """
-        fpaths = file_walk(self._workspace / OUTPUT_ROOT)
+        fpaths = file_walk(self._workspace / BUILD_OUTPUT)
         if not fpaths:
             logger.warning(f"no source files found")
             exit(1)
@@ -404,9 +413,9 @@ class Fab(object):
 
     # todo: multiprocessing
     # todo: ancillary file types should be in the project config?
-    def copy_ancillary_files(self, files_by_type: Dict[str, List[Path]]):
+    def copy_inc_files(self, files_by_type: Dict[str, List[Path]]):
         """
-        Copy inc and .h files into the workspace.
+        Copy inc files into the workspace.
 
         Required for preprocessing
         Copies everything to the workspace root.
@@ -419,7 +428,7 @@ class Fab(object):
 
             # don't copy form the output root to the output root!
             # (i.e ancillary files from a previous run)
-            if fpath.parent == self._workspace / OUTPUT_ROOT:
+            if fpath.parent == self._workspace / BUILD_OUTPUT:
                 continue
 
             logger.debug(f"copying inc file {fpath}")
@@ -427,7 +436,7 @@ class Fab(object):
                 logger.error(f"name clash for ancillary file: {fpath}")
                 exit(1)
 
-            shutil.copy(fpath, self._workspace / OUTPUT_ROOT)
+            shutil.copy(fpath, self._workspace / BUILD_OUTPUT)
             inc_copied.add(fpath.name)
 
     def c_pragmas(self, fpaths: List[Path]):
@@ -477,7 +486,7 @@ class Fab(object):
         with time_logger("loading analysis results"):
             to_analyse, unchanged = self.load_analysis_results(preprocessed_hashes)
 
-        with time_logger("starting analysis progress"):
+        with time_logger("starting analysis progress file"):
             unchanged_rows = (pu.as_dict() for pu in unchanged)
             analysis_progress_file = open(self._workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())

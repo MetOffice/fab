@@ -1,4 +1,7 @@
 
 # folders underneath workspace
 SOURCE_ROOT = "source"
-OUTPUT_ROOT = "output"
+
+BUILD_SOURCE = "build_source"
+
+BUILD_OUTPUT = "build_output"

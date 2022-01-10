@@ -33,7 +33,7 @@ def do_checksum(fpath: Path):
 
 
 def file_walk(path: Path) -> Iterator[Path]:
-    assert path.is_dir()
+    assert path.is_dir(), f"not dir: '{path}'"
     for i in path.iterdir():
         if i.is_dir():
             yield from file_walk(i)

@@ -25,7 +25,7 @@ from collections import namedtuple
 from pathlib import Path
 
 from config_sketch import PathFlags, FlagsConfig, PathFilter
-from fab.constants import SOURCE_ROOT, OUTPUT_ROOT
+from fab.constants import SOURCE_ROOT, BUILD_OUTPUT, BUILD_SOURCE
 
 from fab.builder import Fab, read_config
 from fab.util import file_walk, time_logger
@@ -51,6 +51,7 @@ ConfigSketch = namedtuple(
 
 
 def um_atmos_safe_config():
+    project_name = 'um_atmos_safe'
 
     # todo: docstring about relative and absolute (=output) include paths
     #       this is quite tightly coupled to the preprocessor
@@ -74,31 +75,34 @@ def um_atmos_safe_config():
         PathFilter(['src/scm/stub', 'src/scm/modules/s_scmop_mod.F90', 'src/scm/modules/s_scmop_mod.F90'], include=True),
 
         PathFilter(['jules/control/standalone/'], include=False),
+
+        PathFilter(['.xml'], include=False),
+        PathFilter(['.sh'], include=False),
     ]
 
     # fpp
     cpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
-            PathFlags(path_filter="tmp-workspace/um/output/um",
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um",  # todo: calc up to the output bit
                       add=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
-            PathFlags(path_filter="tmp-workspace/um/output/shumlib",
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/shumlib",
                       add=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
         ])
 
     fpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
-            PathFlags(path_filter="tmp-workspace/um/output/jules", add=['-DUM_JULES']),
-            PathFlags(path_filter="tmp-workspace/um/output/gcom", add=['-I', '/gcom/include']),
-            PathFlags(path_filter="tmp-workspace/um/output/um", add=['-I', 'include']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/jules", add=['-DUM_JULES']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/gcom", add=['-I', '/gcom/include']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um", add=['-I', 'include']),
         ])
 
     # todo: bundle these with the gfortran definition
     fc_flag_config = FlagsConfig()
 
     return ConfigSketch(
-        project_name='um',
+        project_name=project_name,
         grab_config=grab_config,
         extract_config=extract_config,
         cpp_flag_config=cpp_flag_config,
@@ -111,6 +115,9 @@ def main():
 
     logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
+    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
+
 
     # config
     config_sketch = um_atmos_safe_config()
@@ -121,8 +128,8 @@ def main():
     #     grab_will_do_this(config_sketch.grab_config, workspace)
 
     # Extract the files we want to build
-    with time_logger("extracting"):
-        extract_will_do_this(config_sketch.extract_config, workspace)
+    # with time_logger("extracting"):
+    #     extract_will_do_this(config_sketch.extract_config, workspace)
 
 
     # fab build stuff
@@ -135,7 +142,7 @@ def main():
         n_procs=3,
         stop_on_error=True,
         # use_multiprocessing=False,
-        debug_skip=True,
+        # debug_skip=True,
         # dump_source_tree=True
 
         # build config
@@ -150,10 +157,6 @@ def main():
         unreferenced_deps=config.unreferenced_deps,
         # include_paths=config.include_paths,  # todo: not clear if for pp or comp
      )
-
-    logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
 
     with time_logger("fab run"):
         my_fab.run()
@@ -194,7 +197,7 @@ def grab_will_do_this(src_paths, workspace):  #, logger):
 
 def extract_will_do_this(path_filters, workspace):
     source_folder = workspace / SOURCE_ROOT
-    output_folder = workspace / OUTPUT_ROOT
+    build_tree = workspace / BUILD_SOURCE
 
     for fpath in file_walk(source_folder):
 
@@ -207,7 +210,7 @@ def extract_will_do_this(path_filters, workspace):
         # copy it to the build folder?
         if include:
             rel_path = fpath.relative_to(source_folder)
-            dest_path = output_folder / rel_path
+            dest_path = build_tree / rel_path
             # make sure the folder exists
             if not dest_path.parent.exists():
                 os.makedirs(dest_path.parent)
