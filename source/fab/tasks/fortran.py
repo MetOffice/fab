@@ -21,7 +21,7 @@ from fab.database import DatabaseDecorator, FileInfoDatabase, StateDatabase, Wor
 from fab.tasks import  TaskException
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
-from fab.util import log_or_dot, HashedFile, CompiledFile, fixup_command_includes
+from fab.util import log_or_dot, HashedFile, CompiledFile
 
 
 class FortranUnitUnresolvedID(object):
@@ -516,15 +516,8 @@ class FortranCompiler(object):
         logger = logging.getLogger(__name__)
 
         command = [*self._compiler]
-        # command.extend(self._flags)
 
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
-
-        # # the flags we were given might contain include folders which need to be converted into absolute paths
-        # fixup_command_includes(
-        #     command=command,
-        #     output_root=self._workspace / OUTPUT_ROOT,
-        #     file_path=analysed_file.fpath)
 
         command.append(str(analysed_file.fpath))
 

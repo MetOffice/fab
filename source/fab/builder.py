@@ -20,6 +20,8 @@ from pathlib import Path, PosixPath
 import shutil
 import sys
 
+from pip._internal.index.sources import build_source
+
 from config_sketch import FlagsConfig
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, BUILD_SOURCE
 from fab.database import SqliteStateDatabase
@@ -30,13 +32,12 @@ from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranCompiler
 from fab.tasks.c import \
-    CPragmaInjector, \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
 from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, add_mo_commented_file_deps
 from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
-    time_logger, CompiledFile
+    time_logger, CompiledFile, input_to_output_fpath
 
 logger = logging.getLogger('fab')
 # logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -236,22 +237,23 @@ class Fab(object):
     def run(self):
 
         # todo: 23s on vdi
-        with time_logger("copying build tree"):
-            self.copy_build_tree()
+        # with time_logger("copying build tree"):
+        #     self.copy_build_tree()
 
         with time_logger("walking build folder"):
-            all_source = self.walk_build_folder()
+            all_source = self.walk_build_source()
 
         # todo: replace with big include path?
         with time_logger("copying inc files to root"):
             self.copy_inc_files(all_source)
 
-        c_source_files = all_source[".c"]
-        with time_logger(f"adding pragmas to {len(c_source_files)} c source files"):
-            pragmad_c = self.c_pragmas(c_source_files)
+        # c_source_files = all_source[".c"]
+        # with time_logger(f"adding pragmas to {len(c_source_files)} c source files"):
+        #     pragmad_c = self.c_pragmas(c_source_files)
 
-        with time_logger(f"preprocessing {len(pragmad_c)} pragma'd c files"):
-            preprocessed_c = self.preprocess(fpaths=pragmad_c, preprocessor=self.c_preprocessor)
+        c_source_files = all_source[".c"]
+        with time_logger(f"preprocessing {len(c_source_files)} c files"):
+            preprocessed_c = self.preprocess(fpaths=c_source_files, preprocessor=self.c_preprocessor)
 
         fortran_source_files = all_source[".F90"] + all_source[".f90"]
         with time_logger(f"preprocessing {len(fortran_source_files)} fortran source files"):
@@ -351,7 +353,7 @@ class Fab(object):
     def analyse(self, to_analyse_by_type: Dict[str, List[HashedFile]], analysis_dict_writer: csv.DictWriter) \
             -> Tuple[List[AnalysedFile], List[AnalysedFile]]:
 
-        fortran_files = to_analyse_by_type[".f90_preproc"]
+        fortran_files = to_analyse_by_type[".f90"]
         with time_logger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             analysed_fortran, fortran_exceptions = self.analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
@@ -359,7 +361,7 @@ class Fab(object):
         if self.fortran_analyser.depends_on_comment_found:
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
-        c_files = to_analyse_by_type[".c_preproc"]
+        c_files = to_analyse_by_type[".c"]
         with time_logger(f"analysing {len(c_files)} preprocessed c files"):
             analysed_c, c_exceptions = self.analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
@@ -391,23 +393,33 @@ class Fab(object):
 
         return symbols
 
-    def copy_build_tree(self):
-        shutil.copytree(self._workspace / BUILD_SOURCE, self._workspace / BUILD_OUTPUT, dirs_exist_ok=True)
+    # def copy_build_tree(self):
+    #     shutil.copytree(self._workspace / BUILD_SOURCE, self._workspace / BUILD_OUTPUT, dirs_exist_ok=True)
 
-    def walk_build_folder(self) -> Dict[str, List[Path]]:
+    def walk_build_source(self) -> Dict[str, List[Path]]:
         """
         Get all files in the folder and subfolders.
 
         Returns a dict[source_folder][extension] = file_list
         """
-        fpaths = file_walk(self._workspace / BUILD_OUTPUT)
+        build_source = self._workspace / BUILD_SOURCE
+        fpaths = file_walk(build_source)
         if not fpaths:
             logger.warning(f"no source files found")
             exit(1)
 
+        # group by suffix, and record folders
         fpaths_by_type = defaultdict(list)
+        input_folders = set()
         for fpath in fpaths:
             fpaths_by_type[fpath.suffix].append(fpath)
+            input_folders.add(fpath.parent.relative_to(build_source))
+
+        # create output folders
+        build_output = self._workspace / BUILD_OUTPUT
+        for input_folder in input_folders:
+            path = build_output / input_folder
+            path.mkdir(parents=True, exist_ok=True)
 
         return fpaths_by_type
 
@@ -439,14 +451,14 @@ class Fab(object):
             shutil.copy(fpath, self._workspace / BUILD_OUTPUT)
             inc_copied.add(fpath.name)
 
-    def c_pragmas(self, fpaths: List[Path]):
-        if self.use_multiprocessing:
-            with multiprocessing.Pool(self.n_procs) as p:
-                results = p.map(CPragmaInjector, fpaths)
-        else:
-            results = [CPragmaInjector(f) for f in fpaths]
-
-        return results
+    # def c_pragmas(self, fpaths: List[Path]):
+    #     if self.use_multiprocessing:
+    #         with multiprocessing.Pool(self.n_procs) as p:
+    #             results = p.map(CPragmaInjector, fpaths)
+    #     else:
+    #         results = [CPragmaInjector(f) for f in fpaths]
+    #
+    #     return results
 
     def preprocess(self, fpaths, preprocessor: Task) -> Set[Path]:
         if self.use_multiprocessing:

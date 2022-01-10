@@ -84,18 +84,18 @@ def um_atmos_safe_config():
     cpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um",  # todo: calc up to the output bit
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um",  # todo: calc up to the output bit
                       add=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/shumlib",
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib",
                       add=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
         ])
 
     fpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/jules", add=['-DUM_JULES']),
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/gcom", add=['-I', '/gcom/include']),
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um", add=['-I', 'include']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules", add=['-DUM_JULES']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/gcom", add=['-I', '/gcom/include']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um", add=['-I', 'include']),
         ])
 
     # todo: bundle these with the gfortran definition

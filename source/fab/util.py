@@ -6,7 +6,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Iterator
 
-
+from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
 
 logger = logging.getLogger('fab')
 
@@ -81,18 +81,18 @@ class CompiledFile(object):
         self.output_fpath = output_fpath
 
 
-def fixup_command_includes(command, output_root, file_path):
+def fixup_command_includes(command, source_root, file_path):
     """
 
     E.g:
 
         fixup_command_includes(
             command=['-I', '/abs_inc', '-I', 'rel_inc'],
-            output_root=Path('/home/usr/me/git/proj/output'),
-            file_path=Path('/home/usr/me/git/proj/output/sub/file.f90')
+            source_root=Path('/home/usr/me/git/proj/build_source'),
+            file_path=Path('/home/usr/me/git/proj/build_source/sub/file.f90')
         )
 
-        >>> ['-I', '/home/usr/me/git/proj/output/abs_inc', '-I', '/home/usr/me/git/proj/output/sub/rel_inc']
+        >>> ['-I', '/home/usr/me/git/proj/build_source/abs_inc', '-I', '/home/usr/me/git/proj/build_source/sub/rel_inc']
 
     """
 
@@ -104,9 +104,13 @@ def fixup_command_includes(command, output_root, file_path):
 
             if inc_path.is_absolute():
                 rel_path = inc_path.parts[1:]  # take off the leading slash
-                new_inc_path = output_root.joinpath(*rel_path)
+                new_inc_path = source_root.joinpath(*rel_path)
                 command[i+1] = str(new_inc_path)
             else:
                 # E.g an include subfolder below a c file
                 command[i+1] = str(file_path.parent / inc_path)
 
+
+def input_to_output_fpath(workspace: Path, input_path: Path):
+    rel_path = input_path.relative_to(workspace / BUILD_SOURCE)
+    return workspace / BUILD_OUTPUT / rel_path

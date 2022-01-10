@@ -24,7 +24,7 @@ from pathlib import Path
 from config_sketch import FlagsConfig
 from fab.dep_tree import AnalysedFile
 
-from fab.constants import SOURCE_ROOT, BUILD_OUTPUT
+from fab.constants import SOURCE_ROOT, BUILD_OUTPUT, BUILD_SOURCE
 
 from fab.database import \
     StateDatabase, \
@@ -37,7 +37,7 @@ from fab.reader import \
     TextReader, \
     FileTextReader, \
     TextReaderDecorator
-from fab.util import log_or_dot, HashedFile, CompiledFile, fixup_command_includes
+from fab.util import log_or_dot, HashedFile, CompiledFile, fixup_command_includes, input_to_output_fpath
 
 
 class CSymbolUnresolvedID(object):
@@ -419,17 +419,17 @@ def _CTextReaderPragmas(fpath):
             yield line
 
 
-def CPragmaInjector(fpath: Path):
-
-    # todo: error handling
-    logger = logging.getLogger(__name__)
-    logger.debug('Injecting pragmas into: %s', fpath)
-
-    tmp_output_fpath = fpath.parent / (fpath.name + ".prag")
-    tmp_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
-
-    shutil.move(tmp_output_fpath, fpath)
-    return fpath
+# def CPragmaInjector(fpath: Path):
+#
+#     # todo: error handling
+#     logger = logging.getLogger(__name__)
+#     logger.debug('Injecting pragmas into: %s', fpath)
+#
+#     tmp_output_fpath = fpath.parent / (fpath.name + ".prag")
+#     tmp_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
+#
+#     shutil.move(tmp_output_fpath, fpath)
+#     return fpath
 
 
 class CPreProcessor(Task):
@@ -451,34 +451,39 @@ class CPreProcessor(Task):
     def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
-        # todo: we don't need a temp file for fortran, it already gets a new suffix, .F90 -> .f90
-        output_fpath = fpath.with_suffix(self.output_suffix)
-        tmp_output_fpath = fpath.parent / (fpath.name + '.preproc')
-
+        output_fpath = input_to_output_fpath(workspace=self._workspace, input_path=fpath)
         # # for dev speed
         # if self.debug_skip and output_fpath.exists():
         #     return output_fpath
+
+        if not output_fpath.parent.exists():
+            output_fpath.parent.mkdir(parents=True, exist_ok=True)
+
+        if fpath.suffix == ".c":
+            # pragma injection
+            prag_output_fpath = fpath.parent / (fpath.name + ".prag")
+            prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
+            to_compile = prag_output_fpath
+        elif fpath.suffix in [".f90", ".F90"]:
+            to_compile = fpath
+        else:
+            raise ValueError(f"Unexpected file type: '{str(fpath)}'")
 
         command = [*self._preprocessor]
         command.extend(self._flags.flags_for_path(fpath))
 
         # the flags we were given might contain include folders which need to be converted into absolute paths
-        fixup_command_includes(command=command, output_root=self._workspace / BUILD_OUTPUT, file_path=fpath)
+        fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
 
         # input and output files
-        command.append(str(fpath))
-        command.append(str(tmp_output_fpath))
+        command.append(str(to_compile))
+        command.append(str(output_fpath))
 
         log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
         try:
             subprocess.run(command, check=True, capture_output=True)
         except subprocess.CalledProcessError as err:
             return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
-
-        shutil.move(tmp_output_fpath, output_fpath)
-        # we copy instead of move to enable the time-saving skip, above
-        # todo:WE CAN'T KEEP THIS SKIP - INCLUDE FILES MAY HAVE CHANGED!!!
-        # shutil.copy(tmp_output_fpath, output_fpath)
 
         return output_fpath
 
