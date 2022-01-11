@@ -145,13 +145,14 @@ class Fab(object):
                  cpp_flags: FlagsConfig,
                  fpp_flags: FlagsConfig,
                  fc_flags: FlagsConfig,
+                 cc_flags: FlagsConfig,
                  ld_flags: str,
                  n_procs: int,
                  stop_on_error: bool = True,  # todo: i think we accidentally stopped using this
                  skip_files=None,
                  unreferenced_deps=None,
                  use_multiprocessing=True,
-                 # debug_skip=False,
+                 debug_skip=False,
                  dump_source_tree=False,
     ):
 
@@ -161,6 +162,7 @@ class Fab(object):
         self._workspace = workspace
         self.skip_files = skip_files or []
         self.fc_flags = fc_flags
+        self.cc_flags = cc_flags
         self.unreferenced_deps: List[str] = unreferenced_deps or []
         self.use_multiprocessing = use_multiprocessing
         self.dump_source_tree = dump_source_tree
@@ -185,7 +187,7 @@ class Fab(object):
             flags=fpp_flags,
             workspace=workspace,
             output_suffix=".f90",
-            # debug_skip=debug_skip,
+            debug_skip=debug_skip,
         )
         self.fortran_analyser = FortranAnalyser()
 
@@ -217,10 +219,14 @@ class Fab(object):
             preprocessor=['cpp'],
             flags=cpp_flags,
             workspace=workspace,
+            debug_skip=debug_skip,
         )
         self.c_analyser = CAnalyser()
         self.c_compiler = CCompiler(
-            'gcc', ['-c', '-std=c99'], workspace
+            compiler=['gcc', '-c', '-std=c99'],  # why std?
+            # flags=['-c', '-std=c99'],
+            flags=cc_flags,
+            workspace=workspace,
         )
 
         # export OMPI_FC=gfortran
@@ -305,11 +311,16 @@ class Fab(object):
 
 
         # TODO: document this: when there's duplicate symbols, the size of the (possibly wrong) build tree can vary...
-        # target tree extraction (as is)
-        with time_logger("extracting target tree"):
-            build_tree = extract_sub_tree(all_analysed_files, symbols[self.target], verbose=False)
+        # Target tree extraction - for building executables.
+        # When building library ".so" files, no target is needed.
         logger.info(f"source tree size {len(all_analysed_files)}")
-        logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.target]}')")
+        if self.target:
+            with time_logger("extracting target tree"):
+                build_tree = extract_sub_tree(all_analysed_files, symbols[self.target], verbose=False)
+            logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.target]}')")
+        else:
+            logger.info("no target specified, building everything")
+            build_tree = all_analysed_files
 
 
         # Recursively add any unreferenced dependencies
@@ -553,7 +564,7 @@ class Fab(object):
                 # unchanged.add(prev_pu)
                 unchanged.append(prev_pu)
         logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
-        logger.debug(f"unchanged:\n{[u.fpath for u in unchanged]}")
+        # logger.debug(f"unchanged:\n{[u.fpath for u in unchanged]}")
 
         return to_analyse, unchanged
 
@@ -656,12 +667,12 @@ class Fab(object):
     def compile(self, build_tree):
 
         c_files: Set[AnalysedFile] = {af for af in build_tree.values() if af.fpath.suffix == ".c"}  # todo: filter?
-        self.compile_c(c_files)
+        compiled_c = self.compile_c(c_files)
 
         fortran_files: Set[AnalysedFile] = {af for af in build_tree.values() if af.fpath.suffix == ".f90"}
-        self.compile_fortran(fortran_files)
+        compiled_fortran = self.compile_fortran(fortran_files)
 
-        all_compiled: Set[CompiledFile] = set()
+        all_compiled: Set[CompiledFile] = set(compiled_c + compiled_fortran)
         return all_compiled
 
     def compile_c(self, to_compile: Set[AnalysedFile]):

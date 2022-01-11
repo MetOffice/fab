@@ -270,7 +270,7 @@ class CWorkingState(DatabaseDecorator):
 class CAnalyser(Task):
     def __init__(self):
         # self.database = SqliteStateDatabase(workspace)
-        pass
+        self.verbose = False
 
     def _locate_include_regions(self, trans_unit) -> None:
         # Aim is to identify where included (top level) regions
@@ -349,16 +349,19 @@ class CAnalyser(Task):
             if self._check_for_include(node.location.line) == "sys_include":
                 continue
 
-            logger.debug('Considering node: %s', node.spelling)
+            if self.verbose:
+                logger.debug('Considering node: %s', node.spelling)
 
             if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL}:
-                logger.debug('  * Is a declaration')
+                if self.verbose:
+                    logger.debug('  * Is a declaration')
                 if node.is_definition():
                     # only global symbols can be used by other files, not static symbols
                     if node.linkage == clang.cindex.LinkageKind.EXTERNAL:
                         # This should catch function definitions which are exposed
                         # to the rest of the application
-                        logger.debug('  * Is defined in this file')
+                        if self.verbose:
+                            logger.debug('  * Is defined in this file')
                         # todo: ignore if inside user pragmas?
                         af.add_symbol_def(node.spelling)
                 else:
@@ -366,7 +369,8 @@ class CAnalyser(Task):
                     # we can use the injected pragmas to work out whether these
                     # are coming from system headers or user headers
                     if self._check_for_include(node.location.line) == "usr_include":
-                        logger.debug('  * Is not defined in this file')
+                        if self.verbose:
+                            logger.debug('  * Is not defined in this file')
                         usr_symbols.append(node.spelling)
 
             elif node.kind in {clang.cindex.CursorKind.CALL_EXPR, clang.cindex.CursorKind.DECL_REF_EXPR}:
@@ -374,9 +378,11 @@ class CAnalyser(Task):
                 # cross-reference it with a definition seen earlier; and
                 # if it came from a user supplied header then we will
                 # consider it a dependency within the project
-                logger.debug('  * Is a symbol usage')
+                if self.verbose:
+                    logger.debug('  * Is a symbol usage')
                 if node.spelling in usr_symbols:
-                    logger.debug('  * Is a user symbol (so a dependency)')
+                    if self.verbose:
+                        logger.debug('  * Is a user symbol (so a dependency)')
                     af.add_symbol_dep(node.spelling)
 
         return af
@@ -440,34 +446,37 @@ class CPreProcessor(Task):
                  flags: FlagsConfig,
                  workspace: Path,
                  output_suffix=".c",  # but is also used for fortran
-                 # debug_skip=False,
+                 debug_skip=False,
                  ):
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
         self.output_suffix = output_suffix
-        # self.debug_skip = debug_skip
+        self.debug_skip = debug_skip
 
     def run(self, fpath: Path):
         logger = logging.getLogger(__name__)
 
         output_fpath = input_to_output_fpath(workspace=self._workspace, input_path=fpath)
-        # # for dev speed
-        # if self.debug_skip and output_fpath.exists():
-        #     return output_fpath
-
-        if not output_fpath.parent.exists():
-            output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
         if fpath.suffix == ".c":
             # pragma injection
             prag_output_fpath = fpath.parent / (fpath.name + ".prag")
             prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
-            to_compile = prag_output_fpath
+            input_fpath = prag_output_fpath
         elif fpath.suffix in [".f90", ".F90"]:
-            to_compile = fpath
+            input_fpath = fpath
+            output_fpath = output_fpath.with_suffix('.f90')
         else:
             raise ValueError(f"Unexpected file type: '{str(fpath)}'")
+
+        # for dev speed, but this could become a good time saver with, e.g, hashes or something
+        if self.debug_skip and output_fpath.exists():
+            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+            return output_fpath
+
+        if not output_fpath.parent.exists():
+            output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
         command = [*self._preprocessor]
         command.extend(self._flags.flags_for_path(fpath))
@@ -476,7 +485,7 @@ class CPreProcessor(Task):
         fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
 
         # input and output files
-        command.append(str(to_compile))
+        command.append(str(input_fpath))
         command.append(str(output_fpath))
 
         log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
@@ -491,8 +500,9 @@ class CPreProcessor(Task):
 class CCompiler(Task):
 
     def __init__(self,
-                 compiler: str,
-                 flags: List[str],
+                 compiler: List[str],
+                 # flags: List[str],
+                 flags: FlagsConfig,
                  workspace: Path):
         self._compiler = compiler
         self._flags = flags
@@ -501,8 +511,9 @@ class CCompiler(Task):
     def run(self, af: AnalysedFile):
         logger = logging.getLogger(__name__)
 
-        command = [self._compiler]
-        command.extend(self._flags)
+        command = self._compiler
+        # command.extend(self._flags)
+        command.extend(self._flags.flags_for_path(af.fpath))
         command.append(str(af.fpath))
 
         output_file = (self._workspace / af.fpath.with_suffix('.o').name)
@@ -514,7 +525,7 @@ class CCompiler(Task):
             res = subprocess.run(command, check=True)
             if res.returncode != 0:
                 # todo: specific exception
-                return Exception("The compiler exited with non zero")
+                return Exception(f"The compiler exited with non zero: {res.stderr.decode()}")
         except Exception as err:
             return Exception(f"error compiling {af.fpath}: {err}")
 

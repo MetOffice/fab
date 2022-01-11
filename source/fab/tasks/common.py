@@ -5,7 +5,7 @@
 import logging
 import re
 import subprocess
-from typing import List, Optional, Match
+from typing import List, Optional, Match, Set
 from pathlib import Path
 
 from fab.artifact import \
@@ -29,30 +29,50 @@ class Linker(Task):
         self._workspace = workspace
         self._output_filename = output_filename
 
-    def run(self, artifacts: List[CompiledFile]) -> List[Artifact]:
+    def run(self, artifacts: Set[CompiledFile]) -> List[Artifact]:
         logger = logging.getLogger(__name__)
-
         if len(artifacts) < 1:
             msg = ('Linker expects at least one Artifact, '
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
 
-        command = [self._linker]
+        # building a library?
+        # todo: refactor this
+        # TODO: WE PROBABLY WANT TO BUILD A .a FILE WITH ar INSTEAD OF A SHARED OBJECT - DISCUSS
+        if self._output_filename.endswith('.so'):
+            output_file = str(self._workspace / self._output_filename)
+            command = ['gcc', '-fPIC', '-shared', '-o', output_file]
+            command.extend([str(a.output_fpath) for a in artifacts])
 
-        output_file = self._workspace / self._output_filename
+        # building an executable
+        else:
+            command = [self._linker]
+            output_file = self._workspace / self._output_filename
 
-        command.extend(['-o', str(output_file)])
-        for artifact in artifacts:
-            command.append(str(artifact.output_fpath))
+            command.extend(['-o', str(output_file)])
+            for artifact in artifacts:
+                command.append(str(artifact.output_fpath))
 
-        command.extend(self._flags)
+            command.extend(self._flags)
 
         logger.debug('Running command: ' + ' '.join(command))
-        subprocess.run(command, check=True)
 
-        return [Artifact(output_file,
-                         Executable,
-                         Linked)]
+
+        # subprocess.run(command, check=True)
+
+        try:
+            res = subprocess.run(command, check=True)
+            if res.returncode != 0:
+                # todo: specific exception
+                raise Exception(f"The command exited with non zero: {res.stderr.decode()}")
+        except Exception as err:
+            raise Exception(f"error: {err}")
+
+
+        return []
+        # return [Artifact(output_file,
+        #                  Executable,
+        #                  Linked)]
 
 
 class HeaderAnalyser(Task):
