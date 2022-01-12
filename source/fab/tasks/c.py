@@ -5,14 +5,12 @@
 C language handling classes.
 """
 import logging
-import shutil
 import subprocess
 import re
 import clang.cindex  # type: ignore
 from collections import deque
 from typing import \
     List, \
-    Iterator, \
     Pattern, \
     Optional, \
     Match, \
@@ -21,10 +19,10 @@ from typing import \
     Union
 from pathlib import Path
 
-from config_sketch import FlagsConfig
+from fab.config_sketch import FlagsConfig
 from fab.dep_tree import AnalysedFile
 
-from fab.constants import SOURCE_ROOT, BUILD_OUTPUT, BUILD_SOURCE
+from fab.constants import BUILD_OUTPUT, BUILD_SOURCE
 
 from fab.database import \
     StateDatabase, \
@@ -34,9 +32,7 @@ from fab.database import \
 from fab.tasks import Task, TaskException
 
 from fab.reader import \
-    TextReader, \
-    FileTextReader, \
-    TextReaderDecorator
+    FileTextReader
 from fab.util import log_or_dot, HashedFile, CompiledFile, fixup_command_includes, input_to_output_fpath
 
 
@@ -482,6 +478,7 @@ class CPreProcessor(Task):
         command.extend(self._flags.flags_for_path(fpath))
 
         # the flags we were given might contain include folders which need to be converted into absolute paths
+        # todo: inconsistent with the compiler (and c?), which doesn't do this - discuss
         fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
 
         # input and output files
@@ -516,7 +513,7 @@ class CCompiler(Task):
         command.extend(self._flags.flags_for_path(af.fpath))
         command.append(str(af.fpath))
 
-        output_file = (self._workspace / af.fpath.with_suffix('.o').name)
+        output_file = (self._workspace / BUILD_OUTPUT / af.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_file)])
 
         logger.debug('Running command: ' + ' '.join(command))

@@ -18,12 +18,9 @@ import logging
 import multiprocessing
 from pathlib import Path, PosixPath
 import shutil
-import sys
 
-from pip._internal.index.sources import build_source
-
-from config_sketch import FlagsConfig
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, BUILD_SOURCE
+from fab.config_sketch import FlagsConfig, ConfigSketch
+from fab.constants import BUILD_OUTPUT, BUILD_SOURCE
 from fab.database import SqliteStateDatabase
 from fab.tasks import Task
 
@@ -37,45 +34,13 @@ from fab.tasks.c import \
     CCompiler
 from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, add_mo_commented_file_deps
 from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
-    time_logger, CompiledFile, input_to_output_fpath
+    time_logger, CompiledFile
 
 logger = logging.getLogger('fab')
 # logger.addHandler(logging.StreamHandler(sys.stderr))
 
 
 runtime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-
-def read_config(conf_file):
-    """
-    Read the config file.
-
-    Adds processed attributes from the lists:
-     - skip_files
-     - unreferenced_deps
-     - include_paths
-
-    Relative include paths are relative to the location of each file being processed.
-    Absolute include paths (beginning with /) are relative to the workspace root.
-    """
-    config = configparser.ConfigParser(allow_no_value=True)
-    config.read(conf_file)
-
-    config.skip_files = []
-    # todo: don't use walrus operator, and set the Python version to [3.6?] in env and setup.
-    if skip_files_config := config['settings']['skip-files-list']:
-        for line in open(skip_files_config, "rt"):
-            config.skip_files.append(line.strip())
-
-    config.unreferenced_deps = list(filter(
-        lambda i: bool(i),
-        [i.strip() for i in config['settings']['unreferenced-dependencies'].split(',')]))
-
-    # config.src_paths = [Path(os.path.expanduser(i)) for i in config['settings']['src-paths'].split(',')]
-    # config.include_paths = [Path(os.path.expanduser(i)) for i in config['settings']['include-paths'].split(',')]
-
-    return config
-
 
 def entry() -> None:
     """
@@ -124,49 +89,35 @@ def entry() -> None:
     if settings['exec-name'] == '':
         settings['exec-name'] = settings['target']
 
-    application = Fab(workspace=arguments.workspace,
-                      target=settings['target'],
-                      exec_name=settings['exec-name'],
-                      fpp_flags=flags['fpp-flags'],
-                      fc_flags=flags['fc-flags'],
-                      ld_flags=flags['ld-flags'],
-                      n_procs=arguments.nprocs,
-                      skip_files=skip_files,
-                      unreferenced_deps=unreferenced_deps)
-    application.run(arguments.source.split(','))
+    # application = Fab(workspace=arguments.workspace,
+    #                   target=settings['target'],
+    #                   exec_name=settings['exec-name'],
+    #                   fpp_flags=flags['fpp-flags'],
+    #                   fc_flags=flags['fc-flags'],
+    #                   ld_flags=flags['ld-flags'],
+    #                   n_procs=arguments.nprocs,
+    #                   skip_files=skip_files,
+    #                   unreferenced_deps=unreferenced_deps)
+    # application.run(arguments.source.split(','))
 
 
 class Fab(object):
     def __init__(self,
-                 # include_paths: List[Path],
                  workspace: Path,
-                 target: str,
-                 exec_name: str,
-                 cpp_flags: FlagsConfig,
-                 fpp_flags: FlagsConfig,
-                 fc_flags: FlagsConfig,
-                 cc_flags: FlagsConfig,
-                 ld_flags: str,
+                 config: ConfigSketch,
+
                  n_procs: int,
-                 stop_on_error: bool = True,  # todo: i think we accidentally stopped using this
-                 skip_files=None,
-                 unreferenced_deps=None,
                  use_multiprocessing=True,
                  debug_skip=False,
-                 dump_source_tree=False,
-    ):
+                 dump_source_tree=False):
 
-        # self.source_paths = source_paths
-        self.n_procs = n_procs
-        self.target = target
+        self.root_symbol = config.root_symbol
         self._workspace = workspace
-        self.skip_files = skip_files or []
-        self.fc_flags = fc_flags
-        self.cc_flags = cc_flags
-        self.unreferenced_deps: List[str] = unreferenced_deps or []
+        self.unreferenced_deps: List[str] = config.unreferenced_dependencies or []
+
+        self.n_procs = n_procs
         self.use_multiprocessing = use_multiprocessing
         self.dump_source_tree = dump_source_tree
-        # self.include_paths = include_paths or []
 
         if not workspace.exists():
             workspace.mkdir(parents=True)
@@ -184,7 +135,7 @@ class Fab(object):
         self.fortran_preprocessor = CPreProcessor(
             # preprocessor='cpp',
             preprocessor=['cpp', '-traditional-cpp', '-P'],
-            flags=fpp_flags,
+            flags=config.fpp_flag_config,
             workspace=workspace,
             output_suffix=".f90",
             debug_skip=debug_skip,
@@ -197,12 +148,13 @@ class Fab(object):
             # todo: make configurable
             compiler=[
                 os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
-                '-c', '-J', str(workspace)
+                '-c',
+                '-J', str(workspace / BUILD_OUTPUT),  # .mod file output and include folder
             ],
 
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
 
-            flags=self.fc_flags,
+            flags=config.fc_flag_config,
             # ['-std=gnu', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=legacy', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
 
@@ -217,7 +169,7 @@ class Fab(object):
         # self.c_pragma_injector = CPragmaInjector(workspace)
         self.c_preprocessor = CPreProcessor(
             preprocessor=['cpp'],
-            flags=cpp_flags,
+            flags=config.cpp_flag_config,
             workspace=workspace,
             debug_skip=debug_skip,
         )
@@ -225,7 +177,7 @@ class Fab(object):
         self.c_compiler = CCompiler(
             compiler=['gcc', '-c', '-std=c99'],  # why std?
             # flags=['-c', '-std=c99'],
-            flags=cc_flags,
+            flags=config.cc_flag_config,
             workspace=workspace,
         )
 
@@ -236,8 +188,8 @@ class Fab(object):
             # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
             # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
 
-            '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
-            workspace, exec_name
+            '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort', ['-lc', '-lgfortran'] + config.ld_flags,
+            workspace, config.output_filename
         )
 
     def run(self):
@@ -314,10 +266,10 @@ class Fab(object):
         # Target tree extraction - for building executables.
         # When building library ".so" files, no target is needed.
         logger.info(f"source tree size {len(all_analysed_files)}")
-        if self.target:
+        if self.root_symbol:
             with time_logger("extracting target tree"):
-                build_tree = extract_sub_tree(all_analysed_files, symbols[self.target], verbose=False)
-            logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.target]}')")
+                build_tree = extract_sub_tree(all_analysed_files, symbols[self.root_symbol], verbose=False)
+            logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.root_symbol]}')")
         else:
             logger.info("no target specified, building everything")
             build_tree = all_analysed_files
@@ -381,6 +333,8 @@ class Fab(object):
         all_exceptions = fortran_exceptions | c_exceptions
         if all_exceptions:
             logger.error(f"{len(all_exceptions)} analysis errors")
+            errs_str = "\n\n".join(map(str, all_exceptions))
+            logger.debug(f"\nSummary of analysis errors:\n{errs_str}")
             # exit(1)
 
         return analysed_c, analysed_fortran
@@ -763,8 +717,8 @@ class Fab(object):
 
         log_or_dot_finish(logger)
         logger.debug(f"compiled per pass {per_pass}")
-        logger.info(f"total compiled {sum(per_pass)}")
-        logger.info(f"compilation took {perf_counter() - start}")
+        logger.info(f"total fortran compiled {sum(per_pass)}")
+        logger.info(f"compiling fortran took {perf_counter() - start}\n")
 
         if to_compile:
             logger.debug(f"there were still {len(to_compile)} files left to compile")

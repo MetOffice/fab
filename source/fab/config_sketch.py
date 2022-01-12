@@ -1,4 +1,45 @@
+import warnings
 from typing import List, Optional
+
+
+class ConfigSketch(object):
+    def __init__(self,
+                 project_name,
+                 grab_config,
+                 extract_config,
+                 cpp_flag_config,
+                 fpp_flag_config,
+                 fc_flag_config,
+                 cc_flag_config,
+                 ld_flags,
+                 root_symbol,
+                 unreferenced_dependencies,
+                 output_filename):
+
+        self.project_name = project_name
+        self.grab_config = grab_config
+        self.extract_config = extract_config
+        self.cpp_flag_config = cpp_flag_config
+        self.fpp_flag_config = fpp_flag_config
+        self.fc_flag_config = fc_flag_config
+        self.cc_flag_config = cc_flag_config
+        self.ld_flags = ld_flags
+        self.root_symbol = root_symbol
+        self.unreferenced_dependencies = unreferenced_dependencies
+        self.output_filename = output_filename
+
+    #     # no target required when building a library.
+    #     # if we supply one, it'll do dependency subtree extraction...
+    #     if self.is_lib() and self.root_symbol:
+    #         warnings.warn("Root symbol specified for library build. "
+    #                       "Are you sure you need dependency subtree extraction?")
+    #
+    # def is_lib(self):
+    #     return any(self.output_filename.endwith(i) for i in ['.so', '.a'])
+
+    # todo: ?
+    # def workspace(self):
+    #     return WORKSPACE_ROOT / self.project_name
 
 
 class PathFilter(object):
@@ -10,8 +51,6 @@ class PathFilter(object):
         if any(i in str(path) for i in self.path_filters):
             return self.include
         return None
-
-
 
 
 # class SetFlags(object):
@@ -38,6 +77,7 @@ class PathFilter(object):
 
 class PathFlags(object):
     """Flags for a path."""
+
     def __init__(self, path_filter=None, add=None):
         self.path_filter = path_filter or ""
         self.add = add
@@ -55,6 +95,7 @@ class PathFlags(object):
 
 class FlagsConfig(object):
     """Flags for all the paths."""
+
     def __init__(self, path_flags: Optional[List[PathFlags]] = None):
         self.path_flags = path_flags or []
 
@@ -63,7 +104,6 @@ class FlagsConfig(object):
         for i in self.path_flags:
             i.do(path, flags_wip)
         return flags_wip
-
 
 # def flags_from_file_system(path):
 #     # we think we'll need sys admin config, possibly from the file system
@@ -109,4 +149,3 @@ class FlagsConfig(object):
 
 # this is the line we need to use in the fortran compiler
 # flags = fc_config.do(path)
-

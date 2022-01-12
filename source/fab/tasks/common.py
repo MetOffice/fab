@@ -36,23 +36,26 @@ class Linker(Task):
                    f'but was given {len(artifacts)}')
             raise TaskException(msg)
 
+        output_file = str(self._workspace / self._output_filename)
+
         # building a library?
+        # shared object
         # todo: refactor this
         # TODO: WE PROBABLY WANT TO BUILD A .a FILE WITH ar INSTEAD OF A SHARED OBJECT - DISCUSS
         if self._output_filename.endswith('.so'):
-            output_file = str(self._workspace / self._output_filename)
             command = ['gcc', '-fPIC', '-shared', '-o', output_file]
+            command.extend([str(a.output_fpath) for a in artifacts])
+
+        if self._output_filename.endswith('.a'):
+            command = ['ar', 'cr', output_file]
             command.extend([str(a.output_fpath) for a in artifacts])
 
         # building an executable
         else:
             command = [self._linker]
-            output_file = self._workspace / self._output_filename
-
             command.extend(['-o', str(output_file)])
             for artifact in artifacts:
                 command.append(str(artifact.output_fpath))
-
             command.extend(self._flags)
 
         logger.debug('Running command: ' + ' '.join(command))

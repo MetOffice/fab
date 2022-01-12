@@ -16,7 +16,7 @@ from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranFileReader
 from fparser.two.utils import FortranSyntaxError
 
-from config_sketch import FlagsConfig
+from fab.config_sketch import FlagsConfig
 from fab.database import DatabaseDecorator, FileInfoDatabase, StateDatabase, WorkingStateException
 from fab.tasks import  TaskException
 
@@ -329,8 +329,8 @@ class FortranAnalyser(object):
             logger.error(f"\nsyntax error in {fpath}\n{err}")
             return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
-            logger.error(f"\nunhandled {type(err)} error in {fpath}\n{err}")
-            return Exception(f"unhandled {type(err)} error in {fpath}\n{err}")
+            logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
+            return Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
 
         # did it find anything?
         if tree.content[0] == None:
@@ -379,8 +379,10 @@ class FortranAnalyser(object):
                 if bind:
                     name = typed_child(bind, Char_Literal_Constant)
                     if not name:
-                        # TODO: use the fortran name, lower case
-                        return TaskException(f"Could not get name of function binding: {obj.string}")
+                        name = typed_child(obj, Name)
+                        logger.info(f"Warning: unnamed binding, using fortran name '{name}' in {fpath}")
+                        # # TODO: use the fortran name, lower case
+                        # return TaskException(f"Error getting name of function binding: {obj.string} in {fpath}")
                     bind_name = name.string.replace('"', '')
 
                     # importing a c function into fortran, i.e binding within an interface block
@@ -515,13 +517,16 @@ class FortranCompiler(object):
     def run(self, analysed_file: AnalysedFile):
         logger = logging.getLogger(__name__)
 
+        if "ios_constants.f90" in str(analysed_file.fpath):
+            print("foo")
+
         command = [*self._compiler]
 
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
 
         command.append(str(analysed_file.fpath))
 
-        output_fpath = (self._workspace / analysed_file.fpath.with_suffix('.o').name)
+        output_fpath = (self._workspace / BUILD_OUTPUT / analysed_file.fpath.with_suffix('.o').name)
         command.extend(['-o', str(output_fpath)])
 
         # logger.info(program_unit.name)

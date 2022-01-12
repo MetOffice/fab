@@ -23,7 +23,7 @@ from pathlib import Path
 
 from fab.constants import SOURCE_ROOT
 
-from fab.builder import Fab, read_config
+from fab.builder import Fab
 
 
 def main():

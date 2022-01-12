@@ -2,24 +2,18 @@ import os
 import logging
 import shutil
 import sys
-from collections import namedtuple
 
 from pathlib import Path
 
-from config_sketch import PathFlags, FlagsConfig, PathFilter
+from fab.config_sketch import PathFlags, FlagsConfig, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 
-from fab.builder import Fab, read_config
+from fab.builder import Fab
 from fab.util import file_walk, time_logger
 
 
-ConfigSketch = namedtuple(
-    'ConfigSketch',
-    ['project_name', 'grab_config', 'extract_config', 'cpp_flag_config', 'fpp_flag_config', 'fc_flag_config', 'cc_flag_config']
-)
+def gcom_common_config():
 
-
-def gcom_config():
     project_name = 'gcom'
 
     grab_config = {
@@ -40,14 +34,10 @@ def gcom_config():
         ]
     )
 
-    fc_flag_config = FlagsConfig(
-        path_flags=[
-            PathFlags(add=['-fPIC'])
-        ]
-    )
+    fc_flag_config = FlagsConfig()
     cc_flag_config = FlagsConfig(
         path_flags=[
-            PathFlags(add=['-std=c99', '-fPIC'])
+            PathFlags(add=['-std=c99'])
         ]
     )
 
@@ -59,19 +49,38 @@ def gcom_config():
         fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
+        ld_flags=[],
+        root_symbol=None,
+        output_filename=None,
+        unreferenced_dependencies=[],
     )
 
 
-def main():
+def gcom_static_config():
+    config = gcom_common_config()
+    config.output_filename = 'libgcom.a'
+    return config
 
+
+def gcom_shared_config():
+    config = gcom_common_config()
+    config.output_filename = 'libgcom.so'
+
+    # todo: probably nicer to make a new object and combine them
+    config.fc_flag_config.path_flags.append(PathFlags(add=['-fPIC']))
+    config.cc_flag_config.path_flags.append(PathFlags(add=['-fPIC']))
+
+    return config
+
+
+def main():
     logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
 
-
     # config
-    config_sketch = gcom_config()
+    config_sketch = gcom_static_config()
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
 
     # # Get source repos
@@ -84,29 +93,18 @@ def main():
 
 
     # fab build stuff
-    config = read_config("gcom.config")
-    settings = config['settings']
+    # config = read_config("gcom.config")
+    # settings = config['settings']
 
     my_fab = Fab(
+        workspace=workspace,
+        config=config_sketch,
+
         # fab behaviour
         n_procs=3,
-        stop_on_error=True,
         use_multiprocessing=False,
         debug_skip=True,
         # dump_source_tree=True
-
-        # build config
-        workspace=workspace,
-        target=settings['target'],
-        exec_name=settings['exec-name'],
-        cpp_flags=config_sketch.cpp_flag_config,
-        fpp_flags=config_sketch.fpp_flag_config,
-        fc_flags=config_sketch.fc_flag_config,
-        cc_flags=config_sketch.cc_flag_config,
-        ld_flags="",
-        skip_files=config.skip_files,
-        unreferenced_deps=config.unreferenced_deps,
-        # include_paths=config.include_paths,  # todo: not clear if for pp or comp
      )
 
     with time_logger("fab run"):

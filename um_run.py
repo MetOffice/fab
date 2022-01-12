@@ -24,18 +24,11 @@ from collections import namedtuple
 
 from pathlib import Path
 
-from config_sketch import PathFlags, FlagsConfig, PathFilter
-from fab.constants import SOURCE_ROOT, BUILD_SOURCE
+from fab.config_sketch import PathFlags, FlagsConfig, PathFilter, ConfigSketch
+from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 
-from fab.builder import Fab, read_config
+from fab.builder import Fab
 from fab.util import file_walk, time_logger
-
-
-# TODO: MOVE TO MAIN CODE?
-ConfigSketch = namedtuple(
-    'ConfigSketch',
-    ['project_name', 'grab_config', 'extract_config', 'cpp_flag_config', 'fpp_flag_config', 'fc_flag_config', 'cc_flag_config']
-)
 
 
 # hierarchy of config
@@ -52,6 +45,7 @@ ConfigSketch = namedtuple(
 
 
 def um_atmos_safe_config():
+
     project_name = 'um_atmos_safe'
 
     # todo: docstring about relative and absolute (=output) include paths
@@ -62,7 +56,6 @@ def um_atmos_safe_config():
         os.path.expanduser("~/svn/um/trunk/src"): "um",
         os.path.expanduser("~/svn/jules/trunk/src"): "jules",
         os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
-        # os.path.expanduser("~/svn/gcom/trunk/build"): "gcom",  # separately built library
     }
 
     # extract
@@ -76,7 +69,10 @@ def um_atmos_safe_config():
         PathFilter(['/um/atmosphere/convection/comorph/unit_tests/'], include=False),
 
         PathFilter(['/um/scm/'], include=False),
-        PathFilter(['/um/scm/stub/', '/um/scm/modules/s_scmop_mod.F90', '/um/scm/modules/s_scmop_mod.F90'], include=True),
+        PathFilter(['/um/scm/stub/',
+                    '/um/scm/modules/s_scmop_mod.F90',
+                    '/um/scm/modules/scmoptype_defn.F90'],
+                   include=True),
 
         PathFilter(['/jules/'], include=False),
         PathFilter(['/jules/control/shared/',
@@ -123,13 +119,24 @@ def um_atmos_safe_config():
         # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules", add=['-DUM_JULES']),
-            # PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/gcom", add=['-I', '/gcom/include']),
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um", add=['-I', 'include']),
         ])
 
     # todo: bundle these with the gfortran definition
-    fc_flag_config = FlagsConfig()
+    fc_flag_config = FlagsConfig(
+        path_flags=[
+            PathFlags(
+                path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
+                add=['-I', "/home/h02/bblay/git/fab/tmp-workspace/gcom/build_output"])
+        ]
+    )
+
     cc_flag_config = FlagsConfig()
+
+
+    # target = um_main
+    # exec_name = um_main.exe
+    # unreferenced_dependencies =
 
     return ConfigSketch(
         project_name=project_name,
@@ -139,6 +146,10 @@ def um_atmos_safe_config():
         fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
+        ld_flags=[],
+        root_symbol='um_main',
+        output_filename=None,
+        unreferenced_dependencies=[],
     )
 
 
@@ -159,35 +170,18 @@ def main():
     #     grab_will_do_this(config_sketch.grab_config, workspace)
 
     # Extract the files we want to build
-    with time_logger("extracting"):
-        extract_will_do_this(config_sketch.extract_config, workspace)
-
-
-    # fab build stuff
-    config = read_config("um.config")
-    settings = config['settings']
-    # flags = config['flags']
+    # with time_logger("extracting"):
+    #     extract_will_do_this(config_sketch.extract_config, workspace)
 
     my_fab = Fab(
+        workspace=workspace,
+        config=config_sketch,
+
         # fab behaviour
         n_procs=3,
-        stop_on_error=True,
         # use_multiprocessing=False,
         debug_skip=True,
         # dump_source_tree=True
-
-        # build config
-        workspace=workspace,
-        target=settings['target'],
-        exec_name=settings['exec-name'],
-        cpp_flags=config_sketch.cpp_flag_config,
-        fpp_flags=config_sketch.fpp_flag_config,
-        fc_flags=config_sketch.fc_flag_config,
-        cc_flags=config_sketch.cc_flag_config,
-        ld_flags="",
-        skip_files=config.skip_files,
-        unreferenced_deps=config.unreferenced_deps,
-        # include_paths=config.include_paths,  # todo: not clear if for pp or comp
      )
 
     with time_logger("fab run"):
