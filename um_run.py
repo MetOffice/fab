@@ -120,14 +120,18 @@ def um_atmos_safe_config():
         path_flags=[
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules", add=['-DUM_JULES']),
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um", add=['-I', 'include']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/control/timer/", add=['-DC97_3A']),
         ])
 
     # todo: bundle these with the gfortran definition
     fc_flag_config = FlagsConfig(
         path_flags=[
             PathFlags(
+                path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/",
+                add=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']),
+            PathFlags(
                 path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
-                add=['-I', "/home/h02/bblay/git/fab/tmp-workspace/gcom/build_output"])
+                add=['-I', "/home/h02/bblay/git/fab/tmp-workspace/gcom/build_output"]),
         ]
     )
 
@@ -157,8 +161,8 @@ def main():
 
     logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
 
     # config
