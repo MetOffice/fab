@@ -20,6 +20,7 @@ import os
 import logging
 import shutil
 import sys
+import warnings
 from collections import namedtuple
 
 from pathlib import Path
@@ -56,6 +57,7 @@ def um_atmos_safe_config():
         os.path.expanduser("~/svn/um/trunk/src"): "um",
         os.path.expanduser("~/svn/jules/trunk/src"): "jules",
         os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
+        os.path.expanduser("~/svn/shumlib/trunk"): "shumlib",
     }
 
     # extract
@@ -64,7 +66,7 @@ def um_atmos_safe_config():
         PathFilter(['/um/utility/qxreconf/'], include=True),
 
         PathFilter(['/um/atmosphere/convection/comorph/interface/'], include=False),
-        PathFilter(['/um/atmosphere/convection/comorph/interface/um'], include=True),
+        PathFilter(['/um/atmosphere/convection/comorph/interface/um/'], include=True),
 
         PathFilter(['/um/atmosphere/convection/comorph/unit_tests/'], include=False),
 
@@ -85,21 +87,25 @@ def um_atmos_safe_config():
                     ], include=True),
 
         PathFilter(['/socrates/'], include=False),
-        PathFilter(['/socrates/nlte/', '/socrates/radiance_core/'], include=True),
+        PathFilter(['/socrates/nlte/',
+                    '/socrates/radiance_core/'
+                    ], include=True),
 
         # the shummlib config in fcm config doesn't seem to do anything, perhaps there used to be extra files we needed to exclude
-        # PathFilter(['/shumlib/'], include=False),
-        # PathFilter(['/shumlib/shum_wgdos_packing/src',
-        #             '/shumlib/shum_string_conv/src',
-        #             '/shumlib/shum_latlon_eq_grids/src',
-        #             '/shumlib/shum_horizontal_field_interp/src',
-        #             '/shumlib/shum_spiral_search/src',
-        #             '/shumlib/shum_constants/src',
-        #             '/shumlib/shum_thread_utils/src',
-        #             '/shumlib/shum_data_conv/src',
-        #             '/shumlib/shum_number_tools/src',
-        #             '/shumlib/shum_byteswap/src',
-        #             ], include=True),
+        PathFilter(['/shumlib/'], include=False),
+        PathFilter(['/shumlib/shum_wgdos_packing/src',
+                    '/shumlib/shum_string_conv/src',
+                    '/shumlib/shum_latlon_eq_grids/src',
+                    '/shumlib/shum_horizontal_field_interp/src',
+                    '/shumlib/shum_spiral_search/src',
+                    '/shumlib/shum_constants/src',
+                    '/shumlib/shum_thread_utils/src',
+                    '/shumlib/shum_data_conv/src',
+                    '/shumlib/shum_number_tools/src',
+                    '/shumlib/shum_byteswap/src',
+                    '/shumlib/common/src',
+                    ], include=True),
+        PathFilter(['/shumlib/common/src/shumlib_version.c'], include=False),
 
         PathFilter(['.xml'], include=False),
         PathFilter(['.sh'], include=False),
@@ -109,18 +115,19 @@ def um_atmos_safe_config():
     cpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um",  # todo: calc up to the output bit
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
                       add=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib",
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib/",
                       add=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
         ])
 
     fpp_flag_config = FlagsConfig(
         # todo: bundle (some of) these with the 'cpp' definintion?
+        # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
         path_flags=[
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules", add=['-DUM_JULES']),
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um", add=['-I', 'include']),
-            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/control/timer/", add=['-DC97_3A']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", add=['-DUM_JULES']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/", add=['-I', 'include']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/control/timer/", add=['-DC97_3A']),
         ])
 
     # todo: bundle these with the gfortran definition
@@ -132,6 +139,7 @@ def um_atmos_safe_config():
             PathFlags(
                 path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
                 add=['-I', "/home/h02/bblay/git/fab/tmp-workspace/gcom/build_output"]),
+            PathFlags(add=['-fallow-argument-mismatch'])  # required from gfortran 10 - discuss
         ]
     )
 
@@ -174,8 +182,8 @@ def main():
     #     grab_will_do_this(config_sketch.grab_config, workspace)
 
     # Extract the files we want to build
-    # with time_logger("extracting"):
-    #     extract_will_do_this(config_sketch.extract_config, workspace)
+    with time_logger("extracting"):
+        extract_will_do_this(config_sketch.extract_config, workspace)
 
     my_fab = Fab(
         workspace=workspace,
@@ -195,7 +203,12 @@ def main():
 def grab_will_do_this(src_paths, workspace):  #, logger):
     #logger.info("faking grab")
     for src_path, label in src_paths.items():
-        shutil.copytree(src_path, workspace / SOURCE_ROOT / label, dirs_exist_ok=True)
+        shutil.copytree(
+            src_path,
+            workspace / SOURCE_ROOT / label,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns('.svn')
+        )
 
     # # todo: move into config
     # # shum partial
@@ -248,6 +261,18 @@ def extract_will_do_this(path_filters, workspace):
 
         # else:
         #     print("excluding", fpath)
+
+    # SPECIAL CODE FIXES!!! NEED ADDRESSING
+    special_code_fixes()
+
+
+def special_code_fixes():
+
+    warnings.warn("fparser2 dislikes this default string (which is later changed to an env var), being used as a FILE param")
+    inpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90")
+    outpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/io_services/common/io_configuration_mod.F90")
+    open(outpath, "wt").write(
+        open(inpath, "rt").read().replace('NameListFile', 'ShameListFile'))
 
 
 if __name__ == '__main__':

@@ -517,9 +517,6 @@ class FortranCompiler(object):
     def run(self, analysed_file: AnalysedFile):
         logger = logging.getLogger(__name__)
 
-        if "ios_constants.f90" in str(analysed_file.fpath):
-            print("foo")
-
         command = [*self._compiler]
 
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
