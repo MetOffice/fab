@@ -1,4 +1,5 @@
 import logging
+import re
 import zlib
 from collections import namedtuple
 from contextlib import contextmanager
@@ -114,3 +115,8 @@ def fixup_command_includes(command, source_root, file_path):
 def input_to_output_fpath(workspace: Path, input_path: Path):
     rel_path = input_path.relative_to(workspace / BUILD_SOURCE)
     return workspace / BUILD_OUTPUT / rel_path
+
+
+def case_insensitive_replace(in_str: str, find: str, replace_with: str):
+    compiled_re = re.compile(find, re.IGNORECASE)
+    return compiled_re.sub(replace_with, in_str)

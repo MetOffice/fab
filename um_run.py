@@ -29,7 +29,7 @@ from fab.config_sketch import PathFlags, FlagsConfig, PathFilter, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 
 from fab.builder import Fab
-from fab.util import file_walk, time_logger
+from fab.util import file_walk, time_logger, case_insensitive_replace
 
 
 # hierarchy of config
@@ -51,6 +51,7 @@ def um_atmos_safe_config():
 
     # todo: docstring about relative and absolute (=output) include paths
     #       this is quite tightly coupled to the preprocessor
+
 
     # grab
     grab_config = {
@@ -143,7 +144,7 @@ def um_atmos_safe_config():
                 add=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']),
             PathFlags(
                 path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
-                add=['-I', "/home/h02/bblay/git/fab/tmp-workspace/gcom/build_output"]),
+                add=['-I', "~/git/fab/tmp-workspace/gcom/build_output"]),
             PathFlags(add=['-fallow-argument-mismatch'])  # required from gfortran 10 - discuss
         ]
     )
@@ -176,7 +177,6 @@ def main():
     logger.addHandler(logging.StreamHandler(sys.stderr))
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
-
 
     # config
     config_sketch = um_atmos_safe_config()
@@ -273,17 +273,21 @@ def extract_will_do_this(path_filters, workspace):
 
 def special_code_fixes():
 
-    warnings.warn("SPECIAL MEASURE: fparser2 misunderstands the variable 'NameListFile'")
+    def replace_in_file(inpath, outpath, find, replace):
+        open(os.path.expanduser(outpath), "wt").write(
+            case_insensitive_replace(
+                in_str=open(os.path.expanduser(inpath), "rt").read(),
+                find=find, replace_with=replace))
 
-    inpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90")
-    outpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/io_services/common/io_configuration_mod.F90")
-    open(outpath, "wt").write(
-        open(inpath, "rt").read().replace('NameListFile', 'FabNameListFile'))
+    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands the variable 'NameListFile'")
+    replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
+                    '~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/io_services/common/io_configuration_mod.F90',
+                    'NameListFile', 'FabNameListFile')
 
-    inpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90")
-    outpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/control/top_level/um_config.F90")
-    open(outpath, "wt").write(
-        open(inpath, "rt").read().replace('NameListFile', 'FabNameListFile'))
+    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands the variable 'NameListFile'")
+    replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
+                    '~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/control/top_level/um_config.F90',
+                    'NameListFile', 'FabNameListFile')
 
 
 if __name__ == '__main__':
