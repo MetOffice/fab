@@ -81,6 +81,7 @@ class PathFilter(object):
 
 class PathFlags(object):
     """Flags for a path."""
+    # todo: allow array of filters?
 
     def __init__(self, path_filter=None, add=None):
         self.path_filter = path_filter or ""

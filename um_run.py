@@ -145,7 +145,34 @@ def um_atmos_safe_config():
             PathFlags(
                 path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
                 add=['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-            PathFlags(add=['-fallow-argument-mismatch'])  # required from gfortran 10 - discuss
+
+            # mpl stuff, required from gfortran 10 - discuss - not recommended flag?
+            PathFlags(path_filter='hardware_topology_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='setup_spectra_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='mcica_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='ios_comms.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='ios_client_queue.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='fastjx_specs.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='history_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='lustre_control_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='imbnd_hill_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='io_configuration_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='nlstcall_nc_namelist_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='nlstcall_pp_namelist_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='ios.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='regrid_alloc_calc_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='halo_exchange_ddt_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='halo_exchange_mpi_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='halo_exchange_os_mod.f90',
+                      add=['-fallow-argument-mismatch',
+                           '-finteger-4-integer-8',  # TODO: DISCUSS - this stopped a typemismatch with a c_ptr
+                           ]),
+            PathFlags(path_filter='mg_field_norm.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='rdbasis.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='io.f90', add=['-fallow-argument-mismatch']),
+
+            # not mpl, still needs it? discuss with wider team
+            PathFlags(path_filter='ppxlook_mod.f90', add=['-fallow-argument-mismatch']),
         ]
     )
 
@@ -182,8 +209,8 @@ def main():
 
     logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     # config
     config_sketch = um_atmos_safe_config()
