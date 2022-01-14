@@ -14,7 +14,8 @@ class ConfigSketch(object):
                  ld_flags,
                  root_symbol,
                  unreferenced_dependencies,
-                 output_filename):
+                 output_filename,
+                 special_measure_analysis_results):
 
         self.project_name = project_name
         self.grab_config = grab_config
@@ -27,6 +28,9 @@ class ConfigSketch(object):
         self.root_symbol = root_symbol
         self.unreferenced_dependencies = unreferenced_dependencies
         self.output_filename = output_filename
+
+        # for when fparser2 cannot process a file but gfortran can compile it
+        self.special_measure_analysis_results = special_measure_analysis_results
 
     #     # no target required when building a library.
     #     # if we supply one, it'll do dependency subtree extraction...

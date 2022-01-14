@@ -192,6 +192,9 @@ class Fab(object):
             workspace, config.output_filename
         )
 
+        # for when fparser2 cannot process a file but gfortran can compile it
+        self.special_measure_analysis_results = config.special_measure_analysis_results
+
     def run(self):
 
         # todo: 23s on vdi
@@ -225,6 +228,13 @@ class Fab(object):
         with self.analysis_progress(preprocessed_hashes) as (unchanged, to_analyse, analysis_dict_writer):
             analysed_c, analysed_fortran = self.analyse(to_analyse, analysis_dict_writer)
         all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
+
+        # add special measure analysis results
+        if self.special_measure_analysis_results:
+            for analysed_file in self.special_measure_analysis_results:
+                # todo: create a special measures notification function? with a loud summary at the end of the build?
+                warnings.warn(f"SPECIAL MEASURE for {analysed_file.fpath}: injecting user-defined analysis results")
+                all_analysed_files[analysed_file.fpath] = analysed_file
 
         if self.dump_source_tree:
             with open(datetime.now().strftime(f"tmp/af1_{runtime_str}.txt"), "wt") as outfile:

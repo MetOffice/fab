@@ -25,6 +25,8 @@ from collections import namedtuple
 
 from pathlib import Path
 
+from fab.dep_tree import AnalysedFile
+
 from fab.config_sketch import PathFlags, FlagsConfig, PathFilter, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 
@@ -139,22 +141,26 @@ def um_atmos_safe_config():
     # todo: bundle these with the gfortran definition
     fc_flag_config = FlagsConfig(
         path_flags=[
-            PathFlags(
-                path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/",
-                add=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']),
+            PathFlags(add=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']),
             PathFlags(
                 path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
-                add=['-I', "~/git/fab/tmp-workspace/gcom/build_output"]),
+                add=['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
             PathFlags(add=['-fallow-argument-mismatch'])  # required from gfortran 10 - discuss
         ]
     )
 
     cc_flag_config = FlagsConfig()
 
-
-    # target = um_main
-    # exec_name = um_main.exe
-    # unreferenced_dependencies =
+    special_measure_analysis_results = [
+        AnalysedFile(
+            fpath=Path(os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_output/casim/lookup.f90")),
+            file_hash=None,
+            symbol_defs=['lookup'],
+            symbol_deps=['mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
+                         'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'],
+            file_deps=[],
+            mo_commented_file_deps=[]),
+    ]
 
     return ConfigSketch(
         project_name=project_name,
@@ -168,6 +174,7 @@ def um_atmos_safe_config():
         root_symbol='um_main',
         output_filename=None,
         unreferenced_dependencies=[],
+        special_measure_analysis_results=special_measure_analysis_results,
     )
 
 
