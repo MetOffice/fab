@@ -58,6 +58,7 @@ def um_atmos_safe_config():
         os.path.expanduser("~/svn/jules/trunk/src"): "jules",
         os.path.expanduser("~/svn/socrates/trunk/src"): "socrates",
         os.path.expanduser("~/svn/shumlib/trunk"): "shumlib",
+        os.path.expanduser("~/svn/casim/src"): "casim",
     }
 
     # extract
@@ -106,6 +107,10 @@ def um_atmos_safe_config():
                     '/shumlib/common/src',
                     ], include=True),
         PathFilter(['/shumlib/common/src/shumlib_version.c'], include=False),
+
+        PathFilter(['/casim/mphys_die.F90',
+                    '/casim/mphys_casim.F90',
+                    ], include=False),
 
         PathFilter(['.xml'], include=False),
         PathFilter(['.sh'], include=False),
@@ -169,8 +174,8 @@ def main():
 
     logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
-    # logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
 
 
     # config
@@ -182,8 +187,8 @@ def main():
     #     grab_will_do_this(config_sketch.grab_config, workspace)
 
     # Extract the files we want to build
-    with time_logger("extracting"):
-        extract_will_do_this(config_sketch.extract_config, workspace)
+    # with time_logger("extracting"):
+    #     extract_will_do_this(config_sketch.extract_config, workspace)
 
     my_fab = Fab(
         workspace=workspace,
@@ -268,11 +273,17 @@ def extract_will_do_this(path_filters, workspace):
 
 def special_code_fixes():
 
-    warnings.warn("fparser2 dislikes this default string (which is later changed to an env var), being used as a FILE param")
+    warnings.warn("SPECIAL MEASURE: fparser2 misunderstands the variable 'NameListFile'")
+
     inpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90")
     outpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/io_services/common/io_configuration_mod.F90")
     open(outpath, "wt").write(
-        open(inpath, "rt").read().replace('NameListFile', 'ShameListFile'))
+        open(inpath, "rt").read().replace('NameListFile', 'FabNameListFile'))
+
+    inpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90")
+    outpath = os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/control/top_level/um_config.F90")
+    open(outpath, "wt").write(
+        open(inpath, "rt").read().replace('NameListFile', 'FabNameListFile'))
 
 
 if __name__ == '__main__':
