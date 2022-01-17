@@ -30,7 +30,7 @@ def gcom_common_config():
             PathFlags(add=['-DGC_VERSION="7.6"']),
             PathFlags(add=['-DGC_BUILD_DATE="20220111"']),
             PathFlags(add=['-DGC_DESCRIP="dummy desrip"']),
-            PathFlags(add=['-DPREC_32B']),
+            PathFlags(add=['-DPREC_64B', '-DMPILIB_32B']),
         ]
     )
 
@@ -84,17 +84,13 @@ def main():
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
 
     # # Get source repos
-    # with time_logger("grabbing"):
-    #     grab_will_do_this(config_sketch.grab_config, workspace)
-    #
-    # # Extract the files we want to build
-    # with time_logger("extracting"):
-    #     extract_will_do_this(config_sketch.extract_config, workspace)
+    with time_logger("grabbing"):
+        grab_will_do_this(config_sketch.grab_config, workspace)
 
+    # Extract the files we want to build
+    with time_logger("extracting"):
+        extract_will_do_this(config_sketch.extract_config, workspace)
 
-    # fab build stuff
-    # config = read_config("gcom.config")
-    # settings = config['settings']
 
     my_fab = Fab(
         workspace=workspace,

@@ -142,11 +142,15 @@ def um_atmos_safe_config():
     fc_flag_config = FlagsConfig(
         path_flags=[
             PathFlags(add=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']),
-            PathFlags(
-                path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
-                add=['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
 
-            # mpl stuff, required from gfortran 10 - discuss - not recommended flag?
+            #mpl include - todo: just add this for everything?
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/um/",
+                      add=['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_OUTPUT}/jules/",
+                      add=['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+
+            # TODO: REVIEWERS, SHOULD WE NEED THESE?
+            # a not recommended flag?
             PathFlags(path_filter='hardware_topology_mod.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='setup_spectra_mod.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='mcica_mod.f90', add=['-fallow-argument-mismatch']),
@@ -163,16 +167,23 @@ def um_atmos_safe_config():
             PathFlags(path_filter='regrid_alloc_calc_mod.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='halo_exchange_ddt_mod.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='halo_exchange_mpi_mod.f90', add=['-fallow-argument-mismatch']),
-            PathFlags(path_filter='halo_exchange_os_mod.f90',
-                      add=['-fallow-argument-mismatch',
-                           '-finteger-4-integer-8',  # TODO: DISCUSS - this stopped a typemismatch with a c_ptr
-                           ]),
+            PathFlags(path_filter='halo_exchange_os_mod.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='mg_field_norm.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='rdbasis.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='io.f90', add=['-fallow-argument-mismatch']),
-
-            # not mpl, still needs it? discuss with wider team
             PathFlags(path_filter='ppxlook_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='read_land_sea.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='diagopr.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='eg_bi_linear_h.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='glomap_clim_netcdf_io_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='emiss_io_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='ios_stash_server.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='io_server_listener.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='acumps.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='num_obs.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='io_server_writer.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='routedbl_mod.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='ios_init.f90', add=['-fallow-argument-mismatch']),
         ]
     )
 

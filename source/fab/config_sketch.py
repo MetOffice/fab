@@ -15,7 +15,7 @@ class ConfigSketch(object):
                  root_symbol,
                  unreferenced_dependencies,
                  output_filename,
-                 special_measure_analysis_results):
+                 special_measure_analysis_results=None):
 
         self.project_name = project_name
         self.grab_config = grab_config

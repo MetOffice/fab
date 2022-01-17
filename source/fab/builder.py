@@ -255,7 +255,7 @@ class Fab(object):
                     file_dep = symbols.get(symbol_dep)
                     if not file_dep:
                         deps_not_found.add(symbol_dep)
-                        logger.debug(f"(might not matter) not found {symbol_dep} for {analysed_file}")
+                        logger.debug(f"(might not matter) not found {symbol_dep} for {analysed_file.fpath}")
                         continue
                     analysed_file.file_deps.add(file_dep)
         if deps_not_found:
