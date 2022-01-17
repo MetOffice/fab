@@ -162,7 +162,8 @@ class Fab(object):
             # ['-std=f2008', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
             # ['-std=f2008ts', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
 
-            workspace=self._workspace
+            workspace=self._workspace,
+            debug_skip=debug_skip,
         )
 
         header_analyser = HeaderAnalyser(workspace)
@@ -661,8 +662,16 @@ class Fab(object):
         logger.info(f"\ncompiling {len(to_compile)} fortran files")
         start = perf_counter()
 
-        all_compiled = []  # todo: use set
+        # the full return data
+        all_compiled: List[CompiledFile] = []  # todo: use set
+
+        # a quick lookup
         already_compiled_files = set()
+
+        # Record which fortran file created which .o file in case of name clash.
+        # This is because we currently put all the .o files in one big folder.
+        name_clash_check = {}
+
         per_pass = []
         while to_compile:
 
@@ -707,11 +716,20 @@ class Fab(object):
                 exit(1)
 
             # check what we did compile
-            compiled_this_pass = by_type(this_pass)[CompiledFile]
+            compiled_this_pass: Set[CompiledFile] = by_type(this_pass)[CompiledFile]
             per_pass.append(len(compiled_this_pass))
             if len(compiled_this_pass) == 0:
                 logger.error("nothing compiled this pass")
                 break
+
+            # check for name clash - had another file already compiled to this output file?
+            for compiled_file in compiled_this_pass:
+                output_file = compiled_file.output_fpath.name
+                if output_file in name_clash_check:
+                    raise RuntimeError(
+                        f"Filename clash after compiling {compiled_file.analysed_file.fpath}: "
+                        f"output file {output_file} already created from {name_clash_check[output_file]}")
+                name_clash_check[output_file] = compiled_file.analysed_file.fpath
 
             # remove compiled files from list
             logger.debug(f"compiled {len(compiled_this_pass)} files")

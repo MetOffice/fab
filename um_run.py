@@ -136,6 +136,7 @@ def um_atmos_safe_config():
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", add=['-DUM_JULES']),
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/", add=['-I', 'include']),
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/control/timer/", add=['-DC97_3A']),
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/io_services/client/stash/", add=['-DC96_1C']),
         ])
 
     # todo: bundle these with the gfortran definition
@@ -183,7 +184,7 @@ def um_atmos_safe_config():
             PathFlags(path_filter='num_obs.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='io_server_writer.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='routedbl_mod.f90', add=['-fallow-argument-mismatch']),
-            PathFlags(path_filter='ios_init.f90', add=['-fallow-argument-mismatch']),
+            # PathFlags(path_filter='ios_init.f90', add=['-fallow-argument-mismatch']),
         ]
     )
 
@@ -220,8 +221,8 @@ def main():
 
     logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
-    # logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
 
     # config
     config_sketch = um_atmos_safe_config()

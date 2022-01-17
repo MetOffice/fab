@@ -508,10 +508,11 @@ class FortranAnalyser(object):
 
 class FortranCompiler(object):
 
-    def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path):
+    def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path, debug_skip: bool):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
+        self.debug_skip = debug_skip
 
     # @timed_method
     def run(self, analysed_file: AnalysedFile):
@@ -524,6 +525,10 @@ class FortranCompiler(object):
         command.append(str(analysed_file.fpath))
 
         output_fpath = (self._workspace / BUILD_OUTPUT / analysed_file.fpath.with_suffix('.o').name)
+        if self.debug_skip and output_fpath.exists():
+            log_or_dot(logger, f'Compiler skipping: {output_fpath}')
+            return CompiledFile(analysed_file, output_fpath)
+
         command.extend(['-o', str(output_fpath)])
 
         # logger.info(program_unit.name)
