@@ -524,7 +524,7 @@ class FortranCompiler(object):
 
         command.append(str(analysed_file.fpath))
 
-        output_fpath = (self._workspace / BUILD_OUTPUT / analysed_file.fpath.with_suffix('.o').name)
+        output_fpath = (self._workspace / BUILD_OUTPUT / analysed_file.fpath.with_suffix('.o'))
         if self.debug_skip and output_fpath.exists():
             log_or_dot(logger, f'Compiler skipping: {output_fpath}')
             return CompiledFile(analysed_file, output_fpath)

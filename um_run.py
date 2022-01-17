@@ -127,6 +127,10 @@ def um_atmos_safe_config():
                       add=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib/",
                       add=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+
+            # todo: just 3 folders use this
+            PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",
+                      add=['-DC95_2A', '-I', '/shumlib/byteswap/src']),
         ])
 
     fpp_flag_config = FlagsConfig(
@@ -135,6 +139,8 @@ def um_atmos_safe_config():
         path_flags=[
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", add=['-DUM_JULES']),
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/", add=['-I', 'include']),
+
+            # coupling defines
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/control/timer/", add=['-DC97_3A']),
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/io_services/client/stash/", add=['-DC96_1C']),
         ])
@@ -184,7 +190,9 @@ def um_atmos_safe_config():
             PathFlags(path_filter='num_obs.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='io_server_writer.f90', add=['-fallow-argument-mismatch']),
             PathFlags(path_filter='routedbl_mod.f90', add=['-fallow-argument-mismatch']),
-            # PathFlags(path_filter='ios_init.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='ios_init.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='eg_sl_helmholtz_inc.f90', add=['-fallow-argument-mismatch']),
+            PathFlags(path_filter='ukca_scenario_rcp_mod.f90', add=['-fallow-argument-mismatch']),
         ]
     )
 
@@ -209,9 +217,9 @@ def um_atmos_safe_config():
         fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
-        ld_flags=[],
+        ld_flags=['-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'],
         root_symbol='um_main',
-        output_filename=None,
+        output_filename='um_main.exe',
         unreferenced_dependencies=[],
         special_measure_analysis_results=special_measure_analysis_results,
     )

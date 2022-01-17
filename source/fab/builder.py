@@ -198,6 +198,8 @@ class Fab(object):
 
     def run(self):
 
+        logger.info(f"{datetime.now()}")
+
         # todo: 23s on vdi
         # with time_logger("copying build tree"):
         #     self.copy_build_tree()
@@ -723,8 +725,10 @@ class Fab(object):
                 break
 
             # check for name clash - had another file already compiled to this output file?
+            # this is much less likely to happen now we're creating the object files in the source folders,
+            # but still possible - todo: should we remove this check?
             for compiled_file in compiled_this_pass:
-                output_file = compiled_file.output_fpath.name
+                output_file = compiled_file.output_fpath
                 if output_file in name_clash_check:
                     raise RuntimeError(
                         f"Filename clash after compiling {compiled_file.analysed_file.fpath}: "
