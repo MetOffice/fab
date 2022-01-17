@@ -130,7 +130,7 @@ def um_atmos_safe_config():
 
             # todo: just 3 folders use this
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",
-                      add=['-DC95_2A', '-I', '/shumlib/byteswap/src']),
+                      add=['-DC95_2A', '-I', '/shumlib/shum_byteswap/src']),
         ])
 
     fpp_flag_config = FlagsConfig(
