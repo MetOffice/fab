@@ -234,7 +234,7 @@ def um_atmos_safe_config():
 def main():
 
     logger = logging.getLogger('fab')
-    logger.addHandler(logging.StreamHandler(sys.stderr))
+    # logger.addHandler(logging.StreamHandler(sys.stderr))
     # logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 

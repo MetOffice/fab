@@ -1,5 +1,6 @@
 import logging
 import re
+import sys
 import zlib
 from collections import namedtuple
 from contextlib import contextmanager
@@ -10,6 +11,7 @@ from typing import Iterator
 from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
 
 logger = logging.getLogger('fab')
+logger.addHandler(logging.StreamHandler(sys.stderr))
 
 
 def log_or_dot(logger, msg):
@@ -17,7 +19,7 @@ def log_or_dot(logger, msg):
         logger.debug(msg)
     elif logger.isEnabledFor(logging.INFO):
         print('.', end='')
-        # sys.stdout.flush()
+        sys.stdout.flush()
 
 
 def log_or_dot_finish(logger):

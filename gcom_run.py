@@ -79,7 +79,7 @@ def gcom_shared_config():
 
 def main():
     logger = logging.getLogger('fab')
-    logger.addHandler(logging.StreamHandler(sys.stderr))
+    # logger.addHandler(logging.StreamHandler(sys.stderr))
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
 
@@ -87,7 +87,7 @@ def main():
     config_sketch = gcom_static_config()
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
 
-    # # Get source repos
+    # Get source repos
     with time_logger("grabbing"):
         grab_will_do_this(config_sketch.grab_config, workspace)
 
