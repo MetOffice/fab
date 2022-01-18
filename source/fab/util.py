@@ -44,31 +44,6 @@ def file_walk(path: Path) -> Iterator[Path]:
             yield i
 
 
-# def get_fpaths_by_type(fpaths: Iterator[Path]) -> Dict[str, List]:
-#     """
-#     Group a list of paths according to their extensions.
-#
-#     """
-#     fpaths_by_type = defaultdict(list)
-#     for fpath in fpaths:
-#         fpaths_by_type[fpath.suffix].append(fpath)
-#
-#     return fpaths_by_type
-
-
-# def ensure_output_folder(fpath: Path, workspace):
-#     """Ensure the output folder exists for a file in the source folder."""
-#     # Todo: not robust against a file name clashing with the path, e.g an "output" file broke this
-#     try:
-#         fpath.relative_to(workspace / OUTPUT_ROOT)  # is_relative_to() in Python 3.9
-#     except ValueError:
-#         return
-#     output_folder = fpath.parent
-#     if not output_folder.exists():
-#         # logger.debug(f"creating output folder {output_folder}")
-#         output_folder.mkdir(parents=True)
-
-
 @contextmanager
 def time_logger(label):
     logger.info("\n" + label)

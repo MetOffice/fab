@@ -1,4 +1,3 @@
-import warnings
 from typing import List, Optional
 
 
@@ -32,19 +31,6 @@ class ConfigSketch(object):
         # for when fparser2 cannot process a file but gfortran can compile it
         self.special_measure_analysis_results = special_measure_analysis_results
 
-    #     # no target required when building a library.
-    #     # if we supply one, it'll do dependency subtree extraction...
-    #     if self.is_lib() and self.root_symbol:
-    #         warnings.warn("Root symbol specified for library build. "
-    #                       "Are you sure you need dependency subtree extraction?")
-    #
-    # def is_lib(self):
-    #     return any(self.output_filename.endwith(i) for i in ['.so', '.a'])
-
-    # todo: ?
-    # def workspace(self):
-    #     return WORKSPACE_ROOT / self.project_name
-
 
 class PathFilter(object):
     def __init__(self, path_filters, include):
@@ -57,7 +43,7 @@ class PathFilter(object):
         return None
 
 
-# class SetFlags(object):
+# class ReplaceFlags(object):
 #     """Overwrite"""
 #     def __init__(self, flags):
 #         self.flags = flags
@@ -73,10 +59,6 @@ class PathFilter(object):
 #     def do(self, flags):
 #         # todo: fail or warn if already exists?
 #         pass
-
-
-# def replace_flag(flag, val):
-#     raise NotImplementedError
 
 
 class PathFlags(object):
@@ -113,44 +95,3 @@ class FlagsConfig(object):
 # def flags_from_file_system(path):
 #     # we think we'll need sys admin config, possibly from the file system
 #     pass
-
-
-#######
-
-# def create_um_flags_config(workspace):
-#
-#     um_fpp_flags = PathFlags(
-#         action=set_flags("-DUM_JULES")
-#     )
-#
-#     um_fc_flags = PathFlags(
-#         action=None
-#     )
-#
-#     um_force_flags = PathFlags(
-#         path_filter="foo",
-#         action=set_flags([])
-#     )
-#
-#     shum_fc_flags = PathFlags(
-#         path_filter="tmp-workspace/um/output/shumlib/",
-#         action=add_flags(['-std=f2018', '-c', '-J', workspace])
-#     )
-#
-#     big_mem_flags = PathFlags(
-#         path_filter="big_mem_file.f90",
-#         action=add_flags(["--big-mem"])
-#     )
-#
-#     sys_admin_forced_config = something_from_file_system("?")
-#
-#
-#     fpp_config = FlagsConfig(path_flags=[um_fpp_flags])
-#
-#     fc_config = FlagsConfig(
-#         path_flags=[um_fc_flags, shum_fc_flags, big_mem_flags, um_force_flags, sys_admin_forced_config]
-#     )
-
-
-# this is the line we need to use in the fortran compiler
-# flags = fc_config.do(path)

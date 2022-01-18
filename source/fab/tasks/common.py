@@ -3,39 +3,22 @@
 # which you should have received as part of this distribution
 
 import logging
-import re
 import subprocess
-from typing import List, Optional, Match, Set
+from typing import List, Set
 from pathlib import Path
 
-from fab.artifact import \
-    Artifact, \
-    Executable, \
-    HeadersAnalysed, \
-    Linked
-from fab.tasks import Task, TaskException
-from fab.reader import FileTextReader
 from fab.util import CompiledFile
 
 
-class Linker(Task):
-    def __init__(self,
-                 linker: str,
-                 flags: List[str],
-                 workspace: Path,
-                 output_filename: str):
+class Linker(object):
+    def __init__(self, linker: str, flags: List[str], workspace: Path, output_filename: str):
         self._linker = linker
         self._flags = flags
         self._workspace = workspace
         self._output_filename = output_filename
 
-    def run(self, artifacts: Set[CompiledFile]) -> List[Artifact]:
+    def run(self, compiled_files: Set[CompiledFile]):
         logger = logging.getLogger(__name__)
-        if len(artifacts) < 1:
-            msg = ('Linker expects at least one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
-
         output_file = str(self._workspace / self._output_filename)
 
         # building a library?
@@ -44,24 +27,21 @@ class Linker(Task):
         # TODO: WE PROBABLY WANT TO BUILD A .a FILE WITH ar INSTEAD OF A SHARED OBJECT - DISCUSS
         if self._output_filename.endswith('.so'):
             command = ['gcc', '-fPIC', '-shared', '-o', output_file]
-            command.extend([str(a.output_fpath) for a in artifacts])
+            command.extend([str(a.output_fpath) for a in compiled_files])
 
         if self._output_filename.endswith('.a'):
             command = ['ar', 'cr', output_file]
-            command.extend([str(a.output_fpath) for a in artifacts])
+            command.extend([str(a.output_fpath) for a in compiled_files])
 
         # building an executable
         else:
             command = [self._linker]
             command.extend(['-o', str(output_file)])
-            for artifact in artifacts:
-                command.append(str(artifact.output_fpath))
+            for compiled_file in compiled_files:
+                command.append(str(compiled_file.output_fpath))
             command.extend(self._flags)
 
         logger.debug('Running command: ' + ' '.join(command))
-
-
-        # subprocess.run(command, check=True)
 
         try:
             res = subprocess.run(command, check=True)
@@ -71,46 +51,5 @@ class Linker(Task):
         except Exception as err:
             raise Exception(f"error: {err}")
 
+        return self._output_filename
 
-        return []
-        # return [Artifact(output_file,
-        #                  Executable,
-        #                  Linked)]
-
-
-class HeaderAnalyser(Task):
-    _include_re = r'^\s*#include\s+(\S+)'
-    _include_pattern = re.compile(_include_re)
-
-    def __init__(self, workspace: Path):
-        self._workspace = workspace
-
-    def run(self, artifacts: List[Artifact]) -> List[Artifact]:
-        logger = logging.getLogger(__name__)
-
-        if len(artifacts) == 1:
-            artifact = artifacts[0]
-        else:
-            msg = ('Header Analyser expects only one Artifact, '
-                   f'but was given {len(artifacts)}')
-            raise TaskException(msg)
-
-        new_artifact = Artifact(artifact.location,
-                                artifact.filetype,
-                                HeadersAnalysed)
-
-        reader = FileTextReader(artifact.location)
-        logger.debug('Looking for headers in: %s', reader.filename)
-        for line in reader.line_by_line():
-            include_match: Optional[Match] \
-                = self._include_pattern.match(line)
-            if include_match:
-                include: str = include_match.group(1)
-                logger.debug('Found header: %s', include)
-                if include.startswith(('"', "'")):
-                    include = include.strip('"').strip("'")
-                    logger.debug('  * User header; adding dependency')
-                    new_artifact.add_dependency(
-                        Path(self._workspace / include))
-
-        return [new_artifact]

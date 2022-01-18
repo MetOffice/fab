@@ -4,7 +4,6 @@
 # which you should have received as part of this distribution
 ##############################################################################
 import argparse
-import configparser
 import csv
 import os
 import warnings
@@ -21,10 +20,8 @@ import shutil
 
 from fab.config_sketch import FlagsConfig, ConfigSketch
 from fab.constants import BUILD_OUTPUT, BUILD_SOURCE
-from fab.database import SqliteStateDatabase
-from fab.tasks import Task
 
-from fab.tasks.common import Linker, HeaderAnalyser
+from fab.tasks.common import Linker
 from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranCompiler
@@ -36,12 +33,13 @@ from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFil
 from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
     time_logger, CompiledFile
 
-logger = logging.getLogger('fab')
-# logger.addHandler(logging.StreamHandler(sys.stderr))
 
+logger = logging.getLogger('fab')
 
 runtime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+
+# todo: uncomment and get this working again
 def entry() -> None:
     """
     Entry point for the Fab build tool.
@@ -81,13 +79,14 @@ def entry() -> None:
     verbosity = min(arguments.verbose, 2)
     logger.setLevel(verbosity_levels[verbosity])
 
-    config, skip_files, unreferenced_deps = read_config(arguments.conf_file)
-    settings = config['settings']
+    # todo: uncomment and get this working again
+    # config, skip_files, unreferenced_deps = read_config(arguments.conf_file)
+    # settings = config['settings']
     # flags = config['flags']
 
     # If not provided, name the exec after the target
-    if settings['exec-name'] == '':
-        settings['exec-name'] = settings['target']
+    # if settings['exec-name'] == '':
+    #     settings['exec-name'] = settings['target']
 
     # application = Fab(workspace=arguments.workspace,
     #                   target=settings['target'],
@@ -124,16 +123,8 @@ class Fab(object):
         if not (workspace / BUILD_OUTPUT).exists():
             (workspace / BUILD_OUTPUT).mkdir()
 
-        self._state = SqliteStateDatabase(workspace)
-
-        # Initialise the required Tasks, providing them with any static
-        # properties such as flags to use, workspace location etc
-        # TODO: Eventually the tasks may instead access many of these
-        # properties via the configuration (at Task runtime, to allow for
-        # file-specific overrides?)
-        # self.fortran_preprocessor = FortranPreProcessor(
+        # Initialise the required Tasks
         self.fortran_preprocessor = CPreProcessor(
-            # preprocessor='cpp',
             preprocessor=['cpp', '-traditional-cpp', '-P'],
             flags=config.fpp_flag_config,
             workspace=workspace,
@@ -143,8 +134,6 @@ class Fab(object):
         self.fortran_analyser = FortranAnalyser()
 
         self.fortran_compiler = FortranCompiler(
-            # 'gfortran',
-            # compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
             # todo: make configurable
             compiler=[
                 os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
@@ -155,19 +144,10 @@ class Fab(object):
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
 
             flags=config.fc_flag_config,
-            # ['-std=gnu', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-            # ['-std=legacy', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-
-            # ['-std=f2003', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-            # ['-std=f2008', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-            # ['-std=f2008ts', '-c', '-J', str(self._workspace)] + self.fc_flags.split(),
-
             workspace=self._workspace,
             debug_skip=debug_skip,
         )
 
-        header_analyser = HeaderAnalyser(workspace)
-        # self.c_pragma_injector = CPragmaInjector(workspace)
         self.c_preprocessor = CPreProcessor(
             preprocessor=['cpp'],
             flags=config.cpp_flag_config,
@@ -177,7 +157,6 @@ class Fab(object):
         self.c_analyser = CAnalyser()
         self.c_compiler = CCompiler(
             compiler=['gcc', '-c', '-std=c99'],  # why std?
-            # flags=['-c', '-std=c99'],
             flags=config.cc_flag_config,
             workspace=workspace,
         )
@@ -200,20 +179,12 @@ class Fab(object):
 
         logger.info(f"{datetime.now()}")
 
-        # todo: 23s on vdi
-        # with time_logger("copying build tree"):
-        #     self.copy_build_tree()
-
         with time_logger("walking build folder"):
             all_source = self.walk_build_source()
 
         # todo: replace with big include path?
         with time_logger("copying inc files to root"):
             self.copy_inc_files(all_source)
-
-        # c_source_files = all_source[".c"]
-        # with time_logger(f"adding pragmas to {len(c_source_files)} c source files"):
-        #     pragmad_c = self.c_pragmas(c_source_files)
 
         c_source_files = all_source[".c"]
         with time_logger(f"preprocessing {len(c_source_files)} c files"):
@@ -303,29 +274,6 @@ class Fab(object):
         with time_logger("linking"):
             self.linker.run(all_compiled)
 
-        #
-        # file_db = FileInfoDatabase(self._state)
-        # for file_info in file_db:
-        #     print(file_info.filename)
-        #     # Where files are generated in the working directory
-        #     # by third party tools, we cannot guarantee the hashes
-        #     if file_info.filename.match(f'{self._workspace}/*'):
-        #         print('    hash: --hidden-- (generated file)')
-        #     else:
-        #         print(f'    hash: {file_info.adler32}')
-        #
-        # fortran_db = FortranWorkingState(self._state)
-        # for fortran_info in fortran_db:
-        #     print(fortran_info.unit.name)
-        #     print('    found in: ' + str(fortran_info.unit.found_in))
-        #     print('    depends on: ' + str(fortran_info.depends_on))
-        #
-        # c_db = CWorkingState(self._state)
-        # for c_info in c_db:
-        #     print(c_info.symbol.name)
-        #     print('    found_in: ' + str(c_info.symbol.found_in))
-        #     print('    depends on: ' + str(c_info.depends_on))
-
     def analyse(self, to_analyse_by_type: Dict[str, List[HashedFile]], analysis_dict_writer: csv.DictWriter) \
             -> Tuple[List[AnalysedFile], List[AnalysedFile]]:
 
@@ -367,12 +315,8 @@ class Fab(object):
         if duplicates:
             err_msg = "\n".join(map(str, duplicates))
             logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
-            # exit(1)
 
         return symbols
-
-    # def copy_build_tree(self):
-    #     shutil.copytree(self._workspace / BUILD_SOURCE, self._workspace / BUILD_OUTPUT, dirs_exist_ok=True)
 
     def walk_build_source(self) -> Dict[str, List[Path]]:
         """
@@ -429,16 +373,7 @@ class Fab(object):
             shutil.copy(fpath, self._workspace / BUILD_OUTPUT)
             inc_copied.add(fpath.name)
 
-    # def c_pragmas(self, fpaths: List[Path]):
-    #     if self.use_multiprocessing:
-    #         with multiprocessing.Pool(self.n_procs) as p:
-    #             results = p.map(CPragmaInjector, fpaths)
-    #     else:
-    #         results = [CPragmaInjector(f) for f in fpaths]
-    #
-    #     return results
-
-    def preprocess(self, fpaths, preprocessor: Task) -> Set[Path]:
+    def preprocess(self, fpaths, preprocessor) -> Set[Path]:
         if self.use_multiprocessing:
             with multiprocessing.Pool(self.n_procs) as p:
                 results = p.map(preprocessor.run, fpaths)
@@ -534,17 +469,6 @@ class Fab(object):
         # logger.debug(f"unchanged:\n{[u.fpath for u in unchanged]}")
 
         return to_analyse, unchanged
-
-    # def start_recording_analysis_progress(self, unchanged: List[AnalysedFile]):
-    #     # todo: use a database here? do a proper pros/cons with the wider team
-    #     # start a new progress file containing anything that's still valid from the last run
-    #     unchanged_rows = (pu.as_dict() for pu in unchanged)
-    #     outfile = open(self._workspace / "__analysis.csv", "wt")
-    #     dict_writer = csv.DictWriter(outfile, fieldnames=['name', 'fpath', 'deps', 'hash'])
-    #     dict_writer.writeheader()
-    #     dict_writer.writerows(unchanged_rows)
-    #     outfile.flush()
-    #     return outfile, dict_writer
 
     def analyse_file_type(self,
                           fpaths: List[HashedFile],
