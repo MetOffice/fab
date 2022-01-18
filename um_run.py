@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #
 # cli equivalent:
 #   fab ~/svn/um/trunk/src um.config -w ~/git/fab/tmp-workspace-um --stop-on-error -vv
@@ -217,9 +219,13 @@ def um_atmos_safe_config():
         fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
-        ld_flags=['-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'],
+        ld_flags=[
+            # '-L', os.path.expanduser('~/.conda/envs/sci-fab/lib'),
+            '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'),
+            '-l', 'gcom'
+        ],
         root_symbol='um_main',
-        output_filename='um_main.exe',
+        output_filename='um_atmos.exe',
         unreferenced_dependencies=[],
         special_measure_analysis_results=special_measure_analysis_results,
     )
@@ -229,8 +235,8 @@ def main():
 
     logger = logging.getLogger('fab')
     logger.addHandler(logging.StreamHandler(sys.stderr))
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     # config
     config_sketch = um_atmos_safe_config()

@@ -189,7 +189,7 @@ class Fab(object):
             # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
             # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
 
-            '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort', ['-lc', '-lgfortran'] + config.ld_flags,
+            os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'), ['-lc', '-lgfortran'] + config.ld_flags,
             workspace, config.output_filename
         )
 
@@ -300,8 +300,8 @@ class Fab(object):
         with time_logger("compiling"):
             all_compiled = self.compile(build_tree)
 
-        logger.info("\nlinking")
-        self.linker.run(all_compiled)
+        with time_logger("linking"):
+            self.linker.run(all_compiled)
 
         #
         # file_db = FileInfoDatabase(self._state)

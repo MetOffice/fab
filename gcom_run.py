@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 import logging
 import shutil
@@ -49,7 +51,9 @@ def gcom_common_config():
         fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
-        ld_flags=[],
+        ld_flags=[
+            # '-L', os.path.expanduser('~/.conda/envs/sci-fab/lib'),
+        ],
         root_symbol=None,
         output_filename=None,
         unreferenced_dependencies=[],
