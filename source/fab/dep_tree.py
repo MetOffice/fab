@@ -52,7 +52,7 @@ class AnalysedFile(object):
                 self.symbol_defs == other.symbol_defs and
                 self.symbol_deps == other.symbol_deps and
                 self.file_deps == other.file_deps and
-                self.mo_commented_file_deps == other.add_mo_commented_file_deps
+                self.mo_commented_file_deps == other.mo_commented_file_deps
         )
 
     def __hash__(self):
