@@ -21,12 +21,11 @@ import shutil
 from fab.config_sketch import FlagsConfig, ConfigSketch
 from fab.constants import BUILD_OUTPUT, BUILD_SOURCE
 
-from fab.tasks.common import Linker
+from fab.tasks.common import Linker, PreProcessor
 from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranCompiler
 from fab.tasks.c import \
-    CPreProcessor, \
     CAnalyser, \
     CCompiler
 from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, add_mo_commented_file_deps, \
@@ -105,7 +104,6 @@ class Fab(object):
     def __init__(self,
                  workspace: Path,
                  config: ConfigSketch,
-
                  n_procs: int,
                  use_multiprocessing=True,
                  debug_skip=False,
@@ -125,7 +123,7 @@ class Fab(object):
             (workspace / BUILD_OUTPUT).mkdir()
 
         # Initialise the required Tasks
-        self.fortran_preprocessor = CPreProcessor(
+        self.fortran_preprocessor = PreProcessor(
             preprocessor=['cpp', '-traditional-cpp', '-P'],
             flags=config.fpp_flag_config,
             workspace=workspace,
@@ -149,7 +147,7 @@ class Fab(object):
             debug_skip=debug_skip,
         )
 
-        self.c_preprocessor = CPreProcessor(
+        self.c_preprocessor = PreProcessor(
             preprocessor=['cpp'],
             flags=config.cpp_flag_config,
             workspace=workspace,

@@ -7,7 +7,10 @@ import subprocess
 from typing import List, Set
 from pathlib import Path
 
-from fab.util import CompiledFile
+from fab.config_sketch import FlagsConfig
+from fab.tasks.c import _CTextReaderPragmas
+
+from fab.util import CompiledFile, input_to_output_fpath, log_or_dot, fixup_command_includes
 
 
 class Linker(object):
@@ -53,3 +56,62 @@ class Linker(object):
 
         return self._output_filename
 
+
+class PreProcessor(object):
+    """Used for both C and Fortran"""
+
+    def __init__(self,
+                 preprocessor: List[str],
+                 flags: FlagsConfig,
+                 workspace: Path,
+                 output_suffix=".c",  # but is also used for fortran
+                 debug_skip=False,
+                 ):
+        self._preprocessor = preprocessor
+        self._flags = flags
+        self._workspace = workspace
+        self.output_suffix = output_suffix
+        self.debug_skip = debug_skip
+
+    def run(self, fpath: Path):
+        logger = logging.getLogger(__name__)
+
+        output_fpath = input_to_output_fpath(workspace=self._workspace, input_path=fpath)
+
+        if fpath.suffix == ".c":
+            # pragma injection
+            prag_output_fpath = fpath.parent / (fpath.name + ".prag")
+            prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
+            input_fpath = prag_output_fpath
+        elif fpath.suffix in [".f90", ".F90"]:
+            input_fpath = fpath
+            output_fpath = output_fpath.with_suffix('.f90')
+        else:
+            raise ValueError(f"Unexpected file type: '{str(fpath)}'")
+
+        # for dev speed, but this could become a good time saver with, e.g, hashes or something
+        if self.debug_skip and output_fpath.exists():
+            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+            return output_fpath
+
+        if not output_fpath.parent.exists():
+            output_fpath.parent.mkdir(parents=True, exist_ok=True)
+
+        command = [*self._preprocessor]
+        command.extend(self._flags.flags_for_path(fpath))
+
+        # the flags we were given might contain include folders which need to be converted into absolute paths
+        # todo: inconsistent with the compiler (and c?), which doesn't do this - discuss
+        fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
+
+        # input and output files
+        command.append(str(input_fpath))
+        command.append(str(output_fpath))
+
+        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
+        try:
+            subprocess.run(command, check=True, capture_output=True)
+        except subprocess.CalledProcessError as err:
+            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+
+        return output_fpath

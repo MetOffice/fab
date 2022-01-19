@@ -223,9 +223,8 @@ def um_atmos_safe_config():
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
         ld_flags=[
-            # '-L', os.path.expanduser('~/.conda/envs/sci-fab/lib'),
             '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'),
-            '-l', 'gcom'
+            '-l', 'gcom',
         ],
         root_symbol='um_main',
         output_filename='um_atmos.exe',

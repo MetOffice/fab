@@ -5,32 +5,39 @@
 C language handling classes.
 """
 import logging
-import subprocess
 import re
-import clang.cindex  # type: ignore
+import subprocess
 from collections import deque
+from pathlib import Path
 from typing import \
     List, \
     Pattern, \
     Optional, \
     Match
-from pathlib import Path
+
+import clang.cindex  # type: ignore
 
 from fab.config_sketch import FlagsConfig
 from fab.dep_tree import AnalysedFile
-
-from fab.constants import BUILD_OUTPUT, BUILD_SOURCE
-
 from fab.tasks import TaskException
+from fab.util import log_or_dot, HashedFile, CompiledFile
 
-from fab.util import log_or_dot, HashedFile, CompiledFile, fixup_command_includes, input_to_output_fpath
+logger = logging.getLogger(__name__)
 
 
 class CAnalyser(object):
-    def __init__(self):
-        self.verbose = False
+    """
+    Identify symbol definitions and dependencies in a C file.
 
+    """
+    def __init__(self):
+        pass
+
+    # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
+        """
+        Look for Fab pragmas identifying included code which came from system or user #includes.
+        """
         # Aim is to identify where included (top level) regions start and end in the file
         self._include_region = []
 
@@ -41,6 +48,7 @@ class CAnalyser(object):
             identifiers.append(token)
             if len(identifiers) < 4:
                 continue
+
             if len(identifiers) > 4:
                 identifiers.popleft()
 
@@ -63,8 +71,8 @@ class CAnalyser(object):
                         (lineno, "usr_include_end"))
 
     def _check_for_include(self, lineno) -> Optional[str]:
-        # Check whether a given line number is in a region that
-        # has come from an include (and return what kind of include)
+        """Check whether a given line number is in a region that has come from an include."""
+        # todo: don't need a stack?
         include_stack = []
         for region_line, region_type in self._include_region:
             if region_line > lineno:
@@ -80,11 +88,9 @@ class CAnalyser(object):
 
     def run(self, hashed_file: HashedFile):
         fpath, file_hash = hashed_file
-        logger = logging.getLogger(__name__)
         log_or_dot(logger, f"analysing {fpath}")
 
         analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
-
         index = clang.cindex.Index.create()
         translation_unit = index.parse(fpath, args=["-xc"])
 
@@ -93,53 +99,49 @@ class CAnalyser(object):
 
         # Now walk the actual nodes and find all relevant external symbols
         usr_symbols = []
-
-        # current_def = None
         for node in translation_unit.cursor.walk_preorder():
             if not node.spelling:
                 continue
-
             # ignore sys include stuff
             if self._check_for_include(node.location.line) == "sys_include":
                 continue
-
-            if self.verbose:
-                logger.debug('Considering node: %s', node.spelling)
+            logger.debug('Considering node: %s', node.spelling)
 
             if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL}:
-                if self.verbose:
-                    logger.debug('  * Is a declaration')
-                if node.is_definition():
-                    # only global symbols can be used by other files, not static symbols
-                    if node.linkage == clang.cindex.LinkageKind.EXTERNAL:
-                        # This should catch function definitions which are exposed
-                        # to the rest of the application
-                        if self.verbose:
-                            logger.debug('  * Is defined in this file')
-                        # todo: ignore if inside user pragmas?
-                        analysed_file.add_symbol_def(node.spelling)
-                else:
-                    # Any other declarations should be coming in via headers,
-                    # we can use the injected pragmas to work out whether these
-                    # are coming from system headers or user headers
-                    if self._check_for_include(node.location.line) == "usr_include":
-                        if self.verbose:
-                            logger.debug('  * Is not defined in this file')
-                        usr_symbols.append(node.spelling)
-
+                self.process_symbol_declaration(analysed_file, node, usr_symbols)
             elif node.kind in {clang.cindex.CursorKind.CALL_EXPR, clang.cindex.CursorKind.DECL_REF_EXPR}:
-                # When encountering a function call we should be able to
-                # cross-reference it with a definition seen earlier; and
-                # if it came from a user supplied header then we will
-                # consider it a dependency within the project
-                if self.verbose:
-                    logger.debug('  * Is a symbol usage')
-                if node.spelling in usr_symbols:
-                    if self.verbose:
-                        logger.debug('  * Is a user symbol (so a dependency)')
-                    analysed_file.add_symbol_dep(node.spelling)
+                self.process_symbol_dependency(analysed_file, node, usr_symbols)
 
         return analysed_file
+
+    def process_symbol_declaration(self, analysed_file, node, usr_symbols):
+        """Identify symbol declarations which are definitions or user includes"""
+        logger.debug('  * Is a declaration')
+        if node.is_definition():
+            # only global symbols can be used by other files, not static symbols
+            if node.linkage == clang.cindex.LinkageKind.EXTERNAL:
+                # This should catch function definitions which are exposed to the rest of the application
+                logger.debug('  * Is defined in this file')
+                # todo: ignore if inside user pragmas?
+                analysed_file.add_symbol_def(node.spelling)
+        else:
+            # Record any user included symbols in case they're referenced later in the code
+            if self._check_for_include(node.location.line) == "usr_include":
+                logger.debug('  * Is not defined in this file')
+                usr_symbols.append(node.spelling)
+
+    def process_symbol_dependency(self, analysed_file, node, usr_symbols):
+        """
+        When encountering a function call we should be able to
+        cross-reference it with a definition seen earlier; and
+        if it came from a user supplied header then we will
+        consider it a dependency within the project
+
+        """
+        logger.debug('  * Is a symbol usage')
+        if node.spelling in usr_symbols:
+            logger.debug('  * Is a user symbol (so a dependency)')
+            analysed_file.add_symbol_dep(node.spelling)
 
 
 def _CTextReaderPragmas(fpath):
@@ -154,7 +156,7 @@ def _CTextReaderPragmas(fpath):
     _include_pattern: Pattern = re.compile(_include_re)
 
     for line in open(fpath, 'rt', encoding='utf-8'):
-        include_match: Optional[Match]  = _include_pattern.match(line)
+        include_match: Optional[Match] = _include_pattern.match(line)
         if include_match:
             # For valid C the first character of the matched
             # part of the group will indicate whether this is
@@ -179,66 +181,6 @@ def _CTextReaderPragmas(fpath):
             yield line
 
 
-class CPreProcessor(object):
-    """Used for both C and Fortran"""
-
-    def __init__(self,
-                 preprocessor: List[str],
-                 flags: FlagsConfig,
-                 workspace: Path,
-                 output_suffix=".c",  # but is also used for fortran
-                 debug_skip=False,
-                 ):
-        self._preprocessor = preprocessor
-        self._flags = flags
-        self._workspace = workspace
-        self.output_suffix = output_suffix
-        self.debug_skip = debug_skip
-
-    def run(self, fpath: Path):
-        logger = logging.getLogger(__name__)
-
-        output_fpath = input_to_output_fpath(workspace=self._workspace, input_path=fpath)
-
-        if fpath.suffix == ".c":
-            # pragma injection
-            prag_output_fpath = fpath.parent / (fpath.name + ".prag")
-            prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
-            input_fpath = prag_output_fpath
-        elif fpath.suffix in [".f90", ".F90"]:
-            input_fpath = fpath
-            output_fpath = output_fpath.with_suffix('.f90')
-        else:
-            raise ValueError(f"Unexpected file type: '{str(fpath)}'")
-
-        # for dev speed, but this could become a good time saver with, e.g, hashes or something
-        if self.debug_skip and output_fpath.exists():
-            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
-            return output_fpath
-
-        if not output_fpath.parent.exists():
-            output_fpath.parent.mkdir(parents=True, exist_ok=True)
-
-        command = [*self._preprocessor]
-        command.extend(self._flags.flags_for_path(fpath))
-
-        # the flags we were given might contain include folders which need to be converted into absolute paths
-        # todo: inconsistent with the compiler (and c?), which doesn't do this - discuss
-        fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
-
-        # input and output files
-        command.append(str(input_fpath))
-        command.append(str(output_fpath))
-
-        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
-        try:
-            subprocess.run(command, check=True, capture_output=True)
-        except subprocess.CalledProcessError as err:
-            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
-
-        return output_fpath
-
-
 class CCompiler(object):
 
     def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path):
@@ -246,14 +188,14 @@ class CCompiler(object):
         self._flags = flags
         self._workspace = workspace
 
-    def run(self, af: AnalysedFile):
+    def run(self, analysed_file: AnalysedFile):
         logger = logging.getLogger(__name__)
 
         command = self._compiler
-        command.extend(self._flags.flags_for_path(af.fpath))
-        command.append(str(af.fpath))
+        command.extend(self._flags.flags_for_path(analysed_file.fpath))
+        command.append(str(analysed_file.fpath))
 
-        output_file = (self._workspace / BUILD_OUTPUT / af.fpath.with_suffix('.o').name)
+        output_file = analysed_file.fpath.with_suffix('.o')
         command.extend(['-o', str(output_file)])
 
         logger.debug('Running command: ' + ' '.join(command))
@@ -261,9 +203,8 @@ class CCompiler(object):
         try:
             res = subprocess.run(command, check=True)
             if res.returncode != 0:
-                # todo: specific exception
-                return Exception(f"The compiler exited with non zero: {res.stderr.decode()}")
+                return TaskException(f"The compiler exited with non zero: {res.stderr.decode()}")
         except Exception as err:
-            return Exception(f"error compiling {af.fpath}: {err}")
+            return TaskException(f"error compiling {analysed_file.fpath}: {err}")
 
-        return CompiledFile(af, output_file)
+        return CompiledFile(analysed_file, output_file)

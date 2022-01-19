@@ -13,12 +13,12 @@ from fab.database import SqliteStateDatabase, WorkingStateException
 from fab.tasks.c import \
     CAnalyser, \
     CInfo, \
-    CPreProcessor, \
     CPragmaInjector, \
     CCompiler, \
     CSymbolID, \
     CSymbolUnresolvedID, \
     CWorkingState
+from fab.tasks.common import PreProcessor
 from fab.artifact import \
     Artifact, \
     CSource, \
@@ -371,9 +371,9 @@ class TestCPreProcessor(object):
         # Instantiate Preprocessor
         workspace = tmp_path / 'working'
         workspace.mkdir()
-        preprocessor = CPreProcessor('foo',
-                                     ['--bar', '--baz'],
-                                     workspace)
+        preprocessor = PreProcessor('foo',
+                                    ['--bar', '--baz'],
+                                    workspace)
 
         # Create artifact
         artifact = Artifact(Path(tmp_path / 'foo.c'),
