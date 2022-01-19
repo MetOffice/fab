@@ -29,7 +29,8 @@ from fab.tasks.c import \
     CPreProcessor, \
     CAnalyser, \
     CCompiler
-from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, add_mo_commented_file_deps
+from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, add_mo_commented_file_deps, \
+    validate_build_tree
 from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
     time_logger, CompiledFile
 
@@ -264,7 +265,7 @@ class Fab(object):
         # This is driven by the config list "unreferenced-dependencies"
         self.add_unreferenced_deps(symbols, all_analysed_files, build_tree)
 
-        self.validate_build_tree(build_tree)
+        validate_build_tree(build_tree)
 
         # compile everything we need to build the target
         # todo: output into the folder structuresto avoid name clash
@@ -685,17 +686,17 @@ class Fab(object):
 
         return all_compiled
 
-    def validate_build_tree(self, target_tree):
-        """
-        If any dep is not in the tree, then it's unknown code and we won't be able to compile.
-
-        This was added as a helpful message when building the unreferenced dependencies list.
-        """
-        missing = set()
-        for pu in target_tree.values():
-            missing = missing.union(
-                [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
-
-        if missing:
-            logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
-            # exit(1)
+    # def validate_build_tree(self, target_tree):
+    #     """
+    #     If any dep is not in the tree, then it's unknown code and we won't be able to compile.
+    #
+    #     This was added as a helpful message when building the unreferenced dependencies list.
+    #     """
+    #     missing = set()
+    #     for pu in target_tree.values():
+    #         missing = missing.union(
+    #             [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
+    #
+    #     if missing:
+    #         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
+    #         # exit(1)

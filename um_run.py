@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Note: we need this to run the exe
+#   export LD_LIBRARY_PATH=~/.conda/envs/sci-fab/lib:$LD_LIBRARY_PATH
+
 #
 # cli equivalent:
 #   fab ~/svn/um/trunk/src um.config -w ~/git/fab/tmp-workspace-um --stop-on-error -vv

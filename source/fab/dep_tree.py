@@ -180,3 +180,19 @@ def add_mo_commented_file_deps(analysed_fortran: List[AnalysedFile], analysed_c:
         for dep in f.mo_commented_file_deps:
             f.file_deps.add(lookup[dep].fpath)
     logger.info(f"processed {num_found} DEPENDS ON file dependencies")
+
+
+def validate_build_tree(target_tree):
+    """
+    If any dep is not in the tree, then it's unknown code and we won't be able to compile.
+
+    This was added as a helpful message when building the unreferenced dependencies list.
+    """
+    missing = set()
+    for pu in target_tree.values():
+        missing = missing.union(
+            [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
+
+    if missing:
+        logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
+        # exit(1)
