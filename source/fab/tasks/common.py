@@ -31,6 +31,7 @@ class LinkExe(object):
         # todo: why must this come after the list of object files?
         command.extend(self.flags)
 
+        log_or_dot(logger, 'LinkExe running command: ' + ' '.join(command))
         try:
             run_command(command)
         except Exception as err:
@@ -49,6 +50,7 @@ class CreateObjectArchive(object):
         command.extend(['cr', self.output_fpath])
         command.extend([str(a.output_fpath) for a in compiled_files])
 
+        log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
         try:
             run_command(command)
         except Exception as err:
@@ -70,13 +72,11 @@ class CreateObjectArchive(object):
 #     return "foo"
 
 
-
-
 class PreProcessor(object):
     """Used for both C and Fortran"""
 
     def __init__(self,
-                 preprocessor: List[str],
+                 preprocessor: str,
                  flags: FlagsConfig,
                  workspace: Path,
                  output_suffix=".c",  # but is also used for fortran
@@ -95,6 +95,7 @@ class PreProcessor(object):
 
         if fpath.suffix == ".c":
             # pragma injection
+            # todo: The .prag file should probably live in the output folder.
             prag_output_fpath = fpath.parent / (fpath.name + ".prag")
             prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
             input_fpath = prag_output_fpath
@@ -112,7 +113,7 @@ class PreProcessor(object):
         if not output_fpath.parent.exists():
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-        command = [*self._preprocessor]
+        command = [self._preprocessor]
         command.extend(self._flags.flags_for_path(fpath))
 
         # the flags we were given might contain include folders which need to be converted into absolute paths
@@ -123,10 +124,10 @@ class PreProcessor(object):
         command.append(str(input_fpath))
         command.append(str(output_fpath))
 
-        log_or_dot(logger, 'Preprocessor running command: ' + ' '.join(command))
+        log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
         try:
-            subprocess.run(command, check=True, capture_output=True)
-        except subprocess.CalledProcessError as err:
-            return Exception(f"Error running preprocessor command: {command}\n{err.stderr}")
+            run_command(command)
+        except Exception as err:
+            raise Exception(f"error preprocessing {fpath}: {err}")
 
         return output_fpath

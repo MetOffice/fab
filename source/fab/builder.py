@@ -125,7 +125,7 @@ class Fab(object):
 
         # Initialise the required Tasks
         self.fortran_preprocessor = PreProcessor(
-            preprocessor=['cpp', '-traditional-cpp', '-P'],
+            preprocessor='cpp',
             flags=config.fpp_flag_config,
             workspace=workspace,
             output_suffix=".f90",
@@ -149,7 +149,7 @@ class Fab(object):
         )
 
         self.c_preprocessor = PreProcessor(
-            preprocessor=['cpp'],
+            preprocessor='cpp',
             flags=config.cpp_flag_config,
             workspace=workspace,
             debug_skip=debug_skip,

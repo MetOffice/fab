@@ -127,7 +127,6 @@ def um_atmos_safe_config():
 
     # fpp
     cpp_flag_config = FlagsConfig(
-        # todo: bundle (some of) these with the 'cpp' definintion?
         path_flags=[
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
                       add=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
@@ -140,7 +139,7 @@ def um_atmos_safe_config():
         ])
 
     fpp_flag_config = FlagsConfig(
-        # todo: bundle (some of) these with the 'cpp' definintion?
+        flags=['-traditional-cpp', '-P'],
         # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
         path_flags=[
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", add=['-DUM_JULES']),
@@ -151,7 +150,6 @@ def um_atmos_safe_config():
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/io_services/client/stash/", add=['-DC96_1C']),
         ])
 
-    # todo: bundle these with the gfortran definition
     fc_flag_config = FlagsConfig(
         path_flags=[
             PathFlags(add=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']),

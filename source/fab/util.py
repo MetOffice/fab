@@ -101,8 +101,6 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
 
 
 def run_command(command):
-    logger.debug('Running command: ' + ' '.join(command))
-
     try:
         res = subprocess.run(command, check=True)
         if res.returncode != 0:

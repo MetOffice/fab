@@ -85,14 +85,16 @@ class PathFlags(object):
 class FlagsConfig(object):
     """Flags for all the paths."""
 
-    def __init__(self, path_flags: Optional[List[PathFlags]] = None):
+    def __init__(self, flags: List[str], path_flags: Optional[List[PathFlags]] = None):
+        self.flags = flags
         self.path_flags = path_flags or []
 
     def flags_for_path(self, path):
-        flags_wip = []
+        flags = [*self.flags]
         for i in self.path_flags:
-            i.do(path, flags_wip)
-        return flags_wip
+            # todo: this doesn't read nicely
+            i.do(path, flags)
+        return flags
 
 # def flags_from_file_system(path):
 #     # we think we'll need sys admin config, possibly from the file system
