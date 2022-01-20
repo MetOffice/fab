@@ -36,6 +36,7 @@ from fab.config_sketch import PathFlags, FlagsConfig, PathFilter, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 
 from fab.builder import Fab
+from fab.tasks.common import LinkExe
 from fab.util import file_walk, time_logger, case_insensitive_replace
 
 
@@ -220,17 +221,64 @@ def um_atmos_safe_config():
         extract_config=extract_config,
         cpp_flag_config=cpp_flag_config,
         fpp_flag_config=fpp_flag_config,
+        root_symbol='um_main',
+        unreferenced_dependencies=[],
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
-        ld_flags=[
-            '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'),
-            '-l', 'gcom',
-        ],
-        root_symbol='um_main',
-        output_filename='um_atmos.exe',
-        unreferenced_dependencies=[],
+
+        # ld_flags=[
+        #     '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'),
+        #     '-l', 'gcom',
+        # ],
+        # output_filename='um_atmos.exe',
+
+        # CreateObjectArchive(
+        #     archiver='ar',
+        #     flags=['cr'],
+        #     use_files="*.o",
+        #     output_filename='um_atmos.a'),
+
+        # todo: we anticipate providing a list of steps like this
+        linker=LinkExe(
+            # linker='gcc',
+            linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+            flags=[
+                '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
+                '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'
+            ],
+            output_filename='um_atmos.exe'),
+
         special_measure_analysis_results=special_measure_analysis_results,
     )
+
+
+# def what_about_this_config():
+#
+#     return FabRun(
+#         project_name="foo",
+#         steps=[
+#             FabRun("gcom.cfg", version="latest"),  # LOVELY IDEA DAVE!
+#             Grab(
+#                 ("~/svn/um/trunk/src", "um"),
+#                 ("~/svn/jules/trunk/src", "jules"),
+#                 ("~/svn/socrates/trunk/src", "socrates"),
+#                 ("~/svn/shumlib/trunk", "shumlib"),
+#                 ("~/svn/casim/src", "casim"),
+#             ),
+#             Extract("foo"),
+#             WalkThing("foo"),
+#             Preprocess_C("foo"),
+#             CustomStep("foo"),
+#             Preprocess_Fortran("foo", input="use_this_instead"),
+#             CompileC("foo"),
+#             CompileFortran("foo"),
+#             # LinkAr("foo"),
+#             LinkExe(compiler="gcc", flags="foo"),
+#         ]
+#     )
+
+
+
 
 
 def main():

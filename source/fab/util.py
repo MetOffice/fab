@@ -1,5 +1,6 @@
 import logging
 import re
+import subprocess
 import sys
 import zlib
 from collections import namedtuple
@@ -97,3 +98,15 @@ def input_to_output_fpath(workspace: Path, input_path: Path):
 def case_insensitive_replace(in_str: str, find: str, replace_with: str):
     compiled_re = re.compile(find, re.IGNORECASE)
     return compiled_re.sub(replace_with, in_str)
+
+
+def run_command(command):
+    logger.debug('Running command: ' + ' '.join(command))
+
+    try:
+        res = subprocess.run(command, check=True)
+        if res.returncode != 0:
+            # todo: specific exception
+            raise Exception(f"The command exited with non zero: {res.stderr.decode()}")
+    except Exception as err:
+        raise Exception(f"error: {err}")

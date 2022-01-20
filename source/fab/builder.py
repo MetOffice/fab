@@ -21,7 +21,7 @@ import shutil
 from fab.config_sketch import FlagsConfig, ConfigSketch
 from fab.constants import BUILD_OUTPUT, BUILD_SOURCE
 
-from fab.tasks.common import Linker, PreProcessor
+from fab.tasks.common import PreProcessor
 from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranCompiler
@@ -111,6 +111,7 @@ class Fab(object):
 
         self.root_symbol = config.root_symbol
         self._workspace = workspace
+        self.config = config
         self.unreferenced_deps: List[str] = config.unreferenced_dependencies or []
 
         self.n_procs = n_procs
@@ -163,13 +164,14 @@ class Fab(object):
         # export OMPI_FC=gfortran
         # https://www.open-mpi.org/faq/?category=mpi-apps#general-build
         # steve thinks we might have to use mpif90
-        self.linker = Linker(
-            # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
-            # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
-
-            os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'), ['-lc', '-lgfortran'] + config.ld_flags,
-            workspace, config.output_filename
-        )
+        # self.linker = Linker(
+        #     # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
+        #     # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
+        #
+        #     linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'), ['-lc', '-lgfortran'] + config.ld_flags,
+        #     workspace=workspace,
+        #     output_filename=config.output_filename
+        # )
 
         # for when fparser2 cannot process a file but gfortran can compile it
         self.special_measure_analysis_results = config.special_measure_analysis_results
@@ -271,7 +273,7 @@ class Fab(object):
             all_compiled = self.compile(build_tree)
 
         with time_logger("linking"):
-            self.linker.run(all_compiled)
+            self.config.linker.run(compiled_files=all_compiled)
 
     def analyse(self, to_analyse_by_type: Dict[str, List[HashedFile]], analysis_dict_writer: csv.DictWriter) \
             -> Tuple[List[AnalysedFile], List[AnalysedFile]]:
@@ -698,3 +700,4 @@ class Fab(object):
     #     if missing:
     #         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
     #         # exit(1)
+

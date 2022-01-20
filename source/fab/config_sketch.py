@@ -10,10 +10,11 @@ class ConfigSketch(object):
                  fpp_flag_config,
                  fc_flag_config,
                  cc_flag_config,
-                 ld_flags,
                  root_symbol,
                  unreferenced_dependencies,
-                 output_filename,
+                 # ld_flags,
+                 # output_filename,
+                 linker,
                  special_measure_analysis_results=None):
 
         self.project_name = project_name
@@ -23,10 +24,11 @@ class ConfigSketch(object):
         self.fpp_flag_config = fpp_flag_config
         self.fc_flag_config = fc_flag_config
         self.cc_flag_config = cc_flag_config
-        self.ld_flags = ld_flags
         self.root_symbol = root_symbol
         self.unreferenced_dependencies = unreferenced_dependencies
-        self.output_filename = output_filename
+        # self.ld_flags = ld_flags
+        # self.output_filename = output_filename
+        self.linker = linker
 
         # for when fparser2 cannot process a file but gfortran can compile it
         self.special_measure_analysis_results = special_measure_analysis_results
