@@ -1,3 +1,7 @@
+"""
+Test CAnalyser.
+
+"""
 from pathlib import Path
 from typing import List, Tuple
 from unittest import mock
@@ -187,18 +191,3 @@ class Test__CTextReaderPragmas(object):
             '#include "bar.h"\n',
             '#pragma FAB UsrIncludeEnd\n',
         ]
-
-
-class TestCCompiler(object):
-
-    def test_run_command(self):
-        # ensure the command is formed correctly
-        mock_flags_config = Mock()
-        mock_flags_config.flags_for_path.return_value = ['-I', 'foo/bar', '-Dhello']
-        c_compiler = CCompiler(compiler=['gcc', '-c'], flags=mock_flags_config, workspace=Path("workspace"))
-
-        analysed_file = Mock(fpath=Path("foo.c"))
-
-        with mock.patch('subprocess.run') as mock_run:
-            c_compiler.run(analysed_file)
-            mock_run.assert_called_with(['gcc', '-c', '-I', 'foo/bar', '-Dhello', 'foo.c', '-o', 'foo.o'], check=True)

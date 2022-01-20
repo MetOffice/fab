@@ -19,10 +19,10 @@ logger = logging.getLogger('fab')
 
 
 class LinkExe(object):
-    def __init__(self, linker, flags, output_filename):
+    def __init__(self, linker, flags, output_fpath):
         self.linker = linker
         self.flags = flags
-        self.output_fpath = output_filename
+        self.output_fpath = output_fpath
 
     def run(self, compiled_files: List[CompiledFile]):
         command = [self.linker]
@@ -40,9 +40,8 @@ class LinkExe(object):
 
 
 class CreateObjectArchive(object):
-    def __init__(self, archiver, flags, output_fpath):
+    def __init__(self, archiver, output_fpath):
         self.archiver = archiver
-        self.flags = flags
         self.output_fpath = output_fpath
 
     def run(self, compiled_files: List[CompiledFile]):
