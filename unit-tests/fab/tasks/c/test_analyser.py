@@ -17,7 +17,7 @@ from fab.util import HashedFile
 
 
 def test_simple_result(tmp_path):
-    fpath = Path("test_analyser.c")
+    fpath = Path(Path(__file__).parent / "test_analyser.c")
     result = CAnalyser().run(HashedFile(fpath, None))
 
     expected = AnalysedFile(
