@@ -20,7 +20,7 @@ import clang.cindex  # type: ignore
 from fab.config_sketch import FlagsConfig
 from fab.dep_tree import AnalysedFile
 from fab.tasks import TaskException
-from fab.util import log_or_dot, HashedFile, CompiledFile
+from fab.util import log_or_dot, HashedFile, CompiledFile, run_command
 
 logger = logging.getLogger(__name__)
 
@@ -201,9 +201,10 @@ class CCompiler(object):
         logger.debug('Running command: ' + ' '.join(command))
 
         try:
-            res = subprocess.run(command, check=True)
-            if res.returncode != 0:
-                return TaskException(f"The compiler exited with non zero: {res.stderr.decode()}")
+            # res = subprocess.run(command, check=True)
+            # if res.returncode != 0:
+            #     return TaskException(f"The compiler exited with non zero: {res.stderr.decode()}")
+            run_command(command)
         except Exception as err:
             return TaskException(f"error compiling {analysed_file.fpath}: {err}")
 

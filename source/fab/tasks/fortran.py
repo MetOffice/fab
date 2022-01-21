@@ -19,7 +19,9 @@ from fab.config_sketch import FlagsConfig
 from fab.tasks import  TaskException
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
-from fab.util import log_or_dot, HashedFile, CompiledFile
+from fab.util import log_or_dot, HashedFile, CompiledFile, run_command
+
+logger = logging.getLogger(__name__)
 
 
 # todo: a nicer way?
@@ -62,7 +64,10 @@ def typed_child(parent, child_type):
     children = list(filter(lambda child: type(child) == child_type, parent.children))
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
-    return (children or [None])[0]
+
+    if children:
+        return children[0]
+    return None
 
 
 class FortranAnalyser(object):
@@ -77,129 +82,136 @@ class FortranAnalyser(object):
         self.depends_on_comment_found = False
 
     def run(self, hashed_file: HashedFile):
-
         fpath, file_hash = hashed_file
-        logger = logging.getLogger(__name__)
         log_or_dot(logger, f"analysing {fpath}")
 
-        # parse the fortran into a tree
-        reader = FortranFileReader(str(fpath), ignore_comments=False)
-        reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
+        # parse the file
         try:
-            tree = self.f2008_parser(reader)
-        except FortranSyntaxError as err:
-            # we can't return the FortranSyntaxError, it breaks multiprocessing!
-            logger.error(f"\nsyntax error in {fpath}\n{err}")
-            return Exception(f"syntax error in {fpath}\n{err}")
+            tree = self.parse_file(fpath=fpath)
         except Exception as err:
-            logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
-            return Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
-
-        # did it find anything?
-        if tree.content[0] == None:
+            return err
+        if tree.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             return EmptySourceFile(fpath)
 
         analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
+        # see what's in the tree
+        try:
+            for obj in iter_content(tree):
+                obj_type = type(obj)
 
+                # todo: ?replace these with function lookup dict[type, func]?
+                if obj_type == Use_Stmt:
+                    self.process_use_statement(analysed_file, obj)  ## raises
 
-        # TODO:
-        # - parse external symbol defs -> add symbol dep
-        # - ? record ALL top level things, including functions, which externs can then refer to ?
-        #   - ? or just force non module stuff to use the undeclared deps list ?
+                elif obj_type in (Module_Stmt, Program_Stmt):
+                    analysed_file.add_symbol_def(str(obj.get_name()))
 
+                elif obj_type in (Subroutine_Stmt, Function_Stmt):
+                    self.process_subroutine_or_function(analysed_file, fpath, obj)
 
-        # see what else is in the tree
-        for obj in iter_content(tree):
-            obj_type = type(obj)
-            
-            # including a module
-            if obj_type == Use_Stmt:
-                use_name = typed_child(obj, Name)
-                if not use_name:
-                    return TaskException("ERROR finding name in use statement:", obj.string)
-                use_name = use_name.string
+                # todo: we've not needed this so far, for jules or um...
+                elif obj_type == "variable binding not yet supported":
+                    return self.process_variable_binding(fpath)
 
-                if use_name not in self._intrinsic_modules:
-                    # found a dependency on fortran
-                    analysed_file.add_symbol_dep(use_name)
+                elif obj_type == Comment:
+                    self.process_comment(analysed_file, obj)
 
-            # defining a module or program
-            elif obj_type in (Module_Stmt, Program_Stmt):
-                analysed_file.add_symbol_def(str(obj.get_name()))
-
-            # function
-            elif obj_type in (Subroutine_Stmt, Function_Stmt):
-                # binding?
-                bind = typed_child(obj, Language_Binding_Spec)
-                if bind:
-                    name = typed_child(bind, Char_Literal_Constant)
-                    if not name:
-                        name = typed_child(obj, Name)
-                        logger.info(f"Warning: unnamed binding, using fortran name '{name}' in {fpath}")
-                        # # TODO: use the fortran name, lower case
-                        # return TaskException(f"Error getting name of function binding: {obj.string} in {fpath}")
-                    bind_name = name.string.replace('"', '')
-
-                    # importing a c function into fortran, i.e binding within an interface block
-                    if has_ancestor_type(obj, Interface_Block):
-                        # found a dependency on C
-                        logger.debug(f"found function binding import '{bind_name}'")
-                        analysed_file.add_symbol_dep(bind_name)
-
-                    # exporting from fortran to c, i.e binding without an interface block
-                    else:
-                        analysed_file.add_symbol_def(bind_name)
-
-                # not bound, just record the presence of the fortran symbol
-                # we don't need to record stuff in modules (we think!)
-                elif not has_ancestor_type(obj, Module) and not has_ancestor_type(obj, Interface_Block):
-                    if obj_type == Subroutine_Stmt:
-                        analysed_file.add_symbol_def(str(obj.get_name()))
-                    if obj_type == Function_Stmt:
-                        _, name, _, _ = obj.items
-                        analysed_file.add_symbol_def(name.string)
-
-            # todo: we've not needed this so far, for jules or um...
-            elif obj_type == "foo":
-                return NotImplementedError(f"variable bindings not yet implemented {fpath}")
-
-                # This should be a line binding from C to a variable definition
-                # (procedure binds are dealt with above)
-                # The name keyword on the bind statement is optional.
-                # If it doesn't exist, the Fortran variable name is used
-
-                # logger.debug('Found C bound variable called "%s"', bind_name)
-
-                # Add to the C database
-                # symbol_id = CSymbolID(cbind_name, reader.filename)
-                # cstate.add_c_symbol(symbol_id)
-                # new_artifact.add_definition(cbind_name)
-
-            # Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
-            # Be sure to alert the user that this practice is deprecated.
-            # TODO: error handling in case we catch a genuine comment
-            # TODO: separate this project-specific code from the generic f analyser?
-            elif obj_type == Comment:
-                depends_str = "DEPENDS ON:"
-                if depends_str in obj.items[0]:
-                    self.depends_on_comment_found = True
-                    dep = obj.items[0].split(depends_str)[-1].strip()
-                    # with .o means a c file
-                    if dep.endswith(".o"):
-                        analysed_file.mo_commented_file_deps.add(dep.replace(".o", ".c"))
-                    # without .o means a fortran symbol
-                    else:
-                        analysed_file.add_symbol_dep(dep)
+        except Exception as err:
+            return err
 
         logger.debug(f"    analysed {analysed_file.fpath}")
         return analysed_file
 
+    def parse_file(self, fpath):
+        """Get a node tree from a fortran file."""
+        reader = FortranFileReader(str(fpath), ignore_comments=False)
+        reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
+        try:
+            tree = self.f2008_parser(reader)
+            return tree
+        except FortranSyntaxError as err:
+            # we can't return the FortranSyntaxError, it breaks multiprocessing!
+            logger.error(f"\nsyntax error in {fpath}\n{err}")
+            raise Exception(f"syntax error in {fpath}\n{err}")
+        except Exception as err:
+            logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
+            raise Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
+
+    def process_use_statement(self, analysed_file, obj):
+        use_name = typed_child(obj, Name)
+        if not use_name:
+            raise TaskException("ERROR finding name in use statement:", obj.string)
+        use_name = use_name.string
+
+        if use_name not in self._intrinsic_modules:
+            # found a dependency on fortran
+            analysed_file.add_symbol_dep(use_name)
+
+    def process_variable_binding(self, fpath):
+        # This should be a line binding from C to a variable definition
+        # (procedure binds are dealt with above)
+        # The name keyword on the bind statement is optional.
+        # If it doesn't exist, the Fortran variable name is used
+        # logger.debug('Found C bound variable called "%s"', bind_name)
+        # Add to the C database
+        # symbol_id = CSymbolID(cbind_name, reader.filename)
+        # cstate.add_c_symbol(symbol_id)
+        # new_artifact.add_definition(cbind_name)
+        return NotImplementedError(f"variable bindings not yet implemented {fpath}")
+
+    def process_comment(self, analysed_file, obj):
+        # Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
+        # Be sure to alert the user that this practice is deprecated.
+        # TODO: error handling in case we catch a genuine comment
+        # TODO: separate this project-specific code from the generic f analyser?
+        depends_str = "DEPENDS ON:"
+        if depends_str in obj.items[0]:
+            self.depends_on_comment_found = True
+            dep = obj.items[0].split(depends_str)[-1].strip()
+            # with .o means a c file
+            if dep.endswith(".o"):
+                analysed_file.mo_commented_file_deps.add(dep.replace(".o", ".c"))
+            # without .o means a fortran symbol
+            else:
+                analysed_file.add_symbol_dep(dep)
+
+    def process_subroutine_or_function(self, analysed_file, fpath, obj):
+        # binding?
+        bind = typed_child(obj, Language_Binding_Spec)
+        if bind:
+            name = typed_child(bind, Char_Literal_Constant)
+            if not name:
+                name = typed_child(obj, Name)
+                logger.info(f"Warning: unnamed binding, using fortran name '{name}' in {fpath}")
+                # # TODO: use the fortran name, lower case
+                # return TaskException(f"Error getting name of function binding: {obj.string} in {fpath}")
+            bind_name = name.string.replace('"', '')
+
+            # importing a c function into fortran, i.e binding within an interface block
+            if has_ancestor_type(obj, Interface_Block):
+                # found a dependency on C
+                logger.debug(f"found function binding import '{bind_name}'")
+                analysed_file.add_symbol_dep(bind_name)
+
+            # exporting from fortran to c, i.e binding without an interface block
+            else:
+                analysed_file.add_symbol_def(bind_name)
+
+        # not bound, just record the presence of the fortran symbol
+        # we don't need to record stuff in modules (we think!)
+        elif not has_ancestor_type(obj, Module) and not has_ancestor_type(obj, Interface_Block):
+            if type(obj) == Subroutine_Stmt:
+                analysed_file.add_symbol_def(str(obj.get_name()))
+            if type(obj) == Function_Stmt:
+                _, name, _, _ = obj.items
+                analysed_file.add_symbol_def(name.string)
+
 
 class FortranCompiler(object):
 
-    def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path, debug_skip: bool):
+    def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path, debug_skip=False):
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
@@ -225,13 +237,11 @@ class FortranCompiler(object):
         # logger.info(program_unit.name)
         log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
         try:
-            res = subprocess.run(command, capture_output=True)
-            if res.returncode != 0:
-                # todo: specific exception
-                return Exception(f"The compiler exited with non zero: {res.stderr.decode()}")
-        # todo: not idiomatic
+            # res = subprocess.run(command, capture_output=True)
+            # if res.returncode != 0:
+            #     return Exception(f"The compiler exited with non zero: {res.stderr.decode()}")
+            run_command(command)
         except Exception as err:
-            # todo: specific exception
             return Exception("Error calling compiler:", err)
 
         return CompiledFile(analysed_file, output_fpath)
