@@ -11,6 +11,7 @@ from fab.config_sketch import PathFlags, FlagsConfig, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 
 from fab.builder import Fab
+from fab.tasks.common import CreateObjectArchive
 from fab.util import file_walk, time_logger
 
 
@@ -51,11 +52,16 @@ def gcom_common_config():
         fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
-        ld_flags=[
-            # '-L', os.path.expanduser('~/.conda/envs/sci-fab/lib'),
-        ],
         root_symbol=None,
-        output_filename=None,
+        # ld_flags=[
+        #     # '-L', os.path.expanduser('~/.conda/envs/sci-fab/lib'),
+        # ],
+        # output_filename=None,
+
+        linker=CreateObjectArchive(
+            archiver='ar',
+            output_fpath='libgcom.a'),
+
         unreferenced_dependencies=[],
     )
 

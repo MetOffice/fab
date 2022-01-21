@@ -139,7 +139,14 @@ def um_atmos_safe_config():
         ])
 
     fpp_flag_config = FlagsConfig(
+
+
+
+        # TODO: DAVE AND BYRON TO REVISIT SOON
         flags=['-traditional-cpp', '-P'],
+
+
+
         # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
         path_flags=[
             PathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", add=['-DUM_JULES']),

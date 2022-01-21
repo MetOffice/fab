@@ -85,8 +85,8 @@ class PathFlags(object):
 class FlagsConfig(object):
     """Flags for all the paths."""
 
-    def __init__(self, flags: List[str], path_flags: Optional[List[PathFlags]] = None):
-        self.flags = flags
+    def __init__(self, flags: List[str] = None, path_flags: Optional[List[PathFlags]] = None):
+        self.flags = flags or []
         self.path_flags = path_flags or []
 
     def flags_for_path(self, path):
