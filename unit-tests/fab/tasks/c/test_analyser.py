@@ -12,7 +12,7 @@ import clang
 from fab.dep_tree import AnalysedFile
 
 # import fab.tasks.c
-from fab.tasks.c import CAnalyser, _CTextReaderPragmas, CCompiler
+from fab.tasks.c import CAnalyser, _CTextReaderPragmas
 from fab.util import HashedFile
 
 

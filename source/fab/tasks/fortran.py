@@ -22,16 +22,23 @@ from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.util import log_or_dot, HashedFile, CompiledFile
 
 
+# todo: a nicer way?
 def iter_content(obj):
     """
-    Recursively iterate through everything in an fparser object's content heirarchy.   
+    Return a generator which yields every node in the tree.
+
     """
-    if not hasattr(obj, "content"):
-        return
-    for child in obj.content:
+    yield obj
+    for child in _iter_content(obj.content):
         yield child
-        for grand_child in iter_content(child):
-            yield grand_child
+
+
+def _iter_content(content):
+    for obj in content:
+        yield obj
+        if hasattr(obj, "content"):
+            for child in _iter_content(obj.content):
+                yield child
 
 
 def has_ancestor_type(obj, obj_type):
@@ -76,7 +83,6 @@ class FortranAnalyser(object):
         log_or_dot(logger, f"analysing {fpath}")
 
         # parse the fortran into a tree
-        # todo: Matthew said there's a lightweight read mode coming?
         reader = FortranFileReader(str(fpath), ignore_comments=False)
         reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
         try:
@@ -155,6 +161,7 @@ class FortranAnalyser(object):
                         _, name, _, _ = obj.items
                         analysed_file.add_symbol_def(name.string)
 
+            # todo: we've not needed this so far, for jules or um...
             elif obj_type == "foo":
                 return NotImplementedError(f"variable bindings not yet implemented {fpath}")
 
