@@ -268,7 +268,7 @@ class Fab(object):
         validate_build_tree(build_tree)
 
         # compile everything we need to build the target
-        # todo: output into the folder structuresto avoid name clash
+        # todo: output into the folder structures to avoid name clash
         with time_logger("compiling"):
             all_compiled = self.compile(build_tree)
 

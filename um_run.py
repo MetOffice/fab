@@ -143,7 +143,7 @@ def um_atmos_safe_config():
 
 
         # TODO: DAVE AND BYRON TO REVISIT SOON
-        flags=['-traditional-cpp', '-P'],
+        common_flags=['-traditional-cpp', '-P'],
 
 
 
@@ -224,24 +224,14 @@ def um_atmos_safe_config():
         project_name=project_name,
         grab_config=grab_config,
         extract_config=extract_config,
-        cpp_flag_config=cpp_flag_config,
-        fpp_flag_config=fpp_flag_config,
+
         root_symbol='um_main',
         unreferenced_dependencies=[],
+
+        cpp_flag_config=cpp_flag_config,
+        fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
-
-        # ld_flags=[
-        #     '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'),
-        #     '-l', 'gcom',
-        # ],
-        # output_filename='um_atmos.exe',
-
-        # CreateObjectArchive(
-        #     archiver='ar',
-        #     flags=['cr'],
-        #     use_files="*.o",
-        #     output_filename='um_atmos.a'),
 
         # todo: we anticipate providing a list of steps like this
         linker=LinkExe(

@@ -64,7 +64,12 @@ class PathFilter(object):
 
 
 class PathFlags(object):
-    """Flags for a path."""
+    """
+    Flags for a path.
+
+    If our path filter matches a given path, our flags are returned.
+
+    """
     # todo: allow array of filters?
 
     def __init__(self, path_filter=None, add=None):
@@ -83,14 +88,19 @@ class PathFlags(object):
 
 
 class FlagsConfig(object):
-    """Flags for all the paths."""
+    """
+    Return flags for a given path. Contains a list of PathFlags.
 
-    def __init__(self, flags: List[str] = None, path_flags: Optional[List[PathFlags]] = None):
-        self.flags = flags or []
+    Multiple path filters can match a given path.
+    For now, simply allows appending flags but will likely evolve to replace or remove flags.
+
+    """
+    def __init__(self, common_flags: Optional[List[str]] = None, path_flags: Optional[List[PathFlags]] = None):
+        self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
     def flags_for_path(self, path):
-        flags = [*self.flags]
+        flags = [*self.common_flags]
         for i in self.path_flags:
             # todo: this doesn't read nicely
             i.do(path, flags)

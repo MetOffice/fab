@@ -118,7 +118,7 @@ class PreProcessor(object):
 
         # the flags we were given might contain include folders which need to be converted into absolute paths
         # todo: inconsistent with the compiler (and c?), which doesn't do this - discuss
-        fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
+        command = fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
 
         # input and output files
         command.append(str(input_fpath))
