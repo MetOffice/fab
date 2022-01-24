@@ -19,7 +19,7 @@ from fab.tasks.fortran import \
     FortranCompiler, \
     FortranUnitID, \
     FortranUnitUnresolvedID, \
-    FortranWorkingState, iter_content, has_ancestor_type, typed_child
+    FortranWorkingState, _iter_content, _has_ancestor_type, _typed_child
 from fab.tasks.c import \
     CInfo, \
     CSymbolID, \
@@ -656,8 +656,7 @@ class TestFortranCompiler(object):
         workspace = tmp_path / 'working'
         workspace.mkdir()
         compiler = FortranCompiler('fred',
-                                   ['--barney', '--wilma'],
-                                   workspace)
+                                   ['--barney', '--wilma'])
 
         # Create artifact
         artifact = Artifact(Path(tmp_path / 'flintstone.f90'),
@@ -710,7 +709,7 @@ class TestIterContent(object):
             self.MockNode("circus")
         ])
 
-        content = list(iter_content(mock_tree))
+        content = list(_iter_content(mock_tree))
         names = [i.name for i in content]
         assert names == ['monty', "python's", 'flying', 'circus']
 
@@ -732,11 +731,11 @@ class TestHasAncestorType(object):
 
     def test_true(self):
         self.TypeA(self.TypeB(grandchild := self.TypeB()))
-        assert has_ancestor_type(grandchild, self.TypeA)
+        assert _has_ancestor_type(grandchild, self.TypeA)
 
     def test_false(self):
         self.TypeB(self.TypeB(grandchild := self.TypeB()))
-        assert not has_ancestor_type(grandchild, self.TypeA)
+        assert not _has_ancestor_type(grandchild, self.TypeA)
 
 
 class TestTypedChild(object):
@@ -752,13 +751,13 @@ class TestTypedChild(object):
 
     def test_zero(self):
         parent = self.TypeB(children=[self.TypeB(), self.TypeB()])
-        assert typed_child(parent, self.TypeA) == None
+        assert _typed_child(parent, self.TypeA) == None
 
     def test_one(self):
         parent = self.TypeB(children=[self.TypeB(), self.TypeA()])
-        assert typed_child(parent, self.TypeA)
+        assert _typed_child(parent, self.TypeA)
 
     def test_two(self):
         parent = self.TypeB(children=[self.TypeA(), self.TypeA()])
         with pytest.raises(ValueError):
-            typed_child(parent, self.TypeA)
+            _typed_child(parent, self.TypeA)

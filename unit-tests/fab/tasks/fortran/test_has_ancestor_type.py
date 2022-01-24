@@ -1,4 +1,4 @@
-from fab.tasks.fortran import has_ancestor_type
+from fab.tasks.fortran import _has_ancestor_type
 
 
 class Thing1(object):
@@ -14,8 +14,8 @@ class Test_has_ancestor_type(object):
 
     def test_true(self):
         thing = Thing1(parent=Thing1(parent=Thing2(None)))
-        assert has_ancestor_type(thing, Thing2)
+        assert _has_ancestor_type(thing, Thing2)
 
     def test_false(self):
         thing = Thing1(parent=Thing1(parent=Thing1(None)))
-        assert not has_ancestor_type(thing, Thing2)
+        assert not _has_ancestor_type(thing, Thing2)

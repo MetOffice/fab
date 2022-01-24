@@ -143,7 +143,6 @@ class Fab(object):
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
 
             flags=config.fc_flag_config,
-            workspace=self._workspace,
             debug_skip=debug_skip,
         )
 

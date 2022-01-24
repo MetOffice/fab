@@ -11,7 +11,7 @@ class Test_run(object):
         # ensure the command is formed correctly
         mock_flags_config = Mock()
         mock_flags_config.flags_for_path.return_value = ['-I', 'foo/bar', '-Dhello']
-        c_compiler = FortranCompiler(compiler=['gfortran', '-c'], flags=mock_flags_config, workspace=Path("workspace"))
+        c_compiler = FortranCompiler(compiler=['gfortran', '-c'], flags=mock_flags_config)
 
         analysed_file = Mock(fpath=Path("foo.f90"))
 

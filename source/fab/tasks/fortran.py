@@ -24,54 +24,31 @@ from fab.util import log_or_dot, HashedFile, CompiledFile, run_command
 logger = logging.getLogger(__name__)
 
 
-#
-# todo: a nicer way?
-# def iter_content(obj):
-#     """
-#     Return a generator which yields every node in the tree.
-#
-#     """
-#     yield obj
-#     for child in _iter_content(obj.content):
-#         yield child
-#
-#
-# def _iter_content(content):
-#     for obj in content:
-#         yield obj
-#         if hasattr(obj, "content"):
-#             for child in _iter_content(obj.content):
-#                 yield child
-
-# todo: nicer ?
-def iter_content(obj):
-    """
-    Return a generator which yields every node in the tree.
-    """
+def _iter_content(obj):
+    # Return a generator which yields every node in the tree.
     yield obj
     for child in obj.content:
         if hasattr(child, "content"):
-            for gchild in iter_content(child):
+            for gchild in _iter_content(child):
                 yield gchild
 
-def has_ancestor_type(obj, obj_type):
-    """Recursively check if an object has an ancestor of the given type."""
+
+def _has_ancestor_type(obj, obj_type):
+    # Recursively check if an object has an ancestor of the given type.
     if not obj.parent:
         return False
 
     if type(obj.parent) == obj_type:
         return True
 
-    return has_ancestor_type(obj.parent, obj_type)
+    return _has_ancestor_type(obj.parent, obj_type)
 
 
-def typed_child(parent, child_type):
-    """
-    Look for a child of a certain type.
+def _typed_child(parent, child_type):
+    # Look for a child of a certain type.
+    # Returns the child or None.
+    # Raises ValueError if more than one child of the given type is found.
 
-    Returns the child or None.
-    Raises ValueError if more than one child of the given type is found.
-    """
     children = list(filter(lambda child: type(child) == child_type, parent.children))
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
@@ -82,7 +59,10 @@ def typed_child(parent, child_type):
 
 
 class FortranAnalyser(object):
+    """
+    A build step which analyses a fortran file using fparser2, creating an AnalysedFile.
 
+    """
     _intrinsic_modules = ['iso_fortran_env']
 
     def __init__(self):
@@ -98,7 +78,7 @@ class FortranAnalyser(object):
 
         # parse the file
         try:
-            tree = self.parse_file(fpath=fpath)
+            tree = self._parse_file(fpath=fpath)
         except Exception as err:
             return err
         if tree.content[0] is None:
@@ -109,25 +89,25 @@ class FortranAnalyser(object):
 
         # see what's in the tree
         try:
-            for obj in iter_content(tree):
+            for obj in _iter_content(tree):
                 obj_type = type(obj)
 
                 # todo: ?replace these with function lookup dict[type, func]?
                 if obj_type == Use_Stmt:
-                    self.process_use_statement(analysed_file, obj)  ## raises
+                    self._process_use_statement(analysed_file, obj)  ## raises
 
                 elif obj_type in (Module_Stmt, Program_Stmt):
                     analysed_file.add_symbol_def(str(obj.get_name()))
 
                 elif obj_type in (Subroutine_Stmt, Function_Stmt):
-                    self.process_subroutine_or_function(analysed_file, fpath, obj)
+                    self._process_subroutine_or_function(analysed_file, fpath, obj)
 
                 # todo: we've not needed this so far, for jules or um...
                 elif obj_type == "variable binding not yet supported":
-                    return self.process_variable_binding(fpath)
+                    return self._process_variable_binding(fpath)
 
                 elif obj_type == Comment:
-                    self.process_comment(analysed_file, obj)
+                    self._process_comment(analysed_file, obj)
 
         except Exception as err:
             return err
@@ -135,7 +115,7 @@ class FortranAnalyser(object):
         logger.debug(f"    analysed {analysed_file.fpath}")
         return analysed_file
 
-    def parse_file(self, fpath):
+    def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""
         reader = FortranFileReader(str(fpath), ignore_comments=False)
         reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
@@ -150,8 +130,8 @@ class FortranAnalyser(object):
             logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
             raise Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
 
-    def process_use_statement(self, analysed_file, obj):
-        use_name = typed_child(obj, Name)
+    def _process_use_statement(self, analysed_file, obj):
+        use_name = _typed_child(obj, Name)
         if not use_name:
             raise TaskException("ERROR finding name in use statement:", obj.string)
         use_name = use_name.string
@@ -160,7 +140,7 @@ class FortranAnalyser(object):
             # found a dependency on fortran
             analysed_file.add_symbol_dep(use_name)
 
-    def process_variable_binding(self, fpath):
+    def _process_variable_binding(self, fpath):
         # This should be a line binding from C to a variable definition
         # (procedure binds are dealt with above)
         # The name keyword on the bind statement is optional.
@@ -172,7 +152,7 @@ class FortranAnalyser(object):
         # new_artifact.add_definition(cbind_name)
         return NotImplementedError(f"variable bindings not yet implemented {fpath}")
 
-    def process_comment(self, analysed_file, obj):
+    def _process_comment(self, analysed_file, obj):
         # Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
         # Be sure to alert the user that this practice is deprecated.
         # TODO: error handling in case we catch a genuine comment
@@ -188,20 +168,20 @@ class FortranAnalyser(object):
             else:
                 analysed_file.add_symbol_dep(dep)
 
-    def process_subroutine_or_function(self, analysed_file, fpath, obj):
+    def _process_subroutine_or_function(self, analysed_file, fpath, obj):
         # binding?
-        bind = typed_child(obj, Language_Binding_Spec)
+        bind = _typed_child(obj, Language_Binding_Spec)
         if bind:
-            name = typed_child(bind, Char_Literal_Constant)
+            name = _typed_child(bind, Char_Literal_Constant)
             if not name:
-                name = typed_child(obj, Name)
+                name = _typed_child(obj, Name)
                 logger.info(f"Warning: unnamed binding, using fortran name '{name}' in {fpath}")
                 # # TODO: use the fortran name, lower case
                 # return TaskException(f"Error getting name of function binding: {obj.string} in {fpath}")
             bind_name = name.string.replace('"', '')
 
             # importing a c function into fortran, i.e binding within an interface block
-            if has_ancestor_type(obj, Interface_Block):
+            if _has_ancestor_type(obj, Interface_Block):
                 # found a dependency on C
                 logger.debug(f"found function binding import '{bind_name}'")
                 analysed_file.add_symbol_dep(bind_name)
@@ -212,7 +192,7 @@ class FortranAnalyser(object):
 
         # not bound, just record the presence of the fortran symbol
         # we don't need to record stuff in modules (we think!)
-        elif not has_ancestor_type(obj, Module) and not has_ancestor_type(obj, Interface_Block):
+        elif not _has_ancestor_type(obj, Module) and not _has_ancestor_type(obj, Interface_Block):
             if type(obj) == Subroutine_Stmt:
                 analysed_file.add_symbol_def(str(obj.get_name()))
             if type(obj) == Function_Stmt:
@@ -221,11 +201,21 @@ class FortranAnalyser(object):
 
 
 class FortranCompiler(object):
+    """
+    A build step which calls a fortran compiler.
 
-    def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path, debug_skip=False):
+    """
+    def __init__(self, compiler: List[str], flags: FlagsConfig, debug_skip=False):
+        """
+
+        Args:
+            - compiler: E.g 'gfortran' or 'mpifort'
+            - flags: Config object defining common and per-path flags.
+            - debug_skip: Ignore this for now!
+
+        """
         self._compiler = compiler
         self._flags = flags
-        self._workspace = workspace
         self.debug_skip = debug_skip
 
     # @timed_method
