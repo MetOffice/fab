@@ -1,4 +1,5 @@
-from typing import List, Optional
+from collections import namedtuple
+from typing import List, Optional, NamedTuple
 
 
 class ConfigSketch(object):
@@ -45,46 +46,9 @@ class PathFilter(object):
         return None
 
 
-# class ReplaceFlags(object):
-#     """Overwrite"""
-#     def __init__(self, flags):
-#         self.flags = flags
-#
-#     def do(self, flags):
-#         pass
-
-
-# class AddFlags(object):
-#     def __init__(self, flags):
-#         self.flags = flags
-#
-#     def do(self, flags):
-#         # todo: fail or warn if already exists?
-#         pass
-
-
-class PathFlags(object):
-    """
-    Flags for a path.
-
-    If our path filter matches a given path, our flags are returned.
-
-    """
-    # todo: allow array of filters?
-
-    def __init__(self, path_filter=None, add=None):
-        self.path_filter = path_filter or ""
-        self.add = add
-
-    def do(self, path, flags_wip):
-        if not self.add:
-            return flags_wip
-
-        if not self.path_filter or self.match_path(path):
-            return flags_wip.extend(self.add)
-
-    def match_path(self, path):
-        return self.path_filter in str(path)
+class AddPathFlags(NamedTuple):
+    flags: List[str]
+    path_filter: str = ""
 
 
 class FlagsConfig(object):
@@ -95,16 +59,17 @@ class FlagsConfig(object):
     For now, simply allows appending flags but will likely evolve to replace or remove flags.
 
     """
-    def __init__(self, common_flags: Optional[List[str]] = None, path_flags: Optional[List[PathFlags]] = None):
-        self.common_flags = common_flags or []
-        self.path_flags = path_flags or []
+    def __init__(self, common_flags=None, all_path_flags=None):
+        self.common_flags: List[str] = common_flags or []
+        self.all_path_flags: List[AddPathFlags] = all_path_flags or []
 
     def flags_for_path(self, path):
-        flags = [*self.common_flags]
-        for i in self.path_flags:
-            # todo: this doesn't read nicely
-            i.do(path, flags)
-        return flags
+        flags_for_path = [*self.common_flags]
+        for path_flags in self.all_path_flags:
+            if not path_flags.path_filter or path_flags.path_filter in str(path):
+                flags_for_path += path_flags.flags
+        return flags_for_path
+
 
 # def flags_from_file_system(path):
 #     # we think we'll need sys admin config, possibly from the file system

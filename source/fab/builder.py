@@ -128,7 +128,6 @@ class Fab(object):
             preprocessor='cpp',
             flags=config.fpp_flag_config,
             workspace=workspace,
-            output_suffix=".f90",
             debug_skip=debug_skip,
         )
         self.fortran_analyser = FortranAnalyser()

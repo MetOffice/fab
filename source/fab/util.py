@@ -7,7 +7,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator
+from typing import Iterator, List
 
 from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
 
@@ -60,16 +60,25 @@ class CompiledFile(object):
         self.output_fpath = output_fpath
 
 
-def fixup_command_includes(command, source_root, file_path):
+def fixup_command_includes(command: List[str], source_root: Path, file_path: Path):
     """
+    Within a command, convert all include paths to become relative to a file or folder.
+
+    Args:
+        - command: The command to modify (not in-place), as sent to subprocess.run()
+        - source_root: The root for absolute include paths.
+        - file_path: Lives in the folder for relative include paths.
+
+    Relative paths are resolved to being relative to the given file path.
+    Absolute paths are resolved to being relative to the given root folder.
 
     E.g:
 
-        >>> fixup_command_includes(\
-            command=['-I', '/abs_inc', '-I', 'rel_inc'],\
-            source_root=Path('/home/me/src'),\
+        >>> fixup_command_includes( \
+            command=['cpp', '-I', '/abs_inc', '-I', 'rel_inc', 'foo.c'], \
+            source_root=Path('/home/me/src'), \
             file_path=Path('/home/me/src/sub/file.f90'))
-        ['-I', '/home/me/src/abs_inc', '-I', '/home/me/src/sub/rel_inc']
+        ['cpp', '-I', '/home/me/src/abs_inc', '-I', '/home/me/src/sub/rel_inc', 'foo.c']
 
     """
 

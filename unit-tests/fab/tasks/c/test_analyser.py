@@ -113,7 +113,7 @@ class Test_process_symbol_declaration(object):
         analyser = CAnalyser()
         analysed_file = Mock()
 
-        analyser.process_symbol_declaration(analysed_file=analysed_file, node=node, usr_symbols=None)
+        analyser._process_symbol_declaration(analysed_file=analysed_file, node=node, usr_symbols=None)
 
         return analysed_file
 
@@ -136,7 +136,7 @@ class Test_process_symbol_declaration(object):
 
         usr_symbols = []
 
-        analyser.process_symbol_declaration(analysed_file=None, node=node, usr_symbols=usr_symbols)
+        analyser._process_symbol_declaration(analysed_file=None, node=node, usr_symbols=usr_symbols)
 
         return usr_symbols
 
@@ -156,7 +156,7 @@ class Test_process_symbol_dependency(object):
         analysed_file = Mock()
         node = Mock(spelling=spelling)
 
-        analyser.process_symbol_dependency(analysed_file, node, usr_symbols)
+        analyser._process_symbol_dependency(analysed_file, node, usr_symbols)
 
         return analysed_file
 

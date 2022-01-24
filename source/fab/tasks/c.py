@@ -108,14 +108,14 @@ class CAnalyser(object):
             logger.debug('Considering node: %s', node.spelling)
 
             if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL}:
-                self.process_symbol_declaration(analysed_file, node, usr_symbols)
+                self._process_symbol_declaration(analysed_file, node, usr_symbols)
             elif node.kind in {clang.cindex.CursorKind.CALL_EXPR, clang.cindex.CursorKind.DECL_REF_EXPR}:
-                self.process_symbol_dependency(analysed_file, node, usr_symbols)
+                self._process_symbol_dependency(analysed_file, node, usr_symbols)
 
         return analysed_file
 
-    def process_symbol_declaration(self, analysed_file, node, usr_symbols):
-        """Identify symbol declarations which are definitions or user includes"""
+    def _process_symbol_declaration(self, analysed_file, node, usr_symbols):
+        # Identify symbol declarations which are definitions or user includes
         logger.debug('  * Is a declaration')
         if node.is_definition():
             # only global symbols can be used by other files, not static symbols
@@ -130,14 +130,12 @@ class CAnalyser(object):
                 logger.debug('  * Is not defined in this file')
                 usr_symbols.append(node.spelling)
 
-    def process_symbol_dependency(self, analysed_file, node, usr_symbols):
-        """
-        When encountering a function call we should be able to
-        cross-reference it with a definition seen earlier; and
-        if it came from a user supplied header then we will
-        consider it a dependency within the project
+    def _process_symbol_dependency(self, analysed_file, node, usr_symbols):
+        # When encountering a function call we should be able to
+        # cross-reference it with a definition seen earlier; and
+        # if it came from a user supplied header then we will
+        # consider it a dependency within the project
 
-        """
         logger.debug('  * Is a symbol usage')
         if node.spelling in usr_symbols:
             logger.debug('  * Is a user symbol (so a dependency)')

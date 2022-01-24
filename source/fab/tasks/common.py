@@ -19,7 +19,18 @@ logger = logging.getLogger('fab')
 
 
 class LinkExe(object):
-    def __init__(self, linker, flags, output_fpath):
+    """
+    A build step to produce an executable from a list of object (.o) files.
+
+    """
+    def __init__(self, linker: str, flags: List[str], output_fpath: str):
+        """
+        Args:
+            - linker: E.g 'gcc' or 'ld'.
+            - flags: A list of flags to pass to the linker.
+            - output_fpath: The file path of the output exe.
+
+        """
         self.linker = linker
         self.flags = flags
         self.output_fpath = output_fpath
@@ -41,7 +52,17 @@ class LinkExe(object):
 
 
 class CreateObjectArchive(object):
-    def __init__(self, archiver, output_fpath):
+    """
+    A build step which creates an object archive from a list of object (.o) files.
+
+    """
+    def __init__(self, archiver='ar', output_fpath='output.a'):
+        """
+        Kwargs:
+            - archiver: The archiver executable. Defaults to 'ar'.
+            - output_fpath: The file path of the output archive file.
+
+        """
         self.archiver = archiver
         self.output_fpath = output_fpath
 
@@ -73,22 +94,38 @@ class CreateObjectArchive(object):
 
 
 class PreProcessor(object):
-    """Used for both C and Fortran"""
+    """
+    A build step which calls a preprocessor. Used for both C and Fortran.
+
+    """
 
     def __init__(self,
-                 preprocessor: str,
                  flags: FlagsConfig,
                  workspace: Path,
-                 output_suffix=".c",  # but is also used for fortran
+                 preprocessor='cpp',
                  debug_skip=False,
                  ):
+        """
+        Args:
+            - flags: Config object defining common and per-path flags.
+            - workspace: The folder in which to find the source and output folders.
+
+        Kwargs:
+            - preprocessor: The name of the executable. Defaults to 'cpp'.
+            - debug_skip: Ignore this for now!
+
+        """
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
-        self.output_suffix = output_suffix
         self.debug_skip = debug_skip
 
     def run(self, fpath: Path):
+        """
+        Expects an input file in the source folder.
+        Writes the output file to the output folder, with a lower case extension.
+
+        """
         logger = logging.getLogger(__name__)
 
         output_fpath = input_to_output_fpath(workspace=self._workspace, input_path=fpath)
