@@ -24,24 +24,35 @@ from fab.util import log_or_dot, HashedFile, CompiledFile, run_command
 logger = logging.getLogger(__name__)
 
 
+#
 # todo: a nicer way?
+# def iter_content(obj):
+#     """
+#     Return a generator which yields every node in the tree.
+#
+#     """
+#     yield obj
+#     for child in _iter_content(obj.content):
+#         yield child
+#
+#
+# def _iter_content(content):
+#     for obj in content:
+#         yield obj
+#         if hasattr(obj, "content"):
+#             for child in _iter_content(obj.content):
+#                 yield child
+
+# todo: nicer ?
 def iter_content(obj):
     """
     Return a generator which yields every node in the tree.
-
     """
     yield obj
-    for child in _iter_content(obj.content):
-        yield child
-
-
-def _iter_content(content):
-    for obj in content:
-        yield obj
-        if hasattr(obj, "content"):
-            for child in _iter_content(obj.content):
-                yield child
-
+    for child in obj.content:
+        if hasattr(child, "content"):
+            for gchild in iter_content(child):
+                yield gchild
 
 def has_ancestor_type(obj, obj_type):
     """Recursively check if an object has an ancestor of the given type."""
