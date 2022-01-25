@@ -60,7 +60,7 @@ def _typed_child(parent, child_type):
 
 class FortranAnalyser(object):
     """
-    A build step which analyses a fortran file using fparser2, creating an AnalysedFile.
+    A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFile`.
 
     """
     _intrinsic_modules = ['iso_fortran_env']

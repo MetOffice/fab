@@ -6,6 +6,11 @@
 '''
 Flexible build system for scientific software.
 '''
+
+
+import fab.builder as builder
+
+
 __version__ = '2020.4.dev0'
 
 
