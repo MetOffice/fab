@@ -30,6 +30,8 @@ from collections import namedtuple
 
 from pathlib import Path
 
+from fab.steps import Step
+
 from fab.dep_tree import AnalysedFile
 
 from fab.config_sketch import AddPathFlags, FlagsConfig, PathFilter, ConfigSketch
@@ -149,7 +151,7 @@ def um_atmos_safe_config():
 
     # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
     fortran_preprocessor = FortranPreProcessor(
-        name="fortran preprocess", workspace=workspace, n_procs=n_procs, preprocessor='cpp', debug_skip=False,
+        name="fortran preprocess", workspace=workspace, preprocessor='cpp', debug_skip=False,
         flags=FlagsConfig(
             common_flags=['-traditional-cpp', '-P'],
             all_path_flags=[
@@ -163,7 +165,7 @@ def um_atmos_safe_config():
     )
 
     c_preprocessor = CPreProcessor(
-        name="c preprocess", workspace=workspace, n_procs=n_procs, preprocessor='cpp', debug_skip=False,
+        name="c preprocess", workspace=workspace, preprocessor='cpp', debug_skip=False,
         flags=FlagsConfig(
             all_path_flags=[
                 AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
@@ -184,7 +186,9 @@ def um_atmos_safe_config():
         c_preprocessor,
     ]
 
-
+    # todo: a better way?
+    Step.use_multiprocessing = True
+    Step.n_procs = 3
 
 
 

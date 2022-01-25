@@ -6,14 +6,14 @@ from fab.constants import BUILD_SOURCE
 from fab.config_sketch import FlagsConfig
 from fab.dep_tree import by_type
 
-from fab.steps import MPStep
+from fab.steps import Step
 from fab.tasks.c import _CTextReaderPragmas
 from fab.util import log_or_dot_finish, input_to_output_fpath, fixup_command_includes, log_or_dot, run_command
 
 logger = logging.getLogger('fab')
 
 
-class PreProcessor(MPStep):
+class PreProcessor(Step):
     """
     A build step which calls a preprocessor. Used for both C and Fortran.
 
@@ -23,7 +23,6 @@ class PreProcessor(MPStep):
                  flags: FlagsConfig,
                  workspace: Path,
                  name='preprocess',
-                 n_procs=1,
                  preprocessor='cpp',
                  debug_skip=False,
                  ):
@@ -37,18 +36,18 @@ class PreProcessor(MPStep):
             - debug_skip: Ignore this for now!
 
         """
-        super().__init__(name=name, n_procs=n_procs)
+        super().__init__(name=name)
 
         self._preprocessor = preprocessor
         self._flags = flags
         self._workspace = workspace
         self.debug_skip = debug_skip
 
-    def input_artefacts(self, artefacts):
-        raise NotImplementedError
-
-    def output_artefacts(self, results, artefacts):
-        raise NotImplementedError
+    # def input_artefacts(self, artefacts):
+    #     raise NotImplementedError
+    #
+    # def output_artefacts(self, results, artefacts):
+    #     raise NotImplementedError
 
     def process_artefact(self, fpath):
         """
@@ -100,11 +99,13 @@ class PreProcessor(MPStep):
 
 class FortranPreProcessor(PreProcessor):
 
-    def input_artefacts(self, artefacts):
-        return artefacts['all_source']['.f90'] + artefacts['all_source']['.F90']
+    def run(self, artefacts):
 
-    def output_artefacts(self, results, artefacts):
-        # todo: how much of this is common, how much could go in run()?
+        mp_input = artefacts['all_source']['.f90'] + artefacts['all_source']['.F90']
+
+        results = self.run_mp(artefacts=mp_input, func=self.process_artefact)
+
+        # todo: move into run_mp?
         results_by_type = by_type(results)
 
         # any errors?
@@ -123,10 +124,12 @@ class FortranPreProcessor(PreProcessor):
 
 class CPreProcessor(PreProcessor):
 
-    def input_artefacts(self, artefacts):
-        return artefacts['all_source']['.c']
+    def run(self, artefacts):
+        mp_input = artefacts['all_source']['.c']
 
-    def output_artefacts(self, results, artefacts):
+        results = self.run_mp(artefacts=mp_input, func=self.process_artefact)
+
+        # todo: move into run_mp?
         results_by_type = by_type(results)
 
         # any errors?
