@@ -36,6 +36,9 @@ from fab.config_sketch import AddPathFlags, FlagsConfig, PathFilter, ConfigSketc
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 
 from fab.builder import Build
+from fab.steps.preprocess import PreProcessor, FortranPreProcessor, CPreProcessor
+from fab.steps.root_inc_files import RootIncFiles
+from fab.steps.walk_source import WalkSource
 from fab.tasks.common import LinkExe
 from fab.util import file_walk, time_logger, case_insensitive_replace
 
@@ -56,6 +59,19 @@ from fab.util import file_walk, time_logger, case_insensitive_replace
 def um_atmos_safe_config():
 
     project_name = 'um_atmos_safe'
+    # workspace = f'tmp-workspace/{project_name}'
+    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
+    n_procs = 3
+
+
+
+
+
+
+
+
+
+
 
     # todo: docstring about relative and absolute (=output) include paths
     #       this is quite tightly coupled to the preprocessor
@@ -125,37 +141,79 @@ def um_atmos_safe_config():
         PathFilter(['.sh'], include=False),
     ]
 
+
+
+
+
+
+
+    # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
+    fortran_preprocessor = FortranPreProcessor(
+        name="fortran preprocess", workspace=workspace, n_procs=n_procs, preprocessor='cpp', debug_skip=False,
+        flags=FlagsConfig(
+            common_flags=['-traditional-cpp', '-P'],
+            all_path_flags=[
+                AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", flags=['-DUM_JULES']),
+                AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/", flags=['-I', 'include']),
+
+                # coupling defines
+                AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/control/timer/", flags=['-DC97_3A']),
+                AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/io_services/client/stash/", flags=['-DC96_1C']),
+            ]),
+    )
+
+    c_preprocessor = CPreProcessor(
+        name="c preprocess", workspace=workspace, n_procs=n_procs, preprocessor='cpp', debug_skip=False,
+        flags=FlagsConfig(
+            all_path_flags=[
+                AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
+                             flags=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+                AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib/",
+                             flags=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+
+                # todo: just 3 folders use this
+                AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",
+                             flags=['-DC95_2A', '-I', '/shumlib/shum_byteswap/src']),
+            ]),
+    )
+
+    steps = [
+        WalkSource(build_source=Path(workspace)/BUILD_SOURCE),
+        RootIncFiles(build_source=Path(workspace)/BUILD_SOURCE),
+        fortran_preprocessor,
+        c_preprocessor,
+    ]
+
+
+
+
+
+
     # fpp
-    cpp_flag_config = FlagsConfig(
-        all_path_flags=[
-            AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
-                         flags=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
-            AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib/",
-                         flags=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+    # cpp_flag_config = FlagsConfig(
+    #     all_path_flags=[
+    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
+    #                      flags=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib/",
+    #                      flags=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
+    #
+    #         # todo: just 3 folders use this
+    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",
+    #                      flags=['-DC95_2A', '-I', '/shumlib/shum_byteswap/src']),
+    #     ])
 
-            # todo: just 3 folders use this
-            AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",
-                         flags=['-DC95_2A', '-I', '/shumlib/shum_byteswap/src']),
-        ])
-
-    fpp_flag_config = FlagsConfig(
-
-
-
-        # TODO: DAVE AND BYRON TO REVISIT SOON
-        common_flags=['-traditional-cpp', '-P'],
-
-
-
-        # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
-        all_path_flags=[
-            AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", flags=['-DUM_JULES']),
-            AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/", flags=['-I', 'include']),
-
-            # coupling defines
-            AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/control/timer/", flags=['-DC97_3A']),
-            AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/io_services/client/stash/", flags=['-DC96_1C']),
-        ])
+    # fpp_flag_config = FlagsConfig(
+    #     # TODO: DAVE AND BYRON TO REVISIT SOON
+    #     common_flags=['-traditional-cpp', '-P'],
+    #     # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
+    #     all_path_flags=[
+    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", flags=['-DUM_JULES']),
+    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/", flags=['-I', 'include']),
+    #
+    #         # coupling defines
+    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/control/timer/", flags=['-DC97_3A']),
+    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/io_services/client/stash/", flags=['-DC96_1C']),
+    #     ])
 
     fc_flag_config = FlagsConfig(
         all_path_flags=[
@@ -221,15 +279,20 @@ def um_atmos_safe_config():
     ]
 
     return ConfigSketch(
+
+        steps=steps,
+
         project_name=project_name,
+        workspace=workspace,
+
         grab_config=grab_config,
         extract_config=extract_config,
 
         root_symbol='um_main',
         unreferenced_dependencies=[],
 
-        cpp_flag_config=cpp_flag_config,
-        fpp_flag_config=fpp_flag_config,
+        # cpp_flag_config=cpp_flag_config,
+        # fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
 
@@ -285,7 +348,7 @@ def main():
 
     # config
     config_sketch = um_atmos_safe_config()
-    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
+    # workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
 
     # Get source repos
     # with time_logger("grabbing"):
@@ -296,7 +359,7 @@ def main():
     #     extract_will_do_this(config_sketch.extract_config, workspace)
 
     builder = Build(
-        workspace=workspace,
+        # workspace=config.workspace,
         config=config_sketch,
 
         # fab behaviour
@@ -305,6 +368,8 @@ def main():
         debug_skip=True,
         # dump_source_tree=True
      )
+
+    # MPStep.use_mmmm = False
 
     with time_logger("fab run"):
         builder.run()

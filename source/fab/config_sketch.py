@@ -1,14 +1,23 @@
 from collections import namedtuple
 from typing import List, Optional, NamedTuple
 
+from fab.steps import Step
+
 
 class ConfigSketch(object):
     def __init__(self,
+                 
+                 steps: List[Step],
+                 
+                 
                  project_name,
+                 workspace,
+
+
                  grab_config,
                  extract_config,
-                 cpp_flag_config,
-                 fpp_flag_config,
+                 # cpp_flag_config,
+                 # fpp_flag_config,
                  fc_flag_config,
                  cc_flag_config,
                  root_symbol,
@@ -18,11 +27,13 @@ class ConfigSketch(object):
                  linker,
                  special_measure_analysis_results=None):
 
+        self.steps = steps
         self.project_name = project_name
+        self.workspace = workspace
         self.grab_config = grab_config
         self.extract_config = extract_config
-        self.cpp_flag_config = cpp_flag_config
-        self.fpp_flag_config = fpp_flag_config
+        # self.cpp_flag_config = cpp_flag_config
+        # self.fpp_flag_config = fpp_flag_config
         self.fc_flag_config = fc_flag_config
         self.cc_flag_config = cc_flag_config
         self.root_symbol = root_symbol

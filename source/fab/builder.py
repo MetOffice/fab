@@ -15,13 +15,11 @@ from typing import Dict, List, Tuple, Set, Iterable
 
 import logging
 import multiprocessing
-from pathlib import Path, PosixPath
-import shutil
+from pathlib import Path
 
-from fab.config_sketch import FlagsConfig, ConfigSketch
-from fab.constants import BUILD_OUTPUT, BUILD_SOURCE
+from fab.config_sketch import ConfigSketch
+from fab.constants import BUILD_OUTPUT
 
-from fab.tasks.common import PreProcessor
 from fab.tasks.fortran import \
     FortranAnalyser, \
     FortranCompiler
@@ -30,7 +28,7 @@ from fab.tasks.c import \
     CCompiler
 from fab.dep_tree import AnalysedFile, by_type, extract_sub_tree, EmptySourceFile, add_mo_commented_file_deps, \
     validate_build_tree
-from fab.util import log_or_dot_finish, do_checksum, file_walk, HashedFile, \
+from fab.util import log_or_dot_finish, do_checksum, HashedFile, \
     time_logger, CompiledFile
 
 
@@ -102,7 +100,7 @@ def entry() -> None:
 
 class Build(object):
     def __init__(self,
-                 workspace: Path,
+                 # workspace: Path,
                  config: ConfigSketch,
                  n_procs: int,
                  use_multiprocessing=True,
@@ -110,7 +108,7 @@ class Build(object):
                  dump_source_tree=False):
 
         self.root_symbol = config.root_symbol
-        self._workspace = workspace
+        # self._workspace = workspace
         self.config = config
         self.unreferenced_deps: List[str] = config.unreferenced_dependencies or []
 
@@ -118,18 +116,11 @@ class Build(object):
         self.use_multiprocessing = use_multiprocessing
         self.dump_source_tree = dump_source_tree
 
-        if not workspace.exists():
-            workspace.mkdir(parents=True)
-        if not (workspace / BUILD_OUTPUT).exists():
-            (workspace / BUILD_OUTPUT).mkdir()
+        if not config.workspace.exists():
+            config.workspace.mkdir(parents=True)
+        if not (config.workspace / BUILD_OUTPUT).exists():
+            (config.workspace / BUILD_OUTPUT).mkdir()
 
-        # Initialise the required Tasks
-        self.fortran_preprocessor = PreProcessor(
-            preprocessor='cpp',
-            flags=config.fpp_flag_config,
-            workspace=workspace,
-            debug_skip=debug_skip,
-        )
         self.fortran_analyser = FortranAnalyser()
 
         self.fortran_compiler = FortranCompiler(
@@ -137,7 +128,7 @@ class Build(object):
             compiler=[
                 os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
                 '-c',
-                '-J', str(workspace / BUILD_OUTPUT),  # .mod file output and include folder
+                '-J', str(config.workspace / BUILD_OUTPUT),  # .mod file output and include folder
             ],
 
             # '/home/h02/bblay/.conda/envs/sci-fab/bin/mpifort',
@@ -146,30 +137,12 @@ class Build(object):
             debug_skip=debug_skip,
         )
 
-        self.c_preprocessor = PreProcessor(
-            preprocessor='cpp',
-            flags=config.cpp_flag_config,
-            workspace=workspace,
-            debug_skip=debug_skip,
-        )
         self.c_analyser = CAnalyser()
         self.c_compiler = CCompiler(
             compiler=['gcc', '-c', '-std=c99'],  # why std?
             flags=config.cc_flag_config,
-            workspace=workspace,
+            workspace=config.workspace,
         )
-
-        # export OMPI_FC=gfortran
-        # https://www.open-mpi.org/faq/?category=mpi-apps#general-build
-        # steve thinks we might have to use mpif90
-        # self.linker = Linker(
-        #     # 'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
-        #     # 'mpifort', ['-lc', '-lgfortran'] + ld_flags.split(),
-        #
-        #     linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'), ['-lc', '-lgfortran'] + config.ld_flags,
-        #     workspace=workspace,
-        #     output_filename=config.output_filename
-        # )
 
         # for when fparser2 cannot process a file but gfortran can compile it
         self.special_measure_analysis_results = config.special_measure_analysis_results
@@ -180,35 +153,17 @@ class Build(object):
 
 
 
-        # artifacts = dict()
-        # for step in self.config.steps:
-        #     with time_logger(step.desc):
-        #         artifacts.update(step.run())
-        #
-        # # artifacts["all_source"]
-        #
-        # ppstep(fpaths=lambda artifacts: artifact["all_source"]["*.c"])
+        artefacts = dict()
+        for step in self.config.steps:
+            with time_logger(step.name):
+                step.run(artefacts)
 
 
 
-        with time_logger("walking build folder"):
-            all_source = self.walk_build_source()
-
-        # todo: replace with big include path?
-        with time_logger("copying inc files to root"):
-            self.copy_inc_files(all_source)
-
-        c_source_files = all_source[".c"]
-        with time_logger(f"preprocessing {len(c_source_files)} c files"):
-            preprocessed_c = self.preprocess(fpaths=c_source_files, preprocessor=self.c_preprocessor)
-
-        fortran_source_files = all_source[".F90"] + all_source[".f90"]
-        with time_logger(f"preprocessing {len(fortran_source_files)} fortran source files"):
-            preprocessed_fortran = self.preprocess(fpaths=fortran_source_files, preprocessor=self.fortran_preprocessor)
 
         # take hashes of all the files we preprocessed
-        with time_logger(f"getting {len(preprocessed_fortran) + len(preprocessed_c)} file hashes"):
-            preprocessed_hashes = self.get_latest_checksums(preprocessed_fortran | preprocessed_c)
+        with time_logger(f"getting {len(artefacts['preprocessed_fortran']) + len(artefacts['preprocessed_c'])} file hashes"):
+            preprocessed_hashes = self.get_latest_checksums(artefacts['preprocessed_fortran'] | artefacts['preprocessed_c'])
 
         # analyse c and fortran
         with self.analysis_progress(preprocessed_hashes) as (unchanged, to_analyse, analysis_dict_writer):
@@ -221,12 +176,6 @@ class Build(object):
                 # todo: create a special measures notification function? with a loud summary at the end of the build?
                 warnings.warn(f"SPECIAL MEASURE for {analysed_file.fpath}: injecting user-defined analysis results")
                 all_analysed_files[analysed_file.fpath] = analysed_file
-
-        if self.dump_source_tree:
-            with open(datetime.now().strftime(f"tmp/af1_{runtime_str}.txt"), "wt") as outfile:
-                sorted_files = sorted(all_analysed_files.values(), key=lambda af: af.fpath)
-                for af in sorted_files:
-                    af.dump(outfile)
 
         # Make "external" symbol table
         with time_logger("creating symbol lookup"):
@@ -251,12 +200,6 @@ class Build(object):
         with time_logger("adding MO 'DEPENDS ON:' file dependency comments"):
             add_mo_commented_file_deps(analysed_fortran, analysed_c)
 
-        if self.dump_source_tree:
-            with open(datetime.now().strftime(f"tmp/af2_{runtime_str}.txt"), "wt") as outfile:
-                sorted_files = sorted(all_analysed_files.values(), key=lambda af: af.fpath)
-                for af in sorted_files:
-                    af.dump(outfile)
-
 
         # TODO: document this: when there's duplicate symbols, the size of the (possibly wrong) build tree can vary...
         # Target tree extraction - for building executables.
@@ -269,6 +212,15 @@ class Build(object):
         else:
             logger.info("no target specified, building everything")
             build_tree = all_analysed_files
+
+
+
+        # if self.dump_source_tree:
+        #     with open(datetime.now().strftime(f"tmp/af2_{runtime_str}.txt"), "wt") as outfile:
+        #         sorted_files = sorted(all_analysed_files.values(), key=lambda af: af.fpath)
+        #         for af in sorted_files:
+        #             af.dump(outfile)
+
 
 
         # Recursively add any unreferenced dependencies
@@ -312,80 +264,80 @@ class Build(object):
 
         return analysed_c, analysed_fortran
 
-    def walk_build_source(self) -> Dict[str, List[Path]]:
-        """
-        Get all files in the folder and subfolders.
+    # def walk_build_source(self) -> Dict[str, List[Path]]:
+    #     """
+    #     Get all files in the folder and subfolders.
+    #
+    #     Returns a dict[source_folder][extension] = file_list
+    #     """
+    #     build_source = self._workspace / BUILD_SOURCE
+    #     fpaths = file_walk(build_source)
+    #     if not fpaths:
+    #         logger.warning(f"no source files found")
+    #         exit(1)
+    #
+    #     # group by suffix, and record folders
+    #     fpaths_by_type = defaultdict(list)
+    #     input_folders = set()
+    #     for fpath in fpaths:
+    #         fpaths_by_type[fpath.suffix].append(fpath)
+    #         input_folders.add(fpath.parent.relative_to(build_source))
+    #
+    #     # create output folders
+    #     build_output = self._workspace / BUILD_OUTPUT
+    #     for input_folder in input_folders:
+    #         path = build_output / input_folder
+    #         path.mkdir(parents=True, exist_ok=True)
+    #
+    #     return fpaths_by_type
 
-        Returns a dict[source_folder][extension] = file_list
-        """
-        build_source = self._workspace / BUILD_SOURCE
-        fpaths = file_walk(build_source)
-        if not fpaths:
-            logger.warning(f"no source files found")
-            exit(1)
+    # # todo: multiprocessing
+    # # todo: ancillary file types should be in the project config?
+    # def copy_inc_files(self, files_by_type: Dict[str, List[Path]]):
+    #     """
+    #     Copy inc files into the workspace.
+    #
+    #     Required for preprocessing
+    #     Copies everything to the workspace root.
+    #     Checks for name clash.
+    #
+    #     """
+    #     # inc files all go in the root - they're going to be removed altogether, soon
+    #     inc_copied = set()
+    #     for fpath in files_by_type[".inc"]:
+    #
+    #         # don't copy form the output root to the output root!
+    #         # (i.e ancillary files from a previous run)
+    #         if fpath.parent == self._workspace / BUILD_OUTPUT:
+    #             continue
+    #
+    #         logger.debug(f"copying inc file {fpath}")
+    #         if fpath.name in inc_copied:
+    #             logger.error(f"name clash for ancillary file: {fpath}")
+    #             exit(1)
+    #
+    #         shutil.copy(fpath, self._workspace / BUILD_OUTPUT)
+    #         inc_copied.add(fpath.name)
 
-        # group by suffix, and record folders
-        fpaths_by_type = defaultdict(list)
-        input_folders = set()
-        for fpath in fpaths:
-            fpaths_by_type[fpath.suffix].append(fpath)
-            input_folders.add(fpath.parent.relative_to(build_source))
-
-        # create output folders
-        build_output = self._workspace / BUILD_OUTPUT
-        for input_folder in input_folders:
-            path = build_output / input_folder
-            path.mkdir(parents=True, exist_ok=True)
-
-        return fpaths_by_type
-
-    # todo: multiprocessing
-    # todo: ancillary file types should be in the project config?
-    def copy_inc_files(self, files_by_type: Dict[str, List[Path]]):
-        """
-        Copy inc files into the workspace.
-
-        Required for preprocessing
-        Copies everything to the workspace root.
-        Checks for name clash.
-
-        """
-        # inc files all go in the root - they're going to be removed altogether, soon
-        inc_copied = set()
-        for fpath in files_by_type[".inc"]:
-
-            # don't copy form the output root to the output root!
-            # (i.e ancillary files from a previous run)
-            if fpath.parent == self._workspace / BUILD_OUTPUT:
-                continue
-
-            logger.debug(f"copying inc file {fpath}")
-            if fpath.name in inc_copied:
-                logger.error(f"name clash for ancillary file: {fpath}")
-                exit(1)
-
-            shutil.copy(fpath, self._workspace / BUILD_OUTPUT)
-            inc_copied.add(fpath.name)
-
-    def preprocess(self, fpaths, preprocessor) -> Set[Path]:
-        if self.use_multiprocessing:
-            with multiprocessing.Pool(self.n_procs) as p:
-                results = p.map(preprocessor.run, fpaths)
-        else:
-            results = [preprocessor.run(f) for f in fpaths]
-        results = by_type(results)
-
-        # any errors?
-        if results[Exception]:
-            formatted_errors = "\n\n".join(map(str, results[Exception]))
-            raise Exception(
-                f"{formatted_errors}"
-                f"\n\n{len(results[Exception])} "
-                f"Error(s) found during preprocessing: "
-            )
-
-        log_or_dot_finish(logger)
-        return results[PosixPath]
+    # def preprocess(self, fpaths, preprocessor) -> Set[Path]:
+    #     if self.use_multiprocessing:
+    #         with multiprocessing.Pool(self.n_procs) as p:
+    #             results = p.map(preprocessor.run, fpaths)
+    #     else:
+    #         results = [preprocessor.run(f) for f in fpaths]
+    #     results = by_type(results)
+    #
+    #     # any errors?
+    #     if results[Exception]:
+    #         formatted_errors = "\n\n".join(map(str, results[Exception]))
+    #         raise Exception(
+    #             f"{formatted_errors}"
+    #             f"\n\n{len(results[Exception])} "
+    #             f"Error(s) found during preprocessing: "
+    #         )
+    #
+    #     log_or_dot_finish(logger)
+    #     return results[PosixPath]
 
     def get_latest_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
         if self.use_multiprocessing:
@@ -407,7 +359,7 @@ class Build(object):
 
         with time_logger("starting analysis progress file"):
             unchanged_rows = (pu.as_dict() for pu in unchanged)
-            analysis_progress_file = open(self._workspace / "__analysis.csv", "wt")
+            analysis_progress_file = open(self.config.workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
             analysis_dict_writer.writeheader()
             analysis_dict_writer.writerows(unchanged_rows)
@@ -427,7 +379,7 @@ class Build(object):
         # Note: it would be easy to switch to a database instead of a csv file
         prev_results: Dict[Path, AnalysedFile] = dict()
         try:
-            with open(self._workspace / "__analysis.csv", "rt") as csv_file:
+            with open(self.config.workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
                     current_file = AnalysedFile.from_dict(row)
