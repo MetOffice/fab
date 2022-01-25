@@ -10,7 +10,7 @@ from pathlib import Path
 from fab.config_sketch import AddPathFlags, FlagsConfig, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 
-from fab.builder import Fab
+from fab.builder import Build
 from fab.tasks.common import CreateObjectArchive
 from fab.util import file_walk, time_logger
 
@@ -102,7 +102,7 @@ def main():
         extract_will_do_this(config_sketch.extract_config, workspace)
 
 
-    my_fab = Fab(
+    my_fab = Build(
         workspace=workspace,
         config=config_sketch,
 

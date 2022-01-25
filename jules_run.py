@@ -23,7 +23,7 @@ from pathlib import Path
 
 from fab.constants import SOURCE_ROOT
 
-from fab.builder import Fab
+from fab.builder import Build
 
 
 def main():
@@ -47,19 +47,19 @@ def main():
     settings = config['settings']
     flags = config['flags']
 
-    my_fab = Fab(workspace=workspace,
-                 target=settings['target'],
-                 exec_name=settings['exec-name'],
-                 fpp_flags=flags['fpp-flags'],
-                 fc_flags=flags['fc-flags'],
-                 ld_flags=flags['ld-flags'],
-                 n_procs=3,
-                 stop_on_error=True,
-                 skip_files=config.skip_files,
-                 unreferenced_deps=config.unreferenced_deps,
-                 # use_multiprocessing=False,
-                 # debug_skip=True,
-                 include_paths=config.include_paths)
+    my_fab = Build(workspace=workspace,
+                   target=settings['target'],
+                   exec_name=settings['exec-name'],
+                   fpp_flags=flags['fpp-flags'],
+                   fc_flags=flags['fc-flags'],
+                   ld_flags=flags['ld-flags'],
+                   n_procs=3,
+                   stop_on_error=True,
+                   skip_files=config.skip_files,
+                   unreferenced_deps=config.unreferenced_deps,
+                   # use_multiprocessing=False,
+                   # debug_skip=True,
+                   include_paths=config.include_paths)
 
     logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)

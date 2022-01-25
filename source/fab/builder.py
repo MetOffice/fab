@@ -100,7 +100,7 @@ def entry() -> None:
     # application.run(arguments.source.split(','))
 
 
-class Fab(object):
+class Build(object):
     def __init__(self,
                  workspace: Path,
                  config: ConfigSketch,
@@ -178,6 +178,19 @@ class Fab(object):
 
         logger.info(f"{datetime.now()}")
 
+
+
+        # artifacts = dict()
+        # for step in self.config.steps:
+        #     with time_logger(step.desc):
+        #         artifacts.update(step.run())
+        #
+        # # artifacts["all_source"]
+        #
+        # ppstep(fpaths=lambda artifacts: artifact["all_source"]["*.c"])
+
+
+
         with time_logger("walking build folder"):
             all_source = self.walk_build_source()
 
@@ -217,7 +230,7 @@ class Fab(object):
 
         # Make "external" symbol table
         with time_logger("creating symbol lookup"):
-            symbols: Dict[str, Path] = self.gen_symbol_table(all_analysed_files)
+            symbols: Dict[str, Path] = gen_symbol_table(all_analysed_files)
 
         # turn symbol deps into file deps
         deps_not_found = set()
@@ -298,24 +311,6 @@ class Fab(object):
             # exit(1)
 
         return analysed_c, analysed_fortran
-
-    def gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
-        symbols = dict()
-        duplicates = []
-        for source_file in all_analysed_files.values():
-            for symbol_def in source_file.symbol_defs:
-                if symbol_def in symbols:
-                    duplicates.append(ValueError(
-                        f"duplicate symbol '{symbol_def}' defined in {source_file.fpath} "
-                        f"already found in {symbols[symbol_def]}"))
-                    continue
-                symbols[symbol_def] = source_file.fpath
-
-        if duplicates:
-            err_msg = "\n".join(map(str, duplicates))
-            logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
-
-        return symbols
 
     def walk_build_source(self) -> Dict[str, List[Path]]:
         """
@@ -698,4 +693,23 @@ class Fab(object):
     #     if missing:
     #         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
     #         # exit(1)
+
+
+def gen_symbol_table(all_analysed_files: Dict[Path, AnalysedFile]):
+    symbols = dict()
+    duplicates = []
+    for source_file in all_analysed_files.values():
+        for symbol_def in source_file.symbol_defs:
+            if symbol_def in symbols:
+                duplicates.append(ValueError(
+                    f"duplicate symbol '{symbol_def}' defined in {source_file.fpath} "
+                    f"already found in {symbols[symbol_def]}"))
+                continue
+            symbols[symbol_def] = source_file.fpath
+
+    if duplicates:
+        err_msg = "\n".join(map(str, duplicates))
+        logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
+
+    return symbols
 

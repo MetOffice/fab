@@ -35,7 +35,7 @@ from fab.dep_tree import AnalysedFile
 from fab.config_sketch import AddPathFlags, FlagsConfig, PathFilter, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 
-from fab.builder import Fab
+from fab.builder import Build
 from fab.tasks.common import LinkExe
 from fab.util import file_walk, time_logger, case_insensitive_replace
 
@@ -295,7 +295,7 @@ def main():
     # with time_logger("extracting"):
     #     extract_will_do_this(config_sketch.extract_config, workspace)
 
-    my_fab = Fab(
+    builder = Build(
         workspace=workspace,
         config=config_sketch,
 
@@ -307,7 +307,7 @@ def main():
      )
 
     with time_logger("fab run"):
-        my_fab.run()
+        builder.run()
 
 
 def grab_will_do_this(src_paths, workspace):  #, logger):
