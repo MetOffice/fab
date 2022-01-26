@@ -5,45 +5,14 @@ from fab.steps import Step
 
 
 class ConfigSketch(object):
-    def __init__(self,
-                 
-                 steps: List[Step],
-                 
-                 
-                 project_name,
-                 workspace,
-
-
-                 grab_config,
-                 extract_config,
-                 # cpp_flag_config,
-                 # fpp_flag_config,
-                 # fc_flag_config,
-                 # cc_flag_config,
-                 # root_symbol,
-                 unreferenced_dependencies,
-                 # ld_flags,
-                 # output_filename,
-                 linker,
-                 special_measure_analysis_results=None):
+    def __init__(self, project_name, workspace,
+                 grab_config, extract_config, steps: List[Step]):
 
         self.steps = steps
         self.project_name = project_name
         self.workspace = workspace
         self.grab_config = grab_config
         self.extract_config = extract_config
-        # self.cpp_flag_config = cpp_flag_config
-        # self.fpp_flag_config = fpp_flag_config
-        # self.fc_flag_config = fc_flag_config
-        # self.cc_flag_config = cc_flag_config
-        # self.root_symbol = root_symbol
-        self.unreferenced_dependencies = unreferenced_dependencies
-        # self.ld_flags = ld_flags
-        # self.output_filename = output_filename
-        self.linker = linker
-
-        # for when fparser2 cannot process a file but gfortran can compile it
-        self.special_measure_analysis_results = special_measure_analysis_results
 
 
 class PathFilter(object):

@@ -18,39 +18,6 @@ from fab.util import CompiledFile, input_to_output_fpath, log_or_dot, fixup_comm
 logger = logging.getLogger('fab')
 
 
-class LinkExe(object):
-    """
-    A build step to produce an executable from a list of object (.o) files.
-
-    """
-    def __init__(self, linker: str, flags: List[str], output_fpath: str):
-        """
-        Args:
-            - linker: E.g 'gcc' or 'ld'.
-            - flags: A list of flags to pass to the linker.
-            - output_fpath: The file path of the output exe.
-
-        """
-        self.linker = linker
-        self.flags = flags
-        self.output_fpath = output_fpath
-
-    def run(self, compiled_files: List[CompiledFile]):
-        command = [self.linker]
-        command.extend(['-o', str(self.output_fpath)])
-        command.extend([str(a.output_fpath) for a in compiled_files])
-        # todo: why must this come after the list of object files?
-        command.extend(self.flags)
-
-        log_or_dot(logger, 'LinkExe running command: ' + ' '.join(command))
-        try:
-            run_command(command)
-        except Exception as err:
-            raise Exception(f"error linking: {err}")
-
-        return self.output_fpath
-
-
 class CreateObjectArchive(object):
     """
     A build step which creates an object archive from a list of object (.o) files.

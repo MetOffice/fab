@@ -28,6 +28,8 @@ import warnings
 
 from pathlib import Path
 
+from fab.steps.link_exe import LinkExe
+
 from fab.steps.compile_fortran import CompileFortran
 
 from fab.steps.compile_c import CompileC
@@ -45,7 +47,6 @@ from fab.builder import Build
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import WalkSource
-from fab.tasks.common import LinkExe
 from fab.util import file_walk, time_logger, case_insensitive_replace
 
 
@@ -240,8 +241,21 @@ def um_atmos_safe_config():
             AddPathFlags(path_filter='ios_init.f90', flags=['-fallow-argument-mismatch']),
             AddPathFlags(path_filter='eg_sl_helmholtz_inc.f90', flags=['-fallow-argument-mismatch']),
             AddPathFlags(path_filter='ukca_scenario_rcp_mod.f90', flags=['-fallow-argument-mismatch']),
-        ]
-    )
+        ])
+
+    # Thing(
+    #     flags=['-fallow-argument-mismatch'],
+    #     path_filters=['hardware_topology_mod.f90', 'setup_spectra_mod.f90', 'mcica_mod.f90', 'ios_comms.f90',
+    #                   'ios_client_queue.f90', 'fastjx_specs.f90', 'history_mod.f90', 'lustre_control_mod.f90',
+    #                   'imbnd_hill_mod.f90', 'io_configuration_mod.f90', 'nlstcall_nc_namelist_mod.f90',
+    #                   'nlstcall_pp_namelist_mod.f90', 'ios.f90', 'regrid_alloc_calc_mod.f90',
+    #                   'halo_exchange_ddt_mod.f90', 'halo_exchange_mpi_mod.f90', 'halo_exchange_os_mod.f90',
+    #                   'mg_field_norm.f90', 'rdbasis.f90', 'io.f90', 'ppxlook_mod.f90', 'read_land_sea.f90',
+    #                   'diagopr.f90', 'eg_bi_linear_h.f90', 'glomap_clim_netcdf_io_mod.f90', 'emiss_io_mod.f90',
+    #                   'ios_stash_server.f90', 'io_server_listener.f90', 'acumps.f90', 'num_obs.f90',
+    #                   'io_server_writer.f90', 'routedbl_mod.f90', 'ios_init.f90', 'eg_sl_helmholtz_inc.f90',
+    #                   'ukca_scenario_rcp_mod.f90'])
+
     fortran_compiler = CompileFortran(
         compiler=[
             os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
@@ -250,9 +264,16 @@ def um_atmos_safe_config():
         ],
         flags=fc_flag_config,
         workspace=workspace,
-        debug_skip=False)
+        debug_skip=True)
 
-
+    linker = LinkExe(
+        # linker='gcc',
+        linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+        flags=[
+            '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
+            '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'
+        ],
+        output_fpath='um_atmos.exe')
 
     steps = [
         WalkSource(build_source=workspace/BUILD_SOURCE),
@@ -261,7 +282,8 @@ def um_atmos_safe_config():
         c_preprocessor,
         analyser,
         c_compiler,
-        fortran_compiler
+        fortran_compiler,
+        linker,
     ]
 
     # todo: a better way?
@@ -271,37 +293,15 @@ def um_atmos_safe_config():
 
 
 
-
-
-    # cc_flag_config = FlagsConfig()
-
-
     return ConfigSketch(
-
-        steps=steps,
-
         project_name=project_name,
         workspace=workspace,
 
         grab_config=grab_config,
         extract_config=extract_config,
 
-        unreferenced_dependencies=[],
+        steps=steps,
 
-        # fc_flag_config=fc_flag_config,
-        # cc_flag_config=cc_flag_config,
-
-        # todo: we anticipate providing a list of steps like this
-        linker=LinkExe(
-            # linker='gcc',
-            linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
-            flags=[
-                '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
-                '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'
-            ],
-            output_fpath='um_atmos.exe'),
-
-        # special_measure_analysis_results=special_measure_analysis_results,
     )
 
 
@@ -321,11 +321,7 @@ def main():
     # with time_logger("extracting"):
     #     extract_will_do_this(config_sketch.extract_config, workspace)
 
-    builder = Build(
-        config=config_sketch,
-        n_procs=3,
-        debug_skip=True,
-     )
+    builder = Build(config=config_sketch)
 
     with time_logger("fab run"):
         builder.run()

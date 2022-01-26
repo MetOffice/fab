@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set
 
-from fab.builder import gen_symbol_table
+from fab.builder import logger
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
     validate_build_tree
 
@@ -272,3 +272,22 @@ class Analyse(Step):
             # add it
             sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
             build_tree.update(sub_tree)
+
+
+def gen_symbol_table(all_analysed_files: Dict[Path, AnalysedFile]):
+    symbols = dict()
+    duplicates = []
+    for source_file in all_analysed_files.values():
+        for symbol_def in source_file.symbol_defs:
+            if symbol_def in symbols:
+                duplicates.append(ValueError(
+                    f"duplicate symbol '{symbol_def}' defined in {source_file.fpath} "
+                    f"already found in {symbols[symbol_def]}"))
+                continue
+            symbols[symbol_def] = source_file.fpath
+
+    if duplicates:
+        err_msg = "\n".join(map(str, duplicates))
+        logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
+
+    return symbols

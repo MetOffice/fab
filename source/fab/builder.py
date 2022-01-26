@@ -5,7 +5,6 @@
 ##############################################################################
 import argparse
 from datetime import datetime
-from typing import Dict, List
 import logging
 import multiprocessing
 from pathlib import Path
@@ -14,7 +13,6 @@ from fab import steps
 from fab.config_sketch import ConfigSketch
 from fab.constants import BUILD_OUTPUT
 
-from fab.dep_tree import AnalysedFile
 from fab.util import time_logger
 
 
@@ -85,31 +83,15 @@ def entry() -> None:
 
 
 class Build(object):
-    def __init__(self,
-                 # workspace: Path,
-                 config: ConfigSketch,
-                 n_procs: int,
-                 use_multiprocessing=True,
-                 debug_skip=False,
-                 dump_source_tree=False):
-
+    def __init__(self, config: ConfigSketch):
         self.config = config
-        self.unreferenced_deps: List[str] = config.unreferenced_dependencies or []
-
-        self.n_procs = n_procs
-        self.use_multiprocessing = use_multiprocessing
-        self.dump_source_tree = dump_source_tree
 
         if not config.workspace.exists():
             config.workspace.mkdir(parents=True)
         if not (config.workspace / BUILD_OUTPUT).exists():
             (config.workspace / BUILD_OUTPUT).mkdir()
 
-        # for when fparser2 cannot process a file but gfortran can compile it
-        self.special_measure_analysis_results = config.special_measure_analysis_results
-
     def run(self):
-
         logger.info(f"{datetime.now()}")
         logger.info(f"use_multiprocessing = {steps.use_multiprocessing}")
         if steps.use_multiprocessing:
@@ -119,25 +101,3 @@ class Build(object):
         for step in self.config.steps:
             with time_logger(step.name):
                 step.run(artefacts)
-
-        with time_logger("linking"):
-            self.config.linker.run(compiled_files=artefacts['compiled_c'] + artefacts['compiled_fortran'])
-
-
-def gen_symbol_table(all_analysed_files: Dict[Path, AnalysedFile]):
-    symbols = dict()
-    duplicates = []
-    for source_file in all_analysed_files.values():
-        for symbol_def in source_file.symbol_defs:
-            if symbol_def in symbols:
-                duplicates.append(ValueError(
-                    f"duplicate symbol '{symbol_def}' defined in {source_file.fpath} "
-                    f"already found in {symbols[symbol_def]}"))
-                continue
-            symbols[symbol_def] = source_file.fpath
-
-    if duplicates:
-        err_msg = "\n".join(map(str, duplicates))
-        logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
-
-    return symbols
