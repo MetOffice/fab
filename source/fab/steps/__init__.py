@@ -3,6 +3,7 @@ import multiprocessing
 
 # We sometimes need to turn multiprocessing off when debugging a build.
 from multiprocessing import cpu_count
+from typing import Dict
 
 use_multiprocessing = True
 n_procs = max(1, cpu_count()-1)
@@ -10,14 +11,22 @@ n_procs = max(1, cpu_count()-1)
 
 class Step(object):
     """
+    Base class for build steps.
 
+    Provides multiprocessing capabilities.
 
     """
     def __init__(self, name):
         self.name = name
 
-    def run(self, artefacts):
-        """Process all the artefacts. Defined in the subclass."""
+    def run(self, artefacts: Dict):
+        """
+        Process some input artefacts and add some output artefacts. Defined by the subclass.
+
+        Args:
+            - artefacts: Build artefacts created by previous Steps, to which we add our new artefacts.
+
+        """
         raise NotImplementedError
 
     def run_mp(self, items, func):

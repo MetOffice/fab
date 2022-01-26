@@ -275,17 +275,6 @@ def um_atmos_safe_config():
         ],
         output_fpath='um_atmos.exe')
 
-    steps = [
-        WalkSource(build_source=workspace/BUILD_SOURCE),
-        RootIncFiles(build_source=workspace/BUILD_SOURCE),
-        fortran_preprocessor,
-        c_preprocessor,
-        analyser,
-        c_compiler,
-        fortran_compiler,
-        linker,
-    ]
-
     # todo: a better way?
     fab.steps.use_multiprocessing = True
     # fab.steps.use_multiprocessing = False
@@ -300,7 +289,16 @@ def um_atmos_safe_config():
         grab_config=grab_config,
         extract_config=extract_config,
 
-        steps=steps,
+        steps=[
+            WalkSource(build_source=workspace/BUILD_SOURCE),
+            RootIncFiles(build_source=workspace/BUILD_SOURCE),
+            fortran_preprocessor,
+            c_preprocessor,
+            analyser,
+            c_compiler,
+            fortran_compiler,
+            linker,
+        ],
 
     )
 
