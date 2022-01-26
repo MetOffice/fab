@@ -265,8 +265,8 @@ def um_atmos_safe_config():
     ]
 
     # todo: a better way?
-    # Step.use_multiprocessing = True
-    fab.steps.use_multiprocessing = False
+    fab.steps.use_multiprocessing = True
+    # fab.steps.use_multiprocessing = False
     fab.steps.n_procs = 3
 
 

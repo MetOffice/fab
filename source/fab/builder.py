@@ -111,7 +111,9 @@ class Build(object):
     def run(self):
 
         logger.info(f"{datetime.now()}")
-        logger.info(f"n_procs = {steps.n_procs}")
+        logger.info(f"use_multiprocessing = {steps.use_multiprocessing}")
+        if steps.use_multiprocessing:
+            logger.info(f"n_procs = {steps.n_procs}")
 
         artefacts = dict()
         for step in self.config.steps:
