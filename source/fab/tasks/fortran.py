@@ -24,13 +24,23 @@ from fab.util import log_or_dot, HashedFile, CompiledFile, run_command
 logger = logging.getLogger(__name__)
 
 
-def _iter_content(obj):
-    # Return a generator which yields every node in the tree.
+# todo: a nicer way?
+def iter_content(obj):
+    """
+    Return a generator which yields every node in the tree.
+    """
     yield obj
-    for child in obj.content:
-        if hasattr(child, "content"):
-            for gchild in _iter_content(child):
-                yield gchild
+    if hasattr(obj, "content"):
+        for child in _iter_content(obj.content):
+            yield child
+
+
+def _iter_content(content):
+    for obj in content:
+        yield obj
+        if hasattr(obj, "content"):
+            for child in _iter_content(obj.content):
+                yield child
 
 
 def _has_ancestor_type(obj, obj_type):
@@ -89,7 +99,7 @@ class FortranAnalyser(object):
 
         # see what's in the tree
         try:
-            for obj in _iter_content(tree):
+            for obj in iter_content(tree):
                 obj_type = type(obj)
 
                 # todo: ?replace these with function lookup dict[type, func]?

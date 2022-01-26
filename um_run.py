@@ -24,13 +24,13 @@
 import os
 import logging
 import shutil
-import sys
 import warnings
-from collections import namedtuple
 
 from pathlib import Path
 
-from fab.steps import Step
+import fab
+
+from fab.steps.analyse import Analyse
 
 from fab.dep_tree import AnalysedFile
 
@@ -38,7 +38,7 @@ from fab.config_sketch import AddPathFlags, FlagsConfig, PathFilter, ConfigSketc
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 
 from fab.builder import Build
-from fab.steps.preprocess import PreProcessor, FortranPreProcessor, CPreProcessor
+from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import WalkSource
 from fab.tasks.common import LinkExe
@@ -151,7 +151,7 @@ def um_atmos_safe_config():
 
     # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
     fortran_preprocessor = FortranPreProcessor(
-        name="fortran preprocess", workspace=workspace, preprocessor='cpp', debug_skip=False,
+        name="fortran preprocess", workspace=workspace, preprocessor='cpp', debug_skip=True,
         flags=FlagsConfig(
             common_flags=['-traditional-cpp', '-P'],
             all_path_flags=[
@@ -165,7 +165,7 @@ def um_atmos_safe_config():
     )
 
     c_preprocessor = CPreProcessor(
-        name="c preprocess", workspace=workspace, preprocessor='cpp', debug_skip=False,
+        name="c preprocess", workspace=workspace, preprocessor='cpp', debug_skip=True,
         flags=FlagsConfig(
             all_path_flags=[
                 AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
@@ -179,16 +179,33 @@ def um_atmos_safe_config():
             ]),
     )
 
+    # fparser2 fails to parse this file but it compiles.
+    special_measure_analysis_results = [
+        AnalysedFile(
+            fpath=Path(os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_output/casim/lookup.f90")),
+            file_hash=None,
+            symbol_defs=['lookup'],
+            symbol_deps=['mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
+                         'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'],
+            file_deps=[],
+            mo_commented_file_deps=[]),
+    ]
+
+    analyser = Analyse(workspace=workspace, root_symbol='um_main',
+                       unreferenced_deps=None, special_measure_analysis_results=special_measure_analysis_results)
+
     steps = [
-        WalkSource(build_source=Path(workspace)/BUILD_SOURCE),
-        RootIncFiles(build_source=Path(workspace)/BUILD_SOURCE),
+        WalkSource(build_source=workspace/BUILD_SOURCE),
+        RootIncFiles(build_source=workspace/BUILD_SOURCE),
         fortran_preprocessor,
         c_preprocessor,
+        analyser,
     ]
 
     # todo: a better way?
-    Step.use_multiprocessing = True
-    Step.n_procs = 3
+    # Step.use_multiprocessing = True
+    fab.steps.use_multiprocessing = False
+    fab.steps.n_procs = 3
 
 
 
@@ -271,16 +288,6 @@ def um_atmos_safe_config():
 
     cc_flag_config = FlagsConfig()
 
-    special_measure_analysis_results = [
-        AnalysedFile(
-            fpath=Path(os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_output/casim/lookup.f90")),
-            file_hash=None,
-            symbol_defs=['lookup'],
-            symbol_deps=['mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-                         'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'],
-            file_deps=[],
-            mo_commented_file_deps=[]),
-    ]
 
     return ConfigSketch(
 
@@ -292,11 +299,8 @@ def um_atmos_safe_config():
         grab_config=grab_config,
         extract_config=extract_config,
 
-        root_symbol='um_main',
         unreferenced_dependencies=[],
 
-        # cpp_flag_config=cpp_flag_config,
-        # fpp_flag_config=fpp_flag_config,
         fc_flag_config=fc_flag_config,
         cc_flag_config=cc_flag_config,
 
@@ -310,7 +314,7 @@ def um_atmos_safe_config():
             ],
             output_fpath='um_atmos.exe'),
 
-        special_measure_analysis_results=special_measure_analysis_results,
+        # special_measure_analysis_results=special_measure_analysis_results,
     )
 
 

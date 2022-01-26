@@ -20,7 +20,7 @@ class ConfigSketch(object):
                  # fpp_flag_config,
                  fc_flag_config,
                  cc_flag_config,
-                 root_symbol,
+                 # root_symbol,
                  unreferenced_dependencies,
                  # ld_flags,
                  # output_filename,
@@ -36,7 +36,7 @@ class ConfigSketch(object):
         # self.fpp_flag_config = fpp_flag_config
         self.fc_flag_config = fc_flag_config
         self.cc_flag_config = cc_flag_config
-        self.root_symbol = root_symbol
+        # self.root_symbol = root_symbol
         self.unreferenced_dependencies = unreferenced_dependencies
         # self.ld_flags = ld_flags
         # self.output_filename = output_filename

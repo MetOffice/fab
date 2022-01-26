@@ -103,7 +103,7 @@ class FortranPreProcessor(PreProcessor):
 
         mp_input = artefacts['all_source']['.f90'] + artefacts['all_source']['.F90']
 
-        results = self.run_mp(artefacts=mp_input, func=self.process_artefact)
+        results = self.run_mp(items=mp_input, func=self.process_artefact)
 
         # todo: move into run_mp?
         results_by_type = by_type(results)
@@ -127,7 +127,7 @@ class CPreProcessor(PreProcessor):
     def run(self, artefacts):
         mp_input = artefacts['all_source']['.c']
 
-        results = self.run_mp(artefacts=mp_input, func=self.process_artefact)
+        results = self.run_mp(items=mp_input, func=self.process_artefact)
 
         # todo: move into run_mp?
         results_by_type = by_type(results)

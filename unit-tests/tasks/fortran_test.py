@@ -19,7 +19,7 @@ from fab.tasks.fortran import \
     FortranCompiler, \
     FortranUnitID, \
     FortranUnitUnresolvedID, \
-    FortranWorkingState, _iter_content, _has_ancestor_type, _typed_child
+    FortranWorkingState, iter_content, _has_ancestor_type, _typed_child
 from fab.tasks.c import \
     CInfo, \
     CSymbolID, \
@@ -709,7 +709,7 @@ class TestIterContent(object):
             self.MockNode("circus")
         ])
 
-        content = list(_iter_content(mock_tree))
+        content = list(iter_content(mock_tree))
         names = [i.name for i in content]
         assert names == ['monty', "python's", 'flying', 'circus']
 
