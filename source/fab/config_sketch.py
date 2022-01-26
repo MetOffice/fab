@@ -18,8 +18,8 @@ class ConfigSketch(object):
                  extract_config,
                  # cpp_flag_config,
                  # fpp_flag_config,
-                 fc_flag_config,
-                 cc_flag_config,
+                 # fc_flag_config,
+                 # cc_flag_config,
                  # root_symbol,
                  unreferenced_dependencies,
                  # ld_flags,
@@ -34,8 +34,8 @@ class ConfigSketch(object):
         self.extract_config = extract_config
         # self.cpp_flag_config = cpp_flag_config
         # self.fpp_flag_config = fpp_flag_config
-        self.fc_flag_config = fc_flag_config
-        self.cc_flag_config = cc_flag_config
+        # self.fc_flag_config = fc_flag_config
+        # self.cc_flag_config = cc_flag_config
         # self.root_symbol = root_symbol
         self.unreferenced_dependencies = unreferenced_dependencies
         # self.ld_flags = ld_flags

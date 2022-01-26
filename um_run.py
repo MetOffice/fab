@@ -28,6 +28,10 @@ import warnings
 
 from pathlib import Path
 
+from fab.steps.compile_fortran import CompileFortran
+
+from fab.steps.compile_c import CompileC
+
 import fab
 
 from fab.steps.analyse import Analyse
@@ -64,13 +68,6 @@ def um_atmos_safe_config():
     # workspace = f'tmp-workspace/{project_name}'
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
     n_procs = 3
-
-
-
-
-
-
-
 
 
 
@@ -194,47 +191,7 @@ def um_atmos_safe_config():
     analyser = Analyse(workspace=workspace, root_symbol='um_main',
                        unreferenced_deps=None, special_measure_analysis_results=special_measure_analysis_results)
 
-    steps = [
-        WalkSource(build_source=workspace/BUILD_SOURCE),
-        RootIncFiles(build_source=workspace/BUILD_SOURCE),
-        fortran_preprocessor,
-        c_preprocessor,
-        analyser,
-    ]
-
-    # todo: a better way?
-    # Step.use_multiprocessing = True
-    fab.steps.use_multiprocessing = False
-    fab.steps.n_procs = 3
-
-
-
-
-    # fpp
-    # cpp_flag_config = FlagsConfig(
-    #     all_path_flags=[
-    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",  # todo: calc up to the output bit
-    #                      flags=['-I', '/um/include/other', '-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
-    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/shumlib/",
-    #                      flags=['-I', '/shumlib/common/src', '-I', '/shumlib/shum_thread_utils/src']),
-    #
-    #         # todo: just 3 folders use this
-    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/",
-    #                      flags=['-DC95_2A', '-I', '/shumlib/shum_byteswap/src']),
-    #     ])
-
-    # fpp_flag_config = FlagsConfig(
-    #     # TODO: DAVE AND BYRON TO REVISIT SOON
-    #     common_flags=['-traditional-cpp', '-P'],
-    #     # todo: remove the ease of mistaking BUILD_SOURCE with BUILD_OUTPUT - pp knows it's input -> output
-    #     all_path_flags=[
-    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/jules/", flags=['-DUM_JULES']),
-    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/", flags=['-I', 'include']),
-    #
-    #         # coupling defines
-    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/control/timer/", flags=['-DC97_3A']),
-    #         AddPathFlags(path_filter=f"tmp-workspace/{project_name}/{BUILD_SOURCE}/um/io_services/client/stash/", flags=['-DC96_1C']),
-    #     ])
+    c_compiler = CompileC(compiler=['gcc', '-c', '-std=c99'], flags=FlagsConfig(), workspace=workspace)
 
     fc_flag_config = FlagsConfig(
         all_path_flags=[
@@ -285,8 +242,38 @@ def um_atmos_safe_config():
             AddPathFlags(path_filter='ukca_scenario_rcp_mod.f90', flags=['-fallow-argument-mismatch']),
         ]
     )
+    fortran_compiler = CompileFortran(
+        compiler=[
+            os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+            '-c',
+            '-J', str(workspace / BUILD_OUTPUT),  # .mod file output and include folder
+        ],
+        flags=fc_flag_config,
+        workspace=workspace,
+        debug_skip=False)
 
-    cc_flag_config = FlagsConfig()
+
+
+    steps = [
+        WalkSource(build_source=workspace/BUILD_SOURCE),
+        RootIncFiles(build_source=workspace/BUILD_SOURCE),
+        fortran_preprocessor,
+        c_preprocessor,
+        analyser,
+        c_compiler,
+        fortran_compiler
+    ]
+
+    # todo: a better way?
+    # Step.use_multiprocessing = True
+    fab.steps.use_multiprocessing = False
+    fab.steps.n_procs = 3
+
+
+
+
+
+    # cc_flag_config = FlagsConfig()
 
 
     return ConfigSketch(
@@ -301,8 +288,8 @@ def um_atmos_safe_config():
 
         unreferenced_dependencies=[],
 
-        fc_flag_config=fc_flag_config,
-        cc_flag_config=cc_flag_config,
+        # fc_flag_config=fc_flag_config,
+        # cc_flag_config=cc_flag_config,
 
         # todo: we anticipate providing a list of steps like this
         linker=LinkExe(
@@ -318,45 +305,13 @@ def um_atmos_safe_config():
     )
 
 
-# def what_about_this_config():
-#
-#     return FabRun(
-#         project_name="foo",
-#         steps=[
-#             FabRun("gcom.cfg", version="latest"),  # LOVELY IDEA DAVE!
-#             Grab(
-#                 ("~/svn/um/trunk/src", "um"),
-#                 ("~/svn/jules/trunk/src", "jules"),
-#                 ("~/svn/socrates/trunk/src", "socrates"),
-#                 ("~/svn/shumlib/trunk", "shumlib"),
-#                 ("~/svn/casim/src", "casim"),
-#             ),
-#             Extract("foo"),
-#             WalkThing("foo"),
-#             Preprocess_C("foo"),
-#             CustomStep("foo"),
-#             Preprocess_Fortran("foo", input="use_this_instead"),
-#             CompileC("foo"),
-#             CompileFortran("foo"),
-#             # LinkAr("foo"),
-#             LinkExe(compiler="gcc", flags="foo"),
-#         ]
-#     )
-
-
-
-
-
 def main():
 
     logger = logging.getLogger('fab')
-    # logger.addHandler(logging.StreamHandler(sys.stderr))
-    # logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 
     # config
     config_sketch = um_atmos_safe_config()
-    # workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
 
     # Get source repos
     # with time_logger("grabbing"):
@@ -367,17 +322,10 @@ def main():
     #     extract_will_do_this(config_sketch.extract_config, workspace)
 
     builder = Build(
-        # workspace=config.workspace,
         config=config_sketch,
-
-        # fab behaviour
         n_procs=3,
-        # use_multiprocessing=False,
         debug_skip=True,
-        # dump_source_tree=True
      )
-
-    # MPStep.use_mmmm = False
 
     with time_logger("fab run"):
         builder.run()
