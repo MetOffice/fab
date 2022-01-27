@@ -1,9 +1,10 @@
 import logging
 from pathlib import PosixPath, Path
+from typing import Dict, Union
 
 from fab.constants import BUILD_SOURCE
 
-from fab.config_sketch import FlagsConfig
+from fab.config_sketch import FlagsConfig, AddPathFlags
 from fab.dep_tree import by_type
 
 from fab.steps import Step
@@ -18,14 +19,7 @@ class PreProcessor(Step):
     A build step which calls a preprocessor. Used for both C and Fortran.
 
     """
-
-    def __init__(self,
-                 flags: FlagsConfig,
-                 workspace: Path,
-                 name='preprocess',
-                 preprocessor='cpp',
-                 debug_skip=False,
-                 ):
+    def __init__(self, name='preprocess', preprocessor='cpp', common_flags=None, path_flags=None):
         """
         Args:
             - flags: Config object defining common and per-path flags.
@@ -39,9 +33,11 @@ class PreProcessor(Step):
         super().__init__(name=name)
 
         self._preprocessor = preprocessor
-        self._flags = flags
-        self._workspace = workspace
-        self.debug_skip = debug_skip
+        self._flags = FlagsConfig(
+            common_flags=common_flags,
+            all_path_flags=[AddPathFlags(flags=i[0], path_filter=i[1]) for i in path_flags]
+        )
+
 
     # def input_artefacts(self, artefacts):
     #     raise NotImplementedError
@@ -55,7 +51,7 @@ class PreProcessor(Step):
         Writes the output file to the output folder, with a lower case extension.
 
         """
-        output_fpath = input_to_output_fpath(workspace=self._workspace, input_path=fpath)
+        output_fpath = input_to_output_fpath(workspace=self.workspace, input_path=fpath)
 
         if fpath.suffix == ".c":
             # pragma injection
@@ -82,7 +78,7 @@ class PreProcessor(Step):
 
         # the flags we were given might contain include folders which need to be converted into absolute paths
         # todo: inconsistent with the compiler (and c?), which doesn't do this - discuss
-        command = fixup_command_includes(command=command, source_root=self._workspace / BUILD_SOURCE, file_path=fpath)
+        command = fixup_command_includes(command=command, source_root=self.workspace / BUILD_SOURCE, file_path=fpath)
 
         # input and output files
         command.append(str(input_fpath))
