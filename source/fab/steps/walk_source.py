@@ -23,7 +23,7 @@ class WalkSource(Step):
         """
         Get all files in the folder and subfolders.
 
-        Returns a dict[source_folder][extension] = file_list
+        Requires no artefacts, creates the artefact all_source: Dict[suffix][Path]
 
         """
         fpaths = file_walk(self.build_source)

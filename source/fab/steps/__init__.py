@@ -24,10 +24,12 @@ class Step(object):
 
     def run(self, artefacts: Dict):
         """
-        Process some input artefacts and add some output artefacts. Defined by the subclass.
+        Process some input artefacts, create some output artefacts. Defined by the subclass.
 
         Args:
             - artefacts: Build artefacts created by previous Steps, to which we add our new artefacts.
+
+        Subclasses should be sure to describe their input and output artefacts.
 
         """
         raise NotImplementedError
