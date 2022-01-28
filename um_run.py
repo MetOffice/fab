@@ -66,8 +66,8 @@ def um_atmos_safe_config():
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
     set_workspace(workspace)
 
-    Step.use_multiprocessing = True
-    # Step.debug_skip = True
+    # Step.use_multiprocessing = False
+    Step.debug_skip = True
 
     grab_config = {
         ("um", "~/svn/um/trunk/src"),
@@ -189,47 +189,47 @@ def um_atmos_safe_config():
         path_flags=[
 
             # mpl include - todo: just add this for everything?
-            (f"$output/um/", ['-I', "$output"]),
-            (f"$output/jules/", ['-I', "$output"]),
+            (f"$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+            (f"$output/jules/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
 
             # TODO: REVIEWERS, SHOULD WE NEED THESE?
             # a not recommended flag?
             # todo: allow a list of filters?
-            ('hardware_topology_mod.f90', ['-fallow-argument-mismatch']),
-            ('setup_spectra_mod.f90', ['-fallow-argument-mismatch']),
-            ('mcica_mod.f90', ['-fallow-argument-mismatch']),
-            ('ios_comms.f90', ['-fallow-argument-mismatch']),
-            ('ios_client_queue.f90', ['-fallow-argument-mismatch']),
-            ('fastjx_specs.f90', ['-fallow-argument-mismatch']),
-            ('history_mod.f90', ['-fallow-argument-mismatch']),
-            ('lustre_control_mod.f90', ['-fallow-argument-mismatch']),
-            ('imbnd_hill_mod.f90', ['-fallow-argument-mismatch']),
-            ('io_configuration_mod.f90', ['-fallow-argument-mismatch']),
-            ('nlstcall_nc_namelist_mod.f90', ['-fallow-argument-mismatch']),
-            ('nlstcall_pp_namelist_mod.f90', ['-fallow-argument-mismatch']),
-            ('ios.f90', ['-fallow-argument-mismatch']),
-            ('regrid_alloc_calc_mod.f90', ['-fallow-argument-mismatch']),
-            ('halo_exchange_ddt_mod.f90', ['-fallow-argument-mismatch']),
-            ('halo_exchange_mpi_mod.f90', ['-fallow-argument-mismatch']),
-            ('halo_exchange_os_mod.f90', ['-fallow-argument-mismatch']),
-            ('mg_field_norm.f90', ['-fallow-argument-mismatch']),
-            ('rdbasis.f90', ['-fallow-argument-mismatch']),
-            ('io.f90', ['-fallow-argument-mismatch']),
-            ('ppxlook_mod.f90', ['-fallow-argument-mismatch']),
-            ('read_land_sea.f90', ['-fallow-argument-mismatch']),
-            ('diagopr.f90', ['-fallow-argument-mismatch']),
-            ('eg_bi_linear_h.f90', ['-fallow-argument-mismatch']),
-            ('glomap_clim_netcdf_io_mod.f90', ['-fallow-argument-mismatch']),
-            ('emiss_io_mod.f90', ['-fallow-argument-mismatch']),
-            ('ios_stash_server.f90', ['-fallow-argument-mismatch']),
-            ('io_server_listener.f90', ['-fallow-argument-mismatch']),
-            ('acumps.f90', ['-fallow-argument-mismatch']),
-            ('num_obs.f90', ['-fallow-argument-mismatch']),
-            ('io_server_writer.f90', ['-fallow-argument-mismatch']),
-            ('routedbl_mod.f90', ['-fallow-argument-mismatch']),
-            ('ios_init.f90', ['-fallow-argument-mismatch']),
-            ('eg_sl_helmholtz_inc.f90', ['-fallow-argument-mismatch']),
-            ('ukca_scenario_rcp_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/hardware_topology_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/setup_spectra_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/mcica_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/ios_comms.f90', ['-fallow-argument-mismatch']),
+            ('*/ios_client_queue.f90', ['-fallow-argument-mismatch']),
+            ('*/fastjx_specs.f90', ['-fallow-argument-mismatch']),
+            ('*/history_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/lustre_control_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/imbnd_hill_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/io_configuration_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/nlstcall_nc_namelist_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/nlstcall_pp_namelist_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/ios.f90', ['-fallow-argument-mismatch']),
+            ('*/regrid_alloc_calc_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/halo_exchange_ddt_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/halo_exchange_mpi_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/halo_exchange_os_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/mg_field_norm.f90', ['-fallow-argument-mismatch']),
+            ('*/rdbasis.f90', ['-fallow-argument-mismatch']),
+            ('*/io.f90', ['-fallow-argument-mismatch']),
+            ('*/ppxlook_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/read_land_sea.f90', ['-fallow-argument-mismatch']),
+            ('*/diagopr.f90', ['-fallow-argument-mismatch']),
+            ('*/eg_bi_linear_h.f90', ['-fallow-argument-mismatch']),
+            ('*/glomap_clim_netcdf_io_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/emiss_io_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/ios_stash_server.f90', ['-fallow-argument-mismatch']),
+            ('*/io_server_listener.f90', ['-fallow-argument-mismatch']),
+            ('*/acumps.f90', ['-fallow-argument-mismatch']),
+            ('*/num_obs.f90', ['-fallow-argument-mismatch']),
+            ('*/io_server_writer.f90', ['-fallow-argument-mismatch']),
+            ('*/routedbl_mod.f90', ['-fallow-argument-mismatch']),
+            ('*/ios_init.f90', ['-fallow-argument-mismatch']),
+            ('*/eg_sl_helmholtz_inc.f90', ['-fallow-argument-mismatch']),
+            ('*/ukca_scenario_rcp_mod.f90', ['-fallow-argument-mismatch']),
         ]
     )
 
