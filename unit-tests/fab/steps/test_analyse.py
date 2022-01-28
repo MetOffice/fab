@@ -54,3 +54,10 @@ class Test_gen_symbol_table(object):
             'bar_1': PosixPath('bar.c'),
             'bar_2': PosixPath('bar.c'),
         }
+
+
+class Test_analysis_progress(object):
+    pass
+
+
+

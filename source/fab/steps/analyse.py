@@ -76,9 +76,11 @@ class Analyse(Step):
             preprocessed_hashes = self._get_latest_checksums(
                 artefacts['preprocessed_fortran'] | artefacts['preprocessed_c'])
 
-        # parse c and fortran files for symbol definitions and dependencies
-        with self._analysis_progress(preprocessed_hashes) as (unchanged, to_analyse, analysis_dict_writer):
-            analysed_fortran, analysed_c = self._parse_files(to_analyse, analysis_dict_writer)
+        with time_logger("loading analysis results"):
+            changed, unchanged = self._load_analysis_results(preprocessed_hashes)
+
+        with self._new_analysis_file(unchanged) as csv_writer:
+            analysed_fortran, analysed_c = self._parse_files(changed, csv_writer)
         all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
 
         # Make "external" symbol table
@@ -106,7 +108,7 @@ class Analyse(Step):
 
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
-        self.add_unreferenced_deps(symbols, all_analysed_files, build_tree)
+        self._add_unreferenced_deps(symbols, all_analysed_files, build_tree)
 
         validate_build_tree(build_tree)
 
@@ -131,13 +133,13 @@ class Analyse(Step):
         # fortran
         fortran_files = to_analyse_by_type[".f90"]
         with time_logger(f"analysing {len(fortran_files)} preprocessed fortran files"):
-            analysed_fortran, fortran_exceptions = self.analyse_file_type(
+            analysed_fortran, fortran_exceptions = self._analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
 
         # c
         c_files = to_analyse_by_type[".c"]
         with time_logger(f"analysing {len(c_files)} preprocessed c files"):
-            analysed_c, c_exceptions = self.analyse_file_type(
+            analysed_c, c_exceptions = self._analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
 
         # errors?
@@ -210,34 +212,7 @@ class Analyse(Step):
         latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in mp_results}
         return latest_file_hashes
 
-    @contextmanager
-    def _analysis_progress(self, preprocessed_hashes) -> Tuple[List[AnalysedFile],
-                                                              Dict[str, List[HashedFile]], csv.DictWriter]:
-        """Open a new analysis progress file, populated with work already done in previous runs."""
-
-        with time_logger("loading analysis results"):
-            to_analyse, unchanged = self._load_analysis_results(preprocessed_hashes)
-
-        with time_logger("starting analysis progress file"):
-            analysis_progress_file = open(self.workspace / "__analysis.csv", "wt")
-            analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
-            analysis_dict_writer.writeheader()
-
-            # re-write the progress so far
-            # TODO: NO, SILLY! JUST OPEN THE FILE IN APPEND MODE!?
-            unchanged_rows = (pu.as_dict() for pu in unchanged)
-            analysis_dict_writer.writerows(unchanged_rows)
-            analysis_progress_file.flush()
-
-        to_analyse_by_type: Dict[List[HashedFile]] = defaultdict(list)
-        for hashed_file in to_analyse:
-            to_analyse_by_type[hashed_file.fpath.suffix].append(hashed_file)
-
-        yield unchanged, to_analyse_by_type, analysis_dict_writer
-
-        analysis_progress_file.close()
-
-    def _load_analysis_results(self, latest_file_hashes) -> Tuple[List[HashedFile], List[AnalysedFile]]:
+    def _load_analysis_results(self, latest_file_hashes) -> Tuple[Dict[str, List[HashedFile]], List[AnalysedFile]]:
         # Load analysis results from previous run.
         # Includes the hash of the file when we last analysed it.
         prev_results: Dict[Path, AnalysedFile] = dict()
@@ -245,15 +220,15 @@ class Analyse(Step):
             with open(self.workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
-                    current_file = AnalysedFile.from_dict(row)
+                    analysed_file = AnalysedFile.from_dict(row)
 
                     # file no longer there?
-                    if current_file.fpath not in latest_file_hashes:
-                        logger.info(f"a file has gone: {current_file.fpath}")
+                    if analysed_file.fpath not in latest_file_hashes:
+                        logger.info(f"a file has gone: {analysed_file.fpath}")
                         continue
 
                     # ok, we have previously analysed this file
-                    prev_results[current_file.fpath] = current_file
+                    prev_results[analysed_file.fpath] = analysed_file
 
             logger.info(f"loaded {len(prev_results)} previous analysis results")
         except FileNotFoundError:
@@ -261,23 +236,43 @@ class Analyse(Step):
             pass
 
         # work out what needs to be reanalysed
-        # unchanged: Set[ProgramUnit] = set()
-        # to_analyse: Set[HashedFile] = set()
-        unchanged: List[AnalysedFile] = []
-        to_analyse: List[HashedFile] = []
+        unchanged: List[AnalysedFile] = []  # todo: use a set?
+        changed: Dict[str, List[HashedFile]] = defaultdict(list)  # suffix -> files
         for latest_fpath, latest_hash in latest_file_hashes.items():
             # what happened last time we analysed this file?
             prev_pu = prev_results.get(latest_fpath)
             if (not prev_pu) or prev_pu.file_hash != latest_hash:
-                # to_analyse.add(HashedFile(latest_fpath, latest_hash))
-                to_analyse.append(HashedFile(latest_fpath, latest_hash))
+                changed[latest_fpath.suffix].append(HashedFile(latest_fpath, latest_hash))
             else:
-                # unchanged.add(prev_pu)
                 unchanged.append(prev_pu)
-        logger.info(f"{len(unchanged)} already analysed, {len(to_analyse)} to analyse")
-        # logger.debug(f"unchanged:\n{[u.fpath for u in unchanged]}")
 
-        return to_analyse, unchanged
+        for suffix, to_analyse in changed.items():
+            logger.info(f"{len(unchanged)} {suffix} files already analysed, {len(to_analyse)} to analyse")
+
+        return changed, unchanged
+
+    @contextmanager
+    def _new_analysis_file(self, unchanged) -> csv.DictWriter:
+        """
+        Open a new analysis progress file, populated with work already done in previous runs.
+
+        We re-write the successfully read contents of the analysis file each time,
+        for robustness against data corruption (otherwise we could just open with "wt+").
+
+        """
+        with time_logger("starting analysis progress file"):
+            analysis_progress_file = open(self.workspace / "__analysis.csv", "wt")
+            analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
+            analysis_dict_writer.writeheader()
+
+            # re-write the progress so far
+            unchanged_rows = (pu.as_dict() for pu in unchanged)
+            analysis_dict_writer.writerows(unchanged_rows)
+            analysis_progress_file.flush()
+
+        yield analysis_dict_writer
+
+        analysis_progress_file.close()
 
     def _analyse_file_type(self,
                           fpaths: List[HashedFile],
