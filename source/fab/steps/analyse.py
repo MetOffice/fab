@@ -46,59 +46,36 @@ class Analyse(Step):
         with time_logger(f"getting {len(artefacts['preprocessed_fortran']) + len(artefacts['preprocessed_c'])} file hashes"):
             preprocessed_hashes = self.get_latest_checksums(artefacts['preprocessed_fortran'] | artefacts['preprocessed_c'])
 
-        # analyse c and fortran
+        # parse c and fortran files for symbol definitions and dependencies
         with self.analysis_progress(preprocessed_hashes) as (unchanged, to_analyse, analysis_dict_writer):
-            artefacts['all_analysed_files'] = {a.fpath: a for a in unchanged}
-            self.symbol_analysis(to_analyse, analysis_dict_writer, artefacts)  # adds more analysed file artefacts
-        # all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
-        #
-        # # add special measure analysis results
-        # if self.special_measure_analysis_results:
-        #     for analysed_file in self.special_measure_analysis_results:
-        #         # todo: create a special measures notification function? with a loud summary at the end of the build?
-        #         warnings.warn(f"SPECIAL MEASURE for {analysed_file.fpath}: injecting user-defined analysis results")
-        #         all_analysed_files[analysed_file.fpath] = analysed_file
-        #
-        # # Make "external" symbol table
-        # with time_logger("creating symbol lookup"):
-        #     symbols: Dict[str, Path] = gen_symbol_table(all_analysed_files)
+            analysed_fortran, analysed_c = self.parse_files(to_analyse, analysis_dict_writer)
+        all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
 
-
+        # Make "external" symbol table
+        with time_logger("creating symbol lookup"):
+            symbols: Dict[str, Path] = self.gen_symbol_table(all_analysed_files)
 
         # turn symbol deps into file deps
-        deps_not_found = set()
-        with time_logger("converting symbol to file deps"):
-            for analysed_file in all_analysed_files.values():
-                for symbol_dep in analysed_file.symbol_deps:
-                    # todo: does file_deps belong in there?
-                    file_dep = symbols.get(symbol_dep)
-                    if not file_dep:
-                        deps_not_found.add(symbol_dep)
-                        logger.debug(f"(might not matter) not found {symbol_dep} for {analysed_file.fpath}")
-                        continue
-                    analysed_file.file_deps.add(file_dep)
-        if deps_not_found:
-            logger.info(f"{len(deps_not_found)} deps not found")
+        self.gen_file_deps(all_analysed_files, symbols)
 
-        #  find the files for UM "DEPENDS ON:" commented file deps
+        #  find the file dependencies for UM "DEPENDS ON:" commented file deps
         with time_logger("adding MO 'DEPENDS ON:' file dependency comments"):
             add_mo_commented_file_deps(analysed_fortran, analysed_c)
 
-        # TODO: document this: when there's duplicate symbols, the size of the (possibly wrong) build tree can vary...
-        # Target tree extraction - for building executables.
-        # When building library ".so" files, no target is needed.
         logger.info(f"source tree size {len(all_analysed_files)}")
+
+        # Target tree extraction - for building executables.
         if self.root_symbol:
             with time_logger("extracting target tree"):
                 build_tree = extract_sub_tree(all_analysed_files, symbols[self.root_symbol], verbose=False)
             logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.root_symbol]}')")
+        # When building library ".so" files, no target is needed.
         else:
             logger.info("no target specified, building everything")
             build_tree = all_analysed_files
 
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
-        # This is driven by the config list "unreferenced-dependencies"
         self.add_unreferenced_deps(symbols, all_analysed_files, build_tree)
 
         validate_build_tree(build_tree)
@@ -111,10 +88,9 @@ class Analyse(Step):
         #         for af in sorted_files:
         #             af.dump(outfile)
 
-    def symbol_analysis(self,
-                        to_analyse_by_type: Dict[str, List[HashedFile]],
-                        analysis_dict_writer: csv.DictWriter,
-                        artefacts: Dict):
+    def parse_files(self,
+                    to_analyse_by_type: Dict[str, List[HashedFile]],
+                    analysis_dict_writer: csv.DictWriter):
         """
         What symbols are defined in, and used by, a file.
 
@@ -129,16 +105,12 @@ class Analyse(Step):
         with time_logger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             analysed_fortran, fortran_exceptions = self.analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
-        artefacts['analysed_fortran'] = analysed_fortran
-        artefacts['all_analysed_files'].update({a.fpath: a for a in analysed_fortran})
 
         # c
         c_files = to_analyse_by_type[".c"]
         with time_logger(f"analysing {len(c_files)} preprocessed c files"):
             analysed_c, c_exceptions = self.analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
-        artefacts['analysed_c'] = analysed_c
-        artefacts['all_analysed_files'].update({a.fpath: a for a in analysed_c})
 
         # errors?
         all_exceptions = fortran_exceptions | c_exceptions
@@ -152,16 +124,49 @@ class Analyse(Step):
         if self.fortran_analyser.depends_on_comment_found:
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
-        # add special measure analysis results
+        return analysed_fortran, analysed_c
+
+    def gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
+
+        # add special measure symbols for files which could not be parsed
         if self.special_measure_analysis_results:
             for analysed_file in self.special_measure_analysis_results:
-                # todo: create a special measures notification function? with a loud summary at the end of the build?
                 warnings.warn(f"SPECIAL MEASURE for {analysed_file.fpath}: injecting user-defined analysis results")
-                artefacts['all_analysed_files'][analysed_file.fpath] = analysed_file
+                all_analysed_files[analysed_file.fpath] = analysed_file
 
-        # symbol table
-        with time_logger("creating symbol lookup"):
-            artefacts['symbols']: Dict[str, Path] = gen_symbol_table(artefacts['all_analysed_files'])
+        # map symbols to the files in which they're defined
+        symbols = dict()
+        duplicates = []
+        for source_file in all_analysed_files.values():
+            for symbol_def in source_file.symbol_defs:
+                # check for duplicates
+                if symbol_def in symbols:
+                    duplicates.append(ValueError(
+                        f"duplicate symbol '{symbol_def}' defined in {source_file.fpath} "
+                        f"already found in {symbols[symbol_def]}"))
+                    continue
+                symbols[symbol_def] = source_file.fpath
+
+        if duplicates:
+            err_msg = "\n".join(map(str, duplicates))
+            logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
+
+        return symbols
+
+    def gen_file_deps(self, all_analysed_files, symbols):
+        deps_not_found = set()
+        with time_logger("converting symbol to file deps"):
+            for analysed_file in all_analysed_files.values():
+                for symbol_dep in analysed_file.symbol_deps:
+                    # todo: does file_deps belong in there?
+                    file_dep = symbols.get(symbol_dep)
+                    if not file_dep:
+                        deps_not_found.add(symbol_dep)
+                        logger.debug(f"(might not matter) not found {symbol_dep} for {analysed_file.fpath}")
+                        continue
+                    analysed_file.file_deps.add(file_dep)
+        if deps_not_found:
+            logger.info(f"{len(deps_not_found)} deps not found")
 
     def get_latest_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
         mp_results = self.run_mp(items=fpaths, func=do_checksum)
@@ -305,22 +310,3 @@ class Analyse(Step):
             # add it
             sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
             build_tree.update(sub_tree)
-
-
-def gen_symbol_table(all_analysed_files: Dict[Path, AnalysedFile]):
-    symbols = dict()
-    duplicates = []
-    for source_file in all_analysed_files.values():
-        for symbol_def in source_file.symbol_defs:
-            if symbol_def in symbols:
-                duplicates.append(ValueError(
-                    f"duplicate symbol '{symbol_def}' defined in {source_file.fpath} "
-                    f"already found in {symbols[symbol_def]}"))
-                continue
-            symbols[symbol_def] = source_file.fpath
-
-    if duplicates:
-        err_msg = "\n".join(map(str, duplicates))
-        logger.warning(f"Duplicates found while generating symbol table:\n{err_msg}")
-
-    return symbols

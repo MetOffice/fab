@@ -66,7 +66,7 @@ def um_atmos_safe_config():
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
     set_workspace(workspace)
 
-    Step.use_multiprocessing = False
+    Step.use_multiprocessing = True
     # Step.debug_skip = True
 
     grab_config = {
