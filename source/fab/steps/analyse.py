@@ -76,11 +76,12 @@ class Analyse(Step):
             preprocessed_hashes = self._get_latest_checksums(
                 artefacts['preprocessed_fortran'] | artefacts['preprocessed_c'])
 
-        with time_logger("loading analysis results"):
+        with time_logger("loading previous analysis results"):
             changed, unchanged = self._load_analysis_results(preprocessed_hashes)
 
-        with self._new_analysis_file(unchanged) as csv_writer:
-            analysed_fortran, analysed_c = self._parse_files(changed, csv_writer)
+        with time_logger("analysing files"):
+            with self._new_analysis_file(unchanged) as csv_writer:
+                analysed_fortran, analysed_c = self._parse_files(changed, csv_writer)
         all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
 
         # Make "external" symbol table
