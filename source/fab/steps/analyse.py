@@ -26,10 +26,9 @@ class Analyse(Step):
     a function to process them one at a time.
 
     """
-    def __init__(self, workspace, name='analyser', root_symbol=None,
+    def __init__(self, name='analyser', root_symbol=None,
                  special_measure_analysis_results=None, unreferenced_deps=None):
         super().__init__(name)
-        self.workspace = workspace
         self.root_symbol = root_symbol
         self.special_measure_analysis_results = special_measure_analysis_results or []
         self.unreferenced_deps = unreferenced_deps or []

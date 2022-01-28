@@ -9,8 +9,10 @@ import logging
 import multiprocessing
 from pathlib import Path
 
+from fab.steps import Step
+
 from fab import steps
-from fab.config_sketch import ConfigSketch
+from fab.config import ConfigSketch
 from fab.constants import BUILD_OUTPUT
 
 from fab.util import time_logger
@@ -93,9 +95,9 @@ class Build(object):
 
     def run(self):
         logger.info(f"{datetime.now()}")
-        logger.info(f"use_multiprocessing = {steps.use_multiprocessing}")
-        if steps.use_multiprocessing:
-            logger.info(f"n_procs = {steps.n_procs}")
+        logger.info(f"use_multiprocessing = {Step.use_multiprocessing}")
+        if Step.use_multiprocessing:
+            logger.info(f"n_procs = {Step.n_procs}")
 
         artefacts = dict()
         for step in self.config.steps:

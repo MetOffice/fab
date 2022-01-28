@@ -7,7 +7,7 @@ import sys
 
 from pathlib import Path
 
-from fab.config_sketch import AddPathFlags, FlagsConfig, ConfigSketch
+from fab.config import AddPathFlags, FlagsConfig, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 
 from fab.builder import Build

@@ -15,7 +15,7 @@ from fparser.two.parser import ParserFactory
 from fparser.common.readfortran import FortranFileReader
 from fparser.two.utils import FortranSyntaxError
 
-from fab.config_sketch import FlagsConfig
+from fab.config import FlagsConfig
 from fab.tasks import  TaskException
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile

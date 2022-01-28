@@ -17,7 +17,7 @@ from typing import \
 
 import clang.cindex  # type: ignore
 
-from fab.config_sketch import FlagsConfig
+from fab.config import FlagsConfig
 from fab.dep_tree import AnalysedFile
 from fab.tasks import TaskException
 from fab.util import log_or_dot, HashedFile, CompiledFile, run_command

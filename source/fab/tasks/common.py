@@ -3,16 +3,10 @@
 # which you should have received as part of this distribution
 
 import logging
-import subprocess
-from typing import List, Set
-from pathlib import Path
 
-from fab.constants import BUILD_SOURCE
+from typing import List
 
-from fab.config_sketch import FlagsConfig
-from fab.tasks.c import _CTextReaderPragmas
-
-from fab.util import CompiledFile, input_to_output_fpath, log_or_dot, fixup_command_includes, run_command
+from fab.util import CompiledFile, log_or_dot, run_command
 
 
 logger = logging.getLogger('fab')

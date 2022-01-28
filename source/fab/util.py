@@ -60,47 +60,6 @@ class CompiledFile(object):
         self.output_fpath = output_fpath
 
 
-def fixup_command_includes(command: List[str], source_root: Path, file_path: Path):
-    """
-    Within a command, convert all include paths to become relative to a file or folder.
-
-    Args:
-        - command: The command to modify (not in-place), as sent to subprocess.run()
-        - source_root: The root for absolute include paths.
-        - file_path: Lives in the folder for relative include paths.
-
-    Relative paths are resolved to being relative to the given file path.
-    Absolute paths are resolved to being relative to the given root folder.
-
-    E.g:
-
-        >>> fixup_command_includes( \
-            command=['cpp', '-I', '/abs_inc', '-I', 'rel_inc', 'foo.c'], \
-            source_root=Path('/home/me/src'), \
-            file_path=Path('/home/me/src/sub/file.f90'))
-        ['cpp', '-I', '/home/me/src/abs_inc', '-I', '/home/me/src/sub/rel_inc', 'foo.c']
-
-    """
-
-    new_command = [*command]
-
-    for i in range(len(new_command)):
-        part = new_command[i]
-
-        if part == "-I":
-            inc_path = Path(new_command[i+1])
-
-            if inc_path.is_absolute():
-                rel_path = inc_path.parts[1:]  # take off the leading slash
-                new_inc_path = source_root.joinpath(*rel_path)
-                new_command[i+1] = str(new_inc_path)
-            else:
-                # E.g an include subfolder below a c file
-                new_command[i+1] = str(file_path.parent / inc_path)
-
-    return new_command
-
-
 def input_to_output_fpath(workspace: Path, input_path: Path):
     rel_path = input_path.relative_to(workspace / BUILD_SOURCE)
     return workspace / BUILD_OUTPUT / rel_path

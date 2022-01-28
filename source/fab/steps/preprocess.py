@@ -1,15 +1,14 @@
 import logging
 from pathlib import PosixPath, Path
-from typing import Dict, Union
 
 from fab.constants import BUILD_SOURCE
 
-from fab.config_sketch import FlagsConfig, AddPathFlags
+from fab.config import FlagsConfig, AddPathFlags
 from fab.dep_tree import by_type
 
 from fab.steps import Step
 from fab.tasks.c import _CTextReaderPragmas
-from fab.util import log_or_dot_finish, input_to_output_fpath, fixup_command_includes, log_or_dot, run_command
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command
 
 logger = logging.getLogger('fab')
 
@@ -35,7 +34,7 @@ class PreProcessor(Step):
         self._preprocessor = preprocessor
         self._flags = FlagsConfig(
             common_flags=common_flags,
-            all_path_flags=[AddPathFlags(flags=i[0], path_filter=i[1]) for i in path_flags]
+            all_path_flags=[AddPathFlags(path_filter=i[0], flags=i[1]) for i in path_flags]
         )
 
 
@@ -53,6 +52,7 @@ class PreProcessor(Step):
         """
         output_fpath = input_to_output_fpath(workspace=self.workspace, input_path=fpath)
 
+        # todo: split the language specific stuff out into the subclasses
         if fpath.suffix == ".c":
             # pragma injection
             # todo: The .prag file should probably live in the output folder.
@@ -76,10 +76,6 @@ class PreProcessor(Step):
         command = [self._preprocessor]
         command.extend(self._flags.flags_for_path(fpath))
 
-        # the flags we were given might contain include folders which need to be converted into absolute paths
-        # todo: inconsistent with the compiler (and c?), which doesn't do this - discuss
-        command = fixup_command_includes(command=command, source_root=self.workspace / BUILD_SOURCE, file_path=fpath)
-
         # input and output files
         command.append(str(input_fpath))
         command.append(str(output_fpath))
@@ -94,6 +90,9 @@ class PreProcessor(Step):
 
 
 class FortranPreProcessor(PreProcessor):
+
+    def __init__(self, name='fortran preprocess', preprocessor='cpp', common_flags=None, path_flags=None):
+        super().__init__(name=name, preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags)
 
     def run(self, artefacts):
 
@@ -119,6 +118,9 @@ class FortranPreProcessor(PreProcessor):
 
 
 class CPreProcessor(PreProcessor):
+
+    def __init__(self, name='c preprocess', preprocessor='cpp', common_flags=None, path_flags=None):
+        super().__init__(name=name, preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags)
 
     def run(self, artefacts):
         mp_input = artefacts['all_source']['.c']

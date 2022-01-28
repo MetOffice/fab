@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   fab.steps
    fab.tasks
 
 Submodules

@@ -1,7 +1,10 @@
 import logging
+from string import Template
 from typing import List, Set
 
-from fab.config_sketch import FlagsConfig
+from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
+
+from fab.config import FlagsConfig, AddPathFlags
 from fab.dep_tree import AnalysedFile, by_type
 
 from fab.steps import Step
@@ -12,12 +15,17 @@ logger = logging.getLogger('fab')
 
 class CompileFortran(Step):
 
-    def __init__(self, compiler: List[str], flags: FlagsConfig, workspace, name='compile fortran', debug_skip=False):
+    def __init__(self, compiler: List[str], common_flags=None, path_flags=None, name='compile fortran'):
         super().__init__(name)
-        self._compiler = compiler
-        self._flags = flags
-        self._workspace = workspace
-        self.debug_skip = debug_skip
+
+        # todo: template and config duplication, make a superclass, like RunExe?
+        substitute = dict(source=self.workspace/BUILD_SOURCE, output=self.workspace/BUILD_OUTPUT)
+        self._compiler = [Template(i).substitute(substitute) for i in compiler]
+
+        self._flags = FlagsConfig(
+            common_flags=common_flags,
+            all_path_flags=[AddPathFlags(path_filter=i[0], flags=i[1]) for i in path_flags]
+        )
 
     def run(self, artefacts):
         to_compile = {
