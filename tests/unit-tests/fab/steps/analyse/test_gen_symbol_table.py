@@ -19,7 +19,7 @@ class Test_gen_symbol_table(object):
         
         analyser = Analyse()
 
-        result = analyser.gen_symbol_table(all_analysed_files=analysed_files)
+        result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
 
         assert result == {
             'foo_1': PosixPath('foo.c'),
@@ -29,24 +29,12 @@ class Test_gen_symbol_table(object):
         }
 
     def test_duplicate_symbol(self, analysed_files):
+        analysed_files[Path("bar.c")].symbol_defs.append('foo_1')
 
         analyser = Analyse()
 
         with pytest.warns(UserWarning):
-            result = analyser.gen_symbol_table(all_analysed_files=analysed_files)
-
-        assert result == {
-            'foo_1': PosixPath('foo.c'),
-            'foo_2': PosixPath('foo.c'),
-            'bar_1': PosixPath('bar.c'),
-        }
-
-    def test_special_measures(self, analysed_files):
-
-        analyser = Analyse()
-        analyser.special_measure_analysis_results = analysed_files.values()
-
-        result = analyser.gen_symbol_table(all_analysed_files=dict())
+            result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
 
         assert result == {
             'foo_1': PosixPath('foo.c'),
@@ -55,9 +43,17 @@ class Test_gen_symbol_table(object):
             'bar_2': PosixPath('bar.c'),
         }
 
+    def test_special_measures(self, analysed_files):
 
-class Test_analysis_progress(object):
-    pass
+        analyser = Analyse()
+        analyser.special_measure_analysis_results = analysed_files.values()
 
+        result = analyser._gen_symbol_table(all_analysed_files=dict())
 
+        assert result == {
+            'foo_1': PosixPath('foo.c'),
+            'foo_2': PosixPath('foo.c'),
+            'bar_1': PosixPath('bar.c'),
+            'bar_2': PosixPath('bar.c'),
+        }
 

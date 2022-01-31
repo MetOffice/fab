@@ -214,8 +214,9 @@ class Analyse(Step):
         return latest_file_hashes
 
     def _load_analysis_results(self, latest_file_hashes) -> Tuple[Dict[str, List[HashedFile]], List[AnalysedFile]]:
-        # Load analysis results from previous run.
-        # Includes the hash of the file when we last analysed it.
+        # This function tells us which files have changed since they were last analysed.
+        # The analysis file includes the hash of the file when we last analysed it.
+        # We discard previous results from files which are no longer present.
         prev_results: Dict[Path, AnalysedFile] = dict()
         try:
             with open(self.workspace / "__analysis.csv", "rt") as csv_file:
@@ -253,14 +254,10 @@ class Analyse(Step):
         return changed, unchanged
 
     @contextmanager
-    def _new_analysis_file(self, unchanged) -> csv.DictWriter:
-        """
-        Open a new analysis progress file, populated with work already done in previous runs.
-
-        We re-write the successfully read contents of the analysis file each time,
-        for robustness against data corruption (otherwise we could just open with "wt+").
-
-        """
+    def _new_analysis_file(self, unchanged: List[AnalysedFile]) -> csv.DictWriter:
+        # Open a new analysis file, populated with work already done in previous runs.
+        # We re-write the successfully read contents of the analysis file each time,
+        # for robustness against data corruption (otherwise we could just open with "wt+").
         with time_logger("starting analysis progress file"):
             analysis_progress_file = open(self.workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
@@ -341,6 +338,6 @@ class Analyse(Step):
                             f"is already in the build tree")
                 continue
 
-            # add it
+            # add the file and it's file deps
             sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
             build_tree.update(sub_tree)
