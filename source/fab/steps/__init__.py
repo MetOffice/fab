@@ -14,6 +14,7 @@ class Step(object):
 
     """
 
+    # todo: not great for parallel testing
     workspace = None
     use_multiprocessing = True
     n_procs = max(1, cpu_count() - 1)

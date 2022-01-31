@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from string import Template
 from typing import List, Set
 
@@ -17,6 +18,7 @@ class CompileFortran(Step):
 
     def __init__(self, compiler: List[str], common_flags=None, path_flags=None, name='compile fortran'):
         super().__init__(name)
+        path_flags = path_flags or []
 
         # todo: template and config duplication, make a superclass, like RunExe?
         substitute = dict(source=self.workspace/BUILD_SOURCE, output=self.workspace/BUILD_OUTPUT)
@@ -28,12 +30,12 @@ class CompileFortran(Step):
         )
 
     def run(self, artefacts):
-        to_compile = {
+        to_compile: Set[AnalysedFile] = {
             analysed_file for analysed_file in artefacts['build_tree'].values() if analysed_file.fpath.suffix == ".f90"}
         logger.info(f"\ncompiling {len(to_compile)} fortran files")
 
         all_compiled: List[CompiledFile] = []  # todo: use set?
-        already_compiled_files = set()  # a quick lookup
+        already_compiled_files: Set[Path] = set([])  # a quick lookup
 
         per_pass = []
         while to_compile:
@@ -41,23 +43,23 @@ class CompileFortran(Step):
             compile_next = self.get_compile_next(already_compiled_files, to_compile)
 
             logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
-            this_pass = self.run_mp(items=compile_next, func=self.compile_file)
+            results_this_pass = self.run_mp(items=compile_next, func=self.compile_file)
 
             # any errors?
             # todo: improve by_type pattern to handle all exceptions as one
             errors = []
-            for i in this_pass:
+            for i in results_this_pass:
                 if isinstance(i, Exception):
                     errors.append(i)
             if len(errors):
                 logger.error(f"\nThere were {len(errors)} compile errors this pass\n\n")
             if errors:
+                # todo: do we need to fail if we're building a library? might not need that broken file...
                 err_str = "\n\n".join(map(str, errors))
-                logger.error(err_str)
-                exit(1)  # todo: no exits
+                raise RuntimeError(f"Error in compiling pass: {err_str}")
 
             # check what we did compile
-            compiled_this_pass: Set[CompiledFile] = by_type(this_pass)[CompiledFile]
+            compiled_this_pass: Set[CompiledFile] = by_type(results_this_pass)[CompiledFile]
             per_pass.append(len(compiled_this_pass))
             if len(compiled_this_pass) == 0:
                 logger.error("nothing compiled this pass")
@@ -66,13 +68,13 @@ class CompileFortran(Step):
             # remove compiled files from list
             logger.debug(f"compiled {len(compiled_this_pass)} files")
 
-            # ProgramUnit - not the same as passed in, due to mp copying
+            # results are not the same instances as passed in, due to mp copying
             compiled_fpaths = {i.analysed_file.fpath for i in compiled_this_pass}
             all_compiled.extend(compiled_this_pass)
             already_compiled_files.update(compiled_fpaths)
 
             # remove from remaining to compile
-            to_compile = list(filter(lambda af: af.fpath not in compiled_fpaths, to_compile))
+            to_compile = set(filter(lambda af: af.fpath not in compiled_fpaths, to_compile))
 
         log_or_dot_finish(logger)
         logger.debug(f"compiled per pass {per_pass}")
@@ -87,7 +89,7 @@ class CompileFortran(Step):
 
         artefacts['compiled_fortran'] = all_compiled
 
-    def get_compile_next(self, already_compiled_files, to_compile):
+    def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
 
         # find what to compile next
         compile_next = []
@@ -105,8 +107,7 @@ class CompileFortran(Step):
             all_unfulfilled = set()
             for unfulfilled in not_ready.values():
                 all_unfulfilled = all_unfulfilled.union(unfulfilled)
-            logger.error(f"All unfulfilled deps: {', '.join(map(str, all_unfulfilled))}")
-            exit(1)  # todo: no exits
+            raise RuntimeError(f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
 
         return compile_next
 
