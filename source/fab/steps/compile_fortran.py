@@ -37,6 +37,8 @@ class CompileFortran(Step):
         """
         Compiles all Fortran files in the *build_tree* artefact, creating the *compiled_c* artefact.
 
+        This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+
         """
         to_compile: Set[AnalysedFile] = {
             analysed_file for analysed_file in artefacts['build_tree'].values() if analysed_file.fpath.suffix == ".f90"}

@@ -7,7 +7,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, List
+from typing import Iterator, List, Iterable
 
 from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
 
@@ -78,3 +78,7 @@ def run_command(command):
             raise Exception(f"The command exited with non zero: {res.stderr.decode()}")
     except Exception as err:
         raise Exception(f"error: {err}")
+
+
+def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
+    return list(filter(lambda fpath: fpath.suffix in suffixes, fpaths))

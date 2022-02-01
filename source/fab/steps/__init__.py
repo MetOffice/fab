@@ -9,7 +9,7 @@ class Step(object):
     """
     Base class for build steps.
 
-    Provides multiprocessing capabilities.
+    Provides multiprocessing capabilities which can be disabled for debugging.
 
     """
 

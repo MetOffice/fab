@@ -27,6 +27,8 @@ class CompileC(Step):
         """
         Compiles all C files in the *build_tree* artefact, creating the *compiled_c* artefact.
 
+        This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+
         """
         # todo: should be configuratble, as there moght not be a an analysis stage (therefore no build tree artefact).
         to_compile = {

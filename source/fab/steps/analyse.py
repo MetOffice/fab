@@ -69,6 +69,8 @@ class Analyse(Step):
             - Work out the file dependencies from the symbol dependencies.
             - (Optionally) Prune the file dependency tree for the root symbol, if given.
 
+        This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+
         """
 
         # take hashes of all the files we preprocessed

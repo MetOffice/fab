@@ -27,6 +27,8 @@ import shutil
 import warnings
 from pathlib import Path
 
+from fab.steps.c_pragma_injector import CPragmaInjector
+
 from fab.steps import Step
 
 from fab.builder import Build
@@ -127,120 +129,11 @@ def um_atmos_safe_config():
         (['.sh'], False),
     ]
 
-    c_preprocessor = CPreProcessor(
-        preprocessor='cpp',
-        path_flags=[
-            ("$source/um/*",
-             ['-I', '$source/um/include/other',  # todo: explain, relative to which root?
-              '-I', '$source/shumlib/common/src',
-              '-I', '$source/shumlib/shum_thread_utils/src']),
 
-            ("$source/shumlib/*",
-             ['-I', '$source/shumlib/common/src',
-              '-I', '$source/shumlib/shum_thread_utils/src']),
+    # class UmRunArtifacts(object):
+    #     def __init__(self):
+    #         self.c_files: List[Path] = []
 
-            # todo: just 3 folders use this
-            ("$source/um/*",
-             ['-DC95_2A',
-              '-I', '$source/shumlib/shum_byteswap/src']),
-        ],
-    )
-
-    # todo: explain fnmatch
-    fortran_preprocessor = FortranPreProcessor(
-        preprocessor='cpp',
-        common_flags=['-traditional-cpp', '-P'],
-        path_flags=[
-            ("$source/jules/*", ['-DUM_JULES']),
-            ("$source/um/*", ['-I', '$relative/include']),
-
-            # coupling defines
-            ("$source/um/control/timer/*", ['-DC97_3A']),
-            ("$source/um/io_services/client/stash/*", ['-DC96_1C']),
-        ],
-    )
-
-    analyser = Analyse(
-        root_symbol='um_main',
-        unreferenced_deps=None,
-
-        # fparser2 fails to parse this file, but it does compile.
-        special_measure_analysis_results=[
-            AnalysedFile(
-                fpath=Path(os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_output/casim/lookup.f90")),
-                file_hash=None,
-                symbol_defs=['lookup'],
-                symbol_deps=['mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-                             'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'],
-                file_deps=[],
-                mo_commented_file_deps=[]),
-        ]
-    )
-
-    c_compiler = CompileC(compiler=['gcc', '-c', '-std=c99'], flags=FlagsConfig(), workspace=workspace)
-
-    fortran_compiler = CompileFortran(
-        compiler=[
-            os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
-            '-c',
-            '-J', '$output',  # .mod file output and include folder
-        ],
-        common_flags=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8'],
-        path_flags=[
-
-            # mpl include - todo: just add this for everything?
-            (f"$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-            (f"$output/jules/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-
-            # TODO: REVIEWERS, SHOULD WE NEED THESE?
-            # a not recommended flag?
-            # todo: allow a list of filters?
-            ('*/hardware_topology_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/setup_spectra_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/mcica_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/ios_comms.f90', ['-fallow-argument-mismatch']),
-            ('*/ios_client_queue.f90', ['-fallow-argument-mismatch']),
-            ('*/fastjx_specs.f90', ['-fallow-argument-mismatch']),
-            ('*/history_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/lustre_control_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/imbnd_hill_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/io_configuration_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/nlstcall_nc_namelist_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/nlstcall_pp_namelist_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/ios.f90', ['-fallow-argument-mismatch']),
-            ('*/regrid_alloc_calc_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/halo_exchange_ddt_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/halo_exchange_mpi_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/halo_exchange_os_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/mg_field_norm.f90', ['-fallow-argument-mismatch']),
-            ('*/rdbasis.f90', ['-fallow-argument-mismatch']),
-            ('*/io.f90', ['-fallow-argument-mismatch']),
-            ('*/ppxlook_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/read_land_sea.f90', ['-fallow-argument-mismatch']),
-            ('*/diagopr.f90', ['-fallow-argument-mismatch']),
-            ('*/eg_bi_linear_h.f90', ['-fallow-argument-mismatch']),
-            ('*/glomap_clim_netcdf_io_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/emiss_io_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/ios_stash_server.f90', ['-fallow-argument-mismatch']),
-            ('*/io_server_listener.f90', ['-fallow-argument-mismatch']),
-            ('*/acumps.f90', ['-fallow-argument-mismatch']),
-            ('*/num_obs.f90', ['-fallow-argument-mismatch']),
-            ('*/io_server_writer.f90', ['-fallow-argument-mismatch']),
-            ('*/routedbl_mod.f90', ['-fallow-argument-mismatch']),
-            ('*/ios_init.f90', ['-fallow-argument-mismatch']),
-            ('*/eg_sl_helmholtz_inc.f90', ['-fallow-argument-mismatch']),
-            ('*/ukca_scenario_rcp_mod.f90', ['-fallow-argument-mismatch']),
-        ]
-    )
-
-    linker = LinkExe(
-        # linker='gcc',
-        linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
-        flags=[
-            '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
-            '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'
-        ],
-        output_fpath='um_atmos.exe')
 
     return ConfigSketch(
         project_name=project_name,
@@ -252,15 +145,135 @@ def um_atmos_safe_config():
         steps=[
             WalkSource(build_source=workspace / BUILD_SOURCE),
             RootIncFiles(build_source=workspace / BUILD_SOURCE),
-            c_preprocessor,
-            fortran_preprocessor,
-            analyser,
-            c_compiler,
-            fortran_compiler,
-            linker,
+
+            CPragmaInjector(),
+
+            CPreProcessor(
+                input_name='pragmad_c',
+                preprocessor='cpp',
+                path_flags=[
+                    ("$source/um/*",
+                     ['-I', '$source/um/include/other',  # todo: explain, relative to which root?
+                      '-I', '$source/shumlib/common/src',
+                      '-I', '$source/shumlib/shum_thread_utils/src']),
+
+                    ("$source/shumlib/*",
+                     ['-I', '$source/shumlib/common/src',
+                      '-I', '$source/shumlib/shum_thread_utils/src']),
+
+                    # todo: just 3 folders use this
+                    ("$source/um/*",
+                     ['-DC95_2A',
+                      '-I', '$source/shumlib/shum_byteswap/src']),
+                ],
+            ),
+
+            # todo: explain fnmatch
+            FortranPreProcessor(
+                preprocessor='cpp',
+                common_flags=['-traditional-cpp', '-P'],
+                path_flags=[
+                    ("$source/jules/*", ['-DUM_JULES']),
+                    ("$source/um/*", ['-I', '$relative/include']),
+
+                    # coupling defines
+                    ("$source/um/control/timer/*", ['-DC97_3A']),
+                    ("$source/um/io_services/client/stash/*", ['-DC96_1C']),
+                ],
+            ),
+
+            Analyse(
+                root_symbol='um_main',
+                unreferenced_deps=None,
+
+                # fparser2 fails to parse this file, but it does compile.
+                special_measure_analysis_results=[
+                    AnalysedFile(
+                        fpath=Path(
+                            os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_output/casim/lookup.f90")),
+                        file_hash=None,
+                        symbol_defs=['lookup'],
+                        symbol_deps=['mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
+                                     'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'],
+                        file_deps=[],
+                        mo_commented_file_deps=[]),
+                ]
+            ),
+
+            CompileC(compiler=['gcc', '-c', '-std=c99'], flags=FlagsConfig(), workspace=workspace),
+
+            CompileFortran(
+                compiler=[
+                    os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+                    '-c',
+                    '-J', '$output',  # .mod file output and include folder
+                ],
+                common_flags=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8'],
+                path_flags=[
+
+                    # mpl include - todo: just add this for everything?
+                    (f"$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+                    (f"$output/jules/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+                    # todo: rename this variable
+                    *FORTRAN_GUFF_TO_RENAME
+                ]
+            ),
+
+            LinkExe(
+                # linker='gcc',
+                linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+                flags=[
+                    '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
+                    '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'
+                ],
+                output_fpath='um_atmos.exe')
         ],
 
     )
+
+
+# todo: rename!
+# TODO: REVIEWERS, SHOULD WE NEED THESE?
+# a not recommended flag?
+# todo: allow a list of filters?
+FORTRAN_GUFF_TO_RENAME = [
+    ('*/hardware_topology_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/setup_spectra_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/mcica_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/ios_comms.f90', ['-fallow-argument-mismatch']),
+    ('*/ios_client_queue.f90', ['-fallow-argument-mismatch']),
+    ('*/fastjx_specs.f90', ['-fallow-argument-mismatch']),
+    ('*/history_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/lustre_control_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/imbnd_hill_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/io_configuration_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/nlstcall_nc_namelist_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/nlstcall_pp_namelist_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/ios.f90', ['-fallow-argument-mismatch']),
+    ('*/regrid_alloc_calc_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/halo_exchange_ddt_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/halo_exchange_mpi_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/halo_exchange_os_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/mg_field_norm.f90', ['-fallow-argument-mismatch']),
+    ('*/rdbasis.f90', ['-fallow-argument-mismatch']),
+    ('*/io.f90', ['-fallow-argument-mismatch']),
+    ('*/ppxlook_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/read_land_sea.f90', ['-fallow-argument-mismatch']),
+    ('*/diagopr.f90', ['-fallow-argument-mismatch']),
+    ('*/eg_bi_linear_h.f90', ['-fallow-argument-mismatch']),
+    ('*/glomap_clim_netcdf_io_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/emiss_io_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/ios_stash_server.f90', ['-fallow-argument-mismatch']),
+    ('*/io_server_listener.f90', ['-fallow-argument-mismatch']),
+    ('*/acumps.f90', ['-fallow-argument-mismatch']),
+    ('*/num_obs.f90', ['-fallow-argument-mismatch']),
+    ('*/io_server_writer.f90', ['-fallow-argument-mismatch']),
+    ('*/routedbl_mod.f90', ['-fallow-argument-mismatch']),
+    ('*/ios_init.f90', ['-fallow-argument-mismatch']),
+    ('*/eg_sl_helmholtz_inc.f90', ['-fallow-argument-mismatch']),
+    ('*/ukca_scenario_rcp_mod.f90', ['-fallow-argument-mismatch']),
+]
+
 
 
 def main():
