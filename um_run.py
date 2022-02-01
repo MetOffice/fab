@@ -285,11 +285,11 @@ def main():
 
     # Get source repos
     # with time_logger("grabbing"):
-    #     grab_will_do_this(config_sketch.grab_config, workspace)
+    #     grab_will_do_this(config_sketch.grab_config, config_sketch.workspace)
 
     # Extract the files we want to build
     # with time_logger("extracting"):
-    #     extract_will_do_this(config_sketch.extract_config, workspace)
+    #     extract_will_do_this(config_sketch.extract_config, config_sketch.workspace)
 
     builder = Build(config=config_sketch)
 

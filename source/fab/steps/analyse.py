@@ -161,7 +161,7 @@ class Analyse(Step):
 
     def _gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
         """
-        Create a dictionary mapping symbol names to the files in whic they appear.
+        Create a dictionary mapping symbol names to the files in which they appear.
 
         """
         # add special measure symbols for files which could not be parsed

@@ -13,6 +13,7 @@ from typing import Optional
 from fab.constants import BUILD_OUTPUT
 
 from fab.steps import Step
+from fab.util import suffix_filter
 
 logger = logging.getLogger('fab')
 
@@ -36,7 +37,7 @@ class RootIncFiles(Step):
         """
         # inc files all go in the root - they're going to be removed altogether, soon
         inc_copied = set()
-        for fpath in artefacts["all_source"][".inc"]:
+        for fpath in suffix_filter(artefacts["all_source"], [".inc"]):
 
             # don't copy form the output root to the output root!
             # (i.e ancillary files from a previous run)
