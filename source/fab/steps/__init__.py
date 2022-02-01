@@ -1,11 +1,10 @@
 import multiprocessing
-
-
-# We sometimes need to turn multiprocessing off when debugging a build.
+# from abc import ABC, abstractmethod
 from multiprocessing import cpu_count
 from typing import Dict
 
 
+# class Step(ABC):
 class Step(object):
     """
     Base class for build steps.
@@ -23,6 +22,7 @@ class Step(object):
     def __init__(self, name):
         self.name = name
 
+    # @abstractmethod
     def run(self, artefacts: Dict):
         """
         Process some input artefacts, create some output artefacts. Defined by the subclass.

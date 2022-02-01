@@ -58,8 +58,8 @@ class Analyse(Step):
     def run(self, artefacts):
         """
 
-        Uses the 'preprocessed_fortran' and 'preprocessed_c' artefacts.
-        Creates the artefact build_tree: Dict[Path, AnalysedFile].
+        Creates the *build_tree* artefact: Dict[Path, AnalysedFile].
+        Uses the *preprocessed_fortran* and *preprocessed_c* artefacts.
 
         Steps, in order:
             - Creates a hash of every artefact, used to check if it's already been analysed.

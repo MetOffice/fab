@@ -1,3 +1,7 @@
+"""
+Link an executable.
+
+"""
 import logging
 from typing import List
 
@@ -27,7 +31,12 @@ class LinkExe(Step):
         self.output_fpath = output_fpath
 
     def run(self, artefacts):
+        """
+        Links all the object files in the *compiled_c* and *compiled_fortran* artefacts.
 
+        (Current thinking) does not create an entry in the artefacts dict.
+
+        """
         compiled_files = artefacts['compiled_c'] + artefacts['compiled_fortran']
 
         command = [self.linker]

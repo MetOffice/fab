@@ -1,3 +1,7 @@
+"""
+C file compilation.
+
+"""
 import logging
 from typing import List
 
@@ -12,6 +16,7 @@ logger = logging.getLogger('fab')
 
 class CompileC(Step):
 
+    # todo: tell the compiler (and other steps) which artefact name to create?
     def __init__(self, compiler: List[str], flags, workspace, name="compile c"):
         super().__init__(name)
         self._compiler = compiler
@@ -19,6 +24,10 @@ class CompileC(Step):
         self._workspace = workspace
 
     def run(self, artefacts):
+        """
+        Compiles all C files in the *build_tree* artefact, creating the *compiled_c* artefact.
+
+        """
         # todo: should be configuratble, as there moght not be a an analysis stage (therefore no build tree artefact).
         to_compile = {
             analysed_file for analysed_file in artefacts['build_tree'].values() if analysed_file.fpath.suffix == ".c"}

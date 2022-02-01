@@ -1,7 +1,9 @@
-import logging
-from pathlib import PosixPath, Path
+"""
+Fortran and C Preprocessing.
 
-from fab.constants import BUILD_SOURCE
+"""
+import logging
+from pathlib import PosixPath
 
 from fab.config import FlagsConfig, AddPathFlags
 from fab.dep_tree import by_type
@@ -15,7 +17,7 @@ logger = logging.getLogger('fab')
 
 class PreProcessor(Step):
     """
-    A build step which calls a preprocessor. Used for both C and Fortran.
+    Base class for preprocessors. A build step which calls a preprocessor.
 
     """
     def __init__(self, name='preprocess', preprocessor='cpp', common_flags=None, path_flags=None):
@@ -36,13 +38,6 @@ class PreProcessor(Step):
             common_flags=common_flags,
             all_path_flags=[AddPathFlags(path_filter=i[0], flags=i[1]) for i in path_flags]
         )
-
-
-    # def input_artefacts(self, artefacts):
-    #     raise NotImplementedError
-    #
-    # def output_artefacts(self, results, artefacts):
-    #     raise NotImplementedError
 
     def process_artefact(self, fpath):
         """
@@ -95,7 +90,10 @@ class FortranPreProcessor(PreProcessor):
         super().__init__(name=name, preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags)
 
     def run(self, artefacts):
+        """
+        Preprocess all .F90 and .f90 files in the *all_source* artefact, creating the *preprocessed_fortran* artefact.
 
+        """
         mp_input = artefacts['all_source']['.f90'] + artefacts['all_source']['.F90']
 
         results = self.run_mp(items=mp_input, func=self.process_artefact)
@@ -123,6 +121,11 @@ class CPreProcessor(PreProcessor):
         super().__init__(name=name, preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags)
 
     def run(self, artefacts):
+        """
+        Preprocess all .c files in the *all_source* artefact, creating the *preprocessed_c* artefact.
+
+        """
+
         mp_input = artefacts['all_source']['.c']
 
         results = self.run_mp(items=mp_input, func=self.process_artefact)

@@ -1,3 +1,7 @@
+"""
+Fortran file compilation.
+
+"""
 import logging
 from pathlib import Path
 from string import Template
@@ -30,6 +34,10 @@ class CompileFortran(Step):
         )
 
     def run(self, artefacts):
+        """
+        Compiles all Fortran files in the *build_tree* artefact, creating the *compiled_c* artefact.
+
+        """
         to_compile: Set[AnalysedFile] = {
             analysed_file for analysed_file in artefacts['build_tree'].values() if analysed_file.fpath.suffix == ".f90"}
         logger.info(f"\ncompiling {len(to_compile)} fortran files")
