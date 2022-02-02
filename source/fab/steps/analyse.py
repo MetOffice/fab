@@ -37,7 +37,7 @@ class Analyse(Step):
         """
 
         Args:
-            - name: Defaults to 'analyser'
+            - source: A :class:`~fab.util.SourceGetter`.
             - root_symbol: When building an executable, provide the Fortran Program name, or 'main' for C.
                 If not specified, target tree extraction will not be performed and the whole codebase will be returned
                 in the build tree, as when building a compiled object archive.
@@ -48,6 +48,7 @@ class Analyse(Step):
                 determined. For example, functions that are called without a module use statement. Assuming the files
                 containing these symbols will been analysed, those files and all their dependencies
                 will be added to the build tree.
+            - name: Defaults to 'analyser'
 
         """
         super().__init__(name)
@@ -63,9 +64,7 @@ class Analyse(Step):
     # todo: configure the artefacts to use
     def run(self, artefacts):
         """
-
-        Creates the *build_tree* artefact: Dict[Path, AnalysedFile].
-        Uses the *preprocessed_fortran* and *preprocessed_c* artefacts.
+        Creates the *build_tree* artefact: Dict[Path, AnalysedFile] from the files in `self.source_getter`.
 
         Steps, in order:
             - Creates a hash of every artefact, used to check if it's already been analysed.

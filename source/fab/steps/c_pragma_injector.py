@@ -15,12 +15,11 @@ DEFAULT_SOURCE_GETTER = FilterFpaths('all_source', ['.c'])
 
 class CPragmaInjector(Step):
 
-    def __init__(self, source: SourceGetter=None, output_name="pragmad_c", input_suffixes=None, name="c pragmas"):
+    def __init__(self, source: SourceGetter=None, output_name="pragmad_c", name="c pragmas"):
         super().__init__(name=name)
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.output_name = output_name
-        self.input_suffixes: Iterable[str] = input_suffixes or ['.c']
 
     def run(self, artefacts: Dict):
         """
@@ -28,9 +27,6 @@ class CPragmaInjector(Step):
 
         """
         files = self.source_getter(artefacts)
-
-
-
         results = self.run_mp(items=files, func=self._process_artefact)
         artefacts[self.output_name] = list(results)
 

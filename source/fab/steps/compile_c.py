@@ -21,6 +21,11 @@ class CompileC(Step):
 
     # todo: tell the compiler (and other steps) which artefact name to create?
     def __init__(self, compiler: List[str], flags, workspace, source: SourceGetter=None, name="compile c"):
+        """
+        Args:
+            - compiler: E.g gcc
+
+        """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self._compiler = compiler

@@ -139,5 +139,3 @@ class FilterBuildTree(SourceGetter):
     def __call__(self, artefacts):
         analysed_files: Iterable[Path] = artefacts[self.artefact_name].values()
         return list(filter(lambda af: af.fpath.suffix in self.suffixes, analysed_files))
-
-
