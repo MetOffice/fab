@@ -31,3 +31,4 @@ class CPragmaInjector(Step):
     def _process_artefact(self, fpath: Path):
         prag_output_fpath = fpath.with_suffix('.prag')
         prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
+        return prag_output_fpath.with_suffix(".c")

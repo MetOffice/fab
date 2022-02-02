@@ -32,7 +32,7 @@ class WalkSource(Step):
         Requires no artefacts, creates the "all_source" artefact.
 
         """
-        fpaths = file_walk(self.build_source)
+        fpaths = list(file_walk(self.build_source))
         if not fpaths:
             raise RuntimeError(f"no source files found")
 
