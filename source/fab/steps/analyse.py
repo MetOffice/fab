@@ -17,18 +17,23 @@ from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_t
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
-from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish
+from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish, Artefacts, SourceGetter
 
 logger = logging.getLogger('fab')
 
 
+DEFAULT_SOURCE_GETTER = Artefacts(['preprocessed_c', 'preprocessed_fortran'])
+
+
+# todo: split out c and fortran?
 # This has all been done as a single step (for now) because we don't have a simple list of artefacts and
 # a function to process them one at a time.
 class Analyse(Step):
 
     # todo: this docstring is not appearing in sphinx renders
-    def __init__(self, name='analyser', root_symbol=None,
-                 special_measure_analysis_results=None, unreferenced_deps=None):
+    def __init__(self,
+                 source: SourceGetter=None, root_symbol=None,
+                 special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
         """
 
         Args:
@@ -46,6 +51,7 @@ class Analyse(Step):
 
         """
         super().__init__(name)
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbol: str = root_symbol
         self.special_measure_analysis_results: List[AnalysedFile] = special_measure_analysis_results or []
         self.unreferenced_deps: List[str] = unreferenced_deps or []
@@ -72,11 +78,11 @@ class Analyse(Step):
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
+        files = self.source_getter(artefacts)
 
         # take hashes of all the files we preprocessed
-        with time_logger(f"getting {len(artefacts['preprocessed_fortran']) + len(artefacts['preprocessed_c'])} hashes"):
-            preprocessed_hashes = self._get_latest_checksums(
-                artefacts['preprocessed_fortran'] | artefacts['preprocessed_c'])
+        with time_logger(f"getting {len(files)} hashes"):
+            preprocessed_hashes = self._get_latest_checksums(files)
 
         with time_logger("loading previous analysis results"):
             changed, unchanged = self._load_analysis_results(preprocessed_hashes)

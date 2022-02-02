@@ -7,15 +7,18 @@ from typing import Dict, Iterable
 
 from fab.steps import Step
 from fab.tasks.c import _CTextReaderPragmas
-from fab.util import suffix_filter
+from fab.util import SourceGetter, FilterFpaths
+
+
+DEFAULT_SOURCE_GETTER = FilterFpaths('all_source', ['.c'])
 
 
 class CPragmaInjector(Step):
 
-    def __init__(self, input_name="all_source", output_name="pragmad_c", input_suffixes=None, name="c pragmas"):
+    def __init__(self, source: SourceGetter=None, output_name="pragmad_c", input_suffixes=None, name="c pragmas"):
         super().__init__(name=name)
 
-        self.input_name = input_name
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.output_name = output_name
         self.input_suffixes: Iterable[str] = input_suffixes or ['.c']
 
@@ -24,11 +27,14 @@ class CPragmaInjector(Step):
         By default, reads .c files from the *all_source* artefact and creates the *pragmad_c* artefact.
 
         """
-        files: Iterable[Path] = suffix_filter(artefacts[self.input_name], self.input_suffixes)
+        files = self.source_getter(artefacts)
+
+
+
         results = self.run_mp(items=files, func=self._process_artefact)
         artefacts[self.output_name] = list(results)
 
     def _process_artefact(self, fpath: Path):
         prag_output_fpath = fpath.with_suffix('.prag')
         prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
-        return prag_output_fpath.with_suffix(".c")
+        return prag_output_fpath

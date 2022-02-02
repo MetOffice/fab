@@ -82,3 +82,62 @@ def run_command(command):
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
     return list(filter(lambda fpath: fpath.suffix in suffixes, fpaths))
+
+
+############
+
+# todo: need this?
+# todo: poor name?
+class SourceGetter(object):
+    def __call__(self, artefacts):
+        raise NotImplementedError
+
+
+# todo: problematic name?
+class Artefact(SourceGetter):
+
+    def __init__(self, name):
+        self.name = name
+
+    def __call__(self, artefacts):
+        return artefacts[self.name]
+
+
+class Artefacts(SourceGetter):
+
+    def __init__(self, names):
+        self.names = names
+
+    def __call__(self, artefacts):
+        result = []
+        for name in self.names:
+            result.extend(artefacts[name])
+        return result
+
+
+# Artefact filtering config - should probably live in steps/__init__.py
+class FilterFpaths(SourceGetter):
+
+    def __init__(self, artefact_name: str, suffixes: List[str]):
+        self.artefact_name = artefact_name
+        self.suffixes = suffixes
+
+    # def __call__(self, *args, **kwargs):
+    def __call__(self, artefacts):
+        fpaths: Iterable[Path] = artefacts[self.artefact_name]
+        return suffix_filter(fpaths, self.suffixes)
+
+
+# todo: improve these filters? they are similar
+class FilterBuildTree(SourceGetter):
+
+    def __init__(self, suffixes: List[str], artefact_name: str='build_tree'):
+        self.artefact_name = artefact_name
+        self.suffixes = suffixes
+
+    # def __call__(self, *args, **kwargs):
+    def __call__(self, artefacts):
+        analysed_files: Iterable[Path] = artefacts[self.artefact_name].values()
+        return list(filter(lambda af: af.fpath.suffix in self.suffixes, analysed_files))
+
+

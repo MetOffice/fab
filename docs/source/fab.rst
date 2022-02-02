@@ -21,10 +21,10 @@ fab.builder module
    :undoc-members:
    :show-inheritance:
 
-fab.config\_sketch module
--------------------------
+fab.config module
+-----------------
 
-.. automodule:: fab.config_sketch
+.. automodule:: fab.config
    :members:
    :undoc-members:
    :show-inheritance:

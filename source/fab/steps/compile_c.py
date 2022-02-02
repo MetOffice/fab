@@ -9,16 +9,20 @@ from fab.dep_tree import AnalysedFile
 
 from fab.steps import Step
 from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command
+from fab.util import CompiledFile, run_command, SourceGetter, Artefact, FilterBuildTree
 
 logger = logging.getLogger('fab')
+
+
+DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.c'])
 
 
 class CompileC(Step):
 
     # todo: tell the compiler (and other steps) which artefact name to create?
-    def __init__(self, compiler: List[str], flags, workspace, name="compile c"):
+    def __init__(self, compiler: List[str], flags, workspace, source: SourceGetter=None, name="compile c"):
         super().__init__(name)
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
         self._compiler = compiler
         self._flags = flags
         self._workspace = workspace
@@ -30,9 +34,7 @@ class CompileC(Step):
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
-        # todo: should be configuratble, as there moght not be a an analysis stage (therefore no build tree artefact).
-        to_compile = {
-            analysed_file for analysed_file in artefacts['build_tree'].values() if analysed_file.fpath.suffix == ".c"}
+        to_compile = self.source_getter(artefacts)
         logger.info(f"compiling {len(to_compile)} c files")
 
         results = self.run_mp(items=to_compile, func=self._compile_file)

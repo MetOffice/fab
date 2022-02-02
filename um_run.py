@@ -42,7 +42,7 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import WalkSource
-from fab.util import file_walk, time_logger, case_insensitive_replace
+from fab.util import file_walk, time_logger, case_insensitive_replace, suffix_filter, FilterFpaths, Artefact
 
 
 # hierarchy of config
@@ -143,13 +143,13 @@ def um_atmos_safe_config():
         extract_config=extract_config,
 
         steps=[
-            WalkSource(build_source=workspace / BUILD_SOURCE),
-            RootIncFiles(build_source=workspace / BUILD_SOURCE),
+            WalkSource(workspace / BUILD_SOURCE),
+            RootIncFiles(workspace / BUILD_SOURCE),
 
             CPragmaInjector(),
 
             CPreProcessor(
-                input_name='pragmad_c',
+                source=Artefact('pragmad_c'),
                 preprocessor='cpp',
                 path_flags=[
                     ("$source/um/*",
@@ -218,6 +218,8 @@ def um_atmos_safe_config():
                     *FORTRAN_GUFF_TO_RENAME
                 ]
             ),
+
+            # todo: archinve the objects here, keeps the object in use during dev, makes better link error messages
 
             LinkExe(
                 # linker='gcc',

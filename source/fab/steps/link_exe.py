@@ -6,10 +6,12 @@ import logging
 from typing import List
 
 from fab.steps import Step
-from fab.util import CompiledFile, log_or_dot, run_command
-
+from fab.util import log_or_dot, run_command, Artefacts, SourceGetter
 
 logger = logging.getLogger('fab')
+
+
+DEFAULT_SOURCE_GETTER = Artefacts(['compiled_c', 'compiled_fortran'])
 
 
 class LinkExe(Step):
@@ -17,7 +19,7 @@ class LinkExe(Step):
     A build step to produce an executable from a list of object (.o) files.
 
     """
-    def __init__(self, linker: str, flags: List[str], output_fpath: str, name='link exe'):
+    def __init__(self, linker: str, flags: List[str], output_fpath: str, source: SourceGetter=None, name='link exe'):
         """
         Args:
             - linker: E.g 'gcc' or 'ld'.
@@ -26,6 +28,7 @@ class LinkExe(Step):
 
         """
         super().__init__(name)
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.linker = linker
         self.flags = flags
         self.output_fpath = output_fpath
@@ -37,7 +40,8 @@ class LinkExe(Step):
         (Current thinking) does not create an entry in the artefacts dict.
 
         """
-        compiled_files = artefacts['compiled_c'] + artefacts['compiled_fortran']
+        # compiled_files = artefacts['compiled_c'] + artefacts['compiled_fortran']
+        compiled_files = self.source_getter(artefacts)
 
         command = [self.linker]
         command.extend(['-o', str(self.output_fpath)])

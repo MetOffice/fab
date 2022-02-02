@@ -10,7 +10,8 @@ from fab.config import FlagsConfig, AddPathFlags
 from fab.dep_tree import by_type
 
 from fab.steps import Step
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, suffix_filter
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, suffix_filter, SourceGetter, \
+    FilterFpaths, Artefact
 
 logger = logging.getLogger('fab')
 
@@ -20,8 +21,14 @@ class PreProcessor(Step):
     Base class for preprocessors. A build step which calls a preprocessor.
 
     """
+
+    # todo: make abstract, we don't really need these in the base class
+    DEFAULT_SOURCE = None
+    DEFAULT_OUTPUT_NAME = ''
+    DEFAULT_OUTPUT_SUFFIX = ''
+
     def __init__(self,
-                 input_name, output_name, input_suffixes: List[str],
+                 source: SourceGetter=None, output_artefact=None, output_suffix=None,
                  preprocessor='cpp', common_flags=None, path_flags=None, name='preprocess'):
         """
         Args:
@@ -35,9 +42,10 @@ class PreProcessor(Step):
         """
         super().__init__(name=name)
 
-        self.input_name = input_name
-        self.output_name = output_name
-        self.input_suffixes = input_suffixes
+        # artefact names
+        self.source_getter = source or self.DEFAULT_SOURCE
+        self.output_artefact = output_artefact or self.DEFAULT_OUTPUT_NAME
+        self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
 
         self._preprocessor = preprocessor
         self._flags = FlagsConfig(
@@ -57,7 +65,10 @@ class PreProcessor(Step):
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
-        files = suffix_filter(artefacts[self.input_name], self.input_suffixes)
+        # Note: we shouldn't *always* need to filter, e.g if we're given a list of pragmad c...
+        # files = suffix_filter(artefacts[self.input_name], self.input_suffixes)
+        files = self.source_getter(artefacts)
+
         results = self.run_mp(items=files, func=self.process_artefact)
 
         results_by_type = by_type(results)
@@ -72,11 +83,11 @@ class PreProcessor(Step):
             )
 
         log_or_dot_finish(logger)
-        artefacts[self.output_name] = results_by_type[PosixPath]  # todo: why posix path?
+        artefacts[self.output_artefact] = results_by_type[PosixPath]  # todo: why posix path?
 
-    def output_path(self, input_path: Path):
-        output_fpath = input_to_output_fpath(workspace=self.workspace, input_path=input_path)
-        return output_fpath
+    # def output_path(self, input_path: Path):
+    #     output_fpath = input_to_output_fpath(workspace=self.workspace, input_path=input_path)
+    #     return output_fpath
 
     def process_artefact(self, fpath):
         """
@@ -84,7 +95,8 @@ class PreProcessor(Step):
         Writes the output file to the output folder, with a lower case extension.
 
         """
-        output_fpath = self.output_path(fpath)
+        # output_fpath = self.output_path(fpath)
+        output_fpath = input_to_output_fpath(workspace=self.workspace, input_path=fpath).with_suffix(self.output_suffix)
 
         # for dev speed, but this could become a good time saver with, e.g, hashes or something
         if self.debug_skip and output_fpath.exists():
@@ -115,16 +127,20 @@ class FortranPreProcessor(PreProcessor):
     By default, preprocesses all .F90 and .f90 files in the *all_source* artefact, creating the *preprocessed_fortran* artefact.
 
     """
-    def __init__(self, input_name='all_source', output_name='preprocessed_fortran',
-                 preprocessor='cpp', common_flags=None, path_flags=None, name='fortran preprocess'):
-        super().__init__(
-            input_name, output_name, input_suffixes=['.f90', '.F90'],
-            preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name)
+    DEFAULT_SOURCE = FilterFpaths('all_source', ['.F90', '.f90'])
+    DEFAULT_OUTPUT_NAME = 'preprocessed_fortran'
+    DEFAULT_OUTPUT_SUFFIX = '.f90'
 
-    def output_path(self, input_path: Path):
-        output_fpath = super().output_path(input_path)
-        output_fpath = output_fpath.with_suffix(output_fpath.suffix.lower())
-        return output_fpath
+    # def __init__(self, input_name='all_source', output_name='preprocessed_fortran',
+    #              preprocessor='cpp', common_flags=None, path_flags=None, name='fortran preprocess'):
+    #     super().__init__(
+    #         input_name, output_name, input_suffixes=['.f90', '.F90'],
+    #         preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name)
+
+    # def output_path(self, input_path: Path):
+    #     output_fpath = super().output_path(input_path)
+    #     output_fpath = output_fpath.with_suffix(output_fpath.suffix.lower())
+    #     return output_fpath
 
 
 class CPreProcessor(PreProcessor):
@@ -135,8 +151,14 @@ class CPreProcessor(PreProcessor):
     which creates the *pragmad_c" artefact.
 
     """
-    def __init__(self, input_name='all_source', output_name='preprocessed_c',
-                 preprocessor='cpp', common_flags=None, path_flags=None, name='c preprocess',):
-        super().__init__(
-            input_name, output_name, input_suffixes=['.c'],
-            preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name)
+    DEFAULT_SOURCE = FilterFpaths('all_source', ['.c'])
+    DEFAULT_OUTPUT_NAME = 'preprocessed_c'
+    DEFAULT_OUTPUT_SUFFIX = '.c'
+
+
+
+    # def __init__(self, input_name='all_source', output_name='preprocessed_c',
+    #              preprocessor='cpp', common_flags=None, path_flags=None, name='c preprocess',):
+    #     super().__init__(
+    #         input_name, output_name, input_suffixes=['.c'],
+    #         preprocessor=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name)

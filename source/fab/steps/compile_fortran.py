@@ -13,15 +13,20 @@ from fab.config import FlagsConfig, AddPathFlags
 from fab.dep_tree import AnalysedFile, by_type
 
 from fab.steps import Step
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, FilterBuildTree, SourceGetter
 
 logger = logging.getLogger('fab')
 
 
+DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
+
+
 class CompileFortran(Step):
 
-    def __init__(self, compiler: List[str], common_flags=None, path_flags=None, name='compile fortran'):
+    def __init__(self, compiler: List[str], common_flags=None, path_flags=None,
+                 source: SourceGetter=None, name='compile fortran'):
         super().__init__(name)
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
         path_flags = path_flags or []
 
         # todo: template and config duplication, make a superclass, like RunExe?
@@ -40,8 +45,7 @@ class CompileFortran(Step):
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
-        to_compile: Set[AnalysedFile] = {
-            analysed_file for analysed_file in artefacts['build_tree'].values() if analysed_file.fpath.suffix == ".f90"}
+        to_compile = self.source_getter(artefacts)
         logger.info(f"\ncompiling {len(to_compile)} fortran files")
 
         all_compiled: List[CompiledFile] = []  # todo: use set?

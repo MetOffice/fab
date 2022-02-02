@@ -7,15 +7,17 @@ import logging
 from typing import List, Dict
 
 from fab.steps import Step
-from fab.util import CompiledFile, log_or_dot, run_command
-
+from fab.util import CompiledFile, log_or_dot, run_command, Artefacts, SourceGetter
 
 logger = logging.getLogger('fab')
 
 
-class ArchiveObjects(Step):
+DEFAULT_SOURCE_GETTER = Artefacts(['compiled_c', 'compiled_fortran'])
 
-    def __init__(self, archiver='ar', output_fpath='output.a', name='archive objects'):
+
+class ArchiveObjcts(Step):
+
+    def __init__(self, source: SourceGetter=None, archiver='ar', output_fpath='output.a', name='archive objects'):
         """
         Kwargs:
             - archiver: The archiver executable. Defaults to 'ar'.
@@ -23,6 +25,7 @@ class ArchiveObjects(Step):
 
         """
         super().__init__(name)
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.archiver = archiver
         self.output_fpath = output_fpath
 
@@ -34,7 +37,7 @@ class ArchiveObjects(Step):
         is responsible for managing which files are passed to the linker.
 
         """
-        compiled_files: List[CompiledFile] = artefacts['compiled_files']
+        compiled_files: List[CompiledFile] = self.source_getter(artefacts)
 
         command = [self.archiver]
         command.extend(['cr', self.output_fpath])
