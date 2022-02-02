@@ -5,6 +5,9 @@ from typing import Dict
 
 
 # class Step(ABC):
+from fab.config import FlagsConfig, AddPathFlags
+
+
 class Step(object):
     """
     Base class for build steps.
@@ -64,3 +67,19 @@ class Step(object):
         else:
             analysis_results = (func(a) for a in items)  # generator
             result_handler(analysis_results)
+
+
+# Initial motivation: unify constructors for preprocessors and compilers as they were already diverging.
+class MpExeStep(Step):
+    """
+    Common base class for steps which call an executable for multiple files, using multiprocessing.
+
+    """
+    def __init__(self, exe, common_flags, path_flags, name):
+        super().__init__(name)
+        self.exe = exe
+        self._flags = FlagsConfig(workspace=self.workspace, common_flags=common_flags, all_path_flags=path_flags)
+
+    # todo: can we do more up in this superclass?
+    def run(self, artefacts: Dict):
+        raise NotImplementedError

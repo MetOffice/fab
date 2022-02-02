@@ -200,15 +200,16 @@ def um_atmos_safe_config():
                 ]
             ),
 
-            CompileC(compiler=['gcc', '-c', '-std=c99'], flags=FlagsConfig(), workspace=workspace),
+            CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
 
             CompileFortran(
-                compiler=[
-                    os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+                compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+                common_flags=[
+                    '-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8',
                     '-c',
                     '-J', '$output',  # .mod file output and include folder
                 ],
-                common_flags=['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8'],
+
                 path_flags=[
 
                     # mpl include - todo: just add this for everything?
@@ -219,7 +220,7 @@ def um_atmos_safe_config():
                 ]
             ),
 
-            # todo: archinve the objects here, keeps the object in use during dev, makes better link error messages
+            # todo: archive the objects here, keeps the object in use during dev, makes better link error messages
 
             LinkExe(
                 # linker='gcc',

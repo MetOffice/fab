@@ -25,6 +25,8 @@ class LinkExe(Step):
             - linker: E.g 'gcc' or 'ld'.
             - flags: A list of flags to pass to the linker.
             - output_fpath: The file path of the output exe.
+            - source:
+            - name:
 
         """
         super().__init__(name)

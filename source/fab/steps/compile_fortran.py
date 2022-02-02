@@ -4,15 +4,11 @@ Fortran file compilation.
 """
 import logging
 from pathlib import Path
-from string import Template
 from typing import List, Set
 
-from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
-
-from fab.config import FlagsConfig, AddPathFlags
 from fab.dep_tree import AnalysedFile, by_type
 
-from fab.steps import Step
+from fab.steps import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, FilterBuildTree, SourceGetter
 
 logger = logging.getLogger('fab')
@@ -21,22 +17,12 @@ logger = logging.getLogger('fab')
 DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
 
 
-class CompileFortran(Step):
+class CompileFortran(MpExeStep):
 
-    def __init__(self, compiler: List[str], common_flags=None, path_flags=None,
+    def __init__(self, compiler: str, common_flags: List[str]=None, path_flags: List=None,
                  source: SourceGetter=None, name='compile fortran'):
-        super().__init__(name)
+        super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        path_flags = path_flags or []
-
-        # todo: template and config duplication, make a superclass, like RunExe?
-        substitute = dict(source=self.workspace/BUILD_SOURCE, output=self.workspace/BUILD_OUTPUT)
-        self._compiler = [Template(i).substitute(substitute) for i in compiler]
-
-        self._flags = FlagsConfig(
-            common_flags=common_flags,
-            all_path_flags=[AddPathFlags(path_filter=i[0], flags=i[1]) for i in path_flags]
-        )
 
     def run(self, artefacts):
         """
@@ -126,7 +112,7 @@ class CompileFortran(Step):
         return compile_next
 
     def compile_file(self, analysed_file: AnalysedFile):
-        command = [*self._compiler]
+        command = [*self.exe]
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
         command.append(str(analysed_file.fpath))
 

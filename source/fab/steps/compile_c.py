@@ -7,7 +7,7 @@ from typing import List
 
 from fab.dep_tree import AnalysedFile
 
-from fab.steps import Step
+from fab.steps import Step, MpExeStep
 from fab.tasks import TaskException
 from fab.util import CompiledFile, run_command, SourceGetter, Artefact, FilterBuildTree
 
@@ -17,20 +17,13 @@ logger = logging.getLogger('fab')
 DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.c'])
 
 
-class CompileC(Step):
+class CompileC(MpExeStep):
 
     # todo: tell the compiler (and other steps) which artefact name to create?
-    def __init__(self, compiler: List[str], flags, workspace, source: SourceGetter=None, name="compile c"):
-        """
-        Args:
-            - compiler: E.g gcc
-
-        """
-        super().__init__(name)
+    def __init__(self, compiler: str, common_flags: List[str]=None, path_flags: List=None,
+                 source: SourceGetter=None, name="compile c"):
+        super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self._compiler = compiler
-        self._flags = flags
-        self._workspace = workspace
 
     def run(self, artefacts):
         """
@@ -48,8 +41,7 @@ class CompileC(Step):
         errors = [result for result in results if isinstance(result, Exception)]
         if errors:
             err_msg = '\n\n'.join(map(str, errors))
-            logger.error(f"There were {len(errors)} errors compiling {len(to_compile)} c files:\n{err_msg}")
-            exit(1)
+            raise RuntimeError(f"There were {len(errors)} errors compiling {len(to_compile)} c files:\n{err_msg}")
 
         # results
         compiled_c = [result for result in results if isinstance(result, CompiledFile)]
@@ -58,7 +50,7 @@ class CompileC(Step):
         artefacts['compiled_c'] = compiled_c
 
     def _compile_file(self, analysed_file: AnalysedFile):
-        command = [*self._compiler]
+        command = [*self.exe]
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
         command.append(str(analysed_file.fpath))
 

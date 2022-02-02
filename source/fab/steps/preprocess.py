@@ -6,16 +6,15 @@ import logging
 from pathlib import PosixPath
 from typing import List
 
-from fab.config import FlagsConfig, AddPathFlags
 from fab.dep_tree import by_type
 
-from fab.steps import Step
+from fab.steps import MpExeStep
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, SourceGetter, FilterFpaths
 
 logger = logging.getLogger('fab')
 
 
-class PreProcessor(Step):
+class PreProcessor(MpExeStep):
     """
     Base class for preprocessors. A build step which calls a preprocessor.
 
@@ -40,18 +39,11 @@ class PreProcessor(Step):
             - name: Used for logger output.
 
         """
-        super().__init__(name=name)
+        super().__init__(exe=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name)
 
-        # artefact names
         self.source_getter = source or self.DEFAULT_SOURCE
         self.output_artefact = output_artefact or self.DEFAULT_OUTPUT_NAME
         self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
-
-        self._preprocessor = preprocessor
-        self._flags = FlagsConfig(
-            common_flags=common_flags,
-            all_path_flags=[AddPathFlags(path_filter=i[0], flags=i[1]) for i in path_flags]
-        )
 
     def run(self, artefacts):
         """
@@ -93,7 +85,7 @@ class PreProcessor(Step):
         if not output_fpath.parent.exists():
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-        command = [self._preprocessor]
+        command = [self.exe]
         command.extend(self._flags.flags_for_path(fpath))
 
         # input and output files
