@@ -8,7 +8,7 @@ from typing import List
 
 from fab.dep_tree import by_type
 
-from fab.steps import MpExeStep
+from fab.steps.mp_exe import MpExeStep
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, SourceGetter, FilterFpaths
 
 logger = logging.getLogger('fab')

@@ -7,7 +7,8 @@ from typing import List
 
 from fab.dep_tree import AnalysedFile
 
-from fab.steps import Step, MpExeStep
+from fab.steps import Step
+from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
 from fab.util import CompiledFile, run_command, SourceGetter, Artefact, FilterBuildTree
 
@@ -50,7 +51,7 @@ class CompileC(MpExeStep):
         artefacts['compiled_c'] = compiled_c
 
     def _compile_file(self, analysed_file: AnalysedFile):
-        command = [*self.exe]
+        command = [self.exe]
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
         command.append(str(analysed_file.fpath))
 

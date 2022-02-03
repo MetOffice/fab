@@ -1,7 +1,7 @@
 from fnmatch import fnmatch
 from string import Template
 from pathlib import Path
-from typing import List, Optional, NamedTuple
+from typing import List
 
 from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
 
@@ -74,14 +74,17 @@ class FlagsConfig(object):
     For now, simply allows appending flags but will likely evolve to replace or remove flags.
 
     """
+    # todo: we should accept both config-friendly tuples and ready-made AddPathFlags objects here?
     def __init__(self, workspace: Path, common_flags=None, all_path_flags=None):
+        all_path_flags = all_path_flags or []
+        common_flags = common_flags or []
 
         # render any templates in the common flags.
         substitute = dict(source=workspace / BUILD_SOURCE, output=workspace / BUILD_OUTPUT)
         self.common_flags: List[str] = [Template(i).substitute(substitute) for i in common_flags]
 
         # we leave the path flags template rendering inside AddPathFlags for now, at least.
-        self.all_path_flags: List[AddPathFlags] = all_path_flags or []
+        self.all_path_flags: List[AddPathFlags] = [AddPathFlags(*i) for i in all_path_flags]
 
     def flags_for_path(self, path):
         flags = [*self.common_flags]

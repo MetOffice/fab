@@ -11,7 +11,6 @@ from pathlib import Path
 
 from fab.steps import Step
 
-from fab import steps
 from fab.config import ConfigSketch
 from fab.constants import BUILD_OUTPUT
 

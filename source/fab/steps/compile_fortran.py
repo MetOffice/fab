@@ -8,7 +8,7 @@ from typing import List, Set
 
 from fab.dep_tree import AnalysedFile, by_type
 
-from fab.steps import MpExeStep
+from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, FilterBuildTree, SourceGetter
 
 logger = logging.getLogger('fab')
@@ -112,7 +112,7 @@ class CompileFortran(MpExeStep):
         return compile_next
 
     def compile_file(self, analysed_file: AnalysedFile):
-        command = [*self.exe]
+        command = [self.exe]
         command.extend(self._flags.flags_for_path(analysed_file.fpath))
         command.append(str(analysed_file.fpath))
 
