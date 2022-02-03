@@ -7,10 +7,9 @@ from typing import List
 
 from fab.dep_tree import AnalysedFile
 
-from fab.steps import Step
 from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command, SourceGetter, Artefact, FilterBuildTree
+from fab.util import CompiledFile, run_command, SourceGetter, FilterBuildTree
 
 logger = logging.getLogger('fab')
 

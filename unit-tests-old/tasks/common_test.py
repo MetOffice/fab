@@ -56,35 +56,3 @@ class TestLinker:
         assert artifacts_out[0].state is Linked
         assert artifacts_out[0].depends_on == []
         assert artifacts_out[0].defines == []
-
-
-class TestHeaderAnalyser:
-    def test_run(self, tmp_path):
-        # Create a file to analyse
-        test_file: Path = tmp_path / 'test.c'
-        test_file.write_text(
-            dedent('''
-                   #include "user_include.h"
-                   Unrelated text
-                   #include 'another_user_include.h'
-                   #include <system_include.h>
-                   More unrelated text
-                   #include <another_system_include.h>
-                   '''))
-        test_artifact = Artifact(test_file,
-                                 Unknown,
-                                 New)
-
-        # Run the Analyser
-        header_analyser = HeaderAnalyser(tmp_path)
-        artifacts_out = header_analyser.run([test_artifact])
-
-        expected_dependencies = [tmp_path / 'user_include.h',
-                                 tmp_path / 'another_user_include.h']
-
-        assert len(artifacts_out) == 1
-        assert artifacts_out[0].location == test_file
-        assert artifacts_out[0].filetype is Unknown
-        assert artifacts_out[0].state is HeadersAnalysed
-        assert artifacts_out[0].depends_on == expected_dependencies
-        assert artifacts_out[0].defines == []

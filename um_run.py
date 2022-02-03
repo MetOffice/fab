@@ -32,8 +32,8 @@ from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps import Step
 
 from fab.builder import Build
-from fab.config import AddPathFlags, FlagsConfig, PathFilter, ConfigSketch
-from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
+from fab.config import AddFlags, ConfigSketch
+from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
@@ -42,7 +42,7 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import WalkSource
-from fab.util import file_walk, time_logger, case_insensitive_replace, suffix_filter, FilterFpaths, Artefact
+from fab.util import file_walk, time_logger, case_insensitive_replace, Artefact
 
 
 # hierarchy of config
@@ -60,7 +60,7 @@ from fab.util import file_walk, time_logger, case_insensitive_replace, suffix_fi
 
 def set_workspace(workspace):
     Step.workspace = workspace  # todo: do we need this in there?
-    AddPathFlags.workspace = workspace
+    AddFlags.workspace = workspace
 
 
 def um_atmos_safe_config():
@@ -152,19 +152,18 @@ def um_atmos_safe_config():
                 source=Artefact('pragmad_c'),
                 preprocessor='cpp',
                 path_flags=[
-                    ("$source/um/*",
-                     ['-I', '$source/um/include/other',  # todo: explain, relative to which root?
-                      '-I', '$source/shumlib/common/src',
-                      '-I', '$source/shumlib/shum_thread_utils/src']),
+                    # todo: this is a bit "codey" - can we safely give longer strings and split later?
+                    AddFlags(match="$source/um/*", flags=[
+                        '-I', '$source/um/include/other',
+                        '-I', '$source/shumlib/common/src',
+                        '-I', '$source/shumlib/shum_thread_utils/src']),
 
-                    ("$source/shumlib/*",
-                     ['-I', '$source/shumlib/common/src',
-                      '-I', '$source/shumlib/shum_thread_utils/src']),
+                    AddFlags(match="$source/shumlib/*", flags=[
+                        '-I', '$source/shumlib/common/src',
+                        '-I', '$source/shumlib/shum_thread_utils/src']),
 
                     # todo: just 3 folders use this
-                    ("$source/um/*",
-                     ['-DC95_2A',
-                      '-I', '$source/shumlib/shum_byteswap/src']),
+                    AddFlags("$source/um/*", ['-DC95_2A', '-I', '$source/shumlib/shum_byteswap/src']),
                 ],
             ),
 
@@ -173,12 +172,12 @@ def um_atmos_safe_config():
                 preprocessor='cpp',
                 common_flags=['-traditional-cpp', '-P'],
                 path_flags=[
-                    ("$source/jules/*", ['-DUM_JULES']),
-                    ("$source/um/*", ['-I', '$relative/include']),
+                    AddFlags("$source/jules/*", ['-DUM_JULES']),
+                    AddFlags("$source/um/*", ['-I', '$relative/include']),
 
                     # coupling defines
-                    ("$source/um/control/timer/*", ['-DC97_3A']),
-                    ("$source/um/io_services/client/stash/*", ['-DC96_1C']),
+                    AddFlags("$source/um/control/timer/*", ['-DC97_3A']),
+                    AddFlags("$source/um/io_services/client/stash/*", ['-DC96_1C']),
                 ],
             ),
 
@@ -211,12 +210,12 @@ def um_atmos_safe_config():
                 ],
 
                 path_flags=[
-
                     # mpl include - todo: just add this for everything?
-                    (f"$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-                    (f"$output/jules/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-                    # todo: rename this variable
-                    *FORTRAN_GUFF_TO_RENAME
+                    AddFlags(f"$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+                    AddFlags(f"$output/jules/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+
+                    # todo: allow multiple filters per instance?
+                    *[AddFlags(*i) for i in ALLOW_MISMATCH_FLAGS]
                 ]
             ),
 
@@ -235,11 +234,10 @@ def um_atmos_safe_config():
     )
 
 
-# todo: rename!
 # TODO: REVIEWERS, SHOULD WE NEED THESE?
 # a not recommended flag?
 # todo: allow a list of filters?
-FORTRAN_GUFF_TO_RENAME = [
+ALLOW_MISMATCH_FLAGS = [
     ('*/hardware_topology_mod.f90', ['-fallow-argument-mismatch']),
     ('*/setup_spectra_mod.f90', ['-fallow-argument-mismatch']),
     ('*/mcica_mod.f90', ['-fallow-argument-mismatch']),
@@ -300,6 +298,9 @@ def main():
         builder.run()
 
 
+### helper stuff to eventually throw away below here ###
+
+
 def grab_will_do_this(src_paths, workspace):
     for label, src_path in src_paths:
         shutil.copytree(
@@ -337,6 +338,18 @@ def grab_will_do_this(src_paths, workspace):
 #     # SPECIAL CODE FIXES!!! NEED ADDRESSING
 #     special_code_fixes()
 
+
+class PathFilter(object):
+    def __init__(self, path_filters, include):
+        self.path_filters = path_filters
+        self.include = include
+
+    def check(self, path):
+        if any(i in str(path) for i in self.path_filters):
+            return self.include
+        return None
+
+
 def extract_will_do_this(path_filters, workspace):
     source_folder = workspace / SOURCE_ROOT
     build_tree = workspace / BUILD_SOURCE
@@ -366,6 +379,7 @@ def extract_will_do_this(path_filters, workspace):
 
     # SPECIAL CODE FIXES!!! NEED ADDRESSING
     special_code_fixes()
+
 
 def special_code_fixes():
     def replace_in_file(inpath, outpath, find, replace):

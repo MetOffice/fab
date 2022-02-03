@@ -156,15 +156,9 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, dst_tree, m
             src_tree=src_tree, key=file_dep, dst_tree=dst_tree, missing=missing, verbose=verbose, indent=indent + 1)
 
 
-
-# todo: don't leave this here
-# TODO: This doesn't work with exceptions very well, yet
-# todo: nasty surprise when sending in a list?
-def by_type(iterable):
-    result = defaultdict(set)
-    for i in iterable:
-        result[type(i)].add(i)
-    return result
+def by_type(iterable, cls):
+    # return [i for i in iterable if isinstance(i, cls)]
+    return filter(lambda i: isinstance(i, cls), iterable)
 
 
 def add_mo_commented_file_deps(analysed_fortran: List[AnalysedFile], analysed_c: List[AnalysedFile]):

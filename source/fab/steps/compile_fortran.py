@@ -59,7 +59,7 @@ class CompileFortran(MpExeStep):
                 raise RuntimeError(f"Error in compiling pass: {err_str}")
 
             # check what we did compile
-            compiled_this_pass: Set[CompiledFile] = by_type(results_this_pass)[CompiledFile]
+            compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
             per_pass.append(len(compiled_this_pass))
             if len(compiled_this_pass) == 0:
                 logger.error("nothing compiled this pass")
@@ -92,13 +92,13 @@ class CompileFortran(MpExeStep):
     def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
 
         # find what to compile next
-        compile_next = []
+        compile_next = set()
         not_ready = {}
         for af in to_compile:
             # all deps ready?
             unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files and dep.suffix == '.f90']
             if not unfulfilled:
-                compile_next.append(af)
+                compile_next.add(af)
             else:
                 not_ready[af.fpath] = unfulfilled
 

@@ -1,9 +1,8 @@
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 import pytest
 
 from fab.dep_tree import AnalysedFile
-
 from fab.steps.analyse import Analyse
 
 
@@ -20,10 +19,10 @@ class Test_gen_symbol_table(object):
         result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
 
         assert result == {
-            'foo_1': PosixPath('foo.c'),
-            'foo_2': PosixPath('foo.c'),
-            'bar_1': PosixPath('bar.c'),
-            'bar_2': PosixPath('bar.c'),
+            'foo_1': Path('foo.c'),
+            'foo_2': Path('foo.c'),
+            'bar_1': Path('bar.c'),
+            'bar_2': Path('bar.c'),
         }
 
     def test_duplicate_symbol(self, analysed_files):
@@ -35,10 +34,10 @@ class Test_gen_symbol_table(object):
             result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
 
         assert result == {
-            'foo_1': PosixPath('foo.c'),
-            'foo_2': PosixPath('foo.c'),
-            'bar_1': PosixPath('bar.c'),
-            'bar_2': PosixPath('bar.c'),
+            'foo_1': Path('foo.c'),
+            'foo_2': Path('foo.c'),
+            'bar_1': Path('bar.c'),
+            'bar_2': Path('bar.c'),
         }
 
     def test_special_measures(self, analysed_files):
@@ -48,17 +47,16 @@ class Test_gen_symbol_table(object):
         result = analyser._gen_symbol_table(all_analysed_files=dict())
 
         assert result == {
-            'foo_1': PosixPath('foo.c'),
-            'foo_2': PosixPath('foo.c'),
-            'bar_1': PosixPath('bar.c'),
-            'bar_2': PosixPath('bar.c'),
+            'foo_1': Path('foo.c'),
+            'foo_2': Path('foo.c'),
+            'bar_1': Path('bar.c'),
+            'bar_2': Path('bar.c'),
         }
 
 
 class Test_add_unreferenced_deps(object):
 
     def test_vanilla(self):
-
         analyser = Analyse()
 
         # we analysed the source folder and found these symbols

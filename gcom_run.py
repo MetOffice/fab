@@ -7,7 +7,7 @@ import sys
 
 from pathlib import Path
 
-from fab.config import AddPathFlags, FlagsConfig, ConfigSketch
+from fab.config import AddFlags, FlagsConfig, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 
 from fab.builder import Build
@@ -29,18 +29,18 @@ def gcom_common_config():
 
     fpp_flag_config = FlagsConfig(
         all_path_flags=[
-            AddPathFlags(add=['-I', '/gcom/include']),
-            AddPathFlags(add=['-DGC_VERSION="7.6"']),
-            AddPathFlags(add=['-DGC_BUILD_DATE="20220111"']),
-            AddPathFlags(add=['-DGC_DESCRIP="dummy desrip"']),
-            AddPathFlags(add=['-DPREC_64B', '-DMPILIB_32B']),
+            AddFlags(add=['-I', '/gcom/include']),
+            AddFlags(add=['-DGC_VERSION="7.6"']),
+            AddFlags(add=['-DGC_BUILD_DATE="20220111"']),
+            AddFlags(add=['-DGC_DESCRIP="dummy desrip"']),
+            AddFlags(add=['-DPREC_64B', '-DMPILIB_32B']),
         ]
     )
 
     fc_flag_config = FlagsConfig()
     cc_flag_config = FlagsConfig(
         all_path_flags=[
-            AddPathFlags(add=['-std=c99'])
+            AddFlags(add=['-std=c99'])
         ]
     )
 
@@ -77,8 +77,8 @@ def gcom_shared_config():
     config.output_filename = 'libgcom.so'
 
     # todo: probably nicer to make a new object and combine them
-    config.fc_flag_config.all_path_flags.append(AddPathFlags(add=['-fPIC']))
-    config.cc_flag_config.all_path_flags.append(AddPathFlags(add=['-fPIC']))
+    config.fc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
+    config.cc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
 
     return config
 

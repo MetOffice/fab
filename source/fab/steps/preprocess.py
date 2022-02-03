@@ -3,7 +3,7 @@ Fortran and C Preprocessing.
 
 """
 import logging
-from pathlib import PosixPath
+from pathlib import Path
 from typing import List
 
 from fab.dep_tree import by_type
@@ -35,7 +35,8 @@ class PreProcessor(MpExeStep):
             - output_artefact: The name of the artefact, defaulting to DEFAULT_OUTPUT_NAME.
             - output_suffix: Defaults to DEFAULT_OUTPUT_SUFFIX.
             - preprocessor: The name of the executable. Defaults to 'cpp'.
-            - common_flags and path_flags: Used to construct a :class:`~fab.config.FlagsConfig' object.
+            - common_flags: Used to construct a :class:`~fab.config.FlagsConfig' object.
+            - path_flags: Used to construct a :class:`~fab.config.FlagsConfig' object.
             - name: Used for logger output.
 
         """
@@ -54,19 +55,21 @@ class PreProcessor(MpExeStep):
         """
         files = self.source_getter(artefacts)
         results = self.run_mp(items=files, func=self.process_artefact)
-        results_by_type = by_type(results)
+        # results_by_type = by_type(results)
+        exceptions = by_type(results, Exception)
 
+        # todo: this is not correct, as it won't pick up subtypes
         # any errors?
-        if results_by_type[Exception]:
-            formatted_errors = "\n\n".join(map(str, results_by_type[Exception]))
+        if exceptions:
+            formatted_errors = "\n\n".join(map(str, exceptions))
             raise Exception(
                 f"{formatted_errors}"
-                f"\n\n{len(results_by_type[Exception])} "
+                f"\n\n{len(exceptions)} "
                 f"Error(s) found during preprocessing: "
             )
 
         log_or_dot_finish(logger)
-        artefacts[self.output_artefact] = results_by_type[PosixPath]  # todo: why posix path?
+        artefacts[self.output_artefact] = by_type(results, Path)
 
     def process_artefact(self, fpath):
         """

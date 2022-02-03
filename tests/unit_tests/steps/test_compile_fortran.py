@@ -32,7 +32,7 @@ class Test_get_compile_next(object):
 
         compile_next = compiler.get_compile_next(already_compiled_files, to_compile)
 
-        assert compile_next == [b]
+        assert compile_next == {b, }
 
     def test_unable_to_compile_anything(self, compiler, analysed_files):
         # like vanilla, except c hasn't been compiled

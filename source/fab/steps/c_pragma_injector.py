@@ -13,6 +13,7 @@ from fab.util import SourceGetter, FilterFpaths
 DEFAULT_SOURCE_GETTER = FilterFpaths('all_source', ['.c'])
 
 
+# todo: test
 class CPragmaInjector(Step):
 
     def __init__(self, source: SourceGetter=None, output_name="pragmad_c", name="c pragmas"):

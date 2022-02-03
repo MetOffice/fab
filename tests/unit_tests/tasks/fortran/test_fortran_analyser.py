@@ -15,7 +15,7 @@ from fab.util import HashedFile
 
 @pytest.fixture
 def module_fpath():
-    return Path(__file__).parent / "test_analyser.f90"
+    return Path(__file__).parent / "test_fortran_analyser.f90"
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ class Test_Analyser(object):
 
     def test_empty_file(self):
         mock_tree = Mock(content=[None])
-        with mock.patch('fab.tasks.fortran.FortranAnalyser.parse_file', return_value=mock_tree):
+        with mock.patch('fab.tasks.fortran.FortranAnalyser._parse_file', return_value=mock_tree):
             result = FortranAnalyser().run(HashedFile(fpath=None, file_hash=None))
 
         assert type(result) is EmptySourceFile
