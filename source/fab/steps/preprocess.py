@@ -89,7 +89,7 @@ class PreProcessor(MpExeStep):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
         command = [self.exe]
-        command.extend(self._flags.flags_for_path(fpath, self._config.workspace))
+        command.extend(self.flags.flags_for_path(fpath, self._config.workspace))
 
         # input and output files
         command.append(str(fpath))

@@ -7,73 +7,72 @@ from pathlib import Path
 
 from fab.builder import Build
 from fab.config import AddFlags, ConfigSketch
-from fab.constants import SOURCE_ROOT, BUILD_SOURCE
+from fab.constants import SOURCE_ROOT, BUILD_SOURCE, BUILD_OUTPUT
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
+from fab.steps.link_exe import LinkSharedObject
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
 from fab.steps.walk_source import WalkSource
 from fab.util import file_walk, time_logger
 
 
-def gcom_common_config():
-    project_name = 'gcom'
-    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
+def gcom_object_archive_config():
 
-    grab_config = {
-        ("gcom", "~/svn/gcom/trunk/build"),
-    }
+    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / 'gcom'
 
-    extract_config = []
+    config = ConfigSketch(label='gcom object archive', workspace=workspace)
 
-    return ConfigSketch(
-        project_name=project_name,
-        workspace=workspace,
-        # use_multiprocessing=False,
+    config.grab_config = {("gcom", "~/svn/gcom/trunk/build"), }
 
-        grab_config=grab_config,
-        extract_config=extract_config,
+    config.steps = [
+        WalkSource(workspace / BUILD_SOURCE),  # template?
+        CPreProcessor(),
+        FortranPreProcessor(
+            common_flags=[
+                '-traditional-cpp', '-P',
+                '-I', '$source/gcom/include',
+                '-DGC_VERSION="7.6"',
+                '-DGC_BUILD_DATE="20220111"',
+                '-DGC_DESCRIP="dummy desrip"',
+                '-DPREC_64B', '-DMPILIB_32B',
+            ],
+        ),
+        Analyse(),
+        CompileC(common_flags=['-c', '-std=c99']),
+        CompileFortran(
+            compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+            common_flags=['-c', '-J', '$output']
+        ),
+        ArchiveObjects(archiver='ar', output_fpath='$output/libgcom.a'),
+    ]
 
-        steps=[
-            WalkSource(workspace / BUILD_SOURCE),  # template?
-            CPreProcessor(),
-            FortranPreProcessor(
-                common_flags=[
-                    '-traditional-cpp', '-P',
-                    '-I', '$source/gcom/include',
-                    '-DGC_VERSION="7.6"',
-                    '-DGC_BUILD_DATE="20220111"',
-                    '-DGC_DESCRIP="dummy desrip"',
-                    '-DPREC_64B', '-DMPILIB_32B',
-                ],
-            ),
-            Analyse(),
-            CompileC(common_flags=['-c', '-std=c99']),
-            CompileFortran(
-                compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
-                common_flags=['-c', '-J', '$output']
-            ),
-            ArchiveObjects(archiver='ar', output_fpath='$output/libgcom.a'),
-        ]
-    )
-
-
-def gcom_static_config():
-    config = gcom_common_config()
-    config.output_filename = 'libgcom.a'
     return config
 
 
-# def gcom_shared_config():
-#     config = gcom_common_config()
-#     config.output_filename = 'libgcom.so'
-#
-#     # todo: probably nicer to make a new object and combine them
-#     config.fc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
-#     config.cc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
-#
-#     return config
+def gcom_shared_object_config():
+    from fab.dep_tree import by_type
+
+    config = gcom_object_archive_config()
+    config.label = 'gcom shared object'
+
+    # don't pull the source again
+    config.grab_config = None
+
+    # compile with fPIC
+    fc: CompileFortran = list(by_type(config.steps, CompileFortran))[0]
+    fc.flags.common_flags.append('-fPIC')
+
+    cc: CompileC = list(by_type(config.steps, CompileC))[0]
+    cc.flags.common_flags.append('-fPIC')
+
+    # link the object archive
+    config.steps.append(LinkSharedObject(
+        linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+        output_fpath='$output/libgcom.so'))
+
+    return config
 
 
 def main():
@@ -81,21 +80,18 @@ def main():
     # logger.setLevel(logging.DEBUG)
     logger.setLevel(logging.INFO)
 
-    # config
-    config = gcom_static_config()
-
-    # Get source repos
+    # ignore this, it's not here
+    config = gcom_object_archive_config()
     with time_logger("grabbing"):
         grab_will_do_this(config.grab_config, config.workspace)
-
-    # Extract the files we want to build
     with time_logger("extracting"):
         extract_will_do_this(config.extract_config, config.workspace)
 
-    my_fab = Build(config=config)
-
-    with time_logger("gcom build"):
-        my_fab.run()
+    #
+    configs = [gcom_object_archive_config(), gcom_shared_object_config()]
+    for config in configs:
+        with time_logger("gcom build"):
+            Build(config=config).run()
 
 
 def grab_will_do_this(src_paths, workspace):

@@ -31,7 +31,7 @@ class ArchiveObjects(Step):
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.archiver = archiver
-        self.output_fpath = Template(output_fpath)
+        self.output_fpath = output_fpath
 
     def run(self, artefacts: Dict, config):
         """
@@ -46,7 +46,7 @@ class ArchiveObjects(Step):
         compiled_files: List[CompiledFile] = self.source_getter(artefacts)
 
         command = [self.archiver]
-        command.extend(['cr', self.output_fpath.substitute(output=config.workspace/BUILD_OUTPUT)])
+        command.extend(['cr', Template(self.output_fpath).substitute(output=config.workspace/BUILD_OUTPUT)])
         command.extend([str(a.output_fpath) for a in compiled_files])
 
         log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))

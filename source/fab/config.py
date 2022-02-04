@@ -2,7 +2,7 @@ from fnmatch import fnmatch
 from multiprocessing import cpu_count
 from string import Template
 from pathlib import Path
-from typing import List
+from typing import List, Set
 
 from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
 
@@ -10,19 +10,19 @@ from fab.steps import Step
 
 
 class ConfigSketch(object):
-    def __init__(self, project_name, workspace,
-                 grab_config, extract_config, steps: List[Step],
+    def __init__(self, label, workspace,
+                 grab_config=None, extract_config=None, steps: List[Step]=None,
                  use_multiprocessing=True, n_procs=max(1, cpu_count() - 1), debug_skip=False):
 
-        self.project_name = project_name
+        self.label = label
         self.workspace = workspace
 
         # source config
-        self.grab_config = grab_config
-        self.extract_config = extract_config
+        self.grab_config: Set = grab_config or set()
+        self.extract_config: List = extract_config or []
 
         # build steps
-        self.steps = steps
+        self.steps: List[Step] = steps or []  # default, zero-config steps here
 
         # step run config
         self.use_multiprocessing = use_multiprocessing
@@ -38,8 +38,8 @@ class AddFlags(object):
 
     """
     def __init__(self, match: str, flags: List[str]):
-        self.match: Template = Template(match)
-        self.flags: List[Template] = [Template(flag) for flag in flags]
+        self.match: str = match
+        self.flags: List[str] = flags
 
     def run(self, fpath: Path, input_flags: List[str], workspace: Path):
         """
@@ -49,11 +49,10 @@ class AddFlags(object):
         params = {'relative': fpath.parent, 'source': workspace/BUILD_SOURCE, 'output': workspace/BUILD_OUTPUT}
 
         # does the file path match our filter?
-        if not self.match or fnmatch(fpath, self.match.substitute(params)):
+        if not self.match or fnmatch(fpath, Template(self.match).substitute(params)):
 
             # use templating to render any relative paths in our flags
-            add_flags = [flag.substitute(params)
-                for flag in self.flags]
+            add_flags = [Template(flag).substitute(params) for flag in self.flags]
 
             # add our flags
             input_flags += add_flags
@@ -68,24 +67,16 @@ class FlagsConfig(object):
 
     """
     def __init__(self, common_flags=None, path_flags: List[AddFlags]=None):
-        common_flags = common_flags or []
-
-        # render any templates in the common flags.
-        # we leave the path flags template rendering inside AddPathFlags for now, at least.
-
-        # substitute = dict(source=workspace / BUILD_SOURCE, output=workspace / BUILD_OUTPUT)
-        # self.common_flags: List[str] = [Template(i).substitute(substitute) for i in common_flags]
-        self.common_flags: List[Template] = [Template(i) for i in common_flags]
-
+        self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
     def flags_for_path(self, path, workspace):
 
         # We COULD make the user pass these template params to the constructor
-        # but we have a design requirement to minimise the config curdern on the user,
+        # but we have a design requirement to minimise the config burden on the user,
         # so we take care of it for them here instead.
         params = {'source': workspace / BUILD_SOURCE, 'output': workspace / BUILD_OUTPUT}
-        flags = [i.substitute(params) for i in self.common_flags]
+        flags = [Template(i).substitute(params) for i in self.common_flags]
 
         for flags_modifier in self.path_flags:
             flags_modifier.run(path, flags, workspace=workspace)

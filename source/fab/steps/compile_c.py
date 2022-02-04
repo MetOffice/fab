@@ -54,7 +54,7 @@ class CompileC(MpExeStep):
 
     def _compile_file(self, analysed_file: AnalysedFile):
         command = [self.exe]
-        command.extend(self._flags.flags_for_path(analysed_file.fpath, self._config.workspace))
+        command.extend(self.flags.flags_for_path(analysed_file.fpath, self._config.workspace))
         command.append(str(analysed_file.fpath))
 
         output_file = analysed_file.fpath.with_suffix('.o')

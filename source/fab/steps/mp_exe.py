@@ -17,7 +17,7 @@ class MpExeStep(Step):
     def __init__(self, exe, common_flags: List[str], path_flags: List[AddFlags], name):
         super().__init__(name)
         self.exe = exe
-        self._flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
 
     # todo: can we do more up in this superclass?
     def run(self, artefacts: Dict, config):

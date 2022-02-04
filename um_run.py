@@ -99,7 +99,7 @@ def um_atmos_safe_config():
     ]
 
     return ConfigSketch(
-        project_name=project_name,
+        label=project_name,
         workspace=workspace,
 
         # run params
