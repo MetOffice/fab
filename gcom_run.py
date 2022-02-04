@@ -65,15 +65,15 @@ def gcom_static_config():
     return config
 
 
-def gcom_shared_config():
-    config = gcom_common_config()
-    config.output_filename = 'libgcom.so'
-
-    # todo: probably nicer to make a new object and combine them
-    config.fc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
-    config.cc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
-
-    return config
+# def gcom_shared_config():
+#     config = gcom_common_config()
+#     config.output_filename = 'libgcom.so'
+#
+#     # todo: probably nicer to make a new object and combine them
+#     config.fc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
+#     config.cc_flag_config.all_path_flags.append(AddFlags(add=['-fPIC']))
+#
+#     return config
 
 
 def main():
