@@ -86,7 +86,6 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
 
 ############
 
-# todo: need this?
 # todo: poor name?
 class SourceGetter(object):
     def __call__(self, artefacts):

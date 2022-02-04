@@ -57,11 +57,9 @@ class PreProcessor(MpExeStep):
 
         files = self.source_getter(artefacts)
         results = self.run_mp(items=files, func=self.process_artefact)
-        # results_by_type = by_type(results)
-        exceptions = by_type(results, Exception)
 
-        # todo: this is not correct, as it won't pick up subtypes
         # any errors?
+        exceptions = by_type(results, Exception)
         if exceptions:
             formatted_errors = "\n\n".join(map(str, exceptions))
             raise Exception(

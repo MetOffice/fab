@@ -24,7 +24,7 @@ from fab.util import log_or_dot, HashedFile, CompiledFile, run_command
 logger = logging.getLogger(__name__)
 
 
-# todo: a nicer way?
+# todo: a nicer recursion pattern?
 def iter_content(obj):
     """
     Return a generator which yields every node in the tree.
@@ -75,9 +75,8 @@ class FortranAnalyser(object):
     """
     _intrinsic_modules = ['iso_fortran_env']
 
-    def __init__(self):
-        # todo: fortran version in config?
-        self.f2008_parser = ParserFactory().create(std="f2008")
+    def __init__(self, std="f2008"):
+        self.f2008_parser = ParserFactory().create(std=std)
 
         # Warn the user if the code still includes this deprecated dependency mechanism
         self.depends_on_comment_found = False
@@ -102,7 +101,7 @@ class FortranAnalyser(object):
             for obj in iter_content(tree):
                 obj_type = type(obj)
 
-                # todo: ?replace these with function lookup dict[type, func]?
+                # todo: ?replace these with function lookup dict[type, func]? - Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
                     self._process_use_statement(analysed_file, obj)  ## raises
 
@@ -112,7 +111,7 @@ class FortranAnalyser(object):
                 elif obj_type in (Subroutine_Stmt, Function_Stmt):
                     self._process_subroutine_or_function(analysed_file, fpath, obj)
 
-                # todo: we've not needed this so far, for jules or um...
+                # todo: we've not needed this so far, for jules or um...(?)
                 elif obj_type == "variable binding not yet supported":
                     return self._process_variable_binding(fpath)
 
@@ -186,8 +185,6 @@ class FortranAnalyser(object):
             if not name:
                 name = _typed_child(obj, Name)
                 logger.info(f"Warning: unnamed binding, using fortran name '{name}' in {fpath}")
-                # # TODO: use the fortran name, lower case
-                # return TaskException(f"Error getting name of function binding: {obj.string} in {fpath}")
             bind_name = name.string.replace('"', '')
 
             # importing a c function into fortran, i.e binding within an interface block

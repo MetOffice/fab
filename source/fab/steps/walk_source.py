@@ -38,7 +38,7 @@ class WalkSource(Step):
         if not fpaths:
             raise RuntimeError(f"no source files found")
 
-        # todo: separate step?
+        # todo: separate step for folder creation?
         # create output folders
         input_folders = set()
         for fpath in fpaths:

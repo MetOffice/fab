@@ -67,7 +67,6 @@ class FlagsConfig(object):
     For now, simply allows appending flags but will likely evolve to replace or remove flags.
 
     """
-    # todo: we should accept both config-friendly tuples and ready-made AddPathFlags objects here?
     def __init__(self, common_flags=None, path_flags: List[AddFlags]=None):
         common_flags = common_flags or []
 

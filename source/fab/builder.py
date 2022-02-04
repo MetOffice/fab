@@ -58,7 +58,6 @@ def entry() -> None:
     verbosity = min(arguments.verbose, 2)
     logger.setLevel(verbosity_levels[verbosity])
 
-    # todo: uncomment and get this working again
     # config, skip_files, unreferenced_deps = read_config(arguments.conf_file)
     # settings = config['settings']
     # flags = config['flags']

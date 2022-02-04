@@ -32,7 +32,7 @@ class Analyse(Step):
 
     # todo: this docstring is not appearing in sphinx renders
     def __init__(self,
-                 source: SourceGetter=None, root_symbol=None,
+                 source: SourceGetter=None, root_symbol=None, std="2008",
                  special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
         """
 
@@ -41,6 +41,7 @@ class Analyse(Step):
             - root_symbol: When building an executable, provide the Fortran Program name, or 'main' for C.
                 If not specified, target tree extraction will not be performed and the whole codebase will be returned
                 in the build tree, as when building a compiled object archive.
+            - std: The fortran standard, passed through to fparser2. Defaults to '2008'.
             - special_measure_analysis_results: When fparser2 cannot parse a "valid" Fortran file,
                 we can manually provide the expected analysis results with this argument.
                 Only the symbol definitions and dependencies need be provided.
@@ -58,10 +59,9 @@ class Analyse(Step):
         self.unreferenced_deps: List[str] = unreferenced_deps or []
 
         # todo: these seem more like functions
-        self.fortran_analyser = FortranAnalyser()
+        self.fortran_analyser = FortranAnalyser(std=std)
         self.c_analyser = CAnalyser()
 
-    # todo: configure the artefacts to use
     def run(self, artefacts, config):
         """
         Creates the *build_tree* artefact: Dict[Path, AnalysedFile] from the files in `self.source_getter`.
@@ -207,7 +207,6 @@ class Analyse(Step):
         with time_logger("converting symbol to file deps"):
             for analysed_file in all_analysed_files.values():
                 for symbol_dep in analysed_file.symbol_deps:
-                    # todo: does file_deps belong in there?
                     file_dep = symbols.get(symbol_dep)
                     if not file_dep:
                         deps_not_found.add(symbol_dep)
@@ -297,6 +296,7 @@ class Analyse(Step):
 
         def result_handler(analysis_results):
             for af in analysis_results:
+                # todo: use by_type()? we'd have to make sure it can't ever change to stop us saving on-the-fly
                 if isinstance(af, EmptySourceFile):
                     continue
                 elif isinstance(af, Exception):
@@ -320,8 +320,6 @@ class Analyse(Step):
         Add files to the target tree.
 
         """
-
-        # todo: list those which are already found, e.g from the new comments deps
 
         if not self.unreferenced_deps:
             return

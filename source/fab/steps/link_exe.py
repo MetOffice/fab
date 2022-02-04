@@ -49,7 +49,7 @@ class LinkExe(Step):
         command = [self.linker]
         command.extend(['-o', str(self.output_fpath)])
         command.extend([str(a.output_fpath) for a in compiled_files])
-        # todo: why must this come after the list of object files?
+        # note: this must this come after the list of object files?
         command.extend(self.flags)
 
         log_or_dot(logger, 'LinkExe running command: ' + ' '.join(command))

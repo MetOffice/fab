@@ -6,7 +6,6 @@ from typing import Set, Dict, List, Tuple
 logger = logging.getLogger(__name__)
 
 
-# todo: might be better as a named tuple, as there's no methods
 class AnalysedFile(object):
 
     def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None, mo_commented_file_deps=None):
@@ -59,7 +58,6 @@ class AnalysedFile(object):
         return hash((
             self.fpath,
             self.file_hash,
-            # todo: eww
             tuple(sorted(self.symbol_defs)),
             tuple(sorted(self.symbol_deps)),
             tuple(sorted(self.file_deps)),
@@ -74,7 +72,6 @@ class AnalysedFile(object):
     def field_names(cls):
         return ['fpath', 'file_hash', 'symbol_defs', 'symbol_deps', 'file_deps', 'mo_commented_file_deps']
 
-    # todo: poor name, and does it even belong in here?
     def as_dict(self):
         """Serialise"""
         return {
@@ -108,14 +105,9 @@ def extract_sub_tree(
         src_tree: Dict[Path, AnalysedFile], key: Path, verbose=False) \
         -> Dict[Path, AnalysedFile]:
     """
-    Extract a sub tree from a tree.
+    Extract the subtree required to build the target, from the full dict of all analysed source files.
 
-    Extracts a dict of program units, required to build the target,
-    from the full dict of all program units.
-
-    todo: better docstring
     """
-
     result = dict()
     missing = set()
 

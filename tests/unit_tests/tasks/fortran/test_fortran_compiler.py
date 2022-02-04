@@ -5,7 +5,6 @@ import pytest
 
 from fab.steps.compile_fortran import CompileFortran
 from fab.dep_tree import AnalysedFile
-from fab.steps import Step
 from fab.config import AddFlags
 
 

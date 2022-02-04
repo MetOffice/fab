@@ -48,11 +48,7 @@ class CompileFortran(MpExeStep):
             results_this_pass = self.run_mp(items=compile_next, func=self.compile_file)
 
             # any errors?
-            # todo: improve by_type pattern to handle all exceptions as one
-            errors = []
-            for i in results_this_pass:
-                if isinstance(i, Exception):
-                    errors.append(i)
+            errors = by_type(results_this_pass, Exception)
             if len(errors):
                 logger.error(f"\nThere were {len(errors)} compile errors this pass\n\n")
             if errors:
