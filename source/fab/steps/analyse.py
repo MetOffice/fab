@@ -32,7 +32,7 @@ class Analyse(Step):
 
     # todo: this docstring is not appearing in sphinx renders
     def __init__(self,
-                 source: SourceGetter=None, root_symbol=None, std="2008",
+                 source: SourceGetter=None, root_symbol=None, std="f2008",
                  special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
         """
 
@@ -41,7 +41,7 @@ class Analyse(Step):
             - root_symbol: When building an executable, provide the Fortran Program name, or 'main' for C.
                 If not specified, target tree extraction will not be performed and the whole codebase will be returned
                 in the build tree, as when building a compiled object archive.
-            - std: The fortran standard, passed through to fparser2. Defaults to '2008'.
+            - std: The fortran standard, passed through to fparser2. Defaults to 'f2008'.
             - special_measure_analysis_results: When fparser2 cannot parse a "valid" Fortran file,
                 we can manually provide the expected analysis results with this argument.
                 Only the symbol definitions and dependencies need be provided.

@@ -1,68 +1,61 @@
 #!/usr/bin/env python
 
-import os
 import logging
+import os
 import shutil
-import sys
-
 from pathlib import Path
 
-from fab.config import AddFlags, FlagsConfig, ConfigSketch
-from fab.constants import SOURCE_ROOT, BUILD_SOURCE
-
 from fab.builder import Build
-from fab.tasks.common import CreateObjectArchive
+from fab.config import AddFlags, ConfigSketch
+from fab.constants import SOURCE_ROOT, BUILD_SOURCE
+from fab.steps.analyse import Analyse
+from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.compile_c import CompileC
+from fab.steps.compile_fortran import CompileFortran
+from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
+from fab.steps.walk_source import WalkSource
 from fab.util import file_walk, time_logger
 
 
 def gcom_common_config():
-
     project_name = 'gcom'
+    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
 
     grab_config = {
-        os.path.expanduser("~/svn/gcom/trunk/build"): "gcom",
+        ("gcom", "~/svn/gcom/trunk/build"),
     }
 
     extract_config = []
 
-    cpp_flag_config = FlagsConfig()
-
-    fpp_flag_config = FlagsConfig(
-        all_path_flags=[
-            AddFlags(add=['-I', '/gcom/include']),
-            AddFlags(add=['-DGC_VERSION="7.6"']),
-            AddFlags(add=['-DGC_BUILD_DATE="20220111"']),
-            AddFlags(add=['-DGC_DESCRIP="dummy desrip"']),
-            AddFlags(add=['-DPREC_64B', '-DMPILIB_32B']),
-        ]
-    )
-
-    fc_flag_config = FlagsConfig()
-    cc_flag_config = FlagsConfig(
-        all_path_flags=[
-            AddFlags(add=['-std=c99'])
-        ]
-    )
-
     return ConfigSketch(
         project_name=project_name,
+        workspace=workspace,
+        # use_multiprocessing=False,
+
         grab_config=grab_config,
         extract_config=extract_config,
-        cpp_flag_config=cpp_flag_config,
-        fpp_flag_config=fpp_flag_config,
-        fc_flag_config=fc_flag_config,
-        cc_flag_config=cc_flag_config,
-        root_symbol=None,
-        # ld_flags=[
-        #     # '-L', os.path.expanduser('~/.conda/envs/sci-fab/lib'),
-        # ],
-        # output_filename=None,
 
-        linker=CreateObjectArchive(
-            archiver='ar',
-            output_fpath='libgcom.a'),
-
-        unreferenced_dependencies=[],
+        steps=[
+            WalkSource(workspace / BUILD_SOURCE),  # template?
+            CPreProcessor(),
+            FortranPreProcessor(
+                common_flags=[
+                    '-traditional-cpp', '-P',
+                    '-I', '$source/gcom/include',
+                    '-DGC_VERSION="7.6"',
+                    '-DGC_BUILD_DATE="20220111"',
+                    '-DGC_DESCRIP="dummy desrip"',
+                    '-DPREC_64B', '-DMPILIB_32B',
+                ],
+            ),
+            Analyse(),
+            CompileC(common_flags=['-c', '-std=c99']),
+            CompileFortran(
+                compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
+                common_flags=['-c', '-J', '$output']
+            ),
+            ArchiveObjects(archiver='ar', output_fpath='$output/libgcom.a'),
+        ]
     )
 
 
@@ -85,46 +78,53 @@ def gcom_shared_config():
 
 def main():
     logger = logging.getLogger('fab')
-    # logger.addHandler(logging.StreamHandler(sys.stderr))
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
+    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     # config
-    config_sketch = gcom_static_config()
-    workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / config_sketch.project_name
+    config = gcom_static_config()
 
     # Get source repos
     with time_logger("grabbing"):
-        grab_will_do_this(config_sketch.grab_config, workspace)
+        grab_will_do_this(config.grab_config, config.workspace)
 
     # Extract the files we want to build
     with time_logger("extracting"):
-        extract_will_do_this(config_sketch.extract_config, workspace)
+        extract_will_do_this(config.extract_config, config.workspace)
 
+    my_fab = Build(config=config)
 
-    my_fab = Build(
-        workspace=workspace,
-        config=config_sketch,
-
-        # fab behaviour
-        n_procs=3,
-        use_multiprocessing=False,
-        debug_skip=True,
-        # dump_source_tree=True
-     )
-
-    with time_logger("fab run"):
+    with time_logger("gcom build"):
         my_fab.run()
 
 
 def grab_will_do_this(src_paths, workspace):
-    for src_path, label in src_paths.items():
-        shutil.copytree(src_path, workspace / SOURCE_ROOT / label, dirs_exist_ok=True)
+    for label, src_path in src_paths:
+        shutil.copytree(
+            os.path.expanduser(src_path),
+            workspace / SOURCE_ROOT / label,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns('.svn')
+        )
+
+
+class PathFilter(object):
+    def __init__(self, path_filters, include):
+        self.path_filters = path_filters
+        self.include = include
+
+    def check(self, path):
+        if any(i in str(path) for i in self.path_filters):
+            return self.include
+        return None
 
 
 def extract_will_do_this(path_filters, workspace):
     source_folder = workspace / SOURCE_ROOT
     build_tree = workspace / BUILD_SOURCE
+
+    # tuples to objects
+    path_filters = [PathFilter(*i) for i in path_filters]
 
     for fpath in file_walk(source_folder):
 

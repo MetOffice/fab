@@ -7,14 +7,12 @@ import logging
 import os
 import shutil
 import warnings
-from multiprocessing import cpu_count
 from pathlib import Path
 
 from fab.builder import Build
 from fab.config import AddFlags, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 from fab.dep_tree import AnalysedFile
-from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
@@ -100,12 +98,7 @@ def um_atmos_safe_config():
         (['.sh'], False),
     ]
 
-    # class UmRunArtifacts(object):
-    #     def __init__(self):
-    #         self.c_files: List[Path] = []
-
     return ConfigSketch(
-
         project_name=project_name,
         workspace=workspace,
 
@@ -271,7 +264,7 @@ def main():
 
     builder = Build(config=config_sketch)
 
-    with time_logger("fab run"):
+    with time_logger("um build"):
         builder.run()
 
 
@@ -286,34 +279,6 @@ def grab_will_do_this(src_paths, workspace):
             dirs_exist_ok=True,
             ignore=shutil.ignore_patterns('.svn')
         )
-
-
-# def extract_will_do_this(path_filters, workspace):
-#     source_folder = workspace / SOURCE_ROOT
-#     build_tree = workspace / BUILD_SOURCE
-#
-#     for fpath in file_walk(source_folder):
-#
-#         include = True
-#         for path_filter in path_filters:
-#             res = path_filter.check(fpath)
-#             if res is not None:
-#                 include = res
-#
-#         # copy it to the build folder?
-#         if include:
-#             rel_path = fpath.relative_to(source_folder)
-#             dest_path = build_tree / rel_path
-#             # make sure the folder exists
-#             if not dest_path.parent.exists():
-#                 os.makedirs(dest_path.parent)
-#             shutil.copy(fpath, dest_path)
-#
-#         # else:
-#         #     print("excluding", fpath)
-#
-#     # SPECIAL CODE FIXES!!! NEED ADDRESSING
-#     special_code_fixes()
 
 
 class PathFilter(object):

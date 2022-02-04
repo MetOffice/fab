@@ -59,7 +59,7 @@ class PreProcessor(MpExeStep):
         results = self.run_mp(items=files, func=self.process_artefact)
 
         # any errors?
-        exceptions = by_type(results, Exception)
+        exceptions = list(by_type(results, Exception))
         if exceptions:
             formatted_errors = "\n\n".join(map(str, exceptions))
             raise Exception(
@@ -69,7 +69,7 @@ class PreProcessor(MpExeStep):
             )
 
         log_or_dot_finish(logger)
-        artefacts[self.output_artefact] = by_type(results, Path)
+        artefacts[self.output_artefact] = list(by_type(results, Path))
 
     def process_artefact(self, fpath):
         """

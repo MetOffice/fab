@@ -4,7 +4,10 @@ Object archive (.a) creation from a list of object files (.o) for use in static 
 """
 
 import logging
+from string import Template
 from typing import List, Dict
+
+from fab.constants import BUILD_OUTPUT
 
 from fab.steps import Step
 from fab.util import CompiledFile, log_or_dot, run_command, Artefacts, SourceGetter
@@ -15,7 +18,7 @@ logger = logging.getLogger('fab')
 DEFAULT_SOURCE_GETTER = Artefacts(['compiled_c', 'compiled_fortran'])
 
 
-class ArchiveObjcts(Step):
+class ArchiveObjects(Step):
 
     def __init__(self, source: SourceGetter=None, archiver='ar', output_fpath='output.a', name='archive objects'):
         """
@@ -25,9 +28,10 @@ class ArchiveObjcts(Step):
 
         """
         super().__init__(name)
+
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.archiver = archiver
-        self.output_fpath = output_fpath
+        self.output_fpath = Template(output_fpath)
 
     def run(self, artefacts: Dict, config):
         """
@@ -42,7 +46,7 @@ class ArchiveObjcts(Step):
         compiled_files: List[CompiledFile] = self.source_getter(artefacts)
 
         command = [self.archiver]
-        command.extend(['cr', self.output_fpath])
+        command.extend(['cr', self.output_fpath.substitute(output=config.workspace/BUILD_OUTPUT)])
         command.extend([str(a.output_fpath) for a in compiled_files])
 
         log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
