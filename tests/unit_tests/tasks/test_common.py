@@ -18,7 +18,9 @@ class TestLinkExe(object):
         linker = LinkExe(source=Artefact('compiled_files'), linker='foolink', flags=['-fooflag', '-barflag'], output_fpath='foo.exe')
 
         with mock.patch('fab.steps.link_exe.run_command') as mock_run:
-            linker.run({'compiled_files': [Mock(output_fpath='foo.o'), Mock(output_fpath='bar.o')]})
+            linker.run(
+                artefacts={'compiled_files': [Mock(output_fpath='foo.o'), Mock(output_fpath='bar.o')]},
+                config=None)
 
         mock_run.assert_called_with(['foolink', '-o', 'foo.exe', 'foo.o', 'bar.o', '-fooflag', '-barflag'])
 

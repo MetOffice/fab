@@ -27,7 +27,7 @@ class RootIncFiles(Step):
 
         # warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
 
-    def run(self, artefacts):
+    def run(self, artefacts, config):
         """
         Copy inc files into the workspace output root.
 
@@ -35,6 +35,8 @@ class RootIncFiles(Step):
         It's up to the user to configure other tools to find these files.
 
         """
+        super().run(artefacts, config)
+
         # inc files all go in the root - they're going to be removed altogether, soon
         inc_copied = set()
         for fpath in suffix_filter(artefacts["all_source"], [".inc"]):

@@ -62,7 +62,7 @@ class Analyse(Step):
         self.c_analyser = CAnalyser()
 
     # todo: configure the artefacts to use
-    def run(self, artefacts):
+    def run(self, artefacts, config):
         """
         Creates the *build_tree* artefact: Dict[Path, AnalysedFile] from the files in `self.source_getter`.
 
@@ -77,6 +77,8 @@ class Analyse(Step):
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
+        super().run(artefacts, config)
+
         files = self.source_getter(artefacts)
 
         # take hashes of all the files we preprocessed
@@ -226,7 +228,7 @@ class Analyse(Step):
         # We discard previous results from files which are no longer present.
         prev_results: Dict[Path, AnalysedFile] = dict()
         try:
-            with open(self.workspace / "__analysis.csv", "rt") as csv_file:
+            with open(self._config.workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
                     analysed_file = AnalysedFile.from_dict(row)
@@ -266,7 +268,7 @@ class Analyse(Step):
         # We re-write the successfully read contents of the analysis file each time,
         # for robustness against data corruption (otherwise we could just open with "wt+").
         with time_logger("starting analysis progress file"):
-            analysis_progress_file = open(self.workspace / "__analysis.csv", "wt")
+            analysis_progress_file = open(self._config.workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
             analysis_dict_writer.writeheader()
 

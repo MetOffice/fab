@@ -11,8 +11,7 @@ from fab.util import CompiledFile
 
 @pytest.fixture()
 def compiler():
-    Step.workspace = Path('foo')
-    return CompileFortran(compiler=[])
+    return CompileFortran(compiler="foo_cc")
 
 
 @pytest.fixture
@@ -53,7 +52,7 @@ class Test_run(object):
             return [CompiledFile(analysed_file=i, output_fpath=None) for i in items]
 
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
-            compiler.run(artefacts)
+            compiler.run(artefacts, config=None)
 
         compiled = [i.analysed_file for i in artefacts['compiled_fortran']]
         assert compiled == list(reversed(analysed_files))
@@ -68,4 +67,4 @@ class Test_run(object):
 
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
             with pytest.raises(RuntimeError):
-                compiler.run(artefacts)
+                compiler.run(artefacts, config=None)

@@ -46,13 +46,15 @@ class PreProcessor(MpExeStep):
         self.output_artefact = output_artefact or self.DEFAULT_OUTPUT_NAME
         self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
 
-    def run(self, artefacts):
+    def run(self, artefacts, config):
         """
         Preprocess all input files from `self.source_getter`, creating `self.output_artefact`.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
+        super().run(artefacts, config)
+
         files = self.source_getter(artefacts)
         results = self.run_mp(items=files, func=self.process_artefact)
         # results_by_type = by_type(results)
@@ -78,10 +80,10 @@ class PreProcessor(MpExeStep):
 
         """
         # output_fpath = self.output_path(fpath)
-        output_fpath = input_to_output_fpath(workspace=self.workspace, input_path=fpath).with_suffix(self.output_suffix)
+        output_fpath = input_to_output_fpath(workspace=self._config.workspace, input_path=fpath).with_suffix(self.output_suffix)
 
         # for dev speed, but this could become a good time saver with, e.g, hashes or something
-        if self.debug_skip and output_fpath.exists():
+        if self._config.debug_skip and output_fpath.exists():
             log_or_dot(logger, f'Preprocessor skipping: {fpath}')
             return output_fpath
 
@@ -89,7 +91,7 @@ class PreProcessor(MpExeStep):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
         command = [self.exe]
-        command.extend(self._flags.flags_for_path(fpath))
+        command.extend(self._flags.flags_for_path(fpath, self._config.workspace))
 
         # input and output files
         command.append(str(fpath))

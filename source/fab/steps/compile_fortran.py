@@ -24,13 +24,15 @@ class CompileFortran(MpExeStep):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
-    def run(self, artefacts):
+    def run(self, artefacts, config):
         """
         Compiles all Fortran files in the *build_tree* artefact, creating the *compiled_c* artefact.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
+        super().run(artefacts, config)
+
         to_compile = self.source_getter(artefacts)
         logger.info(f"\ncompiling {len(to_compile)} fortran files")
 
@@ -113,11 +115,11 @@ class CompileFortran(MpExeStep):
 
     def compile_file(self, analysed_file: AnalysedFile):
         command = [self.exe]
-        command.extend(self._flags.flags_for_path(analysed_file.fpath))
+        command.extend(self._flags.flags_for_path(analysed_file.fpath, self._config.workspace))
         command.append(str(analysed_file.fpath))
 
         output_fpath = analysed_file.fpath.with_suffix('.o')
-        if self.debug_skip and output_fpath.exists():
+        if self._config.debug_skip and output_fpath.exists():
             log_or_dot(logger, f'Compiler skipping: {output_fpath}')
             return CompiledFile(analysed_file, output_fpath)
 

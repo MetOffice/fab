@@ -29,7 +29,7 @@ class ArchiveObjcts(Step):
         self.archiver = archiver
         self.output_fpath = output_fpath
 
-    def run(self, artefacts: Dict):
+    def run(self, artefacts: Dict, config):
         """
         Creates an archive object from the *compiled_files* artefact.
 
@@ -37,6 +37,8 @@ class ArchiveObjcts(Step):
         is responsible for managing which files are passed to the linker.
 
         """
+        super().run(artefacts, config)
+
         compiled_files: List[CompiledFile] = self.source_getter(artefacts)
 
         command = [self.archiver]

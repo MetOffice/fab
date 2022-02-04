@@ -3,7 +3,7 @@ Add custom pragmas to C code which identify user and system include regions.
 
 """
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Dict
 
 from fab.steps import Step
 from fab.tasks.c import _CTextReaderPragmas
@@ -22,11 +22,13 @@ class CPragmaInjector(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.output_name = output_name
 
-    def run(self, artefacts: Dict):
+    def run(self, artefacts: Dict, config):
         """
         By default, reads .c files from the *all_source* artefact and creates the *pragmad_c* artefact.
 
         """
+        super().run(artefacts, config)
+
         files = self.source_getter(artefacts)
         results = self.run_mp(items=files, func=self._process_artefact)
         artefacts[self.output_name] = list(results)

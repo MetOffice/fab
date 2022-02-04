@@ -19,10 +19,7 @@ class Test_Compiler(object):
     def test_vanilla(self):
         # ensure the command is formed correctly
 
-        # todo: we hate doing this!
-        AddFlags.workspace = Path('foo/src')
-        Step.workspace = Path('foo/src')
-        Step.use_multiprocessing = False
+        config = mock.Mock(workspace=Path('foo/src'), use_multiprocessing=False)
 
         c_compiler = CompileC(
             compiler='gcc', common_flags=['-c'], path_flags=[
@@ -31,6 +28,6 @@ class Test_Compiler(object):
         analysed_files = {Path('foo/src/foo.c'): AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=None)}
 
         with mock.patch('fab.steps.compile_c.run_command') as mock_run:
-            c_compiler.run({'build_tree': analysed_files})
+            c_compiler.run(artefacts={'build_tree': analysed_files}, config=config)
             mock_run.assert_called_with([
                 'gcc', '-c', '-I', 'foo/include', '-Dhello', 'foo/src/foo.c', '-o', 'foo/src/foo.o'])

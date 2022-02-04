@@ -25,13 +25,15 @@ class WalkSource(Step):
         self.output_artefact = output_name
         self.build_output = build_output or build_source.parent / BUILD_OUTPUT
 
-    def run(self, artefacts):
+    def run(self, artefacts, config):
         """
         Get all files in the folder and subfolders.
 
         Requires no artefacts, creates the "all_source" artefact.
 
         """
+        super().run(artefacts, config)
+
         fpaths = list(file_walk(self.build_source))
         if not fpaths:
             raise RuntimeError(f"no source files found")

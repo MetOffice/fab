@@ -1,33 +1,15 @@
-#
-# cli equivalent:
-#   fab ~/svn/jules/trunk/src jules.config -w ~/git/fab/tmp-workspace-jules --stop-on-error -vv
-#
-# optionally (default):
-#   --nprocs 2
-#
-# cli also needs jules.config:
-#     [settings]
-#     target = jules
-#     exec-name = jules.exe
-#
-#     [flags]
-#     fpp-flags =
-#     fc-flags =
-#     ld-flags =
-#
+#!/usr/bin/env python
 
 import logging
 import os
 import shutil
 from pathlib import Path
 
-from fab.constants import SOURCE_ROOT
-
 from fab.builder import Build
+from fab.constants import SOURCE_ROOT
 
 
 def main():
-
     # config
     project_name = "jules"
     src_paths = {

@@ -31,10 +31,7 @@ class Test_run(object):
     def test_vanilla(self, src_tree):
         # ensure the compile passes match the build tree
 
-        # todo: we hate doing this!
-        AddFlags.workspace = Path('foo/src')
-        Step.workspace = Path('foo/src')
-        Step.use_multiprocessing = False
+        config = mock.Mock(workspace=Path('foo/src'), use_multiprocessing=False)
 
         c_compiler = CompileFortran(
             compiler='gcc', common_flags=['-c'], path_flags=[AddFlags(match='foo/src/*', flags=['-Dhello'])])
@@ -43,7 +40,7 @@ class Test_run(object):
             return [CompiledFile(af, output_fpath=None) for af in items]
 
         with mock.patch('fab.steps.Step.run_mp', side_effect=foo) as mock_run_mp:
-            c_compiler.run({'build_tree': src_tree})
+            c_compiler.run(artefacts={'build_tree': src_tree}, config=config)
 
             # 1st pass
             mock_run_mp.assert_any_call(
@@ -55,5 +52,3 @@ class Test_run(object):
 
             # last pass
             mock_run_mp.assert_called_with(items={src_tree[Path('src/root.f90')]}, func=mock.ANY)
-
-    # todo: test passes

@@ -3,39 +3,20 @@
 # Note: we need this to run the exe
 #   export LD_LIBRARY_PATH=~/.conda/envs/sci-fab/lib:$LD_LIBRARY_PATH
 
-#
-# cli equivalent:
-#   fab ~/svn/um/trunk/src um.config -w ~/git/fab/tmp-workspace-um --stop-on-error -vv
-#
-# optionally (default):
-#   --nprocs 2
-#
-# cli also needs um.config:
-#     [settings]
-#     target = um
-#     exec-name = um
-#
-#     [flags]
-#     fpp-flags =
-#     fc-flags =
-#     ld-flags =
-#
-
 import logging
 import os
 import shutil
 import warnings
+from multiprocessing import cpu_count
 from pathlib import Path
-
-from fab.steps.c_pragma_injector import CPragmaInjector
-
-from fab.steps import Step
 
 from fab.builder import Build
 from fab.config import AddFlags, ConfigSketch
 from fab.constants import SOURCE_ROOT, BUILD_SOURCE
 from fab.dep_tree import AnalysedFile
+from fab.steps import Step
 from fab.steps.analyse import Analyse
+from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkExe
@@ -55,21 +36,11 @@ from fab.util import file_walk, time_logger, case_insensitive_replace, Artefact
 # what ought to inherit from env
 # num cores in submit script, mem
 # batch manager assigns resources
-# project board in about amonth
-
-
-def set_workspace(workspace):
-    Step.workspace = workspace  # todo: do we need this in there?
-    AddFlags.workspace = workspace
 
 
 def um_atmos_safe_config():
     project_name = 'um_atmos_safe'
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
-    set_workspace(workspace)
-
-    # Step.use_multiprocessing = False
-    Step.debug_skip = True
 
     grab_config = {
         ("um", "~/svn/um/trunk/src"),
@@ -123,27 +94,33 @@ def um_atmos_safe_config():
         (['/shumlib/common/src/shumlib_version.c'], False),
 
         (['/casim/mphys_die.F90',
-          '/casim/mphys_casim.F90',], False),
+          '/casim/mphys_casim.F90', ], False),
 
         (['.xml'], False),
         (['.sh'], False),
     ]
 
-
     # class UmRunArtifacts(object):
     #     def __init__(self):
     #         self.c_files: List[Path] = []
 
-
     return ConfigSketch(
+
         project_name=project_name,
         workspace=workspace,
 
+        # run params
+        # use_multiprocessing=False,
+        # n_procs=max(1, cpu_count() - 1),
+        debug_skip=True,
+
+        # source config - this will not be part of build, we have existing code to look at for this
         grab_config=grab_config,
         extract_config=extract_config,
 
+        # build steps
         steps=[
-            WalkSource(workspace / BUILD_SOURCE),
+            WalkSource(workspace / BUILD_SOURCE),  # template?
             RootIncFiles(workspace / BUILD_SOURCE),
 
             CPragmaInjector(),
@@ -212,7 +189,8 @@ def um_atmos_safe_config():
                 path_flags=[
                     # mpl include - todo: just add this for everything?
                     AddFlags(f"$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-                    AddFlags(f"$output/jules/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+                    AddFlags(f"$output/jules/*",
+                             ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
 
                     # todo: allow multiple filters per instance?
                     *[AddFlags(*i) for i in ALLOW_MISMATCH_FLAGS]
@@ -274,7 +252,6 @@ ALLOW_MISMATCH_FLAGS = [
     ('*/eg_sl_helmholtz_inc.f90', ['-fallow-argument-mismatch']),
     ('*/ukca_scenario_rcp_mod.f90', ['-fallow-argument-mismatch']),
 ]
-
 
 
 def main():
