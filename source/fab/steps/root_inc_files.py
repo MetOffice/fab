@@ -41,7 +41,7 @@ class RootIncFiles(Step):
         inc_copied = set()
         for fpath in suffix_filter(artefacts["all_source"], [".inc"]):
 
-            # don't copy form the output root to the output root!
+            # don't copy from the output root to the output root!
             # (i.e ancillary files from a previous run)
             if fpath.parent == self.build_output:
                 continue

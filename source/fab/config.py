@@ -2,16 +2,17 @@ from fnmatch import fnmatch
 from multiprocessing import cpu_count
 from string import Template
 from pathlib import Path
-from typing import List, Set
+from typing import List, Set, Tuple, Optional
 
-from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 
 from fab.steps import Step
 
 
 class ConfigSketch(object):
+
     def __init__(self, label, workspace,
-                 grab_config=None, extract_config=None, steps: List[Step]=None,
+                 grab_config=None, steps: List[Step]=None,
                  use_multiprocessing=True, n_procs=max(1, cpu_count() - 1), debug_skip=False):
 
         self.label = label
@@ -19,7 +20,8 @@ class ConfigSketch(object):
 
         # source config
         self.grab_config: Set = grab_config or set()
-        self.extract_config: List = extract_config or []
+        # file_filtering = file_filtering or []
+        # self.path_filters: List[PathFilter] = [PathFilter(*i) for i in file_filtering]
 
         # build steps
         self.steps: List[Step] = steps or []  # default, zero-config steps here
@@ -28,6 +30,17 @@ class ConfigSketch(object):
         self.use_multiprocessing = use_multiprocessing
         self.n_procs = n_procs
         self.debug_skip = debug_skip
+
+
+class PathFilter(object):
+    def __init__(self, path_filters, include):
+        self.path_filters = path_filters
+        self.include = include
+
+    def check(self, path):
+        if any(i in str(path) for i in self.path_filters):
+            return self.include
+        return None
 
 
 class AddFlags(object):
@@ -46,7 +59,7 @@ class AddFlags(object):
         See if our filter matches the incoming file. If it does, add our flags.
 
         """
-        params = {'relative': fpath.parent, 'source': workspace/BUILD_SOURCE, 'output': workspace/BUILD_OUTPUT}
+        params = {'relative': fpath.parent, 'source': workspace/SOURCE_ROOT, 'output': workspace/BUILD_OUTPUT}
 
         # does the file path match our filter?
         if not self.match or fnmatch(fpath, Template(self.match).substitute(params)):
@@ -75,7 +88,7 @@ class FlagsConfig(object):
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,
         # so we take care of it for them here instead.
-        params = {'source': workspace / BUILD_SOURCE, 'output': workspace / BUILD_OUTPUT}
+        params = {'source': workspace / SOURCE_ROOT, 'output': workspace / BUILD_OUTPUT}
         flags = [Template(i).substitute(params) for i in self.common_flags]
 
         for flags_modifier in self.path_flags:

@@ -5,17 +5,19 @@ import os
 import shutil
 from pathlib import Path
 
-from fab.config import ConfigSketch, AddFlags
+from fab.steps.root_inc_files import RootIncFiles
+
+from fab.config import ConfigSketch
 
 from fab.builder import Build
-from fab.constants import BUILD_SOURCE, SOURCE_ROOT, BUILD_OUTPUT
+from fab.constants import SOURCE_ROOT
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
-from fab.steps.walk_source import WalkSource
-from fab.util import time_logger, file_walk
+from fab.steps.walk_source import GetSourceFiles
+from fab.util import time_logger
 
 
 def jules_config():
@@ -23,18 +25,14 @@ def jules_config():
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / 'jules'
 
     config = ConfigSketch(label='Jules Build', workspace=workspace)
-    config.use_multiprocessing = False
+    # config.use_multiprocessing = False
+    config.debug_skip = True
 
+    # make this a step?
     config.grab_config = {
         ('src', '~/svn/jules/trunk/src'),
         ('util', '~/svn/jules/trunk/utils')
     }
-
-    config.extract_config = [
-        (['src/control/um/'], False),
-        (['src/initialisation/um/'], False),
-        (['src/params/shared/cable_maths_constants_mod.f90'], False),
-    ]
 
     unreferenced_dependencies = [
         'sunny', 'solpos', 'solang', 'redis', 'init_time', 'init_urban', 'init_fire',
@@ -47,16 +45,26 @@ def jules_config():
     ]
 
     config.steps = [
-        WalkSource(workspace / BUILD_SOURCE),
+
+        GetSourceFiles(workspace / SOURCE_ROOT, file_filtering=[
+            (['src/control/um/'], False),
+            (['src/initialisation/um/'], False),
+            (['src/params/shared/cable_maths_constants_mod.F90'], False)]),
+
+        RootIncFiles(workspace / SOURCE_ROOT),
+
         CPreProcessor(),
+
         FortranPreProcessor(
             preprocessor='cpp',
-            common_flags=['-traditional-cpp', '-P','-DMPI_DUMMY', '-DNCDF_DUMMY', '-I', '$source',
-            ]
+            common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I', '$output']
         ),
+
         Analyse(unreferenced_deps=unreferenced_dependencies),
         # Analyse(),
+
         CompileC(),
+
         CompileFortran(
             compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
             common_flags=[
@@ -71,20 +79,18 @@ def jules_config():
     ]
     return config
 
+
 def main():
 
     logger = logging.getLogger('fab')
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
 
-    # ignore this, it's not here
     config = jules_config()
 
+    # ignore this, it's not here
     with time_logger("grabbing"):
         grab_will_do_this(config.grab_config, config.workspace)
-
-    with time_logger("extracting"):
-        extract_will_do_this(config.extract_config, config.workspace)
 
     Build(config=config, ).run()
 
@@ -98,46 +104,6 @@ def grab_will_do_this(src_paths, workspace):
             ignore=shutil.ignore_patterns('.svn')
         )
 
-class PathFilter(object):
-    def __init__(self, path_filters, include):
-        self.path_filters = path_filters
-        self.include = include
-
-    def check(self, path):
-        if any(i in str(path) for i in self.path_filters):
-            return self.include
-        return None
-
-
-def extract_will_do_this(path_filters, workspace):
-    source_folder = workspace / SOURCE_ROOT
-    build_tree = workspace / BUILD_SOURCE
-
-    # tuples to objects
-    path_filters = [PathFilter(*i) for i in path_filters]
-
-    for fpath in file_walk(source_folder):
-
-        include = True
-        for path_filter in path_filters:
-            res = path_filter.check(fpath)
-            if res is not None:
-                include = res
-
-        # copy it to the build folder?
-        if include:
-            rel_path = fpath.relative_to(source_folder)
-            dest_path = build_tree / rel_path
-            # make sure the folder exists
-            if not dest_path.parent.exists():
-                os.makedirs(dest_path.parent)
-
-            if dest_path.suffix == '.inc':
-                shutil.copy(fpath, workspace / BUILD_SOURCE)
-            else:
-                shutil.copy(fpath, dest_path)
-        # else:
-        #     print("excluding", fpath)
 
 if __name__ == '__main__':
     main()

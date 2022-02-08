@@ -9,7 +9,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Iterator, List, Iterable
 
-from fab.constants import BUILD_SOURCE, BUILD_OUTPUT
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 
 logger = logging.getLogger('fab')
 logger.addHandler(logging.StreamHandler(sys.stderr))
@@ -61,7 +61,7 @@ class CompiledFile(object):
 
 
 def input_to_output_fpath(workspace: Path, input_path: Path):
-    rel_path = input_path.relative_to(workspace / BUILD_SOURCE)
+    rel_path = input_path.relative_to(workspace / SOURCE_ROOT)
     return workspace / BUILD_OUTPUT / rel_path
 
 

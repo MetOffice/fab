@@ -11,7 +11,7 @@ from pathlib import Path
 
 from fab.builder import Build
 from fab.config import AddFlags, ConfigSketch
-from fab.constants import SOURCE_ROOT, BUILD_SOURCE
+from fab.constants import SOURCE_ROOT
 from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
@@ -20,8 +20,8 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import WalkSource
-from fab.util import file_walk, time_logger, case_insensitive_replace, Artefact
+from fab.steps.walk_source import GetSourceFiles
+from fab.util import time_logger, case_insensitive_replace, Artefact
 
 
 # hierarchy of config
@@ -109,12 +109,12 @@ def um_atmos_safe_config():
 
         # source config - this will not be part of build, we have existing code to look at for this
         grab_config=grab_config,
-        extract_config=extract_config,
+        file_filtering=extract_config,
 
         # build steps
         steps=[
-            WalkSource(workspace / BUILD_SOURCE),  # template?
-            RootIncFiles(workspace / BUILD_SOURCE),
+            GetSourceFiles(workspace / SOURCE_ROOT),  # template?
+            RootIncFiles(workspace / SOURCE_ROOT),
 
             CPragmaInjector(),
 
@@ -281,46 +281,46 @@ def grab_will_do_this(src_paths, workspace):
         )
 
 
-class PathFilter(object):
-    def __init__(self, path_filters, include):
-        self.path_filters = path_filters
-        self.include = include
+# class PathFilter(object):
+#     def __init__(self, path_filters, include):
+#         self.path_filters = path_filters
+#         self.include = include
+#
+#     def check(self, path):
+#         if any(i in str(path) for i in self.path_filters):
+#             return self.include
+#         return None
 
-    def check(self, path):
-        if any(i in str(path) for i in self.path_filters):
-            return self.include
-        return None
 
-
-def extract_will_do_this(path_filters, workspace):
-    source_folder = workspace / SOURCE_ROOT
-    build_tree = workspace / BUILD_SOURCE
-
-    # tuples to objects
-    path_filters = [PathFilter(*i) for i in path_filters]
-
-    for fpath in file_walk(source_folder):
-
-        include = True
-        for path_filter in path_filters:
-            res = path_filter.check(fpath)
-            if res is not None:
-                include = res
-
-        # copy it to the build folder?
-        if include:
-            rel_path = fpath.relative_to(source_folder)
-            dest_path = build_tree / rel_path
-            # make sure the folder exists
-            if not dest_path.parent.exists():
-                os.makedirs(dest_path.parent)
-            shutil.copy(fpath, dest_path)
-
-        # else:
-        #     print("excluding", fpath)
-
-    # SPECIAL CODE FIXES!!! NEED ADDRESSING
-    special_code_fixes()
+# def extract_will_do_this(path_filters, workspace):
+#     source_folder = workspace / SOURCE_ROOT
+#     build_tree = workspace / BUILD_SOURCE
+#
+#     # tuples to objects
+#     path_filters = [PathFilter(*i) for i in path_filters]
+#
+#     for fpath in file_walk(source_folder):
+#
+#         include = True
+#         for path_filter in path_filters:
+#             res = path_filter.check(fpath)
+#             if res is not None:
+#                 include = res
+#
+#         # copy it to the build folder?
+#         if include:
+#             rel_path = fpath.relative_to(source_folder)
+#             dest_path = build_tree / rel_path
+#             # make sure the folder exists
+#             if not dest_path.parent.exists():
+#                 os.makedirs(dest_path.parent)
+#             shutil.copy(fpath, dest_path)
+#
+#         # else:
+#         #     print("excluding", fpath)
+#
+#     # SPECIAL CODE FIXES!!! NEED ADDRESSING
+#     special_code_fixes()
 
 
 def special_code_fixes():
