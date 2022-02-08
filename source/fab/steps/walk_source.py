@@ -19,7 +19,7 @@ class WalkSource(Step):
 
     def __init__(self,
                  build_source: Path, output_name="all_source",
-                 build_output: Optional[Path]=None, name="walk source"):
+                 build_output: Optional[Path]=None, name="Walk source"):
         super().__init__(name)
         self.build_source = build_source
         self.output_artefact = output_name
