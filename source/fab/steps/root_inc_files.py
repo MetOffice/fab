@@ -20,10 +20,10 @@ logger = logging.getLogger('fab')
 
 class RootIncFiles(Step):
 
-    def __init__(self, build_source: Path, build_output: Optional[Path]=None, name="root inc files"):
+    def __init__(self, source_root: Path, build_output: Optional[Path]=None, name="root inc files"):
         super().__init__(name)
-        self.build_source = build_source
-        self.build_output = build_output or build_source.parent / BUILD_OUTPUT
+        self.source_root = source_root
+        self.build_output = build_output or source_root.parent / BUILD_OUTPUT
 
         # warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
 

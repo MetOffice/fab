@@ -9,6 +9,10 @@ import shutil
 import warnings
 from pathlib import Path
 
+from fab.steps.archive_objects import ArchiveObjects
+
+from fab.steps import Step
+
 from fab.builder import Build
 from fab.config import AddFlags, ConfigSketch
 from fab.constants import SOURCE_ROOT
@@ -40,6 +44,7 @@ def um_atmos_safe_config():
     project_name = 'um_atmos_safe'
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
 
+    # todo: make grab a step?
     grab_config = {
         ("um", "~/svn/um/trunk/src"),
         ("jules", "~/svn/jules/trunk/src"),
@@ -48,7 +53,7 @@ def um_atmos_safe_config():
         ("casim", "~/svn/casim/src"),
     }
 
-    extract_config = [
+    file_filtering = [
         (['/um/utility/'], False),
         (['/um/utility/qxreconf/'], True),
 
@@ -104,16 +109,18 @@ def um_atmos_safe_config():
 
         # run params
         # use_multiprocessing=False,
-        # n_procs=max(1, cpu_count() - 1),
         debug_skip=True,
 
         # source config - this will not be part of build, we have existing code to look at for this
         grab_config=grab_config,
-        file_filtering=extract_config,
 
         # build steps
         steps=[
-            GetSourceFiles(workspace / SOURCE_ROOT),  # template?
+
+            MyCustomCodeFixes(name="my custom code fixes"),
+
+            GetSourceFiles(source_root=workspace / SOURCE_ROOT, file_filtering=file_filtering),  # template?
+
             RootIncFiles(workspace / SOURCE_ROOT),
 
             CPragmaInjector(),
@@ -190,14 +197,15 @@ def um_atmos_safe_config():
                 ]
             ),
 
-            # todo: archive the objects here, keeps the object in use during dev, makes better link error messages
+            # todo: ArchiveObjects(),
 
+            #
             LinkExe(
                 # linker='gcc',
                 linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
                 flags=[
                     '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
-                    '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom'), '-l', 'gcom'
+                    '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom/build_output'), '-l', 'gcom'
                 ],
                 output_fpath='um_atmos.exe')
         ],
@@ -249,18 +257,15 @@ ALLOW_MISMATCH_FLAGS = [
 
 def main():
     logger = logging.getLogger('fab')
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+    # logger.setLevel(logging.INFO)
 
     # config
     config_sketch = um_atmos_safe_config()
 
-    # Get source repos
+    # # Get source repos
     # with time_logger("grabbing"):
     #     grab_will_do_this(config_sketch.grab_config, config_sketch.workspace)
-
-    # Extract the files we want to build
-    # with time_logger("extracting"):
-    #     extract_will_do_this(config_sketch.extract_config, config_sketch.workspace)
 
     builder = Build(config=config_sketch)
 
@@ -281,64 +286,47 @@ def grab_will_do_this(src_paths, workspace):
         )
 
 
-# class PathFilter(object):
-#     def __init__(self, path_filters, include):
-#         self.path_filters = path_filters
-#         self.include = include
+# def special_code_fixes():
 #
-#     def check(self, path):
-#         if any(i in str(path) for i in self.path_filters):
-#             return self.include
-#         return None
+#     def replace_in_file(inpath, outpath, find, replace):
+#         orig = open(os.path.expanduser(inpath), "rt").read()
+#         open(os.path.expanduser(outpath), "wt").write(
+#             case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
+#
+#     warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands the variable 'NameListFile'")
+#     replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
+#                     '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
+#                     'NameListFile', 'FabNameListFile')
+#
+#     warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands the variable 'NameListFile'")
+#     replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
+#                     '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
+#                     'NameListFile', 'FabNameListFile')
 
 
-# def extract_will_do_this(path_filters, workspace):
-#     source_folder = workspace / SOURCE_ROOT
-#     build_tree = workspace / BUILD_SOURCE
-#
-#     # tuples to objects
-#     path_filters = [PathFilter(*i) for i in path_filters]
-#
-#     for fpath in file_walk(source_folder):
-#
-#         include = True
-#         for path_filter in path_filters:
-#             res = path_filter.check(fpath)
-#             if res is not None:
-#                 include = res
-#
-#         # copy it to the build folder?
-#         if include:
-#             rel_path = fpath.relative_to(source_folder)
-#             dest_path = build_tree / rel_path
-#             # make sure the folder exists
-#             if not dest_path.parent.exists():
-#                 os.makedirs(dest_path.parent)
-#             shutil.copy(fpath, dest_path)
-#
-#         # else:
-#         #     print("excluding", fpath)
-#
-#     # SPECIAL CODE FIXES!!! NEED ADDRESSING
-#     special_code_fixes()
+class MyCustomCodeFixes(Step):
+    """
+    An example of a custom step to fix some broken source code.
 
+    """
+    def run(self, artefacts, config):
 
-def special_code_fixes():
-    def replace_in_file(inpath, outpath, find, replace):
+        warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
+        self.replace_in_file(
+            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
+            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
+            'NameListFile', 'FabNameListFile')
+
+        warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
+        self.replace_in_file(
+            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
+            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
+            'NameListFile', 'FabNameListFile')
+
+    def replace_in_file(self, inpath, outpath, find, replace):
+        orig = open(os.path.expanduser(inpath), "rt").read()
         open(os.path.expanduser(outpath), "wt").write(
-            case_insensitive_replace(
-                in_str=open(os.path.expanduser(inpath), "rt").read(),
-                find=find, replace_with=replace))
-
-    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands the variable 'NameListFile'")
-    replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
-                    '~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/io_services/common/io_configuration_mod.F90',
-                    'NameListFile', 'FabNameListFile')
-
-    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands the variable 'NameListFile'")
-    replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
-                    '~/git/fab/tmp-workspace/um_atmos_safe/build_source/um/control/top_level/um_config.F90',
-                    'NameListFile', 'FabNameListFile')
+            case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
 
 
 if __name__ == '__main__':

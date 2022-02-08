@@ -35,13 +35,12 @@ def jules_config():
     }
 
     unreferenced_dependencies = [
-        'sunny', 'solpos', 'solang', 'redis', 'init_time', 'init_urban', 'init_fire',
-        'init_drive', 'init_imogen', 'init_prescribed_data', 'init_vars_tmp', 'imogen_check',
-        'imogen_update_clim', 'control', 'imogen_update_carb', 'next_time', 'sow', 'emerge', 'develop',
-        'partition', 'radf_co2', 'radf_non_co2', 'adf_ch4gcm_anlg', 'drdat', 'clim_calc', 'diffcarb_land_co2',
-        'ocean_co2', 'diffcarb_land_ch4', 'diff_atmos_ch4', 'day_calc', 'response', 'radf_ch4', 'gcm_anlg',
-        'delta_temp', 'rndm', 'invert', 'vgrav', 'conversions_mod', 'water_constants_mod', 'planet_constants_mod',
-        'veg_param_mod', 'flake_interface'
+        'sunny', 'solpos', 'solang', 'redis', 'init_time', 'init_irrigation', 'init_urban', 'init_fire', 'init_drive',
+        'init_imogen', 'init_prescribed_data', 'init_vars_tmp', 'imogen_check', 'imogen_update_clim', 'control',
+        'imogen_update_carb', 'next_time', 'sow', 'emerge', 'develop', 'partition', 'radf_co2', 'radf_non_co2',
+        'adf_ch4gcm_anlg', 'drdat', 'clim_calc', 'diffcarb_land_co2', 'ocean_co2', 'diffcarb_land_ch4',
+        'diff_atmos_ch4', 'day_calc', 'response', 'radf_ch4', 'gcm_anlg', 'delta_temp', 'rndm', 'invert', 'vgrav',
+        'conversions_mod', 'water_constants_mod', 'planet_constants_mod', 'veg_param_mod', 'flake_interface'
     ]
 
     config.steps = [
@@ -60,7 +59,7 @@ def jules_config():
             common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I', '$output']
         ),
 
-        Analyse(unreferenced_deps=unreferenced_dependencies),
+        Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
         # Analyse(),
 
         CompileC(),
@@ -75,7 +74,7 @@ def jules_config():
         LinkExe(
             linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
             output_fpath='$output/jules.exe',
-            flags='-lm'),
+            flags=['-lm']),
     ]
     return config
 

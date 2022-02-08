@@ -14,7 +14,7 @@ class Test_gen_symbol_table(object):
                 Path("bar.c"): AnalysedFile(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=None)}
 
     def test_vanilla(self, analysed_files):
-        analyser = Analyse()
+        analyser = Analyse(root_symbol=None)
 
         result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
 
@@ -28,7 +28,7 @@ class Test_gen_symbol_table(object):
     def test_duplicate_symbol(self, analysed_files):
         analysed_files[Path("bar.c")].symbol_defs.append('foo_1')
 
-        analyser = Analyse()
+        analyser = Analyse(root_symbol=None)
 
         with pytest.warns(UserWarning):
             result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
@@ -41,7 +41,7 @@ class Test_gen_symbol_table(object):
         }
 
     def test_special_measures(self, analysed_files):
-        analyser = Analyse()
+        analyser = Analyse(root_symbol=None)
         analyser.special_measure_analysis_results = analysed_files.values()
 
         result = analyser._gen_symbol_table(all_analysed_files=dict())
@@ -57,7 +57,7 @@ class Test_gen_symbol_table(object):
 class Test_add_unreferenced_deps(object):
 
     def test_vanilla(self):
-        analyser = Analyse()
+        analyser = Analyse(root_symbol=None)
 
         # we analysed the source folder and found these symbols
         symbols = {

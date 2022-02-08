@@ -7,7 +7,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, List, Iterable
+from typing import Iterator, List, Iterable, Dict
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 
@@ -86,6 +86,8 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
 
 ############
 
+# todo: docstrings for these
+
 # todo: poor name?
 class SourceGetter(object):
     def __call__(self, artefacts):
@@ -103,14 +105,15 @@ class Artefact(SourceGetter):
 
 
 class Artefacts(SourceGetter):
+    # todo: this assumes artefactsa are lists, which might not always be the case? discuss or change
 
-    def __init__(self, names):
+    def __init__(self, names: List[str]):
         self.names = names
 
-    def __call__(self, artefacts):
+    def __call__(self, artefacts: Dict):
         result = []
         for name in self.names:
-            result.extend(artefacts[name])
+            result.extend(artefacts.get(name, []))
         return result
 
 

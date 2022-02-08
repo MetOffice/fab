@@ -4,6 +4,7 @@ Test reading and writing analysis results.
 """
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import mock
 
 from fab.dep_tree import AnalysedFile
 
@@ -37,8 +38,10 @@ def test_load_analysis_results():
     # latest_results = [AnalysedFile(fpath=path, file_hash=file_hash) for path, file_hash in latest_file_hashes]
 
     with TemporaryDirectory() as tmpdir:
-        analyser = Analyse()
-        analyser.workspace = Path(tmpdir)
+        analyser = Analyse(root_symbol=None)
+
+        # simulate the effect of calling run, in which the superclass sets up the _config attribute (is this too ugly?)
+        analyser._config = mock.Mock(workspace=Path(tmpdir))
 
         # run 1
         # create the previous analysis file
