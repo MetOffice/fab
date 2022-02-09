@@ -41,8 +41,12 @@ jobs:
     - name: Unit tests with Pytest
       run: |
         pip install .[unit-test]
-        python -m pytest --cov=fab unit-tests
-    - name: System tests with Pytest
+        python -m pytest --cov=fab tests/unit_tests
+    - name: Unit tests with Pytest
       run: |
-        pip install .[system-test]
-        python -m pytest system-tests
+        pip install .[unit-test]
+        python -m pytest --cov=fab tests/integration_tests
+#    - name: System tests with Pytest
+#      run: |
+#        pip install .[system-test]
+#        python -m pytest system-tests
