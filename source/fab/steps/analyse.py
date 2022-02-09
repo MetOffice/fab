@@ -181,7 +181,7 @@ class Analyse(Step):
                 all_analysed_files[analysed_file.fpath] = analysed_file
 
         # map symbols to the files in which they're defined
-        symbols = dict()
+        symbols: Dict[str, Path] = dict()
         duplicates = []
         for analysed_file in all_analysed_files.values():
             for symbol_def in analysed_file.symbol_defs:
@@ -265,10 +265,11 @@ class Analyse(Step):
         return changed, unchanged
 
     @contextmanager
-    def _new_analysis_file(self, unchanged: List[AnalysedFile]) -> csv.DictWriter:
+    def _new_analysis_file(self, unchanged: List[AnalysedFile]):
         # Open a new analysis file, populated with work already done in previous runs.
         # We re-write the successfully read contents of the analysis file each time,
         # for robustness against data corruption (otherwise we could just open with "wt+").
+        # The returned context is a csv.DictWriter.
         with time_logger("starting analysis progress file"):
             analysis_progress_file = open(self._config.workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())

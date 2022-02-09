@@ -19,11 +19,9 @@ class PreProcessor(MpExeStep):
     Base class for preprocessors. A build step which calls a preprocessor.
 
     """
-
-    # todo: make abstract, we don't really need these in the base class
-    DEFAULT_SOURCE = None
-    DEFAULT_OUTPUT_NAME = ''
-    DEFAULT_OUTPUT_SUFFIX = ''
+    DEFAULT_SOURCE: SourceGetter
+    DEFAULT_OUTPUT_NAME: str
+    DEFAULT_OUTPUT_SUFFIX: str
 
     def __init__(self,
                  source: SourceGetter=None, output_artefact=None, output_suffix=None,

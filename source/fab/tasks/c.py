@@ -3,24 +3,18 @@
 # which you should have received as part of this distribution
 """
 C language handling classes.
+
 """
 import logging
 import re
-import subprocess
 from collections import deque
-from pathlib import Path
-from typing import \
-    List, \
-    Pattern, \
-    Optional, \
-    Match
+from typing import List, Pattern, Optional, Match
 
 import clang.cindex  # type: ignore
 
-from fab.config import FlagsConfig
 from fab.dep_tree import AnalysedFile
 from fab.tasks import TaskException
-from fab.util import log_or_dot, HashedFile, CompiledFile, run_command
+from fab.util import log_or_dot, HashedFile
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +92,7 @@ class CAnalyser(object):
         self._locate_include_regions(translation_unit)
 
         # Now walk the actual nodes and find all relevant external symbols
-        usr_symbols = []
+        usr_symbols: List[str] = []
         for node in translation_unit.cursor.walk_preorder():
             if not node.spelling:
                 continue

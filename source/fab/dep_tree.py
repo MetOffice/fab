@@ -102,14 +102,13 @@ class EmptySourceFile(object):
 
 
 def extract_sub_tree(
-        src_tree: Dict[Path, AnalysedFile], key: Path, verbose=False) \
-        -> Dict[Path, AnalysedFile]:
+        src_tree: Dict[Path, AnalysedFile], key: Path, verbose=False) -> Dict[Path, AnalysedFile]:
     """
     Extract the subtree required to build the target, from the full dict of all analysed source files.
 
     """
-    result = dict()
-    missing = set()
+    result: Dict[Path, AnalysedFile] = dict()
+    missing: Set[Path] = set()
 
     _extract_sub_tree(src_tree=src_tree, key=key, dst_tree=result, missing=missing, verbose=verbose)
 
@@ -119,7 +118,8 @@ def extract_sub_tree(
     return result
 
 
-def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, dst_tree, missing, verbose, indent=0):
+def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
+                      dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int=0):
 
     # is this node already in the target tree?
     if key in dst_tree:

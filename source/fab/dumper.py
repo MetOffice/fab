@@ -1,91 +1,93 @@
-##############################################################################
-# (c) Crown copyright Met Office. All rights reserved.
-# For further details please refer to the file COPYRIGHT
-# which you should have received as part of this distribution
-##############################################################################
-"""
-Core of the database dump application.
-"""
-import logging
-from pathlib import Path
-import sys
-
-from fab.database import FileInfoDatabase, SqliteStateDatabase
-from fab.tasks.fortran import FortranWorkingState
-from fab.tasks.c import CWorkingState
-
-
-def entry() -> None:
-    """
-    Entry point for the Fab state database dump tool.
-    """
-    import argparse
-    import fab
-
-    logger = logging.getLogger('fab')
-    logger.addHandler(logging.StreamHandler(sys.stderr))
-
-    description = 'Flexible build system for scientific software.'
-    parser = argparse.ArgumentParser(add_help=False,
-                                     description=description)
-    # We add our own help so as to capture as many permutations of how people
-    # might ask for help. The default only looks for a subset.
-    parser.add_argument('-h', '-help', '--help', action='help',
-                        help='Print this help and exit')
-    parser.add_argument('-V', '--version', action='version',
-                        version=fab.__version__,
-                        help='Print version identifier and exit')
-    parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help='Increase verbosity (may be specified once '
-                             'for moderate and twice for debug verbosity)')
-    parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
-                        default=Path.cwd() / 'working',
-                        help='Directory for working files.')
-    arguments = parser.parse_args()
-
-    verbosity_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
-    verbosity = min(arguments.verbose, 2)
-    logger.setLevel(verbosity_levels[verbosity])
-
-    application = Dump(arguments.workspace)
-    application.run()
-
-
-class Dump(object):
-    def __init__(self, workspace: Path):
-        self._workspace = workspace
-        self._state = SqliteStateDatabase(workspace)
-
-    def run(self, stream=sys.stdout):
-        file_view = FileInfoDatabase(self._state)
-        print("File View", file=stream)
-        for file_info in file_view:
-            print(f"  File   : {file_info.filename}", file=stream)
-            # Where files are generated in the working directory
-            # by third party tools, we cannot guarantee the hashes
-            if file_info.filename.match(f'{self._workspace}/*'):
-                print('    Hash : --hidden-- (generated file)')
-            else:
-                print(f"    Hash : {file_info.adler32}", file=stream)
-
-        fortran_view = FortranWorkingState(self._state)
-        header = False
-        for info in fortran_view:
-            if not header:
-                print("Fortran View", file=stream)
-                header = True
-            print(f"  Program unit    : {info.unit.name}", file=stream)
-            print(f"    Found in      : {info.unit.found_in}", file=stream)
-            print(f"    Prerequisites : {', '.join(info.depends_on)}",
-                  file=stream)
-
-        c_view = CWorkingState(self._state)
-        header = False
-        for info in c_view:
-            if not header:
-                print("C View", file=stream)
-                header = True
-            print(f"  Symbol          : {info.symbol.name}", file=stream)
-            print(f"    Found in      : {info.symbol.found_in}", file=stream)
-            print(f"    Prerequisites : {', '.join(info.depends_on)}",
-                  file=stream)
+# Todo: Commented out because it's using modules that no longer exist, so mypy is failing.
+#       We will be revisiting this.
+# ##############################################################################
+# # (c) Crown copyright Met Office. All rights reserved.
+# # For further details please refer to the file COPYRIGHT
+# # which you should have received as part of this distribution
+# ##############################################################################
+# """
+# Core of the database dump application.
+# """
+# import logging
+# from pathlib import Path
+# import sys
+#
+# from fab.database import FileInfoDatabase, SqliteStateDatabase
+# from fab.tasks.fortran import FortranWorkingState
+# from fab.tasks.c import CWorkingState
+#
+#
+# def entry() -> None:
+#     """
+#     Entry point for the Fab state database dump tool.
+#     """
+#     import argparse
+#     import fab
+#
+#     logger = logging.getLogger('fab')
+#     logger.addHandler(logging.StreamHandler(sys.stderr))
+#
+#     description = 'Flexible build system for scientific software.'
+#     parser = argparse.ArgumentParser(add_help=False,
+#                                      description=description)
+#     # We add our own help so as to capture as many permutations of how people
+#     # might ask for help. The default only looks for a subset.
+#     parser.add_argument('-h', '-help', '--help', action='help',
+#                         help='Print this help and exit')
+#     parser.add_argument('-V', '--version', action='version',
+#                         version=fab.__version__,
+#                         help='Print version identifier and exit')
+#     parser.add_argument('-v', '--verbose', action='count', default=0,
+#                         help='Increase verbosity (may be specified once '
+#                              'for moderate and twice for debug verbosity)')
+#     parser.add_argument('-w', '--workspace', metavar='PATH', type=Path,
+#                         default=Path.cwd() / 'working',
+#                         help='Directory for working files.')
+#     arguments = parser.parse_args()
+#
+#     verbosity_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+#     verbosity = min(arguments.verbose, 2)
+#     logger.setLevel(verbosity_levels[verbosity])
+#
+#     application = Dump(arguments.workspace)
+#     application.run()
+#
+#
+# class Dump(object):
+#     def __init__(self, workspace: Path):
+#         self._workspace = workspace
+#         self._state = SqliteStateDatabase(workspace)
+#
+#     def run(self, stream=sys.stdout):
+#         file_view = FileInfoDatabase(self._state)
+#         print("File View", file=stream)
+#         for file_info in file_view:
+#             print(f"  File   : {file_info.filename}", file=stream)
+#             # Where files are generated in the working directory
+#             # by third party tools, we cannot guarantee the hashes
+#             if file_info.filename.match(f'{self._workspace}/*'):
+#                 print('    Hash : --hidden-- (generated file)')
+#             else:
+#                 print(f"    Hash : {file_info.adler32}", file=stream)
+#
+#         fortran_view = FortranWorkingState(self._state)
+#         header = False
+#         for info in fortran_view:
+#             if not header:
+#                 print("Fortran View", file=stream)
+#                 header = True
+#             print(f"  Program unit    : {info.unit.name}", file=stream)
+#             print(f"    Found in      : {info.unit.found_in}", file=stream)
+#             print(f"    Prerequisites : {', '.join(info.depends_on)}",
+#                   file=stream)
+#
+#         c_view = CWorkingState(self._state)
+#         header = False
+#         for info in c_view:
+#             if not header:
+#                 print("C View", file=stream)
+#                 header = True
+#             print(f"  Symbol          : {info.symbol.name}", file=stream)
+#             print(f"    Found in      : {info.symbol.found_in}", file=stream)
+#             print(f"    Prerequisites : {', '.join(info.depends_on)}",
+#                   file=stream)

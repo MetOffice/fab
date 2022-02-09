@@ -7,11 +7,10 @@ from typing import List, Tuple
 from unittest import mock
 from unittest.mock import Mock, mock_open
 
-import clang
+import clang  # type: ignore
 
 from fab.dep_tree import AnalysedFile
 
-# import fab.tasks.c
 from fab.tasks.c import CAnalyser, _CTextReaderPragmas
 from fab.util import HashedFile
 

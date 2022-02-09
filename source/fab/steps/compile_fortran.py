@@ -4,7 +4,7 @@ Fortran file compilation.
 """
 import logging
 from pathlib import Path
-from typing import List, Set
+from typing import List, Set, Dict
 
 from fab.dep_tree import AnalysedFile, by_type
 
@@ -91,7 +91,7 @@ class CompileFortran(MpExeStep):
 
         # find what to compile next
         compile_next = set()
-        not_ready = {}
+        not_ready: Dict[Path, List[Path]] = {}
         for af in to_compile:
             # all deps ready?
             unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files and dep.suffix == '.f90']
@@ -102,7 +102,7 @@ class CompileFortran(MpExeStep):
 
         # unable to compile anything?
         if len(to_compile) and not compile_next:
-            all_unfulfilled = set()
+            all_unfulfilled: Set[Path] = set()
             for unfulfilled in not_ready.values():
                 all_unfulfilled = all_unfulfilled.union(unfulfilled)
             raise RuntimeError(f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
