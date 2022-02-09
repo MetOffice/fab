@@ -33,6 +33,7 @@ jobs:
     - name: Type check with mypy
       run: |
         pip install -e .[dev]
+        pip install pytest
         python -m mypy setup.py source tests/unit_tests
     - name: Code style check with flake8
       run: |
