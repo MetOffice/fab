@@ -42,7 +42,7 @@ jobs:
       run: |
         pip install .[unit-test]
         python -m pytest --cov=fab tests/unit_tests
-    - name: Unit tests with Pytest
+    - name: Integration tests with Pytest
       run: |
         pip install .[unit-test]
         python -m pytest --cov=fab tests/integration_tests
