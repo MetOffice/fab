@@ -9,7 +9,7 @@ import multiprocessing
 from datetime import datetime
 from pathlib import Path
 
-from fab.config import ConfigSketch
+from fab.config import Config
 from fab.constants import BUILD_OUTPUT
 from fab.util import time_logger
 
@@ -79,7 +79,7 @@ def entry() -> None:
 
 
 class Build(object):
-    def __init__(self, config: ConfigSketch):
+    def __init__(self, config: Config):
         self.config = config
 
         if not config.workspace.exists():

@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 from fab.builder import Build
-from fab.config import ConfigSketch
+from fab.config import Config
 from fab.constants import SOURCE_ROOT
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
@@ -22,7 +22,7 @@ def gcom_object_archive_config():
 
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / 'gcom'
 
-    config = ConfigSketch(label='gcom object archive', workspace=workspace)
+    config = Config(label='gcom object archive', workspace=workspace)
 
     config.grab_config = {("gcom", "~/svn/gcom/trunk/build"), }
 

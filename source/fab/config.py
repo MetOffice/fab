@@ -9,7 +9,7 @@ from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 from fab.steps import Step
 
 
-class ConfigSketch(object):
+class Config(object):
 
     def __init__(self, label, workspace,
                  grab_config=None, steps: List[Step]=None,

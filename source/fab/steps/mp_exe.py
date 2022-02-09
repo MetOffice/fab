@@ -11,7 +11,7 @@ from fab.steps import Step
 # Initial motivation: unify constructors for preprocessors and compilers as they were already diverging.
 class MpExeStep(Step):
     """
-    Base class which handles the common and per-file flag config.
+    Base class which handles the config for common flags and path filtered flags, for mp steps.
 
     """
     def __init__(self, exe, common_flags: List[str], path_flags: List[AddFlags], name):
