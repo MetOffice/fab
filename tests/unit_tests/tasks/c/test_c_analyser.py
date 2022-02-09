@@ -10,7 +10,6 @@ from unittest.mock import Mock, mock_open
 import clang  # type: ignore
 
 from fab.dep_tree import AnalysedFile
-
 from fab.tasks.c import CAnalyser, _CTextReaderPragmas
 from fab.util import HashedFile
 
@@ -34,7 +33,7 @@ class Test__locate_include_regions(object):
 
     def test_vanilla(self):
         lines: List[Tuple[int, str]] = [
-            (5,  "foo"),
+            (5, "foo"),
             (10, "# pragma FAB SysIncludeStart"),
             (15, "foo"),
             (20, "# pragma FAB SysIncludeEnd"),
@@ -55,7 +54,6 @@ class Test__locate_include_regions(object):
         self._run(lines=[], expect=[])
 
     def _run(self, lines, expect):
-
         class MockToken(object):
             def __init__(self, spelling, line):
                 self.spelling = spelling

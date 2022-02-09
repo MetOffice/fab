@@ -13,14 +13,12 @@ from typing import Dict, List, Tuple, Iterable, Set
 
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
     validate_build_tree
-
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
 from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish, Artefacts, SourceGetter
 
 logger = logging.getLogger('fab')
-
 
 DEFAULT_SOURCE_GETTER = Artefacts(['preprocessed_c', 'preprocessed_fortran'])
 
@@ -33,7 +31,7 @@ class Analyse(Step):
 
     # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
-                 root_symbol, source: SourceGetter=None, std="f2008",
+                 root_symbol, source: SourceGetter = None, std="f2008",
                  special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
         """
 
@@ -134,8 +132,8 @@ class Analyse(Step):
         #             af.dump(outfile)
 
     def _parse_files(self,
-                    to_analyse_by_type: Dict[str, List[HashedFile]],
-                    analysis_dict_writer: csv.DictWriter):
+                     to_analyse_by_type: Dict[str, List[HashedFile]],
+                     analysis_dict_writer: csv.DictWriter):
         """
         Determine the symbols which are defined in, and used by, each file.
 
@@ -285,9 +283,9 @@ class Analyse(Step):
         analysis_progress_file.close()
 
     def _analyse_file_type(self,
-                          fpaths: List[HashedFile],
-                          analyser,
-                          dict_writer: csv.DictWriter) -> Tuple[List[AnalysedFile], Set[Exception]]:
+                           fpaths: List[HashedFile],
+                           analyser,
+                           dict_writer: csv.DictWriter) -> Tuple[List[AnalysedFile], Set[Exception]]:
         """
         Pass the files to the analyser and check the results for errors and empty files.
 
@@ -319,7 +317,7 @@ class Analyse(Step):
         return new_program_units, exceptions
 
     def _add_unreferenced_deps(self, symbols: Dict[str, Path],
-                              all_analysed_files: Dict[Path, AnalysedFile], build_tree: Dict[Path, AnalysedFile]):
+                               all_analysed_files: Dict[Path, AnalysedFile], build_tree: Dict[Path, AnalysedFile]):
         """
         Add files to the target tree.
 

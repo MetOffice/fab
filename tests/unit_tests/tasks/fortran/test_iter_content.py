@@ -26,7 +26,8 @@ class Test_iter_content(object):
         ])
 
         result = [node.name for node in iter_content(root)]
-        assert result == ['root', 'child1', 'child2', 'grandchild1', 'grandchild2', 'greatgrandchild1', 'child3', 'grandchild3']
+        assert result == ['root', 'child1', 'child2', 'grandchild1', 'grandchild2', 'greatgrandchild1', 'child3',
+                          'grandchild3']
 
     def test_empty(self):
         assert [node.name for node in iter_content(Node("foo"))] == ["foo"]

@@ -9,14 +9,13 @@ from fab.steps import Step
 from fab.tasks.c import _CTextReaderPragmas
 from fab.util import SourceGetter, FilterFpaths
 
-
 DEFAULT_SOURCE_GETTER = FilterFpaths('all_source', ['.c'])
 
 
 # todo: test
 class CPragmaInjector(Step):
 
-    def __init__(self, source: SourceGetter=None, output_name="pragmad_c", name="c pragmas"):
+    def __init__(self, source: SourceGetter = None, output_name="pragmad_c", name="c pragmas"):
         super().__init__(name=name)
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER

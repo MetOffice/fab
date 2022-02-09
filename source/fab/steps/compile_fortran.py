@@ -7,20 +7,18 @@ from pathlib import Path
 from typing import List, Set, Dict
 
 from fab.dep_tree import AnalysedFile, by_type
-
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, FilterBuildTree, SourceGetter
 
 logger = logging.getLogger('fab')
-
 
 DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
 
 
 class CompileFortran(MpExeStep):
 
-    def __init__(self, compiler: str, common_flags: List[str]=None, path_flags: List=None,
-                 source: SourceGetter=None, name='compile fortran'):
+    def __init__(self, compiler: str, common_flags: List[str] = None, path_flags: List = None,
+                 source: SourceGetter = None, name='compile fortran'):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -105,7 +103,8 @@ class CompileFortran(MpExeStep):
             all_unfulfilled: Set[Path] = set()
             for unfulfilled in not_ready.values():
                 all_unfulfilled = all_unfulfilled.union(unfulfilled)
-            raise RuntimeError(f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
+            raise RuntimeError(
+                f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
 
         return compile_next
 

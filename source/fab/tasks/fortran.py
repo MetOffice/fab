@@ -6,16 +6,15 @@ Fortran language handling classes.
 """
 import logging
 
+from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module)
 from fparser.two.parser import ParserFactory  # type: ignore
-from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
-from fab.tasks import  TaskException
-
 from fab.dep_tree import AnalysedFile, EmptySourceFile
+from fab.tasks import TaskException
 from fab.util import log_or_dot, HashedFile
 
 logger = logging.getLogger(__name__)
@@ -100,7 +99,7 @@ class FortranAnalyser(object):
 
                 # todo: ?replace these with function lookup dict[type, func]? - Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
-                    self._process_use_statement(analysed_file, obj)  ## raises
+                    self._process_use_statement(analysed_file, obj)  # raises
 
                 elif obj_type in (Module_Stmt, Program_Stmt):
                     analysed_file.add_symbol_def(str(obj.get_name()))

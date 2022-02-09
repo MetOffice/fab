@@ -133,7 +133,7 @@ class FilterFpaths(SourceGetter):
 # todo: improve these filters? they are similar
 class FilterBuildTree(SourceGetter):
 
-    def __init__(self, suffixes: List[str], artefact_name: str='build_tree'):
+    def __init__(self, suffixes: List[str], artefact_name: str = 'build_tree'):
         self.artefact_name = artefact_name
         self.suffixes = suffixes
 

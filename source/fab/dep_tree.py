@@ -1,14 +1,14 @@
 import logging
-from collections import defaultdict
 from pathlib import Path
-from typing import Set, Dict, List, Tuple
+from typing import Set, Dict, List
 
 logger = logging.getLogger(__name__)
 
 
 class AnalysedFile(object):
 
-    def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None, mo_commented_file_deps=None):
+    def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None,
+                 mo_commented_file_deps=None):
         self.fpath = fpath
         self.file_hash = file_hash
         self.symbol_defs: Set[str] = symbol_defs or set()
@@ -119,8 +119,7 @@ def extract_sub_tree(
 
 
 def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
-                      dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int=0):
-
+                      dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int = 0):
     # is this node already in the target tree?
     if key in dst_tree:
         return

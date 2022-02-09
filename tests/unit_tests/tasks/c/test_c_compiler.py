@@ -4,13 +4,9 @@ Test CCompiler.
 """
 from pathlib import Path
 from unittest import mock
-from unittest.mock import Mock
-
-from fab.steps import Step
 
 from fab.config import AddFlags
 from fab.dep_tree import AnalysedFile
-
 from fab.steps.compile_c import CompileC
 
 

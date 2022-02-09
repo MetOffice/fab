@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Optional
 
 from fab.constants import BUILD_OUTPUT
-
 from fab.steps import Step
 from fab.util import suffix_filter
 
@@ -20,7 +19,7 @@ logger = logging.getLogger('fab')
 
 class RootIncFiles(Step):
 
-    def __init__(self, source_root: Path, build_output: Optional[Path]=None, name="root inc files"):
+    def __init__(self, source_root: Path, build_output: Optional[Path] = None, name="root inc files"):
         super().__init__(name)
         self.source_root = source_root
         self.build_output = build_output or source_root.parent / BUILD_OUTPUT

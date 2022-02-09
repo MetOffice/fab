@@ -9,8 +9,6 @@ import shutil
 import warnings
 from pathlib import Path
 
-from fab.steps.archive_objects import ArchiveObjects
-
 from fab.steps import Step
 
 from fab.builder import Build
@@ -188,8 +186,8 @@ def um_atmos_safe_config():
 
                 path_flags=[
                     # mpl include - todo: just add this for everything?
-                    AddFlags(f"$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-                    AddFlags(f"$output/jules/*",
+                    AddFlags("$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+                    AddFlags("$output/jules/*",
                              ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
 
                     # todo: allow multiple filters per instance?
@@ -273,7 +271,9 @@ def main():
         builder.run()
 
 
-### helper stuff to eventually throw away below here ###
+#
+# helper stuff to eventually throw away below here #
+#
 
 
 def grab_will_do_this(src_paths, workspace):
@@ -284,24 +284,6 @@ def grab_will_do_this(src_paths, workspace):
             dirs_exist_ok=True,
             ignore=shutil.ignore_patterns('.svn')
         )
-
-
-# def special_code_fixes():
-#
-#     def replace_in_file(inpath, outpath, find, replace):
-#         orig = open(os.path.expanduser(inpath), "rt").read()
-#         open(os.path.expanduser(outpath), "wt").write(
-#             case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
-#
-#     warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands the variable 'NameListFile'")
-#     replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
-#                     '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
-#                     'NameListFile', 'FabNameListFile')
-#
-#     warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands the variable 'NameListFile'")
-#     replace_in_file('~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
-#                     '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
-#                     'NameListFile', 'FabNameListFile')
 
 
 class MyCustomCodeFixes(Step):

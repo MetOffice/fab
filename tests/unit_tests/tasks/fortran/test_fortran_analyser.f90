@@ -9,8 +9,8 @@ INTEGER FUNCTION external_func()
 END FUNCTION external_func
 
 MODULE foo_mod
-    USE bar_mod, ONLY: foo
-    CONTAINS
+    USE bar_mod, ONLY : foo
+CONTAINS
 
     SUBROUTINE internal_sub
         ! DEPENDS ON: monty_func

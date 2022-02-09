@@ -1,20 +1,18 @@
 from fnmatch import fnmatch
 from multiprocessing import cpu_count
-from string import Template
 from pathlib import Path
-from typing import List, Set, Tuple, Optional
+from string import Template
+from typing import List, Set
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
-
 from fab.steps import Step
 
 
 class Config(object):
 
     def __init__(self, label, workspace,
-                 grab_config=None, steps: List[Step]=None,
+                 grab_config=None, steps: List[Step] = None,
                  use_multiprocessing=True, n_procs=max(1, cpu_count() - 1), debug_skip=False):
-
         self.label = label
         self.workspace = workspace
 
@@ -50,6 +48,7 @@ class AddFlags(object):
     For example, add an include path for certain sub-folders.
 
     """
+
     def __init__(self, match: str, flags: List[str]):
         self.match: str = match
         self.flags: List[str] = flags
@@ -59,13 +58,12 @@ class AddFlags(object):
         See if our filter matches the incoming file. If it does, add our flags.
 
         """
-        params = {'relative': fpath.parent, 'source': workspace/SOURCE_ROOT, 'output': workspace/BUILD_OUTPUT}
+        params = {'relative': fpath.parent, 'source': workspace / SOURCE_ROOT, 'output': workspace / BUILD_OUTPUT}
 
         # does the file path match our filter?
         # grr, mypy forces us to turn a path into a string when calling fnmatch (which works with paths)
         # if not self.match or fnmatch(fpath, Template(self.match).substitute(params)):
         if not self.match or fnmatch(str(fpath), Template(self.match).substitute(params)):
-
             # use templating to render any relative paths in our flags
             add_flags = [Template(flag).substitute(params) for flag in self.flags]
 
@@ -81,12 +79,12 @@ class FlagsConfig(object):
     For now, simply allows appending flags but will likely evolve to replace or remove flags.
 
     """
-    def __init__(self, common_flags=None, path_flags: List[AddFlags]=None):
+
+    def __init__(self, common_flags=None, path_flags: List[AddFlags] = None):
         self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
     def flags_for_path(self, path, workspace):
-
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,
         # so we take care of it for them here instead.

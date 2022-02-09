@@ -24,6 +24,7 @@ class CAnalyser(object):
     Identify symbol definitions and dependencies in a C file.
 
     """
+
     def __init__(self):
         pass
 
@@ -171,7 +172,6 @@ def _CTextReaderPragmas(fpath):
                 raise TaskException(msg)
         else:
             yield line
-
 
 # class CCompiler(object):
 #

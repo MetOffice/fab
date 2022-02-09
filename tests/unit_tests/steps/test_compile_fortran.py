@@ -4,7 +4,6 @@ from unittest import mock
 import pytest
 
 from fab.dep_tree import AnalysedFile
-from fab.steps import Step
 from fab.steps.compile_fortran import CompileFortran
 from fab.util import CompiledFile
 

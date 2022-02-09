@@ -12,6 +12,7 @@ class Step(object):
     Provides multiprocessing capabilities which can be disabled for debugging.
 
     """
+
     def __init__(self, name):
         self.name = name
 

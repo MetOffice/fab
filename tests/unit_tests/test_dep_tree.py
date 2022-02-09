@@ -1,7 +1,7 @@
 from pathlib import Path
 
-
 import pytest
+
 from fab.dep_tree import AnalysedFile, extract_sub_tree
 
 
