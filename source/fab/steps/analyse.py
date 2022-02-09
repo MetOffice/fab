@@ -26,11 +26,12 @@ DEFAULT_SOURCE_GETTER = Artefacts(['preprocessed_c', 'preprocessed_fortran'])
 
 
 # todo: split out c and fortran?
-# This has all been done as a single step (for now) because we don't have a simple list of artefacts and
-# a function to process them one at a time.
+#       this class is still a bit big
+# This has all been done as a single step, for now, because we don't have a simple mp pattern
+# (i.e we don't have a list of artefacts and a function to feed them through).
 class Analyse(Step):
 
-    # todo: this docstring is not appearing in sphinx renders
+    # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
                  root_symbol, source: SourceGetter=None, std="f2008",
                  special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
@@ -98,7 +99,8 @@ class Analyse(Step):
             symbols: Dict[str, Path] = self._gen_symbol_table(all_analysed_files)
 
         # turn symbol deps into file deps
-        self._gen_file_deps(all_analysed_files, symbols)
+        with time_logger("generating file dependencies from symbols"):
+            self._gen_file_deps(all_analysed_files, symbols)
 
         #  find the file dependencies for UM "DEPENDS ON:" commented file deps
         with time_logger("adding MO 'DEPENDS ON:' file dependency comments"):
@@ -124,6 +126,7 @@ class Analyse(Step):
 
         artefacts['build_tree'] = build_tree
 
+        # useful for debug
         # if self.dump_source_tree:
         #     with open(datetime.now().strftime(f"tmp/af2_{runtime_str}.txt"), "wt") as outfile:
         #         sorted_files = sorted(all_analysed_files.values(), key=lambda af: af.fpath)

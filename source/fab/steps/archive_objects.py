@@ -35,7 +35,7 @@ class ArchiveObjects(Step):
 
     def run(self, artefacts: Dict, config):
         """
-        Creates an archive object from the *compiled_files* artefact.
+        Creates an archive object from the *compiled_c* and *compiled_fortran* artefacts.
 
         (Current thinking) does not create an entry in the artefacts dict because the config which creates this step
         is responsible for managing which files are passed to the linker.

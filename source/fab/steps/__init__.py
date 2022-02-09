@@ -25,7 +25,7 @@ class Step(object):
 
         Args:
             - artefacts: Build artefacts created by previous Steps, to which we add our new artefacts.
-            - config: :class:`fab.config.ConfigSketch`, where we can access runtime config, such as workspace
+            - config: :class:`fab.config.Config`, where we can access runtime config, such as workspace
                       and multiprocessing flags.
 
         Subclasses should be sure to describe their input and output artefacts.

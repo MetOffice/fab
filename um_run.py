@@ -14,7 +14,7 @@ from fab.steps.archive_objects import ArchiveObjects
 from fab.steps import Step
 
 from fab.builder import Build
-from fab.config import AddFlags, ConfigSketch
+from fab.config import AddFlags, Config
 from fab.constants import SOURCE_ROOT
 from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
@@ -103,7 +103,7 @@ def um_atmos_safe_config():
         (['.sh'], False),
     ]
 
-    return ConfigSketch(
+    return Config(
         label=project_name,
         workspace=workspace,
 
@@ -261,13 +261,13 @@ def main():
     # logger.setLevel(logging.INFO)
 
     # config
-    config_sketch = um_atmos_safe_config()
+    config = um_atmos_safe_config()
 
     # # Get source repos
     # with time_logger("grabbing"):
-    #     grab_will_do_this(config_sketch.grab_config, config_sketch.workspace)
+    #     grab_will_do_this(config.grab_config, config_sketch.workspace)
 
-    builder = Build(config=config_sketch)
+    builder = Build(config=config)
 
     with time_logger("um build"):
         builder.run()
