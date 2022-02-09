@@ -32,8 +32,7 @@ Example config::
             linker='gcc',
             flags=['-lc', '-lgfortran', '-L', 'lib', '-l', 'libmylib'],
             output_fpath='my_program.exe')
-
-]
+    ]
 
 
 Fab Developer Overview
