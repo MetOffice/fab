@@ -45,7 +45,7 @@ def gcom_object_archive_config():
             compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
             common_flags=['-c', '-J', '$output']
         ),
-        ArchiveObjects(archiver='ar', output_fpath='$output/libgcom.a'),
+        ArchiveObjects(archiver='ar', output_fpath='$output/../libgcom.a'),
     ]
 
     return config

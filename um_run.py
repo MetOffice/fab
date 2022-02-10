@@ -205,7 +205,7 @@ def um_atmos_safe_config():
                     '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
                     '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom/build_output'), '-l', 'gcom'
                 ],
-                output_fpath='um_atmos.exe')
+                output_fpath='$output/../um_atmos.exe')
         ],
 
     )
