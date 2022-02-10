@@ -2,12 +2,14 @@
 Test CAnalyser.
 
 """
+import sys
 from pathlib import Path
 from typing import List, Tuple
 from unittest import mock
 from unittest.mock import Mock, mock_open
 
 import clang  # type: ignore
+import pytest
 
 from fab.dep_tree import AnalysedFile
 from fab.tasks.c import CAnalyser, _CTextReaderPragmas
@@ -160,6 +162,7 @@ class Test_process_symbol_dependency(object):
 
 class Test__CTextReaderPragmas(object):
 
+    @pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher for mock_open iteration")
     def test_vanilla(self):
         input = [
             '',
