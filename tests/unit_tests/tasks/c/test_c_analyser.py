@@ -163,7 +163,7 @@ class Test__CTextReaderPragmas(object):
     def test_vanilla(self):
         input = [
             '',
-            '// hi there',
+            '// hi there, ignore me',
             '',
             '#include <foo>',
             '',
@@ -178,7 +178,7 @@ class Test__CTextReaderPragmas(object):
 
         assert output == [
             '\n',
-            '// hi there\n',
+            '// hi there, ignore me\n',
             '\n',
             '#pragma FAB SysIncludeStart\n',
             '#include <foo>\n',
