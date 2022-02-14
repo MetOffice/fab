@@ -306,7 +306,7 @@ def grab_will_do_this(src_paths, workspace):
 
 class MyCustomCodeFixes(Step):
     """
-    An example of a custom step to fix some broken source code.
+    An example of a custom step to fix some source code which fparser2 can't parse.
 
     """
     def run(self, artefacts, config):
