@@ -14,7 +14,7 @@ from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkSharedObject
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
-from fab.steps.walk_source import GetSourceFiles
+from fab.steps.walk_source import FindSourceFiles
 from fab.util import time_logger
 
 
@@ -27,7 +27,7 @@ def gcom_object_archive_config():
     config.grab_config = {("gcom", "~/svn/gcom/trunk/build"), }
 
     config.steps = [
-        GetSourceFiles(workspace / SOURCE_ROOT),  # template?
+        FindSourceFiles(workspace / SOURCE_ROOT),  # template?
         CPreProcessor(),
         FortranPreProcessor(
             common_flags=[

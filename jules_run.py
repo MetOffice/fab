@@ -16,7 +16,7 @@ from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
-from fab.steps.walk_source import GetSourceFiles
+from fab.steps.walk_source import FindSourceFiles
 from fab.util import time_logger
 
 
@@ -45,7 +45,7 @@ def jules_config():
 
     config.steps = [
 
-        GetSourceFiles(workspace / SOURCE_ROOT, file_filtering=[
+        FindSourceFiles(workspace / SOURCE_ROOT, file_filtering=[
             (['src/control/um/'], False),
             (['src/initialisation/um/'], False),
             (['src/params/shared/cable_maths_constants_mod.F90'], False)]),

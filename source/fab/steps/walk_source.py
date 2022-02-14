@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger('fab')
 
 
-class GetSourceFiles(Step):
+class FindSourceFiles(Step):
 
     def __init__(self,
                  source_root: Path, output_name="all_source",
