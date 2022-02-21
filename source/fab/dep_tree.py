@@ -16,6 +16,8 @@ class AnalysedFile(object):
     File dependencies will also be stored here.
     The object can present itself as a dict for use with a csv.DictWriter.
 
+    """
+
     def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None,
                  mo_commented_file_deps=None):
         self.fpath = fpath
