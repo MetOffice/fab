@@ -7,7 +7,7 @@ Use Fab to build your Fortran and C project using a series of build steps.
 You can configure the list of build steps, configure the steps themselves
 and create your own custom build steps.
 
-Fab analyses your code to determine dependencies, even between C and Fortran.
+Fab analyses your code to determine dependencies, including those between C and Fortran.
 It can work out which files need to be compiled to create an executable,
 or build all your source into a static or shared library.
 

@@ -22,7 +22,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import GetSourceFiles
+from fab.steps.walk_source import FindSourceFiles
 from fab.util import time_logger, case_insensitive_replace, Artefact
 
 
@@ -117,7 +117,7 @@ def um_atmos_safe_config():
 
             MyCustomCodeFixes(name="my custom code fixes"),
 
-            GetSourceFiles(source_root=workspace / SOURCE_ROOT, file_filtering=file_filtering),  # template?
+            FindSourceFiles(source_root=workspace / SOURCE_ROOT, file_filtering=file_filtering),  # template?
 
             RootIncFiles(workspace / SOURCE_ROOT),
 
@@ -263,7 +263,7 @@ def main():
 
     # # Get source repos
     # with time_logger("grabbing"):
-    #     grab_will_do_this(config.grab_config, config_sketch.workspace)
+    #     grab_will_do_this(config.grab_config, config.workspace)
 
     builder = Build(config=config)
 
@@ -288,7 +288,7 @@ def grab_will_do_this(src_paths, workspace):
 
 class MyCustomCodeFixes(Step):
     """
-    An example of a custom step to fix some broken source code.
+    An example of a custom step to fix some source code which fparser2 can't parse.
 
     """
     def run(self, artefacts, config):
@@ -297,13 +297,13 @@ class MyCustomCodeFixes(Step):
         self.replace_in_file(
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
-            'NameListFile', 'FabNameListFile')
+            '(\W)NameListFile', '\g<1>FabNameListFile')
 
         warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
         self.replace_in_file(
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
-            'NameListFile', 'FabNameListFile')
+            '(\W)NameListFile', '\g<1>FabNameListFile')
 
     def replace_in_file(self, inpath, outpath, find, replace):
         orig = open(os.path.expanduser(inpath), "rt").read()

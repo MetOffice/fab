@@ -1,3 +1,7 @@
+"""
+Classes and helper functions related to the dependency tree, as created by the analysis stage.
+
+"""
 import logging
 from pathlib import Path
 from typing import Set, Dict, List
@@ -6,6 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class AnalysedFile(object):
+    """
+    An analysis result for a single file, containing symbol definitions and depdendencies.
+
+    File dependencies will also be stored here.
+    The object can present itself as a dict for use with a csv.DictWriter.
 
     def __init__(self, fpath: Path, file_hash, symbol_deps=None, symbol_defs=None, file_deps=None,
                  mo_commented_file_deps=None):
@@ -65,7 +74,7 @@ class AnalysedFile(object):
         ))
 
     #
-    # this stuff is for reading and writing
+    # this stuff is for reading and writing with a csv.DictWriter
     #
 
     @classmethod
@@ -96,7 +105,12 @@ class AnalysedFile(object):
         )
 
 
+# Possibly overkill to have a class for this.
 class EmptySourceFile(object):
+    """
+    An analysis result for a file which resulted in an empty parse tree.
+
+    """
     def __init__(self, fpath):
         self.fpath = fpath
 
@@ -148,7 +162,10 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
 
 
 def by_type(iterable, cls):
-    # return [i for i in iterable if isinstance(i, cls)]
+    """
+    Find all the elements of an iterable which are of a given type.
+
+    """
     return filter(lambda i: isinstance(i, cls), iterable)
 
 
