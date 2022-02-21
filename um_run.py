@@ -261,9 +261,9 @@ def main():
     # config
     config = um_atmos_safe_config()
 
-    # # Get source repos
-    # with time_logger("grabbing"):
-    #     grab_will_do_this(config.grab_config, config.workspace)
+    # Get source repos
+    with time_logger("grabbing"):
+        grab_will_do_this(config.grab_config, config.workspace)
 
     builder = Build(config=config)
 
@@ -297,13 +297,13 @@ class MyCustomCodeFixes(Step):
         self.replace_in_file(
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
-            '(\W)NameListFile', '\g<1>FabNameListFile')
+            r'(\W)NameListFile', r'\g<1>FabNameListFile')
 
         warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
         self.replace_in_file(
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
-            '(\W)NameListFile', '\g<1>FabNameListFile')
+            r'(\W)NameListFile', r'\g<1>FabNameListFile')
 
     def replace_in_file(self, inpath, outpath, find, replace):
         orig = open(os.path.expanduser(inpath), "rt").read()
