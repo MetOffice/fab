@@ -7,7 +7,6 @@ from tempfile import TemporaryDirectory
 from unittest import mock
 
 from fab.dep_tree import AnalysedFile
-
 from fab.steps.analyse import Analyse
 from fab.util import HashedFile
 
@@ -18,7 +17,6 @@ def test_load_analysis_results():
     #   changed file
     #   previously analysed file, unchanged
     #   file no longer there
-
 
     # source folder before change
     previous_file_hashes = {
@@ -34,8 +32,8 @@ def test_load_analysis_results():
         Path('new.f90'): 444,
     }
 
-    previous_results = [AnalysedFile(fpath=path, file_hash=file_hash) for path, file_hash in previous_file_hashes.items()]
-    # latest_results = [AnalysedFile(fpath=path, file_hash=file_hash) for path, file_hash in latest_file_hashes]
+    previous_results = [
+        AnalysedFile(fpath=path, file_hash=file_hash) for path, file_hash in previous_file_hashes.items()]
 
     with TemporaryDirectory() as tmpdir:
         analyser = Analyse(root_symbol=None)
@@ -61,4 +59,3 @@ def test_load_analysis_results():
         assert changed == {'.f90': [
             HashedFile(fpath=Path('change.f90'), file_hash=123),
             HashedFile(fpath=Path('new.f90'), file_hash=444)]}
-

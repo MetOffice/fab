@@ -14,7 +14,8 @@ class MpExeStep(Step):
     Base class which handles the config for common flags and path filtered flags, for mp steps.
 
     """
-    def __init__(self, exe, common_flags: List[str], path_flags: List[AddFlags], name):
+
+    def __init__(self, exe, common_flags: List[str] = None, path_flags: List[AddFlags] = None, name: str = "mp exe"):
         super().__init__(name)
         self.exe = exe
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)

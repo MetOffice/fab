@@ -7,10 +7,7 @@ from unittest import mock
 from unittest.mock import Mock
 
 from fab.steps.archive_objects import ArchiveObjects
-
 from fab.steps.link_exe import LinkExe
-
-from fab.util import Artefact
 
 
 class TestLinkExe(object):

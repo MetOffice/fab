@@ -1,4 +1,5 @@
-
+# For creating conda environments.
+# Please keep in sync with .github/workflows/build.yml .
 name: sci-fab
 dependencies:
   - flake8

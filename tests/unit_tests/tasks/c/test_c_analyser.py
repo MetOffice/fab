@@ -2,16 +2,16 @@
 Test CAnalyser.
 
 """
+import sys
 from pathlib import Path
 from typing import List, Tuple
 from unittest import mock
 from unittest.mock import Mock, mock_open
 
-import clang
+import clang  # type: ignore
+import pytest
 
 from fab.dep_tree import AnalysedFile
-
-# import fab.tasks.c
 from fab.tasks.c import CAnalyser, _CTextReaderPragmas
 from fab.util import HashedFile
 
@@ -35,7 +35,7 @@ class Test__locate_include_regions(object):
 
     def test_vanilla(self):
         lines: List[Tuple[int, str]] = [
-            (5,  "foo"),
+            (5, "foo"),
             (10, "# pragma FAB SysIncludeStart"),
             (15, "foo"),
             (20, "# pragma FAB SysIncludeEnd"),
@@ -56,7 +56,6 @@ class Test__locate_include_regions(object):
         self._run(lines=[], expect=[])
 
     def _run(self, lines, expect):
-
         class MockToken(object):
             def __init__(self, spelling, line):
                 self.spelling = spelling
@@ -163,10 +162,11 @@ class Test_process_symbol_dependency(object):
 
 class Test__CTextReaderPragmas(object):
 
+    @pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher for mock_open iteration")
     def test_vanilla(self):
         input = [
             '',
-            '// hi there',
+            '// hi there, ignore me',
             '',
             '#include <foo>',
             '',
@@ -181,7 +181,7 @@ class Test__CTextReaderPragmas(object):
 
         assert output == [
             '\n',
-            '// hi there\n',
+            '// hi there, ignore me\n',
             '\n',
             '#pragma FAB SysIncludeStart\n',
             '#include <foo>\n',

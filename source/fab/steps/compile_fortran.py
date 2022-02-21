@@ -4,23 +4,21 @@ Fortran file compilation.
 """
 import logging
 from pathlib import Path
-from typing import List, Set
+from typing import List, Set, Dict
 
 from fab.dep_tree import AnalysedFile, by_type
-
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, FilterBuildTree, SourceGetter
 
 logger = logging.getLogger('fab')
-
 
 DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
 
 
 class CompileFortran(MpExeStep):
 
-    def __init__(self, compiler: str, common_flags: List[str]=None, path_flags: List=None,
-                 source: SourceGetter=None, name='compile fortran'):
+    def __init__(self, compiler: str, common_flags: List[str] = None, path_flags: List = None,
+                 source: SourceGetter = None, name='compile fortran'):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -91,7 +89,7 @@ class CompileFortran(MpExeStep):
 
         # find what to compile next
         compile_next = set()
-        not_ready = {}
+        not_ready: Dict[Path, List[Path]] = {}
         for af in to_compile:
             # all deps ready?
             unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files and dep.suffix == '.f90']
@@ -102,10 +100,11 @@ class CompileFortran(MpExeStep):
 
         # unable to compile anything?
         if len(to_compile) and not compile_next:
-            all_unfulfilled = set()
+            all_unfulfilled: Set[Path] = set()
             for unfulfilled in not_ready.values():
                 all_unfulfilled = all_unfulfilled.union(unfulfilled)
-            raise RuntimeError(f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
+            raise RuntimeError(
+                f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
 
         return compile_next
 

@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import List
 
 from fab.dep_tree import by_type
-
 from fab.steps.mp_exe import MpExeStep
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, SourceGetter, FilterFpaths
 
@@ -19,15 +18,13 @@ class PreProcessor(MpExeStep):
     Base class for preprocessors. A build step which calls a preprocessor.
 
     """
-
-    # todo: make abstract, we don't really need these in the base class
-    DEFAULT_SOURCE = None
-    DEFAULT_OUTPUT_NAME = ''
-    DEFAULT_OUTPUT_SUFFIX = ''
+    DEFAULT_SOURCE: SourceGetter
+    DEFAULT_OUTPUT_NAME: str
+    DEFAULT_OUTPUT_SUFFIX: str
 
     def __init__(self,
-                 source: SourceGetter=None, output_artefact=None, output_suffix=None,
-                 preprocessor='cpp', common_flags: List[str]=None, path_flags: List=None,
+                 source: SourceGetter = None, output_artefact=None, output_suffix=None,
+                 preprocessor='cpp', common_flags: List[str] = None, path_flags: List = None,
                  name='preprocess'):
         """
         Kwargs:
@@ -78,7 +75,8 @@ class PreProcessor(MpExeStep):
 
         """
         # output_fpath = self.output_path(fpath)
-        output_fpath = input_to_output_fpath(workspace=self._config.workspace, input_path=fpath).with_suffix(self.output_suffix)
+        output_fpath = input_to_output_fpath(workspace=self._config.workspace, input_path=fpath).with_suffix(
+            self.output_suffix)
 
         # for dev speed, but this could become a good time saver with, e.g, hashes or something
         if self._config.debug_skip and output_fpath.exists():

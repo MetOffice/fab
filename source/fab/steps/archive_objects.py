@@ -8,19 +8,17 @@ from string import Template
 from typing import List, Dict
 
 from fab.constants import BUILD_OUTPUT
-
 from fab.steps import Step
 from fab.util import CompiledFile, log_or_dot, run_command, Artefacts, SourceGetter
 
 logger = logging.getLogger('fab')
-
 
 DEFAULT_SOURCE_GETTER = Artefacts(['compiled_c', 'compiled_fortran'])
 
 
 class ArchiveObjects(Step):
 
-    def __init__(self, source: SourceGetter=None, archiver='ar', output_fpath='output.a', name='archive objects'):
+    def __init__(self, source: SourceGetter = None, archiver='ar', output_fpath='output.a', name='archive objects'):
         """
         Kwargs:
             - archiver: The archiver executable. Defaults to 'ar'.
@@ -46,7 +44,7 @@ class ArchiveObjects(Step):
         compiled_files: List[CompiledFile] = self.source_getter(artefacts)
 
         command = [self.archiver]
-        command.extend(['cr', Template(self.output_fpath).substitute(output=config.workspace/BUILD_OUTPUT)])
+        command.extend(['cr', Template(self.output_fpath).substitute(output=config.workspace / BUILD_OUTPUT)])
         command.extend([str(a.output_fpath) for a in compiled_files])
 
         log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))

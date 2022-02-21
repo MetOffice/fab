@@ -73,7 +73,7 @@ def jules_config():
         ),
         LinkExe(
             linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
-            output_fpath='$output/jules.exe',
+            output_fpath='$output/../jules.exe',
             flags=['-lm']),
     ]
     return config

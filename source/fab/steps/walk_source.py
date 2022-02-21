@@ -2,16 +2,14 @@
 Gather files from a source folder.
 
 """
+import logging
 from pathlib import Path
 from typing import Optional, List, Tuple
 
 from fab.config import PathFilter
 from fab.constants import BUILD_OUTPUT
-
 from fab.steps import Step
 from fab.util import file_walk
-
-import logging
 
 logger = logging.getLogger('fab')
 
@@ -20,8 +18,8 @@ class FindSourceFiles(Step):
 
     def __init__(self,
                  source_root: Path, output_name="all_source",
-                 build_output: Optional[Path]=None, name="Walk source",
-                 file_filtering: Optional[List[Tuple]]=None):
+                 build_output: Optional[Path] = None, name="Walk source",
+                 file_filtering: Optional[List[Tuple]] = None):
 
         super().__init__(name)
         self.source_root = source_root
@@ -42,7 +40,7 @@ class FindSourceFiles(Step):
 
         fpaths = list(file_walk(self.source_root))
         if not fpaths:
-            raise RuntimeError(f"no source files found")
+            raise RuntimeError("no source files found")
 
         # file filtering
         filtered_fpaths = []
