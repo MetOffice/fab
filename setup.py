@@ -53,7 +53,6 @@ setuptools.setup(
     install_requires=['fparser'],
     extras_require={
         'dev': ['flake8', 'mypy'],
-        'unit-test': ['pytest', 'pytest-cov', 'pytest-mock'],
-        'system-test': ['pytest']
+        'tests': ['pytest', 'pytest-cov', 'pytest-mock']
     }
 )

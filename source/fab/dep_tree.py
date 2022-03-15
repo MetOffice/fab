@@ -36,7 +36,6 @@ class AnalysedFile(object):
 
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
-        # assert all([f and len(str(f)) for f in self.file_deps]), "bad file dependencies"
 
     def add_symbol_def(self, name):
         assert name and len(name)
@@ -49,13 +48,6 @@ class AnalysedFile(object):
     def add_file_dep(self, name):
         assert name and len(name)
         self.file_deps.add(name)
-
-    def dump(self, outfile):
-        outfile.write(f"{self.fpath} {self.file_hash}\n"
-                      f"  symb defs: {sorted(self.symbol_defs)}\n"
-                      f"  symb deps: {sorted(self.symbol_deps)}\n"
-                      f"  file deps: {sorted(self.file_deps)}\n"
-                      f"  modo deps: {sorted(self.mo_commented_file_deps)}\n")
 
     def __str__(self):
         return f"AnalysedFile {self.fpath} {self.file_hash} {self.symbol_defs} {self.symbol_deps} {self.file_deps}"

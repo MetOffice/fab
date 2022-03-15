@@ -35,16 +35,16 @@ jobs:
       run: |
         pip install -e .[dev]
         pip install pytest
-        python -m mypy setup.py source tests/unit_tests
+        python -m mypy setup.py source tests/unit_tests tests/integration_tests
     - name: Code style check with flake8
       run: |
         pip install -e .[dev]
         flake8 . --count --show-source --statistics
     - name: Unit tests with Pytest
       run: |
-        pip install .[unit-test]
+        pip install .[tests]
         python -m pytest --cov=fab tests/unit_tests
     - name: Integration tests with Pytest
       run: |
-        pip install .[unit-test]
+        pip install .[tests]
         python -m pytest --cov=fab tests/integration_tests

@@ -22,7 +22,7 @@ copyright = '2022, Fab Team'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.1'
+release = '2022.1.dev0'
 
 
 # -- General configuration ---------------------------------------------------

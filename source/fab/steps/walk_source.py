@@ -19,13 +19,26 @@ from fab.util import file_walk
 logger = logging.getLogger('fab')
 
 
+INCLUDE = True
+EXCLUDE = False
+
+
 class FindSourceFiles(Step):
 
     def __init__(self,
                  source_root: Path, output_name="all_source",
                  build_output: Optional[Path] = None, name="Walk source",
                  file_filtering: Optional[List[Tuple]] = None):
+        """
+        Args:
+            - source_root: Path to source folder.
+            - output_name: Name of artefact to create, defaults to "all_source".
+            - build_output: (Deprecated) where to create the output folders.
+            - file_filtering: List of (file pattern, boolean) tuples.
+                    Processed in order, if a source file matches the pattern it will be included or excluded,
+                    as per the bool.
 
+        """
         super().__init__(name)
         self.source_root = source_root
         self.output_artefact = output_name
