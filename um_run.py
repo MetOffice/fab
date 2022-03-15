@@ -14,11 +14,6 @@ import shutil
 import warnings
 from pathlib import Path
 
-<<<<<<< HEAD
-from fab.steps import Step
-
-=======
->>>>>>> d56b99f... copyright with autoformat
 from fab.builder import Build
 from fab.config import AddFlags, Config
 from fab.constants import SOURCE_ROOT
