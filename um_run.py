@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 
 # Note: we need this to run the exe
 #   export LD_LIBRARY_PATH=~/.conda/envs/sci-fab/lib:$LD_LIBRARY_PATH
@@ -9,12 +14,16 @@ import shutil
 import warnings
 from pathlib import Path
 
+<<<<<<< HEAD
 from fab.steps import Step
 
+=======
+>>>>>>> d56b99f... copyright with autoformat
 from fab.builder import Build
 from fab.config import AddFlags, Config
 from fab.constants import SOURCE_ROOT
 from fab.dep_tree import AnalysedFile
+from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
@@ -24,18 +33,6 @@ from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles
 from fab.util import time_logger, case_insensitive_replace, Artefact
-
-
-# hierarchy of config
-#
-# site (sys admin)
-# project (source code)
-# overrides
-# blocked overrides
-#
-# what ought to inherit from env
-# num cores in submit script, mem
-# batch manager assigns resources
 
 
 def um_atmos_safe_config():
@@ -291,8 +288,8 @@ class MyCustomCodeFixes(Step):
     An example of a custom step to fix some source code which fparser2 can't parse.
 
     """
-    def run(self, artefacts, config):
 
+    def run(self, artefacts, config):
         warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
         self.replace_in_file(
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',

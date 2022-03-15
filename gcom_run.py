@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 
 import logging
 import os
@@ -19,7 +24,6 @@ from fab.util import time_logger
 
 
 def gcom_object_archive_config():
-
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / 'gcom'
 
     config = Config(label='gcom object archive', workspace=workspace)

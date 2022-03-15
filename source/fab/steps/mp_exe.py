@@ -1,3 +1,8 @@
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 """
 A step for running multiple files through a command line tool using multiprocessing.
 
@@ -15,7 +20,11 @@ class MpExeStep(Step):
 
     """
 
+<<<<<<< HEAD
     def __init__(self, exe, common_flags: List[str] = None, path_flags: List[AddFlags] = None, name: str = "mp exe"):
+=======
+    def __init__(self, exe, common_flags: List[str], path_flags: List[AddFlags], name):
+>>>>>>> d56b99f... copyright with autoformat
         super().__init__(name)
         self.exe = exe
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)

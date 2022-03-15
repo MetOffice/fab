@@ -1,3 +1,8 @@
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 """
 Classes and helper functions related to the dependency tree, as created by the analysis stage.
 
@@ -113,6 +118,7 @@ class EmptySourceFile(object):
     An analysis result for a file which resulted in an empty parse tree.
 
     """
+
     def __init__(self, fpath):
         self.fpath = fpath
 
@@ -134,8 +140,12 @@ def extract_sub_tree(
     return result
 
 
+<<<<<<< HEAD
 def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
                       dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int = 0):
+=======
+def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, dst_tree, missing, verbose, indent=0):
+>>>>>>> d56b99f... copyright with autoformat
     # is this node already in the target tree?
     if key in dst_tree:
         return

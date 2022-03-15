@@ -1,3 +1,8 @@
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 from fnmatch import fnmatch
 from multiprocessing import cpu_count
 from pathlib import Path
@@ -61,8 +66,7 @@ class AddFlags(object):
         params = {'relative': fpath.parent, 'source': workspace / SOURCE_ROOT, 'output': workspace / BUILD_OUTPUT}
 
         # does the file path match our filter?
-        # grr, mypy forces us to turn a path into a string when calling fnmatch (which works with paths)
-        # if not self.match or fnmatch(fpath, Template(self.match).substitute(params)):
+        # mypy forces us to turn a path into a string when calling fnmatch (which works with paths)
         if not self.match or fnmatch(str(fpath), Template(self.match).substitute(params)):
             # use templating to render any relative paths in our flags
             add_flags = [Template(flag).substitute(params) for flag in self.flags]

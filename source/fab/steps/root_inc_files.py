@@ -1,3 +1,8 @@
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 """
 A helper step to copy .inc files to the root of the build source folder, for easy include by the preprocessor.
 

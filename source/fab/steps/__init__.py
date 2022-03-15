@@ -1,8 +1,10 @@
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 import multiprocessing
 from typing import Dict
-
-
-# class Step(ABC):
 
 
 class Step(object):

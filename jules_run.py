@@ -1,27 +1,29 @@
 #!/usr/bin/env python
+##############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+##############################################################################
 
 import logging
 import os
 import shutil
 from pathlib import Path
 
-from fab.steps.root_inc_files import RootIncFiles
-
-from fab.config import Config
-
 from fab.builder import Build
+from fab.config import Config
 from fab.constants import SOURCE_ROOT
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
+from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles
 from fab.util import time_logger
 
 
 def jules_config():
-
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / 'jules'
 
     config = Config(label='Jules Build', workspace=workspace)
@@ -80,7 +82,6 @@ def jules_config():
 
 
 def main():
-
     logger = logging.getLogger('fab')
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
