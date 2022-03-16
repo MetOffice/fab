@@ -18,32 +18,33 @@ class Step(object):
     def __init__(self, name):
         self.name = name
 
-    # @abstractmethod
-    # todo: too much to send the whole config through?
-    #       it allows step manipulation, adding steps, etc
-    #       but it could let things get into a mess? discuss...
     def run(self, artefacts: Dict, config):
         """
-        Process some input artefacts, create some output artefacts. Defined by the subclass.
+        Process some input artefacts, create some output artefacts. Defined in the subclass.
 
         Args:
-            - artefacts: Build artefacts created by previous Steps, to which we add our new artefacts.
+            - artefacts: Contains artefacts created by previous Steps, and to which we add our new artefacts.
             - config: :class:`fab.config.Config`, where we can access runtime config, such as workspace
-                      and multiprocessing flags.
+                      and the multiprocessing flag.
 
-        Subclasses should be sure to describe their input and output artefacts.
+        Subclasses should describe their input and output artefacts.
 
         For the duration of this run, the given config will be available to all our methods as `self._config`.
         This is useful for multiprocessing steps, where it's cleanest to pass a list of artifacts through a function.
         In this case, we don't want to also pass the config, so setting it here makes it available to all our methods.
-        Because it's a runtime attribute, we don't show it in the constructor. (Discuss?)
+        Because it's a runtime attribute, we don't show it in the constructor.
 
         """
         self._config = config
 
     def run_mp(self, items, func):
         """
-        Like run(), but uses multiprocessing to process multiple items at once.
+        Called from Step.run() to process multiple items in parallel.
+
+        For example:
+            A compile step would, in its run() method, find a list of files in the artefacts dict.
+            It could then pass those paths to this method, along with a function to compile a *single* file.
+            The whole set of results are returned in a list-like, with undefined order.
 
         """
         if self._config.use_multiprocessing:
@@ -59,12 +60,11 @@ class Step(object):
         Like run_mp, but uses imap instead of map so that we can process each result as it happens.
 
         This is useful, for example, for a time consuming process where we want to save our progress as we go
-        instead of waiting for everything to finish, allowing us to pick up where we left off in the program is halted.
+        instead of waiting for everything to finish, allowing us to pick up where we left off if the program is halted.
 
         """
         if self._config.use_multiprocessing:
             with multiprocessing.Pool(self._config.n_procs) as p:
-                # We use imap because we want to save progress as we go
                 analysis_results = p.imap_unordered(func, items)
                 result_handler(analysis_results)
         else:

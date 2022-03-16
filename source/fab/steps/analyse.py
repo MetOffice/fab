@@ -105,8 +105,8 @@ class Analyse(Step):
         with time_logger("generating file dependencies from symbols"):
             self._gen_file_deps(all_analysed_files, symbols)
 
-        #  find the file dependencies for UM "DEPENDS ON:" commented file deps
-        with time_logger("adding MO 'DEPENDS ON:' file dependency comments"):
+        #  find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps
+        with time_logger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
             add_mo_commented_file_deps(analysed_fortran, analysed_c)
 
         logger.info(f"source tree size {len(all_analysed_files)}")
@@ -128,13 +128,6 @@ class Analyse(Step):
         validate_build_tree(build_tree)
 
         artefacts['build_tree'] = build_tree
-
-        # useful for debug
-        # if self.dump_source_tree:
-        #     with open(datetime.now().strftime(f"tmp/af2_{runtime_str}.txt"), "wt") as outfile:
-        #         sorted_files = sorted(all_analysed_files.values(), key=lambda af: af.fpath)
-        #         for af in sorted_files:
-        #             af.dump(outfile)
 
     def _parse_files(self,
                      to_analyse_by_type: Dict[str, List[HashedFile]],
@@ -164,11 +157,10 @@ class Analyse(Step):
             logger.error(f"{len(all_exceptions)} analysis errors")
             errs_str = "\n\n".join(map(str, all_exceptions))
             logger.debug(f"\nSummary of analysis errors:\n{errs_str}")
-            # exit(1)
 
         # warn about naughty fortran usage?
         if self.fortran_analyser.depends_on_comment_found:
-            warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
+            warnings.warn("not recommended 'DEPENDS ON:' comment found in fortran code")
 
         return analysed_fortran, analysed_c
 
@@ -216,7 +208,7 @@ class Analyse(Step):
                     file_dep = symbols.get(symbol_dep)
                     if not file_dep:
                         deps_not_found.add(symbol_dep)
-                        logger.debug(f"(might not matter) not found {symbol_dep} for {analysed_file.fpath}")
+                        logger.debug(f"not found {symbol_dep} for {analysed_file.fpath}")
                         continue
                     analysed_file.file_deps.add(file_dep)
         if deps_not_found:
@@ -240,7 +232,7 @@ class Analyse(Step):
 
                     # file no longer there?
                     if analysed_file.fpath not in latest_file_hashes:
-                        logger.info(f"a file has gone: {analysed_file.fpath}")
+                        logger.info(f"file no longer present: {analysed_file.fpath}")
                         continue
 
                     # ok, we have previously analysed this file

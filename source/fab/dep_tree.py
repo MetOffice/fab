@@ -132,12 +132,8 @@ def extract_sub_tree(
     return result
 
 
-<<<<<<< HEAD
 def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
                       dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int = 0):
-=======
-def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path, dst_tree, missing, verbose, indent=0):
->>>>>>> d56b99f... copyright with autoformat
     # is this node already in the target tree?
     if key in dst_tree:
         return
@@ -201,4 +197,3 @@ def validate_build_tree(target_tree):
 
     if missing:
         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
-        # exit(1)

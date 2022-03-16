@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict
 
 from fab.steps import Step
-from fab.tasks.c import _CTextReaderPragmas
+from fab.tasks.c import CTextReaderPragmas
 from fab.util import SourceGetter, FilterFpaths
 
 DEFAULT_SOURCE_GETTER = FilterFpaths('all_source', ['.c'])
@@ -39,5 +39,5 @@ class CPragmaInjector(Step):
 
     def _process_artefact(self, fpath: Path):
         prag_output_fpath = fpath.with_suffix('.prag')
-        prag_output_fpath.open('w').writelines(_CTextReaderPragmas(fpath))
+        prag_output_fpath.open('w').writelines(CTextReaderPragmas(fpath))
         return prag_output_fpath

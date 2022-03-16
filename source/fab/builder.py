@@ -3,6 +3,11 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+"""
+A build config contains a list of steps, each with a run method which it calls one at a time.
+Each step can access the artifacts created by previous steps, and add their own.
+
+"""
 import argparse
 import logging
 import multiprocessing

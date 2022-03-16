@@ -12,7 +12,7 @@ import clang  # type: ignore
 import pytest
 
 from fab.dep_tree import AnalysedFile
-from fab.tasks.c import CAnalyser, _CTextReaderPragmas
+from fab.tasks.c import CAnalyser, CTextReaderPragmas
 from fab.util import HashedFile
 
 
@@ -176,7 +176,7 @@ class Test__CTextReaderPragmas(object):
         data = "\n".join(input)
 
         with mock.patch('fab.tasks.c.open', mock_open(read_data=data)):
-            result = _CTextReaderPragmas(fpath="foo")
+            result = CTextReaderPragmas(fpath="foo")
             output = list(result)
 
         assert output == [

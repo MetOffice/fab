@@ -137,7 +137,7 @@ class CAnalyser(object):
             analysed_file.add_symbol_dep(node.spelling)
 
 
-def _CTextReaderPragmas(fpath):
+def CTextReaderPragmas(fpath):
     """
     Reads a C source file but when encountering an #include
     preprocessor directive injects a special Fab-specific

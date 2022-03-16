@@ -29,7 +29,7 @@ class CompileFortran(MpExeStep):
 
     def run(self, artefacts, config):
         """
-        Compiles all Fortran files in the *build_tree* artefact, creating the *compiled_c* artefact.
+        Compiles all Fortran files in the *build_tree* artefact, creating the *compiled_fortran* artefact.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
@@ -55,7 +55,6 @@ class CompileFortran(MpExeStep):
             if len(errors):
                 logger.error(f"\nThere were {len(errors)} compile errors this pass\n\n")
             if errors:
-                # todo: do we need to fail if we're building a library? might not need that broken file...
                 err_str = "\n\n".join(map(str, errors))
                 raise RuntimeError(f"Error in compiling pass: {err_str}")
 
@@ -98,10 +97,10 @@ class CompileFortran(MpExeStep):
         for af in to_compile:
             # all deps ready?
             unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files and dep.suffix == '.f90']
-            if not unfulfilled:
-                compile_next.add(af)
-            else:
+            if unfulfilled:
                 not_ready[af.fpath] = unfulfilled
+            else:
+                compile_next.add(af)
 
         # unable to compile anything?
         if len(to_compile) and not compile_next:

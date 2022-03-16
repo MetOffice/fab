@@ -20,11 +20,7 @@ class MpExeStep(Step):
 
     """
 
-<<<<<<< HEAD
     def __init__(self, exe, common_flags: List[str] = None, path_flags: List[AddFlags] = None, name: str = "mp exe"):
-=======
-    def __init__(self, exe, common_flags: List[str], path_flags: List[AddFlags], name):
->>>>>>> d56b99f... copyright with autoformat
         super().__init__(name)
         self.exe = exe
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
