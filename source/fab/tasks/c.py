@@ -155,10 +155,6 @@ def CTextReaderPragmas(fpath):
             # part of the group will indicate whether this is
             # a system library include or a user include
             include: str = include_match.group(1)
-            # TODO: Is this sufficient?  Or do the pragmas
-            #       need to include identifying info
-            #       e.g. the name of the original include?
-            # TODO: DO we need to mark system includes?
             if include.startswith('<'):
                 yield '#pragma FAB SysIncludeStart\n'
                 yield line
@@ -172,32 +168,3 @@ def CTextReaderPragmas(fpath):
                 raise TaskException(msg)
         else:
             yield line
-
-# class CCompiler(object):
-#
-#     def __init__(self, compiler: List[str], flags: FlagsConfig, workspace: Path):
-#         self._compiler = compiler
-#         self._flags = flags
-#         self._workspace = workspace
-#
-#     def run(self, analysed_file: AnalysedFile):
-#         logger = logging.getLogger(__name__)
-#
-#         command = self._compiler
-#         command.extend(self._flags.flags_for_path(analysed_file.fpath))
-#         command.append(str(analysed_file.fpath))
-#
-#         output_file = analysed_file.fpath.with_suffix('.o')
-#         command.extend(['-o', str(output_file)])
-#
-#         logger.debug('Running command: ' + ' '.join(command))
-#
-#         try:
-#             # res = subprocess.run(command, check=True)
-#             # if res.returncode != 0:
-#             #     return TaskException(f"The compiler exited with non zero: {res.stderr.decode()}")
-#             run_command(command)
-#         except Exception as err:
-#             return TaskException(f"error compiling {analysed_file.fpath}: {err}")
-#
-#         return CompiledFile(analysed_file, output_file)
