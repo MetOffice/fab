@@ -29,8 +29,6 @@ class RootIncFiles(Step):
         self.source_root = source_root
         self.build_output = build_output or source_root.parent / BUILD_OUTPUT
 
-        # warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
-
     def run(self, artefacts, config):
         """
         Copy inc files into the workspace output root.
