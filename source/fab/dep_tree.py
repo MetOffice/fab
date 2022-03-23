@@ -143,7 +143,7 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
 
     # add it to the output tree
     node = src_tree[key]
-    assert node.fpath == key
+    assert node.fpath == key, "tree corrupted"
     dst_tree[key] = node
 
     # add its child deps
