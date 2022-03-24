@@ -23,7 +23,7 @@
 #     import sys
 #     import fab
 #
-#     logger = logging.getLogger('fab')
+#     logger = logging.getLogger(__name__)
 #     logger.addHandler(logging.StreamHandler(sys.stderr))
 #
 #     description = "Build a source tree from extracted source."

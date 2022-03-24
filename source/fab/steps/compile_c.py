@@ -15,7 +15,7 @@ from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
 from fab.util import CompiledFile, run_command, SourceGetter, FilterBuildTree
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.c'])
 

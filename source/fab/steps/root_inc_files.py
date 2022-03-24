@@ -19,7 +19,7 @@ from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
 from fab.util import suffix_filter
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 
 
 class RootIncFiles(Step):

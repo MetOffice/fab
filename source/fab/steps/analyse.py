@@ -23,7 +23,7 @@ from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
 from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish, Artefacts, SourceGetter
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = Artefacts(['preprocessed_c', 'preprocessed_fortran'])
 

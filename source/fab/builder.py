@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 
 runtime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 

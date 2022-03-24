@@ -16,7 +16,7 @@ from typing import Iterator, List, Iterable, Dict
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stderr))
 
 

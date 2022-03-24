@@ -15,7 +15,7 @@ from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
 from fab.util import log_or_dot, run_command, Artefacts, SourceGetter
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = Artefacts(['compiled_c', 'compiled_fortran'])
 

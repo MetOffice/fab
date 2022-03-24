@@ -246,7 +246,7 @@ ALLOW_MISMATCH_FLAGS = [
 
 
 def main():
-    logger = logging.getLogger('fab')
+    logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
 

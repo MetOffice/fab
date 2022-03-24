@@ -15,7 +15,7 @@ from fab.dep_tree import AnalysedFile, by_type
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, FilterBuildTree, SourceGetter
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
 

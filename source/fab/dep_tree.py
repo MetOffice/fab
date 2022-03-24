@@ -152,7 +152,7 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
         # one of its deps is missing!
         if not src_tree.get(file_dep):
             if logger and verbose:
-                logger.debug("----" * indent + "!!!!" + str(file_dep))
+                logger.debug("----" * indent + " !!MISSING!! " + str(file_dep))
             missing.add(file_dep)
             continue
 

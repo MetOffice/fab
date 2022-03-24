@@ -24,7 +24,7 @@
 #     import argparse
 #     import fab
 #
-#     logger = logging.getLogger('fab')
+#     logger = logging.getLogger(__name__)
 #     logger.addHandler(logging.StreamHandler(sys.stderr))
 #
 #     description = 'Flexible build system for scientific software.'
