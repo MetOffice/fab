@@ -56,13 +56,9 @@ class FindSourceFiles(Step):
         """
         super().run(artefacts, config)
 
-        fpaths = list(file_walk(self.source_root))
-        if not fpaths:
-            raise RuntimeError("no source files found")
-
         # file filtering
         filtered_fpaths = []
-        for fpath in fpaths:
+        for fpath in file_walk(self.source_root):
 
             wanted = True
             for path_filter in self.path_filters:
@@ -75,6 +71,9 @@ class FindSourceFiles(Step):
                 filtered_fpaths.append(fpath)
             else:
                 logger.debug(f"excluding {fpath}")
+
+        if not filtered_fpaths:
+            raise RuntimeError("no source files found after filtering")
 
         # create output folders
         # todo: separate step for folder creation?

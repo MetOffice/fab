@@ -25,9 +25,6 @@ class CAnalyser(object):
 
     """
 
-    def __init__(self):
-        pass
-
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
         """

@@ -36,11 +36,21 @@ class Config(object):
 
 
 class PathFilter(object):
+    """
+    Determines whether a given path should be included or excluded.
+
+    """
     def __init__(self, path_filters, include):
         self.path_filters = path_filters
-        self.include = include
+        self.include: bool = include
 
     def check(self, path):
+        """Return the include flag if any of our path filters match the given path.
+
+        The include can be True or False.
+        If the flag does not match, return None ("nothing to say").
+
+        """
         if any(i in str(path) for i in self.path_filters):
             return self.include
         return None

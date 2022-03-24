@@ -12,6 +12,7 @@ at which point this step should be deprecated.
 """
 import logging
 import shutil
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -38,6 +39,8 @@ class RootIncFiles(Step):
 
         """
         super().run(artefacts, config)
+
+        warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
 
         # inc files all go in the root - they're going to be removed altogether, soon
         inc_copied = set()

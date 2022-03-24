@@ -8,6 +8,7 @@ import re
 import subprocess
 import sys
 import zlib
+from abc import ABC, abstractmethod
 from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path
@@ -94,21 +95,24 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
 # todo: docstrings for these
 
 # todo: poor name?
-class SourceGetter(object):
+class SourceGetter(ABC):
+    @abstractmethod
     def __call__(self, artefacts):
-        raise NotImplementedError
+        pass
 
 
-# todo: problematic name?
+# todo: problematic name? It's pulling out an artefact collection, not a single artefact...
 class Artefact(SourceGetter):
 
     def __init__(self, name):
         self.name = name
 
     def __call__(self, artefacts):
+        super().__call__(artefacts)
         return artefacts[self.name]
 
 
+# todo: not ideal for name to just add an s
 class Artefacts(SourceGetter):
     # todo: this assumes artefactsa are lists, which might not always be the case? discuss or change
 
@@ -116,6 +120,7 @@ class Artefacts(SourceGetter):
         self.names = names
 
     def __call__(self, artefacts: Dict):
+        super().__call__(artefacts)
         result = []
         for name in self.names:
             result.extend(artefacts.get(name, []))
@@ -131,6 +136,7 @@ class FilterFpaths(SourceGetter):
 
     # def __call__(self, *args, **kwargs):
     def __call__(self, artefacts):
+        super().__call__(artefacts)
         fpaths: Iterable[Path] = artefacts[self.artefact_name]
         return suffix_filter(fpaths, self.suffixes)
 
@@ -144,5 +150,6 @@ class FilterBuildTree(SourceGetter):
 
     # def __call__(self, *args, **kwargs):
     def __call__(self, artefacts):
+        super().__call__(artefacts)
         analysed_files: Iterable[Path] = artefacts[self.artefact_name].values()
         return list(filter(lambda af: af.fpath.suffix in self.suffixes, analysed_files))
