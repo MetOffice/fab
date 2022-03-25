@@ -67,14 +67,16 @@ def jules_config():
         CompileC(),
 
         CompileFortran(
-            compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+            # compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+            compiler='gfortran',
             common_flags=[
-                '-c',
+                '-c', '-fallow-argument-mismatch',
                 '-J', '$output'],
 
         ),
         LinkExe(
-            linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+            # linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
+            linker='mpifort',
             output_fpath='$output/../jules.exe',
             flags=['-lm']),
     ]
@@ -82,7 +84,7 @@ def jules_config():
 
 
 def main():
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('fab')
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
 

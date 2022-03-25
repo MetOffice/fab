@@ -172,7 +172,7 @@ def um_atmos_safe_config():
                 compiler=os.path.expanduser('~/.conda/envs/sci-fab/bin/gfortran'),
                 common_flags=[
                     '-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8',
-                    '-c',
+                    '-c', '-fallow-argument-mismatch',
                     '-J', '$output',  # .mod file output and include folder
                 ],
 
@@ -181,9 +181,6 @@ def um_atmos_safe_config():
                     AddFlags("$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
                     AddFlags("$output/jules/*",
                              ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
-
-                    # todo: allow multiple filters per instance?
-                    *[AddFlags(*i) for i in ALLOW_MISMATCH_FLAGS]
                 ]
             ),
 
@@ -203,50 +200,8 @@ def um_atmos_safe_config():
     )
 
 
-# a not recommended flag?
-# todo: allow a list of filters?
-ALLOW_MISMATCH = '-fallow-argument-mismatch'
-ALLOW_MISMATCH_FLAGS = [
-    ('*/hardware_topology_mod.f90', [ALLOW_MISMATCH]),
-    ('*/setup_spectra_mod.f90', [ALLOW_MISMATCH]),
-    ('*/mcica_mod.f90', [ALLOW_MISMATCH]),
-    ('*/ios_comms.f90', [ALLOW_MISMATCH]),
-    ('*/ios_client_queue.f90', [ALLOW_MISMATCH]),
-    ('*/fastjx_specs.f90', [ALLOW_MISMATCH]),
-    ('*/history_mod.f90', [ALLOW_MISMATCH]),
-    ('*/lustre_control_mod.f90', [ALLOW_MISMATCH]),
-    ('*/imbnd_hill_mod.f90', [ALLOW_MISMATCH]),
-    ('*/io_configuration_mod.f90', [ALLOW_MISMATCH]),
-    ('*/nlstcall_nc_namelist_mod.f90', [ALLOW_MISMATCH]),
-    ('*/nlstcall_pp_namelist_mod.f90', [ALLOW_MISMATCH]),
-    ('*/ios.f90', [ALLOW_MISMATCH]),
-    ('*/regrid_alloc_calc_mod.f90', [ALLOW_MISMATCH]),
-    ('*/halo_exchange_ddt_mod.f90', [ALLOW_MISMATCH]),
-    ('*/halo_exchange_mpi_mod.f90', [ALLOW_MISMATCH]),
-    ('*/halo_exchange_os_mod.f90', [ALLOW_MISMATCH]),
-    ('*/mg_field_norm.f90', [ALLOW_MISMATCH]),
-    ('*/rdbasis.f90', [ALLOW_MISMATCH]),
-    ('*/io.f90', [ALLOW_MISMATCH]),
-    ('*/ppxlook_mod.f90', [ALLOW_MISMATCH]),
-    ('*/read_land_sea.f90', [ALLOW_MISMATCH]),
-    ('*/diagopr.f90', [ALLOW_MISMATCH]),
-    ('*/eg_bi_linear_h.f90', [ALLOW_MISMATCH]),
-    ('*/glomap_clim_netcdf_io_mod.f90', [ALLOW_MISMATCH]),
-    ('*/emiss_io_mod.f90', [ALLOW_MISMATCH]),
-    ('*/ios_stash_server.f90', [ALLOW_MISMATCH]),
-    ('*/io_server_listener.f90', [ALLOW_MISMATCH]),
-    ('*/acumps.f90', [ALLOW_MISMATCH]),
-    ('*/num_obs.f90', [ALLOW_MISMATCH]),
-    ('*/io_server_writer.f90', [ALLOW_MISMATCH]),
-    ('*/routedbl_mod.f90', [ALLOW_MISMATCH]),
-    ('*/ios_init.f90', [ALLOW_MISMATCH]),
-    ('*/eg_sl_helmholtz_inc.f90', [ALLOW_MISMATCH]),
-    ('*/ukca_scenario_rcp_mod.f90', [ALLOW_MISMATCH]),
-]
-
-
 def main():
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger('fab')
     logger.setLevel(logging.DEBUG)
     # logger.setLevel(logging.INFO)
 

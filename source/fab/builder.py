@@ -8,12 +8,14 @@ A build config contains a list of steps, each with a run method which it calls o
 Each step can access the artifacts created by previous steps, and add their own.
 
 """
-import argparse
 import logging
 import multiprocessing
 from datetime import datetime
 from pathlib import Path
 
+from fab.config import Config
+from fab.constants import BUILD_OUTPUT
+from fab.util import time_logger
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,6 @@ def entry() -> None:
     Entry point for the Fab build tool.
     """
     import argparse
-    import configparser
     import fab
 
     description = 'Flexible build system for scientific software.'
@@ -61,3 +62,24 @@ def entry() -> None:
     verbosity_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     verbosity = min(arguments.verbose, 2)
     logger.setLevel(verbosity_levels[verbosity])
+
+
+class Build(object):
+    def __init__(self, config: Config):
+        self.config = config
+
+        if not config.workspace.exists():
+            config.workspace.mkdir(parents=True)
+        if not (config.workspace / BUILD_OUTPUT).exists():
+            (config.workspace / BUILD_OUTPUT).mkdir()
+
+    def run(self):
+        logger.info(f"{datetime.now()}")
+        logger.info(f"use_multiprocessing = {self.config.use_multiprocessing}")
+        if self.config.use_multiprocessing:
+            logger.info(f"n_procs = {self.config.n_procs}")
+
+        artefacts = dict()
+        for step in self.config.steps:
+            with time_logger(step.name):
+                step.run(artefacts, self.config)
