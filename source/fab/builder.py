@@ -3,53 +3,32 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+"""
+A build config contains a list of steps, each with a run method which it calls one at a time.
+Each step can access the artifacts created by previous steps, and add their own.
+
+"""
 import logging
+import multiprocessing
+from datetime import datetime
 from pathlib import Path
 
-from fab.database import SqliteStateDatabase, FileInfoDatabase
-from fab.artifact import \
-    Artifact, \
-    FortranSource, \
-    CSource, \
-    CHeader, \
-    BinaryObject, \
-    Seen, \
-    HeadersAnalysed, \
-    Modified, \
-    Raw, \
-    Analysed, \
-    Compiled
-from fab.tasks.common import Linker, HeaderAnalyser
-from fab.tasks.fortran import \
-    FortranWorkingState, \
-    FortranPreProcessor, \
-    FortranAnalyser, \
-    FortranCompiler
-from fab.tasks.c import \
-    CWorkingState, \
-    CPragmaInjector, \
-    CPreProcessor, \
-    CAnalyser, \
-    CCompiler
-from fab.source_tree import \
-    TreeDescent, \
-    SourceVisitor
-from fab.queue import QueueManager
-from fab.engine import Engine, PathMap
+from fab.config import Config
+from fab.constants import BUILD_OUTPUT
+from fab.util import time_logger
+
+logger = logging.getLogger(__name__)
+
+runtime_str = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 
+# todo: uncomment and get this working again
 def entry() -> None:
     """
     Entry point for the Fab build tool.
     """
     import argparse
-    import configparser
-    import multiprocessing
-    import sys
     import fab
-
-    logger = logging.getLogger('fab')
-    logger.addHandler(logging.StreamHandler(sys.stderr))
 
     description = 'Flexible build system for scientific software.'
 
@@ -72,8 +51,10 @@ def entry() -> None:
                         choices=range(2, multiprocessing.cpu_count()),
                         help='Provide number of processors available for use,'
                              'default is 2 if not set.')
+    parser.add_argument('--skip-if-exists', action="store_true")
+    # todo: this won't work with multiple source folders
     parser.add_argument('source', type=Path,
-                        help='The path of the source tree to build')
+                        help='The path of the source tree to build.')
     parser.add_argument('conf_file', type=Path, default='config.ini',
                         help='The path of the configuration file')
     arguments = parser.parse_args()
@@ -82,135 +63,23 @@ def entry() -> None:
     verbosity = min(arguments.verbose, 2)
     logger.setLevel(verbosity_levels[verbosity])
 
-    config = configparser.ConfigParser(allow_no_value=True)
-    configfile = arguments.conf_file
-    config.read(configfile)
-    settings = config['settings']
-    flags = config['flags']
 
-    # If not provided, name the exec after the target
-    if settings['exec-name'] == '':
-        settings['exec-name'] = settings['target']
+class Build(object):
+    def __init__(self, config: Config):
+        self.config = config
 
-    application = Fab(arguments.workspace,
-                      settings['target'],
-                      settings['exec-name'],
-                      flags['fpp-flags'],
-                      flags['fc-flags'],
-                      flags['ld-flags'],
-                      arguments.nprocs)
-    application.run(arguments.source)
+        if not config.workspace.exists():
+            config.workspace.mkdir(parents=True)
+        if not (config.workspace / BUILD_OUTPUT).exists():
+            (config.workspace / BUILD_OUTPUT).mkdir()
 
+    def run(self):
+        logger.info(f"{datetime.now()}")
+        logger.info(f"use_multiprocessing = {self.config.use_multiprocessing}")
+        if self.config.use_multiprocessing:
+            logger.info(f"n_procs = {self.config.n_procs}")
 
-class Fab(object):
-    def __init__(self,
-                 workspace: Path,
-                 target: str,
-                 exec_name: str,
-                 fpp_flags: str,
-                 fc_flags: str,
-                 ld_flags: str,
-                 n_procs: int):
-
-        self._workspace = workspace
-        if not workspace.exists():
-            workspace.mkdir(parents=True)
-
-        self._state = SqliteStateDatabase(workspace)
-
-        # Path maps tell the engine what filetype and starting state
-        # the Artifacts representing any files encountered by the
-        # initial descent should have
-        path_maps = [
-            PathMap(r'.*\.f90', FortranSource, Raw),
-            PathMap(r'.*\.F90', FortranSource, Seen),
-            PathMap(r'.*\.c', CSource, Seen),
-            PathMap(r'.*\.h', CHeader, Seen),
-        ]
-
-        # Initialise the required Tasks, providing them with any static
-        # properties such as flags to use, workspace location etc
-        # TODO: Eventually the tasks may instead access many of these
-        # properties via the configuration (at Task runtime, to allow for
-        # file-specific overrides?)
-        fortran_preprocessor = FortranPreProcessor(
-            'cpp', ['-traditional-cpp', '-P'] + fpp_flags.split(), workspace
-        )
-        fortran_analyser = FortranAnalyser(workspace)
-        fortran_compiler = FortranCompiler(
-            'gfortran',
-            ['-c', '-J', str(workspace)] + fc_flags.split(), workspace
-        )
-
-        header_analyser = HeaderAnalyser(workspace)
-        c_pragma_injector = CPragmaInjector(workspace)
-        c_preprocessor = CPreProcessor(
-            'cpp', [], workspace
-        )
-        c_analyser = CAnalyser(workspace)
-        c_compiler = CCompiler(
-            'gcc', ['-c'], workspace
-        )
-
-        linker = Linker(
-            'gcc', ['-lc', '-lgfortran'] + ld_flags.split(),
-            workspace, exec_name
-        )
-
-        # The Task map tells the engine what Task it should be using
-        # to deal with Artifacts depending on their type and state
-        task_map = {
-            (FortranSource, Seen): fortran_preprocessor,
-            (FortranSource, Raw): fortran_analyser,
-            (FortranSource, Analysed): fortran_compiler,
-            (CSource, Seen): header_analyser,
-            (CHeader, Seen): header_analyser,
-            (CSource, HeadersAnalysed): c_pragma_injector,
-            (CHeader, HeadersAnalysed): c_pragma_injector,
-            (CSource, Modified): c_preprocessor,
-            (CSource, Raw): c_analyser,
-            (CSource, Analysed): c_compiler,
-            (BinaryObject, Compiled): linker,
-        }
-
-        engine = Engine(workspace,
-                        target,
-                        path_maps,
-                        task_map)
-        self._queue = QueueManager(n_procs - 1, engine)
-
-    def _extend_queue(self, artifact: Artifact) -> None:
-        self._queue.add_to_queue(artifact)
-
-    def run(self, source: Path):
-
-        self._queue.run()
-
-        visitor = SourceVisitor(self._extend_queue)
-        descender = TreeDescent(source)
-        descender.descend(visitor)
-
-        self._queue.check_queue_done()
-        self._queue.shutdown()
-
-        file_db = FileInfoDatabase(self._state)
-        for file_info in file_db:
-            print(file_info.filename)
-            # Where files are generated in the working directory
-            # by third party tools, we cannot guarantee the hashes
-            if file_info.filename.match(f'{self._workspace}/*'):
-                print('    hash: --hidden-- (generated file)')
-            else:
-                print(f'    hash: {file_info.adler32}')
-
-        fortran_db = FortranWorkingState(self._state)
-        for fortran_info in fortran_db:
-            print(fortran_info.unit.name)
-            print('    found in: ' + str(fortran_info.unit.found_in))
-            print('    depends on: ' + str(fortran_info.depends_on))
-
-        c_db = CWorkingState(self._state)
-        for c_info in c_db:
-            print(c_info.symbol.name)
-            print('    found_in: ' + str(c_info.symbol.found_in))
-            print('    depends on: ' + str(c_info.depends_on))
+        artefacts = dict()
+        for step in self.config.steps:
+            with time_logger(step.name):
+                step.run(artefacts, self.config)

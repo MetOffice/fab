@@ -1,3 +1,4 @@
+# Please keep in sync with /environment.yml
 name: Build
 
 on: [push, pull_request]
@@ -33,16 +34,17 @@ jobs:
     - name: Type check with mypy
       run: |
         pip install -e .[dev]
-        python -m mypy setup.py source system-tests unit-tests
+        pip install pytest
+        python -m mypy setup.py source tests/unit_tests tests/integration_tests
     - name: Code style check with flake8
       run: |
         pip install -e .[dev]
         flake8 . --count --show-source --statistics
     - name: Unit tests with Pytest
       run: |
-        pip install .[unit-test]
-        python -m pytest --cov=fab unit-tests
-    - name: System tests with Pytest
+        pip install .[tests]
+        python -m pytest --cov=fab tests/unit_tests
+    - name: Integration tests with Pytest
       run: |
-        pip install .[system-test]
-        python -m pytest system-tests
+        pip install .[tests]
+        python -m pytest --cov=fab tests/integration_tests
