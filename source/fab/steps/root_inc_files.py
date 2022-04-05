@@ -30,7 +30,7 @@ class RootIncFiles(Step):
         self.source_root = source_root
         self.build_output = build_output or source_root.parent / BUILD_OUTPUT
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
         Copy inc files into the workspace output root.
 
@@ -38,13 +38,13 @@ class RootIncFiles(Step):
         It's up to the user to configure other tools to find these files.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
         warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
 
         # inc files all go in the root - they're going to be removed altogether, soon
         inc_copied = set()
-        for fpath in suffix_filter(artefacts["all_source"], [".inc"]):
+        for fpath in suffix_filter(artefact_store["all_source"], [".inc"]):
 
             # don't copy from the output root to the output root!
             # (i.e ancillary files from a previous run)
@@ -53,7 +53,7 @@ class RootIncFiles(Step):
 
             # check for name clash
             if fpath.name in inc_copied:
-                raise RuntimeError(f"name clash for inc file: {fpath}")
+                raise FileExistsError(f"name clash for inc file: {fpath}")
 
             logger.debug(f"copying inc file {fpath}")
             shutil.copy(fpath, self.build_output)

@@ -18,12 +18,12 @@ class Step(object):
     def __init__(self, name):
         self.name = name
 
-    def run(self, artefacts: Dict, config):
+    def run(self, artefact_store: Dict, config):
         """
         Process some input artefacts, create some output artefacts. Defined in the subclass.
 
         Args:
-            - artefacts: Contains artefacts created by previous Steps, and to which we add our new artefacts.
+            - artefact_store: Contains artefacts created by previous Steps, and to which we add our new artefacts.
             - config: :class:`fab.config.Config`, where we can access runtime config, such as workspace
                       and the multiprocessing flag.
 
@@ -42,7 +42,7 @@ class Step(object):
         Called from Step.run() to process multiple items in parallel.
 
         For example:
-            A compile step would, in its run() method, find a list of files in the artefacts dict.
+            A compile step would, in its run() method, find a list of source files in the artefact store.
             It could then pass those paths to this method, along with a function to compile a *single* file.
             The whole set of results are returned in a list-like, with undefined order.
 

@@ -45,25 +45,25 @@ class Test_get_compile_next(object):
 class Test_run(object):
 
     def test_vanilla(self, compiler, analysed_files):
-        artefacts = {'build_tree': {af.fpath: af for af in analysed_files}}
+        artefact_store = {'build_tree': {af.fpath: af for af in analysed_files}}
 
         def mp_return(items, func):
             return [CompiledFile(analysed_file=i, output_fpath=None) for i in items]
 
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
-            compiler.run(artefacts, config=None)
+            compiler.run(artefact_store, config=None)
 
-        compiled = [i.analysed_file for i in artefacts['compiled_fortran']]
+        compiled = [i.analysed_file for i in artefact_store['compiled_fortran']]
         assert compiled == list(reversed(analysed_files))
 
     def test_exception(self, compiler, analysed_files):
         # Like vanilla but run_mp returns an exception from the compiler.
         # All exceptions from a single pass are collated and raised together.
-        artefacts = {'build_tree': {af.fpath: af for af in analysed_files}}
+        artefact_store = {'build_tree': {af.fpath: af for af in analysed_files}}
 
         def mp_return(items, func):
             return [Exception("Pretend it didn't compile") for i in items]
 
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
             with pytest.raises(RuntimeError):
-                compiler.run(artefacts, config=None)
+                compiler.run(artefact_store, config=None)

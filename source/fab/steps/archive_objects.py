@@ -14,16 +14,17 @@ from typing import List, Dict
 
 from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
-from fab.util import CompiledFile, log_or_dot, run_command, Artefacts, SourceGetter
+from fab.util import CompiledFile, log_or_dot, run_command
+from fab.artefacts import ArtefactGetterBase, ArtefactConcat
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = Artefacts(['compiled_c', 'compiled_fortran'])
+DEFAULT_SOURCE_GETTER = ArtefactConcat(['compiled_c', 'compiled_fortran'])
 
 
 class ArchiveObjects(Step):
 
-    def __init__(self, source: SourceGetter = None, archiver='ar', output_fpath='output.a', name='archive objects'):
+    def __init__(self, source: ArtefactGetterBase = None, archiver='ar', output_fpath='output.a', name='archive objects'):
         """
         Kwargs:
             - archiver: The archiver executable. Defaults to 'ar'.
@@ -36,17 +37,16 @@ class ArchiveObjects(Step):
         self.archiver = archiver
         self.output_fpath = output_fpath
 
-    def run(self, artefacts: Dict, config):
+    def run(self, artefact_store: Dict, config):
         """
-        Creates an archive object from the *compiled_c* and *compiled_fortran* artefacts.
+        Creates an object archive from the all the object files in the artefact store.
 
-        (Current thinking) does not create an entry in the artefacts dict because the config which creates this step
-        is responsible for managing which files are passed to the linker.
+        By default, it finds the object files under the labels *compiled_c* and *compiled_fortran*.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
-        compiled_files: List[CompiledFile] = self.source_getter(artefacts)
+        compiled_files: List[CompiledFile] = self.source_getter(artefact_store)
 
         command = [self.archiver]
         command.extend(['cr', Template(self.output_fpath).substitute(output=config.workspace / BUILD_OUTPUT)])

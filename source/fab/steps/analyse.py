@@ -21,11 +21,16 @@ from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_t
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
-from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish, Artefacts, SourceGetter
+from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish
+from fab.artefacts import ArtefactGetterBase, ArtefactConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = Artefacts(['preprocessed_c', 'preprocessed_fortran'])
+DEFAULT_SOURCE_GETTER = ArtefactConcat([
+    SuffixFilter('all_source', '.f90'),
+    'preprocessed_c',
+    'preprocessed_fortran',
+])
 
 
 # todo: split out c and fortran?
@@ -36,12 +41,12 @@ class Analyse(Step):
 
     # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
-                 root_symbol, source: SourceGetter = None, std="f2008",
+                 root_symbol, source: ArtefactGetterBase = None, std="f2008",
                  special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
         """
 
         Args:
-            - source: A :class:`~fab.util.SourceGetter`.
+            - source: A :class:`~fab.util.ArtefactGetterBase`.
             - root_symbol: When building an executable, provide the Fortran Program name, or 'main' for C.
                 If None, target tree extraction will not be performed and the whole codebase will be returned
                 in the build tree, as when building a compiled object archive.
@@ -66,7 +71,7 @@ class Analyse(Step):
         self.fortran_analyser = FortranAnalyser(std=std)
         self.c_analyser = CAnalyser()
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
         Creates the *build_tree* artefact: Dict[Path, AnalysedFile] from the files in `self.source_getter`.
 
@@ -81,9 +86,9 @@ class Analyse(Step):
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
-        files = self.source_getter(artefacts)
+        files = self.source_getter(artefact_store)
 
         # take hashes of all the files we preprocessed
         with time_logger(f"getting {len(files)} hashes"):
@@ -127,7 +132,7 @@ class Analyse(Step):
 
         validate_build_tree(build_tree)
 
-        artefacts['build_tree'] = build_tree
+        artefact_store['build_tree'] = build_tree
 
     def _parse_files(self,
                      to_analyse_by_type: Dict[str, List[HashedFile]],

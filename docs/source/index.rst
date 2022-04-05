@@ -28,3 +28,4 @@ Contents
    overview
    usage
    api
+   glossary

@@ -47,14 +47,14 @@ class FindSourceFiles(Step):
         file_filtering = file_filtering or []
         self.path_filters: List[PathFilter] = [PathFilter(*i) for i in file_filtering]
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
-        Get all files in the folder and subfolders.
+        Recursively get all files in the given folder.
 
-        Requires no artefacts, creates the "all_source" artefact.
+        Requires no input artefact_store. By default, creates the "all_source" label in the artefacts.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
         # file filtering
         filtered_fpaths = []
@@ -84,4 +84,4 @@ class FindSourceFiles(Step):
             path = self.build_output / input_folder
             path.mkdir(parents=True, exist_ok=True)
 
-        artefacts[self.output_artefact] = filtered_fpaths
+        artefact_store[self.output_artefact] = filtered_fpaths

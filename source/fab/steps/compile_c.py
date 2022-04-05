@@ -13,7 +13,8 @@ from typing import List
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command, SourceGetter, FilterBuildTree
+from fab.util import CompiledFile, run_command
+from fab.artefacts import ArtefactGetterBase, FilterBuildTree
 
 logger = logging.getLogger(__name__)
 
@@ -24,20 +25,20 @@ class CompileC(MpExeStep):
 
     # todo: tell the compiler (and other steps) which artefact name to create?
     def __init__(self, compiler: str = 'gcc', common_flags: List[str] = None, path_flags: List = None,
-                 source: SourceGetter = None, name="compile c"):
+                 source: ArtefactGetterBase = None, name="compile c"):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
         Compiles all C files in the *build_tree* artefact, creating the *compiled_c* artefact.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
-        to_compile = self.source_getter(artefacts)
+        to_compile = self.source_getter(artefact_store)
         logger.info(f"compiling {len(to_compile)} c files")
 
         # run
@@ -53,7 +54,7 @@ class CompileC(MpExeStep):
         compiled_c = [result for result in results if isinstance(result, CompiledFile)]
         logger.info(f"compiled {len(compiled_c)} c files")
 
-        artefacts['compiled_c'] = compiled_c
+        artefact_store['compiled_c'] = compiled_c
 
     def _compile_file(self, analysed_file: AnalysedFile):
         command = [self.exe]

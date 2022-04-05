@@ -3,7 +3,9 @@ from unittest import mock
 
 import pytest
 
-from fab.util import suffix_filter, case_insensitive_replace, run_command
+from fab.artefacts import ArtefactConcat, SuffixFilter
+from fab.util import run_command
+from fab.util import suffix_filter, case_insensitive_replace
 
 
 @pytest.fixture
@@ -58,3 +60,32 @@ class Test_run_command(object):
             with pytest.raises(RuntimeError) as err:
                 run_command(None)
             assert mocked_error_message in str(err.value)
+
+
+class TestMultipleArtefacts(object):
+
+    def test_vanilla(self):
+        getter = ArtefactConcat(targets=[
+            'fooz',
+            SuffixFilter('barz', '.c')
+        ])
+
+        result = getter(artefact_store={
+            'fooz': ['foo1', 'foo2'],
+            'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')],
+        })
+
+        assert result == ['foo1', 'foo2', Path('bar.c')]
+
+
+class TestFilterFpaths(object):
+
+    def test_constructor_suffix_scalar(self):
+        getter = SuffixFilter('barz', '.c')
+        result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
+        assert result == [Path('bar.c')]
+
+    def test_constructor_suffix_vector(self):
+        getter = SuffixFilter('barz', ['.b', '.c'])
+        result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
+        assert result == [Path('bar.b'), Path('bar.c')]
