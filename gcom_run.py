@@ -80,9 +80,6 @@ def gcom_shared_object_config():
 
 
 def main():
-    logger = logging.getLogger('fab')
-    # logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.INFO)
 
     # ignore this, it's not here
     config = gcom_object_archive_config()

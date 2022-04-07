@@ -12,7 +12,9 @@ import sys
 
 __version__ = '2022.1.dev0'
 
-logging.getLogger(__name__).addHandler(logging.StreamHandler(sys.stdout))
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+logging.getLogger('fab').setLevel(logging.INFO)
 
 
 class FabException(Exception):

@@ -84,9 +84,6 @@ def jules_config():
 
 
 def main():
-    logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
 
     config = jules_config()
 
