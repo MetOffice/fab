@@ -26,7 +26,7 @@ EXCLUDE = False
 class FindSourceFiles(Step):
 
     def __init__(self,
-                 source_root: Path, output_collection="all_source",
+                 source_root=None, output_collection="all_source",
                  build_output: Optional[Path] = None, name="Walk source",
                  file_filtering: Optional[List[Tuple]] = None):
         """
@@ -42,7 +42,7 @@ class FindSourceFiles(Step):
         super().__init__(name)
         self.source_root = source_root
         self.output_collection: str = output_collection
-        self.build_output = build_output or source_root.parent / BUILD_OUTPUT
+        self.build_output = build_output
 
         file_filtering = file_filtering or []
         self.path_filters: List[PathFilter] = [PathFilter(*i) for i in file_filtering]
@@ -56,9 +56,12 @@ class FindSourceFiles(Step):
         """
         super().run(artefact_store, config)
 
+        source_root = self.source_root or config.source_root
+        build_output = self.build_output or source_root.parent / BUILD_OUTPUT
+
         # file filtering
         filtered_fpaths = []
-        for fpath in file_walk(self.source_root):
+        for fpath in file_walk(source_root):
 
             wanted = True
             for path_filter in self.path_filters:
@@ -79,9 +82,9 @@ class FindSourceFiles(Step):
         # todo: separate step for folder creation?
         input_folders = set()
         for fpath in filtered_fpaths:
-            input_folders.add(fpath.parent.relative_to(self.source_root))
+            input_folders.add(fpath.parent.relative_to(source_root))
         for input_folder in input_folders:
-            path = self.build_output / input_folder
+            path = build_output / input_folder
             path.mkdir(parents=True, exist_ok=True)
 
         artefact_store[self.output_collection] = filtered_fpaths

@@ -9,19 +9,18 @@
 #   export LD_LIBRARY_PATH=~/.conda/envs/sci-fab/lib:$LD_LIBRARY_PATH
 
 import os
-import shutil
 import warnings
 from pathlib import Path
 
 from fab.builder import Build
 from fab.config import AddFlags, Config
-from fab.constants import SOURCE_ROOT
 from fab.dep_tree import AnalysedFile
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
+from fab.steps.grab import GrabFcm
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
@@ -33,15 +32,6 @@ from fab.artefacts import CollectionGetter
 def um_atmos_safe_config():
     project_name = 'um_atmos_safe'
     workspace = Path(os.path.dirname(__file__)) / "tmp-workspace" / project_name
-
-    # todo: make grab a step?
-    grab_config = {
-        ("um", "~/svn/um/trunk/src"),
-        ("jules", "~/svn/jules/trunk/src"),
-        ("socrates", "~/svn/socrates/trunk/src"),
-        ("shumlib", "~/svn/shumlib/trunk"),
-        ("casim", "~/svn/casim/src"),
-    }
 
     file_filtering = [
         (['/um/utility/'], False),
@@ -101,17 +91,30 @@ def um_atmos_safe_config():
         # use_multiprocessing=False,
         debug_skip=True,
 
-        # source config - this will not be part of build, we have existing code to look at for this
-        grab_config=grab_config,
-
         # build steps
         steps=[
 
+            # todo: these repo defs could make a good set of reusable variables
+            # UM 12.1, 16th November 2021
+            GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=104450, name='grab um 12.1'),
+
+            # JULES 6.2, for UM 12.1
+            GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=21512, name='grab jules 6.2'),
+
+            # SOCRATES 21.11, for UM 12.1
+            GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=1126, name='grab socrates 21.11'),
+
+            # SHUMLIB, for UM 12.1
+            GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=5658, name='grab shumblib for um 12.1'),
+
+            # CASIM, for UM 12.1
+            GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision=9277, name='grab casim for um 12.1'),
+
             MyCustomCodeFixes(name="my custom code fixes"),
 
-            FindSourceFiles(source_root=workspace / SOURCE_ROOT, file_filtering=file_filtering),  # template?
+            FindSourceFiles(file_filtering=file_filtering),
 
-            RootIncFiles(workspace / SOURCE_ROOT),
+            RootIncFiles(),
 
             CPragmaInjector(),
 
@@ -204,29 +207,10 @@ def main():
     # config
     config = um_atmos_safe_config()
 
-    # Get source repos
-    with TimerLogger("grabbing"):
-        grab_will_do_this(config.grab_config, config.workspace)
-
     builder = Build(config=config)
 
     with TimerLogger("um build"):
         builder.run()
-
-
-#
-# helper stuff to eventually throw away below here #
-#
-
-
-def grab_will_do_this(src_paths, workspace):
-    for label, src_path in src_paths:
-        shutil.copytree(
-            os.path.expanduser(src_path),
-            workspace / SOURCE_ROOT / label,
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns('.svn')
-        )
 
 
 class MyCustomCodeFixes(Step):

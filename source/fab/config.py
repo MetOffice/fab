@@ -7,7 +7,7 @@ from fnmatch import fnmatch
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Set
+from typing import List
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 from fab.steps import Step
@@ -16,15 +16,11 @@ from fab.steps import Step
 class Config(object):
 
     def __init__(self, label, workspace,
-                 grab_config=None, steps: List[Step] = None,
+                 source_root=None,
+                 steps: List[Step] = None,
                  use_multiprocessing=True, n_procs=max(1, cpu_count() - 1), debug_skip=False):
         self.label = label
         self.workspace = workspace
-
-        # source config
-        self.grab_config: Set = grab_config or set()
-        # file_filtering = file_filtering or []
-        # self.path_filters: List[PathFilter] = [PathFilter(*i) for i in file_filtering]
 
         # build steps
         self.steps: List[Step] = steps or []  # default, zero-config steps here
@@ -33,6 +29,8 @@ class Config(object):
         self.use_multiprocessing = use_multiprocessing
         self.n_procs = n_procs
         self.debug_skip = debug_skip
+
+        self.source_root = source_root or self.workspace / SOURCE_ROOT
 
 
 class PathFilter(object):
