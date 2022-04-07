@@ -8,7 +8,6 @@
 # Note: we need this to run the exe
 #   export LD_LIBRARY_PATH=~/.conda/envs/sci-fab/lib:$LD_LIBRARY_PATH
 
-import logging
 import os
 import shutil
 import warnings

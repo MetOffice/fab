@@ -5,7 +5,6 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-import logging
 import os
 import shutil
 from pathlib import Path
