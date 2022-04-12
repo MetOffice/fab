@@ -5,6 +5,7 @@ dependencies:
   - flake8
   - gfortran
   - libclang
+  - matplotlib
   - mypy
   - openmpi
   - python>=3.8

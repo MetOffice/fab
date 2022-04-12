@@ -26,7 +26,7 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles
-from fab.util import time_logger, case_insensitive_replace
+from fab.util import TimerLogger, case_insensitive_replace
 from fab.artefacts import CollectionGetter
 
 
@@ -186,7 +186,6 @@ def um_atmos_safe_config():
 
             # todo: ArchiveObjects(),
 
-            #
             LinkExe(
                 # linker='gcc',
                 linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
@@ -206,12 +205,12 @@ def main():
     config = um_atmos_safe_config()
 
     # Get source repos
-    with time_logger("grabbing"):
+    with TimerLogger("grabbing"):
         grab_will_do_this(config.grab_config, config.workspace)
 
     builder = Build(config=config)
 
-    with time_logger("um build"):
+    with TimerLogger("um build"):
         builder.run()
 
 

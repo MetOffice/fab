@@ -21,7 +21,7 @@ from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_t
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
-from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish
+from fab.util import HashedFile, do_checksum, log_or_dot_finish, TimerLogger
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -91,34 +91,34 @@ class Analyse(Step):
         files = self.source_getter(artefact_store)
 
         # take hashes of all the files we preprocessed
-        with time_logger(f"getting {len(files)} hashes"):
+        with TimerLogger(f"getting {len(files)} hashes"):
             preprocessed_hashes = self._get_latest_checksums(files)
 
-        with time_logger("loading previous analysis results"):
+        with TimerLogger("loading previous analysis results"):
             changed, unchanged = self._load_analysis_results(preprocessed_hashes)
 
-        with time_logger("analysing files"):
+        with TimerLogger("analysing files"):
             with self._new_analysis_file(unchanged) as csv_writer:
                 analysed_fortran, analysed_c = self._parse_files(changed, csv_writer)
         all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
 
         # Make "external" symbol table
-        with time_logger("creating symbol lookup"):
+        with TimerLogger("creating symbol lookup"):
             symbols: Dict[str, Path] = self._gen_symbol_table(all_analysed_files)
 
         # turn symbol deps into file deps
-        with time_logger("generating file dependencies from symbols"):
+        with TimerLogger("generating file dependencies from symbols"):
             self._gen_file_deps(all_analysed_files, symbols)
 
         #  find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps
-        with time_logger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
+        with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
             add_mo_commented_file_deps(analysed_fortran, analysed_c)
 
         logger.info(f"source tree size {len(all_analysed_files)}")
 
         # Target tree extraction - for building executables.
         if self.root_symbol:
-            with time_logger("extracting target tree"):
+            with TimerLogger("extracting target tree"):
                 build_tree = extract_sub_tree(all_analysed_files, symbols[self.root_symbol], verbose=False)
             logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.root_symbol]}')")
         # When building library ".so" files, no target is needed.
@@ -146,13 +146,13 @@ class Analyse(Step):
         """
         # fortran
         fortran_files = to_analyse_by_type[".f90"]
-        with time_logger(f"analysing {len(fortran_files)} preprocessed fortran files"):
+        with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             analysed_fortran, fortran_exceptions = self._analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
 
         # c
         c_files = to_analyse_by_type[".c"]
-        with time_logger(f"analysing {len(c_files)} preprocessed c files"):
+        with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
             analysed_c, c_exceptions = self._analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
 
@@ -207,7 +207,7 @@ class Analyse(Step):
 
         """
         deps_not_found = set()
-        with time_logger("converting symbol to file deps"):
+        with TimerLogger("converting symbol to file deps"):
             for analysed_file in all_analysed_files.values():
                 for symbol_dep in analysed_file.symbol_deps:
                     file_dep = symbols.get(symbol_dep)
@@ -270,7 +270,7 @@ class Analyse(Step):
         # We re-write the successfully read contents of the analysis file each time,
         # for robustness against data corruption (otherwise we could just open with "wt+").
         # The returned context is a csv.DictWriter.
-        with time_logger("starting analysis progress file"):
+        with TimerLogger("starting analysis progress file"):
             analysis_progress_file = open(self._config.workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
             analysis_dict_writer.writeheader()
