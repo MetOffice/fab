@@ -18,7 +18,7 @@ class TestRootIncFiles(object):
 
     def test_vanilla(self, common_data):
         # ensure it copies the inc file
-        source_root, build_output, step = common_data
+        source_root, build_output = common_data
         inc_files = [Path('/foo/source/bar.inc')]
         step = RootIncFiles(source_root=source_root)
 
@@ -29,7 +29,7 @@ class TestRootIncFiles(object):
 
     def test_skip_output_folder(self, common_data):
         # ensure it doesn't try to copy a file in the build output
-        source_root, build_output, step = common_data
+        source_root, build_output = common_data
         inc_files = [Path('/foo/source/bar.inc'), build_output / 'fab.inc']
         step = RootIncFiles(source_root=source_root)
 
@@ -40,7 +40,7 @@ class TestRootIncFiles(object):
 
     def test_name_clash(self, common_data):
         # ensure raises an exception if there is a name clash
-        source_root, build_output, step = common_data
+        source_root, build_output = common_data
         inc_files = [Path('/foo/source/bar.inc'), Path('/foo/sauce/bar.inc')]
         step = RootIncFiles(source_root=source_root)
 
