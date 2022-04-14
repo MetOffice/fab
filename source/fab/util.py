@@ -77,13 +77,10 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
 
 
 def run_command(command):
-    try:
-        res = subprocess.run(command, check=True)
-        if res.returncode != 0:
-            # todo: specific exception
-            raise Exception(f"The command exited with non zero: {res.stderr.decode()}")
-    except Exception as err:
-        raise Exception(f"error: {err}")
+    logger.debug(f'run_command: {command}')
+    res = subprocess.run(command, capture_output=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"Command failed:\n{command}\n{res.stderr.decode()}")
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):

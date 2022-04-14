@@ -1,8 +1,9 @@
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
-from fab.util import suffix_filter, case_insensitive_replace
+from fab.util import suffix_filter, case_insensitive_replace, run_command
 
 
 @pytest.fixture
@@ -40,3 +41,20 @@ class Test_case_insensitive_replace(object):
     def test_mixed(self, sample_string):
         res = case_insensitive_replace(sample_string, "fOo", "bar")
         assert res == "one bar bar four"
+
+
+class Test_run_command(object):
+
+    def test_no_error(self):
+        mock_result = mock.Mock(returncode=0)
+        with mock.patch('fab.util.subprocess.run', return_value=mock_result):
+            run_command(None)
+
+    def test_error(self):
+        mock_result = mock.Mock(returncode=1)
+        mocked_error_message = 'mocked error message'
+        mock_result.stderr.decode = mock.Mock(return_value=mocked_error_message)
+        with mock.patch('fab.util.subprocess.run', return_value=mock_result):
+            with pytest.raises(RuntimeError) as err:
+                run_command(None)
+            assert mocked_error_message in str(err.value)
