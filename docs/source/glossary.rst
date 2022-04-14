@@ -9,11 +9,11 @@ Glossary
         the :term:`Artefact Store`. All steps are derived from the :class:`~fab.steps.Step` base class.
 
     Artefact Store
-        At the start of a build run, Fab creates an empty dict called ``artefact_store``. Each step can read and write
-        to this dict. An entry in this dict is called a :term:`Named Collection`, which maps a name string
+        At the start of a build run, Fab creates an empty dict called ``artefact_store``.
+        An entry in this dict is called a :term:`Named Collection`, which maps a name string
         to, usually, a list or dict of :term:`Artefact` - but can be anything.
 
-        Fab passes the growing artefacts store to each step in turn,
+        Fab passes the growing artefact store to each step in turn,
         where they typically read a :term:`Named Collection` and create a new one for subsequent steps to read.
 
         See also :ref:`Artefacts Overview <artefacts_overview>`
