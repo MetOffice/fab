@@ -24,7 +24,8 @@ DEFAULT_SOURCE_GETTER = ArtefactConcat(['compiled_c', 'compiled_fortran'])
 
 class ArchiveObjects(Step):
 
-    def __init__(self, source: ArtefactGetterBase = None, archiver='ar', output_fpath='output.a', name='archive objects'):
+    def __init__(self, source: ArtefactGetterBase = None, archiver='ar',
+                 output_fpath='output.a', name='archive objects'):
         """
         Kwargs:
             - archiver: The archiver executable. Defaults to 'ar'.
