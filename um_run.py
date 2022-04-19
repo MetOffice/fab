@@ -8,7 +8,6 @@
 # Note: we need this to run the exe
 #   export LD_LIBRARY_PATH=~/.conda/envs/sci-fab/lib:$LD_LIBRARY_PATH
 
-import logging
 import os
 import shutil
 import warnings
@@ -201,9 +200,6 @@ def um_atmos_safe_config():
 
 
 def main():
-    logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
 
     # config
     config = um_atmos_safe_config()

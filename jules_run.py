@@ -5,7 +5,6 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-import logging
 import os
 import shutil
 from pathlib import Path
@@ -84,9 +83,6 @@ def jules_config():
 
 
 def main():
-    logger = logging.getLogger('fab')
-    logger.setLevel(logging.DEBUG)
-    # logger.setLevel(logging.INFO)
 
     config = jules_config()
 
