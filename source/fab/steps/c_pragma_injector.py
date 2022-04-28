@@ -12,7 +12,7 @@ from typing import Dict
 
 from fab.steps import Step
 from fab.tasks.c import CTextReaderPragmas
-from fab.artefacts import ArtefactGetterBase, SuffixFilter
+from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 DEFAULT_SOURCE_GETTER = SuffixFilter('all_source', '.c')
 
@@ -20,7 +20,7 @@ DEFAULT_SOURCE_GETTER = SuffixFilter('all_source', '.c')
 # todo: test
 class CPragmaInjector(Step):
 
-    def __init__(self, source: ArtefactGetterBase = None, output_name="pragmad_c", name="c pragmas"):
+    def __init__(self, source: ArtefactsGetter = None, output_name="pragmad_c", name="c pragmas"):
         super().__init__(name=name)
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER

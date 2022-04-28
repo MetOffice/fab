@@ -14,11 +14,11 @@ from typing import List
 from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
 from fab.util import log_or_dot, run_command
-from fab.artefacts import ArtefactGetterBase, ArtefactConcat
+from fab.artefacts import ArtefactsGetter, CollectionConcat
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = ArtefactConcat(['compiled_c', 'compiled_fortran'])
+DEFAULT_SOURCE_GETTER = CollectionConcat(['compiled_c', 'compiled_fortran'])
 
 
 class LinkExe(Step):
@@ -27,7 +27,7 @@ class LinkExe(Step):
 
     """
 
-    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactGetterBase = None, name='link exe'):
+    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactsGetter = None, name='link exe'):
         """
         Args:
             - linker: E.g 'gcc' or 'ld'.
@@ -71,7 +71,7 @@ class LinkExe(Step):
 
 class LinkSharedObject(LinkExe):
 
-    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactGetterBase = None,
+    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactsGetter = None,
                  name='link shared object'):
         super().__init__(linker=linker, flags=flags, output_fpath=output_fpath, source=source, name=name)
 

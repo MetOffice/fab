@@ -14,7 +14,7 @@ from typing import List, Set, Dict
 from fab.dep_tree import AnalysedFile, by_type
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command
-from fab.artefacts import ArtefactGetterBase, FilterBuildTree
+from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
 class CompileFortran(MpExeStep):
 
     def __init__(self, compiler: str, common_flags: List[str] = None, path_flags: List = None,
-                 source: ArtefactGetterBase = None, name='compile fortran'):
+                 source: ArtefactsGetter = None, name='compile fortran'):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 

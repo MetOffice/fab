@@ -27,5 +27,5 @@ Contents
 
    overview
    usage
-   api
+   Api Reference <apidoc/modules>
    glossary

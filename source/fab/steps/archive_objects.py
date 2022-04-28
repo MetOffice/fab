@@ -15,16 +15,16 @@ from typing import List, Dict
 from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
 from fab.util import CompiledFile, log_or_dot, run_command
-from fab.artefacts import ArtefactGetterBase, ArtefactConcat
+from fab.artefacts import ArtefactsGetter, CollectionConcat
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = ArtefactConcat(['compiled_c', 'compiled_fortran'])
+DEFAULT_SOURCE_GETTER = CollectionConcat(['compiled_c', 'compiled_fortran'])
 
 
 class ArchiveObjects(Step):
 
-    def __init__(self, source: ArtefactGetterBase = None, archiver='ar',
+    def __init__(self, source: ArtefactsGetter = None, archiver='ar',
                  output_fpath='output.a', name='archive objects'):
         """
         Kwargs:

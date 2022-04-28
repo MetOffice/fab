@@ -2,42 +2,24 @@
 Fab Overview
 ============
 
-Use Fab to build your Fortran and C project using a series of build steps.
+Use Fab to build your Fortran and C project using a series of *build steps*.
 
-Fab analyses your code to determine dependencies, including those between C and Fortran.
-It can work out which files need to be compiled, in which order, to create an executable
-or build all your source into a static or shared library.
+Fab can analyse your code to determine dependencies, including those between C and Fortran.
+It can work out which files need to be compiled, in which order, to create an executable,
+and it can build all your source into a static or shared library.
 
 
 Steps
 -----
 
-You can configure the list of build steps, configure the steps themselves
-and create your own custom build steps. All build steps are derived from the :class:`~fab.steps.Step` class.
+You provide fab with list of build steps.
 
-Example::
+.. image:: svg/steps.svg
+    :width: 75%
+    :alt: Some simple steps
 
-    workspace = Path('my_workspace')
-
-    config = Config(label='my fab build', workspace=workspace)
-
-    config.steps = [
-        GetSourceFiles(workspace / 'source'),
-        CPreProcessor(),
-        FortranPreProcessor(
-            common_flags=['-traditional-cpp', '-P',
-                '-I', '$source/gcom/include',
-                '-DGC_VERSION="7.6"'],
-        ),
-        Analyse(root_symbol='my_program'),
-        CompileC(common_flags=['-c', '-std=c99']),
-        CompileFortran(compiler='gfortran', common_flags=['-c', '-J', '$output']),
-        LinkExe(
-            linker='gcc',
-            flags=['-lc', '-lgfortran', '-L', 'lib', '-l', 'libmylib'],
-            output_fpath='my_program.exe')
-    ]
-
+Fab provides some ready made, configurable steps for you to use, and it's easy to create your own.
+All build steps are derived from the :class:`~fab.steps.Step` class.
 
 
 .. _artefacts_overview:
@@ -45,22 +27,55 @@ Example::
 Artefacts
 ---------
 
-Steps usually read and create a :term:`Named Collection` in the :term:`Artefact Store`.
-Fab runs each step in order, passing in the :term:`Artefact Store` which contains all previous steps' output.
+Steps can read and create :term:`Named Collections <Named Collection>` of :term:`Artefact`
+in the :term:`Artefact Store`.
 
-As an example, a Fortran preprocessing step might create a list of output paths
-as ``artefact_store['preprocessed fortran'] = my_results``.
-A subsequent step could read this list.
 
-.. image:: artefacts.svg
+.. image:: svg/steps_and_store.svg
     :width: 75%
     :alt: Artefact containment hierarchy
+
+Fab runs each step in order, passing in the :term:`Artefact Store` which contains all previous steps' output.
+As an example, a Fortran preprocessing step might create a list of output paths
+as ``artefact_store['preprocessed fortran'] = my_results``, which a subsequent analysis step would read.
+
+
+Example Config
+--------------
+
+Fab uses *config as code*. We aim to minimise the amount of config required by the user
+so most of Fab's steps have sensible defaults. In the snippet below, we don't need to tell
+the steps which :term:`Named Collections <Named Collection>` to read or create.
+The compiler steps, for example, know they should look for file paths in an artefact collection called ``"build tree"``,
+unless we tell them otherwise.
+
+Example::
+
+    workspace = Path('my_workspace')
+
+    config = Config(
+        label='my fab build',
+        workspace=workspace,
+        steps=[
+            GetSourceFiles(workspace / 'source'),
+            CPreProcessor(),
+            FortranPreProcessor(common_flags=['-P', '-I$source/include']),
+            Analyse(root_symbol='my_program'),
+            CompileC(common_flags=['-c', '-std=c99']),
+            CompileFortran(common_flags=['-c', '-J', '$output']),
+            LinkExe(
+                flags=['-lc', '-lgfortran', '-L', 'lib', '-l', 'mylib'],
+                output_fpath='my_program.exe')
+        ])
+
+
+Under consideration: Fab might get a config file format in the future.
 
 Multiprocessing
 ---------------
 
 Steps have access to multiprocessing methods. The :class:`~fab.steps.mp_exe.MpExeStep` class captures common aspects
-of any step which passes a list of artefacts through a command-line tool.
+of any step that passes a list of artefacts through a command-line tool.
 (The existence of this class is currently under debate.)
 The Step class includes a multiprocessing utility method called :meth:`~fab.steps.Step.run_mp` which steps can call
 from their :meth:`~fab.steps.Step.run` method to pass a collection of artefacts through a processor function

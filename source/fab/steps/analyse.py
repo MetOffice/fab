@@ -22,11 +22,11 @@ from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
 from fab.util import time_logger, HashedFile, do_checksum, log_or_dot_finish
-from fab.artefacts import ArtefactGetterBase, ArtefactConcat, SuffixFilter
+from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = ArtefactConcat([
+DEFAULT_SOURCE_GETTER = CollectionConcat([
     SuffixFilter('all_source', '.f90'),
     'preprocessed_c',
     'preprocessed_fortran',
@@ -41,12 +41,12 @@ class Analyse(Step):
 
     # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
-                 root_symbol, source: ArtefactGetterBase = None, std="f2008",
+                 root_symbol, source: ArtefactsGetter = None, std="f2008",
                  special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
         """
 
         Args:
-            - source: A :class:`~fab.util.ArtefactGetterBase`.
+            - source: A :class:`~fab.util.ArtefactsGetter`.
             - root_symbol: When building an executable, provide the Fortran Program name, or 'main' for C.
                 If None, target tree extraction will not be performed and the whole codebase will be returned
                 in the build tree, as when building a compiled object archive.

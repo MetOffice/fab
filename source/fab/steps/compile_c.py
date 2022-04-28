@@ -14,7 +14,7 @@ from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
 from fab.util import CompiledFile, run_command
-from fab.artefacts import ArtefactGetterBase, FilterBuildTree
+from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class CompileC(MpExeStep):
 
     # todo: tell the compiler (and other steps) which artefact name to create?
     def __init__(self, compiler: str = 'gcc', common_flags: List[str] = None, path_flags: List = None,
-                 source: ArtefactGetterBase = None, name="compile c"):
+                 source: ArtefactsGetter = None, name="compile c"):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 

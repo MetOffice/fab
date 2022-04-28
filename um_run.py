@@ -27,7 +27,7 @@ from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles
 from fab.util import time_logger, case_insensitive_replace
-from fab.artefacts import ArtefactGetter
+from fab.artefacts import CollectionGetter
 
 
 def um_atmos_safe_config():
@@ -116,7 +116,7 @@ def um_atmos_safe_config():
             CPragmaInjector(),
 
             CPreProcessor(
-                source=ArtefactGetter('pragmad_c'),
+                source=CollectionGetter('pragmad_c'),
                 preprocessor='cpp',
                 path_flags=[
                     # todo: this is a bit "codey" - can we safely give longer strings and split later?

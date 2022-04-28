@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from fab.artefacts import ArtefactConcat, SuffixFilter
+from fab.artefacts import CollectionConcat, SuffixFilter
 from fab.util import run_command
 from fab.util import suffix_filter, case_insensitive_replace
 
@@ -62,10 +62,10 @@ class Test_run_command(object):
             assert mocked_error_message in str(err.value)
 
 
-class TestMultipleArtefacts(object):
+class TestCollectionConcat(object):
 
     def test_vanilla(self):
-        getter = ArtefactConcat(targets=[
+        getter = CollectionConcat(collections=[
             'fooz',
             SuffixFilter('barz', '.c')
         ])
@@ -78,7 +78,7 @@ class TestMultipleArtefacts(object):
         assert result == ['foo1', 'foo2', Path('bar.c')]
 
 
-class TestFilterFpaths(object):
+class TestSuffixFilter(object):
 
     def test_constructor_suffix_scalar(self):
         getter = SuffixFilter('barz', '.c')
