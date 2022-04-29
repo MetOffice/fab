@@ -68,17 +68,17 @@ class CollectionConcat(ArtefactsGetter):
             - collections: An iterable containing collection names (strings) or other ArtefactsGetters.
 
         """
-        self.targets = collections
+        self.collections = collections
 
     # todo: ensure the labelled values are iterables
     def __call__(self, artefact_store: Dict):
         super().__call__(artefact_store)
         result = []
-        for target in self.targets:
-            if isinstance(target, str):
-                result.extend(artefact_store.get(target, []))
-            elif isinstance(target, ArtefactsGetter):
-                result.extend(target(artefact_store))
+        for collection in self.collections:
+            if isinstance(collection, str):
+                result.extend(artefact_store.get(collection, []))
+            elif isinstance(collection, ArtefactsGetter):
+                result.extend(collection(artefact_store))
         return result
 
 
