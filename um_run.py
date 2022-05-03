@@ -156,7 +156,7 @@ def um_atmos_safe_config():
                 special_measure_analysis_results=[
                     AnalysedFile(
                         fpath=Path(
-                            os.path.expanduser("~/git/fab/tmp-workspace/um_atmos_safe/build_output/casim/lookup.f90")),
+                            str(workspace / "build_output/casim/lookup.f90")),
                         file_hash=None,
                         symbol_defs=['lookup'],
                         symbol_deps=['mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
@@ -178,9 +178,9 @@ def um_atmos_safe_config():
 
                 path_flags=[
                     # mpl include - todo: just add this for everything?
-                    AddFlags("$output/um/*", ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+                    AddFlags("$output/um/*", ['-I', str(workspace / '../gcom/build_output')]),
                     AddFlags("$output/jules/*",
-                             ['-I', os.path.expanduser("~/git/fab/tmp-workspace/gcom/build_output")]),
+                             ['-I', str(workspace / '../gcom/build_output')]),
                 ]
             ),
 
@@ -192,7 +192,7 @@ def um_atmos_safe_config():
                 linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
                 flags=[
                     '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
-                    '-L', os.path.expanduser('~/git/fab/tmp-workspace/gcom/build_output'), '-l', 'gcom'
+                    '-L', str(workspace / '../gcom/build_output'), '-l', 'gcom',
                 ],
                 output_fpath='$output/../um_atmos.exe')
         ],
@@ -239,14 +239,14 @@ class MyCustomCodeFixes(Step):
     def run(self, artefact_store, config):
         warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
         self.replace_in_file(
-            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
-            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',
+            config.workspace / 'source/um/io_services/common/io_configuration_mod.F90',
+            config.workspace / 'source/um/io_services/common/io_configuration_mod.F90',
             r'(\W)NameListFile', r'\g<1>FabNameListFile')
 
         warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
         self.replace_in_file(
-            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
-            '~/git/fab/tmp-workspace/um_atmos_safe/source/um/control/top_level/um_config.F90',
+            config.workspace / 'source/um/control/top_level/um_config.F90',
+            config.workspace / 'source/um/control/top_level/um_config.F90',
             r'(\W)NameListFile', r'\g<1>FabNameListFile')
 
     def replace_in_file(self, inpath, outpath, find, replace):
