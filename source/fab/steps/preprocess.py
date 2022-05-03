@@ -13,7 +13,8 @@ from typing import List
 
 from fab.dep_tree import by_type
 from fab.steps.mp_exe import MpExeStep
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, SourceGetter, FilterFpaths
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command
+from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 logger = logging.getLogger(__name__)
 
@@ -23,18 +24,18 @@ class PreProcessor(MpExeStep):
     Base class for preprocessors. A build step which calls a preprocessor.
 
     """
-    DEFAULT_SOURCE: SourceGetter
+    DEFAULT_SOURCE: ArtefactsGetter
     DEFAULT_OUTPUT_NAME: str
     DEFAULT_OUTPUT_SUFFIX: str
 
     def __init__(self,
-                 source: SourceGetter = None, output_artefact=None, output_suffix=None,
+                 source: ArtefactsGetter = None, output_collection=None, output_suffix=None,
                  preprocessor='cpp', common_flags: List[str] = None, path_flags: List = None,
                  name='preprocess'):
         """
         Kwargs:
             - source: Defines the files to preprocess. Defaults to DEFAULT_SOURCE.
-            - output_artefact: The name of the artefact, defaulting to DEFAULT_OUTPUT_NAME.
+            - output_collection: The name of the output artefact collection, defaulting to DEFAULT_OUTPUT_NAME.
             - output_suffix: Defaults to DEFAULT_OUTPUT_SUFFIX.
             - preprocessor: The name of the executable. Defaults to 'cpp'.
             - common_flags: Used to construct a :class:`~fab.config.FlagsConfig' object.
@@ -45,19 +46,20 @@ class PreProcessor(MpExeStep):
         super().__init__(exe=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name)
 
         self.source_getter = source or self.DEFAULT_SOURCE
-        self.output_artefact = output_artefact or self.DEFAULT_OUTPUT_NAME
+        self.output_collection = output_collection or self.DEFAULT_OUTPUT_NAME
         self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
-        Preprocess all input files from `self.source_getter`, creating `self.output_artefact`.
+        Preprocess all input files from `self.source_getter`, creating the artefact collection named
+        `self.output_collection`.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
-        files = self.source_getter(artefacts)
+        files = self.source_getter(artefact_store)
         results = self.run_mp(items=files, func=self.process_artefact)
 
         # any errors?
@@ -71,7 +73,7 @@ class PreProcessor(MpExeStep):
             )
 
         log_or_dot_finish(logger)
-        artefacts[self.output_artefact] = list(by_type(results, Path))
+        artefact_store[self.output_collection] = list(by_type(results, Path))
 
     def process_artefact(self, fpath):
         """
@@ -113,7 +115,7 @@ class FortranPreProcessor(PreProcessor):
     creating the *preprocessed_fortran* artefact.
 
     """
-    DEFAULT_SOURCE = FilterFpaths('all_source', ['.F90', '.f90'])
+    DEFAULT_SOURCE = SuffixFilter('all_source', '.F90')
     DEFAULT_OUTPUT_NAME = 'preprocessed_fortran'
     DEFAULT_OUTPUT_SUFFIX = '.f90'
 
@@ -122,11 +124,11 @@ class CPreProcessor(PreProcessor):
     """
     By default, preprocesses all .c files in the *all_source* artefact, creating the *preprocessed_c* artefact.
 
-    An example of providing a :class:`~fab.util.SourceGetter` would be
+    An example of providing a :class:`~fab.util.ArtefactsGetter` would be
     when preprocessing files which have come from the C pragma injector,
-    which creates the *pragmad_c" artefact.
+    which creates the *pragmad_c* artefact.
 
     """
-    DEFAULT_SOURCE = FilterFpaths('all_source', ['.c'])
+    DEFAULT_SOURCE = SuffixFilter('all_source', '.c')
     DEFAULT_OUTPUT_NAME = 'preprocessed_c'
     DEFAULT_OUTPUT_SUFFIX = '.c'

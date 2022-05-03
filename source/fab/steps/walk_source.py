@@ -26,13 +26,13 @@ EXCLUDE = False
 class FindSourceFiles(Step):
 
     def __init__(self,
-                 source_root: Path, output_name="all_source",
+                 source_root: Path, output_collection="all_source",
                  build_output: Optional[Path] = None, name="Walk source",
                  file_filtering: Optional[List[Tuple]] = None):
         """
         Args:
             - source_root: Path to source folder.
-            - output_name: Name of artefact to create, defaults to "all_source".
+            - output_collection: Name of artefact collection to create, defaults to "all_source".
             - build_output: (Deprecated) where to create the output folders.
             - file_filtering: List of (file pattern, boolean) tuples.
                     Processed in order, if a source file matches the pattern it will be included or excluded,
@@ -41,20 +41,20 @@ class FindSourceFiles(Step):
         """
         super().__init__(name)
         self.source_root = source_root
-        self.output_artefact = output_name
+        self.output_collection: str = output_collection
         self.build_output = build_output or source_root.parent / BUILD_OUTPUT
 
         file_filtering = file_filtering or []
         self.path_filters: List[PathFilter] = [PathFilter(*i) for i in file_filtering]
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
-        Get all files in the folder and subfolders.
+        Recursively get all files in the given folder.
 
-        Requires no artefacts, creates the "all_source" artefact.
+        Requires no input artefact_store. By default, creates the "all_source" label in the artefacts.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
         # file filtering
         filtered_fpaths = []
@@ -84,4 +84,4 @@ class FindSourceFiles(Step):
             path = self.build_output / input_folder
             path.mkdir(parents=True, exist_ok=True)
 
-        artefacts[self.output_artefact] = filtered_fpaths
+        artefact_store[self.output_collection] = filtered_fpaths

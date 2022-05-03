@@ -37,7 +37,7 @@ class Test_run(object):
             return [CompiledFile(af, output_fpath=None) for af in items]
 
         with mock.patch('fab.steps.Step.run_mp', side_effect=foo) as mock_run_mp:
-            c_compiler.run(artefacts={'build_tree': src_tree}, config=config)
+            c_compiler.run(artefact_store={'build_tree': src_tree}, config=config)
 
             # 1st pass
             mock_run_mp.assert_any_call(

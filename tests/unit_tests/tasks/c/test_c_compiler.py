@@ -26,6 +26,6 @@ class Test_Compiler(object):
         analysed_files = {Path('foo/src/foo.c'): AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=None)}
 
         with mock.patch('fab.steps.compile_c.run_command') as mock_run:
-            c_compiler.run(artefacts={'build_tree': analysed_files}, config=config)
+            c_compiler.run(artefact_store={'build_tree': analysed_files}, config=config)
             mock_run.assert_called_with([
                 'gcc', '-c', '-I', 'foo/include', '-Dhello', 'foo/src/foo.c', '-o', 'foo/src/foo.o'])

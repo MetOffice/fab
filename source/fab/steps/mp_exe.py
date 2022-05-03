@@ -26,5 +26,5 @@ class MpExeStep(Step):
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
 
     # todo: can we do more up in this superclass?
-    def run(self, artefacts: Dict, config):
-        super().run(artefacts, config)
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)

@@ -8,12 +8,11 @@ import re
 import subprocess
 import sys
 import zlib
-from abc import ABC, abstractmethod
 from collections import namedtuple
 from contextlib import contextmanager
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, List, Iterable, Dict
+from typing import Iterator, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 
@@ -83,69 +82,13 @@ def run_command(command):
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
+    """
+    Pull out all the paths with a given suffix from an iterable.
+
+    Args:
+        - fpaths: Iterable of paths.
+        - suffixes: Iterable of suffixes we want.
+
+    """
+    # todo: Just return the iterator from filter. Let the caller decide whether to turn into a list.
     return list(filter(lambda fpath: fpath.suffix in suffixes, fpaths))
-
-
-############
-
-# todo: docstrings for these
-
-# todo: poor name?
-class SourceGetter(ABC):
-    @abstractmethod
-    def __call__(self, artefacts):
-        pass
-
-
-# todo: problematic name? It's pulling out an artefact collection, not a single artefact...
-class Artefact(SourceGetter):
-
-    def __init__(self, name):
-        self.name = name
-
-    def __call__(self, artefacts):
-        super().__call__(artefacts)
-        return artefacts[self.name]
-
-
-# todo: not ideal for name to just add an s
-class Artefacts(SourceGetter):
-    # todo: this assumes artefactsa are lists, which might not always be the case? discuss or change
-
-    def __init__(self, names: List[str]):
-        self.names = names
-
-    def __call__(self, artefacts: Dict):
-        super().__call__(artefacts)
-        result = []
-        for name in self.names:
-            result.extend(artefacts.get(name, []))
-        return result
-
-
-# Artefact filtering config - should probably live in steps/__init__.py
-class FilterFpaths(SourceGetter):
-
-    def __init__(self, artefact_name: str, suffixes: List[str]):
-        self.artefact_name = artefact_name
-        self.suffixes = suffixes
-
-    # def __call__(self, *args, **kwargs):
-    def __call__(self, artefacts):
-        super().__call__(artefacts)
-        fpaths: Iterable[Path] = artefacts[self.artefact_name]
-        return suffix_filter(fpaths, self.suffixes)
-
-
-# todo: improve these filters? they are similar
-class FilterBuildTree(SourceGetter):
-
-    def __init__(self, suffixes: List[str], artefact_name: str = 'build_tree'):
-        self.artefact_name = artefact_name
-        self.suffixes = suffixes
-
-    # def __call__(self, *args, **kwargs):
-    def __call__(self, artefacts):
-        super().__call__(artefacts)
-        analysed_files: Iterable[Path] = artefacts[self.artefact_name].values()
-        return list(filter(lambda af: af.fpath.suffix in self.suffixes, analysed_files))

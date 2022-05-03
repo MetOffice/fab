@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.abspath('../../source'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'Fab'
+project = 'fab'
 copyright = '2022'
 author = 'Fab Team'
 
@@ -33,6 +33,7 @@ release = '2022.1.dev0'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.graphviz',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,10 +52,14 @@ exclude_patterns = []
 #
 # html_theme = 'alabaster'
 # html_theme = "classic"
-html_theme = "sphinxdoc"
-# html_theme = "sphinx_rtd_theme"
+# html_theme = "sphinxdoc"
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+
+# Don't sort module contents alphabetically, we want to order them in a helpful way for the user to read.
+autodoc_member_order = 'bysource'

@@ -26,7 +26,8 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import FortranPreProcessor, CPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles
-from fab.util import time_logger, case_insensitive_replace, Artefact
+from fab.util import time_logger, case_insensitive_replace
+from fab.artefacts import CollectionGetter
 
 
 def um_atmos_safe_config():
@@ -115,7 +116,7 @@ def um_atmos_safe_config():
             CPragmaInjector(),
 
             CPreProcessor(
-                source=Artefact('pragmad_c'),
+                source=CollectionGetter('pragmad_c'),
                 preprocessor='cpp',
                 path_flags=[
                     # todo: this is a bit "codey" - can we safely give longer strings and split later?
@@ -235,7 +236,7 @@ class MyCustomCodeFixes(Step):
 
     """
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
         self.replace_in_file(
             '~/git/fab/tmp-workspace/um_atmos_safe/source/um/io_services/common/io_configuration_mod.F90',

@@ -79,7 +79,7 @@ class Build(object):
         if self.config.use_multiprocessing:
             logger.info(f"n_procs = {self.config.n_procs}")
 
-        artefacts = dict()
+        artefact_store = dict()
         for step in self.config.steps:
             with time_logger(step.name):
-                step.run(artefacts, self.config)
+                step.run(artefact_store, self.config)

@@ -13,7 +13,8 @@ from typing import List, Set, Dict
 
 from fab.dep_tree import AnalysedFile, by_type
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, FilterBuildTree, SourceGetter
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command
+from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +24,20 @@ DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
 class CompileFortran(MpExeStep):
 
     def __init__(self, compiler: str, common_flags: List[str] = None, path_flags: List = None,
-                 source: SourceGetter = None, name='compile fortran'):
+                 source: ArtefactsGetter = None, name='compile fortran'):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
         Compiles all Fortran files in the *build_tree* artefact, creating the *compiled_fortran* artefact.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
-        to_compile = self.source_getter(artefacts)
+        to_compile = self.source_getter(artefact_store)
         logger.info(f"\ncompiling {len(to_compile)} fortran files")
 
         all_compiled: List[CompiledFile] = []  # todo: use set?
@@ -87,7 +88,7 @@ class CompileFortran(MpExeStep):
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 
-        artefacts['compiled_fortran'] = all_compiled
+        artefact_store['compiled_fortran'] = all_compiled
 
     def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
 

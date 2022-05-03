@@ -13,11 +13,12 @@ from typing import List
 
 from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
-from fab.util import log_or_dot, run_command, Artefacts, SourceGetter
+from fab.util import log_or_dot, run_command
+from fab.artefacts import ArtefactsGetter, CollectionConcat
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = Artefacts(['compiled_c', 'compiled_fortran'])
+DEFAULT_SOURCE_GETTER = CollectionConcat(['compiled_c', 'compiled_fortran'])
 
 
 class LinkExe(Step):
@@ -26,7 +27,7 @@ class LinkExe(Step):
 
     """
 
-    def __init__(self, linker: str, output_fpath: str, flags=None, source: SourceGetter = None, name='link exe'):
+    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactsGetter = None, name='link exe'):
         """
         Args:
             - linker: E.g 'gcc' or 'ld'.
@@ -42,16 +43,16 @@ class LinkExe(Step):
         self.flags: List[str] = flags or []
         self.output_fpath = output_fpath
 
-    def run(self, artefacts, config):
+    def run(self, artefact_store, config):
         """
-        Links all the object files in the *compiled_c* and *compiled_fortran* artefacts.
+        Links all the object files in the artefact_store.
 
-        (Current thinking) does not create an entry in the artefacts dict.
+        By default, it finds the object files under the labels *compiled_c* and *compiled_fortran*.
 
         """
-        super().run(artefacts, config)
+        super().run(artefact_store, config)
 
-        compiled_files = self.source_getter(artefacts)
+        compiled_files = self.source_getter(artefact_store)
 
         command = [self.linker]
         command.extend(['-o', Template(self.output_fpath).substitute(output=config.workspace / BUILD_OUTPUT)])
@@ -70,7 +71,7 @@ class LinkExe(Step):
 
 class LinkSharedObject(LinkExe):
 
-    def __init__(self, linker: str, output_fpath: str, flags=None, source: SourceGetter = None,
+    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactsGetter = None,
                  name='link shared object'):
         super().__init__(linker=linker, flags=flags, output_fpath=output_fpath, source=source, name=name)
 
