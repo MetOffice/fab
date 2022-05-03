@@ -6,11 +6,22 @@ Usage
 Installation
 ============
 
-To use Fab, first install it using pip:
+To use Fab, first install it using pip.
 
 .. code-block:: console
 
    (.venv) $ pip install fab
+
+Configuration
+-------------
+
+You can optionally tell Fab where it's workspace should live.
+Useful on systems where your home space is on a network drive,
+which may not be as fast as your local hard drive.
+
+    ``export FAB_WORKSPACE=/tmp/persistent/fab_workspace``
+
+If you don't do this, Fab will create a workspace folder underneath the current working folder.
 
 Conda
 =====
