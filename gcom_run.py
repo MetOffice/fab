@@ -53,42 +53,12 @@ def gcom_object_archive_config():
     return config
 
 
-# def gcom_shared_object_config():
-#     from fab.dep_tree import by_type
-#
-#     config = gcom_object_archive_config()
-#     config.label = 'gcom shared object'
-#
-#     # don't pull the source again
-#     config.grab_config = None
-#
-#     # compile with fPIC
-#     fc: CompileFortran = list(by_type(config.steps, CompileFortran))[0]
-#     fc.flags.common_flags.append('-fPIC')
-#
-#     cc: CompileC = list(by_type(config.steps, CompileC))[0]
-#     cc.flags.common_flags.append('-fPIC')
-#
-#     # link the object archive
-#     config.steps.append(LinkSharedObject(
-#         linker=os.path.expanduser('~/.conda/envs/sci-fab/bin/mpifort'),
-#         output_fpath='$output/libgcom.so'))
-#
-#     return config
-
-
 def main():
 
     # ignore this, it's not here
     config = gcom_object_archive_config()
     with time_logger("grabbing"):
         grab_will_do_this(config.grab_config, config.workspace)
-
-    #
-    # configs = [gcom_object_archive_config(), gcom_shared_object_config()]
-    # for config in configs:
-    #     with time_logger("gcom build"):
-    #         Build(config=config).run()
 
     with time_logger("gcom build"):
         Build(config=gcom_object_archive_config()).run()
