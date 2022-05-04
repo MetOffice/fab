@@ -63,6 +63,7 @@ def main():
     with TimerLogger("gcom build"):
         Build(config=gcom_object_archive_config()).run()
 
+
 def grab_will_do_this(src_paths, workspace):
     for label, src_path in src_paths:
         shutil.copytree(
