@@ -16,7 +16,6 @@ from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.link_exe import LinkSharedObject
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
 from fab.steps.walk_source import FindSourceFiles
 from fab.util import time_logger
