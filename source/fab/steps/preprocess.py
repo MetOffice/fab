@@ -11,9 +11,11 @@ import logging
 from pathlib import Path
 from typing import List
 
+from fab.metrics import send_metric
+
 from fab.dep_tree import by_type
 from fab.steps.mp_exe import MpExeStep
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -27,11 +29,12 @@ class PreProcessor(MpExeStep):
     DEFAULT_SOURCE: ArtefactsGetter
     DEFAULT_OUTPUT_NAME: str
     DEFAULT_OUTPUT_SUFFIX: str
+    LABEL: str
 
     def __init__(self,
                  source: ArtefactsGetter = None, output_collection=None, output_suffix=None,
                  preprocessor='cpp', common_flags: List[str] = None, path_flags: List = None,
-                 name='preprocess'):
+                 name=None):
         """
         Kwargs:
             - source: Defines the files to preprocess. Defaults to DEFAULT_SOURCE.
@@ -43,7 +46,7 @@ class PreProcessor(MpExeStep):
             - name: Used for logger output.
 
         """
-        super().__init__(exe=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name)
+        super().__init__(exe=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name or self.LABEL)
 
         self.source_getter = source or self.DEFAULT_SOURCE
         self.output_collection = output_collection or self.DEFAULT_OUTPUT_NAME
@@ -81,31 +84,33 @@ class PreProcessor(MpExeStep):
         Writes the output file to the output folder, with a lower case extension.
 
         """
-        # output_fpath = self.output_path(fpath)
-        output_fpath = input_to_output_fpath(workspace=self._config.workspace, input_path=fpath).with_suffix(
-            self.output_suffix)
+        with Timer() as timer:
+            # output_fpath = self.output_path(fpath)
+            output_fpath = input_to_output_fpath(workspace=self._config.workspace, input_path=fpath).with_suffix(
+                self.output_suffix)
 
-        # for dev speed, but this could become a good time saver with, e.g, hashes or something
-        if self._config.debug_skip and output_fpath.exists():
-            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
-            return output_fpath
+            # for dev speed, but this could become a good time saver with, e.g, hashes or something
+            if self._config.debug_skip and output_fpath.exists():
+                log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+                return output_fpath
 
-        if not output_fpath.parent.exists():
-            output_fpath.parent.mkdir(parents=True, exist_ok=True)
+            if not output_fpath.parent.exists():
+                output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-        command = [self.exe]
-        command.extend(self.flags.flags_for_path(fpath, self._config.workspace))
+            command = [self.exe]
+            command.extend(self.flags.flags_for_path(fpath, self._config.workspace))
 
-        # input and output files
-        command.append(str(fpath))
-        command.append(str(output_fpath))
+            # input and output files
+            command.append(str(fpath))
+            command.append(str(output_fpath))
 
-        log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
-        try:
-            run_command(command)
-        except Exception as err:
-            raise Exception(f"error preprocessing {fpath}: {err}")
+            log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
+            try:
+                run_command(command)
+            except Exception as err:
+                raise Exception(f"error preprocessing {fpath}: {err}")
 
+        send_metric(self.name, str(fpath), timer.taken)
         return output_fpath
 
 
@@ -118,6 +123,7 @@ class FortranPreProcessor(PreProcessor):
     DEFAULT_SOURCE = SuffixFilter('all_source', '.F90')
     DEFAULT_OUTPUT_NAME = 'preprocessed_fortran'
     DEFAULT_OUTPUT_SUFFIX = '.f90'
+    LABEL = 'preprocess fortran'
 
 
 class CPreProcessor(PreProcessor):
@@ -132,3 +138,4 @@ class CPreProcessor(PreProcessor):
     DEFAULT_SOURCE = SuffixFilter('all_source', '.c')
     DEFAULT_OUTPUT_NAME = 'preprocessed_c'
     DEFAULT_OUTPUT_SUFFIX = '.c'
+    LABEL = 'preprocess c'

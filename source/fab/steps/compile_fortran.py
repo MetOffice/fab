@@ -11,9 +11,11 @@ import logging
 from pathlib import Path
 from typing import List, Set, Dict
 
+from fab.metrics import send_metric
+
 from fab.dep_tree import AnalysedFile, by_type
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer
 from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
@@ -114,21 +116,23 @@ class CompileFortran(MpExeStep):
         return compile_next
 
     def compile_file(self, analysed_file: AnalysedFile):
-        command = [self.exe]
-        command.extend(self.flags.flags_for_path(analysed_file.fpath, self._config.workspace))
-        command.append(str(analysed_file.fpath))
+        with Timer() as timer:
+            command = [self.exe]
+            command.extend(self.flags.flags_for_path(analysed_file.fpath, self._config.workspace))
+            command.append(str(analysed_file.fpath))
 
-        output_fpath = analysed_file.fpath.with_suffix('.o')
-        if self._config.debug_skip and output_fpath.exists():
-            log_or_dot(logger, f'Compiler skipping: {output_fpath}')
-            return CompiledFile(analysed_file, output_fpath)
+            output_fpath = analysed_file.fpath.with_suffix('.o')
+            if self._config.debug_skip and output_fpath.exists():
+                log_or_dot(logger, f'Compiler skipping: {output_fpath}')
+                return CompiledFile(analysed_file, output_fpath)
 
-        command.extend(['-o', str(output_fpath)])
+            command.extend(['-o', str(output_fpath)])
 
-        log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
-        try:
-            run_command(command)
-        except Exception as err:
-            return Exception("Error calling compiler:", err)
+            log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
+            try:
+                run_command(command)
+            except Exception as err:
+                return Exception("Error calling compiler:", err)
 
+        send_metric(self.name, str(analysed_file.fpath), timer.taken)
         return CompiledFile(analysed_file, output_fpath)

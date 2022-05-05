@@ -18,7 +18,7 @@ from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
 from fab.steps.walk_source import FindSourceFiles
-from fab.util import time_logger
+from fab.util import TimerLogger
 
 
 def gcom_object_archive_config():
@@ -57,10 +57,10 @@ def main():
 
     # ignore this, it's not here
     config = gcom_object_archive_config()
-    with time_logger("grabbing"):
+    with TimerLogger("grabbing"):
         grab_will_do_this(config.grab_config, config.workspace)
 
-    with time_logger("gcom build"):
+    with TimerLogger("gcom build"):
         Build(config=gcom_object_archive_config()).run()
 
 

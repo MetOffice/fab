@@ -19,7 +19,7 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, EXCLUDE
-from fab.util import time_logger
+from fab.util import TimerLogger
 
 
 def jules_config():
@@ -87,7 +87,7 @@ def main():
     config = jules_config()
 
     # ignore this, it's not here
-    with time_logger("grabbing"):
+    with TimerLogger("grabbing"):
         grab_will_do_this(config.grab_config, config.workspace)
 
     Build(config=config, ).run()

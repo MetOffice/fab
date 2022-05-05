@@ -3,16 +3,16 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+import datetime
 import logging
 import re
 import subprocess
 import sys
 import zlib
 from collections import namedtuple
-from contextlib import contextmanager
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable
+from typing import Iterator, Iterable, Optional
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 
@@ -49,12 +49,52 @@ def file_walk(path: Path) -> Iterator[Path]:
             yield i
 
 
-@contextmanager
-def time_logger(label):
-    logger.info("\n" + label)
-    start = perf_counter()
-    yield None
-    logger.info(f"{label} took {perf_counter() - start}")
+class Timer(object):
+    """
+    A simple timing context manager.
+    """
+
+    def __init__(self):
+        self._start: Optional[float] = None
+        self.taken: Optional[float] = None
+
+    def __enter__(self):
+        self._start = perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.taken = perf_counter() - self._start
+
+
+class TimerLogger(Timer):
+    """
+    A labelled timing context manager which logs the label and the time taken.
+    """
+
+    def __init__(self, label, res=0.001):
+        super().__init__()
+        self.label = label
+        self.res = res
+
+    def __enter__(self):
+        super().__enter__()
+        logger.info("\n" + self.label)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+
+        # log the time taken
+        # don't bother reporting trivial timings
+        seconds = int(self.taken / self.res) * self.res
+        if seconds >= self.res:
+
+            if seconds > 60:
+                # convert to timedelta for human-friendly str()
+                td = datetime.timedelta(seconds=seconds)
+                logger.info(f"{self.label} took {td}")
+            else:
+                logger.info(f"{self.label} took {seconds:.3f}s")
 
 
 # todo: better as a named tuple?
