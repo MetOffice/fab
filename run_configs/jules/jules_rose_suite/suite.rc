@@ -1,0 +1,30 @@
+[scheduling]
+    [[dependencies]]
+        graph = """
+            grab_jules => build_jules
+        """
+
+[runtime]
+
+    [[common]]
+        [[[job]]]
+            batch system = slurm
+            execution time limit = PT10M
+        [[[directives]]]
+            --mem=1024
+#           --ntasks=4
+            --cpus-per-task=4
+            --export=NONE
+        [[[environment]]]
+            FAB_WORKSPACE=$SCRATCH/fab_workspace
+            OMPI_FC=gfortran
+
+    [[grab_jules]]
+        inherit = common
+        script = run_py.sh grab_jules
+        [[[environment]]]
+            JULES_REVISION={{ JULES_REVISION }}
+
+    [[build_jules]]
+        inherit = common
+        script = run_py.sh build_jules

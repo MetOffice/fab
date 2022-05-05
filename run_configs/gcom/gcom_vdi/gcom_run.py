@@ -6,16 +6,15 @@
 ##############################################################################
 
 import os
-import shutil
 from pathlib import Path
 
 from fab.builder import Build
 from fab.config import Config
-from fab.constants import SOURCE_ROOT
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
+from fab.steps.grab import GrabFcm
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
 from fab.steps.walk_source import FindSourceFiles
 from fab.util import TimerLogger
@@ -26,10 +25,9 @@ def gcom_object_archive_config():
 
     config = Config(label='gcom object archive', workspace=workspace)
 
-    config.grab_config = {("gcom", "~/svn/gcom/trunk/build"), }
-
     config.steps = [
-        FindSourceFiles(workspace / SOURCE_ROOT),  # template?
+        GrabFcm(src='fcm:gcom.xm_tr/build', revision='vn7.6', dst_label="gcom"),
+        FindSourceFiles(),
         CPreProcessor(),
         FortranPreProcessor(
             common_flags=[
@@ -55,23 +53,8 @@ def gcom_object_archive_config():
 
 def main():
 
-    # ignore this, it's not here
-    config = gcom_object_archive_config()
-    with TimerLogger("grabbing"):
-        grab_will_do_this(config.grab_config, config.workspace)
-
     with TimerLogger("gcom build"):
         Build(config=gcom_object_archive_config()).run()
-
-
-def grab_will_do_this(src_paths, workspace):
-    for label, src_path in src_paths:
-        shutil.copytree(
-            os.path.expanduser(src_path),
-            workspace / SOURCE_ROOT / label,
-            dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns('.svn')
-        )
 
 
 if __name__ == '__main__':

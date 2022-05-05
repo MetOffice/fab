@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 class RootIncFiles(Step):
 
-    def __init__(self, source_root: Path, build_output: Optional[Path] = None, name="root inc files"):
+    def __init__(self, source_root=None, build_output: Optional[Path] = None, name="root inc files"):
         super().__init__(name)
         self.source_root = source_root
-        self.build_output = build_output or source_root.parent / BUILD_OUTPUT
+        self.build_output = build_output
 
     def run(self, artefact_store, config):
         """
@@ -40,6 +40,9 @@ class RootIncFiles(Step):
         """
         super().run(artefact_store, config)
 
+        source_root = self.source_root or config.source_root
+        build_output = self.build_output or source_root.parent / BUILD_OUTPUT
+
         warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
 
         # inc files all go in the root - they're going to be removed altogether, soon
@@ -48,7 +51,7 @@ class RootIncFiles(Step):
 
             # don't copy from the output root to the output root!
             # (i.e ancillary files from a previous run)
-            if fpath.parent == self.build_output:
+            if fpath.parent == build_output:
                 continue
 
             # check for name clash
@@ -56,5 +59,5 @@ class RootIncFiles(Step):
                 raise FileExistsError(f"name clash for inc file: {fpath}")
 
             logger.debug(f"copying inc file {fpath}")
-            shutil.copy(fpath, self.build_output)
+            shutil.copy(fpath, build_output)
             inc_copied.add(fpath.name)
