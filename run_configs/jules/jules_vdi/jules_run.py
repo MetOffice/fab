@@ -18,7 +18,6 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, EXCLUDE
-from fab.util import TimerLogger
 
 
 def jules_config():
