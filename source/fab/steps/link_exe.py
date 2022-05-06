@@ -41,7 +41,7 @@ class LinkExe(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.linker = linker
         self.flags: List[str] = flags or []
-        self.output_fpath = output_fpath
+        self.output_fpath: str = str(output_fpath)
 
     def run(self, artefact_store, config):
         """
