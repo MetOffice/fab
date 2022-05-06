@@ -3,6 +3,7 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+import logging
 import os
 from argparse import ArgumentParser
 
@@ -23,6 +24,8 @@ def gcom_grab_config(revision=None):
 
 
 if __name__ == '__main__':
+    logging.getLogger('fab').setLevel(logging.DEBUG)
+
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
     args = arg_parser.parse_args()

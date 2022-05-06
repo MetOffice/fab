@@ -29,6 +29,8 @@ from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles
 from fab.util import case_insensitive_replace
 
+logger = logging.getLogger('fab')
+
 
 # todo: fail fast, check gcom exists
 
@@ -279,7 +281,6 @@ class MyCustomCodeFixes(Step):
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger('fab')
     # logger.setLevel(logging.DEBUG)
 
     um_atmos_safe_config().run()
