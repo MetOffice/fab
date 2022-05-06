@@ -230,7 +230,7 @@ class Analyse(Step):
         # We discard previous results from files which are no longer present.
         prev_results: Dict[Path, AnalysedFile] = dict()
         try:
-            with open(self._config.workspace / "__analysis.csv", "rt") as csv_file:
+            with open(self._config.project_workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
                     analysed_file = AnalysedFile.from_dict(row)
@@ -271,7 +271,7 @@ class Analyse(Step):
         # for robustness against data corruption (otherwise we could just open with "wt+").
         # The returned context is a csv.DictWriter.
         with TimerLogger("starting analysis progress file"):
-            analysis_progress_file = open(self._config.workspace / "__analysis.csv", "wt")
+            analysis_progress_file = open(self._config.project_workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
             analysis_dict_writer.writeheader()
 

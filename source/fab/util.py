@@ -104,8 +104,8 @@ class CompiledFile(object):
         self.output_fpath = output_fpath
 
 
-def input_to_output_fpath(workspace: Path, input_path: Path):
-    rel_path = input_path.relative_to(workspace / SOURCE_ROOT)
+def input_to_output_fpath(source_root: Path, workspace: Path, input_path: Path):
+    rel_path = input_path.relative_to(source_root)
     return workspace / BUILD_OUTPUT / rel_path
 
 

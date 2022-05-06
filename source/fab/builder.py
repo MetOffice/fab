@@ -96,7 +96,7 @@ class Build(object):
 
     def init_logging(self):
         logger.info(f"{datetime.now()}")
-        if self.config.use_multiprocessing:
+        if self.config.multiprocessing:
             logger.info(f'machine cores: {multiprocessing.cpu_count()}')
             logger.info(f'available cores: {len(os.sched_getaffinity(0))}')
             logger.info(f'using n_procs = {self.config.n_procs}')
@@ -114,7 +114,7 @@ class Build(object):
         send_metric(group='run', name='machine', value=os.uname().machine)
         send_metric(group='run', name='user', value=getpass.getuser())
 
-        if self.config.use_multiprocessing:
+        if self.config.multiprocessing:
             send_metric(group='run', name='machine cores', value=multiprocessing.cpu_count())
             send_metric(group='run', name='available cores', value=len(os.sched_getaffinity(0)))
             send_metric(group='run', name='using n_procs', value=self.config.n_procs)

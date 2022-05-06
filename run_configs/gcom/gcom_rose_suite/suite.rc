@@ -1,0 +1,34 @@
+[scheduling]
+    [[dependencies]]
+        graph = """
+            grab_gcom => build_gcom_ar
+            grab_gcom => build_gcom_so
+        """
+
+[runtime]
+
+    [[common]]
+        [[[job]]]
+            batch system = slurm
+            execution time limit = PT10M
+        [[[directives]]]
+            --mem=500
+#           --ntasks=4
+            --cpus-per-task=4
+            --export=NONE
+        [[[environment]]]
+            FAB_WORKSPACE=$SCRATCH/fab_workspace
+            OMPI_FC=gfortran
+            GCOM_REVISION={{ GCOM_REVISION }}
+
+        [[grab_gcom]]
+            inherit = common
+            script = run_py.sh grab_gcom
+
+        [[build_gcom_ar]]
+            inherit = common
+            script = run_py.sh build_gcom_ar
+
+        [[build_gcom_so]]
+            inherit = common
+            script = run_py.sh build_gcom_so

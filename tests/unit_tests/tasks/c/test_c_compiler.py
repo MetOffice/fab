@@ -16,8 +16,8 @@ class Test_Compiler(object):
     def test_vanilla(self):
         # ensure the command is formed correctly
 
-        # config = mock.Mock(workspace=Path('foo/src'), use_multiprocessing=False)
-        config = SimpleNamespace(workspace=Path('foo/src'), use_multiprocessing=False)
+        # config = mock.Mock(workspace=Path('foo/src'), multiprocessing=False)
+        config = SimpleNamespace(workspace=Path('foo/src'), multiprocessing=False)
 
         c_compiler = CompileC(
             compiler='gcc', common_flags=['-c'], path_flags=[

@@ -55,7 +55,7 @@ class LinkExe(Step):
         compiled_files = self.source_getter(artefact_store)
 
         command = [self.linker]
-        command.extend(['-o', Template(self.output_fpath).substitute(output=config.workspace / BUILD_OUTPUT)])
+        command.extend(['-o', Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT)])
         command.extend([str(a.output_fpath) for a in compiled_files])
         # note: this must this come after the list of object files?
         command.extend(self.flags)

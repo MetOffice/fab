@@ -1,12 +1,14 @@
 [scheduling]
     [[dependencies]]
         graph = """
-            grab_jules => build_jules
+            build_jules
         """
 
 [runtime]
 
-    [[common]]
+    [[build_jules]]
+        script = run_py.sh build_jules
+
         [[[job]]]
             batch system = slurm
             execution time limit = PT10M
@@ -18,13 +20,4 @@
         [[[environment]]]
             FAB_WORKSPACE=$SCRATCH/fab_workspace
             OMPI_FC=gfortran
-
-    [[grab_jules]]
-        inherit = common
-        script = run_py.sh grab_jules
-        [[[environment]]]
             JULES_REVISION={{ JULES_REVISION }}
-
-    [[build_jules]]
-        inherit = common
-        script = run_py.sh build_jules

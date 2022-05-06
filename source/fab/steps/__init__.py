@@ -47,7 +47,7 @@ class Step(object):
             The whole set of results are returned in a list-like, with undefined order.
 
         """
-        if self._config.use_multiprocessing:
+        if self._config.multiprocessing:
             with multiprocessing.Pool(self._config.n_procs) as p:
                 results = p.map(func, items)
         else:
@@ -63,7 +63,7 @@ class Step(object):
         instead of waiting for everything to finish, allowing us to pick up where we left off if the program is halted.
 
         """
-        if self._config.use_multiprocessing:
+        if self._config.multiprocessing:
             with multiprocessing.Pool(self._config.n_procs) as p:
                 analysis_results = p.imap_unordered(func, items)
                 result_handler(analysis_results)

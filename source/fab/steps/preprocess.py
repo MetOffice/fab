@@ -86,8 +86,10 @@ class PreProcessor(MpExeStep):
         """
         with Timer() as timer:
             # output_fpath = self.output_path(fpath)
-            output_fpath = input_to_output_fpath(workspace=self._config.workspace, input_path=fpath).with_suffix(
-                self.output_suffix)
+            output_fpath = input_to_output_fpath(
+                source_root=self._config.source_root,
+                workspace=self._config.project_workspace,
+                input_path=fpath).with_suffix(self.output_suffix)
 
             # for dev speed, but this could become a good time saver with, e.g, hashes or something
             if self._config.debug_skip and output_fpath.exists():
@@ -98,7 +100,8 @@ class PreProcessor(MpExeStep):
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             command = [self.exe]
-            command.extend(self.flags.flags_for_path(fpath, self._config.workspace))
+            command.extend(self.flags.flags_for_path(
+                path=fpath, source_root=self._config.source_root, workspace=self._config.project_workspace))
 
             # input and output files
             command.append(str(fpath))
