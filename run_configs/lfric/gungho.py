@@ -41,12 +41,6 @@ def gungho():
     config.steps = [
 
         # todo: finickety with the slashes
-        # GrabFolder(src=lfric_source_config.source_root / 'lfric/infrastructure/source/', dst_label='infrastructure/source'),
-        # GrabFolder(src=lfric_source_config.source_root / 'lfric/components/driver/source/', dst_label='components/driver/source'),
-        # GrabFolder(src=lfric_source_config.source_root / 'lfric/components/science/source/', dst_label='components/science/source'),
-        # GrabFolder(src=lfric_source_config.source_root / 'lfric/components/lfric-xios/source/', dst_label='components/lfric-xios/source'),
-        # GrabFolder(src=lfric_source_config.source_root / 'lfric/gungho/source/', dst_label='gungho/source'),
-
         GrabFolder(src=lfric_source_config.source_root / 'lfric/infrastructure/source/', dst_label=''),
         GrabFolder(src=lfric_source_config.source_root / 'lfric/components/driver/source/', dst_label=''),
         GrabFolder(src=lfric_source_config.source_root / 'lfric/components/science/source/', dst_label=''),

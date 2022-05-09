@@ -28,4 +28,3 @@ class TestAddFlags(object):
             source_root=workspace / SOURCE_ROOT,
             workspace=workspace)
         assert my_flags == ['-foo']
-

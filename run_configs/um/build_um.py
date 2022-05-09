@@ -44,7 +44,7 @@ def um_atmos_safe_config():
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
     gcom_build = os.getenv('GCOM_BUILD') or \
-                 os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output")
+        os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output")
     logger.info(f"expecting gcom at {gcom_build}")
 
     file_filtering = [
@@ -189,8 +189,8 @@ def um_atmos_safe_config():
 
             path_flags=[
                 # mpl include - todo: just add this for everything?
-                AddFlags(f"$output/um/*", ['-I' + gcom_build]),
-                AddFlags(f"$output/jules/*", ['-I' + gcom_build]),
+                AddFlags("$output/um/*", ['-I' + gcom_build]),
+                AddFlags("$output/jules/*", ['-I' + gcom_build]),
 
                 # todo: allow multiple filters per instance?
                 *[AddFlags(*i) for i in ALLOW_MISMATCH_FLAGS]
@@ -264,13 +264,13 @@ class MyCustomCodeFixes(Step):
         self.replace_in_file(
             config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
             config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-            '(\W)NameListFile', '\g<1>FabNameListFile')
+            r'(\W)NameListFile', r'\g<1>FabNameListFile')
 
         warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
         self.replace_in_file(
             config.project_workspace / 'source/um/control/top_level/um_config.F90',
             config.project_workspace / 'source/um/control/top_level/um_config.F90',
-            '(\W)NameListFile', '\g<1>FabNameListFile')
+            r'(\W)NameListFile', r'\g<1>FabNameListFile')
 
     def replace_in_file(self, inpath, outpath, find, replace):
         orig = open(os.path.expanduser(inpath), "rt").read()
@@ -280,5 +280,4 @@ class MyCustomCodeFixes(Step):
 
 if __name__ == '__main__':
 
-    # logger.setLevel(logging.DEBUG)
     um_atmos_safe_config().run()

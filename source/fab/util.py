@@ -14,7 +14,7 @@ from pathlib import Path
 from time import perf_counter
 from typing import Iterator, Iterable, Optional
 
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
+from fab.constants import BUILD_OUTPUT
 
 logger = logging.getLogger(__name__)
 
