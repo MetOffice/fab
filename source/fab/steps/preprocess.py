@@ -117,28 +117,55 @@ class PreProcessor(MpExeStep):
         return output_fpath
 
 
-class FortranPreProcessor(PreProcessor):
-    """
-    By default, preprocesses all .F90 and .f90 files in the *all_source* artefact,
-    creating the *preprocessed_fortran* artefact.
+# class FortranPreProcessor(PreProcessor):
+#     """
+#     By default, preprocesses all .F90 and .f90 files in the *all_source* artefact,
+#     creating the *preprocessed_fortran* artefact.
+#
+#     """
+#     DEFAULT_SOURCE = SuffixFilter('all_source', '.F90')
+#     DEFAULT_OUTPUT_NAME = 'preprocessed_fortran'
+#     DEFAULT_OUTPUT_SUFFIX = '.f90'
+#     LABEL = 'preprocess fortran'
+#
+#
+# class CPreProcessor(PreProcessor):
+#     """
+#     By default, preprocesses all .c files in the *all_source* artefact, creating the *preprocessed_c* artefact.
+#
+#     An example of providing a :class:`~fab.util.ArtefactsGetter` would be
+#     when preprocessing files which have come from the C pragma injector,
+#     which creates the *pragmad_c* artefact.
+#
+#     """
+#     DEFAULT_SOURCE = SuffixFilter('all_source', '.c')
+#     DEFAULT_OUTPUT_NAME = 'preprocessed_c'
+#     DEFAULT_OUTPUT_SUFFIX = '.c'
+#     LABEL = 'preprocess c'
 
-    """
-    DEFAULT_SOURCE = SuffixFilter('all_source', '.F90')
-    DEFAULT_OUTPUT_NAME = 'preprocessed_fortran'
-    DEFAULT_OUTPUT_SUFFIX = '.f90'
-    LABEL = 'preprocess fortran'
+def fortran_preprocessor(preprocessor='fpp', source=None,
+                         output_collection='preprocessed_fortran', output_suffix='.f90',
+                         name='preprocess fortran', **pp_kwds):
+
+    return PreProcessor(
+        preprocessor=preprocessor,
+        source=source or SuffixFilter('all_source', '.F90'),
+        output_collection=output_collection,
+        output_suffix=output_suffix,
+        name=name,
+        **pp_kwds
+    )
 
 
-class CPreProcessor(PreProcessor):
-    """
-    By default, preprocesses all .c files in the *all_source* artefact, creating the *preprocessed_c* artefact.
+def c_preprocessor(preprocessor='cpp', source=None,
+                   output_collection='preprocessed_c', output_suffix='.c',
+                   name='preprocess c', **pp_kwds):
 
-    An example of providing a :class:`~fab.util.ArtefactsGetter` would be
-    when preprocessing files which have come from the C pragma injector,
-    which creates the *pragmad_c* artefact.
-
-    """
-    DEFAULT_SOURCE = SuffixFilter('all_source', '.c')
-    DEFAULT_OUTPUT_NAME = 'preprocessed_c'
-    DEFAULT_OUTPUT_SUFFIX = '.c'
-    LABEL = 'preprocess c'
+    return PreProcessor(
+        preprocessor=preprocessor,
+        source=source or SuffixFilter('all_source', '.c'),
+        output_collection=output_collection,
+        output_suffix=output_suffix,
+        name=name,
+        **pp_kwds
+    )

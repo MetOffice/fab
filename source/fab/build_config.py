@@ -11,10 +11,10 @@ from fnmatch import fnmatch
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from time import strftime
 from typing import List
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
+from fab.dep_tree import by_type
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps import Step
 from fab.util import TimerLogger
@@ -56,7 +56,6 @@ class BuildConfig(object):
             self.n_procs = max(1, len(os.sched_getaffinity(0)) - 1)
 
         self.debug_skip = debug_skip
-        self._log_filehandler = None
 
     def run(self):
         start_time = datetime.now().replace(microsecond=0)
@@ -79,8 +78,9 @@ class BuildConfig(object):
             self.finalise_logging()
 
     def init_logging(self):
-        self._log_filehandler = logging.FileHandler(self.project_workspace / 'log.txt', mode='w')
-        logging.getLogger('fab').addHandler(self._log_filehandler)
+        # add a file logger for our run
+        root_logger = logging.getLogger('fab')
+        root_logger.addHandler(logging.FileHandler(self.project_workspace / 'log.txt', mode='w'))
 
         logger.info(f"{datetime.now()}")
         if self.multiprocessing:
@@ -90,7 +90,11 @@ class BuildConfig(object):
         logger.info(f"workspace is {self.project_workspace}")
 
     def finalise_logging(self):
-        logging.getLogger('fab').removeHandler(self._log_filehandler)
+        # remove our file logger
+        root_logger = logging.getLogger('fab')
+        log_file_handlers = list(by_type(root_logger.handlers, logging.FileHandler))
+        assert len(log_file_handlers) == 1
+        root_logger.removeHandler(log_file_handlers[0])
 
     def finalise_metrics(self, start_time, steps_timer):
         send_metric('run', 'label', self.project_label)

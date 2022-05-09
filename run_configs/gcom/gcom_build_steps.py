@@ -5,7 +5,7 @@
 ##############################################################################
 from typing import List
 
-from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
+from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 
 from fab.steps import Step
 from fab.steps.analyse import Analyse
@@ -17,8 +17,8 @@ from fab.steps.walk_source import FindSourceFiles
 def common_build_steps(fpic=False) -> List[Step]:
     steps: List[Step] = [
         FindSourceFiles(),
-        CPreProcessor(),
-        FortranPreProcessor(
+        c_preprocessor(),
+        fortran_preprocessor(
             common_flags=[
                 '-P',
                 '-I$source/gcom/include',
