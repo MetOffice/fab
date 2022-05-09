@@ -3,7 +3,6 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-import logging
 import os
 from argparse import ArgumentParser
 
@@ -19,7 +18,7 @@ def gcom_grab_config(revision=None):
     return BuildConfig(
         project_label=f'gcom_source_{revision}',
         steps=[
-            GrabFcm(src=f'fcm:gcom.xm_tr/build', revision=revision, dst_label="gcom"),
+            GrabFcm(src='fcm:gcom.xm_tr/build', revision=revision, dst_label="gcom"),
         ])
 
 
@@ -28,5 +27,4 @@ if __name__ == '__main__':
     arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
     args = arg_parser.parse_args()
 
-    # logging.getLogger('fab').setLevel(logging.DEBUG)
     gcom_grab_config(revision=args.revision).run()
