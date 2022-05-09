@@ -7,7 +7,7 @@ import logging
 import os
 from argparse import ArgumentParser
 
-from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
+from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 
 from fab.build_config import BuildConfig, AddFlags
 from fab.steps.analyse import Analyse
@@ -54,9 +54,9 @@ def jules_config(revision=None):
 
         RootIncFiles(),
 
-        CPreProcessor(),
+        c_preprocessor(),
 
-        FortranPreProcessor(
+        fortran_preprocessor(
             preprocessor='cpp',
             common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']),
 
