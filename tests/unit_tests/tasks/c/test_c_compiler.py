@@ -6,7 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from fab.config import AddFlags
+from fab.build_config import AddFlags
+
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_c import CompileC
 
@@ -17,7 +18,7 @@ class Test_Compiler(object):
         # ensure the command is formed correctly
 
         # config = mock.Mock(workspace=Path('foo/src'), multiprocessing=False)
-        config = SimpleNamespace(workspace=Path('foo/src'), multiprocessing=False)
+        config = SimpleNamespace(project_workspace=Path('foo'), source_root=Path('foo/src'), multiprocessing=False)
 
         c_compiler = CompileC(
             compiler='gcc', common_flags=['-c'], path_flags=[

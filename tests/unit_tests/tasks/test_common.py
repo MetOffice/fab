@@ -18,7 +18,7 @@ class TestLinkExe(object):
         with mock.patch('fab.steps.link_exe.run_command') as mock_run:
             linker.run(
                 artefact_store={'compiled_fortran': [Mock(output_fpath='foo.o'), Mock(output_fpath='bar.o')]},
-                config=mock.Mock(workspace=Path('workspace')))
+                config=mock.Mock(project_workspace=Path('workspace')))
 
         mock_run.assert_called_with(['foolink', '-o', 'foo.exe', 'foo.o', 'bar.o', '-fooflag', '-barflag'])
 
@@ -30,6 +30,6 @@ class TestArchiveObjects(object):
 
         with mock.patch('fab.steps.archive_objects.run_command') as mock_run:
             artefact_store = {'compiled_fortran': [Mock(output_fpath='foo.o'), Mock(output_fpath='bar.o')]}
-            archiver.run(artefact_store=artefact_store, config=mock.Mock(workspace=Path('workspace')))
+            archiver.run(artefact_store=artefact_store, config=mock.Mock(project_workspace=Path('workspace')))
 
         mock_run.assert_called_with(['fooarc', 'cr', 'workspace/build_output/foo.a', 'foo.o', 'bar.o'])

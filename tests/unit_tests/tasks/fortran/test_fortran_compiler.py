@@ -2,8 +2,8 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from fab.build_config import AddFlags
 
-from fab.config import AddFlags
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
 # todo: we might have liked to reuse this from test_dep_tree

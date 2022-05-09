@@ -36,7 +36,7 @@ class BuildConfig(object):
         if fab_workspace_root:
             fab_workspace_root = Path(fab_workspace_root)
         elif os.getenv("FAB_WORKSPACE"):
-            fab_workspace_root = Path(os.getenv("FAB_WORKSPACE"))
+            fab_workspace_root = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
         else:
             fab_workspace_root = Path(os.path.expanduser("~/fab-workspace"))
             logger.info(f"FAB_WORKSPACE not set. Using {fab_workspace_root}.")
@@ -141,7 +141,7 @@ class AddFlags(object):
         params = {'relative': fpath.parent, 'source': source_root, 'output': workspace / BUILD_OUTPUT}
 
         # does the file path match our filter?
-        if not self.match or fnmatch(fpath, Template(self.match).substitute(params)):
+        if not self.match or fnmatch(str(fpath), Template(self.match).substitute(params)):
             # use templating to render any relative paths in our flags
             add_flags = [Template(flag).substitute(params) for flag in self.flags]
 
