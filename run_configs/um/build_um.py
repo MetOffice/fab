@@ -281,6 +281,6 @@ class MyCustomCodeFixes(Step):
 
 
 if __name__ == '__main__':
-    # logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 
     um_atmos_safe_config().run()

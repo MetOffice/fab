@@ -11,6 +11,7 @@ from fnmatch import fnmatch
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
+from time import strftime
 from typing import List
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
@@ -55,11 +56,14 @@ class BuildConfig(object):
             self.n_procs = max(1, len(os.sched_getaffinity(0)) - 1)
 
         self.debug_skip = debug_skip
+        self._log_filehandler = None
 
     def run(self):
+        start_time = datetime.now().replace(microsecond=0)
+        self.project_workspace.mkdir(parents=True, exist_ok=True)
+
         self.init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
-        start_time = datetime.now().replace(microsecond=0)
 
         artefact_store = dict()
         try:
@@ -72,15 +76,11 @@ class BuildConfig(object):
             raise Exception(f'\n\nError running build steps:\n{err}')
         finally:
             self.finalise_metrics(start_time, steps_timer)
+            self.finalise_logging()
 
     def init_logging(self):
-
-        if not self.project_workspace.exists():
-            logger.info("creating workspace")
-            self.project_workspace.mkdir(parents=True)
-
-        # if logging.FileHandler not in map(type, logger.handlers):
-        #     logger.addHandler(logging.FileHandler(self.project_workspace / 'log.txt', mode='w'))
+        self._log_filehandler = logging.FileHandler(self.project_workspace / 'log.txt', mode='w')
+        logging.getLogger('fab').addHandler(self._log_filehandler)
 
         logger.info(f"{datetime.now()}")
         if self.multiprocessing:
@@ -88,6 +88,9 @@ class BuildConfig(object):
             logger.info(f'available cores: {len(os.sched_getaffinity(0))}')
             logger.info(f'using n_procs = {self.n_procs}')
         logger.info(f"workspace is {self.project_workspace}")
+
+    def finalise_logging(self):
+        logging.getLogger('fab').removeHandler(self._log_filehandler)
 
     def finalise_metrics(self, start_time, steps_timer):
         send_metric('run', 'label', self.project_label)

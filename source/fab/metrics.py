@@ -34,7 +34,7 @@ from typing import Optional, Dict
 
 JSON_FILENAME = 'metrics.json'
 
-logger = logging.getLogger('fab')
+logger = logging.getLogger(__name__)
 
 # the pipe for individual metrics
 _metric_recv_conn: Optional[Connection] = None
