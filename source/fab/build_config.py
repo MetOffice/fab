@@ -8,6 +8,7 @@ import logging
 import os
 from datetime import datetime
 from fnmatch import fnmatch
+from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
@@ -79,8 +80,9 @@ class BuildConfig(object):
 
     def init_logging(self):
         # add a file logger for our run
-        root_logger = logging.getLogger('fab')
-        root_logger.addHandler(logging.FileHandler(self.project_workspace / 'log.txt', mode='w'))
+        log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
+        logger.root.addHandler(log_file_handler)
+        log_file_handler.doRollover()
 
         logger.info(f"{datetime.now()}")
         if self.multiprocessing:
@@ -91,10 +93,9 @@ class BuildConfig(object):
 
     def finalise_logging(self):
         # remove our file logger
-        root_logger = logging.getLogger('fab')
-        log_file_handlers = list(by_type(root_logger.handlers, logging.FileHandler))
+        log_file_handlers = list(by_type(logger.root.handlers, RotatingFileHandler))
         assert len(log_file_handlers) == 1
-        root_logger.removeHandler(log_file_handlers[0])
+        logger.root.removeHandler(log_file_handlers[0])
 
     def finalise_metrics(self, start_time, steps_timer):
         send_metric('run', 'label', self.project_label)

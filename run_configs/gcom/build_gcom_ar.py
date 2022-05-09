@@ -36,5 +36,5 @@ if __name__ == '__main__':
     arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
     args = arg_parser.parse_args()
 
-    logging.getLogger('fab').setLevel(logging.DEBUG)
+    # logging.getLogger('fab').setLevel(logging.DEBUG)
     gcom_ar_config(revision=args.revision).run()
