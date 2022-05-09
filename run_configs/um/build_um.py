@@ -12,7 +12,7 @@ import os
 import warnings
 from pathlib import Path
 
-from fab.steps.preprocess import CPreProcessor, FortranPreProcessor
+from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
@@ -125,9 +125,8 @@ def um_atmos_safe_config():
 
         CPragmaInjector(),
 
-        CPreProcessor(
+        c_preprocessor(
             source=CollectionGetter('pragmad_c'),
-            preprocessor='cpp',
             path_flags=[
                 # todo: this is a bit "codey" - can we safely give longer strings and split later?
                 AddFlags(match="$source/um/*", flags=[
@@ -145,9 +144,8 @@ def um_atmos_safe_config():
         ),
 
         # todo: explain fnmatch
-        FortranPreProcessor(
-            preprocessor='cpp',
-            common_flags=['-traditional-cpp', '-P'],
+        fortran_preprocessor(
+            common_flags=['-P'],
             path_flags=[
                 AddFlags("$source/jules/*", ['-DUM_JULES']),
                 AddFlags("$source/um/*", ['-I$relative/include']),
