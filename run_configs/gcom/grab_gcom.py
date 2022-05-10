@@ -12,7 +12,7 @@ from fab.steps.grab import GrabFcm
 
 def gcom_grab_config(revision=None):
     """
-    Grab the gcom source, for use by multiple rose build configs.
+    Grab the gcom source.
 
     """
     return BuildConfig(

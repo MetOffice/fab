@@ -7,14 +7,13 @@ import logging
 import os
 from argparse import ArgumentParser
 
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
-
 from fab.build_config import BuildConfig, AddFlags
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFcm
 from fab.steps.link_exe import LinkExe
+from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, EXCLUDE
 
@@ -38,7 +37,8 @@ def jules_config(revision=None):
         'imogen_update_carb', 'next_time', 'sow', 'emerge', 'develop', 'partition', 'radf_co2', 'radf_non_co2',
         'adf_ch4gcm_anlg', 'drdat', 'clim_calc', 'diffcarb_land_co2', 'ocean_co2', 'diffcarb_land_ch4',
         'diff_atmos_ch4', 'day_calc', 'response', 'radf_ch4', 'gcm_anlg', 'delta_temp', 'rndm', 'invert', 'vgrav',
-        'conversions_mod', 'water_constants_mod', 'planet_constants_mod', 'veg_param_mod', 'flake_interface']
+        'conversions_mod', 'water_constants_mod', 'planet_constants_mod', 'veg_param_mod', 'flake_interface'
+    ]
 
     config.steps = [
 
@@ -58,7 +58,8 @@ def jules_config(revision=None):
 
         fortran_preprocessor(
             preprocessor='cpp',
-            common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']),
+            common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
+        ),
 
         Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
 
@@ -66,10 +67,13 @@ def jules_config(revision=None):
 
         CompileFortran(
             compiler='gfortran',
-            common_flags=['-c', '-J', '$output'],
+            common_flags=[
+                '-c',
+                '-J', '$output'],
             path_flags=[
-                AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch'])
-            ]),
+                AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
+            ]
+        ),
 
         LinkExe(
             linker='mpifort',
