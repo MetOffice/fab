@@ -39,7 +39,7 @@ def um_atmos_safe_config():
     config = BuildConfig(
         project_label='um_atmos_safe',
         # multiprocessing=False,
-        debug_skip=True,
+        reuse_artefacts=True,
     )
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6

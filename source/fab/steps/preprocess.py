@@ -92,7 +92,7 @@ class PreProcessor(MpExeStep):
                 input_path=fpath).with_suffix(self.output_suffix)
 
             # for dev speed, but this could become a good time saver with, e.g, hashes or something
-            if self._config.debug_skip and output_fpath.exists():
+            if self._config.reuse_artefacts and output_fpath.exists():
                 log_or_dot(logger, f'Preprocessor skipping: {fpath}')
                 return output_fpath
 

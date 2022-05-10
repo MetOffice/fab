@@ -24,18 +24,36 @@ logger = logging.getLogger(__name__)
 
 
 class BuildConfig(object):
+    """
+    Contains and runs a list of build steps.
 
-    def __init__(self, project_label, source_root=None,
-                 fab_workspace_root=None, steps: List[Step] = None,
-                 multiprocessing=True, n_procs=None,
-                 debug_skip=False):
+    :param str project_label:
+        Name of the build project. The project workspace folder is created from this name, with spaces replaced
+        by underscores.
+    :param Path source_root:
+        Optional argument to allow the config to find the source code outside it's project workspace.
+        This is useful, for example, when the :py:mod:`fab.steps.grab <grab>` is in a separate script to be run
+        less frequently. In this scenario, the source code will be found in a  different project workspace folder.
+    :param List[Step] steps:
+        The list of build steps to run.
+    :param bool multiprocessing:
+        An option to disable multiprocessing to aid debugging.
+    :param int n_procs:
+        The number of cores to use for multiprocessing operations. Defaults to the number of available cores - 1.
+    :param bool reuse_artefacts:
+        A flag to avoid reprocessing artefacts a second time.
+        Currently unsophisticated, the existence of an output file means it doesn't need to be reprocessed.
+        The logic behind flag will be improved in the future.
+
+    """
+
+    def __init__(self, project_label, source_root=None, steps: List[Step] = None,
+                 multiprocessing=True, n_procs=None, reuse_artefacts=False):
 
         self.project_label: str = project_label
 
         # workspace folder
-        if fab_workspace_root:
-            fab_workspace_root = Path(fab_workspace_root)
-        elif os.getenv("FAB_WORKSPACE"):
+        if os.getenv("FAB_WORKSPACE"):
             fab_workspace_root = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
         else:
             fab_workspace_root = Path(os.path.expanduser("~/fab-workspace"))
@@ -56,13 +74,20 @@ class BuildConfig(object):
             # todo: can we use *all* available cpus, not n-1, without causing a bottleneck?
             self.n_procs = max(1, len(os.sched_getaffinity(0)) - 1)
 
-        self.debug_skip = debug_skip
+        self.reuse_artefacts = reuse_artefacts
 
     def run(self):
+        """
+        Execute the build steps in order.
+
+        This function also records metrics and creates a summary, including charts if matplotlib is installed.
+        The metrics can be found in the project workspace.
+
+        """
         start_time = datetime.now().replace(microsecond=0)
         self.project_workspace.mkdir(parents=True, exist_ok=True)
 
-        self.init_logging()
+        self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
 
         artefact_store = dict()
@@ -75,10 +100,10 @@ class BuildConfig(object):
         except Exception as err:
             raise Exception(f'\n\nError running build steps:\n{err}')
         finally:
-            self.finalise_metrics(start_time, steps_timer)
-            self.finalise_logging()
+            self._finalise_metrics(start_time, steps_timer)
+            self._finalise_logging()
 
-    def init_logging(self):
+    def _init_logging(self):
         # add a file logger for our run
         log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
         logger.root.addHandler(log_file_handler)
@@ -91,13 +116,13 @@ class BuildConfig(object):
             logger.info(f'using n_procs = {self.n_procs}')
         logger.info(f"workspace is {self.project_workspace}")
 
-    def finalise_logging(self):
+    def _finalise_logging(self):
         # remove our file logger
         log_file_handlers = list(by_type(logger.root.handlers, RotatingFileHandler))
         assert len(log_file_handlers) == 1
         logger.root.removeHandler(log_file_handlers[0])
 
-    def finalise_metrics(self, start_time, steps_timer):
+    def _finalise_metrics(self, start_time, steps_timer):
         send_metric('run', 'label', self.project_label)
         send_metric('run', 'datetime', start_time.isoformat())
         send_metric('run', 'time taken', steps_timer.taken)
