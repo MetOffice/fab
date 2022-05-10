@@ -119,7 +119,7 @@ def um_atmos_safe_config():
 
         MyCustomCodeFixes(name="my custom code fixes"),
 
-        FindSourceFiles(file_filtering=file_filtering),  # template?
+        FindSourceFiles(file_filtering=file_filtering),
 
         RootIncFiles(),
 
@@ -158,7 +158,6 @@ def um_atmos_safe_config():
 
         Analyse(
             root_symbol='um_main',
-            unreferenced_deps=None,
 
             # fparser2 fails to parse this file, but it does compile.
             special_measure_analysis_results=[
@@ -177,7 +176,6 @@ def um_atmos_safe_config():
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
 
         CompileFortran(
-            # todo: GFORTRAN ENV VAR
             # compiler='mpifort',
             compiler='gfortran',
             common_flags=[

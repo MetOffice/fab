@@ -47,13 +47,13 @@ class BuildConfig(object):
         self.source_root = source_root or self.project_workspace / SOURCE_ROOT
 
         # build steps
-        self.steps: List[Step] = steps or []  # use default zero-config steps here
+        self.steps: List[Step] = steps or []
 
         # multiprocessing config
         self.multiprocessing = multiprocessing
         self.n_procs = n_procs
         if self.multiprocessing and not self.n_procs:
-            # todo: can we use *all* available cpus, not -1, without causing a bottleneck?
+            # todo: can we use *all* available cpus, not n-1, without causing a bottleneck?
             self.n_procs = max(1, len(os.sched_getaffinity(0)) - 1)
 
         self.debug_skip = debug_skip
@@ -105,7 +105,6 @@ class BuildConfig(object):
         send_metric('run', 'nodename', os.uname().nodename)
         send_metric('run', 'machine', os.uname().machine)
         send_metric('run', 'user', getpass.getuser())
-        # metrics_send_conn.close()
         stop_metrics()
         metrics_summary(metrics_folder=self.metrics_folder)
 
