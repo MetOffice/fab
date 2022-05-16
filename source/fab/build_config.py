@@ -12,9 +12,7 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List
-
-from pyparsing import Optional
+from typing import List, Optional
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 from fab.dep_tree import by_type
