@@ -14,6 +14,8 @@ from pathlib import Path
 from string import Template
 from typing import List
 
+from pyparsing import Optional
+
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 from fab.dep_tree import by_type
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
@@ -47,8 +49,8 @@ class BuildConfig(object):
 
     """
 
-    def __init__(self, project_label, source_root=None, steps: List[Step] = None,
-                 multiprocessing=True, n_procs=None, reuse_artefacts=False):
+    def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
+                 multiprocessing=True, n_procs: int = None, reuse_artefacts=False):
 
         self.project_label: str = project_label
 
@@ -62,7 +64,7 @@ class BuildConfig(object):
         self.metrics_folder = self.project_workspace / 'metrics' / self.project_label.replace(' ', '_', -1)
 
         # source config
-        self.source_root = source_root or self.project_workspace / SOURCE_ROOT
+        self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
 
         # build steps
         self.steps: List[Step] = steps or []
