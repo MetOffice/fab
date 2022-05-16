@@ -50,7 +50,7 @@ class ArchiveObjects(Step):
         compiled_files: List[CompiledFile] = self.source_getter(artefact_store)
 
         command = [self.archiver]
-        command.extend(['cr', Template(self.output_fpath).substitute(output=config.workspace / BUILD_OUTPUT)])
+        command.extend(['cr', Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT)])
         command.extend([str(a.output_fpath) for a in compiled_files])
 
         log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))

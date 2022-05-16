@@ -9,7 +9,8 @@ A step for running multiple files through a command line tool using multiprocess
 """
 from typing import Dict, List
 
-from fab.config import FlagsConfig, AddFlags
+from fab.build_config import FlagsConfig, AddFlags
+
 from fab.steps import Step
 
 

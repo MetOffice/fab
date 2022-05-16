@@ -86,11 +86,13 @@ class PreProcessor(MpExeStep):
         """
         with Timer() as timer:
             # output_fpath = self.output_path(fpath)
-            output_fpath = input_to_output_fpath(workspace=self._config.workspace, input_path=fpath).with_suffix(
-                self.output_suffix)
+            output_fpath = input_to_output_fpath(
+                source_root=self._config.source_root,
+                workspace=self._config.project_workspace,
+                input_path=fpath).with_suffix(self.output_suffix)
 
             # for dev speed, but this could become a good time saver with, e.g, hashes or something
-            if self._config.debug_skip and output_fpath.exists():
+            if self._config.reuse_artefacts and output_fpath.exists():
                 log_or_dot(logger, f'Preprocessor skipping: {fpath}')
                 return output_fpath
 
@@ -98,7 +100,8 @@ class PreProcessor(MpExeStep):
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             command = [self.exe]
-            command.extend(self.flags.flags_for_path(fpath, self._config.workspace))
+            command.extend(self.flags.flags_for_path(
+                path=fpath, source_root=self._config.source_root, workspace=self._config.project_workspace))
 
             # input and output files
             command.append(str(fpath))
@@ -114,28 +117,29 @@ class PreProcessor(MpExeStep):
         return output_fpath
 
 
-class FortranPreProcessor(PreProcessor):
-    """
-    By default, preprocesses all .F90 and .f90 files in the *all_source* artefact,
-    creating the *preprocessed_fortran* artefact.
+def fortran_preprocessor(preprocessor='fpp', source=None,
+                         output_collection='preprocessed_fortran', output_suffix='.f90',
+                         name='preprocess fortran', **pp_kwds):
 
-    """
-    DEFAULT_SOURCE = SuffixFilter('all_source', '.F90')
-    DEFAULT_OUTPUT_NAME = 'preprocessed_fortran'
-    DEFAULT_OUTPUT_SUFFIX = '.f90'
-    LABEL = 'preprocess fortran'
+    return PreProcessor(
+        preprocessor=preprocessor,
+        source=source or SuffixFilter('all_source', '.F90'),
+        output_collection=output_collection,
+        output_suffix=output_suffix,
+        name=name,
+        **pp_kwds
+    )
 
 
-class CPreProcessor(PreProcessor):
-    """
-    By default, preprocesses all .c files in the *all_source* artefact, creating the *preprocessed_c* artefact.
+def c_preprocessor(preprocessor='cpp', source=None,
+                   output_collection='preprocessed_c', output_suffix='.c',
+                   name='preprocess c', **pp_kwds):
 
-    An example of providing a :class:`~fab.util.ArtefactsGetter` would be
-    when preprocessing files which have come from the C pragma injector,
-    which creates the *pragmad_c* artefact.
-
-    """
-    DEFAULT_SOURCE = SuffixFilter('all_source', '.c')
-    DEFAULT_OUTPUT_NAME = 'preprocessed_c'
-    DEFAULT_OUTPUT_SUFFIX = '.c'
-    LABEL = 'preprocess c'
+    return PreProcessor(
+        preprocessor=preprocessor,
+        source=source or SuffixFilter('all_source', '.c'),
+        output_collection=output_collection,
+        output_suffix=output_suffix,
+        name=name,
+        **pp_kwds
+    )

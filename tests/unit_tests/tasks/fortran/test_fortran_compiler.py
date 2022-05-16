@@ -2,8 +2,8 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from fab.build_config import AddFlags
 
-from fab.config import AddFlags
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
 # todo: we might have liked to reuse this from test_dep_tree
@@ -28,7 +28,7 @@ class Test_run(object):
     def test_vanilla(self, src_tree):
         # ensure the compile passes match the build tree
 
-        config = mock.Mock(workspace=Path('foo/src'), use_multiprocessing=False)
+        config = mock.Mock(workspace=Path('foo/src'), multiprocessing=False)
 
         c_compiler = CompileFortran(
             compiler='gcc', common_flags=['-c'], path_flags=[AddFlags(match='foo/src/*', flags=['-Dhello'])])

@@ -39,7 +39,7 @@ def test_load_analysis_results():
         analyser = Analyse(root_symbol=None)
 
         # simulate the effect of calling run, in which the superclass sets up the _config attribute (is this too ugly?)
-        analyser._config = mock.Mock(workspace=Path(tmpdir))
+        analyser._config = mock.Mock(project_workspace=Path(tmpdir))
 
         # run 1
         # create the previous analysis file

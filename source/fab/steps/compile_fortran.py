@@ -118,11 +118,14 @@ class CompileFortran(MpExeStep):
     def compile_file(self, analysed_file: AnalysedFile):
         with Timer() as timer:
             command = [self.exe]
-            command.extend(self.flags.flags_for_path(analysed_file.fpath, self._config.workspace))
+            command.extend(self.flags.flags_for_path(
+                path=analysed_file.fpath,
+                source_root=self._config.source_root,
+                workspace=self._config.project_workspace))
             command.append(str(analysed_file.fpath))
 
             output_fpath = analysed_file.fpath.with_suffix('.o')
-            if self._config.debug_skip and output_fpath.exists():
+            if self._config.reuse_artefacts and output_fpath.exists():
                 log_or_dot(logger, f'Compiler skipping: {output_fpath}')
                 return CompiledFile(analysed_file, output_fpath)
 
