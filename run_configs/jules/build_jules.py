@@ -70,9 +70,6 @@ def jules_config(revision=None):
             common_flags=[
                 '-c',
                 '-J', '$output'],
-            path_flags=[
-                AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
-            ]
         ),
 
         LinkExe(
