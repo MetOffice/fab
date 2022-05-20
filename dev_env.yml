@@ -3,11 +3,9 @@
 name: sci-fab
 dependencies:
   - flake8
-  - gfortran
   - libclang
   - matplotlib
   - mypy
-  - openmpi
   - python>=3.8
   - pip>=21.2.4
   - pytest
@@ -16,3 +14,8 @@ dependencies:
   - pytest-mock
   - pip:
       - fparser
+      - matplotlib
+      - psyclone==2.1.0
+      - sphinx
+      - sphinx_rtd_theme
+      - svn
