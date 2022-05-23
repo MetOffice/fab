@@ -41,7 +41,7 @@ class CollectionGetter(ArtefactsGetter):
 
     def __call__(self, artefact_store):
         super().__call__(artefact_store)
-        return artefact_store[self.collection_name]
+        return artefact_store.get(self.collection_name, [])
 
 
 class CollectionConcat(ArtefactsGetter):
@@ -135,3 +135,6 @@ class FilterBuildTree(ArtefactsGetter):
         super().__call__(artefact_store)
         source_tree: Dict[Path, AnalysedFile] = artefact_store[self.collection_name]
         return filter_source_tree(source_tree=source_tree, suffixes=self.suffixes)
+
+
+CompiledFortranAndC = CollectionConcat(['compiled_c', 'compiled_fortran'])

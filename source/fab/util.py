@@ -97,7 +97,7 @@ class TimerLogger(Timer):
                 logger.info(f"{self.label} took {seconds:.3f}s")
 
 
-# todo: better as a named tuple?
+# todo: this is only needed for fortran compiling - move it there as a private class and stop using in c compiler
 class CompiledFile(object):
     def __init__(self, analysed_file, output_fpath):
         self.analysed_file = analysed_file

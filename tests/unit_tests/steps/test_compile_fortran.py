@@ -48,13 +48,14 @@ class Test_run(object):
         artefact_store = {'build_tree': {af.fpath: af for af in analysed_files}}
 
         def mp_return(items, func):
-            return [CompiledFile(analysed_file=i, output_fpath=None) for i in items]
+            return [CompiledFile(analysed_file=i, output_fpath=i.fpath.with_suffix('.o')) for i in items]
 
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
             compiler.run(artefact_store, config=None)
 
-        compiled = [i.analysed_file for i in artefact_store['compiled_fortran']]
-        assert compiled == list(reversed(analysed_files))
+        compiled = artefact_store['compiled_fortran']
+        expected = [i.fpath.with_suffix('.o') for i in reversed(analysed_files)]
+        assert compiled == expected
 
     def test_exception(self, compiler, analysed_files):
         # Like vanilla but run_mp returns an exception from the compiler.
