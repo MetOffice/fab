@@ -7,7 +7,7 @@ import logging
 import os
 from argparse import ArgumentParser
 
-from fab.build_config import BuildConfig, AddFlags
+from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
