@@ -7,7 +7,7 @@ import logging
 import os
 from argparse import ArgumentParser
 
-from fab.build_config import BuildConfig, AddFlags
+from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
@@ -70,9 +70,6 @@ def jules_config(revision=None):
             common_flags=[
                 '-c',
                 '-J', '$output'],
-            path_flags=[
-                AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
-            ]
         ),
 
         LinkExe(
