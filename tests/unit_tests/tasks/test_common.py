@@ -15,13 +15,18 @@ class TestLinkExe(object):
         # ensure the command is formed correctly, with the flags at the end (why?!)
         linker = LinkExe(linker='foolink', flags=['-fooflag', '-barflag'], output_fpath='foo.exe')
 
-        with mock.patch('fab.steps.link_exe.run_command') as mock_run:
-            linker.run(
-                artefact_store={'compiled_fortran': [Mock(output_fpath='foo.o'), Mock(output_fpath='bar.o')]},
-                config=mock.Mock(project_workspace=Path('workspace')))
+        with mock.patch('os.getenv', return_value='-L/foo1/lib -L/foo2/lib'):
+            with mock.patch('fab.steps.link_exe.run_command') as mock_run:
+                linker.run(
+                    artefact_store={'compiled_fortran': [Mock(output_fpath='foo.o'), Mock(output_fpath='bar.o')]},
+                    config=mock.Mock(project_workspace=Path('workspace')))
 
-        mock_run.assert_called_with(['foolink', '-o', 'foo.exe', 'foo.o', 'bar.o', '-fooflag', '-barflag'])
-
+        mock_run.assert_called_with([
+            'foolink', '-o', 'foo.exe',
+            'foo.o', 'bar.o',
+            '-L/foo1/lib', '-L/foo2/lib',
+            '-fooflag', '-barflag',
+        ])
 
 class TestArchiveObjects(object):
     def test_run(self):
