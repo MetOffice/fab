@@ -8,6 +8,7 @@ Link an executable.
 
 """
 import logging
+import os
 from string import Template
 from typing import List
 
@@ -58,7 +59,9 @@ class LinkExe(Step):
         command.extend(['-o', Template(self.output_fpath).substitute(
             output=str(config.project_workspace / BUILD_OUTPUT))])
         command.extend([str(a.output_fpath) for a in compiled_files])
+
         # note: this must this come after the list of object files?
+        command.extend(os.getenv('LDFLAGS', []).split())
         command.extend(self.flags)
 
         log_or_dot(logger, 'Link running command: ' + ' '.join(command))

@@ -30,6 +30,10 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     SuffixFilter('all_source', '.f90'),
     'preprocessed_c',
     'preprocessed_fortran',
+
+    SuffixFilter('psyclone_output', '.f90'),
+    'preprocessed_psyclone',
+    'configurator_output',
 ])
 
 
