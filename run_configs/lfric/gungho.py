@@ -26,7 +26,7 @@ from fab.steps import Step
 from fab.steps.grab import GrabFolder
 from fab.steps.preprocess import PreProcessor, fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles
-from fab.util import run_command, log_or_dot, by_type, input_to_output_fpath, check_for_errors
+from fab.util import run_command, log_or_dot, input_to_output_fpath, check_for_errors
 from grab_lfric import lfric_source, gpl_utils_source
 
 logger = logging.getLogger('fab')
@@ -275,9 +275,9 @@ class PsyThing(Step):
 
         # generate into the build output, not the source
         generated = input_to_output_fpath(
-            source_root=self._config.source_root, project_workspace=self._config.project_workspace, input_path=generated)
+            source_root=self._config.source_root, workspace=self._config.project_workspace, input_path=generated)
         modified_alg = input_to_output_fpath(
-            source_root=self._config.source_root, project_workspace=self._config.project_workspace, input_path=modified_alg)
+            source_root=self._config.source_root, workspace=self._config.project_workspace, input_path=modified_alg)
         generated.parent.mkdir(parents=True, exist_ok=True)
 
         # -d specifies "a root directory structure containing kernel source"

@@ -99,7 +99,7 @@ class PreProcessor(MpExeStep):
             if not output_fpath.parent.exists():
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            command = [self.exe]
+            command = self.exe.split()
             command.extend(self.flags.flags_for_path(
                 path=fpath, source_root=self._config.source_root, workspace=self._config.project_workspace))
 

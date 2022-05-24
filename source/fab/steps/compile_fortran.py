@@ -8,6 +8,7 @@ Fortran file compilation.
 
 """
 import logging
+import os
 from pathlib import Path
 from typing import List, Set, Dict
 
@@ -122,6 +123,11 @@ class CompileFortran(MpExeStep):
                 path=analysed_file.fpath,
                 source_root=self._config.source_root,
                 workspace=self._config.project_workspace))
+
+            # TODO: MAKE SURE ALL SIMILAR STEPS PULL IN THE RELEVANT ENV FLAGS
+            #       however...they are for make, so do we really want to? discuss...
+            command.extend(os.getenv('FFLAGS', '').split())
+
             command.append(str(analysed_file.fpath))
 
             output_fpath = analysed_file.fpath.with_suffix('.o')

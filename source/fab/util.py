@@ -14,6 +14,8 @@ from pathlib import Path
 from time import perf_counter
 from typing import Iterator, Iterable, Optional
 
+from fab.dep_tree import by_type
+
 from fab.constants import BUILD_OUTPUT
 
 logger = logging.getLogger(__name__)
@@ -105,8 +107,17 @@ class CompiledFile(object):
 
 
 def input_to_output_fpath(source_root: Path, workspace: Path, input_path: Path):
+    build_output = workspace / BUILD_OUTPUT
+
+    # perhaps it's already in the output folder? todo: can use Path.is_relative_to from Python 3.9
+    try:
+        input_path.relative_to(build_output)
+        return input_path
+    except ValueError:
+        pass
+
     rel_path = input_path.relative_to(source_root)
-    return workspace / BUILD_OUTPUT / rel_path
+    return build_output / rel_path
 
 
 def case_insensitive_replace(in_str: str, find: str, replace_with: str):
@@ -114,9 +125,9 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
     return compiled_re.sub(replace_with, in_str)
 
 
-def run_command(command):
+def run_command(command, env=None):
     logger.debug(f'run_command: {command}')
-    res = subprocess.run(command, capture_output=True)
+    res = subprocess.run(command, capture_output=True, env=env)
     if res.returncode != 0:
         raise RuntimeError(f"Command failed:\n{command}\n{res.stderr.decode()}")
 
@@ -132,3 +143,17 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
     """
     # todo: Just return the iterator from filter. Let the caller decide whether to turn into a list.
     return list(filter(lambda fpath: fpath.suffix in suffixes, fpaths))
+
+
+def check_for_errors(results, caller_label=None):
+    """
+    A helper function for multiprocessing steps, checks a list of results for any exceptions and handles gracefully.
+    """
+    caller_label = f'during {caller_label}' if caller_label else ''
+
+    exceptions = list(by_type(results, Exception))
+    if exceptions:
+        formatted_errors = "\n\n".join(map(str, exceptions))
+        raise Exception(
+            f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
+        )

@@ -161,6 +161,7 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
             src_tree=src_tree, key=file_dep, dst_tree=dst_tree, missing=missing, verbose=verbose, indent=indent + 1)
 
 
+# todo: this is used beyond the dep tree, move to util
 def by_type(iterable, cls):
     """
     Find all the elements of an iterable which are of a given type.
