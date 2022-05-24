@@ -15,7 +15,7 @@ from fab.metrics import send_metric
 
 from fab.dep_tree import by_type
 from fab.steps.mp_exe import MpExeStep
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer, check_for_errors
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -64,16 +64,7 @@ class PreProcessor(MpExeStep):
 
         files = self.source_getter(artefact_store)
         results = self.run_mp(items=files, func=self.process_artefact)
-
-        # any errors?
-        exceptions = list(by_type(results, Exception))
-        if exceptions:
-            formatted_errors = "\n\n".join(map(str, exceptions))
-            raise Exception(
-                f"{formatted_errors}"
-                f"\n\n{len(exceptions)} "
-                f"Error(s) found during preprocessing: "
-            )
+        check_for_errors(results, caller_label=self.name)
 
         log_or_dot_finish(logger)
         artefact_store[self.output_collection] = list(by_type(results, Path))
