@@ -52,11 +52,14 @@ def gungho():
 
         # This wasn't in the makefiles but get_Pnm_star_kernel_mod is imported by physical_op_constants_mod_psy.f90.
         # It's not yet clear to us how the makefiles get this.
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
+        GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/kernel/stph/',
+                   dst_label='um_physics/source/kernel/stph/'),
 
         # also missing, also not yet sure how the makefiles get this
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/constants/', dst_label='um_physics/source/constants'),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/lfric_atm/source/constants/', dst_label='lfric_atm/source/constants'),
+        GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/constants/',
+                   dst_label='um_physics/source/constants'),
+        GrabFolder(src=lfric_source_config.source_root / 'lfric/lfric_atm/source/constants/',
+                   dst_label='lfric_atm/source/constants'),
 
         # generate more source files in source and source/configuration
         Configurator(
