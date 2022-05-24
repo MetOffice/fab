@@ -28,6 +28,7 @@ class TestLinkExe(object):
             '-fooflag', '-barflag',
         ])
 
+
 class TestArchiveObjects(object):
     def test_run(self):
         # ensure the command is formed correctly, with the output filename before the contents
