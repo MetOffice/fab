@@ -154,6 +154,6 @@ def check_for_errors(results, caller_label=None):
     exceptions = list(by_type(results, Exception))
     if exceptions:
         formatted_errors = "\n\n".join(map(str, exceptions))
-        raise Exception(
+        raise RuntimeError(
             f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
         )
