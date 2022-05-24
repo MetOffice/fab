@@ -34,17 +34,12 @@ logger = logging.getLogger('fab')
 
 # todo: optimisation path stuff
 
-# todo: what does "don't build the _psy.f90s until the kernel files exist, but don't worry if it's updated" mean?
-#       re the | $(KERNEL_SOURCE) in psyclone.mk
-
 
 def gungho():
 
-    config = BuildConfig(
-        project_label='gungho',  # same project label as the grab script, => same project workspace
-        # multiprocessing=False,
-        reuse_artefacts=True
-    )
+    config = BuildConfig(project_label='gungho')
+    # config.multiprocessing = False,
+    config.reuse_artefacts = True
 
     lfric_source_config = lfric_source()
     config.steps = [
@@ -73,24 +68,11 @@ def gungho():
             (['unit-test', '/test/'], False),
         ]),
 
-        fortran_preprocessor(
-            # preprocessor='cpp',
-            preprocessor='cpp -traditional-cpp',
-            common_flags=['-P'],
-        ),
+        fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
         psyclone_preprocessor(),
 
-        PsyThing(kernel_roots=[
-            config.project_workspace / BUILD_OUTPUT,
-            # config.project_workspace / '../lfric-source/source/lfric/um_physics/source/kernel/stph',
-        ]),
-
-        # psyclone_preprocessor(),
-
-        # Configurator(
-        #     lfric_source=lfric_source_config.source_root / 'lfric',
-        #     gpl_utils_source=gpl_utils_source().source_root / 'gpl_utils'),
+        PsyThing(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
 
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 
@@ -100,17 +82,12 @@ def gungho():
         ),
 
         CompileFortran(
-            # compiler='mpifort',
             compiler=os.getenv('FC', 'gfortran'),
-            common_flags=[
-                '-c', '-J', '$output',
-                # '-I' + os.path.expanduser('~/.conda/envs/sci-fab/lib'),
-            ]),
+            common_flags=['-c', '-J', '$output']),
 
         ArchiveObjects(output_fpath='$output/objects.a'),
 
         LinkExe(
-            # linker='gfortran',
             linker='mpifort',
             output_fpath=config.project_workspace / 'gungho.exe',
             flags=[
@@ -233,9 +210,6 @@ def psyclone_preprocessor():
     return PreProcessor(
         preprocessor='cpp -traditional-cpp',
 
-        # source=SuffixFilter('psyclone_output', '.F90'),
-        # output_collection='preprocessed_psyclone',
-
         source=SuffixFilter('all_source', '.x90'),
         output_collection='preprocessed_x90',
 
@@ -255,9 +229,6 @@ class PsyThing(Step):
         super().run(artefact_store=artefact_store, config=config)
 
         results = self.run_mp(artefact_store['preprocessed_x90'], self.do_one_file)
-        # x90s = SuffixFilter('all_source', '.x90')(artefact_store)
-        # results = self.run_mp(x90s, self.do_one_file)
-
         check_for_errors(results, caller_label=self.name)
 
         successes = list(filter(lambda r: not isinstance(r, Exception), results))
@@ -268,7 +239,6 @@ class PsyThing(Step):
 
     def do_one_file(self, x90_file):
         log_or_dot(logger=logger, msg=str(x90_file))
-        # logger.info(f'psycloning {x90_file}')
 
         generated = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
         modified_alg = x90_file.with_suffix('.f90')
@@ -293,7 +263,6 @@ class PsyThing(Step):
         ]
 
         if self._config.reuse_artefacts and Path(modified_alg).exists():
-            # logger.info(f'PsyThing skipping {x90_file}')
             pass
         else:
             try:
@@ -309,7 +278,5 @@ class PsyThing(Step):
 
 
 if __name__ == '__main__':
-    # logger.setLevel(logging.DEBUG)
-
     gungho_config = gungho()
     gungho_config.run()
