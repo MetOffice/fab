@@ -50,7 +50,7 @@ setuptools.setup(
                                       'fab-dump=fab.dumper:entry'],
                   'gui_scripts': ['fab-explorer=fab.explorer:entry']},
     python_requires='>=3.6, <4',
-    install_requires=['fparser'],
+    install_requires=['fparser', 'svn'],
     extras_require={
         'dev': ['flake8', 'mypy'],
         'tests': ['pytest', 'pytest-cov', 'pytest-mock']
