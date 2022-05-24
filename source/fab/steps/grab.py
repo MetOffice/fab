@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict
 
-from svn import remote
+from svn import remote  # type: ignore
 
 from fab.steps import Step
 from fab.util import run_command
