@@ -4,10 +4,11 @@
 # which you should have received as part of this distribution
 ##############################################################################
 import multiprocessing
+from abc import ABC, abstractmethod
 from typing import Dict
 
 
-class Step(object):
+class Step(ABC):
     """
     Base class for build steps.
 
@@ -18,6 +19,7 @@ class Step(object):
     def __init__(self, name):
         self.name = name
 
+    @abstractmethod
     def run(self, artefact_store: Dict, config):
         """
         Process some input artefacts, create some output artefacts. Defined in the subclass.
