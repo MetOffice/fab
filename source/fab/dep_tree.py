@@ -9,7 +9,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 """
 import logging
 from pathlib import Path
-from typing import Set, Dict, List, Iterable
+from typing import Set, Dict, Iterable
 
 logger = logging.getLogger(__name__)
 
