@@ -106,8 +106,8 @@ class BuildConfig(object):
     def _init_logging(self):
         # add a file logger for our run
         log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
-        logger.root.addHandler(log_file_handler)
         log_file_handler.doRollover()
+        logging.getLogger('fab').addHandler(log_file_handler)
 
         logger.info(f"{datetime.now()}")
         if self.multiprocessing:
@@ -118,9 +118,10 @@ class BuildConfig(object):
 
     def _finalise_logging(self):
         # remove our file logger
-        log_file_handlers = list(by_type(logger.root.handlers, RotatingFileHandler))
+        fab_logger = logging.getLogger('fab')
+        log_file_handlers = list(by_type(fab_logger.handlers, RotatingFileHandler))
         assert len(log_file_handlers) == 1
-        logger.root.removeHandler(log_file_handlers[0])
+        fab_logger.removeHandler(log_file_handlers[0])
 
     def _finalise_metrics(self, start_time, steps_timer):
         send_metric('run', 'label', self.project_label)

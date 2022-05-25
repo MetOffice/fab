@@ -9,7 +9,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 """
 import logging
 from pathlib import Path
-from typing import Set, Dict, List
+from typing import Set, Dict, List, Iterable
 
 logger = logging.getLogger(__name__)
 
@@ -169,12 +169,16 @@ def by_type(iterable, cls):
     return filter(lambda i: isinstance(i, cls), iterable)
 
 
-def add_mo_commented_file_deps(analysed_fortran: List[AnalysedFile], analysed_c: List[AnalysedFile]):
+def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
 
     (These do not include "DEPENDS ON:" code comments which refer to symbols)
+
     """
+    analysed_fortran = filter_source_tree(source_tree, '.f90')
+    analysed_c = filter_source_tree(source_tree, '.c')
+
     lookup = {c.fpath.name: c for c in analysed_c}
     num_found = 0
     for f in analysed_fortran:
@@ -182,6 +186,17 @@ def add_mo_commented_file_deps(analysed_fortran: List[AnalysedFile], analysed_c:
         for dep in f.mo_commented_file_deps:
             f.file_deps.add(lookup[dep].fpath)
     logger.info(f"processed {num_found} DEPENDS ON file dependencies")
+
+
+def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable[str]):
+    """
+    Pull out files with the given extension from a source tree.
+
+    Returns a list of :class:`~fab.dep_tree.AnalysedFile`.
+
+    """
+    all_files: Iterable[AnalysedFile] = source_tree.values()
+    return [af for af in all_files if af.fpath.suffix in suffixes]
 
 
 def validate_build_tree(target_tree):
