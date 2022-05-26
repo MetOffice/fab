@@ -14,7 +14,6 @@ import logging
 import shutil
 import warnings
 from pathlib import Path
-from typing import Optional
 
 from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
@@ -25,10 +24,8 @@ logger = logging.getLogger(__name__)
 
 class RootIncFiles(Step):
 
-    def __init__(self, source_root=None, build_output: Optional[Path] = None, name="root inc files"):
+    def __init__(self, name="root inc files"):
         super().__init__(name)
-        self.source_root = source_root
-        self.build_output = build_output
 
     def run(self, artefact_store, config):
         """
@@ -40,8 +37,10 @@ class RootIncFiles(Step):
         """
         super().run(artefact_store, config)
 
-        source_root = self.source_root or config.source_root
-        build_output = self.build_output or source_root.parent / BUILD_OUTPUT
+        # todo: make the build output path a getter calculated in the config?
+        build_output: Path = config.source_root.parent / BUILD_OUTPUT
+        if not build_output.exists():
+            build_output.mkdir(parents=True, exist_ok=True)
 
         warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
 
@@ -50,7 +49,7 @@ class RootIncFiles(Step):
         for fpath in suffix_filter(artefact_store["all_source"], [".inc"]):
 
             # don't copy from the output root to the output root!
-            # (i.e ancillary files from a previous run)
+            # this is currently unlikely to happen but did in the past, and caused problems.
             if fpath.parent == build_output:
                 continue
 

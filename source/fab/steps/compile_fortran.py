@@ -8,6 +8,7 @@ Fortran file compilation.
 
 """
 import logging
+import os
 from pathlib import Path
 from typing import List, Set, Dict
 
@@ -25,8 +26,9 @@ DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
 
 class CompileFortran(MpExeStep):
 
-    def __init__(self, compiler: str, common_flags: List[str] = None, path_flags: List = None,
+    def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
                  source: ArtefactsGetter = None, name='compile fortran'):
+        compiler = compiler or os.getenv('FC', 'gfortran -c')
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 

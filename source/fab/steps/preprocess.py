@@ -8,6 +8,7 @@ Fortran and C Preprocessing.
 
 """
 import logging
+import os
 from pathlib import Path
 from typing import List
 
@@ -113,12 +114,12 @@ class PreProcessor(MpExeStep):
         return output_fpath
 
 
-def fortran_preprocessor(preprocessor='fpp', source=None,
+def fortran_preprocessor(preprocessor=None, source=None,
                          output_collection='preprocessed_fortran', output_suffix='.f90',
                          name='preprocess fortran', **pp_kwds):
 
     return PreProcessor(
-        preprocessor=preprocessor,
+        preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
         source=source or SuffixFilter('all_source', '.F90'),
         output_collection=output_collection,
         output_suffix=output_suffix,
@@ -127,12 +128,12 @@ def fortran_preprocessor(preprocessor='fpp', source=None,
     )
 
 
-def c_preprocessor(preprocessor='cpp', source=None,
+def c_preprocessor(preprocessor=None, source=None,
                    output_collection='preprocessed_c', output_suffix='.c',
                    name='preprocess c', **pp_kwds):
 
     return PreProcessor(
-        preprocessor=preprocessor,
+        preprocessor=preprocessor or os.getenv('CPP', 'cpp -traditional-cpp -P'),
         source=source or SuffixFilter('all_source', '.c'),
         output_collection=output_collection,
         output_suffix=output_suffix,

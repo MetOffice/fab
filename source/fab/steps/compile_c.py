@@ -8,6 +8,7 @@ C file compilation.
 
 """
 import logging
+import os
 from typing import List
 
 from fab.metrics import send_metric
@@ -26,8 +27,9 @@ DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.c'])
 class CompileC(MpExeStep):
 
     # todo: tell the compiler (and other steps) which artefact name to create?
-    def __init__(self, compiler: str = 'gcc', common_flags: List[str] = None, path_flags: List = None,
+    def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
                  source: ArtefactsGetter = None, name="compile c"):
+        compiler = compiler or os.getenv('CC', 'gcc -c')
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
