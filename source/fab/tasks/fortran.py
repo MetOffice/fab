@@ -145,7 +145,6 @@ class FortranAnalyser(object):
 
         if use_name in self.ignore_mod_deps:
             logger.debug(f"ignoring use of {use_name}")
-            pass
         elif use_name not in self._intrinsic_modules:
             # found a dependency on fortran
             analysed_file.add_symbol_dep(use_name)

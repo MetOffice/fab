@@ -49,17 +49,10 @@ def gungho():
         GrabFolder(src=lfric_source_config.source_root / 'lfric/components/science/source/', dst_label=''),
         GrabFolder(src=lfric_source_config.source_root / 'lfric/components/lfric-xios/source/', dst_label=''),
         GrabFolder(src=lfric_source_config.source_root / 'lfric/gungho/source/', dst_label=''),
-
-        # This wasn't in the makefiles but get_Pnm_star_kernel_mod is imported by physical_op_constants_mod_psy.f90.
-        # It's not yet clear to us how the makefiles get this.
         GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/kernel/stph/',
                    dst_label='um_physics/source/kernel/stph/'),
-
-        # also missing, also not yet sure how the makefiles get this
         GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/constants/',
                    dst_label='um_physics/source/constants'),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/lfric_atm/source/constants/',
-                   dst_label='lfric_atm/source/constants'),
 
         # generate more source files in source and source/configuration
         Configurator(
@@ -107,10 +100,10 @@ def gungho():
 
 class Configurator(Step):
 
-    def __init__(self, lfric_source, gpl_utils_source):
+    def __init__(self, lfric_source: Path, gpl_utils_source: Path):
         super().__init__(name='configurator thing')
-        self.lfric_source: Path = lfric_source
-        self.gpl_utils_source: Path = gpl_utils_source
+        self.lfric_source = lfric_source
+        self.gpl_utils_source = gpl_utils_source
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
