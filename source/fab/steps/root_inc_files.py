@@ -39,8 +39,7 @@ class RootIncFiles(Step):
 
         # todo: make the build output path a getter calculated in the config?
         build_output: Path = config.source_root.parent / BUILD_OUTPUT
-        if not build_output.exists():
-            build_output.mkdir(parents=True, exist_ok=True)
+        build_output.mkdir(parents=True, exist_ok=True)
 
         warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
 
