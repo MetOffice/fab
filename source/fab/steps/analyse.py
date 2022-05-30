@@ -105,36 +105,37 @@ class Analyse(Step):
 
         with TimerLogger("analysing files"):
             with self._new_analysis_file(unchanged) as csv_writer:
-                analysed_fortran, analysed_c = self._parse_files(changed, csv_writer)
-        all_analysed_files: Dict[Path, AnalysedFile] = {a.fpath: a for a in unchanged + analysed_fortran + analysed_c}
+                freshly_analysed_fortran, freshly_analysed_c = self._parse_files(changed, csv_writer)
+        source_tree: Dict[Path, AnalysedFile] = {
+            a.fpath: a for a in unchanged + freshly_analysed_fortran + freshly_analysed_c}
 
         # Make "external" symbol table
         with TimerLogger("creating symbol lookup"):
-            symbols: Dict[str, Path] = self._gen_symbol_table(all_analysed_files)
+            symbols: Dict[str, Path] = self._gen_symbol_table(source_tree)
 
         # turn symbol deps into file deps
         with TimerLogger("generating file dependencies from symbols"):
-            self._gen_file_deps(all_analysed_files, symbols)
+            self._gen_file_deps(source_tree, symbols)
 
         #  find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps
         with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
-            add_mo_commented_file_deps(analysed_fortran, analysed_c)
+            add_mo_commented_file_deps(source_tree)
 
-        logger.info(f"source tree size {len(all_analysed_files)}")
+        logger.info(f"source tree size {len(source_tree)}")
 
         # Target tree extraction - for building executables.
         if self.root_symbol:
             with TimerLogger("extracting target tree"):
-                build_tree = extract_sub_tree(all_analysed_files, symbols[self.root_symbol], verbose=False)
+                build_tree = extract_sub_tree(source_tree, symbols[self.root_symbol], verbose=False)
             logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.root_symbol]}')")
         # When building library ".so" files, no target is needed.
         else:
             logger.info("no target specified, building everything")
-            build_tree = all_analysed_files
+            build_tree = source_tree
 
         # Recursively add any unreferenced dependencies
         # (a fortran routine called without a use statement).
-        self._add_unreferenced_deps(symbols, all_analysed_files, build_tree)
+        self._add_unreferenced_deps(symbols, source_tree, build_tree)
 
         validate_build_tree(build_tree)
 
