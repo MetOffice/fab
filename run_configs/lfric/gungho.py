@@ -115,7 +115,7 @@ class Configurator(Step):
 
         config_dir = config.source_root / 'configuration'
 
-        env = os.environ
+        env = os.environ.copy()
         rose_lfric_path = self.gpl_utils_source / 'lib/python'
         env['PYTHONPATH'] += f':{rose_lfric_path}'
 
