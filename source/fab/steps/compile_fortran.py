@@ -21,7 +21,7 @@ from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
+DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.f90')
 
 
 class CompileFortran(MpExeStep):

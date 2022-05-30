@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
-from fab.dep_tree import AnalysedFile
+from fab.dep_tree import AnalysedFile, filter_source_tree
 from fab.util import suffix_filter
 
 
@@ -119,19 +119,19 @@ class FilterBuildTree(ArtefactsGetter):
     Example::
 
         # The default source getter for the CompileFortran step.
-        DEFAULT_SOURCE_GETTER = FilterBuildTree(suffixes=['.f90'])
+        DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.f90')
 
     """
-    def __init__(self, suffixes: Iterable[str], collection_name: str = 'build_tree'):
+    def __init__(self, suffix: Union[str, List[str]], collection_name: str = 'build_tree'):
         """
         Args:
             - suffixes: An iterable of suffixes
 
         """
         self.collection_name = collection_name
-        self.suffixes = suffixes
+        self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store):
         super().__call__(artefact_store)
-        analysed_files: Iterable[AnalysedFile] = artefact_store[self.collection_name].values()
-        return list(filter(lambda af: af.fpath.suffix in self.suffixes, analysed_files))
+        source_tree: Dict[Path, AnalysedFile] = artefact_store[self.collection_name]
+        return filter_source_tree(source_tree=source_tree, suffixes=self.suffixes)
