@@ -90,7 +90,7 @@ class CompileFortran(MpExeStep):
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 
-        artefact_store['compiled_fortran'] = all_compiled
+        artefact_store['compiled_fortran'] = [i.output_fpath for i in all_compiled]
 
     def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
 

@@ -12,20 +12,22 @@ import logging
 from string import Template
 from typing import List, Dict
 
+from fab import artefacts
 from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
 from fab.util import CompiledFile, log_or_dot, run_command
-from fab.artefacts import ArtefactsGetter, CollectionConcat
+from fab.artefacts import ArtefactsGetter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = CollectionConcat(['compiled_c', 'compiled_fortran'])
+DEFAULT_SOURCE_GETTER = artefacts.CompiledFortranAndC
+DEFAULT_COLLECTION_NAME = 'object archive'
 
 
 class ArchiveObjects(Step):
 
     def __init__(self, source: ArtefactsGetter = None, archiver='ar',
-                 output_fpath='output.a', name='archive objects'):
+                 output_fpath='$output/objects.a', output_collection=DEFAULT_COLLECTION_NAME, name='archive objects'):
         """
         Kwargs:
             - archiver: The archiver executable. Defaults to 'ar'.
@@ -37,6 +39,7 @@ class ArchiveObjects(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.archiver = archiver
         self.output_fpath = output_fpath
+        self.output_collection = output_collection
 
     def run(self, artefact_store: Dict, config):
         """
@@ -47,11 +50,13 @@ class ArchiveObjects(Step):
         """
         super().run(artefact_store, config)
 
+        output_fpath = Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT)
+
         compiled_files: List[CompiledFile] = self.source_getter(artefact_store)
 
         command = [self.archiver]
-        command.extend(['cr', Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT)])
-        command.extend([str(a.output_fpath) for a in compiled_files])
+        command.extend(['cr', output_fpath])
+        command.extend(map(str, compiled_files))
 
         log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
         try:
@@ -59,4 +64,4 @@ class ArchiveObjects(Step):
         except Exception as err:
             raise Exception(f"error creating object archive: {err}")
 
-        return self.output_fpath
+        artefact_store[self.output_collection] = [output_fpath]
