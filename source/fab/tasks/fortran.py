@@ -71,8 +71,9 @@ class FortranAnalyser(object):
     """
     _intrinsic_modules = ['iso_fortran_env']
 
-    def __init__(self, std="f2008"):
+    def __init__(self, std="f2008", ignore_mod_deps=None):
         self.f2008_parser = ParserFactory().create(std=std)
+        self.ignore_mod_deps = ignore_mod_deps or []
 
         # Warn the user if the code still includes this deprecated dependency mechanism
         self.depends_on_comment_found = False
@@ -139,9 +140,12 @@ class FortranAnalyser(object):
         use_name = _typed_child(obj, Name)
         if not use_name:
             raise TaskException("ERROR finding name in use statement:", obj.string)
+
         use_name = use_name.string
 
-        if use_name not in self._intrinsic_modules:
+        if use_name in self.ignore_mod_deps:
+            logger.debug(f"ignoring use of {use_name}")
+        elif use_name not in self._intrinsic_modules:
             # found a dependency on fortran
             analysed_file.add_symbol_dep(use_name)
 

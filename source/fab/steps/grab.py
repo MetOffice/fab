@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict
 
+from svn import remote  # type: ignore
+
 from fab.steps import Step
 from fab.util import run_command
 
@@ -67,3 +69,15 @@ class GrabFcm(GrabBase):
 
         src = f'{self.src}@{self.revision}' if self.revision else self.src
         run_command(['fcm', 'export', '--force', src, str(config.source_root / self.dst_label)])
+
+
+class GrabSvn(GrabBase):
+    def __init__(self, src, dst_label, revision=None, name=None):
+        super().__init__(src, dst_label, name)
+        self.revision = revision
+
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
+
+        r = remote.RemoteClient(self.src)
+        r.export(str(config.source_root / self.dst_label), revision=self.revision, force=True)

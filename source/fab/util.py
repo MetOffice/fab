@@ -105,8 +105,16 @@ class CompiledFile(object):
 
 
 def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path: Path):
+    build_output = project_workspace / BUILD_OUTPUT
+
+    # perhaps it's already in the output folder? todo: can use Path.is_relative_to from Python 3.9
+    try:
+        input_path.relative_to(build_output)
+        return input_path
+    except ValueError:
+        pass
     rel_path = input_path.relative_to(source_root)
-    return project_workspace / BUILD_OUTPUT / rel_path
+    return build_output / rel_path
 
 
 def case_insensitive_replace(in_str: str, find: str, replace_with: str):
@@ -114,9 +122,9 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
     return compiled_re.sub(replace_with, in_str)
 
 
-def run_command(command):
+def run_command(command, env=None):
     logger.debug(f'run_command: {command}')
-    res = subprocess.run(command, capture_output=True)
+    res = subprocess.run(command, capture_output=True, env=env)
     if res.returncode != 0:
         raise RuntimeError(f"Command failed:\n{command}\n{res.stderr.decode()}")
 
@@ -140,3 +148,17 @@ def by_type(iterable, cls):
 
     """
     return filter(lambda i: isinstance(i, cls), iterable)
+
+
+def check_for_errors(results, caller_label=None):
+    """
+    A helper function for multiprocessing steps, checks a list of results for any exceptions and handles gracefully.
+    """
+    caller_label = f'during {caller_label}' if caller_label else ''
+
+    exceptions = list(by_type(results, Exception))
+    if exceptions:
+        formatted_errors = "\n\n".join(map(str, exceptions))
+        raise RuntimeError(
+            f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
+        )

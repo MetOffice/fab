@@ -16,7 +16,7 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command, log_or_dot, Timer
+from fab.util import check_for_errors, CompiledFile, run_command, log_or_dot, Timer
 from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
@@ -47,12 +47,7 @@ class CompileC(MpExeStep):
 
         # run
         results = self.run_mp(items=to_compile, func=self._compile_file)
-
-        # any errors?
-        errors = [result for result in results if isinstance(result, Exception)]
-        if errors:
-            err_msg = '\n\n'.join(map(str, errors))
-            raise RuntimeError(f"There were {len(errors)} errors compiling {len(to_compile)} c files:\n{err_msg}")
+        check_for_errors(results, caller_label=self.name)
 
         # results
         compiled_c = [result.output_fpath for result in results if isinstance(result, CompiledFile)]

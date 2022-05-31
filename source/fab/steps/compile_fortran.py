@@ -16,7 +16,7 @@ from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, check_for_errors
 from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
@@ -54,14 +54,7 @@ class CompileFortran(MpExeStep):
 
             logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
             results_this_pass = self.run_mp(items=compile_next, func=self.compile_file)
-
-            # any errors?
-            errors = list(by_type(results_this_pass, Exception))
-            if len(errors):
-                logger.error(f"\nThere were {len(errors)} compile errors this pass\n\n")
-            if errors:
-                err_str = "\n\n".join(map(str, errors))
-                raise RuntimeError(f"Error in compiling pass: {err_str}")
+            check_for_errors(results_this_pass, caller_label=self.name)
 
             # check what we did compile
             compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
@@ -133,6 +126,7 @@ class CompileFortran(MpExeStep):
                     path=analysed_file.fpath,
                     source_root=self._config.source_root,
                     project_workspace=self._config.project_workspace))
+                command.extend(os.getenv('FFLAGS', '').split())
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])
 

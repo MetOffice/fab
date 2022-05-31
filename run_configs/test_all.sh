@@ -10,3 +10,6 @@ python -m build_jules
 
 cd ../um
 python -m build_um
+
+cd ../lfric
+python -m gungho

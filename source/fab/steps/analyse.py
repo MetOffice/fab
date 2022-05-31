@@ -30,6 +30,10 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     SuffixFilter('all_source', '.f90'),
     'preprocessed_c',
     'preprocessed_fortran',
+
+    SuffixFilter('psyclone_output', '.f90'),
+    'preprocessed_psyclone',
+    'configurator_output',
 ])
 
 
@@ -42,7 +46,8 @@ class Analyse(Step):
     # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
                  root_symbol, source: ArtefactsGetter = None, std="f2008",
-                 special_measure_analysis_results=None, unreferenced_deps=None, name='analyser'):
+                 special_measure_analysis_results=None, unreferenced_deps=None,
+                 ignore_mod_deps=None, name='analyser'):
         """
 
         Args:
@@ -58,6 +63,7 @@ class Analyse(Step):
                 determined. For example, functions that are called without a module use statement. Assuming the files
                 containing these symbols will been analysed, those files and all their dependencies
                 will be added to the build tree.
+            - ignore_mod_deps: Third party Fortran module names to be ignored.
             - name: Defaults to 'analyser'
 
         """
@@ -68,7 +74,7 @@ class Analyse(Step):
         self.unreferenced_deps: List[str] = unreferenced_deps or []
 
         # todo: these seem more like functions
-        self.fortran_analyser = FortranAnalyser(std=std)
+        self.fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
         self.c_analyser = CAnalyser()
 
     def run(self, artefact_store, config):
