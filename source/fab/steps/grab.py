@@ -26,7 +26,7 @@ class GrabBase(Step, ABC):
             - dst_label: The name of a sub folder in the project workspace, in which to put the source.
 
         """
-        super().__init__(name=name or f'{self.__class__.__name__} {dst_label}'.strip())
+        super().__init__(name=name or f'{self.__class__.__name__} {dst_label or src}'.strip())
         self.src: str = src
         self.dst_label: str = dst_label
 

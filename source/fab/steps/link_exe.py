@@ -12,14 +12,27 @@ import os
 from string import Template
 from typing import List
 
+from fab import artefacts
 from fab.constants import BUILD_OUTPUT
-from fab.steps import Step
+from fab.steps import Step, archive_objects
 from fab.util import log_or_dot, run_command
-from fab.artefacts import ArtefactsGetter, CollectionConcat
+from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = CollectionConcat(['compiled_c', 'compiled_fortran'])
+
+class DefaultLinkerSource(ArtefactsGetter):
+    """
+    A source getter specifically for linking.
+    Looks for the default output from ArchiveObjects, falls back to artefacts.CompiledFortranAndC.
+    This allows a link step to work with or without a preceding object archive step.
+    """
+    def __call__(self, artefact_store):
+        return CollectionGetter(archive_objects.DEFAULT_COLLECTION_NAME)(artefact_store) \
+               or artefacts.CompiledFortranAndC(artefact_store)
+
+
+DEFAULT_SOURCE_GETTER = DefaultLinkerSource()
 
 
 class LinkExe(Step):
@@ -55,11 +68,10 @@ class LinkExe(Step):
 
         compiled_files = self.source_getter(artefact_store)
 
-        command = [self.linker]
+        command = self.linker.split()
         command.extend(['-o', Template(self.output_fpath).substitute(
             output=str(config.project_workspace / BUILD_OUTPUT))])
-        command.extend([str(a.output_fpath) for a in compiled_files])
-
+        command.extend(map(str, compiled_files))
         # note: this must this come after the list of object files?
         command.extend(os.getenv('LDFLAGS', []).split())
         command.extend(self.flags)

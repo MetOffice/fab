@@ -14,9 +14,9 @@ from typing import List, Set, Dict
 
 from fab.metrics import send_metric
 
-from fab.dep_tree import AnalysedFile, by_type
+from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, check_for_errors
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, check_for_errors
 from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ class CompileFortran(MpExeStep):
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 
-        artefact_store['compiled_fortran'] = all_compiled
+        artefact_store['compiled_fortran'] = [i.output_fpath for i in all_compiled]
 
     def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
 
@@ -115,12 +115,11 @@ class CompileFortran(MpExeStep):
             command.extend(self.flags.flags_for_path(
                 path=analysed_file.fpath,
                 source_root=self._config.source_root,
-                workspace=self._config.project_workspace))
+                project_workspace=self._config.project_workspace))
 
             # TODO: MAKE SURE ALL SIMILAR STEPS PULL IN THE RELEVANT ENV FLAGS
             #       however...they are for make, so do we really want to? discuss...
             command.extend(os.getenv('FFLAGS', '').split())
-
             command.append(str(analysed_file.fpath))
 
             output_fpath = analysed_file.fpath.with_suffix('.o')

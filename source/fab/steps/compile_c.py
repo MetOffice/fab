@@ -46,7 +46,7 @@ class CompileC(MpExeStep):
         check_for_errors(results, caller_label=self.name)
 
         # results
-        compiled_c = [result for result in results if isinstance(result, CompiledFile)]
+        compiled_c = [result.output_fpath for result in results if isinstance(result, CompiledFile)]
         logger.info(f"compiled {len(compiled_c)} c files")
 
         artefact_store['compiled_c'] = compiled_c
@@ -54,7 +54,9 @@ class CompileC(MpExeStep):
     def _compile_file(self, analysed_file: AnalysedFile):
         command = [self.exe]
         command.extend(self.flags.flags_for_path(
-            path=analysed_file.fpath, source_root=self._config.source_root, workspace=self._config.project_workspace))
+            path=analysed_file.fpath,
+            source_root=self._config.source_root,
+            project_workspace=self._config.project_workspace))
         command.append(str(analysed_file.fpath))
 
         output_file = analysed_file.fpath.with_suffix('.o')
