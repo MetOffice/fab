@@ -41,7 +41,7 @@ class BuildConfig(object):
         The number of cores to use for multiprocessing operations. Defaults to the number of available cores - 1.
     :param bool reuse_artefacts:
         A flag to avoid reprocessing artefacts a second time.
-        Currently unsophisticated, the existence of an output file means it doesn't need to be reprocessed.
+        WARNING: Currently unsophisticated, the mere existence of an output file means it won't be reprocessed.
         The logic behind flag will be improved in the future.
 
     """

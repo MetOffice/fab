@@ -26,8 +26,9 @@ DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.f90')
 
 class CompileFortran(MpExeStep):
 
-    def __init__(self, compiler: str, common_flags: List[str] = None, path_flags: List = None,
+    def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
                  source: ArtefactsGetter = None, name='compile fortran'):
+        compiler = compiler or os.getenv('FC', 'gfortran -c')
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -109,31 +110,32 @@ class CompileFortran(MpExeStep):
 
         return compile_next
 
+    # todo: identical to the c version - make a super class
     def compile_file(self, analysed_file: AnalysedFile):
-        with Timer() as timer:
-            command = [self.exe]
-            command.extend(self.flags.flags_for_path(
-                path=analysed_file.fpath,
-                source_root=self._config.source_root,
-                project_workspace=self._config.project_workspace))
+        output_fpath = analysed_file.fpath.with_suffix('.o')
 
-            # TODO: MAKE SURE ALL SIMILAR STEPS PULL IN THE RELEVANT ENV FLAGS
-            #       however...they are for make, so do we really want to? discuss...
-            command.extend(os.getenv('FFLAGS', '').split())
-            command.append(str(analysed_file.fpath))
+        # already compiled?
+        if self._config.reuse_artefacts and output_fpath.exists():
+            log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
+        else:
+            with Timer() as timer:
+                output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            output_fpath = analysed_file.fpath.with_suffix('.o')
-            if self._config.reuse_artefacts and output_fpath.exists():
-                log_or_dot(logger, f'Compiler skipping: {output_fpath}')
-                return CompiledFile(analysed_file, output_fpath)
+                command = self.exe.split()
+                command.extend(self.flags.flags_for_path(
+                    path=analysed_file.fpath,
+                    source_root=self._config.source_root,
+                    project_workspace=self._config.project_workspace))
+                command.extend(os.getenv('FFLAGS', '').split())
+                command.append(str(analysed_file.fpath))
+                command.extend(['-o', str(output_fpath)])
 
-            command.extend(['-o', str(output_fpath)])
+                log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
+                try:
+                    run_command(command)
+                except Exception as err:
+                    return Exception("Error calling compiler:", err)
 
-            log_or_dot(logger, 'Compiler running command: ' + ' '.join(command))
-            try:
-                run_command(command)
-            except Exception as err:
-                return Exception("Error calling compiler:", err)
+            send_metric(self.name, str(analysed_file.fpath), timer.taken)
 
-        send_metric(self.name, str(analysed_file.fpath), timer.taken)
         return CompiledFile(analysed_file, output_fpath)
