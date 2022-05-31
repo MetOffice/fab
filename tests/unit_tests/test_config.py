@@ -17,7 +17,7 @@ class TestAddFlags(object):
             fpath=Path(f"/workspace/{SOURCE_ROOT}/foo/bar.c"),
             input_flags=my_flags,
             source_root=workspace / SOURCE_ROOT,
-            workspace=workspace)
+            project_workspace=workspace)
         assert my_flags == ['-foo', '-I', f'/workspace/{SOURCE_ROOT}/foo/include']
 
         # anything in $source/bar should NOT get the include folder
@@ -26,5 +26,5 @@ class TestAddFlags(object):
             fpath=Path(f"/workspace/{SOURCE_ROOT}/bar/bar.c"),
             input_flags=my_flags,
             source_root=workspace / SOURCE_ROOT,
-            workspace=workspace)
+            project_workspace=workspace)
         assert my_flags == ['-foo']

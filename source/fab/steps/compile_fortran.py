@@ -13,9 +13,9 @@ from typing import List, Set, Dict
 
 from fab.metrics import send_metric
 
-from fab.dep_tree import AnalysedFile, by_type
+from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type
 from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ class CompileFortran(MpExeStep):
             command.extend(self.flags.flags_for_path(
                 path=analysed_file.fpath,
                 source_root=self._config.source_root,
-                workspace=self._config.project_workspace))
+                project_workspace=self._config.project_workspace))
             command.append(str(analysed_file.fpath))
 
             output_fpath = analysed_file.fpath.with_suffix('.o')
