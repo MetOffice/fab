@@ -15,7 +15,7 @@ from fab.steps.walk_source import FindSourceFiles
 
 
 def common_build_steps(fpic=False) -> List[Step]:
-    steps: List[Step] = [
+    steps = [
         FindSourceFiles(),
         c_preprocessor(),
         fortran_preprocessor(

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -20,13 +21,12 @@ def gcom_so_config(revision=None):
     """
     config = BuildConfig(
         project_label=f'gcom shared library {revision}',
-        source_root=gcom_grab_config(revision=revision).source_root
+        source_root=gcom_grab_config(revision=revision).source_root,
+        steps=[
+            *common_build_steps(fpic=True),
+            LinkSharedObject(linker='mpifort', output_fpath='$output/libgcom.so'),
+        ]
     )
-
-    config.steps = [
-        *common_build_steps(fpic=True),
-        LinkSharedObject(linker='mpifort', output_fpath='$output/libgcom.so'),
-    ]
 
     return config
 

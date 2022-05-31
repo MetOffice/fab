@@ -160,7 +160,6 @@ def metrics_summary(metrics_folder: Path):
     step_names = ['preprocess fortran', 'preprocess c', 'compile fortran']
     for step_name in step_names:
         if step_name not in metrics:
-            logger.error(f'no step metrics called {step_name}')
             continue
 
         fbase = metrics_folder / step_name.replace(' ', '_')
