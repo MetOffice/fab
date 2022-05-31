@@ -8,6 +8,7 @@ Fortran and C Preprocessing.
 
 """
 import logging
+import os
 from pathlib import Path
 from typing import List
 
@@ -83,45 +84,41 @@ class PreProcessor(MpExeStep):
         Writes the output file to the output folder, with a lower case extension.
 
         """
-        with Timer() as timer:
-            # output_fpath = self.output_path(fpath)
-            output_fpath = input_to_output_fpath(
-                source_root=self._config.source_root,
-                project_workspace=self._config.project_workspace,
-                input_path=fpath).with_suffix(self.output_suffix)
+        output_fpath = input_to_output_fpath(
+            source_root=self._config.source_root,
+            project_workspace=self._config.project_workspace,
+            input_path=fpath).with_suffix(self.output_suffix)
 
-            # for dev speed, but this could become a good time saver with, e.g, hashes or something
-            if self._config.reuse_artefacts and output_fpath.exists():
-                log_or_dot(logger, f'Preprocessor skipping: {fpath}')
-                return output_fpath
-
-            if not output_fpath.parent.exists():
+        # already preprocessed?
+        if self._config.reuse_artefacts and output_fpath.exists():
+            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+        else:
+            with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            command = [self.exe]
-            command.extend(self.flags.flags_for_path(
-                path=fpath, source_root=self._config.source_root, project_workspace=self._config.project_workspace))
+                command = self.exe.split()
+                command.extend(self.flags.flags_for_path(
+                    path=fpath, source_root=self._config.source_root, project_workspace=self._config.project_workspace))
+                command.append(str(fpath))
+                command.append(str(output_fpath))
 
-            # input and output files
-            command.append(str(fpath))
-            command.append(str(output_fpath))
+                log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
+                try:
+                    run_command(command)
+                except Exception as err:
+                    raise Exception(f"error preprocessing {fpath}: {err}")
 
-            log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
-            try:
-                run_command(command)
-            except Exception as err:
-                raise Exception(f"error preprocessing {fpath}: {err}")
+            send_metric(self.name, str(fpath), timer.taken)
 
-        send_metric(self.name, str(fpath), timer.taken)
         return output_fpath
 
 
-def fortran_preprocessor(preprocessor='fpp', source=None,
+def fortran_preprocessor(preprocessor=None, source=None,
                          output_collection='preprocessed_fortran', output_suffix='.f90',
                          name='preprocess fortran', **pp_kwds):
 
     return PreProcessor(
-        preprocessor=preprocessor,
+        preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
         source=source or SuffixFilter('all_source', '.F90'),
         output_collection=output_collection,
         output_suffix=output_suffix,
@@ -130,12 +127,12 @@ def fortran_preprocessor(preprocessor='fpp', source=None,
     )
 
 
-def c_preprocessor(preprocessor='cpp', source=None,
+def c_preprocessor(preprocessor=None, source=None,
                    output_collection='preprocessed_c', output_suffix='.c',
                    name='preprocess c', **pp_kwds):
 
     return PreProcessor(
-        preprocessor=preprocessor,
+        preprocessor=preprocessor or os.getenv('CPP', 'cpp -P'),
         source=source or SuffixFilter('all_source', '.c'),
         output_collection=output_collection,
         output_suffix=output_suffix,

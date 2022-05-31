@@ -8,12 +8,15 @@ C file compilation.
 
 """
 import logging
+import os
 from typing import List
+
+from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command
+from fab.util import CompiledFile, run_command, log_or_dot, Timer
 from fab.artefacts import ArtefactsGetter, FilterBuildTree
 
 logger = logging.getLogger(__name__)
@@ -24,8 +27,9 @@ DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.c')
 class CompileC(MpExeStep):
 
     # todo: tell the compiler (and other steps) which artefact name to create?
-    def __init__(self, compiler: str = 'gcc', common_flags: List[str] = None, path_flags: List = None,
+    def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
                  source: ArtefactsGetter = None, name="compile c"):
+        compiler = compiler or os.getenv('CC', 'gcc -c')
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -56,22 +60,32 @@ class CompileC(MpExeStep):
 
         artefact_store['compiled_c'] = compiled_c
 
+    # todo: identical to the fortran version - make a super class
     def _compile_file(self, analysed_file: AnalysedFile):
-        command = [self.exe]
-        command.extend(self.flags.flags_for_path(
-            path=analysed_file.fpath,
-            source_root=self._config.source_root,
-            project_workspace=self._config.project_workspace))
-        command.append(str(analysed_file.fpath))
+        # todo: should really use input_to_output_fpath() here
+        output_fpath = analysed_file.fpath.with_suffix('.o')
 
-        output_file = analysed_file.fpath.with_suffix('.o')
-        command.extend(['-o', str(output_file)])
+        # already compiled?
+        if self._config.reuse_artefacts and output_fpath.exists():
+            log_or_dot(logger, f'CompileC skipping: {analysed_file.fpath}')
+        else:
+            with Timer() as timer:
+                output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-        logger.debug('Running command: ' + ' '.join(command))
+                command = self.exe.split()
+                command.extend(self.flags.flags_for_path(
+                    path=analysed_file.fpath,
+                    source_root=self._config.source_root,
+                    project_workspace=self._config.project_workspace))
+                command.append(str(analysed_file.fpath))
+                command.extend(['-o', str(output_fpath)])
 
-        try:
-            run_command(command)
-        except Exception as err:
-            return TaskException(f"error compiling {analysed_file.fpath}: {err}")
+                log_or_dot(logger, 'CompileC running command: ' + ' '.join(command))
+                try:
+                    run_command(command)
+                except Exception as err:
+                    return TaskException(f"error compiling {analysed_file.fpath}: {err}")
 
-        return CompiledFile(analysed_file, output_file)
+            send_metric(self.name, str(analysed_file.fpath), timer.taken)
+
+        return CompiledFile(analysed_file, output_fpath)
