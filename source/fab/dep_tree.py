@@ -161,14 +161,6 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
             src_tree=src_tree, key=file_dep, dst_tree=dst_tree, missing=missing, verbose=verbose, indent=indent + 1)
 
 
-def by_type(iterable, cls):
-    """
-    Find all the elements of an iterable which are of a given type.
-
-    """
-    return filter(lambda i: isinstance(i, cls), iterable)
-
-
 def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.

@@ -12,6 +12,8 @@ import os
 import warnings
 from pathlib import Path
 
+from fab.steps.archive_objects import ArchiveObjects
+
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 
 from fab.artefacts import CollectionGetter
@@ -190,12 +192,15 @@ def um_atmos_safe_config():
                 AddFlags("$output/um/*", ['-I' + gcom_build]),
                 AddFlags("$output/jules/*", ['-I' + gcom_build]),
 
-                # todo: allow multiple filters per instance?
+                # required for newer compilers
+                # # todo: allow multiple filters per instance?
                 # *[AddFlags(*i) for i in ALLOW_MISMATCH_FLAGS]
             ]
         ),
 
         # todo: ArchiveObjects() first? If nothing else, it makes linker error messages more manageable.
+
+        ArchiveObjects(),
 
         #
         LinkExe(
@@ -210,6 +215,8 @@ def um_atmos_safe_config():
 
     return config
 
+
+# required for newer compilers
 
 # # todo: allow a list of filters?
 # ALLOW_MISMATCH_FLAGS = [

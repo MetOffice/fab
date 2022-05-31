@@ -97,16 +97,16 @@ class TimerLogger(Timer):
                 logger.info(f"{self.label} took {seconds:.3f}s")
 
 
-# todo: better as a named tuple?
+# todo: this is only needed for fortran compiling - move it there as a private class and stop using in c compiler
 class CompiledFile(object):
     def __init__(self, analysed_file, output_fpath):
         self.analysed_file = analysed_file
         self.output_fpath = output_fpath
 
 
-def input_to_output_fpath(source_root: Path, workspace: Path, input_path: Path):
+def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path: Path):
     rel_path = input_path.relative_to(source_root)
-    return workspace / BUILD_OUTPUT / rel_path
+    return project_workspace / BUILD_OUTPUT / rel_path
 
 
 def case_insensitive_replace(in_str: str, find: str, replace_with: str):
@@ -132,3 +132,11 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
     """
     # todo: Just return the iterator from filter. Let the caller decide whether to turn into a list.
     return list(filter(lambda fpath: fpath.suffix in suffixes, fpaths))
+
+
+def by_type(iterable, cls):
+    """
+    Find all the elements of an iterable which are of a given type.
+
+    """
+    return filter(lambda i: isinstance(i, cls), iterable)

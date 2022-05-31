@@ -13,7 +13,6 @@ from typing import Optional, List, Tuple
 
 from fab.build_config import PathFilter
 
-from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
 from fab.util import file_walk
 
@@ -58,7 +57,6 @@ class FindSourceFiles(Step):
         super().run(artefact_store, config)
 
         source_root = self.source_root or config.source_root
-        build_output = self.build_output or source_root.parent / BUILD_OUTPUT
 
         # file filtering
         filtered_fpaths = []
@@ -78,14 +76,5 @@ class FindSourceFiles(Step):
 
         if not filtered_fpaths:
             raise RuntimeError("no source files found after filtering")
-
-        # create output folders
-        # todo: separate step for folder creation?
-        input_folders = set()
-        for fpath in filtered_fpaths:
-            input_folders.add(fpath.parent.relative_to(source_root))
-        for input_folder in input_folders:
-            path = build_output / input_folder
-            path.mkdir(parents=True, exist_ok=True)
 
         artefact_store[self.output_collection] = filtered_fpaths

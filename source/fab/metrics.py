@@ -153,14 +153,10 @@ def metrics_summary(metrics_folder: Path):
     logger.debug(f'metrics_summary: got metrics for: {metrics.keys()}')
     metrics_folder.mkdir(parents=True, exist_ok=True)
 
-    metrics_folder = Path(metrics_folder)
-    metrics_folder.mkdir(exist_ok=True)
-
     # graphs for individual steps
     step_names = ['preprocess fortran', 'preprocess c', 'compile fortran']
     for step_name in step_names:
         if step_name not in metrics:
-            logger.error(f'no step metrics called {step_name}')
             continue
 
         fbase = metrics_folder / step_name.replace(' ', '_')

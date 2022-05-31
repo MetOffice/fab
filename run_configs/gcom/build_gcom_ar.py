@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -19,13 +20,12 @@ def gcom_ar_config(revision=None):
     """
     config = BuildConfig(
         project_label=f'gcom object archive {revision}',
-        source_root=gcom_grab_config(revision=revision).source_root
+        source_root=gcom_grab_config(revision=revision).source_root,
+        steps=[
+            *common_build_steps(),
+            ArchiveObjects(output_fpath='$output/libgcom.a'),
+        ]
     )
-
-    config.steps = [
-        *common_build_steps(),
-        ArchiveObjects(output_fpath='$output/libgcom.a'),
-    ]
 
     return config
 

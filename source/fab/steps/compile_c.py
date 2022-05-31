@@ -55,7 +55,7 @@ class CompileC(MpExeStep):
             raise RuntimeError(f"There were {len(errors)} errors compiling {len(to_compile)} c files:\n{err_msg}")
 
         # results
-        compiled_c = [result for result in results if isinstance(result, CompiledFile)]
+        compiled_c = [result.output_fpath for result in results if isinstance(result, CompiledFile)]
         logger.info(f"compiled {len(compiled_c)} c files")
 
         artefact_store['compiled_c'] = compiled_c
@@ -76,7 +76,7 @@ class CompileC(MpExeStep):
                 command.extend(self.flags.flags_for_path(
                     path=analysed_file.fpath,
                     source_root=self._config.source_root,
-                    workspace=self._config.project_workspace))
+                    project_workspace=self._config.project_workspace))
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])
 

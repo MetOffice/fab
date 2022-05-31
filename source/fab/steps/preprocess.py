@@ -14,9 +14,8 @@ from typing import List
 
 from fab.metrics import send_metric
 
-from fab.dep_tree import by_type
 from fab.steps.mp_exe import MpExeStep
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer, by_type
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -87,7 +86,7 @@ class PreProcessor(MpExeStep):
         """
         output_fpath = input_to_output_fpath(
             source_root=self._config.source_root,
-            workspace=self._config.project_workspace,
+            project_workspace=self._config.project_workspace,
             input_path=fpath).with_suffix(self.output_suffix)
 
         # already preprocessed?
@@ -99,7 +98,7 @@ class PreProcessor(MpExeStep):
 
                 command = self.exe.split()
                 command.extend(self.flags.flags_for_path(
-                    path=fpath, source_root=self._config.source_root, workspace=self._config.project_workspace))
+                    path=fpath, source_root=self._config.source_root, project_workspace=self._config.project_workspace))
                 command.append(str(fpath))
                 command.append(str(output_fpath))
 

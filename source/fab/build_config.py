@@ -15,10 +15,9 @@ from string import Template
 from typing import List, Optional
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
-from fab.dep_tree import by_type
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps import Step
-from fab.util import TimerLogger
+from fab.util import TimerLogger, by_type
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +84,7 @@ class BuildConfig(object):
 
         """
         start_time = datetime.now().replace(microsecond=0)
-        self.project_workspace.mkdir(parents=True, exist_ok=True)
+        (self.project_workspace / BUILD_OUTPUT).mkdir(parents=True, exist_ok=True)
 
         self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
@@ -158,12 +157,12 @@ class AddFlags(object):
         self.match: str = match
         self.flags: List[str] = flags
 
-    def run(self, fpath: Path, input_flags: List[str], source_root: Path, workspace: Path):
+    def run(self, fpath: Path, input_flags: List[str], source_root: Path, project_workspace: Path):
         """
         See if our filter matches the incoming file. If it does, add our flags.
 
         """
-        params = {'relative': fpath.parent, 'source': source_root, 'output': workspace / BUILD_OUTPUT}
+        params = {'relative': fpath.parent, 'source': source_root, 'output': project_workspace / BUILD_OUTPUT}
 
         # does the file path match our filter?
         if not self.match or fnmatch(str(fpath), Template(self.match).substitute(params)):
@@ -187,14 +186,14 @@ class FlagsConfig(object):
         self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
-    def flags_for_path(self, path, source_root, workspace):
+    def flags_for_path(self, path, source_root, project_workspace):
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,
         # so we take care of it for them here instead.
-        params = {'source': source_root, 'output': workspace / BUILD_OUTPUT}
+        params = {'source': source_root, 'output': project_workspace / BUILD_OUTPUT}
         flags = [Template(i).substitute(params) for i in self.common_flags]
 
         for flags_modifier in self.path_flags:
-            flags_modifier.run(path, flags, source_root=source_root, workspace=workspace)
+            flags_modifier.run(path, flags, source_root=source_root, project_workspace=project_workspace)
 
         return flags
