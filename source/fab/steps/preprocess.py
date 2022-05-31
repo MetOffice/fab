@@ -132,7 +132,7 @@ def c_preprocessor(preprocessor=None, source=None,
                    name='preprocess c', **pp_kwds):
 
     return PreProcessor(
-        preprocessor=preprocessor or os.getenv('CPP', 'cpp -traditional-cpp -P'),
+        preprocessor=preprocessor or os.getenv('CPP', 'cpp -P'),
         source=source or SuffixFilter('all_source', '.c'),
         output_collection=output_collection,
         output_suffix=output_suffix,
