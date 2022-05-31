@@ -105,7 +105,8 @@ class SuffixFilter(ArtefactsGetter):
 
     def __call__(self, artefact_store):
         super().__call__(artefact_store)
-        fpaths: Iterable[Path] = artefact_store[self.collection_name]
+        # todo: returning an empty list is probably "dishonest" if the collection doesn't exist - return None instead?
+        fpaths: Iterable[Path] = artefact_store.get(self.collection_name, [])
         return suffix_filter(fpaths, self.suffixes)
 
 

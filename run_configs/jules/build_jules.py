@@ -83,7 +83,7 @@ def jules_config(revision=None):
         LinkExe(
             linker='mpifort',
             output_fpath='$output/../jules.exe',
-            flags=['-lm']),
+            flags=['-lm', '-lnetcdff', '-lnetcdf']),
     ]
 
     return config
