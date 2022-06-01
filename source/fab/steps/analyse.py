@@ -14,7 +14,7 @@ import warnings
 from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Tuple, Iterable, Set
+from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
     validate_build_tree
@@ -45,16 +45,16 @@ class Analyse(Step):
 
     # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
-                 root_symbol, source: ArtefactsGetter = None, std="f2008",
+                 root_symbol: Optional[Union[str, List[str]]], source: ArtefactsGetter = None, std="f2008",
                  special_measure_analysis_results=None, unreferenced_deps=None,
                  ignore_mod_deps=None, name='analyser'):
         """
 
         Args:
             - source: A :class:`~fab.util.ArtefactsGetter`.
-            - root_symbol: When building an executable, provide the Fortran Program name, or 'main' for C.
-                If None, target tree extraction will not be performed and the whole codebase will be returned
-                in the build tree, as when building a compiled object archive.
+            - root_symbol: When building an executable, provide the Fortran Program name(s), or 'main' for C.
+                If None, target tree extraction will not be performed and the whole codebase will be used
+                as the build tree - for building a shared or static library.
             - std: The fortran standard, passed through to fparser2. Defaults to 'f2008'.
             - special_measure_analysis_results: When fparser2 cannot parse a "valid" Fortran file,
                 we can manually provide the expected analysis results with this argument.
@@ -69,7 +69,7 @@ class Analyse(Step):
         """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.root_symbol: str = root_symbol
+        self.root_symbols: List[str] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[AnalysedFile] = special_measure_analysis_results or []
         self.unreferenced_deps: List[str] = unreferenced_deps or []
 
@@ -94,10 +94,56 @@ class Analyse(Step):
         """
         super().run(artefact_store, config)
 
+        analysed_files = self.analyse_source_code(artefact_store)
+
+        source_tree, symbols = self.analyse_dependencies(analysed_files)
+
+        # find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
+        with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
+            add_mo_commented_file_deps(source_tree)
+
+        logger.info(f"source tree size {len(source_tree)}")
+
+        # target tree extraction for building executables.
+        build_trees = self.extract_build_trees(source_tree, symbols)
+
+        artefact_store['build_trees'] = build_trees
+        artefact_store['source_tree'] = source_tree
+
+    def extract_build_trees(self, source_tree, symbols):
+        build_trees = []
+        for root in self.root_symbols:
+            with TimerLogger(f"extracting target tree for root {root}"):
+                build_tree = extract_sub_tree(source_tree, symbols[root], verbose=False)
+
+            logger.info(f"build tree size {len(build_tree)} (target '{symbols[root]}')")
+
+            # Recursively add any unreferenced dependencies
+            # (a fortran routine called without a use statement).
+            self._add_unreferenced_deps(symbols, source_tree, build_tree)
+
+            validate_build_tree(build_tree)
+            build_trees.append(build_tree)
+
+        return build_trees
+
+    def analyse_dependencies(self, analysed_files):
+        # Make "external" symbol table
+        with TimerLogger("creating symbol lookup"):
+            symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
+
+        # turn symbol deps into file deps
+        with TimerLogger("generating file dependencies from symbols"):
+            self._gen_file_deps(analysed_files, symbols)
+
+        source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
+
+        return source_tree, symbols
+
+    def analyse_source_code(self, artefact_store) -> List[AnalysedFile]:
         files = self.source_getter(artefact_store)
 
-        # take hashes of all the files we preprocessed
-        with TimerLogger(f"getting {len(files)} hashes"):
+        with TimerLogger(f"generating file hashes"):
             preprocessed_hashes = self._get_latest_checksums(files)
 
         with TimerLogger("loading previous analysis results"):
@@ -106,40 +152,8 @@ class Analyse(Step):
         with TimerLogger("analysing files"):
             with self._new_analysis_file(unchanged) as csv_writer:
                 freshly_analysed_fortran, freshly_analysed_c = self._parse_files(changed, csv_writer)
-        source_tree: Dict[Path, AnalysedFile] = {
-            a.fpath: a for a in unchanged + freshly_analysed_fortran + freshly_analysed_c}
 
-        # Make "external" symbol table
-        with TimerLogger("creating symbol lookup"):
-            symbols: Dict[str, Path] = self._gen_symbol_table(source_tree)
-
-        # turn symbol deps into file deps
-        with TimerLogger("generating file dependencies from symbols"):
-            self._gen_file_deps(source_tree, symbols)
-
-        #  find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps
-        with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
-            add_mo_commented_file_deps(source_tree)
-
-        logger.info(f"source tree size {len(source_tree)}")
-
-        # Target tree extraction - for building executables.
-        if self.root_symbol:
-            with TimerLogger("extracting target tree"):
-                build_tree = extract_sub_tree(source_tree, symbols[self.root_symbol], verbose=False)
-            logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.root_symbol]}')")
-        # When building library ".so" files, no target is needed.
-        else:
-            logger.info("no target specified, building everything")
-            build_tree = source_tree
-
-        # Recursively add any unreferenced dependencies
-        # (a fortran routine called without a use statement).
-        self._add_unreferenced_deps(symbols, source_tree, build_tree)
-
-        validate_build_tree(build_tree)
-
-        artefact_store['build_tree'] = build_tree
+        return unchanged + freshly_analysed_fortran + freshly_analysed_c
 
     def _parse_files(self,
                      to_analyse_by_type: Dict[str, List[HashedFile]],
@@ -176,21 +190,20 @@ class Analyse(Step):
 
         return analysed_fortran, analysed_c
 
-    def _gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
+    def _gen_symbol_table(self, analysed_files: List[AnalysedFile]) -> Dict[str, Path]:
         """
         Create a dictionary mapping symbol names to the files in which they appear.
 
         """
         # add special measure symbols for files which could not be parsed
         if self.special_measure_analysis_results:
-            for analysed_file in self.special_measure_analysis_results:
-                warnings.warn(f"SPECIAL MEASURE for {analysed_file.fpath}: injecting user-defined analysis results")
-                all_analysed_files[analysed_file.fpath] = analysed_file
+            warnings.warn(f"SPECIAL MEASURE: injecting user-defined analysis results")
+            analysed_files.extend(self.special_measure_analysis_results)
 
         # map symbols to the files in which they're defined
         symbols: Dict[str, Path] = dict()
         duplicates = []
-        for analysed_file in all_analysed_files.values():
+        for analysed_file in analysed_files:
             for symbol_def in analysed_file.symbol_defs:
                 # check for duplicates
                 if symbol_def in symbols:
@@ -208,14 +221,14 @@ class Analyse(Step):
 
         return symbols
 
-    def _gen_file_deps(self, all_analysed_files, symbols):
+    def _gen_file_deps(self, analysed_files: List[AnalysedFile], symbols: Dict[str, Path]):
         """
         Use the symbol table to convert symbol dependencies into file dependencies.
 
         """
         deps_not_found = set()
         with TimerLogger("converting symbol to file deps"):
-            for analysed_file in all_analysed_files.values():
+            for analysed_file in analysed_files:
                 for symbol_dep in analysed_file.symbol_deps:
                     file_dep = symbols.get(symbol_dep)
                     if not file_dep:
