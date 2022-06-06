@@ -157,4 +157,4 @@ class FilterBuildTrees(ArtefactsGetter):
         else:
             # todo: This is a code smell. It's not the responsibility of this class to make this decision.
             result = filter_source_tree(source_tree=artefact_store[PROJECT_SOURCE_TREE], suffixes=self.suffixes)
-            return {'foo', result}
+            return {None, result}

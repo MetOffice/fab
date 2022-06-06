@@ -13,16 +13,15 @@ from string import Template
 from typing import List, Dict
 
 from fab import artefacts
-from fab.constants import BUILD_OUTPUT
+from fab.constants import BUILD_OUTPUT, TARGET_OBJECT_FILES, TARGET_OBJECT_ARCHIVES
 from fab.steps import Step
 from fab.util import CompiledFile, log_or_dot, run_command
-from fab.artefacts import ArtefactsGetter
+from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
 
-# DEFAULT_SOURCE_GETTER = artefacts.CompiledFortranAndC
-DEFAULT_SOURCE_GETTER = "foo"
-DEFAULT_COLLECTION_NAME = 'object archive'
+DEFAULT_SOURCE_GETTER = CollectionGetter(TARGET_OBJECT_FILES)
+DEFAULT_COLLECTION_NAME = TARGET_OBJECT_ARCHIVES
 
 
 class ArchiveObjects(Step):
@@ -51,18 +50,20 @@ class ArchiveObjects(Step):
         """
         super().run(artefact_store, config)
 
-        output_fpath = Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT)
+        target_objects = self.source_getter(artefact_store)
+        target_archives = artefact_store.setdefault(self.output_collection, {})
+        for root, objects in target_objects.items():
 
-        compiled_files: List[CompiledFile] = self.source_getter(artefact_store)
+            output_fpath = str(config.project_workspace / BUILD_OUTPUT / f'{root}.a')
 
-        command = [self.archiver]
-        command.extend(['cr', output_fpath])
-        command.extend(map(str, compiled_files))
+            command = [self.archiver]
+            command.extend(['cr', output_fpath])
+            command.extend(map(str, objects))
 
-        log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
-        try:
-            run_command(command)
-        except Exception as err:
-            raise Exception(f"error creating object archive: {err}")
+            log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
+            try:
+                run_command(command)
+            except Exception as err:
+                raise Exception(f"error creating object archive: {err}")
 
-        artefact_store[self.output_collection] = [output_fpath]
+            target_archives[root] = [output_fpath]

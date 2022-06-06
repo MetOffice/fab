@@ -21,21 +21,19 @@ from fab.artefacts import ArtefactsGetter, CollectionGetter
 logger = logging.getLogger(__name__)
 
 
-# class DefaultLinkerSource(ArtefactsGetter):
-#     """
-#     A source getter specifically for linking.
-#     Looks for the default output from ArchiveObjects, falls back to artefacts.CompiledFortranAndC.
-#     This allows a link step to work with or without a preceding object archive step.
-#
-#     """
-#     def __call__(self, artefact_store):
-#         return CollectionGetter(archive_objects.DEFAULT_COLLECTION_NAME)(artefact_store) \
-#                or artefacts.CompiledFortranAndC(artefact_store)
-#
-# DEFAULT_SOURCE_GETTER = DefaultLinkerSource()
+class DefaultLinkerSource(ArtefactsGetter):
+    """
+    A source getter specifically for linking.
+    Looks for the default output from archiving objects, falls back to default compiler output.
+    This allows a link step to work with or without a preceding object archive step.
 
-# this artefact collection contains the objects required fo each build target
-DEFAULT_SOURCE_GETTER = CollectionGetter(TARGET_OBJECT_FILES)
+    """
+    def __call__(self, artefact_store):
+        return CollectionGetter(archive_objects.DEFAULT_COLLECTION_NAME)(artefact_store) \
+               or CollectionGetter(TARGET_OBJECT_FILES)(artefact_store)
+
+
+DEFAULT_SOURCE_GETTER = DefaultLinkerSource()
 
 
 class LinkExe(Step):
@@ -68,7 +66,7 @@ class LinkExe(Step):
         target_objects = self.source_getter(artefact_store)
         for root, objects in target_objects.items():
             command = self.linker.split()
-            command.extend(['-o', str(config.project_workspace / BUILD_OUTPUT / f'{root}.exe')])
+            command.extend(['-o', str(config.project_workspace / f'{root}.exe')])
             command.extend(map(str, objects))
             # note: this must this come after the list of object files?
             command.extend(os.getenv('LDFLAGS', []).split())

@@ -23,7 +23,7 @@ from fab.steps.walk_source import FindSourceFiles, EXCLUDE
 def jules_config(revision=None):
 
     config = BuildConfig(project_label=f'jules_{revision}')
-    config.multiprocessing = False
+    # config.multiprocessing = False
     # config.debug_skip = True
 
     logger = logging.getLogger('fab')
@@ -78,7 +78,8 @@ def jules_config(revision=None):
             # ]
         ),
 
-        # ArchiveObjects(),
+        # todo: test both with and without an archive step
+        ArchiveObjects(),
 
         LinkExe(
             linker='mpifort',

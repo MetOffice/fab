@@ -8,9 +8,11 @@
 SOURCE_ROOT = "source"
 BUILD_OUTPUT = "build_output"
 
-PROJECT_SOURCE_TREE = 'project_source_tree'
+PROJECT_SOURCE_TREE = 'project source tree'
 
 # todo: change this to "build trees" everywhere
-TARGET_SOURCE_TREES = 'target_source_trees'
+TARGET_SOURCE_TREES = 'target source trees'
 
-TARGET_OBJECT_FILES = 'target_object_files'
+TARGET_OBJECT_FILES = 'target object files'
+
+TARGET_OBJECT_ARCHIVES = 'target object archives'
