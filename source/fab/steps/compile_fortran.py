@@ -11,7 +11,7 @@ import logging
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict, Iterable
+from typing import List, Set, Dict
 
 from fab.constants import COMPILED_FILES
 
@@ -44,15 +44,10 @@ class CompileFortran(MpExeStep):
         """
         super().run(artefact_store, config)
 
-        # to_compile = self.source_getter(artefact_store)
-        # logger.info(f"\ncompiling {len(to_compile)} fortran files")
-
         # get all the source to compile, for all build trees, into one big lump
         target_source: Dict[str, List] = self.source_getter(artefact_store)
         to_compile = sum(target_source.values(), [])
         logger.info(f"compiling {len(to_compile)} fortran files")
-
-
 
         # compile everything in multiple passes
         all_compiled: List[CompiledFile] = []  # todo: use set?
@@ -95,9 +90,6 @@ class CompileFortran(MpExeStep):
                 logger.debug(af.fpath)
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
-
-        # artefact_store['compiled_fortran'] = all_compiled
-
 
         # add the targets' new object files to the artefact store
         lookup = {compiled_file.analysed_file: compiled_file for compiled_file in all_compiled}

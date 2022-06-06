@@ -13,7 +13,6 @@ from abc import ABC
 from string import Template
 from typing import List
 
-from fab import artefacts
 from fab.constants import BUILD_OUTPUT, COMPILED_FILES
 from fab.steps import Step, archive_objects
 from fab.util import log_or_dot, run_command

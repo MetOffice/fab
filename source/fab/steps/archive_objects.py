@@ -10,12 +10,11 @@ Object archive (.a) creation from a list of object files (.o) for use in static 
 
 import logging
 from string import Template
-from typing import List, Dict
+from typing import Dict
 
-from fab import artefacts
 from fab.constants import BUILD_OUTPUT, COMPILED_FILES, OBJECT_ARCHIVES
 from fab.steps import Step
-from fab.util import CompiledFile, log_or_dot, run_command
+from fab.util import log_or_dot, run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)

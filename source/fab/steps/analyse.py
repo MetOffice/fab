@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
-from fab.constants import BUILD_TREES, PROJECT_SOURCE_TREE
+from fab.constants import BUILD_TREES
 
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
     validate_dependencies
@@ -147,7 +147,7 @@ class Analyse(Step):
     def analyse_source_code(self, artefact_store) -> List[AnalysedFile]:
         files = self.source_getter(artefact_store)
 
-        with TimerLogger(f"generating file hashes"):
+        with TimerLogger("generating file hashes"):
             preprocessed_hashes = self._get_latest_checksums(files)
 
         with TimerLogger("loading previous analysis results"):
@@ -201,7 +201,7 @@ class Analyse(Step):
         """
         # add special measure symbols for files which could not be parsed
         if self.special_measure_analysis_results:
-            warnings.warn(f"SPECIAL MEASURE: injecting user-defined analysis results")
+            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
             analysed_files.extend(self.special_measure_analysis_results)
 
         # map symbols to the files in which they're defined
