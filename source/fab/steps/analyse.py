@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
-    validate_build_tree
+    validate_dependencies
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
@@ -96,36 +96,36 @@ class Analyse(Step):
 
         analysed_files = self.analyse_source_code(artefact_store)
 
-        source_tree, symbols = self.analyse_dependencies(analysed_files)
+        project_source_tree, symbols = self.analyse_dependencies(analysed_files)
 
         # find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
         with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
-            add_mo_commented_file_deps(source_tree)
+            add_mo_commented_file_deps(project_source_tree)
 
-        logger.info(f"source tree size {len(source_tree)}")
+        logger.info(f"source tree size {len(project_source_tree)}")
 
         # target tree extraction for building executables.
-        build_trees = self.extract_build_trees(source_tree, symbols)
+        target_source_trees = self.extract_target_source_trees(project_source_tree, symbols)
 
-        artefact_store['build_trees'] = build_trees
-        artefact_store['source_tree'] = source_tree
+        artefact_store['target_source_trees'] = target_source_trees
+        artefact_store['project_source_tree'] = project_source_tree
 
-    def extract_build_trees(self, source_tree, symbols):
-        build_trees = []
+    def extract_target_source_trees(self, project_source_tree, symbols):
+        target_source_trees = {}
         for root in self.root_symbols:
-            with TimerLogger(f"extracting target tree for root {root}"):
-                build_tree = extract_sub_tree(source_tree, symbols[root], verbose=False)
+            with TimerLogger(f"extracting target source tree for root {root}"):
+                target_source_tree = extract_sub_tree(project_source_tree, symbols[root], verbose=False)
 
-            logger.info(f"build tree size {len(build_tree)} (target '{symbols[root]}')")
+            logger.info(f"target source tree size {len(target_source_tree)} (target '{symbols[root]}')")
 
             # Recursively add any unreferenced dependencies
             # (a fortran routine called without a use statement).
-            self._add_unreferenced_deps(symbols, source_tree, build_tree)
+            self._add_unreferenced_deps(symbols, project_source_tree, target_source_tree)
 
-            validate_build_tree(build_tree)
-            build_trees.append(build_tree)
+            validate_dependencies(target_source_tree)
+            target_source_trees[root] = target_source_tree
 
-        return build_trees
+        return target_source_trees
 
     def analyse_dependencies(self, analysed_files):
         # Make "external" symbol table

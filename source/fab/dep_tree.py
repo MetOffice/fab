@@ -191,7 +191,7 @@ def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable
     return [af for af in all_files if af.fpath.suffix in suffixes]
 
 
-def validate_build_tree(target_tree):
+def validate_dependencies(target_tree):
     """
     If any dep is not in the tree, then it's unknown code and we won't be able to compile.
 

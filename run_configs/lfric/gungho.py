@@ -81,7 +81,6 @@ def gungho():
 
         LinkExe(
             linker='mpifort',
-            output_fpath=config.project_workspace / 'gungho.exe',
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES

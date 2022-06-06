@@ -17,11 +17,11 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, check_for_errors
-from fab.artefacts import ArtefactsGetter, FilterBuildTree
+from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.f90')
+DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
 
 class CompileFortran(MpExeStep):
@@ -85,7 +85,7 @@ class CompileFortran(MpExeStep):
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 
-        artefact_store['compiled_fortran'] = [i.output_fpath for i in all_compiled]
+        artefact_store['compiled_fortran'] = all_compiled
 
     def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
 

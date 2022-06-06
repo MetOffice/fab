@@ -204,13 +204,11 @@ def um_atmos_safe_config():
 
         #
         LinkExe(
-            # linker='gcc',
             linker='mpifort',
             flags=[
                 '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
                 '-L', gcom_build, '-l', 'gcom'
             ],
-            output_fpath=config.project_workspace / 'um_atmos.exe')
     ]
 
     return config

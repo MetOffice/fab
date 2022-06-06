@@ -110,32 +110,38 @@ class SuffixFilter(ArtefactsGetter):
         return suffix_filter(fpaths, self.suffixes)
 
 
-class FilterBuildTree(ArtefactsGetter):
+class FilterBuildTrees(ArtefactsGetter):
     """
-    Like SuffixFilter, except the :term:`Named Collection` is expected to be a source tree dict
-    of :class:`~fab.dep_tree.AnalysedFile` nodes.
+    Filter by suffix, all the build trees in the artefact store.
 
+    By default, looks in the "build_trees" named collection.
     Returns a list of paths with the given suffix.
+
+    :param suffix: A string, or iterable of, including the preceding dot.
+    :param collection_name: The name of the artefact collection where we find the source trees to build.
+                            Defaults to 'target_source_trees'.
 
     Example::
 
         # The default source getter for the CompileFortran step.
-        DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.f90')
+        DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
     """
-    def __init__(self, suffix: Union[str, List[str]], collection_name: str = 'build_tree'):
-        """
-        Args:
-            - suffixes: An iterable of suffixes
-
-        """
+    def __init__(self, suffix: Union[str, List[str]], collection_name: str = 'target_source_trees'):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store):
         super().__call__(artefact_store)
-        source_tree: Dict[Path, AnalysedFile] = artefact_store[self.collection_name]
-        return filter_source_tree(source_tree=source_tree, suffixes=self.suffixes)
+
+        # get a list of files to compile for each target source tree
+        target_source_trees = artefact_store[self.collection_name]
+
+        target_source_lists: Dict[str, List[AnalysedFile]] = {}
+        for root, tree in target_source_trees:
+            target_source_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
+
+        return target_source_lists
 
 
-CompiledFortranAndC = CollectionConcat(['compiled_c', 'compiled_fortran'])
+# CompiledFortranAndC = CollectionConcat(['compiled_c', 'compiled_fortran'])

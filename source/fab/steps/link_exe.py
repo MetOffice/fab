@@ -21,41 +21,41 @@ from fab.artefacts import ArtefactsGetter, CollectionGetter
 logger = logging.getLogger(__name__)
 
 
-class DefaultLinkerSource(ArtefactsGetter):
-    """
-    A source getter specifically for linking.
-    Looks for the default output from ArchiveObjects, falls back to artefacts.CompiledFortranAndC.
-    This allows a link step to work with or without a preceding object archive step.
-    """
-    def __call__(self, artefact_store):
-        return CollectionGetter(archive_objects.DEFAULT_COLLECTION_NAME)(artefact_store) \
-               or artefacts.CompiledFortranAndC(artefact_store)
+# class DefaultLinkerSource(ArtefactsGetter):
+#     """
+#     A source getter specifically for linking.
+#     Looks for the default output from ArchiveObjects, falls back to artefacts.CompiledFortranAndC.
+#     This allows a link step to work with or without a preceding object archive step.
+#
+#     """
+#     def __call__(self, artefact_store):
+#         return CollectionGetter(archive_objects.DEFAULT_COLLECTION_NAME)(artefact_store) \
+#                or artefacts.CompiledFortranAndC(artefact_store)
+#
+# DEFAULT_SOURCE_GETTER = DefaultLinkerSource()
 
-
-DEFAULT_SOURCE_GETTER = DefaultLinkerSource()
+DEFAULT_SOURCE_GETTER = CollectionGetter('build_trees')
 
 
 class LinkExe(Step):
     """
-    A build step to produce an executable from a list of object (.o) files.
+    A build step to produce an executable for every build tree in a given artefact collection.
+
+    Defaults to using the XXX collection
+
+    :param linker: E.g 'gcc' or 'ld'.
+    :param flags: A list of flags to pass to the linker.
+    :param source: An :class:`~fab.artefacts.ArtefactsGetter`.
+    :param name: A descriptive label for his step, defaulting to 'link exe'.
 
     """
+    def __init__(self, linker: str, flags=None, source: ArtefactsGetter = None, name='link exe'):
+        # output_fpath='$output/../jules.exe'
 
-    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactsGetter = None, name='link exe'):
-        """
-        Args:
-            - linker: E.g 'gcc' or 'ld'.
-            - flags: A list of flags to pass to the linker.
-            - output_fpath: The file path of the output exe.
-            - source:
-            - name:
-
-        """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.linker = linker
         self.flags: List[str] = flags or []
-        self.output_fpath: str = str(output_fpath)
 
     def run(self, artefact_store, config):
         """
@@ -66,7 +66,14 @@ class LinkExe(Step):
         """
         super().run(artefact_store, config)
 
-        compiled_files = self.source_getter(artefact_store)
+        build_trees = self.source_getter(artefact_store)
+        for build_tree in build_trees:
+            self.link_build_tree(build_tree, config)
+
+    def link_build_tree(self, build_tree, config):
+        # compiled_files = self.source_getter(artefact_store)
+
+        root_sy
 
         command = self.linker.split()
         command.extend(['-o', Template(self.output_fpath).substitute(
@@ -75,14 +82,11 @@ class LinkExe(Step):
         # note: this must this come after the list of object files?
         command.extend(os.getenv('LDFLAGS', []).split())
         command.extend(self.flags)
-
         log_or_dot(logger, 'Link running command: ' + ' '.join(command))
         try:
             run_command(command)
         except Exception as err:
             raise Exception(f"error linking: {err}")
-
-        return self.output_fpath
 
 
 class LinkSharedObject(LinkExe):
