@@ -77,7 +77,7 @@ def gungho():
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=['-c', '-J', '$output']),
 
-        ArchiveObjects(output_fpath='$output/objects.a'),
+        ArchiveObjects(),
 
         LinkExe(
             linker='mpifort',

@@ -78,8 +78,7 @@ def jules_config(revision=None):
             # ]
         ),
 
-        # todo: test both with and without an archive step
-        ArchiveObjects(),
+        # ArchiveObjects(),
 
         LinkExe(
             linker='mpifort',

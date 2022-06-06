@@ -11,8 +11,8 @@ BUILD_OUTPUT = "build_output"
 PROJECT_SOURCE_TREE = 'project source tree'
 
 # todo: change this to "build trees" everywhere
-TARGET_SOURCE_TREES = 'target source trees'
+BUILD_TREES = 'build trees'
 
-TARGET_OBJECT_FILES = 'target object files'
+COMPILED_FILES = 'compiled files'
 
-TARGET_OBJECT_ARCHIVES = 'target object archives'
+OBJECT_ARCHIVES = 'object archives'

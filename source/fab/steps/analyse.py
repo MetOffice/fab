@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
-from fab.constants import TARGET_SOURCE_TREES, PROJECT_SOURCE_TREE
+from fab.constants import BUILD_TREES, PROJECT_SOURCE_TREE
 
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
     validate_dependencies
@@ -47,7 +47,7 @@ class Analyse(Step):
 
     # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
-                 root_symbol: Optional[Union[str, List[str]]], source: ArtefactsGetter = None, std="f2008",
+                 root_symbol: Optional[Union[str, List[str]]] = None, source: ArtefactsGetter = None, std="f2008",
                  special_measure_analysis_results=None, unreferenced_deps=None,
                  ignore_mod_deps=None, name='analyser'):
         """
@@ -71,7 +71,7 @@ class Analyse(Step):
         """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.root_symbols: List[str] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
+        self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[AnalysedFile] = special_measure_analysis_results or []
         self.unreferenced_deps: List[str] = unreferenced_deps or []
 
@@ -107,12 +107,14 @@ class Analyse(Step):
         logger.info(f"source tree size {len(project_source_tree)}")
 
         # target tree extraction for building executables.
-        target_source_trees = self.extract_target_source_trees(project_source_tree, symbols)
+        if self.root_symbols:
+            build_trees = self.extract_build_trees(project_source_tree, symbols)
+        else:
+            build_trees = {None: project_source_tree}
 
-        artefact_store[TARGET_SOURCE_TREES] = target_source_trees
-        artefact_store[PROJECT_SOURCE_TREE] = project_source_tree
+        artefact_store[BUILD_TREES] = build_trees
 
-    def extract_target_source_trees(self, project_source_tree, symbols):
+    def extract_build_trees(self, project_source_tree, symbols):
         target_source_trees = {}
         for root in self.root_symbols:
             with TimerLogger(f"extracting target source tree for root {root}"):

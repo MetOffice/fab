@@ -13,7 +13,7 @@ import os
 from collections import defaultdict
 from typing import List, Dict
 
-from fab.constants import TARGET_OBJECT_FILES
+from fab.constants import COMPILED_FILES
 
 from fab.metrics import send_metric
 
@@ -48,7 +48,7 @@ class CompileC(MpExeStep):
         super().run(artefact_store, config)
 
         # get all the source to compile, for all build trees, into one big lump
-        target_source: Dict[str, List] = self.source_getter(artefact_store)
+        target_source: Dict = self.source_getter(artefact_store)
         to_compile = sum(target_source.values(), [])
         logger.info(f"compiling {len(to_compile)} c files")
 
@@ -72,7 +72,7 @@ class CompileC(MpExeStep):
         logger.info(f"compiled {len(lookup)} c files")
 
         # add the targets' new object files to the artefact store
-        target_object_files = artefact_store.setdefault(TARGET_OBJECT_FILES, defaultdict(list))
+        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(list))
         for root, source_files in target_source.items():
             new_objects = [lookup[af].output_fpath for af in source_files]
             target_object_files[root].extend(new_objects)

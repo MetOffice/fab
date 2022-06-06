@@ -198,17 +198,16 @@ def um_atmos_safe_config():
             ]
         ),
 
-        # todo: ArchiveObjects() first? If nothing else, it makes linker error messages more manageable.
-
+        # this step just makes linker error messages more manageable
         ArchiveObjects(),
 
-        #
         LinkExe(
             linker='mpifort',
             flags=[
                 '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
                 '-L', gcom_build, '-l', 'gcom'
             ],
+        )
     ]
 
     return config

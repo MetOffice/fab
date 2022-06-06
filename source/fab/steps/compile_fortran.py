@@ -13,7 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Iterable
 
-from fab.constants import TARGET_OBJECT_FILES
+from fab.constants import COMPILED_FILES
 
 from fab.metrics import send_metric
 
@@ -101,7 +101,7 @@ class CompileFortran(MpExeStep):
 
         # add the targets' new object files to the artefact store
         lookup = {compiled_file.analysed_file: compiled_file for compiled_file in all_compiled}
-        target_object_files = artefact_store.setdefault(TARGET_OBJECT_FILES, defaultdict(list))
+        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(list))
         for root, source_files in target_source.items():
             new_objects = [lookup[af].output_fpath for af in source_files]
             target_object_files[root].extend(new_objects)

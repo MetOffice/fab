@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -7,7 +8,8 @@ from fab.artefacts import SuffixFilter
 from fab.steps import Step
 from fab.steps.preprocess import PreProcessor
 from fab.util import run_command, check_for_errors, log_or_dot, input_to_output_fpath
-from run_configs.lfric.gungho import logger
+
+logger = logging.getLogger('fab')
 
 
 class Configurator(Step):

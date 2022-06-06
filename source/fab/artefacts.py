@@ -14,7 +14,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
-from fab.constants import TARGET_SOURCE_TREES, PROJECT_SOURCE_TREE
+from fab.constants import BUILD_TREES, PROJECT_SOURCE_TREE
 
 from fab.dep_tree import AnalysedFile, filter_source_tree
 from fab.util import suffix_filter
@@ -136,7 +136,7 @@ class FilterBuildTrees(ArtefactsGetter):
         DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
     """
-    def __init__(self, suffix: Union[str, List[str]], collection_name: str = TARGET_SOURCE_TREES):
+    def __init__(self, suffix: Union[str, List[str]], collection_name: str = BUILD_TREES):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
@@ -146,15 +146,8 @@ class FilterBuildTrees(ArtefactsGetter):
         # get a list of files to compile for each target source tree
         build_trees = artefact_store[self.collection_name]
 
-        if build_trees:
-            target_source_lists: Dict[str, List[AnalysedFile]] = {}
-            for root, tree in build_trees.items():
-                target_source_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
+        target_source_lists: Dict[str, List[AnalysedFile]] = {}
+        for root, tree in build_trees.items():
+            target_source_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
 
-            return target_source_lists
-
-        # we've got no targets to build, so just use the entire project source tree
-        else:
-            # todo: This is a code smell. It's not the responsibility of this class to make this decision.
-            result = filter_source_tree(source_tree=artefact_store[PROJECT_SOURCE_TREE], suffixes=self.suffixes)
-            return {None, result}
+        return target_source_lists
