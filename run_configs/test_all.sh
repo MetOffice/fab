@@ -12,4 +12,5 @@ cd ../um
 python -m build_um
 
 cd ../lfric
+python -m grab_lfric
 python -m gungho

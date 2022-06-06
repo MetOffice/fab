@@ -1,17 +1,15 @@
-from fab.steps.analyse import Analyse
-
-from fab.constants import BUILD_OUTPUT
-
-from fab.steps.preprocess import fortran_preprocessor
-
-from fab.steps.walk_source import FindSourceFiles
-
-from fab.steps.grab import GrabFolder
+import os
 
 from fab.build_config import BuildConfig
-from run_configs.lfric.grab_lfric import lfric_source, gpl_utils_source
-from run_configs.lfric.lfric_common import Configurator, psyclone_preprocessor, Psyclone, \
-    FparserWorkaround_StopConcatenation
+from fab.constants import BUILD_OUTPUT
+from fab.steps.analyse import Analyse
+from fab.steps.compile_fortran import CompileFortran
+from fab.steps.grab import GrabFolder
+from fab.steps.link_exe import LinkExe
+from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.walk_source import FindSourceFiles
+from grab_lfric import lfric_source, gpl_utils_source
+from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
 
 
 def mesh_tools():
@@ -48,7 +46,20 @@ def mesh_tools():
 
         # todo:
         # compile one big lump
+
+        CompileFortran(compiler=os.getenv('FC', 'gfortran'), common_flags=['-c', '-J', '$output']),
+
+        # ArchiveObjects(),
+
         # link the 3 trees' objects
+        LinkExe(
+            linker='mpifort',
+            flags=[
+                '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
+                '-lxios',  # EXTERNAL_STATIC_LIBRARIES
+                '-lstdc++',
+            ],
+        ),
 
     ]
 
