@@ -13,7 +13,7 @@ from string import Template
 from typing import List
 
 from fab import artefacts
-from fab.constants import BUILD_OUTPUT
+from fab.constants import BUILD_OUTPUT, TARGET_OBJECT_FILES
 from fab.steps import Step, archive_objects
 from fab.util import log_or_dot, run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -34,7 +34,8 @@ logger = logging.getLogger(__name__)
 #
 # DEFAULT_SOURCE_GETTER = DefaultLinkerSource()
 
-DEFAULT_SOURCE_GETTER = CollectionGetter('build_trees')
+# this artefact collection contains the objects required fo each build target
+DEFAULT_SOURCE_GETTER = CollectionGetter(TARGET_OBJECT_FILES)
 
 
 class LinkExe(Step):
@@ -59,34 +60,24 @@ class LinkExe(Step):
 
     def run(self, artefact_store, config):
         """
-        Links all the object files in the artefact_store.
-
-        By default, it finds the object files under the labels *compiled_c* and *compiled_fortran*.
+        Link the object files for every build target in the artefact_store.
 
         """
         super().run(artefact_store, config)
 
-        build_trees = self.source_getter(artefact_store)
-        for build_tree in build_trees:
-            self.link_build_tree(build_tree, config)
-
-    def link_build_tree(self, build_tree, config):
-        # compiled_files = self.source_getter(artefact_store)
-
-        root_sy
-
-        command = self.linker.split()
-        command.extend(['-o', Template(self.output_fpath).substitute(
-            output=str(config.project_workspace / BUILD_OUTPUT))])
-        command.extend(map(str, compiled_files))
-        # note: this must this come after the list of object files?
-        command.extend(os.getenv('LDFLAGS', []).split())
-        command.extend(self.flags)
-        log_or_dot(logger, 'Link running command: ' + ' '.join(command))
-        try:
-            run_command(command)
-        except Exception as err:
-            raise Exception(f"error linking: {err}")
+        target_objects = self.source_getter(artefact_store)
+        for root, objects in target_objects.items():
+            command = self.linker.split()
+            command.extend(['-o', str(config.project_workspace / BUILD_OUTPUT / f'{root}.exe')])
+            command.extend(map(str, objects))
+            # note: this must this come after the list of object files?
+            command.extend(os.getenv('LDFLAGS', []).split())
+            command.extend(self.flags)
+            log_or_dot(logger, 'Link running command: ' + ' '.join(command))
+            try:
+                run_command(command)
+            except Exception as err:
+                raise Exception(f"error linking: {err}")
 
 
 class LinkSharedObject(LinkExe):

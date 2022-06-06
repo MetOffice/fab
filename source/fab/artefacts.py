@@ -14,6 +14,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
+from fab.constants import TARGET_SOURCE_TREES, PROJECT_SOURCE_TREE
+
 from fab.dep_tree import AnalysedFile, filter_source_tree
 from fab.util import suffix_filter
 
@@ -110,16 +112,23 @@ class SuffixFilter(ArtefactsGetter):
         return suffix_filter(fpaths, self.suffixes)
 
 
+# todo: Should it really be up to this class to decide whether to use the entire project tree?
+#       Perhaps this class should instead just error if there's no build trees collection.
 class FilterBuildTrees(ArtefactsGetter):
     """
-    Filter by suffix, all the build trees in the artefact store.
+    Filter each build tree by suffix.
 
-    By default, looks in the "build_trees" named collection.
-    Returns a list of paths with the given suffix.
+    By default, looks for the build trees in the collection named by :py:const:`~fab.constants.TARGET_SOURCE_TREES`.
+
+    .. note::
+        If there is no *build trees* artifact collection or if it's empty (e.g when compiling a library),
+        the entire *project source tree* will be filtered instead.
+
+    Returns a list of paths for each build target.
 
     :param suffix: A string, or iterable of, including the preceding dot.
     :param collection_name: The name of the artefact collection where we find the source trees to build.
-                            Defaults to 'target_source_trees'.
+                            Defaults to :py:const:`fab.constants.TARGET_SOURCE_TREES`.
 
     Example::
 
@@ -127,7 +136,7 @@ class FilterBuildTrees(ArtefactsGetter):
         DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
     """
-    def __init__(self, suffix: Union[str, List[str]], collection_name: str = 'target_source_trees'):
+    def __init__(self, suffix: Union[str, List[str]], collection_name: str = TARGET_SOURCE_TREES):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
@@ -135,13 +144,17 @@ class FilterBuildTrees(ArtefactsGetter):
         super().__call__(artefact_store)
 
         # get a list of files to compile for each target source tree
-        target_source_trees = artefact_store[self.collection_name]
+        build_trees = artefact_store[self.collection_name]
 
-        target_source_lists: Dict[str, List[AnalysedFile]] = {}
-        for root, tree in target_source_trees:
-            target_source_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
+        if build_trees:
+            target_source_lists: Dict[str, List[AnalysedFile]] = {}
+            for root, tree in build_trees.items():
+                target_source_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
 
-        return target_source_lists
+            return target_source_lists
 
-
-# CompiledFortranAndC = CollectionConcat(['compiled_c', 'compiled_fortran'])
+        # we've got no targets to build, so just use the entire project source tree
+        else:
+            # todo: This is a code smell. It's not the responsibility of this class to make this decision.
+            result = filter_source_tree(source_tree=artefact_store[PROJECT_SOURCE_TREE], suffixes=self.suffixes)
+            return {'foo', result}

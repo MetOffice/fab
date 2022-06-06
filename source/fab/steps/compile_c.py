@@ -11,7 +11,9 @@ import logging
 import operator
 import os
 from collections import defaultdict
-from typing import List
+from typing import List, Dict
+
+from fab.constants import TARGET_OBJECT_FILES
 
 from fab.metrics import send_metric
 
@@ -24,6 +26,7 @@ from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.c')
+DEFAULT_OUTPUT_ARTEFACT = ''
 
 
 class CompileC(MpExeStep):
@@ -37,34 +40,42 @@ class CompileC(MpExeStep):
 
     def run(self, artefact_store, config):
         """
-        Compiles all C files in the *build_tree* artefact, creating the *compiled_c* artefact.
+        Compiles all C files in all build trees, extending the list of compiled files for each target.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
         super().run(artefact_store, config)
 
-        # get all the source to compile, for all build targets, into one big lump
-        target_source_lists = self.source_getter(artefact_store)
-        big_lump = sum(target_source_lists, [])
-        logger.info(f"compiling {len(big_lump)} c files")
+        # get all the source to compile, for all build trees, into one big lump
+        target_source: Dict[str, List] = self.source_getter(artefact_store)
+        to_compile = sum(target_source.values(), [])
+        logger.info(f"compiling {len(to_compile)} c files")
 
-        # compile
-        results = self.run_mp(items=big_lump, func=self._compile_file)
+        # compile everything in one go
+        results = self.run_mp(items=to_compile, func=self._compile_file)
         check_for_errors(results, caller_label=self.name)
         compiled_c = by_type(results, CompiledFile)
-        logger.info(f"compiled {len(compiled_c)} c files")
 
-        # collect the compiled files for each build target
-        target_object_lists = {}
-        lookup = {cf.analysed_file: cf for cf in compiled_c}
-        for root, target_source_list in target_source_lists.items():
-            target_object_lists[root] = [lookup[af] for af in target_source_list]
+        # # collect the compiled files for each build target
+        # target_objects = {}
+        # lookup = {compiled_file.analysed_file: compiled_file for compiled_file in compiled_c}
+        # for root, files in target_source.items():
+        #     target_objects[root] = [lookup[af] for af in files]
+        #
+        # # add the targets' new object files to the artefact store
+        # artefact_collection = artefact_store.setdefault(TARGET_OBJECT_FILES, defaultdict(list))
+        # for root, target_object_list in target_objects.items():
+        #     artefact_collection[root].append(target_object_list)
 
-        # add the object lists to the artefact store
-        artefact_collection = artefact_store.setdefault('target_object_lists', defaultdict(list))
-        for root, target_object_list in target_object_lists.items():
-            artefact_collection[root].append(target_object_list)
+        lookup = {compiled_file.analysed_file: compiled_file for compiled_file in compiled_c}
+        logger.info(f"compiled {len(lookup)} c files")
+
+        # add the targets' new object files to the artefact store
+        target_object_files = artefact_store.setdefault(TARGET_OBJECT_FILES, defaultdict(list))
+        for root, source_files in target_source.items():
+            new_objects = [lookup[af].output_fpath for af in source_files]
+            target_object_files[root].extend(new_objects)
 
     # todo: identical to the fortran version - make a super class
     def _compile_file(self, analysed_file: AnalysedFile):

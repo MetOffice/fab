@@ -16,6 +16,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
+from fab.constants import TARGET_SOURCE_TREES, PROJECT_SOURCE_TREE
+
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
     validate_dependencies
 from fab.steps import Step
@@ -107,8 +109,8 @@ class Analyse(Step):
         # target tree extraction for building executables.
         target_source_trees = self.extract_target_source_trees(project_source_tree, symbols)
 
-        artefact_store['target_source_trees'] = target_source_trees
-        artefact_store['project_source_tree'] = project_source_tree
+        artefact_store[TARGET_SOURCE_TREES] = target_source_trees
+        artefact_store[PROJECT_SOURCE_TREE] = project_source_tree
 
     def extract_target_source_trees(self, project_source_tree, symbols):
         target_source_trees = {}

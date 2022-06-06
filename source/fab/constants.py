@@ -7,3 +7,10 @@
 # folders underneath workspace
 SOURCE_ROOT = "source"
 BUILD_OUTPUT = "build_output"
+
+PROJECT_SOURCE_TREE = 'project_source_tree'
+
+# todo: change this to "build trees" everywhere
+TARGET_SOURCE_TREES = 'target_source_trees'
+
+TARGET_OBJECT_FILES = 'target_object_files'

@@ -20,7 +20,8 @@ from fab.artefacts import ArtefactsGetter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = artefacts.CompiledFortranAndC
+# DEFAULT_SOURCE_GETTER = artefacts.CompiledFortranAndC
+DEFAULT_SOURCE_GETTER = "foo"
 DEFAULT_COLLECTION_NAME = 'object archive'
 
 
