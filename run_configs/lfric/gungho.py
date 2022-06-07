@@ -7,21 +7,16 @@
 import logging
 import os
 
-from fab.steps.archive_objects import ArchiveObjects
-
-from fab.steps.link_exe import LinkExe
-
-from fab.steps.compile_fortran import CompileFortran
-
-from fab.steps.analyse import Analyse
-
-from fab.constants import BUILD_OUTPUT
-
 from fab.build_config import BuildConfig
+from fab.constants import BUILD_OUTPUT
+from fab.steps.analyse import Analyse
+from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
+from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles
-from grab_lfric import lfric_source, gpl_utils_source
+from grab_lfric import lfric_source_config, gpl_utils_source_config
 from run_configs.lfric.lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, \
     Psyclone
 
@@ -32,28 +27,31 @@ logger = logging.getLogger('fab')
 
 
 def gungho():
+    lfric_source = lfric_source_config().source_root / 'lfric'
+    gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
-    config = BuildConfig(project_label='gungho')
-    # config.multiprocessing = False,
-    config.reuse_artefacts = True
+    config = BuildConfig(
+        project_label='gungho',
+        # multiprocessing = False,
+        reuse_artefacts=True,
+    )
 
-    lfric_source_config = lfric_source()
     config.steps = [
 
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/infrastructure/source/', dst_label=''),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/components/driver/source/', dst_label=''),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/components/science/source/', dst_label=''),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/components/lfric-xios/source/', dst_label=''),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/gungho/source/', dst_label=''),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/kernel/stph/',
-                   dst_label='um_physics/source/kernel/stph/'),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/um_physics/source/constants/',
-                   dst_label='um_physics/source/constants'),
+        GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'components/driver/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
+        GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst_label='um_physics/source/constants'),
 
         # generate more source files in source and source/configuration
         Configurator(
-            lfric_source=lfric_source_config.source_root / 'lfric',
-            gpl_utils_source=gpl_utils_source().source_root / 'gpl_utils'),
+            lfric_source=lfric_source,
+            gpl_utils_source=gpl_utils_source,
+            rose_meta_conf=lfric_source / 'gungho/rose-meta/lfric-gungho/HEAD/rose-meta.conf',
+        ),
 
         FindSourceFiles(file_filtering=[
             # todo: allow a single string

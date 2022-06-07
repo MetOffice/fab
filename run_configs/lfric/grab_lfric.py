@@ -8,16 +8,16 @@ from fab.build_config import BuildConfig
 from fab.steps.grab import GrabFcm, GrabSvn
 
 
-def lfric_source():
+def lfric_source_config():
     return BuildConfig(project_label='lfric source', steps=[GrabFcm(src='fcm:lfric.xm_tr', dst_label='lfric')])
 
 
-def gpl_utils_source():
+def gpl_utils_source_config():
     return BuildConfig(
         project_label='lfric source',
         steps=[GrabSvn(src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk', dst_label='gpl_utils')])
 
 
 if __name__ == '__main__':
-    lfric_source().run()
-    gpl_utils_source().run()
+    lfric_source_config().run()
+    gpl_utils_source_config().run()

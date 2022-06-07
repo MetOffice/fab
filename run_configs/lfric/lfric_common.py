@@ -14,10 +14,11 @@ logger = logging.getLogger('fab')
 
 class Configurator(Step):
 
-    def __init__(self, lfric_source: Path, gpl_utils_source: Path):
+    def __init__(self, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path):
         super().__init__(name='configurator thing')
         self.lfric_source = lfric_source
         self.gpl_utils_source = gpl_utils_source
+        self.rose_meta_conf = rose_meta_conf
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
@@ -35,11 +36,10 @@ class Configurator(Step):
 
         # "rose picker"
         # creates rose-meta.json and config_namelists.txt in gungho/source/configuration
-        rose_meta_conf = self.lfric_source / 'gungho/rose-meta/lfric-gungho/HEAD/rose-meta.conf'
         logger.info('rose_picker')
         run_command(
             command=[
-                str(rose_picker_tool), str(rose_meta_conf),
+                str(rose_picker_tool), str(self.rose_meta_conf),
                 '-directory', str(config_dir),
                 '-include_dirs', self.lfric_source],
             env=env,

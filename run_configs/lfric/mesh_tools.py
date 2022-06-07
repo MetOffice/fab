@@ -8,23 +8,29 @@ from fab.steps.grab import GrabFolder
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles
-from grab_lfric import lfric_source, gpl_utils_source
 from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
+from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 
 def mesh_tools():
-    lfric_source_config = lfric_source()
+    lfric_source = lfric_source_config().source_root / 'lfric'
+    gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     config = BuildConfig(project_label='mesh_tools')
     config.steps = [
 
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/infrastructure/source/', dst_label=''),
-        GrabFolder(src=lfric_source_config.source_root / 'lfric/mesh_tools/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'mesh_tools/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
+
+        GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
 
         # generate more source files in source and source/configuration
         Configurator(
-            lfric_source=lfric_source_config.source_root / 'lfric',
-            gpl_utils_source=gpl_utils_source().source_root / 'gpl_utils'),
+            lfric_source=lfric_source,
+            gpl_utils_source=gpl_utils_source,
+            rose_meta_conf=lfric_source / 'mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf',
+        ),
 
         FindSourceFiles(file_filtering=[
             # todo: allow a single string
