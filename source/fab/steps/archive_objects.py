@@ -97,7 +97,7 @@ class ArchiveObjects(Step):
 
             command = [self.archiver]
             command.extend(['cr', output_fpath])
-            command.extend(map(str, objects))
+            command.extend(map(str, sorted(objects)))
 
             log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
             try:

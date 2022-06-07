@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from fab.constants import BUILD_TREES, COMPILED_FILES
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
@@ -19,6 +20,13 @@ def analysed_files():
     b = AnalysedFile(fpath=Path('b.f90'), file_deps={Path('c.f90')}, file_hash=None)
     c = AnalysedFile(fpath=Path('c.f90'), file_hash=None)
     return a, b, c
+
+
+@pytest.fixture
+def artefact_store(analysed_files):
+    build_tree = {af.fpath: af for af in analysed_files}
+    artefact_store = {BUILD_TREES: {None: build_tree}}
+    return artefact_store
 
 
 class Test_get_compile_next(object):
@@ -44,8 +52,7 @@ class Test_get_compile_next(object):
 
 class Test_run(object):
 
-    def test_vanilla(self, compiler, analysed_files):
-        artefact_store = {'build_tree': {af.fpath: af for af in analysed_files}}
+    def test_vanilla(self, compiler, analysed_files, artefact_store):
 
         def mp_return(items, func):
             return [CompiledFile(analysed_file=i, output_fpath=i.fpath.with_suffix('.o')) for i in items]
@@ -53,14 +60,14 @@ class Test_run(object):
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
             compiler.run(artefact_store, config=None)
 
-        compiled = artefact_store['compiled_fortran']
-        expected = [i.fpath.with_suffix('.o') for i in reversed(analysed_files)]
+        compiled = artefact_store[COMPILED_FILES]
+        # expected = [i.fpath.with_suffix('.o') for i in reversed(analysed_files)]
+        expected = {None: {i.fpath.with_suffix('.o') for i in analysed_files}}
         assert compiled == expected
 
-    def test_exception(self, compiler, analysed_files):
+    def test_exception(self, compiler, analysed_files, artefact_store):
         # Like vanilla but run_mp returns an exception from the compiler.
         # All exceptions from a single pass are collated and raised together.
-        artefact_store = {'build_tree': {af.fpath: af for af in analysed_files}}
 
         def mp_return(items, func):
             return [Exception("Pretend it didn't compile") for i in items]

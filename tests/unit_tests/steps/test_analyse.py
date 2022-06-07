@@ -10,13 +10,13 @@ class Test_gen_symbol_table(object):
 
     @pytest.fixture
     def analysed_files(self):
-        return {Path("foo.c"): AnalysedFile(fpath=Path('foo.c'), symbol_defs=['foo_1', 'foo_2'], file_hash=None),
-                Path("bar.c"): AnalysedFile(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=None)}
+        return [AnalysedFile(fpath=Path('foo.c'), symbol_defs=['foo_1', 'foo_2'], file_hash=None),
+                AnalysedFile(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=None)]
 
     def test_vanilla(self, analysed_files):
         analyser = Analyse(root_symbol=None)
 
-        result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
+        result = analyser._gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -26,12 +26,13 @@ class Test_gen_symbol_table(object):
         }
 
     def test_duplicate_symbol(self, analysed_files):
-        analysed_files[Path("bar.c")].symbol_defs.append('foo_1')
+        # duplicate a symbol from the first file in the second file
+        analysed_files[1].symbol_defs.append('foo_1')
 
         analyser = Analyse(root_symbol=None)
 
         with pytest.warns(UserWarning):
-            result = analyser._gen_symbol_table(all_analysed_files=analysed_files)
+            result = analyser._gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -42,9 +43,9 @@ class Test_gen_symbol_table(object):
 
     def test_special_measures(self, analysed_files):
         analyser = Analyse(root_symbol=None)
-        analyser.special_measure_analysis_results = analysed_files.values()
+        analyser.special_measure_analysis_results = analysed_files
 
-        result = analyser._gen_symbol_table(all_analysed_files=dict())
+        result = analyser._gen_symbol_table(analysed_files=[])
 
         assert result == {
             'foo_1': Path('foo.c'),

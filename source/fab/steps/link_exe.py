@@ -59,7 +59,7 @@ class LinkerBase(Step, ABC):
     def call_linker(self, filename, objects):
         command = self.linker.split()
         command.extend(['-o', filename])
-        command.extend(map(str, objects))
+        command.extend(map(str, sorted(objects)))
         # note: this must this come after the list of object files?
         command.extend(os.getenv('LDFLAGS', []).split())
         command.extend(self.flags)

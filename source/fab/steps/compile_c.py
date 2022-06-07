@@ -71,10 +71,10 @@ class CompileC(MpExeStep):
         logger.info(f"compiled {len(lookup)} c files")
 
         # add the targets' new object files to the artefact store
-        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(list))
+        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
         for root, source_files in target_source.items():
             new_objects = [lookup[af].output_fpath for af in source_files]
-            target_object_files[root].extend(new_objects)
+            target_object_files[root].update(new_objects)
 
     # todo: identical to the fortran version - make a super class
     def _compile_file(self, analysed_file: AnalysedFile):
