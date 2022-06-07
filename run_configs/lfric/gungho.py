@@ -17,8 +17,7 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from run_configs.lfric.lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, \
-    Psyclone
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 
 logger = logging.getLogger('fab')
 

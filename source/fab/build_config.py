@@ -70,8 +70,7 @@ class BuildConfig(object):
         self.multiprocessing = multiprocessing
         self.n_procs = n_procs
         if self.multiprocessing and not self.n_procs:
-            # todo: can we use *all* available cpus, not n-1, without causing a bottleneck?
-            self.n_procs = max(1, len(os.sched_getaffinity(0)) - 1)
+            self.n_procs = max(1, len(os.sched_getaffinity(0)))
 
         self.reuse_artefacts = reuse_artefacts
 
