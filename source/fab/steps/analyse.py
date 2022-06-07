@@ -44,31 +44,40 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 # This has all been done as a single step, for now, because we don't have a simple mp pattern
 # (i.e we don't have a list of artefacts and a function to feed them through).
 class Analyse(Step):
+    """
 
+    :param source:
+        An :class:`~fab.util.ArtefactsGetter` to get the source files.
+    :param root_symbol:
+        When building an executable, provide the Fortran Program name(s), or 'main' for C.
+        If None, target tree extraction will not be performed and the whole codebase will be used
+        as the build tree - for building a shared or static library.
+    :param std:
+        The fortran standard, passed through to fparser2. Defaults to 'f2008'.
+    :param special_measure_analysis_results:
+        When fparser2 cannot parse a "valid" Fortran file,
+        we can manually provide the expected analysis results with this argument.
+        Only the symbol definitions and dependencies need be provided.
+    :param unreferenced_deps:
+        A list of symbols which are needed for the build, but which cannot be automatically
+        determined. For example, functions that are called without a module use statement. Assuming the files
+        containing these symbols will been analysed, those files and all their dependencies
+        will be added to the build tree.
+    :param ignore_mod_deps:
+        Third party Fortran module names to be ignored.
+    :param name:
+        Defaults to 'analyser'
+
+    """
     # todo: constructor docstrings are not appearing in sphinx renders
     def __init__(self,
-                 root_symbol: Optional[Union[str, List[str]]] = None, source: ArtefactsGetter = None, std="f2008",
-                 special_measure_analysis_results=None, unreferenced_deps=None,
-                 ignore_mod_deps=None, name='analyser'):
-        """
-
-        Args:
-            - source: A :class:`~fab.util.ArtefactsGetter`.
-            - root_symbol: When building an executable, provide the Fortran Program name(s), or 'main' for C.
-                If None, target tree extraction will not be performed and the whole codebase will be used
-                as the build tree - for building a shared or static library.
-            - std: The fortran standard, passed through to fparser2. Defaults to 'f2008'.
-            - special_measure_analysis_results: When fparser2 cannot parse a "valid" Fortran file,
-                we can manually provide the expected analysis results with this argument.
-                Only the symbol definitions and dependencies need be provided.
-            - unreferenced_deps: A list of symbols which are needed for the build, but which cannot be automatically
-                determined. For example, functions that are called without a module use statement. Assuming the files
-                containing these symbols will been analysed, those files and all their dependencies
-                will be added to the build tree.
-            - ignore_mod_deps: Third party Fortran module names to be ignored.
-            - name: Defaults to 'analyser'
-
-        """
+                 source: ArtefactsGetter = None,
+                 root_symbol: Optional[Union[str, List[str]]] = None,
+                 std="f2008",
+                 special_measure_analysis_results=None,
+                 unreferenced_deps=None,
+                 ignore_mod_deps=None,
+                 name='analyser'):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
@@ -114,6 +123,34 @@ class Analyse(Step):
 
         artefact_store[BUILD_TREES] = build_trees
 
+    def analyse_source_code(self, artefact_store) -> List[AnalysedFile]:
+        files = self.source_getter(artefact_store)
+
+        with TimerLogger("generating file hashes"):
+            preprocessed_hashes = self._get_latest_checksums(files)
+
+        with TimerLogger("loading previous analysis results"):
+            changed, unchanged = self._load_analysis_results(preprocessed_hashes)
+
+        with TimerLogger("analysing files"):
+            with self._new_analysis_file(unchanged) as csv_writer:
+                freshly_analysed_fortran, freshly_analysed_c = self._parse_files(changed, csv_writer)
+
+        return unchanged + freshly_analysed_fortran + freshly_analysed_c
+
+    def analyse_dependencies(self, analysed_files):
+        # Make "external" symbol table
+        with TimerLogger("creating symbol lookup"):
+            symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
+
+        # turn symbol deps into file deps
+        with TimerLogger("generating file dependencies from symbols"):
+            self._gen_file_deps(analysed_files, symbols)
+
+        source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
+
+        return source_tree, symbols
+
     def extract_build_trees(self, project_source_tree, symbols):
         target_source_trees = {}
         for root in self.root_symbols:
@@ -130,34 +167,6 @@ class Analyse(Step):
             target_source_trees[root] = target_source_tree
 
         return target_source_trees
-
-    def analyse_dependencies(self, analysed_files):
-        # Make "external" symbol table
-        with TimerLogger("creating symbol lookup"):
-            symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
-
-        # turn symbol deps into file deps
-        with TimerLogger("generating file dependencies from symbols"):
-            self._gen_file_deps(analysed_files, symbols)
-
-        source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
-
-        return source_tree, symbols
-
-    def analyse_source_code(self, artefact_store) -> List[AnalysedFile]:
-        files = self.source_getter(artefact_store)
-
-        with TimerLogger("generating file hashes"):
-            preprocessed_hashes = self._get_latest_checksums(files)
-
-        with TimerLogger("loading previous analysis results"):
-            changed, unchanged = self._load_analysis_results(preprocessed_hashes)
-
-        with TimerLogger("analysing files"):
-            with self._new_analysis_file(unchanged) as csv_writer:
-                freshly_analysed_fortran, freshly_analysed_c = self._parse_files(changed, csv_writer)
-
-        return unchanged + freshly_analysed_fortran + freshly_analysed_c
 
     def _parse_files(self,
                      to_analyse_by_type: Dict[str, List[HashedFile]],

@@ -6,6 +6,30 @@ from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 
 
+class Test_analyse_source_code(object):
+    xxx
+
+
+class Test_analyse_dependencies(object):
+    xxx
+
+
+class Test__get_latest_checksums(object):
+    xxx
+
+
+class Test__load_analysis_results(object):
+    xxx
+
+
+class Test__parse_files(object):
+    xxx
+
+
+class Test__gen_file_deps(object):
+    xxx
+
+
 class Test_gen_symbol_table(object):
 
     @pytest.fixture
