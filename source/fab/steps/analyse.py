@@ -120,7 +120,7 @@ class Analyse(Step):
 
         artefact_store[BUILD_TREES] = build_trees
 
-    def _analyse_source_code(self, artefact_store) -> List[AnalysedFile]:
+    def _analyse_source_code(self, artefact_store) -> Set[AnalysedFile]:
         files = self.source_getter(artefact_store)
 
         with TimerLogger("generating file hashes"):
@@ -134,9 +134,9 @@ class Analyse(Step):
             with self._new_analysis_file(unchanged) as csv_writer:
                 freshly_analysed_fortran, freshly_analysed_c = self._parse_files(changed, csv_writer)
 
-        return unchanged + freshly_analysed_fortran + freshly_analysed_c
+        return unchanged | freshly_analysed_fortran | freshly_analysed_c
 
-    def _analyse_dependencies(self, analysed_files):
+    def _analyse_dependencies(self, analysed_files: Iterable[AnalysedFile]):
         with TimerLogger("converting symbol dependencies to file dependencies"):
             # map symbols to the files they're in
             symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
@@ -164,9 +164,8 @@ class Analyse(Step):
 
         return target_source_trees
 
-    def _parse_files(self,
-                     to_analyse: Iterable[HashedFile],
-                     analysis_dict_writer: csv.DictWriter):
+    def _parse_files(self, to_analyse: Iterable[HashedFile], analysis_dict_writer: csv.DictWriter) -> \
+            Tuple[Set[AnalysedFile], Set[AnalysedFile]]:
         """
         Determine the symbols which are defined in, and used by, each file.
 
@@ -199,7 +198,7 @@ class Analyse(Step):
 
         return analysed_fortran, analysed_c
 
-    def _gen_symbol_table(self, analysed_files: List[AnalysedFile]) -> Dict[str, Path]:
+    def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
         """
         Create a dictionary mapping symbol names to the files in which they appear.
 
@@ -207,7 +206,7 @@ class Analyse(Step):
         # add special measure symbols for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
-            analysed_files.extend(self.special_measure_analysis_results)
+            analysed_files = set(analysed_files) | set(self.special_measure_analysis_results)
 
         # map symbols to the files in which they're defined
         symbols: Dict[str, Path] = dict()
@@ -230,7 +229,7 @@ class Analyse(Step):
 
         return symbols
 
-    def _gen_file_deps(self, analysed_files: List[AnalysedFile], symbols: Dict[str, Path]):
+    def _gen_file_deps(self, analysed_files: Iterable[AnalysedFile], symbols: Dict[str, Path]):
         """
         Use the symbol table to convert symbol dependencies into file dependencies.
 
@@ -323,18 +322,15 @@ class Analyse(Step):
 
         analysis_progress_file.close()
 
-    def _analyse_file_type(self,
-                           fpaths: Iterable[HashedFile],
-                           analyser,
-                           dict_writer: csv.DictWriter) -> Tuple[List[AnalysedFile], Set[Exception]]:
+    def _analyse_file_type(self, fpaths: Iterable[HashedFile], analyser,
+                           dict_writer: csv.DictWriter) -> Tuple[Set[AnalysedFile], Set[Exception]]:
         """
         Pass the files to the analyser and check the results for errors and empty files.
 
         Returns a list of :class:`~fab.dep_tree.AnalysedFile` and a list of exceptions.
 
         """
-        # todo: return a set?
-        new_program_units: List[AnalysedFile] = []
+        new_program_units: Set[AnalysedFile] = set()
         exceptions = set()
 
         def result_handler(analysis_results):
@@ -346,7 +342,7 @@ class Analyse(Step):
                     logger.error(f"\n{af}")
                     exceptions.add(af)
                 elif isinstance(af, AnalysedFile):
-                    new_program_units.append(af)
+                    new_program_units.add(af)
                     dict_writer.writerow(af.as_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {af}")

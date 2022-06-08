@@ -56,17 +56,6 @@ class CompileC(MpExeStep):
         check_for_errors(results, caller_label=self.name)
         compiled_c = by_type(results, CompiledFile)
 
-        # # collect the compiled files for each build target
-        # target_objects = {}
-        # lookup = {compiled_file.analysed_file: compiled_file for compiled_file in compiled_c}
-        # for root, files in target_source.items():
-        #     target_objects[root] = [lookup[af] for af in files]
-        #
-        # # add the targets' new object files to the artefact store
-        # artefact_collection = artefact_store.setdefault(TARGET_OBJECT_FILES, defaultdict(list))
-        # for root, target_object_list in target_objects.items():
-        #     artefact_collection[root].append(target_object_list)
-
         lookup = {compiled_file.analysed_file: compiled_file for compiled_file in compiled_c}
         logger.info(f"compiled {len(lookup)} c files")
 

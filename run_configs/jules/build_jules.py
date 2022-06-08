@@ -76,8 +76,6 @@ def jules_config(revision=None):
             # ]
         ),
 
-        # ArchiveObjects(),
-
         LinkExe(
             linker='mpifort',
             flags=['-lm', '-lnetcdff', '-lnetcdf']),
