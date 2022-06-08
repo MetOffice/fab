@@ -12,21 +12,19 @@ import os
 import warnings
 from pathlib import Path
 
-from fab.steps.archive_objects import ArchiveObjects
-
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
-
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_OUTPUT
 from fab.dep_tree import AnalysedFile
 from fab.steps import Step
 from fab.steps.analyse import Analyse
+from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFcm
 from fab.steps.link_exe import LinkExe
+from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles
 from fab.util import case_insensitive_replace
@@ -281,5 +279,5 @@ class MyCustomCodeFixes(Step):
 
 
 if __name__ == '__main__':
-
+    logging.getLogger('fab').setLevel(logging.DEBUG)
     um_atmos_safe_config().run()
