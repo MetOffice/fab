@@ -16,6 +16,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
+from numpy import number
+
 from fab.constants import BUILD_TREES
 
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
@@ -106,10 +108,9 @@ class Analyse(Step):
         super().run(artefact_store, config)
 
         analysed_files = self.analyse_source_code(artefact_store)
-
         project_source_tree, symbols = self.analyse_dependencies(analysed_files)
 
-        # find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
+        # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
         with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
             add_mo_commented_file_deps(project_source_tree)
 
@@ -127,10 +128,11 @@ class Analyse(Step):
         files = self.source_getter(artefact_store)
 
         with TimerLogger("generating file hashes"):
-            preprocessed_hashes = self._get_latest_checksums(files)
+            file_hashes = self._get_file_checksums(files)
 
         with TimerLogger("loading previous analysis results"):
-            changed, unchanged = self._load_analysis_results(preprocessed_hashes)
+            prev_results = self._load_analysis_results(file_hashes)
+            changed, unchanged = self._what_needs_reanalysing(prev_results=prev_results, latest_file_hashes=file_hashes)
 
         with TimerLogger("analysing files"):
             with self._new_analysis_file(unchanged) as csv_writer:
@@ -139,16 +141,14 @@ class Analyse(Step):
         return unchanged + freshly_analysed_fortran + freshly_analysed_c
 
     def analyse_dependencies(self, analysed_files):
-        # Make "external" symbol table
-        with TimerLogger("creating symbol lookup"):
+        with TimerLogger("converting symbol dependencies to file dependencies"):
+            # map symbols to the files they're in
             symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
 
-        # turn symbol deps into file deps
-        with TimerLogger("generating file dependencies from symbols"):
+            # fill in the file deps attribute in the analysed file objects
             self._gen_file_deps(analysed_files, symbols)
 
         source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
-
         return source_tree, symbols
 
     def extract_build_trees(self, project_source_tree, symbols):
@@ -252,13 +252,12 @@ class Analyse(Step):
         if deps_not_found:
             logger.info(f"{len(deps_not_found)} deps not found")
 
-    def _get_latest_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
+    def _get_file_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
         mp_results = self.run_mp(items=fpaths, func=do_checksum)
         latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in mp_results}
         return latest_file_hashes
 
-    def _load_analysis_results(self, latest_file_hashes) -> Tuple[Dict[str, List[HashedFile]], List[AnalysedFile]]:
-        # This function tells us which files have changed since they were last analysed.
+    def _load_analysis_results(self, latest_file_hashes: Dict[Path, int]) -> Dict[Path, AnalysedFile]:
         # The analysis file includes the hash of the file when we last analysed it.
         # We discard previous results from files which are no longer present.
         prev_results: Dict[Path, AnalysedFile] = dict()
@@ -281,6 +280,18 @@ class Analyse(Step):
             logger.info("no previous analysis results")
             pass
 
+        return prev_results
+
+    def _what_needs_reanalysing(self, prev_results, latest_file_hashes) -> \
+            Tuple[Dict[str, List[HashedFile]], List[AnalysedFile]]:
+        """
+        Determine which files have changed since they were last analysed.
+
+        Returns, in a tuple:
+             - The changed files as a dict of {suffix: HashedFiles}
+             - The unchanged files as a list of AnalysedFile
+
+        """
         # work out what needs to be reanalysed
         unchanged: List[AnalysedFile] = []  # todo: use a set?
         changed: Dict[str, List[HashedFile]] = defaultdict(list)  # suffix -> files

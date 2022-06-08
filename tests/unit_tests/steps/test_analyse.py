@@ -1,33 +1,115 @@
 from pathlib import Path
+from unittest import mock
+from unittest.mock import mock_open
 
 import pytest
+from fab.util import HashedFile
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 
 
-class Test_analyse_source_code(object):
-    xxx
+# These functions are just glue code and do not currently have a test.
+#   analyse_source_code
+#   analyse_dependencies
 
 
-class Test_analyse_dependencies(object):
-    xxx
+@pytest.fixture
+def analyser():
+    analyser = Analyse()
+    analyser._config = mock.Mock(multiprocessing=False, project_workspace=Path('workspace'))
+    return analyser
 
 
-class Test__get_latest_checksums(object):
-    xxx
+def test_get_file_checksums(analyser):
+    # ensure this function returns the expected data structure
+
+    fpaths = [Path('foo.c'), Path('bar.c')]
+
+    def fake_hasher(fpath):
+        return HashedFile(fpath, hash(str(fpath)))
+
+    # we don't actually try to hash the files in this test, we just return something repeatable as a fake hash
+    with mock.patch('fab.steps.analyse.do_checksum', side_effect=fake_hasher):
+        result = analyser._get_file_checksums(fpaths)
+
+    expected = {fpath: hash(str(fpath)) for fpath in fpaths}
+    assert result == expected
 
 
-class Test__load_analysis_results(object):
-    xxx
+class Test_load_analysis_results(object):
+
+    @pytest.fixture
+    def csv_lines(self):
+        # a module with a dependecy on a fortran and c file, plus a mo commented dep
+        return [
+            'fpath,file_hash,symbol_defs,symbol_deps,file_deps,mo_commented_file_deps',
+            'my_mod.f90,123,my_mod,dep1_mod;dep2,,mo_dep.c',
+            'dep1_mod.f90,234,dep1_mod,,,',
+            'dep2.c,345,dep2,,,',
+        ]
+
+    @pytest.fixture
+    def latest_file_hashes(self):
+        return {Path('my_mod.f90'): 123, Path('dep1_mod.f90'): 234, Path('dep2.c'): 345}
+
+    def test_no_analysis_file(self, analyser):
+        # there's nothing to load
+        with mock.patch('fab.steps.analyse.open', side_effect=FileNotFoundError('mwah-ha-ha-haa')):
+            results = analyser._load_analysis_results(latest_file_hashes=dict())
+
+        assert results == dict()
+
+    def test_nothing_changed(self, analyser, csv_lines, latest_file_hashes):
+        # a simple example of a fortran module depending on a fortran and a c file
+
+        file_data = "\n".join(csv_lines)
+        with mock.patch('fab.steps.analyse.open', mock_open(read_data=file_data)):
+            results = analyser._load_analysis_results(latest_file_hashes=latest_file_hashes)
+
+        expected = {
+            Path('my_mod.f90'): AnalysedFile(
+                fpath=Path('my_mod.f90'), file_hash=123, symbol_defs={'my_mod', }, symbol_deps={'dep1_mod', 'dep2'},
+                mo_commented_file_deps={'mo_dep.c', }),
+            Path('dep1_mod.f90'): AnalysedFile(
+                fpath=Path('dep1_mod.f90'), file_hash=234, symbol_defs={'dep1_mod', }),
+            Path('dep2.c'): AnalysedFile(
+                fpath=Path('dep2.c'), file_hash=345, symbol_defs={'dep2', }),
+        }
+
+        assert results == expected
+
+    def test_missing_file(self, analyser, csv_lines, latest_file_hashes):
+        # a previously analysed file is no longer present
+
+        # remove a file
+        del latest_file_hashes[Path('dep2.c')]
+
+        file_data = "\n".join(csv_lines)
+        with mock.patch('fab.steps.analyse.open', mock_open(read_data=file_data)):
+            results = analyser._load_analysis_results(latest_file_hashes=latest_file_hashes)
+
+        expected = {
+            Path('my_mod.f90'): AnalysedFile(
+                fpath=Path('my_mod.f90'), file_hash=123, symbol_defs={'my_mod', }, symbol_deps={'dep1_mod', 'dep2'},
+                mo_commented_file_deps={'mo_dep.c', }),
+            Path('dep1_mod.f90'): AnalysedFile(
+                fpath=Path('dep1_mod.f90'), file_hash=234, symbol_defs={'dep1_mod', }),
+        }
+
+        assert results == expected
 
 
-class Test__parse_files(object):
-    xxx
+class Test_what_needs_reanalysing(object):
+    pass
 
 
-class Test__gen_file_deps(object):
-    xxx
+class Test_parse_files(object):
+    pass
+
+
+class Test_gen_file_deps(object):
+    pass
 
 
 class Test_gen_symbol_table(object):
