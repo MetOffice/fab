@@ -9,9 +9,10 @@ from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 
 
-# These functions are just glue code and do not currently have a test.
-#   analyse_source_code
-#   analyse_dependencies
+# These methods are just glue code and do not currently have a test.
+#   _analyse_source_code
+#   _analyse_dependencies
+#   _parse_files
 
 
 @pytest.fixture
@@ -101,15 +102,25 @@ class Test_load_analysis_results(object):
 
 
 class Test_what_needs_reanalysing(object):
-    pass
 
+    def test_vanilla(self, analyser):
+        # ensure we know when a file has changed since we last analysed it
 
-class Test_parse_files(object):
-    pass
+        prev_results = {
+            Path('foo.f90'): mock.Mock(spec=AnalysedFile, file_hash=123),
+            Path('bar.f90'): mock.Mock(spec=AnalysedFile, file_hash=456),
+        }
 
+        latest_file_hashes = {
+            Path('foo.f90'): 999999,
+            Path('bar.f90'): 456,
+        }
 
-class Test_gen_file_deps(object):
-    pass
+        changed, unchanged = analyser._what_needs_reanalysing(
+            prev_results=prev_results, latest_file_hashes=latest_file_hashes)
+
+        assert changed == {HashedFile(Path('foo.f90'), 999999, )}
+        assert unchanged == {prev_results[Path('bar.f90')], }
 
 
 class Test_gen_symbol_table(object):
@@ -159,6 +170,25 @@ class Test_gen_symbol_table(object):
             'bar_1': Path('bar.c'),
             'bar_2': Path('bar.c'),
         }
+
+
+class Test_gen_file_deps(object):
+
+    def test_vanilla(self, analyser):
+
+        symbols = {
+            'my_mod': Path('my_mod.f90'),
+            'dep1_mod': Path('dep1_mod.f90'),
+            'dep2': Path('dep2.c'),
+        }
+
+        analysed_files = [
+            mock.Mock(spec=AnalysedFile, symbol_deps={'dep1_mod', 'dep2'}, file_deps=set()),
+        ]
+
+        analyser._gen_file_deps(analysed_files=analysed_files, symbols=symbols)
+
+        assert analysed_files[0].file_deps == {symbols['dep1_mod'], symbols['dep2']}
 
 
 class Test_add_unreferenced_deps(object):

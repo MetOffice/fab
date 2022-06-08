@@ -11,15 +11,11 @@ C and Fortran analysis, creating a build tree.
 import csv
 import logging
 import warnings
-from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
-from numpy import number
-
 from fab.constants import BUILD_TREES
-
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
     validate_dependencies
 from fab.steps import Step
@@ -107,8 +103,8 @@ class Analyse(Step):
         """
         super().run(artefact_store, config)
 
-        analysed_files = self.analyse_source_code(artefact_store)
-        project_source_tree, symbols = self.analyse_dependencies(analysed_files)
+        analysed_files = self._analyse_source_code(artefact_store)
+        project_source_tree, symbols = self._analyse_dependencies(analysed_files)
 
         # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
         with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
@@ -124,7 +120,7 @@ class Analyse(Step):
 
         artefact_store[BUILD_TREES] = build_trees
 
-    def analyse_source_code(self, artefact_store) -> List[AnalysedFile]:
+    def _analyse_source_code(self, artefact_store) -> List[AnalysedFile]:
         files = self.source_getter(artefact_store)
 
         with TimerLogger("generating file hashes"):
@@ -140,7 +136,7 @@ class Analyse(Step):
 
         return unchanged + freshly_analysed_fortran + freshly_analysed_c
 
-    def analyse_dependencies(self, analysed_files):
+    def _analyse_dependencies(self, analysed_files):
         with TimerLogger("converting symbol dependencies to file dependencies"):
             # map symbols to the files they're in
             symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
@@ -169,7 +165,7 @@ class Analyse(Step):
         return target_source_trees
 
     def _parse_files(self,
-                     to_analyse_by_type: Dict[str, List[HashedFile]],
+                     to_analyse: Iterable[HashedFile],
                      analysis_dict_writer: csv.DictWriter):
         """
         Determine the symbols which are defined in, and used by, each file.
@@ -179,13 +175,13 @@ class Analyse(Step):
 
         """
         # fortran
-        fortran_files = to_analyse_by_type[".f90"]
+        fortran_files = set(filter(lambda hashed_file: hashed_file.fpath.suffix == '.f90', to_analyse))
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             analysed_fortran, fortran_exceptions = self._analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
 
         # c
-        c_files = to_analyse_by_type[".c"]
+        c_files = set(filter(lambda hashed_file: hashed_file.fpath.suffix == '.c', to_analyse))
         with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
             analysed_c, c_exceptions = self._analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
@@ -282,34 +278,33 @@ class Analyse(Step):
 
         return prev_results
 
-    def _what_needs_reanalysing(self, prev_results, latest_file_hashes) -> \
-            Tuple[Dict[str, List[HashedFile]], List[AnalysedFile]]:
+    def _what_needs_reanalysing(self, prev_results: Dict[Path, AnalysedFile], latest_file_hashes: Dict[Path, int]) -> \
+            Tuple[Set[HashedFile], Set[AnalysedFile]]:
         """
         Determine which files have changed since they were last analysed.
 
         Returns, in a tuple:
-             - The changed files as a dict of {suffix: HashedFiles}
-             - The unchanged files as a list of AnalysedFile
+             - The changed files as a set of HashedFile
+             - The unchanged files as a set of AnalysedFile
 
         """
         # work out what needs to be reanalysed
-        unchanged: List[AnalysedFile] = []  # todo: use a set?
-        changed: Dict[str, List[HashedFile]] = defaultdict(list)  # suffix -> files
+        changed: Set[HashedFile] = set()
+        unchanged: Set[AnalysedFile] = set()
         for latest_fpath, latest_hash in latest_file_hashes.items():
             # what happened last time we analysed this file?
             prev_pu = prev_results.get(latest_fpath)
             if (not prev_pu) or prev_pu.file_hash != latest_hash:
-                changed[latest_fpath.suffix].append(HashedFile(latest_fpath, latest_hash))
+                changed.add(HashedFile(latest_fpath, latest_hash))
             else:
-                unchanged.append(prev_pu)
+                unchanged.add(prev_pu)
 
-        for suffix, to_analyse in changed.items():
-            logger.info(f"{len(unchanged)} {suffix} files already analysed, {len(to_analyse)} to analyse")
+        logger.info(f"{len(unchanged)} files already analysed, {len(changed)} to analyse")
 
         return changed, unchanged
 
     @contextmanager
-    def _new_analysis_file(self, unchanged: List[AnalysedFile]):
+    def _new_analysis_file(self, unchanged: Iterable[AnalysedFile]):
         # Open a new analysis file, populated with work already done in previous runs.
         # We re-write the successfully read contents of the analysis file each time,
         # for robustness against data corruption (otherwise we could just open with "wt+").
@@ -329,7 +324,7 @@ class Analyse(Step):
         analysis_progress_file.close()
 
     def _analyse_file_type(self,
-                           fpaths: List[HashedFile],
+                           fpaths: Iterable[HashedFile],
                            analyser,
                            dict_writer: csv.DictWriter) -> Tuple[List[AnalysedFile], Set[Exception]]:
         """
