@@ -32,8 +32,8 @@ def test_analysis_results():
         Path('new.f90'): 444,
     }
 
-    previous_results = [
-        AnalysedFile(fpath=path, file_hash=file_hash) for path, file_hash in previous_file_hashes.items()]
+    previous_results = {
+        AnalysedFile(fpath=path, file_hash=file_hash) for path, file_hash in previous_file_hashes.items()}
 
     with TemporaryDirectory() as tmpdir:
         analyser = Analyse(root_symbol=None)
@@ -46,13 +46,18 @@ def test_analysis_results():
             pass
 
         # check it loads correctly with no changes detected
-        changed, unchanged = analyser._load_analysis_results(previous_file_hashes)
+        loaded_results = analyser._load_analysis_results(previous_file_hashes)
+        changed, unchanged = analyser._what_needs_reanalysing(
+            prev_results=loaded_results, latest_file_hashes=previous_file_hashes)
         assert not changed
         assert unchanged == previous_results
 
         # check we correctly identify new, changed, unchanged and removed files
-        changed, unchanged = analyser._load_analysis_results(latest_file_hashes)
-        assert unchanged == [AnalysedFile(fpath=Path('no_change.f90'), file_hash=222)]
-        assert changed == {'.f90': [
+        loaded_results = analyser._load_analysis_results(latest_file_hashes)
+        changed, unchanged = analyser._what_needs_reanalysing(
+            prev_results=loaded_results, latest_file_hashes=latest_file_hashes)
+        assert unchanged == {AnalysedFile(fpath=Path('no_change.f90'), file_hash=222)}
+        assert changed == {
             HashedFile(fpath=Path('change.f90'), file_hash=123),
-            HashedFile(fpath=Path('new.f90'), file_hash=444)]}
+            HashedFile(fpath=Path('new.f90'), file_hash=444)
+        }
