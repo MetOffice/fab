@@ -1,5 +1,9 @@
 set -e
 
+cd ~/git/fab
+flake8
+mypy -p fab
+
 cd ~/git/fab/run_configs/gcom
 python -m grab_gcom
 python -m build_gcom_ar

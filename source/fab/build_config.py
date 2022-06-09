@@ -96,6 +96,7 @@ class BuildConfig(object):
                         step.run(artefact_store=artefact_store, config=self)
                     send_metric('steps', step.name, step_timer.taken)
         except Exception as err:
+            logger.exception('Error running build steps')
             raise Exception(f'\n\nError running build steps:\n{err}')
         finally:
             self._finalise_metrics(start_time, steps_timer)

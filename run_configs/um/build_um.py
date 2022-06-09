@@ -160,17 +160,17 @@ def um_atmos_safe_config():
             root_symbol='um_main',
 
             # fparser2 fails to parse this file, but it does compile.
-            special_measure_analysis_results=[
+            special_measure_analysis_results={
                 AnalysedFile(
                     fpath=Path(
                         config.project_workspace / BUILD_OUTPUT / "casim/lookup.f90"),
                     file_hash=None,
-                    symbol_defs=['lookup'],
-                    symbol_deps=['mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-                                 'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'],
-                    file_deps=[],
-                    mo_commented_file_deps=[]),
-            ]
+                    symbol_defs={'lookup'},
+                    symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
+                                 'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
+                    file_deps={},
+                    mo_commented_file_deps={}),
+            }
         ),
 
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
@@ -279,5 +279,5 @@ class MyCustomCodeFixes(Step):
 
 
 if __name__ == '__main__':
-    logging.getLogger('fab').setLevel(logging.DEBUG)
+    # logging.getLogger('fab').setLevel(logging.DEBUG)
     um_atmos_safe_config().run()

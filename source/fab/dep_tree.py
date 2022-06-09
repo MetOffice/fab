@@ -199,7 +199,7 @@ def validate_dependencies(target_tree):
     """
     missing = set()
     for pu in target_tree.values():
-        missing = missing.union(
+        missing.update(
             [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
 
     if missing:

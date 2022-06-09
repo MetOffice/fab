@@ -104,6 +104,12 @@ class Analyse(Step):
         super().run(artefact_store, config)
 
         analysed_files = self._analyse_source_code(artefact_store)
+
+        # add special measure symbols for files which could not be parsed
+        if self.special_measure_analysis_results:
+            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
+            analysed_files.update(set(self.special_measure_analysis_results))
+
         project_source_tree, symbols = self._analyse_dependencies(analysed_files)
 
         # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
@@ -203,12 +209,6 @@ class Analyse(Step):
         Create a dictionary mapping symbol names to the files in which they appear.
 
         """
-        # add special measure symbols for files which could not be parsed
-        if self.special_measure_analysis_results:
-            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
-            analysed_files = set(analysed_files) | set(self.special_measure_analysis_results)
-
-        # map symbols to the files in which they're defined
         symbols: Dict[str, Path] = dict()
         duplicates = []
         for analysed_file in analysed_files:

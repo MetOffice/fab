@@ -113,11 +113,13 @@ class CompileFortran(MpExeStep):
 
         # unable to compile anything?
         if len(to_compile) and not compile_next:
-            all_unfulfilled: Set[Path] = set()
-            for unfulfilled in not_ready.values():
-                all_unfulfilled = all_unfulfilled.union(unfulfilled)
-            raise RuntimeError(
-                f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
+            msg = 'Nothing more can be compiled due to unfulfilled dependencies:\n'
+            for f, unf in not_ready.items():
+                msg += f'\n\n{f}'
+                for u in unf:
+                    msg += f'\n    {str(u)}'
+
+            raise RuntimeError(msg)
 
         return compile_next
 
