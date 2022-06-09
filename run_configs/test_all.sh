@@ -1,6 +1,6 @@
 set -e
 
-cd ~/git/fab
+cd ~/git/fab/source
 flake8
 mypy -p fab
 
