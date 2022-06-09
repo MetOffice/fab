@@ -158,19 +158,6 @@ class Test_gen_symbol_table(object):
             'bar_2': Path('bar.c'),
         }
 
-    def test_special_measures(self, analysed_files):
-        analyser = Analyse(root_symbol=None)
-        analyser.special_measure_analysis_results = analysed_files
-
-        result = analyser._gen_symbol_table(analysed_files=[])
-
-        assert result == {
-            'foo_1': Path('foo.c'),
-            'foo_2': Path('foo.c'),
-            'bar_1': Path('bar.c'),
-            'bar_2': Path('bar.c'),
-        }
-
 
 class Test_gen_file_deps(object):
 
