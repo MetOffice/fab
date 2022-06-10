@@ -141,13 +141,13 @@ class FilterBuildTrees(ArtefactsGetter):
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store):
+        """Get a list of files to compile for each target source tree."""
         super().__call__(artefact_store)
 
-        # get a list of files to compile for each target source tree
         build_trees = artefact_store[self.collection_name]
 
-        target_source_lists: Dict[str, List[AnalysedFile]] = {}
+        build_lists: Dict[str, List[AnalysedFile]] = {}
         for root, tree in build_trees.items():
-            target_source_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
+            build_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
 
-        return target_source_lists
+        return build_lists

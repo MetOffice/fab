@@ -24,7 +24,7 @@ def gcom_ar_config(revision=None):
         steps=[
             *common_build_steps(),
             ArchiveObjects(output_fpath='$output/libgcom.a'),
-        ],
+        ]
     )
 
     return config

@@ -134,7 +134,7 @@ def extract_sub_tree(
 
 def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
                       dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int = 0):
-    # is this node already in the target tree?
+    # is this node already in the sub tree?
     if key in dst_tree:
         return
 

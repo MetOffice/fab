@@ -126,7 +126,7 @@ def psyclone_preprocessor():
 class Psyclone(Step):
 
     def __init__(self, name=None, kernel_roots=None):
-        super().__init__(name=name or 'psy thingy')
+        super().__init__(name=name or 'psyclone')
         self.kernel_roots = kernel_roots or []
 
     def run(self, artefact_store: Dict, config):

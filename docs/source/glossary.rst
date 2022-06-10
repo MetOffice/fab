@@ -50,11 +50,11 @@ Glossary
 
     Source Tree
         The :class:`~fab.steps.analyse.Analyse` step produces a source tree which is represented as
-        a mapping from a Path to a node (an :class:`~fab.dep_tree.AnalysedFile`).
-        The tree's structure is defined by the nodes referring to other paths in the source tree.
+        a mapping from Path to :class:`~fab.dep_tree.AnalysedFile`.
+        The tree structure is defined as the AnalysedFiles' file dependencies are Paths, i.e other entries in the tree.
 
         When building an executable, a sub-tree is extracted containing only the files needed to build the target
         program. When building a library, all compiled source code is included in the output.
 
         Fab's source code uses the term *project source tree* for everything that's been analysed,
-        and *target source trees* or *build trees* for sub-trees extracted for each target exe.
+        and *build trees* for sub-trees extracted for each target exe.
