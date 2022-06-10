@@ -34,12 +34,12 @@ class ArchiveObjects(Step):
 
     Expects one or more build targets in the artefact collection, of the form Dict[name, object_files].
 
-    When building exes, each build target consists of a name and a list of compiled files.
+    When building exes, each build target consists of a name and a collection of compiled files.
     Each name is a root symbol, as given to the :class:`@fab.steps.analyse.Analyse` step.
     The target names and compiled files are output from the compiler steps.
     This step will produce an archive object for each exe, to be used by the subsequent linker step.
 
-    When building a shared object there is expected to be a single build target with no name,
+    When building a shared object there is expected to be a single build target with no root symbol (None),
     and the object files are created from the entire project source.
 
     .. note::
@@ -92,7 +92,7 @@ class ArchiveObjects(Step):
                 output_fpath = str(config.project_workspace / BUILD_OUTPUT / f'{root}.a')
             else:
                 # we're building a single object archive with a given filename
-                assert len(target_objects) == 1, "unexpected root of None with multiple targets"
+                assert len(target_objects) == 1, "unexpected root of None with multiple build targets"
                 output_fpath = Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT)
 
             command = [self.archiver]

@@ -47,8 +47,8 @@ class CompileC(MpExeStep):
         super().run(artefact_store, config)
 
         # get all the source to compile, for all build trees, into one big lump
-        target_source: Dict = self.source_getter(artefact_store)
-        to_compile = sum(target_source.values(), [])
+        build_lists: Dict = self.source_getter(artefact_store)
+        to_compile = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} c files")
 
         # compile everything in one go
@@ -61,7 +61,7 @@ class CompileC(MpExeStep):
 
         # add the targets' new object files to the artefact store
         target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
-        for root, source_files in target_source.items():
+        for root, source_files in build_lists.items():
             new_objects = [lookup[af].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 

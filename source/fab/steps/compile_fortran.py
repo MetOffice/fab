@@ -45,8 +45,8 @@ class CompileFortran(MpExeStep):
         super().run(artefact_store, config)
 
         # get all the source to compile, for all build trees, into one big lump
-        target_source: Dict[str, List] = self.source_getter(artefact_store)
-        to_compile = sum(target_source.values(), [])
+        build_lists: Dict[str, List] = self.source_getter(artefact_store)
+        to_compile = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} fortran files")
 
         # compile everything in multiple passes
@@ -94,7 +94,7 @@ class CompileFortran(MpExeStep):
         # add the targets' new object files to the artefact store
         lookup = {compiled_file.analysed_file: compiled_file for compiled_file in all_compiled}
         target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
-        for root, source_files in target_source.items():
+        for root, source_files in build_lists.items():
             new_objects = [lookup[af].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 

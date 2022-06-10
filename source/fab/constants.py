@@ -10,7 +10,6 @@ BUILD_OUTPUT = "build_output"
 
 PROJECT_SOURCE_TREE = 'project source tree'
 
-# todo: change this to "build trees" everywhere
 BUILD_TREES = 'build trees'
 
 COMPILED_FILES = 'compiled files'

@@ -118,7 +118,7 @@ class FilterBuildTrees(ArtefactsGetter):
     """
     Filter each build tree by suffix.
 
-    By default, looks for the build trees in the collection named by :py:const:`~fab.constants.TARGET_SOURCE_TREES`.
+    By default, looks for the build trees in the collection named by :py:const:`~fab.constants.BUILD_TREES`.
 
     .. note::
         If there is no *build trees* artifact collection or if it's empty (e.g when compiling a library),
@@ -128,7 +128,7 @@ class FilterBuildTrees(ArtefactsGetter):
 
     :param suffix: A string, or iterable of, including the preceding dot.
     :param collection_name: The name of the artefact collection where we find the source trees to build.
-                            Defaults to :py:const:`fab.constants.TARGET_SOURCE_TREES`.
+                            Defaults to the value in :py:const:`fab.constants.BUILD_TREES`.
 
     Example::
 
