@@ -134,7 +134,7 @@ class Analyse(Step):
             build_trees = {None: project_source_tree}
 
         # throw in any extra source we need, which Fab can't automatically detect (i.e. not using use statements)
-        for build_tree in build_trees:
+        for build_tree in build_trees.values():
             self._add_unreferenced_deps(symbols, project_source_tree, build_tree)
             validate_dependencies(build_tree)
 
