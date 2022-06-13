@@ -1,110 +1,25 @@
-#!/usr/bin/env python3
-# ##############################################################################
-#  (c) Crown copyright Met Office. All rights reserved.
-#  For further details please refer to the file COPYRIGHT
-#  which you should have received as part of this distribution
-# ##############################################################################
 import logging
 import os
 import shutil
 from pathlib import Path
-
-from fab.steps.archive_objects import ArchiveObjects
 from typing import Dict
 
 from fab.artefacts import SuffixFilter
-from fab.steps.link_exe import LinkExe
-
-from fab.steps.compile_fortran import CompileFortran
-
-from fab.steps.analyse import Analyse
-
-from fab.constants import BUILD_OUTPUT
-
-from fab.build_config import BuildConfig
 from fab.steps import Step
-from fab.steps.grab import GrabFolder
-from fab.steps.preprocess import PreProcessor, fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles
-from fab.util import run_command, log_or_dot, input_to_output_fpath, check_for_errors
-from grab_lfric import lfric_source_config, gpl_utils_source_config
+from fab.steps.preprocess import PreProcessor
+from fab.util import run_command, check_for_errors, log_or_dot, input_to_output_fpath
 
 logger = logging.getLogger('fab')
 
 
-# todo: optimisation path stuff
-
-
-def gungho():
-    lfric_source = lfric_source_config().source_root / 'lfric'
-    gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
-
-    config = BuildConfig(
-        project_label='gungho',
-        # multiprocessing = False,
-        reuse_artefacts = True,
-    )
-
-    config.steps = [
-
-        GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/driver/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/',
-                   dst_label='um_physics/source/kernel/stph/'),
-        GrabFolder(src=lfric_source / 'um_physics/source/constants/',
-                   dst_label='um_physics/source/constants'),
-
-        # generate more source files in source and source/configuration
-        Configurator(lfric_source=lfric_source, gpl_utils_source=gpl_utils_source),
-
-        FindSourceFiles(file_filtering=[
-            # todo: allow a single string
-            (['unit-test', '/test/'], False),
-        ]),
-
-        fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
-
-        psyclone_preprocessor(),
-
-        PsyThing(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
-
-        FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
-
-        Analyse(
-            root_symbol='gungho',
-            ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
-        ),
-
-        CompileFortran(
-            compiler=os.getenv('FC', 'gfortran'),
-            common_flags=['-c', '-J', '$output']),
-
-        ArchiveObjects(output_fpath='$output/objects.a'),
-
-        LinkExe(
-            linker='mpifort',
-            output_fpath=config.project_workspace / 'gungho.exe',
-            flags=[
-                '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
-                '-lxios',  # EXTERNAL_STATIC_LIBRARIES
-                '-lstdc++',
-            ],
-        ),
-
-    ]
-
-    return config
-
-
 class Configurator(Step):
 
-    def __init__(self, lfric_source: Path, gpl_utils_source: Path):
+    def __init__(self, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):
         super().__init__(name='configurator thing')
         self.lfric_source = lfric_source
         self.gpl_utils_source = gpl_utils_source
+        self.rose_meta_conf = rose_meta_conf
+        self.config_dir = config_dir
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
@@ -114,7 +29,7 @@ class Configurator(Step):
         gen_loader_tool = self.lfric_source / 'infrastructure/build/tools/GenerateLoader'
         gen_feigns_tool = self.lfric_source / 'infrastructure/build/tools/GenerateFeigns'
 
-        config_dir = config.source_root / 'configuration'
+        config_dir = self.config_dir or config.source_root / 'configuration'
 
         env = os.environ.copy()
         rose_lfric_path = self.gpl_utils_source / 'lib/python'
@@ -122,11 +37,10 @@ class Configurator(Step):
 
         # "rose picker"
         # creates rose-meta.json and config_namelists.txt in gungho/source/configuration
-        rose_meta_conf = self.lfric_source / 'gungho/rose-meta/lfric-gungho/HEAD/rose-meta.conf'
         logger.info('rose_picker')
         run_command(
             command=[
-                str(rose_picker_tool), str(rose_meta_conf),
+                str(rose_picker_tool), str(self.rose_meta_conf),
                 '-directory', str(config_dir),
                 '-include_dirs', self.lfric_source],
             env=env,
@@ -210,10 +124,10 @@ def psyclone_preprocessor():
     )
 
 
-class PsyThing(Step):
+class Psyclone(Step):
 
     def __init__(self, name=None, kernel_roots=None):
-        super().__init__(name=name or 'psy thingy')
+        super().__init__(name=name or 'psyclone')
         self.kernel_roots = kernel_roots or []
 
     def run(self, artefact_store: Dict, config):
@@ -270,8 +184,3 @@ class PsyThing(Step):
         if Path(generated).exists():
             result.append(generated)
         return result
-
-
-if __name__ == '__main__':
-    gungho_config = gungho()
-    gungho_config.run()
