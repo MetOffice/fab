@@ -134,17 +134,6 @@ class BuildConfig(object):
         metrics_summary(metrics_folder=self.metrics_folder)
 
 
-class PathFilter(object):
-    def __init__(self, path_filters, include):
-        self.path_filters = path_filters
-        self.include = include
-
-    def check(self, path):
-        if any(i in str(path) for i in self.path_filters):
-            return self.include
-        return None
-
-
 class AddFlags(object):
     """
     Add flags when our path filter matches.
@@ -186,6 +175,8 @@ class FlagsConfig(object):
         self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
+    # todo: there's templating both in this method and the run method it calls.
+    #       make sure it's all properly documented and rationalised.
     def flags_for_path(self, path, source_root, project_workspace):
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,

@@ -9,9 +9,7 @@ Gather files from a source folder.
 """
 import logging
 from pathlib import Path
-from typing import Optional, List, Tuple
-
-from fab.build_config import PathFilter
+from typing import Optional, List, Tuple, Iterable
 
 from fab.steps import Step
 from fab.util import file_walk
@@ -19,33 +17,57 @@ from fab.util import file_walk
 logger = logging.getLogger(__name__)
 
 
-INCLUDE = True
-EXCLUDE = False
+class PathFilter(object):
+    def __init__(self, *filter_strings: str, include: bool):
+        self.filter_strings: Iterable[str] = filter_strings
+        self.include = include
+
+    def check(self, path):
+        if any(str(i) in str(path) for i in self.filter_strings):
+            return self.include
+        return None
+
+
+class Include(PathFilter):
+    def __init__(self, *filter_strings):
+        super().__init__(*filter_strings, include=True)
+
+    def __str__(self):
+        return f'Include({", ".join(self.filter_strings)})'
+
+
+class Exclude(PathFilter):
+    def __init__(self, *filter_strings):
+        super().__init__(*filter_strings, include=False)
+
+    def __str__(self):
+        return f'Exclude({", ".join(self.filter_strings)})'
 
 
 class FindSourceFiles(Step):
+    """
+    :param source_root:
+        Path to source folder.
+    :param output_collection:
+        Name of artefact collection to create, defaults to "all_source".
+    :param build_output:
+        (Deprecated) where to create the output folders.
+    :param path_filters:
+        Iterable of PathFilter.
+        Processed in order, if a source file matches the pattern it will be included or excluded,
+        as per the bool.
+
+    """
 
     def __init__(self,
                  source_root=None, output_collection="all_source",
                  build_output: Optional[Path] = None, name="Walk source",
-                 file_filtering: Optional[List[Tuple]] = None):
-        """
-        Args:
-            - source_root: Path to source folder.
-            - output_collection: Name of artefact collection to create, defaults to "all_source".
-            - build_output: (Deprecated) where to create the output folders.
-            - file_filtering: List of (file pattern, boolean) tuples.
-                    Processed in order, if a source file matches the pattern it will be included or excluded,
-                    as per the bool.
-
-        """
+                 path_filters: Optional[Iterable[PathFilter]] = None):
         super().__init__(name)
         self.source_root = source_root
         self.output_collection: str = output_collection
         self.build_output = build_output
-
-        file_filtering = file_filtering or []
-        self.path_filters: List[PathFilter] = [PathFilter(*i) for i in file_filtering]
+        self.path_filters: List[PathFilter] = path_filters or []
 
     def run(self, artefact_store, config):
         """

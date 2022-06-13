@@ -28,7 +28,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFcm
 from fab.steps.link_exe import LinkExe
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.walk_source import FindSourceFiles, Exclude, Include
 from fab.util import case_insensitive_replace
 
 logger = logging.getLogger('fab')
@@ -48,58 +48,6 @@ def um_atmos_safe_config():
     gcom_build = os.getenv('GCOM_BUILD') or \
         os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output")
     logger.info(f"expecting gcom at {gcom_build}")
-
-    file_filtering = [
-        (['/um/utility/'], False),
-        (['/um/utility/qxreconf/'], True),
-
-        (['/um/atmosphere/convection/comorph/interface/'], False),
-        (['/um/atmosphere/convection/comorph/interface/um/'], True),
-
-        (['/um/atmosphere/convection/comorph/unit_tests/'], False),
-
-        (['/um/scm/'], False),
-        (['/um/scm/stub/',
-          '/um/scm/modules/s_scmop_mod.F90',
-          '/um/scm/modules/scmoptype_defn.F90'], True),
-
-        (['/jules/'], False),
-        (['/jules/control/shared/',
-          '/jules/control/um/',
-          '/jules/control/rivers-standalone/',
-          '/jules/initialisation/shared/',
-          '/jules/initialisation/um/',
-          '/jules/initialisation/rivers-standalone/',
-          '/jules/params/um/',
-          '/jules/science/',
-          '/jules/util/shared/'], True),
-
-        (['/socrates/'], False),
-        (['/socrates/nlte/',
-          '/socrates/radiance_core/'], True),
-
-        # the shummlib config in fcm config doesn't seem to do anything,
-        # perhaps there used to be extra files we needed to exclude
-        (['/shumlib/'], False),
-        (['/shumlib/shum_wgdos_packing/src',
-          '/shumlib/shum_string_conv/src',
-          '/shumlib/shum_latlon_eq_grids/src',
-          '/shumlib/shum_horizontal_field_interp/src',
-          '/shumlib/shum_spiral_search/src',
-          '/shumlib/shum_constants/src',
-          '/shumlib/shum_thread_utils/src',
-          '/shumlib/shum_data_conv/src',
-          '/shumlib/shum_number_tools/src',
-          '/shumlib/shum_byteswap/src',
-          '/shumlib/common/src'], True),
-        (['/shumlib/common/src/shumlib_version.c'], False),
-
-        (['/casim/mphys_die.F90',
-          '/casim/mphys_casim.F90', ], False),
-
-        (['.xml'], False),
-        (['.sh'], False),
-    ]
 
     config.steps = [
 
@@ -121,7 +69,7 @@ def um_atmos_safe_config():
 
         MyCustomCodeFixes(name="my custom code fixes"),
 
-        FindSourceFiles(file_filtering=file_filtering),
+        FindSourceFiles(path_filters=file_filtering),
 
         RootIncFiles(),
 
@@ -214,6 +162,61 @@ def um_atmos_safe_config():
     ]
 
     return config
+
+
+file_filtering = [
+    Exclude('unit-test', 'unit_test', '/test/'),
+
+    Exclude('/um/utility/'),
+    Include('/um/utility/qxreconf/'),
+
+    Exclude('/um/atmosphere/convection/comorph/interface/'),
+    Include('/um/atmosphere/convection/comorph/interface/um/'),
+
+    Exclude('/um/atmosphere/convection/comorph/unit_tests/'),
+
+    Exclude('/um/scm/'),
+    Include('/um/scm/stub/',
+            '/um/scm/modules/s_scmop_mod.F90',
+            '/um/scm/modules/scmoptype_defn.F90'),
+
+    Exclude('/jules/'),
+    Include('/jules/control/shared/',
+            '/jules/control/um/',
+            '/jules/control/rivers-standalone/',
+            '/jules/initialisation/shared/',
+            '/jules/initialisation/um/',
+            '/jules/initialisation/rivers-standalone/',
+            '/jules/params/um/',
+            '/jules/science/',
+            '/jules/util/shared/'),
+
+    Exclude('/socrates/'),
+    Include('/socrates/nlte/',
+            '/socrates/radiance_core/'),
+
+    # the shummlib config in fcm config doesn't seem to do anything,
+    # perhaps there used to be extra files we needed to exclude
+    Exclude('/shumlib/'),
+    Include('/shumlib/shum_wgdos_packing/src',
+            '/shumlib/shum_string_conv/src',
+            '/shumlib/shum_latlon_eq_grids/src',
+            '/shumlib/shum_horizontal_field_interp/src',
+            '/shumlib/shum_spiral_search/src',
+            '/shumlib/shum_constants/src',
+            '/shumlib/shum_thread_utils/src',
+            '/shumlib/shum_data_conv/src',
+            '/shumlib/shum_number_tools/src',
+            '/shumlib/shum_byteswap/src',
+            '/shumlib/common/src'),
+    Exclude('/shumlib/common/src/shumlib_version.c'),
+
+    Exclude('/casim/mphys_die.F90',
+            '/casim/mphys_casim.F90'),
+
+    Exclude('.xml'),
+    Exclude('.sh'),
+]
 
 
 # required for newer compilers

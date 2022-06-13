@@ -25,7 +25,7 @@ from fab.build_config import BuildConfig
 from fab.steps import Step
 from fab.steps.grab import GrabFolder
 from fab.steps.preprocess import PreProcessor, fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.walk_source import FindSourceFiles, Exclude
 from fab.util import run_command, log_or_dot, input_to_output_fpath, check_for_errors
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
@@ -60,10 +60,7 @@ def gungho():
         # generate more source files in source and source/configuration
         Configurator(lfric_source=lfric_source, gpl_utils_source=gpl_utils_source),
 
-        FindSourceFiles(file_filtering=[
-            # todo: allow a single string
-            (['unit-test', '/test/'], False),
-        ]),
+        FindSourceFiles(path_filters=[Exclude('unit-test', '/test/')]),
 
         fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
