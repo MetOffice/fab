@@ -94,14 +94,15 @@ class Analyse(Step):
         """
         super().run(artefact_store, config)
 
-        files = self.source_getter(artefact_store)
+        # get a list of all the files we want to analyse
+        files: List[Path] = self.source_getter(artefact_store)
 
-        # take hashes of all the files we preprocessed
+        # take hashes of all the files we want to analyse
         with TimerLogger(f"getting {len(files)} hashes"):
             preprocessed_hashes = self._get_latest_checksums(files)
 
         with TimerLogger("loading previous analysis results"):
-            changed, unchanged = self._load_analysis_results(preprocessed_hashes)
+            changed, unchanged = self._load_analysis_results(latest_file_hashes=preprocessed_hashes)
 
         with TimerLogger("analysing files"):
             with self._new_analysis_file(unchanged) as csv_writer:

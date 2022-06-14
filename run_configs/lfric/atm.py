@@ -35,7 +35,7 @@ def atm_config():
 
     config = BuildConfig(
         project_label='atm',
-        # config.multiprocessing=False,
+        # multiprocessing=False,
         reuse_artefacts=True,
     )
 
@@ -450,6 +450,7 @@ def file_filtering(config):
             config.source_root / 'um/atmosphere/gravity_wave_drag/c_gwave_mod.F90',
             config.source_root / 'um/utility/qxreconf/calc_fit_fsat.F90',
         ),
+        Exclude(config.source_root / 'um/atmosphere/convection/comorph'),
 
         Exclude(config.source_root / 'jules'),
         Include(
