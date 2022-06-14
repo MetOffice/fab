@@ -43,30 +43,30 @@ def atm_config():
 
         # todo: put meaningful names because they all go into the same folder, so the auto-naming is the same for all
         # Importing internal dependencies
-        # GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label='lfric', name='infrastructure/source'),
-        # GrabFolder(src=lfric_source / 'components/driver/source/', dst_label='lfric', name='components/driver/source'),
-        # GrabFolder(src=lfric_source / 'components/science/source/', dst_label='lfric', name='components/science/source'),
-        # GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric', name='components/lfric-xios/source'),
-        #
-        # # Extracting coupler - oasis component
-        # GrabFolder(src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric', name='components/coupler-oasis/source'),
-        #
-        # # Extracting Gungho dynamical core
-        # GrabFolder(src=lfric_source / 'gungho/source/', dst_label='lfric', name='gungho/source'),
-        #
-        # # Extracting UM physics
-        # GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=109936),
-        # GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=23182),
-        # GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision='um12.2'),
-        # GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision='um12.2'),
-        # GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision='um12.2'),
-        #
-        # GrabFolder(src=lfric_source / 'um_physics/source/', dst_label='lfric', name='um_physics/source'),
-        # GrabFolder(src=lfric_source / 'socrates/source/', dst_label='lfric', name='socrates/source'),
-        # GrabFolder(src=lfric_source / 'jules/source/', dst_label='lfric', name='jules/source'),
-        #
-        # # Extracting lfric_atm
-        # GrabFolder(src=lfric_source / 'lfric_atm/source/', dst_label='lfric', name='lfric_atm/source'),
+        GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label='lfric', name='infrastructure/source'),
+        GrabFolder(src=lfric_source / 'components/driver/source/', dst_label='lfric', name='components/driver/source'),
+        GrabFolder(src=lfric_source / 'components/science/source/', dst_label='lfric', name='components/science/source'),
+        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric', name='components/lfric-xios/source'),
+
+        # Extracting coupler - oasis component
+        GrabFolder(src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric', name='components/coupler-oasis/source'),
+
+        # Extracting Gungho dynamical core
+        GrabFolder(src=lfric_source / 'gungho/source/', dst_label='lfric', name='gungho/source'),
+
+        # Extracting UM physics
+        GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=109936),
+        GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=23182),
+        GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision='um12.2'),
+        GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision='um12.2'),
+        GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision='um12.2'),
+
+        GrabFolder(src=lfric_source / 'um_physics/source/', dst_label='lfric', name='um_physics/source'),
+        GrabFolder(src=lfric_source / 'socrates/source/', dst_label='lfric', name='socrates/source'),
+        GrabFolder(src=lfric_source / 'jules/source/', dst_label='lfric', name='jules/source'),
+
+        # Extracting lfric_atm
+        GrabFolder(src=lfric_source / 'lfric_atm/source/', dst_label='lfric', name='lfric_atm/source'),
 
 
         # generate more source files in source and source/configuration
@@ -461,6 +461,18 @@ def file_filtering(config):
             config.source_root / 'jules/illumination/socrates_illuminate.F90',
             config.source_root / 'jules/illumination/solang_mod.F90',
             config.source_root / 'jules/illumination/solpos_mod.F90',
+        ),
+
+        Exclude(config.source_root / 'socrates'),
+        Include(
+            config.source_root / 'socrates//radiance_core',
+            config.source_root / 'socrates//interface_core',
+            config.source_root / 'socrates//illumination/astro_constants_mod.F90',
+            config.source_root / 'socrates//illumination/def_orbit.F90',
+            config.source_root / 'socrates//illumination/orbprm_mod.F90',
+            config.source_root / 'socrates//illumination/socrates_illuminate.F90',
+            config.source_root / 'socrates//illumination/solang_mod.F90',
+            config.source_root / 'socrates//illumination/solpos_mod.F90',
         ),
 
         Exclude(config.source_root / 'casim'),
