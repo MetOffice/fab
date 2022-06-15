@@ -9,7 +9,7 @@ Gather files from a source folder.
 """
 import logging
 from pathlib import Path
-from typing import Optional, List, Iterable
+from typing import Optional, Iterable
 
 from fab.steps import Step
 from fab.util import file_walk
