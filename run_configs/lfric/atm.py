@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-# ##############################################################################
-#  (c) Crown copyright Met Office. All rights reserved.
-#  For further details please refer to the file COPYRIGHT
-#  which you should have received as part of this distribution
-# ##############################################################################
 import logging
 import os
 
@@ -85,10 +80,7 @@ def atm_config():
 
         c_preprocessor(
             path_flags=[
-                AddFlags(match="$source/shumlib/*", flags=[
-                    '-I$source/shumlib/common/src',
-                    # '-I$source/shumlib/shum_thread_utils/src',
-                ]),
+                AddFlags(match="$source/shumlib/*", flags=['-I$source/shumlib/common/src']),
             ],
         ),
 
@@ -121,6 +113,7 @@ def atm_config():
 
         LinkExe(
             linker='mpifort',
+            # todo: this was copied - do we need it all?
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
@@ -135,6 +128,7 @@ def atm_config():
 
 
 def file_filtering(config):
+    """Based on lfric_atm/fcm-make/extract.cfg"""
     return [
         Exclude('unit-test', '/test/'),
 
