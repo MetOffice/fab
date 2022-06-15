@@ -6,18 +6,17 @@
 # ##############################################################################
 import logging
 import os
-from turtledemo import rosette
-
-from fab.steps.root_inc_files import RootIncFiles
 
 from fab.build_config import BuildConfig, AddFlags
 from fab.constants import BUILD_OUTPUT
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder, GrabFcm
 from fab.steps.link_exe import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
+from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, Exclude, Include
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from run_configs.lfric.lfric_common import \
@@ -45,11 +44,14 @@ def atm_config():
         # Importing internal dependencies
         GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label='lfric', name='infrastructure/source'),
         GrabFolder(src=lfric_source / 'components/driver/source/', dst_label='lfric', name='components/driver/source'),
-        GrabFolder(src=lfric_source / 'components/science/source/', dst_label='lfric', name='components/science/source'),
-        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric', name='components/lfric-xios/source'),
+        GrabFolder(src=lfric_source / 'components/science/source/', dst_label='lfric',
+                   name='components/science/source'),
+        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric',
+                   name='components/lfric-xios/source'),
 
         # Extracting coupler - oasis component
-        GrabFolder(src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric', name='components/coupler-oasis/source'),
+        GrabFolder(src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric',
+                   name='components/coupler-oasis/source'),
 
         # Extracting Gungho dynamical core
         GrabFolder(src=lfric_source / 'gungho/source/', dst_label='lfric', name='gungho/source'),
@@ -68,7 +70,6 @@ def atm_config():
         # Extracting lfric_atm
         GrabFolder(src=lfric_source / 'lfric_atm/source/', dst_label='lfric', name='lfric_atm/source'),
 
-
         # generate more source files in source and source/configuration
         Configurator(lfric_source=lfric_source,
                      gpl_utils_source=gpl_utils_source,
@@ -78,6 +79,18 @@ def atm_config():
         FindSourceFiles(path_filters=file_filtering(config)),
 
         RootIncFiles(),
+
+        # todo: bundle this in with th epp, for a better ux
+        CPragmaInjector(),
+
+        c_preprocessor(
+            path_flags=[
+                AddFlags(match="$source/shumlib/*", flags=[
+                    '-I$source/shumlib/common/src',
+                    # '-I$source/shumlib/shum_thread_utils/src',
+                ]),
+            ],
+        ),
 
         fortran_preprocessor(
             preprocessor='cpp -traditional-cpp -P',
@@ -106,14 +119,15 @@ def atm_config():
 
         ArchiveObjects(output_fpath='$output/objects.a'),
 
-        # LinkExe(
-        #     linker='mpifort',
-        #     flags=[
-        #         '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
-        #         '-lxios',  # EXTERNAL_STATIC_LIBRARIES
-        #         '-lstdc++',
-        #     ],
-        # ),
+        LinkExe(
+            linker='mpifort',
+            flags=[
+                '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
+                '-lxios',  # EXTERNAL_STATIC_LIBRARIES
+                '-lstdc++',
+            ],
+            output_fpath=config.project_workspace / 'lfric_atm.exe',
+        ),
 
     ]
 
@@ -484,6 +498,22 @@ def file_filtering(config):
             config.source_root / 'casim/special.F90',
             config.source_root / 'casim/thresholds.F90',
         ),
+
+        Exclude(config.source_root / 'shumlib'),
+        Include(
+            config.source_root / 'shumlib/shum_wgdos_packing/src',
+            config.source_root / 'shumlib/shum_string_conv/src',
+            config.source_root / 'shumlib/shum_latlon_eq_grids/src',
+            config.source_root / 'shumlib/shum_horizontal_field_interp/src',
+            config.source_root / 'shumlib/shum_spiral_search/src',
+            config.source_root / 'shumlib/shum_constants/src',
+            config.source_root / 'shumlib/shum_thread_utils/src',
+            config.source_root / 'shumlib/shum_data_conv/src',
+            config.source_root / 'shumlib/shum_number_tools/src',
+            config.source_root / 'shumlib/shum_byteswap/src',
+            config.source_root / 'shumlib/common/src',
+        ),
+        Exclude(config.source_root / 'shumlib/common/src/shumlib_version.c'),
     ]
 
 
