@@ -6,13 +6,9 @@
 # ##############################################################################
 import logging
 import os
-import shutil
-from pathlib import Path
 
 from fab.steps.archive_objects import ArchiveObjects
-from typing import Dict
 
-from fab.artefacts import SuffixFilter
 from fab.steps.link_exe import LinkExe
 
 from fab.steps.compile_fortran import CompileFortran
@@ -22,12 +18,11 @@ from fab.steps.analyse import Analyse
 from fab.constants import BUILD_OUTPUT
 
 from fab.build_config import BuildConfig
-from fab.steps import Step
 from fab.steps.grab import GrabFolder
-from fab.steps.preprocess import PreProcessor, fortran_preprocessor
+from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles, Exclude
-from fab.util import run_command, log_or_dot, input_to_output_fpath, check_for_errors
 from grab_lfric import lfric_source_config, gpl_utils_source_config
+from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
 
 logger = logging.getLogger('fab')
 
@@ -66,7 +61,7 @@ def gungho():
 
         psyclone_preprocessor(),
 
-        PsyThing(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
+        Psyclone(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
 
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 
