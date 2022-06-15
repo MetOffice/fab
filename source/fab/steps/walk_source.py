@@ -9,7 +9,7 @@ Gather files from a source folder.
 """
 import logging
 from pathlib import Path
-from typing import Optional, List, Tuple, Iterable
+from typing import Optional, List, Iterable
 
 from fab.steps import Step
 from fab.util import file_walk
@@ -67,7 +67,7 @@ class FindSourceFiles(Step):
         self.source_root = source_root
         self.output_collection: str = output_collection
         self.build_output = build_output
-        self.path_filters: List[PathFilter] = path_filters or []
+        self.path_filters: Iterable[PathFilter] = path_filters or []
 
     def run(self, artefact_store, config):
         """

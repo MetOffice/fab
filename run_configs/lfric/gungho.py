@@ -41,8 +41,8 @@ def gungho():
 
     config = BuildConfig(
         project_label='gungho',
-        # multiprocessing = False,
-        reuse_artefacts = True,
+        # multiprocessing=False,
+        reuse_artefacts=True,
     )
 
     config.steps = [
