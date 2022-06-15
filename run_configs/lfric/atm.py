@@ -81,6 +81,7 @@ def atm_config():
 
         fortran_preprocessor(
             preprocessor='cpp -traditional-cpp -P',
+            common_flags=['-DLFRIC'],
             path_flags=[
                 AddFlags("$source/um/*", ['-I$relative/include']),
                 AddFlags("$source/jules/*", ['-I$output']),  # for the rooted inc files
