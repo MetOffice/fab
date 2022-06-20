@@ -34,6 +34,7 @@ def atm_config():
         reuse_artefacts=True,
     )
 
+
     config.steps = [
 
         # todo: put meaningful names because they all go into the same folder, so the auto-naming is the same for all
@@ -91,7 +92,8 @@ def atm_config():
 
         fortran_preprocessor(
             preprocessor='cpp -traditional-cpp -P',
-            common_flags=['-DLFRIC', '-DUSE_XIOS', '-DUM_PHYSICS COUPLED'],
+            # common_flags=['-DLFRIC', '-DUSE_XIOS', '-DUM_PHYSICS COUPLED'],
+            common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED', '-DUSE_MPI=YES'],
             path_flags=[
                 AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
                 AddFlags(match="$source/science/jules/*", flags=['-DUM_JULES', '-I$output']),
@@ -116,18 +118,20 @@ def atm_config():
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=[
                 '-c', '-J', '$output',
-                '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
-                # '-fcheck=all', '-ffpe-trap=invalid,zero,overflow,underflow',
-                '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow,underflow',
 
-                '-fdefault-real-8', '-fdefault-double-8',
-                # '-fallow-argument-mismatch',
+                # '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
+                # '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow,underflow',
+                # '-fdefault-real-8', '-fdefault-double-8',
+                # '-std=f2008',
 
-                '-std=f2008',
+                '-ffree-line-length-none', '-fopenmp',
+                '-g',
+                '-finit-integer=31173 -finit-real=snan', '-finit-logical=true -finit-character=85',
+                '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
 
-                # '-fopenmp',
+                '-Og',
 
-                # '-O0'
+                '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
             ],
             # path_flags=[
@@ -146,13 +150,12 @@ def atm_config():
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
                 '-lstdc++',
 
-                # '-fopenmp',
+                '-fopenmp',
             ],
             output_fpath=config.project_workspace / 'lfric_atm.exe',
         ),
 
     ]
-
     return config
 
 

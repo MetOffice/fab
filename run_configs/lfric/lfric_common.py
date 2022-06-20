@@ -120,7 +120,10 @@ def psyclone_preprocessor():
 
         output_suffix='.x90',
         name='preprocess x90',
-        common_flags=['-P'],
+        common_flags=[
+            '-P',
+            '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED',
+        ],
     )
 
 
