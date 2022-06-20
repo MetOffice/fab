@@ -2,6 +2,8 @@
 import logging
 import os
 
+from fab.steps.compile_c import CompileC
+
 from fab.build_config import BuildConfig, AddFlags
 from fab.constants import BUILD_OUTPUT
 from fab.steps.analyse import Analyse
@@ -108,27 +110,43 @@ def atm_config():
             ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         ),
 
+        CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
+
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=[
                 '-c', '-J', '$output',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
-                '-fcheck=all', '-ffpe-trap=invalid,zero,overflow,underflow',
+                # '-fcheck=all', '-ffpe-trap=invalid,zero,overflow,underflow',
+                '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow,underflow',
+
+                '-fdefault-real-8', '-fdefault-double-8',
+                # '-fallow-argument-mismatch',
+
+                '-std=f2008',
+
+                # '-fopenmp',
+
+                # '-O0'
+
             ],
-            path_flags=[
-                AddFlags('$source/science/*', ['-fdefault-real-8', '-fdefault-double-8']),
-            ]
+            # path_flags=[
+            #     # AddFlags('$output/science/*', ['-fdefault-real-8', '-fdefault-double-8']),
+            #     # AddFlags('$output/science/um/*', ['-fallow-argument-mismatch']),
+            # ]
         ),
 
         ArchiveObjects(output_fpath='$output/objects.a'),
 
         LinkExe(
             linker='mpifort',
-            # todo: this was copied - do we need it all?
+            # linker='gfortran',
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
                 '-lstdc++',
+
+                # '-fopenmp',
             ],
             output_fpath=config.project_workspace / 'lfric_atm.exe',
         ),
