@@ -30,7 +30,7 @@ def atm_config():
 
     config = BuildConfig(
         project_label='atm',
-        multiprocessing=False,
+        # multiprocessing=False,
         reuse_artefacts=True,
     )
 
@@ -97,6 +97,7 @@ def atm_config():
             path_flags=[
                 AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
                 AddFlags(match="$source/science/jules/*", flags=['-DUM_JULES', '-I$output']),
+                AddFlags(match="$source/science/*", flags=['-DLFRIC']),
             ],
         ),
 
@@ -126,7 +127,7 @@ def atm_config():
 
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
-                '-finit-integer=31173 -finit-real=snan', '-finit-logical=true -finit-character=85',
+                '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
                 '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
 
                 '-Og',
@@ -134,10 +135,10 @@ def atm_config():
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
             ],
-            # path_flags=[
-            #     # AddFlags('$output/science/*', ['-fdefault-real-8', '-fdefault-double-8']),
+            path_flags=[
+                AddFlags('$output/science/*', ['-fdefault-real-8', '-fdefault-double-8']),
             #     # AddFlags('$output/science/um/*', ['-fallow-argument-mismatch']),
-            # ]
+            ]
         ),
 
         ArchiveObjects(output_fpath='$output/objects.a'),
