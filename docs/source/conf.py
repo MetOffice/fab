@@ -63,3 +63,7 @@ html_static_path = ['_static']
 
 # Don't sort module contents alphabetically, we want to order them in a helpful way for the user to read.
 autodoc_member_order = 'bysource'
+
+
+# Join the class and constructor docstrings.
+autoclass_content = 'both'

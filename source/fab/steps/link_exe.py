@@ -29,7 +29,7 @@ class DefaultLinkerSource(ArtefactsGetter):
 
     """
     def __call__(self, artefact_store):
-        return CollectionGetter(archive_objects.DEFAULT_COLLECTION_NAME)(artefact_store) \
+        return CollectionGetter(archive_objects.OBJECT_ARCHIVES)(artefact_store) \
                or CollectionGetter(COMPILED_FILES)(artefact_store)
 
 
@@ -44,13 +44,15 @@ class LinkerBase(Step, ABC):
     from an :class:`~fab.steps.archive_objects.ArchiveObjects` step, and falls back to using output from
     compiler steps.
 
-    :param linker: E.g 'gcc' or 'ld'.
-    :param flags: A list of flags to pass to the linker.
-    :param source: An :class:`~fab.artefacts.ArtefactsGetter`.
-    :param name: A descriptive label for this step.
-
     """
     def __init__(self, linker: str, flags=None, source: ArtefactsGetter = None, name='link'):
+        """
+        :param linker: E.g 'gcc' or 'ld'.
+        :param flags: A list of flags to pass to the linker.
+        :param source: An optional :class:`~fab.artefacts.ArtefactsGetter` with a sensible default.
+        :param name: A descriptive label for this step.
+
+        """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.linker = linker
@@ -72,7 +74,9 @@ class LinkerBase(Step, ABC):
 
 class LinkExe(LinkerBase):
     """
-    A build step to produce an executable for every build tree.
+    Produce an executable for every build tree.
+
+    Expects one or more build targets from its artefact getter, of the form Dict[name, object_files].
 
     """
     def run(self, artefact_store, config):
@@ -90,9 +94,21 @@ class LinkExe(LinkerBase):
 
 
 class LinkSharedObject(LinkExe):
+    """
+    Produce a shared object (*.so*) file from the given build tree.
 
+    Expects a single build target from its artefact getter, of the form Dict[None, object_files].
+    We can assume the list of object files is the entire project source, compiled.
+
+    """
     def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactsGetter = None,
                  name='link shared object'):
+        """
+        Params are as for :class:`~fab.steps.link_exe.LinkerBase`, with the addition of:
+
+        *param output_fpath: File path of the shared object to create.
+
+        """
         super().__init__(linker=linker, flags=flags, source=source, name=name)
 
         self.output_fpath = output_fpath

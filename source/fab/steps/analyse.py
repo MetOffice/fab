@@ -31,6 +31,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     'preprocessed_c',
     'preprocessed_fortran',
 
+    # todo: this is lfric stuff so might be better placed with the lfric run configs
     SuffixFilter('psyclone_output', '.f90'),
     'preprocessed_psyclone',
     'configurator_output',
@@ -44,46 +45,51 @@ class Analyse(Step):
     """
     Produce one or more build trees by analysing source code dependencies.
 
-    By default, build trees are placed in the 'build_trees' artefact collection.
-    This collection is a mapping from root symbol to build tree.
-
-    A build tree is produced for every root symbol specified. This is how we create executable files.
-
-    If no root symbol is specified, a single tree of the entire source is produced,
-    and the root symbol is None. This is how we create shared and static libraries.
-
-    :param source:
-        An :class:`~fab.util.ArtefactsGetter` to get the source files.
-    :param root_symbol:
-        When building an executable, provide the Fortran Program name(s), or 'main' for C.
-        If None, build tree extraction will not be performed and the entire source will be used
-        as the build tree - for building a shared or static library.
-    :param std:
-        The fortran standard, passed through to fparser2. Defaults to 'f2008'.
-    :param special_measure_analysis_results:
-        When fparser2 cannot parse a "valid" Fortran file,
-        we can manually provide the expected analysis results with this argument.
-        Only the symbol definitions and dependencies need be provided.
-    :param unreferenced_deps:
-        A list of symbols which are needed for the build, but which cannot be automatically
-        determined. For example, functions that are called without a module use statement. Assuming the files
-        containing these symbols are present and will be analysed, those files and all their dependencies
-        will be added to the build tree(s).
-    :param ignore_mod_deps:
-        Third party Fortran module names to be ignored.
-    :param name:
-        Defaults to 'analyser'
+    The resulting artefact collection is a mapping from root symbol to build tree.
+    The name of this artefact collection is taken from :py:const:`fab.constants.BUILD_TREES`.
 
     """
-    # todo: constructor docstrings are not appearing in sphinx renders
+    # todo: allow the user to specify a different output artefact collection name?
     def __init__(self,
                  source: ArtefactsGetter = None,
-                 root_symbol: Optional[Union[str, List[str]]] = None,
+                 root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
                  std="f2008",
                  special_measure_analysis_results=None,
                  unreferenced_deps=None,
                  ignore_mod_deps=None,
                  name='analyser'):
+        """
+        If no artefact getter is specified in *source*, a default is used which provides input files
+        from multiple artefact collections, including the default C and Fortran preprocessor outputs
+        and any source files with a 'little' *.f90* extension.
+
+        A build tree is produced for every root symbol specified in *root_symbol*, which can be a string or list of.
+        This is how we create executable files. If no root symbol is specified, a single tree of the entire source
+        is produced (with a root symbol of `None`). This is how we create shared and static libraries.
+
+        :param source:
+            An :class:`~fab.util.ArtefactsGetter` to get the source files.
+        :param root_symbol:
+            When building an executable, provide the Fortran Program name(s), or 'main' for C.
+            If None, build tree extraction will not be performed and the entire source will be used
+            as the build tree - for building a shared or static library.
+        :param std:
+            The fortran standard, passed through to fparser2. Defaults to 'f2008'.
+        :param special_measure_analysis_results:
+            When fparser2 cannot parse a "valid" Fortran file,
+            we can manually provide the expected analysis results with this argument.
+            Only the symbol definitions and dependencies need be provided.
+        :param unreferenced_deps:
+            A list of symbols which are needed for the build, but which cannot be automatically
+            determined. For example, functions that are called without a module use statement. Assuming the files
+            containing these symbols are present and will be analysed, those files and all their dependencies
+            will be added to the build tree(s).
+        :param ignore_mod_deps:
+            Third party Fortran module names to be ignored.
+        :param name:
+            Defaults to 'analyser'
+
+        """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol

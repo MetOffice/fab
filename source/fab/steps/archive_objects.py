@@ -20,7 +20,6 @@ from fab.artefacts import ArtefactsGetter, CollectionGetter
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = CollectionGetter(COMPILED_FILES)
-DEFAULT_COLLECTION_NAME = OBJECT_ARCHIVES
 
 
 # todo: two diagrams showing the flow of artefacts in the exe and library use cases
@@ -29,35 +28,56 @@ DEFAULT_COLLECTION_NAME = OBJECT_ARCHIVES
 
 class ArchiveObjects(Step):
     """
-    Creates an object archive file from the named artefact collection,
-    defaulting to :py:const:`~fab.constants.TARGET_OBJECT_FILES`, as created by compiler steps.
+    Create an object archive for every build target.
 
-    Expects one or more build targets in the artefact collection, of the form Dict[name, object_files].
+    Expects one or more build targets from its artefact getter, of the form Dict[name, object_files].
 
-    When building exes, each build target consists of a name and a collection of compiled files.
-    Each name is a root symbol, as given to the :class:`@fab.steps.analyse.Analyse` step.
-    The target names and compiled files are output from the compiler steps.
-    This step will produce an archive object for each exe, to be used by the subsequent linker step.
+    An object archive is just some object (*.o*) files bundled into a single file, typically with a *.a* extension.
 
-    When building a shared object there is expected to be a single build target with no root symbol (None),
-    and the object files are created from the entire project source.
+    This step has two use cases:
+    * Building a library for static linking, typically as the end product of a build config.
+      This requires the user to provide a file name to create.
+    * Building one or more object archives for use by a subsequent linker step.
+      This automatically generates the output file names.
 
-    .. note::
+    Creating a Static Library
+    -------------------------
+    When building a shared object there is expected to be a single build target with a name of `None`.
+    This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *without* a root symbol.
+    We can assume the list of object files is the entire project source, compiled.
 
-        When creating a static library, you must specify the *output_fpath*.
-        This can use templating where "$output" is replaced with the output folder.
+    In this case you must specify an output file path.
 
-        When creating executables, this step can be useful before linking as it reduces the length of the
-        linker command (by replacing the list of object files with a single archive file).
-        In this case, you cannot provide an *output_fpath*.
+    Creating Linker Input
+    ---------------------
+    When creating linker input, there is expected to be one or more build targets, each with a name.
+    This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *with* a root symbol(s).
+    We can assume each list of object files is sufficient to build each *<root_symbol>.exe*.
 
-    :param archiver: The archiver executable. Defaults to 'ar'.
-    :param output_fpath: The file path of the output archive file.
+    In this case you cannot specify an output file path because they are automatically created from the
+    target name.
+
+    The benefit of this use case is simply to reduce the size of the subsequent linker command, which might
+    otherwise include thousands of .o files, making any error output difficult to read.
+    You don't have to use this step when making exes. The linker step has a default artefact getter which will
+    work with or without this step.
 
     """
-
     def __init__(self, source: ArtefactsGetter = None, archiver='ar',
-                 output_fpath=None, output_collection=DEFAULT_COLLECTION_NAME, name='archive objects'):
+                 output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
+        """
+        :param archiver:
+            The archiver executable. Defaults to 'ar'.
+        :param output_fpath:
+            The file path of the archive file to create.
+            This string can include templating, where "$output" is replaced with the output folder.
+            * Must be specified when building a library file (no build target name).
+            * Must not be specified when building linker input (one or more build target names).
+        :param output_collection:
+            The name of the artefact collection to create. Defaults to the name in
+            :const:`fab.constants.OBJECT_ARCHIVES`.
+
+        """
         super().__init__(name)
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER

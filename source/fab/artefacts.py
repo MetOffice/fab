@@ -112,31 +112,31 @@ class SuffixFilter(ArtefactsGetter):
         return suffix_filter(fpaths, self.suffixes)
 
 
-# todo: Should it really be up to this class to decide whether to use the entire project tree?
-#       Perhaps this class should instead just error if there's no build trees collection.
 class FilterBuildTrees(ArtefactsGetter):
     """
-    Filter each build tree by suffix.
+    Filter build trees by suffix.
 
-    By default, looks for the build trees in the collection named by :py:const:`~fab.constants.BUILD_TREES`.
-
-    .. note::
-        If there is no *build trees* artifact collection or if it's empty (e.g when compiling a library),
-        the entire *project source tree* will be filtered instead.
-
-    Returns a list of paths for each build target.
-
-    :param suffix: A string, or iterable of, including the preceding dot.
-    :param collection_name: The name of the artefact collection where we find the source trees to build.
-                            Defaults to the value in :py:const:`fab.constants.BUILD_TREES`.
-
-    Example::
-
-        # The default source getter for the CompileFortran step.
-        DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
+    Returns a list of paths for each build tree.
 
     """
     def __init__(self, suffix: Union[str, List[str]], collection_name: str = BUILD_TREES):
+        """
+        The given *collection_name* specifies which artefact collection contains the build trees.
+        If no name is provided, it defaults to the value in :py:const:`fab.constants.BUILD_TREES`,
+        as used by the analyse step.
+
+        :param suffix:
+            A string, or iterable of, including the preceding dot.
+        :param collection_name:
+            The name of the artefact collection where we find the source trees to build.
+            Defaults to the value in :py:const:`fab.constants.BUILD_TREES`.
+
+        Example::
+
+            # The default source getter for the CompileFortran step.
+            DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
+
+        """
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
