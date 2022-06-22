@@ -35,21 +35,23 @@ class ArchiveObjects(Step):
     An object archive is just some object (*.o*) files bundled into a single file, typically with a *.a* extension.
 
     This step has two use cases:
+
     * Building a library for static linking, typically as the end product of a build config.
       This requires the user to provide a file name to create.
     * Building one or more object archives for use by a subsequent linker step.
       This automatically generates the output file names.
 
-    Creating a Static Library
-    -------------------------
+
+    **Creating a Static Library:**
+
     When building a shared object there is expected to be a single build target with a name of `None`.
     This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *without* a root symbol.
     We can assume the list of object files is the entire project source, compiled.
 
     In this case you must specify an output file path.
 
-    Creating Linker Input
-    ---------------------
+    **Creating Linker Input:**
+
     When creating linker input, there is expected to be one or more build targets, each with a name.
     This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *with* a root symbol(s).
     We can assume each list of object files is sufficient to build each *<root_symbol>.exe*.
@@ -71,6 +73,7 @@ class ArchiveObjects(Step):
         :param output_fpath:
             The file path of the archive file to create.
             This string can include templating, where "$output" is replaced with the output folder.
+
             * Must be specified when building a library file (no build target name).
             * Must not be specified when building linker input (one or more build target names).
         :param output_collection:

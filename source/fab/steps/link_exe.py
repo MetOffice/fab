@@ -47,10 +47,15 @@ class LinkerBase(Step, ABC):
     """
     def __init__(self, linker: str, flags=None, source: ArtefactsGetter = None, name='link'):
         """
-        :param linker: E.g 'gcc' or 'ld'.
-        :param flags: A list of flags to pass to the linker.
-        :param source: An optional :class:`~fab.artefacts.ArtefactsGetter` with a sensible default.
-        :param name: A descriptive label for this step.
+        :param linker:
+            E.g 'gcc' or 'ld'.
+        :param flags:
+            A list of flags to pass to the linker.
+        :param source:
+            An optional :class:`~fab.artefacts.ArtefactsGetter`.
+            Typically not required, as there is a sensible default.
+        :param name:
+            A descriptive label for this step.
 
         """
         super().__init__(name)
@@ -93,6 +98,7 @@ class LinkExe(LinkerBase):
                 objects=objects)
 
 
+# todo: the bit about Dict[None, object_files] seems too obscure - try to rethink this.
 class LinkSharedObject(LinkExe):
     """
     Produce a shared object (*.so*) file from the given build tree.
