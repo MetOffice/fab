@@ -40,7 +40,7 @@ class LinkerBase(Step, ABC):
     """
     Base class for Steps which link a build target(s).
 
-    The default artefact getter, :py:cont:`~fab.steps.link_exe.DefaultLinkerSource`, looks for any output
+    The default artefact getter, :py:const:`~fab.steps.link_exe.DefaultLinkerSource`, looks for any output
     from an :class:`~fab.steps.archive_objects.ArchiveObjects` step, and falls back to using output from
     compiler steps.
 
