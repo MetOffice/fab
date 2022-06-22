@@ -42,7 +42,7 @@ class Test_load_analysis_results(object):
 
     @pytest.fixture
     def csv_lines(self):
-        # a module with a dependecy on a fortran and c file, plus a mo commented dep
+        # a module with a dependency on a fortran and c file, plus a mo commented dep
         return [
             'fpath,file_hash,symbol_defs,symbol_deps,file_deps,mo_commented_file_deps',
             'my_mod.f90,123,my_mod,dep1_mod;dep2,,mo_dep.c',
