@@ -70,8 +70,7 @@ class BuildConfig(object):
         self.multiprocessing = multiprocessing
         self.n_procs = n_procs
         if self.multiprocessing and not self.n_procs:
-            # todo: can we use *all* available cpus, not n-1, without causing a bottleneck?
-            self.n_procs = max(1, len(os.sched_getaffinity(0)) - 1)
+            self.n_procs = max(1, len(os.sched_getaffinity(0)))
 
         self.reuse_artefacts = reuse_artefacts
 
@@ -97,6 +96,7 @@ class BuildConfig(object):
                         step.run(artefact_store=artefact_store, config=self)
                     send_metric('steps', step.name, step_timer.taken)
         except Exception as err:
+            logger.exception('Error running build steps')
             raise Exception(f'\n\nError running build steps:\n{err}')
         finally:
             self._finalise_metrics(start_time, steps_timer)

@@ -1,55 +1,36 @@
 #!/usr/bin/env python3
-# ##############################################################################
-#  (c) Crown copyright Met Office. All rights reserved.
-#  For further details please refer to the file COPYRIGHT
-#  which you should have received as part of this distribution
-# ##############################################################################
-import logging
 import os
 
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_OUTPUT
 from fab.steps.analyse import Analyse
-from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles
+from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
-
-logger = logging.getLogger('fab')
 
 
-# todo: optimisation path stuff
-
-
-def gungho():
+def mesh_tools():
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
-    config = BuildConfig(
-        project_label='gungho',
-        # multiprocessing = False,
-        reuse_artefacts=True,
-    )
-
+    config = BuildConfig(project_label='mesh_tools')
     config.steps = [
 
         GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/driver/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'mesh_tools/source/', dst_label=''),
         GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label=''),
+
         GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
-        GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst_label='um_physics/source/constants'),
 
         # generate more source files in source and source/configuration
         Configurator(
             lfric_source=lfric_source,
             gpl_utils_source=gpl_utils_source,
-            rose_meta_conf=lfric_source / 'gungho/rose-meta/lfric-gungho/HEAD/rose-meta.conf',
+            rose_meta_conf=lfric_source / 'mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf',
         ),
 
         FindSourceFiles(file_filtering=[
@@ -66,16 +47,18 @@ def gungho():
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 
         Analyse(
-            root_symbol='gungho',
-            ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
+            root_symbol=['cubedsphere_mesh_generator', 'planar_mesh_generator', 'summarise_ugrid'],
+            # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         ),
 
-        CompileFortran(
-            compiler=os.getenv('FC', 'gfortran'),
-            common_flags=['-c', '-J', '$output']),
+        # todo:
+        # compile one big lump
 
-        ArchiveObjects(),
+        CompileFortran(compiler=os.getenv('FC', 'gfortran'), common_flags=['-c', '-J', '$output']),
 
+        # ArchiveObjects(),
+
+        # link the 3 trees' objects
         LinkExe(
             linker='mpifort',
             flags=[
@@ -91,5 +74,4 @@ def gungho():
 
 
 if __name__ == '__main__':
-    gungho_config = gungho()
-    gungho_config.run()
+    mesh_tools().run()

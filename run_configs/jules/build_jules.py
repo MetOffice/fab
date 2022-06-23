@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -6,8 +7,6 @@
 import logging
 import os
 from argparse import ArgumentParser
-
-from fab.steps.archive_objects import ArchiveObjects
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
@@ -78,11 +77,8 @@ def jules_config(revision=None):
             # ]
         ),
 
-        ArchiveObjects(),
-
         LinkExe(
             linker='mpifort',
-            output_fpath='$output/../jules.exe',
             flags=['-lm', '-lnetcdff', '-lnetcdf']),
     ]
 
