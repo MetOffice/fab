@@ -107,7 +107,6 @@ class BuildConfig(object):
         # add a file logger for our run
         log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
         log_file_handler.doRollover()
-        log_file_handler.setLevel(logging.DEBUG)
         logging.getLogger('fab').addHandler(log_file_handler)
 
         logger.info(f"{datetime.now()}")

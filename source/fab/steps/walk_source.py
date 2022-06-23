@@ -8,7 +8,6 @@ Gather files from a source folder.
 
 """
 import logging
-from pathlib import Path
 from typing import Optional, Iterable
 
 from fab.steps import Step
@@ -18,7 +17,31 @@ logger = logging.getLogger(__name__)
 
 
 class PathFilter(object):
+    """
+    Deem paths as included or excluded, using simple pattern matching.
+
+    A path is considered a match if it contains any of the given filter strings.
+
+    Path filters are expected to be provided by the user in an *ordered* collection.
+    The two convenience subclasses, :class:`~fab.steps.walk_source.Include` and :class:`~fab.steps.walk_source.Exclude`,
+    provide improved readability.
+
+    Example::
+
+        path_filters = [
+            Exclude('my_folder'),
+            Include('my_folder/my_file.F90'),
+        ]
+
+    """
     def __init__(self, *filter_strings: str, include: bool):
+        """
+        :param filter_strings:
+            One or more strings to be used as pattern matches.
+        :param include:
+            Set to True or False to include or exclude matching paths.
+
+        """
         self.filter_strings: Iterable[str] = filter_strings
         self.include = include
 
@@ -29,7 +52,16 @@ class PathFilter(object):
 
 
 class Include(PathFilter):
+    """
+    A path filter which includes matching paths, this convenience class improves config readability.
+
+    """
     def __init__(self, *filter_strings):
+        """
+        :param filter_strings:
+            One or more strings to be used as pattern matches.
+
+        """
         super().__init__(*filter_strings, include=True)
 
     def __str__(self):
@@ -37,7 +69,17 @@ class Include(PathFilter):
 
 
 class Exclude(PathFilter):
+    """
+    A path filter which excludes matching paths, this convenience class improves config readability.
+
+    """
+
     def __init__(self, *filter_strings):
+        """
+        :param filter_strings:
+            One or more strings to be used as pattern matches.
+
+        """
         super().__init__(*filter_strings, include=False)
 
     def __str__(self):
@@ -46,27 +88,25 @@ class Exclude(PathFilter):
 
 class FindSourceFiles(Step):
     """
-    :param source_root:
-        Path to source folder.
-    :param output_collection:
-        Name of artefact collection to create, defaults to "all_source".
-    :param build_output:
-        (Deprecated) where to create the output folders.
-    :param path_filters:
-        Iterable of PathFilter.
-        Processed in order, if a source file matches the pattern it will be included or excluded,
-        as per the bool.
+    Return all the files in the source folder, with filtering.
 
     """
+    def __init__(self, source_root=None, output_collection="all_source",
+                 name="Walk source", path_filters: Optional[Iterable[PathFilter]] = None):
+        """
+        :param source_root:
+            Optional path to source folder, with a sensible default.
+        :param output_collection:
+            Name of artefact collection to create, with a sensible default.
+        :param path_filters:
+            Iterable of PathFilter for inclusions and exclusions. The filters are processed in order.
+        :param name:
+            A human-friendly label for this step, with a sensible default.
 
-    def __init__(self,
-                 source_root=None, output_collection="all_source",
-                 build_output: Optional[Path] = None, name="Walk source",
-                 path_filters: Optional[Iterable[PathFilter]] = None):
+        """
         super().__init__(name)
         self.source_root = source_root
         self.output_collection: str = output_collection
-        self.build_output = build_output
         self.path_filters: Iterable[PathFilter] = path_filters or []
 
     def run(self, artefact_store, config):

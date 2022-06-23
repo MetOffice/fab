@@ -34,11 +34,11 @@ def atm_config():
         reuse_artefacts=True,
     )
 
-
     config.steps = [
 
-        # todo: put meaningful names because they all go into the same folder, so the auto-naming is the same for all
-        # Importing internal dependencies
+        # todo: use different dst_labels because they all go into the same folder,
+        #       making it hard to see what came from where?
+        # internal dependencies
         GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label='lfric', name='infrastructure/source'),
         GrabFolder(src=lfric_source / 'components/driver/source/', dst_label='lfric', name='components/driver/source'),
         GrabFolder(src=lfric_source / 'components/science/source/', dst_label='lfric',
@@ -46,14 +46,14 @@ def atm_config():
         GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric',
                    name='components/lfric-xios/source'),
 
-        # Extracting coupler - oasis component
+        # coupler - oasis component
         GrabFolder(src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric',
                    name='components/coupler-oasis/source'),
 
-        # Extracting Gungho dynamical core
+        # gungho dynamical core
         GrabFolder(src=lfric_source / 'gungho/source/', dst_label='lfric', name='gungho/source'),
 
-        # Extracting UM physics
+        # UM physics
         GrabFcm(src='fcm:um.xm_tr/src', dst_label='science/um', revision=110086),
         GrabFcm(src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=23218),
         GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='um12.2'),
@@ -64,7 +64,7 @@ def atm_config():
         GrabFolder(src=lfric_source / 'socrates/source/', dst_label='lfric', name='socrates/source'),
         GrabFolder(src=lfric_source / 'jules/source/', dst_label='lfric', name='jules/source'),
 
-        # Extracting lfric_atm
+        # lfric_atm
         GrabFolder(src=lfric_source / 'lfric_atm/source/', dst_label='lfric', name='lfric_atm/source'),
 
         # generate more source files in source and source/configuration
@@ -77,7 +77,7 @@ def atm_config():
 
         RootIncFiles(),
 
-        # todo: bundle this in with th epp, for a better ux
+        # todo: bundle this in with the preprocessor, for a better ux?
         CPragmaInjector(),
 
         c_preprocessor(
@@ -92,7 +92,6 @@ def atm_config():
 
         fortran_preprocessor(
             preprocessor='cpp -traditional-cpp -P',
-            # common_flags=['-DLFRIC', '-DUSE_XIOS', '-DUM_PHYSICS COUPLED'],
             common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED', '-DUSE_MPI=YES'],
             path_flags=[
                 AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
@@ -120,11 +119,6 @@ def atm_config():
             common_flags=[
                 '-c', '-J', '$output',
 
-                # '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
-                # '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow,underflow',
-                # '-fdefault-real-8', '-fdefault-double-8',
-                # '-std=f2008',
-
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
@@ -137,7 +131,6 @@ def atm_config():
             ],
             path_flags=[
                 AddFlags('$output/science/*', ['-fdefault-real-8', '-fdefault-double-8']),
-            #     # AddFlags('$output/science/um/*', ['-fallow-argument-mismatch']),
             ]
         ),
 
@@ -145,7 +138,6 @@ def atm_config():
 
         LinkExe(
             linker='mpifort',
-            # linker='gfortran',
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
@@ -176,7 +168,7 @@ def file_filtering(config):
         Include(science_root / 'um/atmosphere/atmosphere_service'),
         Include(science_root / 'um/atmosphere/boundary_layer'),
         Include(science_root / 'um/atmosphere/carbon/carbon_options_mod.F90'),
-        
+
         Include(science_root / 'um/atmosphere/convection'),
         Exclude(science_root / 'um/atmosphere/convection/comorph'),
         Include(science_root / 'um/atmosphere/convection/comorph/control/comorph_constants_mod.F90'),
@@ -499,7 +491,7 @@ def file_filtering(config):
         Include(science_root / 'um/atmosphere/gravity_wave_drag/c_gwave_mod.F90'),
         Include(science_root / 'um/utility/qxreconf/calc_fit_fsat.F90'),
 
-        
+
         Exclude(science_root / 'jules'),
 
         Include(science_root / 'jules/control/shared'),
@@ -517,10 +509,10 @@ def file_filtering(config):
         Include(science_root / 'jules/science/soil'),
         Include(science_root / 'jules/science/surface'),
         Include(science_root / 'jules/science/vegetation'),
-                           
-                           
+
+
         Exclude(science_root / 'socrates'),
-        
+
         Include(science_root / 'socrates/radiance_core'),
         Include(science_root / 'socrates/interface_core'),
         Include(science_root / 'socrates/illumination/astro_constants_mod.F90'),
@@ -529,8 +521,8 @@ def file_filtering(config):
         Include(science_root / 'socrates/illumination/socrates_illuminate.F90'),
         Include(science_root / 'socrates/illumination/solang_mod.F90'),
         Include(science_root / 'socrates/illumination/solpos_mod.F90'),
-        
-        
+
+
         Exclude(science_root / 'casim'),
 
         Include(science_root / 'casim/mphys_parameters.F90'),
