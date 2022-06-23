@@ -53,8 +53,8 @@ def atm_config():
         # gungho dynamical core
         GrabFolder(src=lfric_source / 'gungho/source/', dst_label='lfric', name='gungho/source'),
 
-        # UM physics
-        GrabFcm(src='fcm:um.xm_tr/src', dst_label='science/um', revision=110086),
+        # UM physics - versions as required by the LFRIC_REVISION in grab_lfric.py
+        GrabFcm(src='fcm:um.xm_tr/src', dst_label='science/um', revision=110487),
         GrabFcm(src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=23218),
         GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='um12.2'),
         GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='science/shumlib', revision='um12.2'),
@@ -100,7 +100,7 @@ def atm_config():
             ],
         ),
 
-        psyclone_preprocessor(),
+        psyclone_preprocessor(set_um_physics=True),
 
         Psyclone(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
 

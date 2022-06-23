@@ -111,7 +111,9 @@ class FparserWorkaround_StopConcatenation(Step):
             open(broken_version, 'rt').read().replace(bad, good))
 
 
-def psyclone_preprocessor():
+def psyclone_preprocessor(set_um_physics=False):
+    um_physics = ['-DUM_PHYSICS'] if set_um_physics else []
+
     return PreProcessor(
         preprocessor='cpp -traditional-cpp',
 
@@ -122,7 +124,8 @@ def psyclone_preprocessor():
         name='preprocess x90',
         common_flags=[
             '-P',
-            '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED',
+            '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED',
+            *um_physics,
         ],
     )
 

@@ -47,13 +47,18 @@ def gungho():
         GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
         GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label=''),
         GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/',
-                   dst_label='um_physics/source/kernel/stph/'),
-        GrabFolder(src=lfric_source / 'um_physics/source/constants/',
-                   dst_label='um_physics/source/constants'),
+
+        # GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
+        # GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst_label='um_physics/source/constants'),
+        GrabFolder(src=lfric_source / 'um_physics/source/', dst_label=''),
+
 
         # generate more source files in source and source/configuration
-        Configurator(lfric_source=lfric_source, gpl_utils_source=gpl_utils_source),
+        Configurator(
+            lfric_source=lfric_source,
+            gpl_utils_source=gpl_utils_source,
+            rose_meta_conf=lfric_source / 'gungho/rose-meta/lfric-gungho/HEAD/rose-meta.conf',
+        ),
 
         FindSourceFiles(path_filters=[Exclude('unit-test', '/test/')]),
 
