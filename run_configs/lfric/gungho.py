@@ -62,7 +62,12 @@ def gungho():
 
         FindSourceFiles(path_filters=[Exclude('unit-test', '/test/')]),
 
-        fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
+        fortran_preprocessor(
+            preprocessor='cpp -traditional-cpp',
+            common_flags=[
+                '-P',
+                '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
+            ]),
 
         psyclone_preprocessor(),
 
@@ -77,7 +82,18 @@ def gungho():
 
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
-            common_flags=['-c', '-J', '$output']),
+            common_flags=[
+                '-c', '-J', '$output',
+                '-ffree-line-length-none', '-fopenmp',
+                '-g',
+                '-Og', '-std=f2008',
+
+                '-Wall', '-Werror=conversion', '-Werror=unused-variable', '-Werror=character-truncation',
+                '-Werror=unused-value', '-Werror=tabs',
+
+                '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64',
+                '-DUSE_XIOS', '-DUSE_MPI=YES',
+            ]),
 
         ArchiveObjects(output_fpath='$output/objects.a'),
 
@@ -85,6 +101,8 @@ def gungho():
             linker='mpifort',
             output_fpath=config.project_workspace / 'gungho.exe',
             flags=[
+                '-fopenmp',
+
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
                 '-lstdc++',
