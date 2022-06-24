@@ -53,7 +53,6 @@ def um_atmos_safe_config(revision):
         os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output")
     logger.info(f"expecting gcom at {gcom_build}")
 
-
     config.steps = [
 
         # todo: these repo defs could make a good set of reusable variables
