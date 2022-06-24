@@ -4,20 +4,20 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-C and Fortran analysis, creating a build tree.
+C and Fortran analysis, creating build trees.
 
 """
 
 import csv
 import logging
 import warnings
-from collections import defaultdict
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Tuple, Iterable, Set
+from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
 
+from fab.constants import BUILD_TREES
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
-    validate_build_tree
+    validate_dependencies
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
@@ -31,45 +31,68 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     'preprocessed_c',
     'preprocessed_fortran',
 
+    # todo: this is lfric stuff so might be better placed with the lfric run configs
     SuffixFilter('psyclone_output', '.f90'),
     'preprocessed_psyclone',
     'configurator_output',
 ])
 
 
-# todo: split out c and fortran?
-#       this class is still a bit big
+# todo: split out c and fortran? this class is still a bit big
 # This has all been done as a single step, for now, because we don't have a simple mp pattern
 # (i.e we don't have a list of artefacts and a function to feed them through).
 class Analyse(Step):
+    """
+    Produce one or more build trees by analysing source code dependencies.
 
-    # todo: constructor docstrings are not appearing in sphinx renders
+    The resulting artefact collection is a mapping from root symbol to build tree.
+    The name of this artefact collection is taken from :py:const:`fab.constants.BUILD_TREES`.
+
+    """
+    # todo: allow the user to specify a different output artefact collection name?
     def __init__(self,
-                 root_symbol, source: ArtefactsGetter = None, std="f2008",
-                 special_measure_analysis_results=None, unreferenced_deps=None,
-                 ignore_mod_deps=None, name='analyser'):
+                 source: ArtefactsGetter = None,
+                 root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
+                 std="f2008",
+                 special_measure_analysis_results=None,
+                 unreferenced_deps=None,
+                 ignore_mod_deps=None,
+                 name='analyser'):
         """
+        If no artefact getter is specified in *source*, a default is used which provides input files
+        from multiple artefact collections, including the default C and Fortran preprocessor outputs
+        and any source files with a 'little' *.f90* extension.
 
-        Args:
-            - source: A :class:`~fab.util.ArtefactsGetter`.
-            - root_symbol: When building an executable, provide the Fortran Program name, or 'main' for C.
-                If None, target tree extraction will not be performed and the whole codebase will be returned
-                in the build tree, as when building a compiled object archive.
-            - std: The fortran standard, passed through to fparser2. Defaults to 'f2008'.
-            - special_measure_analysis_results: When fparser2 cannot parse a "valid" Fortran file,
-                we can manually provide the expected analysis results with this argument.
-                Only the symbol definitions and dependencies need be provided.
-            - unreferenced_deps: A list of symbols which are needed for the build, but which cannot be automatically
-                determined. For example, functions that are called without a module use statement. Assuming the files
-                containing these symbols will been analysed, those files and all their dependencies
-                will be added to the build tree.
-            - ignore_mod_deps: Third party Fortran module names to be ignored.
-            - name: Defaults to 'analyser'
+        A build tree is produced for every root symbol specified in *root_symbol*, which can be a string or list of.
+        This is how we create executable files. If no root symbol is specified, a single tree of the entire source
+        is produced (with a root symbol of `None`). This is how we create shared and static libraries.
+
+        :param source:
+            An :class:`~fab.util.ArtefactsGetter` to get the source files.
+        :param root_symbol:
+            When building an executable, provide the Fortran Program name(s), or 'main' for C.
+            If None, build tree extraction will not be performed and the entire source will be used
+            as the build tree - for building a shared or static library.
+        :param std:
+            The fortran standard, passed through to fparser2. Defaults to 'f2008'.
+        :param special_measure_analysis_results:
+            When fparser2 cannot parse a "valid" Fortran file,
+            we can manually provide the expected analysis results with this argument.
+            Only the symbol definitions and dependencies need be provided.
+        :param unreferenced_deps:
+            A list of symbols which are needed for the build, but which cannot be automatically
+            determined. For example, functions that are called without a module use statement. Assuming the files
+            containing these symbols are present and will be analysed, those files and all their dependencies
+            will be added to the build tree(s).
+        :param ignore_mod_deps:
+            Third party Fortran module names to be ignored.
+        :param name:
+            Defaults to 'analyser'
 
         """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.root_symbol: str = root_symbol
+        self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[AnalysedFile] = special_measure_analysis_results or []
         self.unreferenced_deps: List[str] = unreferenced_deps or []
 
@@ -79,72 +102,109 @@ class Analyse(Step):
 
     def run(self, artefact_store, config):
         """
-        Creates the *build_tree* artefact: Dict[Path, AnalysedFile] from the files in `self.source_getter`.
+        Creates the *build_trees* artefact from the files in `self.source_getter`.
 
         Steps, in order:
-            - Creates a hash of every artefact, used to check if it's already been analysed.
-            - Parse the C and Fortran files to find the symbol definitions and depndencies in each file.
+            - Create a hash of every source file. Used to check if it's already been analysed.
+            - Parse the C and Fortran files to find external symbol definitions and dependencies in each file.
                 - Analysis results are stored in a csv as-we-go, so analysis can be resumed if interrupted.
-            - Creates a symbol table for external symbols: Dict[symbol, Path]
+            - Create a 'symbol table' recording which file each symbol is in.
             - Work out the file dependencies from the symbol dependencies.
-            - (Optionally) Prune the file dependency tree for the root symbol, if given.
+                - At this point we have a source tree for the entire source.
+            - (Optionally) Extract a sub tree for every root symbol, if provided. For building executables.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         """
         super().run(artefact_store, config)
 
+        analysed_files = self._analyse_source_code(artefact_store)
+
+        # add special measure symbols for files which could not be parsed
+        if self.special_measure_analysis_results:
+            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
+            analysed_files.update(set(self.special_measure_analysis_results))
+
+        project_source_tree, symbols = self._analyse_dependencies(analysed_files)
+
+        # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
+        with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
+            add_mo_commented_file_deps(project_source_tree)
+
+        logger.info(f"source tree size {len(project_source_tree)}")
+
+        # build tree extraction for executables.
+        if self.root_symbols:
+            build_trees = self._extract_build_trees(project_source_tree, symbols)
+        else:
+            build_trees = {None: project_source_tree}
+
+        # throw in any extra source we need, which Fab can't automatically detect (i.e. not using use statements)
+        for build_tree in build_trees.values():
+            self._add_unreferenced_deps(symbols, project_source_tree, build_tree)
+            validate_dependencies(build_tree)
+
+        artefact_store[BUILD_TREES] = build_trees
+
+    def _analyse_source_code(self, artefact_store) -> Set[AnalysedFile]:
+        """
+        Find the symbol defs and deps in each file.
+
+        This is slow so we record our progress as we go.
+
+        """
         # get a list of all the files we want to analyse
         files: List[Path] = self.source_getter(artefact_store)
 
         # take hashes of all the files we want to analyse
-        with TimerLogger(f"getting {len(files)} hashes"):
-            preprocessed_hashes = self._get_latest_checksums(files)
+        with TimerLogger(f"generating {len(files)} file hashes"):
+            file_hashes = self._get_file_checksums(files)
 
         with TimerLogger("loading previous analysis results"):
-            changed, unchanged = self._load_analysis_results(latest_file_hashes=preprocessed_hashes)
+            prev_results = self._load_analysis_results(latest_file_hashes=preprocessed_hashes)
+            changed, unchanged = self._what_needs_reanalysing(prev_results=prev_results, latest_file_hashes=file_hashes)
 
         with TimerLogger("analysing files"):
             with self._new_analysis_file(unchanged) as csv_writer:
                 freshly_analysed_fortran, freshly_analysed_c = self._parse_files(changed, csv_writer)
-        source_tree: Dict[Path, AnalysedFile] = {
-            a.fpath: a for a in unchanged + freshly_analysed_fortran + freshly_analysed_c}
 
-        # Make "external" symbol table
-        with TimerLogger("creating symbol lookup"):
-            symbols: Dict[str, Path] = self._gen_symbol_table(source_tree)
+        return unchanged | freshly_analysed_fortran | freshly_analysed_c
 
-        # turn symbol deps into file deps
-        with TimerLogger("generating file dependencies from symbols"):
-            self._gen_file_deps(source_tree, symbols)
+    def _analyse_dependencies(self, analysed_files: Iterable[AnalysedFile]):
+        """
+        Turn symbol deps into file deps and build a source dependency tree for the entire source.
 
-        #  find the file dependencies for MO FCM's "DEPENDS ON:" commented file deps
-        with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
-            add_mo_commented_file_deps(source_tree)
+        """
+        with TimerLogger("converting symbol dependencies to file dependencies"):
+            # map symbols to the files they're in
+            symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
 
-        logger.info(f"source tree size {len(source_tree)}")
+            # fill in the file deps attribute in the analysed file objects
+            self._gen_file_deps(analysed_files, symbols)
 
-        # Target tree extraction - for building executables.
-        if self.root_symbol:
-            with TimerLogger("extracting target tree"):
-                build_tree = extract_sub_tree(source_tree, symbols[self.root_symbol], verbose=False)
-            logger.info(f"build tree size {len(build_tree)} (target '{symbols[self.root_symbol]}')")
-        # When building library ".so" files, no target is needed.
-        else:
-            logger.info("no target specified, building everything")
-            build_tree = source_tree
+        source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
+        return source_tree, symbols
 
-        # Recursively add any unreferenced dependencies
-        # (a fortran routine called without a use statement).
-        self._add_unreferenced_deps(symbols, source_tree, build_tree)
+    def _extract_build_trees(self, project_source_tree, symbols):
+        """
+        Find the subset of files needed to build each root symbol (executable).
 
-        validate_build_tree(build_tree)
+        Assumes we have been given a root symbol(s) or we wouldn't have been called.
+        Returns a build tree for every root symbol.
 
-        artefact_store['build_tree'] = build_tree
+        """
+        build_trees = {}
+        for root in self.root_symbols:
+            with TimerLogger(f"extracting build tree for root '{root}'"):
+                build_tree = extract_sub_tree(project_source_tree, symbols[root], verbose=False)
 
-    def _parse_files(self,
-                     to_analyse_by_type: Dict[str, List[HashedFile]],
-                     analysis_dict_writer: csv.DictWriter):
+            logger.info(f"target source tree size {len(build_tree)} (target '{symbols[root]}')")
+            build_trees[root] = build_tree
+
+        return build_trees
+
+    def _parse_files(self, to_analyse: Iterable[HashedFile], analysis_dict_writer: csv.DictWriter) -> \
+            Tuple[Set[AnalysedFile], Set[AnalysedFile]]:
         """
         Determine the symbols which are defined in, and used by, each file.
 
@@ -153,13 +213,13 @@ class Analyse(Step):
 
         """
         # fortran
-        fortran_files = to_analyse_by_type[".f90"]
+        fortran_files = set(filter(lambda f: f.fpath.suffix == '.f90', to_analyse))
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             analysed_fortran, fortran_exceptions = self._analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
 
         # c
-        c_files = to_analyse_by_type[".c"]
+        c_files = set(filter(lambda f: f.fpath.suffix == '.c', to_analyse))
         with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
             analysed_c, c_exceptions = self._analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
@@ -177,21 +237,14 @@ class Analyse(Step):
 
         return analysed_fortran, analysed_c
 
-    def _gen_symbol_table(self, all_analysed_files: Dict[Path, AnalysedFile]):
+    def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
         """
         Create a dictionary mapping symbol names to the files in which they appear.
 
         """
-        # add special measure symbols for files which could not be parsed
-        if self.special_measure_analysis_results:
-            for analysed_file in self.special_measure_analysis_results:
-                warnings.warn(f"SPECIAL MEASURE for {analysed_file.fpath}: injecting user-defined analysis results")
-                all_analysed_files[analysed_file.fpath] = analysed_file
-
-        # map symbols to the files in which they're defined
         symbols: Dict[str, Path] = dict()
         duplicates = []
-        for analysed_file in all_analysed_files.values():
+        for analysed_file in analysed_files:
             for symbol_def in analysed_file.symbol_defs:
                 # check for duplicates
                 if symbol_def in symbols:
@@ -209,14 +262,14 @@ class Analyse(Step):
 
         return symbols
 
-    def _gen_file_deps(self, all_analysed_files, symbols):
+    def _gen_file_deps(self, analysed_files: Iterable[AnalysedFile], symbols: Dict[str, Path]):
         """
         Use the symbol table to convert symbol dependencies into file dependencies.
 
         """
         deps_not_found = set()
         with TimerLogger("converting symbol to file deps"):
-            for analysed_file in all_analysed_files.values():
+            for analysed_file in analysed_files:
                 for symbol_dep in analysed_file.symbol_deps:
                     file_dep = symbols.get(symbol_dep)
                     if not file_dep:
@@ -227,15 +280,17 @@ class Analyse(Step):
         if deps_not_found:
             logger.info(f"{len(deps_not_found)} deps not found")
 
-    def _get_latest_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
+    def _get_file_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
         mp_results = self.run_mp(items=fpaths, func=do_checksum)
         latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in mp_results}
         return latest_file_hashes
 
-    def _load_analysis_results(self, latest_file_hashes) -> Tuple[Dict[str, List[HashedFile]], List[AnalysedFile]]:
-        # This function tells us which files have changed since they were last analysed.
-        # The analysis file includes the hash of the file when we last analysed it.
-        # We discard previous results from files which are no longer present.
+    def _load_analysis_results(self, latest_file_hashes: Dict[Path, int]) -> Dict[Path, AnalysedFile]:
+        """
+        The analysis file includes the hash of each file when we last analysed it.
+        We discard previous results from files which are no longer present.
+
+        """
         prev_results: Dict[Path, AnalysedFile] = dict()
         try:
             with open(self._config.project_workspace / "__analysis.csv", "rt") as csv_file:
@@ -256,28 +311,41 @@ class Analyse(Step):
             logger.info("no previous analysis results")
             pass
 
+        return prev_results
+
+    def _what_needs_reanalysing(self, prev_results: Dict[Path, AnalysedFile], latest_file_hashes: Dict[Path, int]) -> \
+            Tuple[Set[HashedFile], Set[AnalysedFile]]:
+        """
+        Determine which files have changed since they were last analysed.
+
+        Returns, in a tuple:
+             - The changed files as a set of HashedFile
+             - The unchanged files as a set of AnalysedFile
+
+        """
         # work out what needs to be reanalysed
-        unchanged: List[AnalysedFile] = []  # todo: use a set?
-        changed: Dict[str, List[HashedFile]] = defaultdict(list)  # suffix -> files
+        changed: Set[HashedFile] = set()
+        unchanged: Set[AnalysedFile] = set()
         for latest_fpath, latest_hash in latest_file_hashes.items():
             # what happened last time we analysed this file?
             prev_pu = prev_results.get(latest_fpath)
             if (not prev_pu) or prev_pu.file_hash != latest_hash:
-                changed[latest_fpath.suffix].append(HashedFile(latest_fpath, latest_hash))
+                changed.add(HashedFile(latest_fpath, latest_hash))
             else:
-                unchanged.append(prev_pu)
+                unchanged.add(prev_pu)
 
-        for suffix, to_analyse in changed.items():
-            logger.info(f"{len(unchanged)} {suffix} files already analysed, {len(to_analyse)} to analyse")
+        logger.info(f"{len(unchanged)} files already analysed, {len(changed)} to analyse")
 
         return changed, unchanged
 
+    # todo: it might be better to create an analysis file per source file.
     @contextmanager
-    def _new_analysis_file(self, unchanged: List[AnalysedFile]):
-        # Open a new analysis file, populated with work already done in previous runs.
-        # We re-write the successfully read contents of the analysis file each time,
-        # for robustness against data corruption (otherwise we could just open with "wt+").
-        # The returned context is a csv.DictWriter.
+    def _new_analysis_file(self, unchanged: Iterable[AnalysedFile]):
+        """
+        Create the analysis file from scratch, containing any content from its previous version which is still valid.
+
+        The returned context is a csv.DictWriter.
+        """
         with TimerLogger("starting analysis progress file"):
             analysis_progress_file = open(self._config.project_workspace / "__analysis.csv", "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
@@ -292,18 +360,15 @@ class Analyse(Step):
 
         analysis_progress_file.close()
 
-    def _analyse_file_type(self,
-                           fpaths: List[HashedFile],
-                           analyser,
-                           dict_writer: csv.DictWriter) -> Tuple[List[AnalysedFile], Set[Exception]]:
+    def _analyse_file_type(self, fpaths: Iterable[HashedFile], analyser,
+                           dict_writer: csv.DictWriter) -> Tuple[Set[AnalysedFile], Set[Exception]]:
         """
         Pass the files to the analyser and check the results for errors and empty files.
 
         Returns a list of :class:`~fab.dep_tree.AnalysedFile` and a list of exceptions.
 
         """
-        # todo: return a set?
-        new_program_units: List[AnalysedFile] = []
+        new_program_units: Set[AnalysedFile] = set()
         exceptions = set()
 
         def result_handler(analysis_results):
@@ -315,7 +380,7 @@ class Analyse(Step):
                     logger.error(f"\n{af}")
                     exceptions.add(af)
                 elif isinstance(af, AnalysedFile):
-                    new_program_units.append(af)
+                    new_program_units.add(af)
                     dict_writer.writerow(af.as_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {af}")
@@ -329,7 +394,10 @@ class Analyse(Step):
     def _add_unreferenced_deps(self, symbols: Dict[str, Path],
                                all_analysed_files: Dict[Path, AnalysedFile], build_tree: Dict[Path, AnalysedFile]):
         """
-        Add files to the target tree.
+        Add files to the build tree.
+
+        This is used for building Fortran code which does not use modules to declare dependencies.
+        In this case, Fab cannot determine those dependencies and the user is required to list them.
 
         """
 

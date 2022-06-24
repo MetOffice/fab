@@ -9,19 +9,22 @@ Fortran file compilation.
 """
 import logging
 import os
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict
+
+from fab.constants import COMPILED_FILES
 
 from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, check_for_errors
-from fab.artefacts import ArtefactsGetter, FilterBuildTree
+from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.f90')
+DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
 
 class CompileFortran(MpExeStep):
@@ -41,9 +44,12 @@ class CompileFortran(MpExeStep):
         """
         super().run(artefact_store, config)
 
-        to_compile = self.source_getter(artefact_store)
-        logger.info(f"\ncompiling {len(to_compile)} fortran files")
+        # get all the source to compile, for all build trees, into one big lump
+        build_lists: Dict[str, List] = self.source_getter(artefact_store)
+        to_compile = sum(build_lists.values(), [])
+        logger.info(f"compiling {len(to_compile)} fortran files")
 
+        # compile everything in multiple passes
         all_compiled: List[CompiledFile] = []  # todo: use set?
         already_compiled_files: Set[Path] = set([])  # a quick lookup
 
@@ -85,9 +91,14 @@ class CompileFortran(MpExeStep):
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
 
-        artefact_store['compiled_fortran'] = [i.output_fpath for i in all_compiled]
+        # add the targets' new object files to the artefact store
+        lookup = {compiled_file.analysed_file: compiled_file for compiled_file in all_compiled}
+        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
+        for root, source_files in build_lists.items():
+            new_objects = [lookup[af].output_fpath for af in source_files]
+            target_object_files[root].update(new_objects)
 
-    def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
+    def get_compile_next(self, already_compiled_files: Set[Path], to_compile: List[AnalysedFile]):
 
         # find what to compile next
         compile_next = set()
@@ -102,11 +113,13 @@ class CompileFortran(MpExeStep):
 
         # unable to compile anything?
         if len(to_compile) and not compile_next:
-            all_unfulfilled: Set[Path] = set()
-            for unfulfilled in not_ready.values():
-                all_unfulfilled = all_unfulfilled.union(unfulfilled)
-            raise RuntimeError(
-                f"Nothing more can be compiled due to unfulfilled dependencies: {', '.join(map(str, all_unfulfilled))}")
+            msg = 'Nothing more can be compiled due to unfulfilled dependencies:\n'
+            for f, unf in not_ready.items():
+                msg += f'\n\n{f}'
+                for u in unf:
+                    msg += f'\n    {str(u)}'
+
+            raise RuntimeError(msg)
 
         return compile_next
 

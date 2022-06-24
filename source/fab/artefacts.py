@@ -14,6 +14,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
+from fab.constants import BUILD_TREES
+
 from fab.dep_tree import AnalysedFile, filter_source_tree
 from fab.util import suffix_filter
 
@@ -110,32 +112,42 @@ class SuffixFilter(ArtefactsGetter):
         return suffix_filter(fpaths, self.suffixes)
 
 
-class FilterBuildTree(ArtefactsGetter):
+class FilterBuildTrees(ArtefactsGetter):
     """
-    Like SuffixFilter, except the :term:`Named Collection` is expected to be a source tree dict
-    of :class:`~fab.dep_tree.AnalysedFile` nodes.
+    Filter build trees by suffix.
 
-    Returns a list of paths with the given suffix.
-
-    Example::
-
-        # The default source getter for the CompileFortran step.
-        DEFAULT_SOURCE_GETTER = FilterBuildTree(suffix='.f90')
+    Returns a list of paths for each build tree.
 
     """
-    def __init__(self, suffix: Union[str, List[str]], collection_name: str = 'build_tree'):
+    def __init__(self, suffix: Union[str, List[str]], collection_name: str = BUILD_TREES):
         """
-        Args:
-            - suffixes: An iterable of suffixes
+        The given *collection_name* specifies which artefact collection contains the build trees.
+        If no name is provided, it defaults to the value in :py:const:`fab.constants.BUILD_TREES`,
+        as used by the analyse step.
+
+        :param suffix:
+            A string, or iterable of, including the preceding dot.
+        :param collection_name:
+            The name of the artefact collection where we find the source trees to build.
+            Defaults to the value in :py:const:`fab.constants.BUILD_TREES`.
+
+        Example::
+
+            # The default source getter for the CompileFortran step.
+            DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
         """
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store):
+        """Get a list of files to compile for each target source tree."""
         super().__call__(artefact_store)
-        source_tree: Dict[Path, AnalysedFile] = artefact_store[self.collection_name]
-        return filter_source_tree(source_tree=source_tree, suffixes=self.suffixes)
 
+        build_trees = artefact_store[self.collection_name]
 
-CompiledFortranAndC = CollectionConcat(['compiled_c', 'compiled_fortran'])
+        build_lists: Dict[str, List[AnalysedFile]] = {}
+        for root, tree in build_trees.items():
+            build_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
+
+        return build_lists

@@ -7,22 +7,17 @@
 import logging
 import os
 
-from fab.steps.archive_objects import ArchiveObjects
-
-from fab.steps.link_exe import LinkExe
-
-from fab.steps.compile_fortran import CompileFortran
-
-from fab.steps.analyse import Analyse
-
-from fab.constants import BUILD_OUTPUT
-
 from fab.build_config import BuildConfig
+from fab.constants import BUILD_OUTPUT
+from fab.steps.analyse import Analyse
+from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
+from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles, Exclude
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 
 logger = logging.getLogger('fab')
 
@@ -51,7 +46,6 @@ def gungho():
         # GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
         # GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst_label='um_physics/source/constants'),
         GrabFolder(src=lfric_source / 'um_physics/source/', dst_label=''),
-
 
         # generate more source files in source and source/configuration
         Configurator(
@@ -95,11 +89,10 @@ def gungho():
                 '-DUSE_XIOS', '-DUSE_MPI=YES',
             ]),
 
-        ArchiveObjects(output_fpath='$output/objects.a'),
+        ArchiveObjects(),
 
         LinkExe(
             linker='mpifort',
-            output_fpath=config.project_workspace / 'gungho.exe',
             flags=[
                 '-fopenmp',
 

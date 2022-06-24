@@ -97,10 +97,10 @@ class AnalysedFile(object):
         return cls(
             fpath=Path(d["fpath"]),
             file_hash=int(d["file_hash"]),
-            symbol_deps=d["symbol_deps"].split(';') if d["symbol_deps"] else [],
-            symbol_defs=d["symbol_defs"].split(';') if d["symbol_defs"] else [],
-            file_deps=map(Path, d["file_deps"].split(';')) if d["file_deps"] else [],
-            mo_commented_file_deps=d["mo_commented_file_deps"].split(';') if d["mo_commented_file_deps"] else [],
+            symbol_deps=set(d["symbol_deps"].split(';')) if d["symbol_deps"] else set(),
+            symbol_defs=set(d["symbol_defs"].split(';')) if d["symbol_defs"] else set(),
+            file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
+            mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()
         )
 
 
@@ -134,7 +134,7 @@ def extract_sub_tree(
 
 def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
                       dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int = 0):
-    # is this node already in the target tree?
+    # is this node already in the sub tree?
     if key in dst_tree:
         return
 
@@ -191,16 +191,15 @@ def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable
     return [af for af in all_files if af.fpath.suffix in suffixes]
 
 
-def validate_build_tree(target_tree):
+def validate_dependencies(build_tree):
     """
     If any dep is not in the tree, then it's unknown code and we won't be able to compile.
 
     This was added as a helpful message when building the unreferenced dependencies list.
     """
     missing = set()
-    for pu in target_tree.values():
-        missing = missing.union(
-            [str(file_dep) for file_dep in pu.file_deps if file_dep not in target_tree])
+    for f in build_tree.values():
+        missing.update([str(file_dep) for file_dep in f.file_deps if file_dep not in build_tree])
 
     if missing:
         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")

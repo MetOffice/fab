@@ -44,7 +44,7 @@ setuptools.setup(
         ],
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
-    python_requires='>=3.6, <4',
+    python_requires='>=3.7, <4',
     install_requires=['fparser', 'svn'],
     extras_require={
         'dev': ['flake8', 'mypy'],
