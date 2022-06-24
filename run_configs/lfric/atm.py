@@ -145,7 +145,6 @@ def atm_config():
 
                 '-fopenmp',
             ],
-            output_fpath=config.project_workspace / 'lfric_atm.exe',
         ),
 
     ]
