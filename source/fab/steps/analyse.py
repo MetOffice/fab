@@ -161,7 +161,7 @@ class Analyse(Step):
             file_hashes = self._get_file_checksums(files)
 
         with TimerLogger("loading previous analysis results"):
-            prev_results = self._load_analysis_results(latest_file_hashes=preprocessed_hashes)
+            prev_results = self._load_analysis_results(latest_file_hashes=file_hashes)
             changed, unchanged = self._what_needs_reanalysing(prev_results=prev_results, latest_file_hashes=file_hashes)
 
         with TimerLogger("analysing files"):

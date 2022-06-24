@@ -15,4 +15,4 @@ cd ../lfric
 python -m grab_lfric
 python -m gungho
 python -m mesh_tools
-python -m lfric_atm
+python -m atm
