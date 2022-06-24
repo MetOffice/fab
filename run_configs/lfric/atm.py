@@ -134,7 +134,7 @@ def atm_config():
             ]
         ),
 
-        ArchiveObjects(output_fpath='$output/objects.a'),
+        ArchiveObjects(),
 
         LinkExe(
             linker='mpifort',
