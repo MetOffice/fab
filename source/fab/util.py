@@ -97,9 +97,10 @@ class TimerLogger(Timer):
                 logger.info(f"{self.label} took {seconds:.3f}s")
 
 
-# todo: this is only needed for fortran compiling - move it there as a private class and stop using in c compiler
 class CompiledFile(object):
     def __init__(self, analysed_file, output_fpath):
+        # todo: A compiled file shouldn't know whether its source file was analysed or not.
+        #       It needn't be in some use cases.
         self.analysed_file = analysed_file
         self.output_fpath = output_fpath
 

@@ -6,6 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+from fab.constants import BUILD_TREES
+
 from fab.build_config import AddFlags
 
 from fab.dep_tree import AnalysedFile
@@ -28,6 +30,6 @@ class Test_Compiler(object):
 
         with mock.patch('fab.steps.compile_c.run_command') as mock_run:
             with mock.patch('fab.steps.compile_c.send_metric'):
-                c_compiler.run(artefact_store={'build_tree': analysed_files}, config=config)
+                c_compiler.run(artefact_store={BUILD_TREES: {None: analysed_files}}, config=config)
                 mock_run.assert_called_with([
                     'gcc', '-c', '-I', 'foo/include', '-Dhello', 'foo/src/foo.c', '-o', 'foo/src/foo.o'])
