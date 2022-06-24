@@ -6,6 +6,14 @@
 
 [runtime]
 
+    [[root]]
+        env-script = """
+            module use /data/users/lfric/modules/modulefiles.rhel7
+            module load environment/lfric/gnu
+            conda init bash
+            conda activate sci-fab
+        """
+        
     [[common]]
         [[[job]]]
             batch system = slurm
@@ -19,7 +27,8 @@
             FAB_WORKSPACE=$SCRATCH/fab_workspace
             GCOM_BUILD=$SCRATCH/fab_workspace/gcom-object-archive-vn7.6/build_output
             OMPI_FC=gfortran
+            UM_REVISION={{ UM_REVISION }}
 
     [[build_um]]
         inherit = common
-        script = run_py.sh build_um
+        script = build_um.py

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -10,6 +11,7 @@
 import logging
 import os
 import warnings
+from argparse import ArgumentParser
 from pathlib import Path
 
 from fab.steps.archive_objects import ArchiveObjects
@@ -37,9 +39,11 @@ logger = logging.getLogger('fab')
 # todo: fail fast, check gcom exists
 
 
-def um_atmos_safe_config():
+def um_atmos_safe_config(revision):
+    um_revision = revision.replace('vn', 'um')
+
     config = BuildConfig(
-        project_label='um_atmos_safe',
+        project_label=f'um atmos safe {revision}',
         # multiprocessing=False,
         reuse_artefacts=True,
     )
@@ -49,75 +53,26 @@ def um_atmos_safe_config():
         os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output")
     logger.info(f"expecting gcom at {gcom_build}")
 
-    file_filtering = [
-        (['/um/utility/'], False),
-        (['/um/utility/qxreconf/'], True),
-
-        (['/um/atmosphere/convection/comorph/interface/'], False),
-        (['/um/atmosphere/convection/comorph/interface/um/'], True),
-
-        (['/um/atmosphere/convection/comorph/unit_tests/'], False),
-
-        (['/um/scm/'], False),
-        (['/um/scm/stub/',
-          '/um/scm/modules/s_scmop_mod.F90',
-          '/um/scm/modules/scmoptype_defn.F90'], True),
-
-        (['/jules/'], False),
-        (['/jules/control/shared/',
-          '/jules/control/um/',
-          '/jules/control/rivers-standalone/',
-          '/jules/initialisation/shared/',
-          '/jules/initialisation/um/',
-          '/jules/initialisation/rivers-standalone/',
-          '/jules/params/um/',
-          '/jules/science/',
-          '/jules/util/shared/'], True),
-
-        (['/socrates/'], False),
-        (['/socrates/nlte/',
-          '/socrates/radiance_core/'], True),
-
-        # the shummlib config in fcm config doesn't seem to do anything,
-        # perhaps there used to be extra files we needed to exclude
-        (['/shumlib/'], False),
-        (['/shumlib/shum_wgdos_packing/src',
-          '/shumlib/shum_string_conv/src',
-          '/shumlib/shum_latlon_eq_grids/src',
-          '/shumlib/shum_horizontal_field_interp/src',
-          '/shumlib/shum_spiral_search/src',
-          '/shumlib/shum_constants/src',
-          '/shumlib/shum_thread_utils/src',
-          '/shumlib/shum_data_conv/src',
-          '/shumlib/shum_number_tools/src',
-          '/shumlib/shum_byteswap/src',
-          '/shumlib/common/src'], True),
-        (['/shumlib/common/src/shumlib_version.c'], False),
-
-        (['/casim/mphys_die.F90',
-          '/casim/mphys_casim.F90', ], False),
-
-        (['.xml'], False),
-        (['.sh'], False),
-    ]
 
     config.steps = [
 
         # todo: these repo defs could make a good set of reusable variables
+
         # UM 12.1, 16th November 2021
-        GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=104450, name='grab um 12.1'),
+        GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=revision),
 
         # JULES 6.2, for UM 12.1
-        GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=21512, name='grab jules 6.2'),
+        GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=um_revision),
 
         # SOCRATES 21.11, for UM 12.1
-        GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=1126, name='grab socrates 21.11'),
+        GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=um_revision),
 
         # SHUMLIB, for UM 12.1
-        GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=5658, name='grab shumblib for um 12.1'),
+        GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=um_revision),
 
         # CASIM, for UM 12.1
-        GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision=9277, name='grab casim for um 12.1'),
+        GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision=um_revision),
+
 
         MyCustomCodeFixes(name="my custom code fixes"),
 
@@ -216,6 +171,59 @@ def um_atmos_safe_config():
     return config
 
 
+file_filtering = [
+    (['/um/utility/'], False),
+    (['/um/utility/qxreconf/'], True),
+
+    (['/um/atmosphere/convection/comorph/interface/'], False),
+    (['/um/atmosphere/convection/comorph/interface/um/'], True),
+
+    (['/um/atmosphere/convection/comorph/unit_tests/'], False),
+
+    (['/um/scm/'], False),
+    (['/um/scm/stub/',
+      '/um/scm/modules/s_scmop_mod.F90',
+      '/um/scm/modules/scmoptype_defn.F90'], True),
+
+    (['/jules/'], False),
+    (['/jules/control/shared/',
+      '/jules/control/um/',
+      '/jules/control/rivers-standalone/',
+      '/jules/initialisation/shared/',
+      '/jules/initialisation/um/',
+      '/jules/initialisation/rivers-standalone/',
+      '/jules/params/um/',
+      '/jules/science/',
+      '/jules/util/shared/'], True),
+
+    (['/socrates/'], False),
+    (['/socrates/nlte/',
+      '/socrates/radiance_core/'], True),
+
+    # the shummlib config in fcm config doesn't seem to do anything,
+    # perhaps there used to be extra files we needed to exclude
+    (['/shumlib/'], False),
+    (['/shumlib/shum_wgdos_packing/src',
+      '/shumlib/shum_string_conv/src',
+      '/shumlib/shum_latlon_eq_grids/src',
+      '/shumlib/shum_horizontal_field_interp/src',
+      '/shumlib/shum_spiral_search/src',
+      '/shumlib/shum_constants/src',
+      '/shumlib/shum_thread_utils/src',
+      '/shumlib/shum_data_conv/src',
+      '/shumlib/shum_number_tools/src',
+      '/shumlib/shum_byteswap/src',
+      '/shumlib/common/src'], True),
+    (['/shumlib/common/src/shumlib_version.c'], False),
+
+    (['/casim/mphys_die.F90',
+      '/casim/mphys_casim.F90', ], False),
+
+    (['.xml'], False),
+    (['.sh'], False),
+]
+
+
 # required for newer compilers
 
 # # todo: allow a list of filters?
@@ -284,5 +292,8 @@ class MyCustomCodeFixes(Step):
 
 
 if __name__ == '__main__':
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--revision', default=os.getenv('UM_REVISION', 'vn12.1'))
+    args = arg_parser.parse_args()
 
-    um_atmos_safe_config().run()
+    um_atmos_safe_config(revision=args.revision).run()
