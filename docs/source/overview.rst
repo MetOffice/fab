@@ -51,18 +51,15 @@ unless we tell them otherwise.
 
 Example::
 
-    workspace = Path('my_workspace')
-
     config = Config(
         label='my fab build',
-        workspace=workspace,
         steps=[
-            GetSourceFiles(workspace / 'source'),
+            FindSourceFiles(),
             CPreProcessor(),
             FortranPreProcessor(common_flags=['-P', '-I$source/include']),
             Analyse(root_symbol='my_program'),
-            CompileC(common_flags=['-c', '-std=c99']),
-            CompileFortran(common_flags=['-c', '-J', '$output']),
+            CompileC(common_flags=['-std=c99']),
+            CompileFortran(common_flags=['-J', '$output']),
             LinkExe(
                 flags=['-lc', '-lgfortran', '-L', 'lib', '-l', 'mylib'],
                 output_fpath='my_program.exe')

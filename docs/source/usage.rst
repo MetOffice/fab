@@ -1,67 +1,62 @@
 
-*****
+
 Usage
 *****
 
 Installation
 ============
 
-To use Fab, first install it using pip.
+To use Fab, download and install it::
 
-.. code-block:: console
-
-   (.venv) $ pip install fab
-
-Configuration
--------------
-
-You can optionally tell Fab where it's workspace should live.
-Useful on systems where your home space is on a network drive,
-which may not be as fast as your local hard drive.
-
-    ``export FAB_WORKSPACE=/tmp/persistent/fab_workspace``
-
-If you don't do this, Fab will create a workspace folder underneath the current working folder.
+    git clone https://github.com/metomi/fab.git
+    pip install fab
 
 Conda
-=====
-Create a conda environment for running fab::
+-----
+To create a conda environment for running fab::
 
-    conda env create -f environment.yml
-
+    git clone https://github.com/metomi/fab.git
+    conda env create -f fab/dev_env.yml
 
 Activate the new environment::
 
-    conda activate fab
+    conda activate sci-fab
 
-Install fab (from the fab folder)::
+Install fab::
 
-    python setup.py install
+    pip install fab
 
-or::
 
-    pip install .
+Uninstall fab
+-------------
+To uninstall fab::
+
+    pip uninstall fab
+
+
+
+Configuration
+=============
+
+You can optionally tell Fab where it's workspace should live.
+Useful on systems where your home space is on a network drive,
+which may not be as fast as your local hard drive::
+
+    export FAB_WORKSPACE=/tmp/persistent/fab_workspace
+
+If you don't do this, Fab will create a project workspace underneath ``~/fab-workspace``.
+
+
+Development
+===========
 
 Editable install
 ----------------
-For Fab developers,
-an `Editable install <https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs>`_::
+For Fab developers, an
+`Editable install <https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs>`_
+will allow you to change the code without reinstalling Fab every time::
 
-    python setup.py develop
-
-or::
-
-    pip install -e .
-
-
-Uninstall fab::
-
-    python setup.py uninstall
-
-or::
-
-    pip uninstall sci_fab
-
+    pip install -e fab
 
 Please be aware of some considerations when
 `using pip and conda <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#using-pip-in-an-environment>`_
