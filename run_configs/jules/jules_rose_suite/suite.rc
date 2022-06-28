@@ -6,17 +6,27 @@
 
 [runtime]
 
+    [[root]]
+        env-script = """
+            module use /data/users/lfric/modules/modulefiles.rhel7
+            module load environment/lfric/gnu
+            conda init bash
+            conda activate sci-fab
+        """
+
     [[build_jules]]
-        script = run_py.sh build_jules
+        script = build_jules.py
 
         [[[job]]]
             batch system = slurm
             execution time limit = PT10M
+
         [[[directives]]]
             --mem=1024
 #           --ntasks=4
             --cpus-per-task=4
             --export=NONE
+
         [[[environment]]]
             FAB_WORKSPACE=$SCRATCH/fab_workspace
             OMPI_FC=gfortran
