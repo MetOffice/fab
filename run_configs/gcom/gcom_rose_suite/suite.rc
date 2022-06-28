@@ -7,6 +7,14 @@
 
 [runtime]
 
+    [[root]]
+        env-script = """
+            module use /data/users/lfric/modules/modulefiles.rhel7
+            module load environment/lfric/gnu
+            conda init bash
+            conda activate sci-fab
+        """
+
     [[common]]
         [[[job]]]
             batch system = slurm
@@ -23,12 +31,12 @@
 
         [[grab_gcom]]
             inherit = common
-            script = run_py.sh grab_gcom
+            script = grab_gcom.py
 
         [[build_gcom_ar]]
             inherit = common
-            script = run_py.sh build_gcom_ar
+            script = build_gcom_ar.py
 
         [[build_gcom_so]]
             inherit = common
-            script = run_py.sh build_gcom_so
+            script = build_gcom_so.py

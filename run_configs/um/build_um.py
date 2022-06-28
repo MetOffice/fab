@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -10,6 +11,7 @@
 import logging
 import os
 import warnings
+from argparse import ArgumentParser
 from pathlib import Path
 
 from fab.artefacts import CollectionGetter
@@ -35,9 +37,11 @@ logger = logging.getLogger('fab')
 # todo: fail fast, check gcom exists
 
 
-def um_atmos_safe_config():
+def um_atmos_safe_config(revision):
+    um_revision = revision.replace('vn', 'um')
+
     config = BuildConfig(
-        project_label='um_atmos_safe',
+        project_label=f'um atmos safe {revision}',
         # multiprocessing=False,
         reuse_artefacts=True,
     )
@@ -50,20 +54,22 @@ def um_atmos_safe_config():
     config.steps = [
 
         # todo: these repo defs could make a good set of reusable variables
+
         # UM 12.1, 16th November 2021
-        GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=104450, name='grab um 12.1'),
+        GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=revision),
 
         # JULES 6.2, for UM 12.1
-        GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=21512, name='grab jules 6.2'),
+        GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=um_revision),
 
         # SOCRATES 21.11, for UM 12.1
-        GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=1126, name='grab socrates 21.11'),
+        GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=um_revision),
 
         # SHUMLIB, for UM 12.1
-        GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=5658, name='grab shumblib for um 12.1'),
+        GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=um_revision),
 
         # CASIM, for UM 12.1
-        GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision=9277, name='grab casim for um 12.1'),
+        GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision=um_revision),
+
 
         MyCustomCodeFixes(name="my custom code fixes"),
 
@@ -282,5 +288,9 @@ class MyCustomCodeFixes(Step):
 
 
 if __name__ == '__main__':
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--revision', default=os.getenv('UM_REVISION', 'vn12.1'))
+    args = arg_parser.parse_args()
+
     # logging.getLogger('fab').setLevel(logging.DEBUG)
-    um_atmos_safe_config().run()
+    um_atmos_safe_config(revision=args.revision).run()
