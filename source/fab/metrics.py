@@ -156,7 +156,7 @@ def metrics_summary(metrics_folder: Path):
     # graphs for individual steps
     step_names = ['preprocess fortran', 'preprocess c', 'compile fortran']
     for step_name in step_names:
-        if step_name not in metrics:
+        if step_name not in metrics or step_name not in metrics['steps']:
             continue
 
         fbase = metrics_folder / step_name.replace(' ', '_')

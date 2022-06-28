@@ -8,7 +8,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.walk_source import FindSourceFiles, Exclude
 from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
@@ -33,9 +33,9 @@ def mesh_tools():
             rose_meta_conf=lfric_source / 'mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf',
         ),
 
-        FindSourceFiles(file_filtering=[
+        FindSourceFiles(path_filters=[
             # todo: allow a single string
-            (['unit-test', '/test/'], False),
+            Exclude('unit-test', '/test/'),
         ]),
 
         fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),

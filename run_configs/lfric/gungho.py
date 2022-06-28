@@ -15,7 +15,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.walk_source import FindSourceFiles, Exclude
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 
@@ -31,7 +31,7 @@ def gungho():
 
     config = BuildConfig(
         project_label='gungho',
-        # multiprocessing = False,
+        # multiprocessing=False,
         reuse_artefacts=True,
     )
 
@@ -42,8 +42,10 @@ def gungho():
         GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
         GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label=''),
         GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
-        GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst_label='um_physics/source/constants'),
+
+        # GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
+        # GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst_label='um_physics/source/constants'),
+        GrabFolder(src=lfric_source / 'um_physics/source/', dst_label=''),
 
         # generate more source files in source and source/configuration
         Configurator(
@@ -52,12 +54,14 @@ def gungho():
             rose_meta_conf=lfric_source / 'gungho/rose-meta/lfric-gungho/HEAD/rose-meta.conf',
         ),
 
-        FindSourceFiles(file_filtering=[
-            # todo: allow a single string
-            (['unit-test', '/test/'], False),
-        ]),
+        FindSourceFiles(path_filters=[Exclude('unit-test', '/test/')]),
 
-        fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
+        fortran_preprocessor(
+            preprocessor='cpp -traditional-cpp',
+            common_flags=[
+                '-P',
+                '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
+            ]),
 
         psyclone_preprocessor(),
 
@@ -72,13 +76,26 @@ def gungho():
 
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
-            common_flags=['-c', '-J', '$output']),
+            common_flags=[
+                '-c', '-J', '$output',
+                '-ffree-line-length-none', '-fopenmp',
+                '-g',
+                '-Og', '-std=f2008',
+
+                '-Wall', '-Werror=conversion', '-Werror=unused-variable', '-Werror=character-truncation',
+                '-Werror=unused-value', '-Werror=tabs',
+
+                '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64',
+                '-DUSE_XIOS', '-DUSE_MPI=YES',
+            ]),
 
         ArchiveObjects(),
 
         LinkExe(
             linker='mpifort',
             flags=[
+                '-fopenmp',
+
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
                 '-lstdc++',

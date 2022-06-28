@@ -62,7 +62,9 @@ class PreProcessor(MpExeStep):
         """
         super().run(artefact_store, config)
 
-        files = self.source_getter(artefact_store)
+        files = list(self.source_getter(artefact_store))
+        logger.info(f'preprocessing {len(files)} files')
+
         results = self.run_mp(items=files, func=self.process_artefact)
         check_for_errors(results, caller_label=self.name)
 

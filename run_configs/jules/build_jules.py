@@ -16,7 +16,7 @@ from fab.steps.grab import GrabFcm
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import FindSourceFiles, EXCLUDE
+from fab.steps.walk_source import FindSourceFiles, Exclude
 
 
 def jules_config(revision=None):
@@ -46,12 +46,13 @@ def jules_config(revision=None):
         GrabFcm(src='fcm:jules.xm_tr/src', revision=revision, dst_label='src'),
         GrabFcm(src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils'),
 
-        FindSourceFiles(file_filtering=[
-            (['src/control/um/'], EXCLUDE),
-            (['src/initialisation/um/'], EXCLUDE),
-            (['src/control/rivers-standalone/'], EXCLUDE),
-            (['src/initialisation/rivers-standalone/'], EXCLUDE),
-            (['src/params/shared/cable_maths_constants_mod.F90'], EXCLUDE)]),
+        FindSourceFiles(path_filters=[
+            Exclude('src/control/um/'),
+            Exclude('src/initialisation/um/'),
+            Exclude('src/control/rivers-standalone/'),
+            Exclude('src/initialisation/rivers-standalone/'),
+            Exclude('src/params/shared/cable_maths_constants_mod.F90'),
+        ]),
 
         RootIncFiles(),
 

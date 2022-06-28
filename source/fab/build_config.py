@@ -96,7 +96,7 @@ class BuildConfig(object):
                         step.run(artefact_store=artefact_store, config=self)
                     send_metric('steps', step.name, step_timer.taken)
         except Exception as err:
-            logger.exception('Error running build steps')
+            logger.error(f'\n\nError running build steps:\n{err}')
             raise Exception(f'\n\nError running build steps:\n{err}')
         finally:
             self._finalise_metrics(start_time, steps_timer)
@@ -132,17 +132,6 @@ class BuildConfig(object):
         send_metric('run', 'user', getpass.getuser())
         stop_metrics()
         metrics_summary(metrics_folder=self.metrics_folder)
-
-
-class PathFilter(object):
-    def __init__(self, path_filters, include):
-        self.path_filters = path_filters
-        self.include = include
-
-    def check(self, path):
-        if any(i in str(path) for i in self.path_filters):
-            return self.include
-        return None
 
 
 class AddFlags(object):
@@ -186,6 +175,8 @@ class FlagsConfig(object):
         self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
+    # todo: there's templating both in this method and the run method it calls.
+    #       make sure it's all properly documented and rationalised.
     def flags_for_path(self, path, source_root, project_workspace):
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,

@@ -14,11 +14,12 @@ logger = logging.getLogger('fab')
 
 class Configurator(Step):
 
-    def __init__(self, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path):
+    def __init__(self, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):
         super().__init__(name='configurator thing')
         self.lfric_source = lfric_source
         self.gpl_utils_source = gpl_utils_source
         self.rose_meta_conf = rose_meta_conf
+        self.config_dir = config_dir
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
@@ -28,7 +29,7 @@ class Configurator(Step):
         gen_loader_tool = self.lfric_source / 'infrastructure/build/tools/GenerateLoader'
         gen_feigns_tool = self.lfric_source / 'infrastructure/build/tools/GenerateFeigns'
 
-        config_dir = config.source_root / 'configuration'
+        config_dir = self.config_dir or config.source_root / 'configuration'
 
         env = os.environ.copy()
         rose_lfric_path = self.gpl_utils_source / 'lib/python'
@@ -110,7 +111,9 @@ class FparserWorkaround_StopConcatenation(Step):
             open(broken_version, 'rt').read().replace(bad, good))
 
 
-def psyclone_preprocessor():
+def psyclone_preprocessor(set_um_physics=False):
+    um_physics = ['-DUM_PHYSICS'] if set_um_physics else []
+
     return PreProcessor(
         preprocessor='cpp -traditional-cpp',
 
@@ -119,7 +122,11 @@ def psyclone_preprocessor():
 
         output_suffix='.x90',
         name='preprocess x90',
-        common_flags=['-P'],
+        common_flags=[
+            '-P',
+            '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED',
+            *um_physics,
+        ],
     )
 
 

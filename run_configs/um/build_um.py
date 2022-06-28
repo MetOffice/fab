@@ -28,7 +28,7 @@ from fab.steps.grab import GrabFcm
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.walk_source import FindSourceFiles, Exclude, Include
 from fab.util import case_insensitive_replace
 
 logger = logging.getLogger('fab')
@@ -73,7 +73,7 @@ def um_atmos_safe_config(revision):
 
         MyCustomCodeFixes(name="my custom code fixes"),
 
-        FindSourceFiles(file_filtering=file_filtering),
+        FindSourceFiles(path_filters=file_filtering),
 
         RootIncFiles(),
 
@@ -166,55 +166,57 @@ def um_atmos_safe_config(revision):
 
 
 file_filtering = [
-    (['/um/utility/'], False),
-    (['/um/utility/qxreconf/'], True),
+    Exclude('unit-test', 'unit_test', '/test/'),
 
-    (['/um/atmosphere/convection/comorph/interface/'], False),
-    (['/um/atmosphere/convection/comorph/interface/um/'], True),
+    Exclude('/um/utility/'),
+    Include('/um/utility/qxreconf/'),
 
-    (['/um/atmosphere/convection/comorph/unit_tests/'], False),
+    Exclude('/um/atmosphere/convection/comorph/interface/'),
+    Include('/um/atmosphere/convection/comorph/interface/um/'),
 
-    (['/um/scm/'], False),
-    (['/um/scm/stub/',
-      '/um/scm/modules/s_scmop_mod.F90',
-      '/um/scm/modules/scmoptype_defn.F90'], True),
+    Exclude('/um/atmosphere/convection/comorph/unit_tests/'),
 
-    (['/jules/'], False),
-    (['/jules/control/shared/',
-      '/jules/control/um/',
-      '/jules/control/rivers-standalone/',
-      '/jules/initialisation/shared/',
-      '/jules/initialisation/um/',
-      '/jules/initialisation/rivers-standalone/',
-      '/jules/params/um/',
-      '/jules/science/',
-      '/jules/util/shared/'], True),
+    Exclude('/um/scm/'),
+    Include('/um/scm/stub/',
+            '/um/scm/modules/s_scmop_mod.F90',
+            '/um/scm/modules/scmoptype_defn.F90'),
 
-    (['/socrates/'], False),
-    (['/socrates/nlte/',
-      '/socrates/radiance_core/'], True),
+    Exclude('/jules/'),
+    Include('/jules/control/shared/',
+            '/jules/control/um/',
+            '/jules/control/rivers-standalone/',
+            '/jules/initialisation/shared/',
+            '/jules/initialisation/um/',
+            '/jules/initialisation/rivers-standalone/',
+            '/jules/params/um/',
+            '/jules/science/',
+            '/jules/util/shared/'),
+
+    Exclude('/socrates/'),
+    Include('/socrates/nlte/',
+            '/socrates/radiance_core/'),
 
     # the shummlib config in fcm config doesn't seem to do anything,
     # perhaps there used to be extra files we needed to exclude
-    (['/shumlib/'], False),
-    (['/shumlib/shum_wgdos_packing/src',
-      '/shumlib/shum_string_conv/src',
-      '/shumlib/shum_latlon_eq_grids/src',
-      '/shumlib/shum_horizontal_field_interp/src',
-      '/shumlib/shum_spiral_search/src',
-      '/shumlib/shum_constants/src',
-      '/shumlib/shum_thread_utils/src',
-      '/shumlib/shum_data_conv/src',
-      '/shumlib/shum_number_tools/src',
-      '/shumlib/shum_byteswap/src',
-      '/shumlib/common/src'], True),
-    (['/shumlib/common/src/shumlib_version.c'], False),
+    Exclude('/shumlib/'),
+    Include('/shumlib/shum_wgdos_packing/src',
+            '/shumlib/shum_string_conv/src',
+            '/shumlib/shum_latlon_eq_grids/src',
+            '/shumlib/shum_horizontal_field_interp/src',
+            '/shumlib/shum_spiral_search/src',
+            '/shumlib/shum_constants/src',
+            '/shumlib/shum_thread_utils/src',
+            '/shumlib/shum_data_conv/src',
+            '/shumlib/shum_number_tools/src',
+            '/shumlib/shum_byteswap/src',
+            '/shumlib/common/src'),
+    Exclude('/shumlib/common/src/shumlib_version.c'),
 
-    (['/casim/mphys_die.F90',
-      '/casim/mphys_casim.F90', ], False),
+    Exclude('/casim/mphys_die.F90',
+            '/casim/mphys_casim.F90'),
 
-    (['.xml'], False),
-    (['.sh'], False),
+    Exclude('.xml'),
+    Exclude('.sh'),
 ]
 
 
