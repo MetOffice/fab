@@ -6,15 +6,24 @@ on: workflow_dispatch
 jobs:
   build-docs:
 
-    runs-on: ubuntu-20.04
-#    strategy:
-#      max-parallel: 4
-#      matrix:
-#        python-version: ['3.7', '3.8', '3.9', '3.10']
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+    - name: checkout master
+      uses: actions/checkout@v3
       with:
-        python-version: ${{ matrix.python-version }}
+        ref: master
+    - name: install python
+      uses: actions/setup-python@v4
+    - name: install sphinx
+      run: pip install sphinx sphinx-rtd-theme
+    - name: build docs
+      run: |
+        cd docs
+        rm -rf build
+        sphinx-apidoc -f -o source/apidoc ../source/fab
+        make html
+    - name: push to pages branch
+      run: |
+        git commit -am "docs build"
+        git push master:gh_pages
