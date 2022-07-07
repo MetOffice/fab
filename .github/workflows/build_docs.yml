@@ -19,6 +19,8 @@ jobs:
         python-version: '3.x'
     - name: install sphinx
       run: pip install sphinx sphinx-rtd-theme
+    - name: install fab
+      run: pip install .
     - name: build docs
       run: |
         cd docs
