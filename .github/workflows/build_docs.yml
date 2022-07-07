@@ -25,9 +25,13 @@ jobs:
         rm -rf build
         sphinx-apidoc -f -o source/apidoc ../source/fab
         make html
-    - name: push to pages branch
+    - name: set git user
       run: |
         git config --global user.email "byron.blay@metoffice.gov.uk"
         git config --global user.name "Byron Blay"
-        git commit -am "docs build"
+    - name: push to pages branch
+      run: |
+        git status
+        git add docs/build
+        git commit -m "docs build"
         git push master:gh_pages
