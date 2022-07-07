@@ -29,9 +29,12 @@ jobs:
       run: |
         git config --global user.email "byron.blay@metoffice.gov.uk"
         git config --global user.name "Byron Blay"
-    - name: push to pages branch
+    - name: git add docs/build
       run: |
-        git status
         git add docs/build
+    - name: commit
+      run: |
         git commit -m "docs build"
-        git push master:gh_pages
+    - name: push to gh_pages branch
+      run: |
+        git push origin master:gh_pages
