@@ -1,5 +1,5 @@
 # Please keep in sync with /environment.yml
-name: Build
+name: Build Docs
 
 on: workflow_dispatch
 
