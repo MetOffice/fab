@@ -27,8 +27,8 @@ jobs:
         make html
     - name: set git user
       run: |
-        git config --global user.email "byron.blay@metoffice.gov.uk"
-        git config --global user.name "Byron Blay"
+        git config --global user.email "metomi@metoffice.gov.uk"
+        git config --global user.name "SciFab Developers"
     - name: git add docs/build
       run: |
         git add docs/build
