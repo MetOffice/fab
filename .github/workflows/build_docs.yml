@@ -27,5 +27,7 @@ jobs:
         make html
     - name: push to pages branch
       run: |
+        git config --global user.email "byron.blay@metoffice.gov.uk"
+        git config --global user.name "Byron Blay"
         git commit -am "docs build"
         git push master:gh_pages
