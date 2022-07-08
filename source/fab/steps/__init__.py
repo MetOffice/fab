@@ -3,6 +3,10 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+"""
+Predefined build steps with sensible defaults.
+
+"""
 import multiprocessing
 from abc import ABC, abstractmethod
 from typing import Dict
@@ -22,18 +26,17 @@ class Step(ABC):
     @abstractmethod
     def run(self, artefact_store: Dict, config):
         """
-        Process some input artefacts, create some output artefacts. Defined in the subclass.
+        Process artefact collections from previous steps, creating a new artefact collection. Defined in the subclass.
 
-        Args:
-            - artefact_store: Contains artefacts created by previous Steps, and to which we add our new artefacts.
-            - config: :class:`fab.config.Config`, where we can access runtime config, such as workspace
-                      and the multiprocessing flag.
-
-        Subclasses should describe their input and output artefacts.
+        :param artefact_store:
+            Contains artefacts created by previous Steps, and to which we add our new artefacts.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
 
         For the duration of this run, the given config will be available to all our methods as `self._config`.
         This is useful for multiprocessing steps, where it's cleanest to pass a list of artifacts through a function.
-        In this case, we don't want to also pass the config, so setting it here makes it available to all our methods.
+        In this case it's messy to also pass the config, so setting it here makes it available to all our methods.
         Because it's a runtime attribute, we don't show it in the constructor.
 
         """
@@ -43,10 +46,14 @@ class Step(ABC):
         """
         Called from Step.run() to process multiple items in parallel.
 
-        For example:
-            A compile step would, in its run() method, find a list of source files in the artefact store.
-            It could then pass those paths to this method, along with a function to compile a *single* file.
-            The whole set of results are returned in a list-like, with undefined order.
+        For example, a compile step would, in its run() method, find a list of source files in the artefact store.
+        It could then pass those paths to this method, along with a function to compile a *single* file.
+        The whole set of results are returned in a list-like, with undefined order.
+
+        :param items:
+            An iterable of items to process in parallel.
+        :param func:
+            A function to process a single item. Must accept a single argument.
 
         """
         if self._config.multiprocessing:
@@ -61,8 +68,15 @@ class Step(ABC):
         """
         Like run_mp, but uses imap instead of map so that we can process each result as it happens.
 
-        This is useful, for example, for a time consuming process where we want to save our progress as we go
+        This is useful for a slow operation where we want to save our progress as we go
         instead of waiting for everything to finish, allowing us to pick up where we left off if the program is halted.
+
+        :param items:
+            An iterable of items to process in parallel.
+        :param func:
+            A function to process a single item. Must accept a single argument.
+        :param result_handler:
+            A function to handle a single result. Must accept a single argument.
 
         """
         if self._config.multiprocessing:

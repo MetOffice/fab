@@ -100,11 +100,11 @@ class Analyse(Step):
         self.fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
         self.c_analyser = CAnalyser()
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict, config):
         """
         Creates the *build_trees* artefact from the files in `self.source_getter`.
 
-        Steps, in order:
+        Does the following, in order:
             - Create a hash of every source file. Used to check if it's already been analysed.
             - Parse the C and Fortran files to find external symbol definitions and dependencies in each file.
                 - Analysis results are stored in a csv as-we-go, so analysis can be resumed if interrupted.
@@ -114,6 +114,18 @@ class Analyse(Step):
             - (Optionally) Extract a sub tree for every root symbol, if provided. For building executables.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+
+        :param artefact_store:
+            This is where our source getter finds the artefacts to analyse.
+        :param config:
+            The build config contains settings such as the project workspace and multiprocess flag.
+
+        :param artefact_store:
+            The artefact collections from previous Steps, to which we add our new artefact collection.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
+
 
         """
         super().run(artefact_store, config)

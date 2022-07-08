@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-Object archive (.a) creation from a list of object files (.o) for use in static linking.
+Object archive creation from a list of object files for use in static linking.
 
 """
 
@@ -28,11 +28,11 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(COMPILED_FILES)
 
 class ArchiveObjects(Step):
     """
-    Create an object archive for every build target.
+    Create an object archive (*.a* file) for every build target.
+
+    An object archive is a set of object (*.o*) files bundled into a single file, typically with a *.a* extension.
 
     Expects one or more build targets from its artefact getter, of the form Dict[name, object_files].
-
-    An object archive is just some object (*.o*) files bundled into a single file, typically with a *.a* extension.
 
     This step has two use cases:
 
@@ -40,7 +40,6 @@ class ArchiveObjects(Step):
       This requires the user to provide a file name to create.
     * Building one or more object archives for use by a subsequent linker step.
       This automatically generates the output file names.
-
 
     **Creating a Static Library:**
 
@@ -68,6 +67,9 @@ class ArchiveObjects(Step):
     def __init__(self, source: ArtefactsGetter = None, archiver='ar',
                  output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
         """
+        :param source:
+            An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of objects to archive.
+            The artefacts are expected to be of the form `Dict[root_symbol_name, list_of_object_files]`.
         :param archiver:
             The archiver executable. Defaults to 'ar'.
         :param output_fpath:
@@ -93,6 +95,11 @@ class ArchiveObjects(Step):
         Creates an object archive from the all the object files in the artefact store.
 
         By default, it finds the object files under the labels *compiled_c* and *compiled_fortran*.
+
+        :param artefact_store:
+            This is where our source getter finds the artefacts to analyse.
+        :param config:
+            The build config contains settings such as the project workspace and multiprocess flag.
 
         """
         super().run(artefact_store, config)
