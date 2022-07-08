@@ -272,6 +272,10 @@ class Analyse(Step):
             for analysed_file in analysed_files:
                 for symbol_dep in analysed_file.symbol_deps:
                     file_dep = symbols.get(symbol_dep)
+                    # don't depend on oneself!
+                    if file_dep == analysed_file.fpath:
+                        continue
+                    # warn of missing file
                     if not file_dep:
                         deps_not_found.add(symbol_dep)
                         logger.debug(f"not found {symbol_dep} for {analysed_file.fpath}")
