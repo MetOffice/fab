@@ -27,6 +27,9 @@ jobs:
         rm -rf build
         sphinx-apidoc -f -o source/apidoc ../source/fab
         make html
+    - name: move built docs to root of docs
+      run: |
+        mv docs/build/html/* docs/
     - name: set git user
       run: |
         git config --global user.email "metomi@metoffice.gov.uk"
