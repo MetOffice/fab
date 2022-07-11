@@ -25,14 +25,17 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(COMPILED_FILES)
 # todo: two diagrams showing the flow of artefacts in the exe and library use cases
 #       show how the library has a single build target with None as the name.
 
+# todo: all this documentation for such a simple step - should we split it up somehow?
 
 class ArchiveObjects(Step):
     """
-    Create an object archive (*.a* file) for every build target.
+    Create an object archive for every build target, from their object files.
 
     An object archive is a set of object (*.o*) files bundled into a single file, typically with a *.a* extension.
 
     Expects one or more build targets from its artefact getter, of the form Dict[name, object_files].
+    By default, it finds the build targets and their object files in the artefact collection named by
+    :py:const:`fab.constants.COMPILED_FILES`.
 
     This step has two use cases:
 
@@ -92,14 +95,12 @@ class ArchiveObjects(Step):
 
     def run(self, artefact_store: Dict, config):
         """
-        Creates an object archive from the all the object files in the artefact store.
-
-        By default, it finds the object files under the labels *compiled_c* and *compiled_fortran*.
-
         :param artefact_store:
-            This is where our source getter finds the artefacts to analyse.
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
         :param config:
-            The build config contains settings such as the project workspace and multiprocess flag.
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
 
         """
         super().run(artefact_store, config)

@@ -21,6 +21,11 @@ class Step(ABC):
     """
 
     def __init__(self, name):
+        """
+        :param name:
+            Human friendly name for logger output. Steps generally provide a sensible default.
+
+        """
         self.name = name
 
     @abstractmethod
@@ -29,7 +34,7 @@ class Step(ABC):
         Process artefact collections from previous steps, creating a new artefact collection. Defined in the subclass.
 
         :param artefact_store:
-            Contains artefacts created by previous Steps, and to which we add our new artefacts.
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
         :param config:
             The :class:`fab.build_config.BuildConfig` object where we can read settings
             such as the project workspace folder or the multiprocessing flag.

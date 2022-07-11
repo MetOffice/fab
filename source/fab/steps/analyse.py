@@ -87,7 +87,7 @@ class Analyse(Step):
         :param ignore_mod_deps:
             Third party Fortran module names to be ignored.
         :param name:
-            Defaults to 'analyser'
+            Human friendly name for logger output, with sensible default.
 
         """
         super().__init__(name)
@@ -116,16 +116,11 @@ class Analyse(Step):
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
         :param artefact_store:
-            This is where our source getter finds the artefacts to analyse.
-        :param config:
-            The build config contains settings such as the project workspace and multiprocess flag.
-
-        :param artefact_store:
-            The artefact collections from previous Steps, to which we add our new artefact collection.
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
         :param config:
             The :class:`fab.build_config.BuildConfig` object where we can read settings
             such as the project workspace folder or the multiprocessing flag.
-
 
         """
         super().run(artefact_store, config)

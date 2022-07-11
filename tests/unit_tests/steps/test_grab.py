@@ -38,7 +38,7 @@ class TestGrabFcm(object):
         source_root = Path('/workspace/source')
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
-        grabber = GrabFcm(src=source_url, dst_label=dst_label)
+        grabber = GrabFcm(src=source_url, dst=dst_label)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
@@ -52,7 +52,7 @@ class TestGrabFcm(object):
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
         revision = '42'
-        grabber = GrabFcm(src=source_url, dst_label=dst_label, revision=revision)
+        grabber = GrabFcm(src=source_url, dst=dst_label, revision=revision)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
