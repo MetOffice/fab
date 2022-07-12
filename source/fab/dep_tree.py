@@ -137,7 +137,7 @@ class EmptySourceFile(object):
 def extract_sub_tree(source_tree: Dict[Path, AnalysedFile], root: Path, verbose=False) -> Dict[Path, AnalysedFile]:
     """
     Extract the subtree required to build the target, from the full source tree of all analysed source files.
-    
+
     :param source_tree:
         The source tree of analysed files.
     :param root:
@@ -190,7 +190,7 @@ def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
     These are the comments which refer to a .o file and not those which just refer to symbols.
-    
+
     :param source_tree:
         The source tree of analysed files.
 

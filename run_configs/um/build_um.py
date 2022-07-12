@@ -30,7 +30,6 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, Exclude, Include
-from fab.util import case_insensitive_replace
 
 logger = logging.getLogger('fab')
 
