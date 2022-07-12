@@ -3,9 +3,13 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+"""
+Various utility functions live here - until we give them a proper place to live!
+
+"""
+
 import datetime
 import logging
-import re
 import subprocess
 import sys
 import zlib
@@ -20,6 +24,10 @@ logger = logging.getLogger(__name__)
 
 
 def log_or_dot(logger, msg):
+    """
+    Util function which prints a fullstop without a newline, except in debug logging where it logs a message.
+
+    """
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(msg)
     elif logger.isEnabledFor(logging.INFO):
@@ -28,6 +36,11 @@ def log_or_dot(logger, msg):
 
 
 def log_or_dot_finish(logger):
+    """
+    Util function which completes the row of fullstops from :func:`~fab.util.log_or_dot`,
+    by printing a newline when not in debug logging.
+
+    """
     if logger.isEnabledFor(logging.INFO):
         print('')
 
@@ -36,11 +49,22 @@ HashedFile = namedtuple("HashedFile", ['fpath', 'file_hash'])
 
 
 def do_checksum(fpath: Path):
+    """
+    Checksum contents of a file.
+
+    """
     with open(fpath, "rb") as infile:
         return HashedFile(fpath, zlib.crc32(bytes(infile.read())))
 
 
 def file_walk(path: Path) -> Iterator[Path]:
+    """
+    Return every file in *path* and its sub-folders.
+
+    :param path:
+        Folder to iterate.
+
+    """
     assert path.is_dir(), f"not dir: '{path}'"
     for i in path.iterdir():
         if i.is_dir():
@@ -52,8 +76,8 @@ def file_walk(path: Path) -> Iterator[Path]:
 class Timer(object):
     """
     A simple timing context manager.
-    """
 
+    """
     def __init__(self):
         self._start: Optional[float] = None
         self.taken: Optional[float] = None
@@ -69,8 +93,8 @@ class Timer(object):
 class TimerLogger(Timer):
     """
     A labelled timing context manager which logs the label and the time taken.
-    """
 
+    """
     def __init__(self, label, res=0.001):
         super().__init__()
         self.label = label
@@ -97,15 +121,39 @@ class TimerLogger(Timer):
                 logger.info(f"{self.label} took {seconds:.3f}s")
 
 
+# todo: move this
 class CompiledFile(object):
-    def __init__(self, analysed_file, output_fpath):
+    """
+    A Fortran or C file which has been compiled.
+
+    """
+    def __init__(self, analysed_file, output_fpath: Path):
+        """
+        :param analysed_file:
+            The file that was compiled.
+        :param output_fpath:
+            The object file.
+
+        """
         # todo: A compiled file shouldn't know whether its source file was analysed or not.
-        #       It needn't be in some use cases.
+        #       It needn't be in some use cases. This is a code smell and needs revisiting.
         self.analysed_file = analysed_file
         self.output_fpath = output_fpath
 
 
+# todo: we should probably pass in the output folder, not the project workspace
 def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path: Path):
+    """
+    Convert a path in the project's source folder to the equivalent path in the output folder.
+
+    Allows the given path to already be in the output folder.
+
+    :param source_root:
+        The project's source folder. This can sometimes be outside the project workspace.
+    :param project_workspace:
+        The project's workspace folder, in which the output folder can be found.
+
+    """
     build_output = project_workspace / BUILD_OUTPUT
 
     # perhaps it's already in the output folder? todo: can use Path.is_relative_to from Python 3.9
@@ -118,12 +166,16 @@ def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path
     return build_output / rel_path
 
 
-def case_insensitive_replace(in_str: str, find: str, replace_with: str):
-    compiled_re = re.compile(find, re.IGNORECASE)
-    return compiled_re.sub(replace_with, in_str)
-
-
 def run_command(command, env=None):
+    """
+    Run a CLI command.
+
+    :param command:
+        List of strings to be sent to :func:`subprocess.run` as the command.
+    :param env:
+        Optional env for the command. By default it will use the current session's environment.
+
+    """
     logger.debug(f'run_command: {command}')
     res = subprocess.run(command, capture_output=True, env=env)
     if res.returncode != 0:
@@ -134,9 +186,10 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
     """
     Pull out all the paths with a given suffix from an iterable.
 
-    Args:
-        - fpaths: Iterable of paths.
-        - suffixes: Iterable of suffixes we want.
+    :param fpaths:
+        Iterable of paths.
+    :param suffixes:
+        Iterable of suffixes we want.
 
     """
     # todo: Just return the iterator from filter. Let the caller decide whether to turn into a list.
@@ -147,19 +200,10 @@ def by_type(iterable, cls):
     """
     Find all the elements of an iterable which are of a given type.
 
+    :param iterable:
+        The iterable to search.
+    :param cls:
+        The type of the elements we want.
+
     """
     return filter(lambda i: isinstance(i, cls), iterable)
-
-
-def check_for_errors(results, caller_label=None):
-    """
-    A helper function for multiprocessing steps, checks a list of results for any exceptions and handles gracefully.
-    """
-    caller_label = f'during {caller_label}' if caller_label else ''
-
-    exceptions = list(by_type(results, Exception))
-    if exceptions:
-        formatted_errors = "\n\n".join(map(str, exceptions))
-        raise RuntimeError(
-            f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
-        )

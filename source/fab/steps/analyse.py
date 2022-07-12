@@ -433,5 +433,5 @@ class Analyse(Step):
                 continue
 
             # add the file and it's file deps
-            sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
+            sub_tree = extract_sub_tree(src_tree=all_analysed_files, root=analysed_fpath)
             build_tree.update(sub_tree)

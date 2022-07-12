@@ -4,10 +4,11 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-This module contains "artefact getter" classes which return a subset of the artefact_store.
+This module contains :term:`Artefact Getter` classes which return :term:`Named Collections <Named Collection>`
+from the :term:`Artefact Store`.
 
-Their intended use is in :class:`~fab.steps.Step` classes, which can be preconfigured to use sensible defaults,
-or receive user-defined getters.
+These classes are used by the `run` method of :class:`~fab.steps.Step` classes to retrieve the artefacts
+which need to be processed. Most steps have sensible defaults and can be configured with user-defined getters.
 
 """
 from abc import ABC, abstractmethod
@@ -22,23 +23,34 @@ from fab.util import suffix_filter
 
 class ArtefactsGetter(ABC):
     """
-    Abstract base class for artefacts getters, which return a subset of the artefact_store.
+    Abstract base class for artefact getters.
 
     """
     @abstractmethod
     def __call__(self, artefact_store):
+        """
+        :param artefact_store:
+            The artefact store from which to retrieve.
+
+        """
         pass
 
 
 class CollectionGetter(ArtefactsGetter):
     """
-    A simple artefacts getter which returns a :term:`Named Collection` from the artefact_store.
+    A simple artefact getter which returns one :term:`Named Collection` from the artefact_store.
 
-    For example, ``artefact_store['preprocessed_fortran']`` is often a list of paths
-    which can be retrieved at runtime using ``CollectionGetter('preprocessed_fortran')``.
+    Example::
+
+        `CollectionGetter('preprocessed_fortran')`
 
     """
     def __init__(self, collection_name):
+        """
+        :param collection_name:
+            The name of the artefact collection to retrieve.
+
+        """
         self.collection_name = collection_name
 
     def __call__(self, artefact_store):
@@ -48,11 +60,10 @@ class CollectionGetter(ArtefactsGetter):
 
 class CollectionConcat(ArtefactsGetter):
     """
-    Returns a concatenated list of :term:`Named Collections <Named Collection>` (each expected to be an iterable).
+    Returns a concatenated list from multiple :term:`Named Collections <Named Collection>`
+    (each expected to be an iterable).
 
-    .. note::
-
-        An :class:`~fab.artefacts.ArtefactsGetter` can be provided instead of a collection_name.
+    An :class:`~fab.artefacts.ArtefactsGetter` can be provided instead of a collection_name.
 
     Example::
 
@@ -66,8 +77,8 @@ class CollectionConcat(ArtefactsGetter):
     """
     def __init__(self, collections: Iterable[Union[str, ArtefactsGetter]]):
         """
-        Args:
-            - collections: An iterable containing collection names (strings) or other ArtefactsGetters.
+        :param collections:
+            An iterable containing collection names (strings) or other ArtefactsGetters.
 
         """
         self.collections = collections
@@ -86,7 +97,7 @@ class CollectionConcat(ArtefactsGetter):
 
 class SuffixFilter(ArtefactsGetter):
     """
-    An artefacts getter which returns the paths in a :term:`Named Collection` (expected to be an iterable),
+    Returns the file paths in a :term:`Named Collection` (expected to be an iterable),
     filtered by suffix.
 
     Example::
@@ -97,9 +108,10 @@ class SuffixFilter(ArtefactsGetter):
     """
     def __init__(self, collection_name: str, suffix: Union[str, List[str]]):
         """
-        Args:
-            - collection_name: The :term:`Named Collection` in which to find paths.
-            - suffix: A suffix string including the dot, or iterable of.
+        :param collection_name:
+            The name of the artefact collection.
+        :param suffix:
+            A suffix string including the dot, or iterable of.
 
         """
         self.collection_name = collection_name
@@ -116,32 +128,27 @@ class FilterBuildTrees(ArtefactsGetter):
     """
     Filter build trees by suffix.
 
-    Returns a list of paths for each build tree.
+    Returns one list of files to compile per build tree, of the form Dict[name, List[AnalysedFile]]
+
+    Example::
+
+        # The default source getter for the CompileFortran step.
+        DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
     """
     def __init__(self, suffix: Union[str, List[str]], collection_name: str = BUILD_TREES):
         """
-        The given *collection_name* specifies which artefact collection contains the build trees.
-        If no name is provided, it defaults to the value in :py:const:`fab.constants.BUILD_TREES`,
-        as used by the analyse step.
-
         :param suffix:
-            A string, or iterable of, including the preceding dot.
+            A suffix string, or iterable of, including the preceding dot.
         :param collection_name:
-            The name of the artefact collection where we find the source trees to build.
+            The name of the artefact collection where we find the source trees.
             Defaults to the value in :py:const:`fab.constants.BUILD_TREES`.
-
-        Example::
-
-            # The default source getter for the CompileFortran step.
-            DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
         """
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store):
-        """Get a list of files to compile for each target source tree."""
         super().__call__(artefact_store)
 
         build_trees = artefact_store[self.collection_name]

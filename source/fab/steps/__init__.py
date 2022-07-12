@@ -11,6 +11,8 @@ import multiprocessing
 from abc import ABC, abstractmethod
 from typing import Dict
 
+from fab.util import by_type
+
 
 class Step(ABC):
     """
@@ -91,3 +93,26 @@ class Step(ABC):
         else:
             analysis_results = (func(a) for a in items)  # generator
             result_handler(analysis_results)
+
+
+def check_for_errors(results, caller_label=None):
+    """
+    Check an iterable of results for any exceptions and handle them gracefully.
+
+    This is a helper function for steps which use multiprocessing,
+    getting multiple results back from :meth:`~fab.steps.Step.run_mp` all in one go.
+
+    :param results:
+        An iterable of results.
+    :param caller_label:
+        Optional human-friendly name of the caller for logging.
+
+    """
+    caller_label = f'during {caller_label}' if caller_label else ''
+
+    exceptions = list(by_type(results, Exception))
+    if exceptions:
+        formatted_errors = "\n\n".join(map(str, exceptions))
+        raise RuntimeError(
+            f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
+        )

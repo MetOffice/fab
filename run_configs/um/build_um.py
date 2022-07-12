@@ -10,6 +10,7 @@
 
 import logging
 import os
+import re
 import warnings
 from argparse import ArgumentParser
 from pathlib import Path
@@ -285,6 +286,14 @@ class MyCustomCodeFixes(Step):
         orig = open(os.path.expanduser(inpath), "rt").read()
         open(os.path.expanduser(outpath), "wt").write(
             case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
+
+
+def case_insensitive_replace(in_str: str, find: str, replace_with: str):
+    """
+
+    """
+    compiled_re = re.compile(find, re.IGNORECASE)
+    return compiled_re.sub(replace_with, in_str)
 
 
 if __name__ == '__main__':

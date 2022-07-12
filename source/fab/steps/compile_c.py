@@ -19,7 +19,8 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
-from fab.util import check_for_errors, CompiledFile, run_command, log_or_dot, Timer, by_type
+from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type
+from fab.steps import check_for_errors
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
