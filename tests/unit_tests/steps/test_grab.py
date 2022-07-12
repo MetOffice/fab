@@ -20,15 +20,15 @@ class TestGrabFolder(object):
 
     def _common(self, grab_src, expect_grab_src):
         source_root = Path('/workspace/source')
-        dst_label = 'bar'
-        grabber = GrabFolder(src=grab_src, dst_label=dst_label)
+        dst = 'bar'
+        grabber = GrabFolder(src=grab_src, dst=dst)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
             with mock.patch('fab.steps.grab.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
-        expect_dst = mock_config.source_root / dst_label
+        expect_dst = mock_config.source_root / dst
         mock_run.assert_called_once_with(['rsync', '-ruq', expect_grab_src, str(expect_dst)])
 
 
