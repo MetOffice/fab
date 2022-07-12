@@ -81,7 +81,8 @@ class Analyse(Step):
             Only the symbol definitions and dependencies need be provided.
         :param unreferenced_deps:
             A list of symbols which are needed for the build, but which cannot be automatically
-            determined. For example, functions that are called without a module use statement. Assuming the files
+            determined. For example, functions that are called without a module use statement,
+            or functions that are not called in a simple call statement. Assuming the files
             containing these symbols are present and will be analysed, those files and all their dependencies
             will be added to the build tree(s).
         :param ignore_mod_deps:
@@ -139,7 +140,7 @@ class Analyse(Step):
         else:
             build_trees = {None: project_source_tree}
 
-        # throw in any extra source we need, which Fab can't automatically detect (i.e. not using use statements)
+        # throw in any extra source we need, which Fab can't automatically detect
         for build_tree in build_trees.values():
             self._add_unreferenced_deps(symbols, project_source_tree, build_tree)
             validate_dependencies(build_tree)
@@ -400,11 +401,9 @@ class Analyse(Step):
         """
         Add files to the build tree.
 
-        This is used for building Fortran code which does not use modules to declare dependencies.
-        In this case, Fab cannot determine those dependencies and the user is required to list them.
+        This is used for building Fortran code which Fab doesn't know is a dependency.
 
         """
-
         if not self.unreferenced_deps:
             return
         logger.info(f"Adding {len(self.unreferenced_deps or [])} unreferenced dependencies")

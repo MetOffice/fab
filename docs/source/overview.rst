@@ -77,3 +77,9 @@ of any step that passes a list of artefacts through a command-line tool.
 The Step class includes a multiprocessing utility method called :meth:`~fab.steps.Step.run_mp` which steps can call
 from their :meth:`~fab.steps.Step.run` method to pass a collection of artefacts through a processor function
 in parallel.
+
+Limitations
+-----------
+**Dependency detection:** Whilst fab can automatically determine dependencies from module use statements,
+and from standalone call statements, it doesn't currently detect a dependency from a call statement
+on a single-line if statement.
