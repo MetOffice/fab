@@ -36,7 +36,7 @@ jobs:
         git config --global user.name "SciFab Developers"
     - name: git add docs/build
       run: |
-        git add docs/build
+        git add docs/*
     - name: commit
       run: |
         git commit -m "docs build"
