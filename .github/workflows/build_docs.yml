@@ -9,10 +9,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: checkout master
-      uses: actions/checkout@v3
-    - name: install python
-      uses: actions/setup-python@v4
+    - name: set git user
+      run: |
+        git config --global user.email "metomi@metoffice.gov.uk"
+        git config --global user.name "SciFab Developers"
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
     - name: install sphinx
@@ -25,14 +27,10 @@ jobs:
         rm -rf build
         sphinx-apidoc -f -o source/apidoc ../source/fab
         make html
-    - name: move built docs to root of docs
+    - name: move built docs to docs root
       run: |
         mv docs/build/html/* docs/
-    - name: set git user
-      run: |
-        git config --global user.email "metomi@metoffice.gov.uk"
-        git config --global user.name "SciFab Developers"
-    - name: git add docs/build
+    - name: git add built docs
       run: |
         git add docs/*
     - name: commit
