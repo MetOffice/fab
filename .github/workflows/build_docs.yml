@@ -11,8 +11,6 @@ jobs:
     steps:
     - name: checkout master
       uses: actions/checkout@v3
-      with:
-        ref: master
     - name: install python
       uses: actions/setup-python@v4
       with:
@@ -42,4 +40,4 @@ jobs:
         git commit -m "docs build"
     - name: push to gh_pages branch
       run: |
-        git push --force origin master:gh_pages
+        git push --force gh_pages
