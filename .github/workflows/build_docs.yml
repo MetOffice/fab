@@ -40,4 +40,5 @@ jobs:
         git commit -m "docs build"
     - name: push to gh_pages branch
       run: |
-        git push --force gh_pages
+        echo "pushing from $GITHUB_REF_NAME to gh_pages"
+        git push --force origin $GITHUB_REF_NAME:gh_pages
