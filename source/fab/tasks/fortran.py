@@ -103,7 +103,7 @@ class FortranAnalyser(object):
                     self._process_use_statement(analysed_file, obj)  # raises
 
                 elif obj_type in (Module_Stmt, Program_Stmt):
-                    analysed_file.add_symbol_def(str(obj.get_name()))
+                    analysed_file.add_module_def(str(obj.get_name()))
 
                 elif obj_type in (Subroutine_Stmt, Function_Stmt):
                     self._process_subroutine_or_function(analysed_file, fpath, obj)
