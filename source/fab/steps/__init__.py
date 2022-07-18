@@ -67,7 +67,7 @@ class Step(ABC):
         """
         if self._config.multiprocessing:
             with multiprocessing.Pool(self._config.n_procs) as p:
-                analysis_results = p.imap_unordered(func, items)
+                analysis_results = p.imap_unordered(func, items, chunksize=8)
                 result_handler(analysis_results)
         else:
             analysis_results = (func(a) for a in items)  # generator
