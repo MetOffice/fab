@@ -77,7 +77,15 @@ class AnalysedFile(object):
         return vars(self) == vars(other)
 
     def __hash__(self):
-        return hash(str(sorted(vars(self).items())))
+        return hash((
+            self.fpath,
+            self.file_hash,
+            tuple(sorted(self.module_defs)),
+            tuple(sorted(self.symbol_defs)),
+            tuple(sorted(self.symbol_deps)),
+            tuple(sorted(self.file_deps)),
+            tuple(sorted(self.mo_commented_file_deps)),
+        ))
 
     def to_str_dict(self) -> Dict[str, str]:
         """Convert to a dict of strings. For example, when writing to a CsvWriter."""

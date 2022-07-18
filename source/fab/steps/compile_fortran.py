@@ -92,10 +92,10 @@ class CompileFortran(MpExeStep):
             exit(1)
 
         # add the targets' new object files to the artefact store
-        lookup = {compiled_file.analysed_file: compiled_file for compiled_file in all_compiled}
+        lookup = {compiled_file.analysed_file.fpath: compiled_file for compiled_file in all_compiled}
         target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
         for root, source_files in build_lists.items():
-            new_objects = [lookup[af].output_fpath for af in source_files]
+            new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 
     def get_compile_next(self, already_compiled_files: Set[Path], to_compile: List[AnalysedFile]):
