@@ -106,6 +106,7 @@ class AnalysedFile(object):
             fpath=Path(d["fpath"]),
             file_hash=int(d["file_hash"]),
             module_defs=set(d["module_defs"].split(';')) if d["module_defs"] else set(),
+            symbol_defs=set(d["symbol_defs"].split(';')) if d["symbol_defs"] else set(),
             symbol_deps=set(d["symbol_deps"].split(';')) if d["symbol_deps"] else set(),
             file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
             mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()
