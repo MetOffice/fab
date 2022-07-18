@@ -144,7 +144,7 @@ class Test_gen_symbol_table(object):
 
     def test_duplicate_symbol(self, analysed_files):
         # duplicate a symbol from the first file in the second file
-        analysed_files[1].symbol_defs.append('foo_1')
+        analysed_files[1].symbol_defs.add('foo_1')
 
         analyser = Analyse(root_symbol=None)
 

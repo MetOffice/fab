@@ -23,8 +23,9 @@ def module_expected(module_fpath):
     return AnalysedFile(
         fpath=module_fpath,
         file_hash=None,
-        symbol_deps={'monty_func', 'bar_mod'},
+        module_defs={'foo_mod'},
         symbol_defs={'external_sub', 'external_func', 'foo_mod'},
+        symbol_deps={'monty_func', 'bar_mod'},
         file_deps=set(),
         mo_commented_file_deps={'some_file.c'},
     )
@@ -51,6 +52,7 @@ class Test_Analyser(object):
             result = FortranAnalyser().run(HashedFile(fpath=Path(tmp_file.name), file_hash=None))
 
             module_expected.fpath = Path(tmp_file.name)
+            module_expected.module_defs = set()
             module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
 
             assert result == module_expected

@@ -79,6 +79,29 @@ class AnalysedFile(object):
     def __hash__(self):
         return hash(str(sorted(vars(self).items())))
 
+    def to_str_dict(self) -> Dict[str, str]:
+        """Convert to a dict of strings. For example, when writing to a CsvWriter."""
+        return {
+            "fpath": str(self.fpath),
+            "file_hash": str(self.file_hash),
+            "symbol_deps": ';'.join(self.symbol_deps),
+            "symbol_defs": ';'.join(self.symbol_defs),
+            "file_deps": ';'.join(map(str, self.file_deps)),
+            "mo_commented_file_deps": ';'.join(self.mo_commented_file_deps),
+        }
+
+    @classmethod
+    def from_str_dict(cls, d):
+        """Convert from a dict of strings. For example, when reading from a CsvWriter."""
+        return cls(
+            fpath=Path(d["fpath"]),
+            file_hash=int(d["file_hash"]),
+            symbol_deps=set(d["symbol_deps"].split(';')) if d["symbol_deps"] else set(),
+            symbol_defs=set(d["symbol_defs"].split(';')) if d["symbol_defs"] else set(),
+            file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
+            mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()
+        )
+
 
 # Possibly overkill to have a class for this.
 class EmptySourceFile(object):
