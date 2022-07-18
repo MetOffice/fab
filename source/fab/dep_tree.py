@@ -92,8 +92,9 @@ class AnalysedFile(object):
         return {
             "fpath": str(self.fpath),
             "file_hash": str(self.file_hash),
-            "symbol_deps": ';'.join(self.symbol_deps),
+            "module_defs": ';'.join(self.module_defs),
             "symbol_defs": ';'.join(self.symbol_defs),
+            "symbol_deps": ';'.join(self.symbol_deps),
             "file_deps": ';'.join(map(str, self.file_deps)),
             "mo_commented_file_deps": ';'.join(self.mo_commented_file_deps),
         }
@@ -104,8 +105,8 @@ class AnalysedFile(object):
         return cls(
             fpath=Path(d["fpath"]),
             file_hash=int(d["file_hash"]),
+            module_defs=set(d["module_defs"].split(';')) if d["module_defs"] else set(),
             symbol_deps=set(d["symbol_deps"].split(';')) if d["symbol_deps"] else set(),
-            symbol_defs=set(d["symbol_defs"].split(';')) if d["symbol_defs"] else set(),
             file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
             mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()
         )
