@@ -44,13 +44,6 @@ class Test_load_analysis_results(object):
     def csv_lines(self):
         # a module with a dependency on a fortran and c file, plus a mo commented dep
 
-        # return [
-        #     'fpath,file_hash,module_defs,symbol_defs,symbol_deps,file_deps,mo_commented_file_deps',
-        #     'my_mod.f90,123,my_mod,my_mod,dep1_mod;dep2,,mo_dep.c',
-        #     'dep1_mod.f90,234,dep1_mod,dep1_mod,,,',
-        #     'dep2.c,345,,dep2,,,',
-        # ]
-
         data = [
             AnalysedFile(fpath='my_mod.f90',
                          file_hash=123, module_defs={'my_mod'}, symbol_defs={'my_mod'},
