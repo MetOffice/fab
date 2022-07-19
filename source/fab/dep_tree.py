@@ -14,6 +14,7 @@ from typing import Set, Dict, Iterable
 logger = logging.getLogger(__name__)
 
 
+# todo: this might be better placed in the analyse step
 class AnalysedFile(object):
     """
     An analysis result for a single file, containing symbol definitions and depdendencies.
@@ -88,7 +89,11 @@ class AnalysedFile(object):
         ))
 
     def to_str_dict(self) -> Dict[str, str]:
-        """Convert to a dict of strings. For example, when writing to a CsvWriter."""
+        """
+        Convert to a dict of strings. For example, when writing to a CsvWriter.
+
+        """
+        # note: our sets currently become strings with undefined order
         return {
             "fpath": str(self.fpath),
             "file_hash": str(self.file_hash),
