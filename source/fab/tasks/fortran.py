@@ -148,7 +148,7 @@ class FortranAnalyser(object):
 
         if use_name in self.ignore_mod_deps:
             logger.debug(f"ignoring use of {use_name}")
-        elif use_name not in self._intrinsic_modules:
+        elif use_name.lower() not in self._intrinsic_modules:
             # found a dependency on fortran
             analysed_file.add_module_dep(use_name)
 

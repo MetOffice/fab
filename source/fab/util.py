@@ -12,7 +12,9 @@ import zlib
 from collections import namedtuple
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional
+from typing import Iterator, Iterable, Optional, Set, Dict
+
+from fab.dep_tree import AnalysedFile
 
 from fab.constants import BUILD_OUTPUT
 
@@ -32,7 +34,7 @@ def log_or_dot_finish(logger):
         print('')
 
 
-HashedFile = namedtuple("HashedFile", ['fpath', 'file_hash'])
+HashedFile = namedtuple("HashedFile", ['input_fpath', 'file_hash'])
 
 
 def do_checksum(fpath: Path):
@@ -97,12 +99,59 @@ class TimerLogger(Timer):
                 logger.info(f"{self.label} took {seconds:.3f}s")
 
 
+# todo: move this
 class CompiledFile(object):
-    def __init__(self, analysed_file, output_fpath):
-        # todo: A compiled file shouldn't know whether its source file was analysed or not.
-        #       It needn't be in some use cases.
-        self.analysed_file = analysed_file
+    def __init__(self, input_fpath, output_fpath, source_hash, flags_hash, module_deps_hashes):
+        # todo: Should just be the input_fpath, not the whole analysed file
+        self.input_fpath: Path = Path(input_fpath)
         self.output_fpath = output_fpath
+
+        self.source_hash = source_hash
+        self.flags_hash = flags_hash
+        self.module_deps_hashes = module_deps_hashes
+
+    #
+    # persistence
+    #
+    @classmethod
+    def field_names(cls):
+        return [
+            'input_fpath', 'output_fpath',
+            'source_hash', 'flags_hash', 'module_deps_hashes',
+        ]
+
+    def to_str_dict(self):
+        """
+        Convert to a dict of strings. For example, when writing to a CsvWriter.
+
+        """
+        return {
+            "input_fpath": str(self.input_fpath),
+            "output_fpath": str(self.output_fpath),
+            "source_hash": str(self.source_hash),
+            "flags_hash": str(self.flags_hash),
+            # todo: name and hash
+            xxx
+            "module_deps_hashes": ';'.join(map(str, self.module_deps_hashes)),
+        }
+
+    @classmethod
+    def from_str_dict(cls, d):
+        """Convert from a dict of strings. For example, when reading from a CsvWriter."""
+
+        if d["module_deps_hashes"]:
+            module_deps_hashes = set(d["module_deps_hashes"].split(';'))
+            module_deps_hashes = map(int, module_deps_hashes)
+        else:
+            module_deps_hashes = set()
+
+        return cls(
+            input_fpath=Path(d["input_fpath"]),
+            output_fpath=Path(d["output_fpath"]),
+            source_hash=int(d["source_hash"]),
+            flags_hash=int(d["flags_hash"]),
+            module_deps_hashes=module_deps_hashes,
+        )
 
 
 def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path: Path):
@@ -163,3 +212,19 @@ def check_for_errors(results, caller_label=None):
         raise RuntimeError(
             f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
         )
+
+
+def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
+    """
+    Get the hash of every module file implied in the list of analysed files.
+
+    """
+    mod_hashes = {}
+    for af in analysed_files:
+        for mod_def in af.module_defs:
+            fpath: Path = config.project_workspace / BUILD_OUTPUT / f'{mod_def}.mod'
+            if not fpath.exists():
+                raise FileNotFoundError(f"module file not found {fpath}")
+            mod_hashes[mod_def] = do_checksum(fpath).file_hash
+
+    return mod_hashes

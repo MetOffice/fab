@@ -55,13 +55,13 @@ class Test_run(object):
     def test_vanilla(self, compiler, analysed_files, artefact_store):
 
         def mp_return(items, func):
-            return [CompiledFile(analysed_file=i, output_fpath=i.fpath.with_suffix('.o')) for i in items]
+            return [CompiledFile(input_fpath=i.input_fpath, output_fpath=i.input_fpath.with_suffix('.o')) for i in items]
 
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
             compiler.run(artefact_store, config=None)
 
         compiled = artefact_store[COMPILED_FILES]
-        # expected = [i.fpath.with_suffix('.o') for i in reversed(analysed_files)]
+        # expected = [i.input_fpath.with_suffix('.o') for i in reversed(analysed_files)]
         expected = {None: {i.fpath.with_suffix('.o') for i in analysed_files}}
         assert compiled == expected
 

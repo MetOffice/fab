@@ -23,7 +23,7 @@ def jules_config(revision=None):
 
     config = BuildConfig(project_label=f'jules_{revision}')
     # config.multiprocessing = False
-    # config.debug_skip = True
+    config.debug_skip = True
 
     logger = logging.getLogger('fab')
     logger.info(f'building jules revision {revision}')
@@ -91,4 +91,5 @@ if __name__ == '__main__':
     arg_parser.add_argument('--revision', default=os.getenv('JULES_REVISION', 'vn6.3'))
     args = arg_parser.parse_args()
 
+    # while True:
     jules_config(revision=args.revision).run()

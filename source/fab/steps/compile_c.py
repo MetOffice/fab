@@ -56,13 +56,13 @@ class CompileC(MpExeStep):
         check_for_errors(results, caller_label=self.name)
         compiled_c = by_type(results, CompiledFile)
 
-        lookup = {compiled_file.analysed_file: compiled_file for compiled_file in compiled_c}
+        lookup = {compiled_file.input_fpath.input_fpath: compiled_file for compiled_file in compiled_c}
         logger.info(f"compiled {len(lookup)} c files")
 
         # add the targets' new object files to the artefact store
         target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
         for root, source_files in build_lists.items():
-            new_objects = [lookup[af].output_fpath for af in source_files]
+            new_objects = [lookup[af.input_fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 
     # todo: identical to the fortran version - make a super class
@@ -93,4 +93,4 @@ class CompileC(MpExeStep):
 
             send_metric(self.name, str(analysed_file.fpath), timer.taken)
 
-        return CompiledFile(analysed_file, output_fpath)
+        return CompiledFile(analysed_file.fpath, output_fpath)

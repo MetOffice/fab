@@ -213,13 +213,13 @@ class Analyse(Step):
 
         """
         # fortran
-        fortran_files = set(filter(lambda f: f.fpath.suffix == '.f90', to_analyse))
+        fortran_files = set(filter(lambda f: f.input_fpath.suffix == '.f90', to_analyse))
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             analysed_fortran, fortran_exceptions = self._analyse_file_type(
                 fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
 
         # c
-        c_files = set(filter(lambda f: f.fpath.suffix == '.c', to_analyse))
+        c_files = set(filter(lambda f: f.input_fpath.suffix == '.c', to_analyse))
         with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
             analysed_c, c_exceptions = self._analyse_file_type(
                 fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
@@ -282,7 +282,7 @@ class Analyse(Step):
 
     def _get_file_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
         mp_results = self.run_mp(items=fpaths, func=do_checksum)
-        latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in mp_results}
+        latest_file_hashes: Dict[Path, int] = {fh.input_fpath: fh.file_hash for fh in mp_results}
         return latest_file_hashes
 
     def _load_analysis_results(self, latest_file_hashes: Dict[Path, int]) -> Dict[Path, AnalysedFile]:

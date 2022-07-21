@@ -36,7 +36,7 @@ class Test_run(object):
             compiler='gcc', common_flags=['-c'], path_flags=[AddFlags(match='foo/src/*', flags=['-Dhello'])])
 
         def foo(items, func):
-            return [CompiledFile(af, output_fpath=None) for af in items]
+            return [CompiledFile(af.input_fpath, output_fpath=None) for af in items]
 
         with mock.patch('fab.steps.Step.run_mp', side_effect=foo) as mock_run_mp:
             c_compiler.run(artefact_store={BUILD_TREES: {None: src_tree}}, config=config)
