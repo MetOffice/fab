@@ -12,7 +12,7 @@ import logging
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Iterable
 
 from fab.constants import COMPILED_FILES
 
@@ -45,7 +45,7 @@ class CompileFortran(MpExeStep):
 
     def run(self, artefact_store, config):
         """
-        Compiles all Fortran files in the *build_tree* artefact, creating the *compiled_fortran* artefact.
+        Compile all Fortran files in all build trees.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
 
@@ -57,75 +57,61 @@ class CompileFortran(MpExeStep):
         to_compile = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} fortran files")
 
-        # compile everything in multiple passes
-        all_compiled: List[CompiledFile] = []  # todo: use set?
-        already_compiled_files: Set[Path] = set([])  # a quick lookup
-
-        # read csv
+        # read csv of last compile states
         self._last_compile = self.read_compile_result()
+
+        # mod hashes are made available to subprocesses for reading, and updated each pass with new mods
         self._mod_hashes = {}
 
-        per_pass = []
+        # compile everything in multiple passes
+        compiled: Dict[Path, CompiledFile] = {}
         while to_compile:
-
-            compile_next = self.get_compile_next(already_compiled_files, to_compile)
-
-            logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
-            results_this_pass = self.run_mp(items=compile_next, func=self.compile_file)
-            check_for_errors(results_this_pass, caller_label=self.name)
-
-            # check what we did compile
-            compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
-            per_pass.append(len(compiled_this_pass))
-            if len(compiled_this_pass) == 0:
-                logger.error("nothing compiled this pass")
-                break
-
-            # hash the modules we just created
-            new_mod_hashes = get_mod_hashes(compile_next, config)
-            self._mod_hashes.update(new_mod_hashes)
-
-            # remove compiled files from list
-            logger.debug(f"compiled {len(compiled_this_pass)} files")
-
-            # (results are not the same instances as passed in, due to mp copying)
-            compiled_fpaths = {i.input_fpath for i in compiled_this_pass}
-            all_compiled.extend(compiled_this_pass)
-            already_compiled_files.update(compiled_fpaths)
-
-            # remove from remaining to compile
-            to_compile = set(filter(lambda af: af.fpath not in compiled_fpaths, to_compile))
+            to_compile = self.compile_pass(compiled, to_compile, config)
 
         log_or_dot_finish(logger)
-        logger.debug(f"compiled per pass {per_pass}")
-        logger.info(f"total fortran compiled {sum(per_pass)}")
-
-        # write csv
-        self.write_compile_result(all_compiled, config)
-
-        # was anything left uncompiled?
-        if to_compile:
-            logger.debug(f"there were still {len(to_compile)} files left to compile")
-            for af in to_compile:
-                logger.debug(af.input_fpath)
-            logger.error(f"there were still {len(to_compile)} files left to compile")
-            exit(1)
+        self.write_compile_result(compiled, config)
 
         # add the targets' new object files to the artefact store
-        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in all_compiled}
+        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled.values()}
         target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
         for root, source_files in build_lists.items():
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 
-    def get_compile_next(self, already_compiled_files: Set[Path], to_compile: List[AnalysedFile]) -> Set[AnalysedFile]:
+    def compile_pass(self, compiled, to_compile, config):
+
+        to_compile = set(filter(lambda af: af.fpath not in compiled, to_compile))
+        compile_next = self.get_compile_next(compiled, to_compile)
+
+        logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
+        results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
+        check_for_errors(results_this_pass, caller_label=self.name)
+
+        # check what we did compile
+        compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
+        if len(compiled_this_pass) == 0:
+            raise RuntimeError(f"Nothing compiled this pass. Needed to compile {compile_next}")
+        logger.debug(f"compiled {len(compiled_this_pass)} files")
+
+        # hash the modules we just created
+        new_mod_hashes = get_mod_hashes(compile_next, config)
+        self._mod_hashes.update(new_mod_hashes)
+
+        # remove compiled files from list
+        compiled.update({cf.input_fpath: cf for cf in compiled_this_pass})
+
+        # remove from remaining to compile
+        to_compile = set(filter(lambda af: af.fpath not in compiled, to_compile))
+        return to_compile
+
+    def get_compile_next(self, compiled: Dict[Path, CompiledFile], to_compile: Set[AnalysedFile]) -> Set[AnalysedFile]:
 
         # find what to compile next
         compile_next = set()
         not_ready: Dict[Path, List[Path]] = {}
         for af in to_compile:
             # all deps ready?
-            unfulfilled = [dep for dep in af.file_deps if dep not in already_compiled_files and dep.suffix == '.f90']
+            unfulfilled = [dep for dep in af.file_deps if dep not in compiled and dep.suffix == '.f90']
             if unfulfilled:
                 not_ready[af.fpath] = unfulfilled
             else:
@@ -144,9 +130,20 @@ class CompileFortran(MpExeStep):
         return compile_next
 
     # todo: identical to the c version - make a super class
-    def compile_file(self, analysed_file: AnalysedFile):
+    def process_file(self, analysed_file: AnalysedFile):
+        """
+        Prepare to compile a fortran file, and compile it if anything has changed since it was last compiled.
+
+        Returns a compilation result, including various hashes from the time of compilation:
+
+        * hash of the source file
+        * hash of the compile flags
+        * hash of the module files on which we depend
+
+        """
         output_fpath = analysed_file.fpath.with_suffix('.o')
 
+        # flags for this file
         flags = self.flags.flags_for_path(
             path=analysed_file.fpath, source_root=self._config.source_root,
             project_workspace=self._config.project_workspace)
@@ -154,8 +151,53 @@ class CompileFortran(MpExeStep):
 
         # do we need to recompile?
         last_compile = self._last_compile.get(analysed_file.fpath)
-        recompile_reasons = []
+        recompile_reasons = self.recompile_check(analysed_file, flags_hash, last_compile)
 
+        if recompile_reasons:
+            try:
+                logger.debug(f'CompileFortran {recompile_reasons} for {analysed_file.fpath}')
+                self.compile_file(analysed_file, flags, output_fpath)
+            except Exception as err:
+                return Exception("Error compiling file:", err)
+        else:
+            log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
+
+        # get the hashes of the modules we depend on
+        # record them so we know if they've changed next time we compile.
+        try:
+            module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
+        except KeyError:
+            missing_mod_hashes = set(analysed_file.module_deps) - set(self._mod_hashes)
+            return RuntimeError(f"Error compiling {analysed_file.fpath}: Missing module hash for {missing_mod_hashes}")
+
+        return CompiledFile(
+            input_fpath=analysed_file.fpath, output_fpath=output_fpath,
+            source_hash=analysed_file.file_hash, flags_hash=flags_hash,
+            module_deps_hashes=module_deps_hashes
+        )
+
+    def compile_file(self, analysed_file, flags, output_fpath, recompile_reasons):
+        with Timer() as timer:
+            output_fpath.parent.mkdir(parents=True, exist_ok=True)
+
+            command = self.exe.split()
+            command.extend(flags)
+            command.extend(os.getenv('FFLAGS', '').split())
+            command.append(str(analysed_file.fpath))
+            command.extend(['-o', str(output_fpath)])
+
+            log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
+            run_command(command)
+
+        send_metric(self.name, str(analysed_file.fpath), timer.taken)
+
+    def recompile_check(self, analysed_file, flags_hash, last_compile):
+
+        # todo: other environmental considerations for the future:
+        #   - certain env vars, e.g OMPI_FC
+        #   - compiler version
+
+        recompile_reasons = []
         # first encounter?
         if not last_compile:
             recompile_reasons.append('no previous result')
@@ -174,47 +216,9 @@ class CompileFortran(MpExeStep):
             if module_deps_hashes != last_compile.module_deps_hashes:
                 recompile_reasons.append('module dependencies changed')
 
-        # todo: other environmental considerations for the future:
-        #   - certain env vars, e.g OMPI_FC
-        #   - compiler version
+        return ", ".join(recompile_reasons)
 
-        if recompile_reasons:
-            with Timer() as timer:
-                output_fpath.parent.mkdir(parents=True, exist_ok=True)
-
-                command = self.exe.split()
-                command.extend(flags)
-                command.extend(os.getenv('FFLAGS', '').split())
-                command.append(str(analysed_file.fpath))
-                command.extend(['-o', str(output_fpath)])
-
-                logger.debug(f'CompileFortran {", ".join(recompile_reasons)} for {analysed_file.fpath}')
-                log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
-                try:
-                    run_command(command)
-                except Exception as err:
-                    return Exception("Error calling compiler:", err)
-
-            send_metric(self.name, str(analysed_file.fpath), timer.taken)
-        else:
-            log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
-
-        # what are the hashes of the modules we depend on?
-        # record them so we know if they've changed next time we compile.
-        module_deps_hashes = {}
-        for mod_dep in analysed_file.module_deps:
-            try:
-                module_deps_hashes[mod_dep] = self._mod_hashes[mod_dep]
-            except KeyError:
-                return RuntimeError(f"Error compiling {analysed_file.fpath}: No module hash available for {mod_dep}")
-
-        return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=output_fpath,
-            source_hash=analysed_file.file_hash, flags_hash=flags_hash,
-            module_deps_hashes=module_deps_hashes
-        )
-
-    def write_compile_result(self, all_compiled: List[CompiledFile], config):
+    def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
         """
         Write the compilation results to csv.
 
@@ -223,7 +227,7 @@ class CompileFortran(MpExeStep):
         dict_writer = csv.DictWriter(compilation_progress_file, fieldnames=CompiledFile.field_names())
         dict_writer.writeheader()
 
-        for cf in all_compiled:
+        for cf in compiled.values():
             dict_writer.writerow(cf.to_str_dict())
 
         # compilation_progress_file.flush()

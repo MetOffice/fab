@@ -237,7 +237,7 @@ def check_for_errors(results, caller_label=None):
 
 def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
     """
-    Get the hash of every module file implied in the list of analysed files.
+    Get the hash of every module file defined in the list of analysed files.
 
     """
     mod_hashes = {}
