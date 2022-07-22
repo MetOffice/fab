@@ -167,17 +167,21 @@ class FlagsConfig(object):
     Return flags for a given path. Contains a list of PathFlags.
 
     Multiple path filters can match a given path.
-    For now, simply allows appending flags but will likely evolve to replace or remove flags.
+    For now, simply allows appending flags but may evolve to replace or remove flags.
 
     """
 
-    def __init__(self, common_flags=None, path_flags: List[AddFlags] = None):
+    def __init__(self, common_flags: List[str] = None, path_flags: List[AddFlags] = None):
         self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
     # todo: there's templating both in this method and the run method it calls.
     #       make sure it's all properly documented and rationalised.
     def flags_for_path(self, path, source_root, project_workspace):
+        """
+        Get all the flags for a given file, with reproducible ordering.
+
+        """
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,
         # so we take care of it for them here instead.

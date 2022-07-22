@@ -21,7 +21,7 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, check_for_errors, \
-    get_mod_hashes, TimerLogger
+    get_mod_hashes, TimerLogger, string_checksum
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,8 @@ class CompileFortran(MpExeStep):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
         # runtime
-        self._last_compile = None
-        self._mod_hashes = None
+        self._last_compile: Dict[Path, CompiledFile] = {}
+        self._mod_hashes: Dict[str, int] = {}
 
     def run(self, artefact_store, config):
         """
@@ -150,19 +150,19 @@ class CompileFortran(MpExeStep):
         flags = self.flags.flags_for_path(
             path=analysed_file.fpath, source_root=self._config.source_root,
             project_workspace=self._config.project_workspace)
-        flags_hash = hash(str(flags))
+        flags_hash = string_checksum(str(flags))
 
         # do we need to recompile?
         last_compile = self._last_compile.get(analysed_file.fpath)
         recompile_reasons = []
 
-        # new file?
+        # first encounter?
         if not last_compile:
             recompile_reasons.append('no previous result')
 
-        # source changed?
         else:
-            if analysed_file.file_hash != last_compile.hash:
+            # source changed?
+            if analysed_file.file_hash != last_compile.source_hash:
                 recompile_reasons.append('source changed')
 
             # flags changed?
@@ -170,7 +170,7 @@ class CompileFortran(MpExeStep):
                 recompile_reasons.append('flags changed')
 
             # have any of the modules on which we depend changed?
-            module_deps_hashes = [self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps]
+            module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
             if module_deps_hashes != last_compile.module_deps_hashes:
                 recompile_reasons.append('module dependencies changed')
 
@@ -201,11 +201,10 @@ class CompileFortran(MpExeStep):
 
         # what are the hashes of the modules we depend on?
         # record them so we know if they've changed next time we compile.
-        # module_deps_hashes = {self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
-        module_deps_hashes = set()
+        module_deps_hashes = {}
         for mod_dep in analysed_file.module_deps:
             try:
-                module_deps_hashes.add(self._mod_hashes[mod_dep])
+                module_deps_hashes[mod_dep] = self._mod_hashes[mod_dep]
             except KeyError:
                 return RuntimeError(f"Error compiling {analysed_file.fpath}: No module hash available for {mod_dep}")
 

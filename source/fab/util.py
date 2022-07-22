@@ -37,9 +37,31 @@ def log_or_dot_finish(logger):
 HashedFile = namedtuple("HashedFile", ['input_fpath', 'file_hash'])
 
 
-def do_checksum(fpath: Path):
+def file_checksum(fpath):
+    """
+    Return a checksum of the given file.
+
+    This function is deterministic, returning the same result across Python invocations.
+
+    We use crc32 for now because it's deterministic, unlike out-the-box hash.
+    We could seed hash with a non-random or look into hashlib, if/when we want to improve this.
+
+    """
     with open(fpath, "rb") as infile:
-        return HashedFile(fpath, zlib.crc32(bytes(infile.read())))
+        return HashedFile(fpath, zlib.crc32(infile.read()))
+
+
+def string_checksum(s: str):
+    """
+    Return a checksum of the given string.
+
+    This function is deterministic, returning the same result across Python invocations.
+
+    We use crc32 for now because it's deterministic, unlike out-the-box hash.
+    We could seed hash with a non-random or look into hashlib, if/when we want to improve this.
+
+    """
+    return zlib.crc32(s.encode())
 
 
 def file_walk(path: Path) -> Iterator[Path]:
@@ -101,7 +123,7 @@ class TimerLogger(Timer):
 
 # todo: move this
 class CompiledFile(object):
-    def __init__(self, input_fpath, output_fpath, source_hash, flags_hash, module_deps_hashes):
+    def __init__(self, input_fpath, output_fpath, source_hash, flags_hash, module_deps_hashes: Dict[str, int]):
         # todo: Should just be the input_fpath, not the whole analysed file
         self.input_fpath: Path = Path(input_fpath)
         self.output_fpath = output_fpath
@@ -130,9 +152,7 @@ class CompiledFile(object):
             "output_fpath": str(self.output_fpath),
             "source_hash": str(self.source_hash),
             "flags_hash": str(self.flags_hash),
-            # todo: name and hash
-            xxx
-            "module_deps_hashes": ';'.join(map(str, self.module_deps_hashes)),
+            "module_deps_hashes": ';'.join([f'{k}={v}' for k, v in self.module_deps_hashes.items()]),
         }
 
     @classmethod
@@ -140,10 +160,11 @@ class CompiledFile(object):
         """Convert from a dict of strings. For example, when reading from a CsvWriter."""
 
         if d["module_deps_hashes"]:
-            module_deps_hashes = set(d["module_deps_hashes"].split(';'))
-            module_deps_hashes = map(int, module_deps_hashes)
+            # json would be easier now we're also serialising dicts
+            module_deps_hashes = [i.split('=') for i in d["module_deps_hashes"].split(';')]
+            module_deps_hashes = {i[0]: int(i[1]) for i in module_deps_hashes}
         else:
-            module_deps_hashes = set()
+            module_deps_hashes = {}
 
         return cls(
             input_fpath=Path(d["input_fpath"]),
@@ -225,6 +246,6 @@ def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
             fpath: Path = config.project_workspace / BUILD_OUTPUT / f'{mod_def}.mod'
             if not fpath.exists():
                 raise FileNotFoundError(f"module file not found {fpath}")
-            mod_hashes[mod_def] = do_checksum(fpath).file_hash
+            mod_hashes[mod_def] = file_checksum(fpath).file_hash
 
     return mod_hashes

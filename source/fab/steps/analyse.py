@@ -21,7 +21,7 @@ from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_t
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
-from fab.util import HashedFile, do_checksum, log_or_dot_finish, TimerLogger
+from fab.util import HashedFile, file_checksum, log_or_dot_finish, TimerLogger
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -281,7 +281,7 @@ class Analyse(Step):
             logger.info(f"{len(deps_not_found)} deps not found")
 
     def _get_file_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
-        mp_results = self.run_mp(items=fpaths, func=do_checksum)
+        mp_results = self.run_mp(items=fpaths, func=file_checksum)
         latest_file_hashes: Dict[Path, int] = {fh.input_fpath: fh.file_hash for fh in mp_results}
         return latest_file_hashes
 

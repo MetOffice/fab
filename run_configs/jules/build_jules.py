@@ -18,14 +18,15 @@ from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, Exclude
 
+logger = logging.getLogger('fab')
+
 
 def jules_config(revision=None):
 
     config = BuildConfig(project_label=f'jules_{revision}')
-    # config.multiprocessing = False
+    config.multiprocessing = False
     config.debug_skip = True
 
-    logger = logging.getLogger('fab')
     logger.info(f'building jules revision {revision}')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
 
@@ -90,6 +91,8 @@ if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('JULES_REVISION', 'vn6.3'))
     args = arg_parser.parse_args()
+
+    logger.setLevel(logging.DEBUG)
 
     # while True:
     jules_config(revision=args.revision).run()
