@@ -14,7 +14,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Iterable
 
-from fab.constants import COMPILED_FILES
+from fab.constants import COMPILED_FILES, BUILD_OUTPUT
 
 from fab.metrics import send_metric
 
@@ -52,16 +52,16 @@ class CompileFortran(MpExeStep):
         """
         super().run(artefact_store, config)
 
-        # get all the source to compile, for all build trees, into one big lump
-        build_lists: Dict[str, List] = self.source_getter(artefact_store)
-        to_compile = sum(build_lists.values(), [])
-        logger.info(f"compiling {len(to_compile)} fortran files")
-
         # read csv of last compile states
         self._last_compile = self.read_compile_result()
 
         # mod hashes are made available to subprocesses for reading, and updated each pass with new mods
         self._mod_hashes = {}
+
+        # get all the source to compile, for all build trees, into one big lump
+        build_lists: Dict[str, List] = self.source_getter(artefact_store)
+        to_compile = sum(build_lists.values(), [])
+        logger.info(f"compiling {len(to_compile)} fortran files")
 
         # compile everything in multiple passes
         compiled: Dict[Path, CompiledFile] = {}
@@ -141,8 +141,6 @@ class CompileFortran(MpExeStep):
         * hash of the module files on which we depend
 
         """
-        output_fpath = analysed_file.fpath.with_suffix('.o')
-
         # flags for this file
         flags = self.flags.flags_for_path(
             path=analysed_file.fpath, source_root=self._config.source_root,
@@ -156,7 +154,7 @@ class CompileFortran(MpExeStep):
         if recompile_reasons:
             try:
                 logger.debug(f'CompileFortran {recompile_reasons} for {analysed_file.fpath}')
-                self.compile_file(analysed_file, flags, output_fpath)
+                self.compile_file(analysed_file, flags)
             except Exception as err:
                 return Exception("Error compiling file:", err)
         else:
@@ -171,13 +169,14 @@ class CompileFortran(MpExeStep):
             return RuntimeError(f"Error compiling {analysed_file.fpath}: Missing module hash for {missing_mod_hashes}")
 
         return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=output_fpath,
+            input_fpath=analysed_file.fpath, output_fpath=analysed_file.fpath.with_suffix('.o'),
             source_hash=analysed_file.file_hash, flags_hash=flags_hash,
             module_deps_hashes=module_deps_hashes
         )
 
-    def compile_file(self, analysed_file, flags, output_fpath, recompile_reasons):
+    def compile_file(self, analysed_file, flags):
         with Timer() as timer:
+            output_fpath = analysed_file.fpath.with_suffix('.o')
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             command = self.exe.split()
@@ -215,6 +214,17 @@ class CompileFortran(MpExeStep):
             module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
             if module_deps_hashes != last_compile.module_deps_hashes:
                 recompile_reasons.append('module dependencies changed')
+
+            # is the object file still there?
+            obj_file = analysed_file.fpath.with_suffix('.o')
+            if not obj_file.exists():
+                recompile_reasons.append('object file no longer present')
+
+            # are the module files we define still there?
+            build_output = self._config.project_workspace / BUILD_OUTPUT
+            mod_def_files = [build_output / f'{mod}.mod' for mod in analysed_file.module_defs]
+            if not all([mod.exists() for mod in mod_def_files]):
+                recompile_reasons.append('module file(s) file no longer present')
 
         return ", ".join(recompile_reasons)
 

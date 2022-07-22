@@ -8,6 +8,8 @@ import logging
 import os
 from argparse import ArgumentParser
 
+from fab.steps.archive_objects import ArchiveObjects
+
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
@@ -78,6 +80,8 @@ def jules_config(revision=None):
             #     AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
             # ]
         ),
+
+        ArchiveObjects(),
 
         LinkExe(
             linker='mpifort',
