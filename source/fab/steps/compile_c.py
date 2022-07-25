@@ -12,7 +12,7 @@ import os
 from collections import defaultdict
 from typing import List, Dict
 
-from fab.constants import COMPILED_FILES
+from fab.constants import OBJECT_FILES
 
 from fab.metrics import send_metric
 
@@ -60,7 +60,7 @@ class CompileC(MpExeStep):
         logger.info(f"compiled {len(lookup)} c files")
 
         # add the targets' new object files to the artefact store
-        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
+        target_object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
         for root, source_files in build_lists.items():
             new_objects = [lookup[af.input_fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)

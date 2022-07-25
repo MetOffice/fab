@@ -123,10 +123,11 @@ class TimerLogger(Timer):
 
 # todo: move this
 class CompiledFile(object):
-    def __init__(self, input_fpath, output_fpath, source_hash, flags_hash, module_deps_hashes: Dict[str, int]):
+    def __init__(self, input_fpath, output_fpath,
+                 source_hash, flags_hash, module_deps_hashes: Dict[str, int]):
         # todo: Should just be the input_fpath, not the whole analysed file
-        self.input_fpath: Path = Path(input_fpath)
-        self.output_fpath = output_fpath
+        self.input_fpath = Path(input_fpath)
+        self.output_fpath = Path(output_fpath)
 
         self.source_hash = source_hash
         self.flags_hash = flags_hash

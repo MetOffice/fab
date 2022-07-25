@@ -14,7 +14,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Iterable
 
-from fab.constants import COMPILED_FILES, BUILD_OUTPUT
+from fab.constants import OBJECT_FILES, BUILD_OUTPUT
 
 from fab.metrics import send_metric
 
@@ -59,35 +59,83 @@ class CompileFortran(MpExeStep):
         self._mod_hashes = {}
 
         # get all the source to compile, for all build trees, into one big lump
-        build_lists: Dict[str, List] = self.source_getter(artefact_store)
-        to_compile = sum(build_lists.values(), [])
-        logger.info(f"compiling {len(to_compile)} fortran files")
+        build_trees: Dict[str, List] = self.source_getter(artefact_store)
 
         # compile everything in multiple passes
-        compiled: Dict[Path, CompiledFile] = {}
-        while to_compile:
-            to_compile = self.compile_pass(compiled, to_compile, config)
+        uncompiled: Set[AnalysedFile] = set(sum(build_trees.values(), []))
+        logger.info(f"compiling {len(uncompiled)} fortran files")
 
+        compiled: Dict[Path, CompiledFile] = {}
+        while uncompiled:
+            uncompiled = self.compile_pass(compiled, uncompiled, config)
         log_or_dot_finish(logger)
+
         self.write_compile_result(compiled, config)
 
+        self.store_artefacts(compiled, build_trees, artefact_store)
+
+    def compile_pass(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFile], config):
+
+        # what can we compile next?
+        compile_next = self.get_compile_next(compiled, uncompiled)
+        if len(compile_next) == 0:
+            raise RuntimeError(f"Nothing can be compiled this pass. Needed to compile {uncompiled}")
+
+        # compile
+        logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
+        results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
+        check_for_errors(results_this_pass, caller_label=self.name)
+        compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
+        logger.debug(f"compiled {len(compiled_this_pass)} files")
+
+        # hash the modules we just created
+        new_mod_hashes = get_mod_hashes(compile_next, config)
+        self._mod_hashes.update(new_mod_hashes)
+
+        # add compiled files to all compiled files
+        compiled.update({cf.input_fpath: cf for cf in compiled_this_pass})
+
+        # remove compiled files from remaining files
+        uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
+        return uncompiled
+
+
+
+
+
+
+
+
+    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile], build_trees: Dict[str, List], artefact_store):
+        """
+        Create our artefact collection; object files for each compiled file, per root symbol.
+
+        """
         # add the targets' new object files to the artefact store
-        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled.values()}
-        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
-        for root, source_files in build_lists.items():
+        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled_files.values()}
+        object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
+        for root, source_files in build_trees.items():
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
-            target_object_files[root].update(new_objects)
+            object_files[root].update(new_objects)
 
-    def compile_pass(self, compiled, to_compile, config):
 
-        to_compile = set(filter(lambda af: af.fpath not in compiled, to_compile))
-        compile_next = self.get_compile_next(compiled, to_compile)
 
-        logger.info(f"\ncompiling {len(compile_next)} of {len(to_compile)} remaining files")
+
+
+    def compile_pass_old_DELETE_ME(self, compiled: Dict[Path, CompiledFile], uncompiled: List, config):
+
+        # remove compiled from uncompiled
+        uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
+
+        # what can we compile next?
+        compile_next = self.get_compile_next(compiled, uncompiled)
+
+        # compile
+        logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
         results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
         check_for_errors(results_this_pass, caller_label=self.name)
 
-        # check what we did compile
+        # check what we compiled
         compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
         if len(compiled_this_pass) == 0:
             raise RuntimeError(f"Nothing compiled this pass. Needed to compile {compile_next}")
@@ -101,15 +149,15 @@ class CompileFortran(MpExeStep):
         compiled.update({cf.input_fpath: cf for cf in compiled_this_pass})
 
         # remove from remaining to compile
-        to_compile = set(filter(lambda af: af.fpath not in compiled, to_compile))
-        return to_compile
+        uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
+        return uncompiled
 
-    def get_compile_next(self, compiled: Dict[Path, CompiledFile], to_compile: Set[AnalysedFile]) -> Set[AnalysedFile]:
+    def get_compile_next(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFile]) -> Set[AnalysedFile]:
 
         # find what to compile next
         compile_next = set()
         not_ready: Dict[Path, List[Path]] = {}
-        for af in to_compile:
+        for af in uncompiled:
             # all deps ready?
             unfulfilled = [dep for dep in af.file_deps if dep not in compiled and dep.suffix == '.f90']
             if unfulfilled:
@@ -118,7 +166,7 @@ class CompileFortran(MpExeStep):
                 compile_next.add(af)
 
         # unable to compile anything?
-        if len(to_compile) and not compile_next:
+        if len(uncompiled) and not compile_next:
             msg = 'Nothing more can be compiled due to unfulfilled dependencies:\n'
             for f, unf in not_ready.items():
                 msg += f'\n\n{f}'

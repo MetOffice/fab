@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from fab.constants import BUILD_TREES, COMPILED_FILES
+from fab.constants import BUILD_TREES, OBJECT_FILES
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
@@ -60,7 +60,7 @@ class Test_run(object):
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
             compiler.run(artefact_store, config=None)
 
-        compiled = artefact_store[COMPILED_FILES]
+        compiled = artefact_store[OBJECT_FILES]
         # expected = [i.input_fpath.with_suffix('.o') for i in reversed(analysed_files)]
         expected = {None: {i.fpath.with_suffix('.o') for i in analysed_files}}
         assert compiled == expected
@@ -75,3 +75,63 @@ class Test_run(object):
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
             with pytest.raises(RuntimeError):
                 compiler.run(artefact_store, config=None)
+
+
+class Test_store_artefacts(object):
+
+    def test_vanilla(self, compiler):
+
+        # what we wanted to compile
+        build_trees = {
+            'root1': [
+                mock.Mock(fpath=Path('root1.f90')),
+                mock.Mock(fpath=Path('dep1.f90')),
+            ],
+            'root2': [
+                mock.Mock(fpath=Path('root2.f90')),
+                mock.Mock(fpath=Path('dep2.f90')),
+            ],
+        }
+
+        # what we actually compiled
+        compiled_files = {
+            Path('root1.f90'): mock.Mock(input_fpath=Path('root1.f90'), output_fpath=Path('root1.o')),
+            Path('dep1.f90'): mock.Mock(input_fpath=Path('dep1.f90'), output_fpath=Path('dep1.o')),
+            Path('root2.f90'): mock.Mock(input_fpath=Path('root2.f90'), output_fpath=Path('root2.o')),
+            Path('dep2.f90'): mock.Mock(input_fpath=Path('dep2.f90'), output_fpath=Path('dep2.o')),
+        }
+
+        # where it stores the object paths
+        artefact_store = {}
+
+        compiler.store_artefacts(compiled_files=compiled_files, build_trees=build_trees, artefact_store=artefact_store)
+
+        assert artefact_store == {
+            OBJECT_FILES: {
+                'root1': {Path('root1.o'), Path('dep1.o')},
+                'root2': {Path('root2.o'), Path('dep2.o')},
+            }
+        }
+
+
+class Test_comple_pass(object):
+
+    def test_vanilla(self, compiler):
+
+        compiled_files: Dict[Path, CompiledFile] = {
+            Path(): mock.Mock(),
+        }
+
+        to_compile: List = [
+            An
+        ]
+
+        config = {}
+
+        compiler.compile_pass(compiled=compiled_files, uncompiled=to_compile, config=config)
+
+    def test_last_pass(self, compiler):
+        pass
+
+    def test_nothing_compiled(self, compiler):
+        pass
