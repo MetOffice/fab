@@ -289,6 +289,7 @@ class MyCustomCodeFixes(Step):
 
 def case_insensitive_replace(in_str: str, find: str, replace_with: str):
     """
+    Replace, for example, NameListFile *or* NAMELISTFILE with the given string.
 
     """
     compiled_re = re.compile(find, re.IGNORECASE)
