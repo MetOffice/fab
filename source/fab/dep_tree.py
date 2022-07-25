@@ -9,7 +9,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 """
 import logging
 from pathlib import Path
-from typing import Set, Dict, Iterable
+from typing import Set, Dict, Iterable, Union
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,9 @@ class AnalysedFile(object):
 
     """
 
-    def __init__(self, fpath, file_hash, module_defs=None, symbol_defs=None, symbol_deps=None, file_deps=None,
-                 mo_commented_file_deps=None):
-        self.fpath: Path = Path(fpath)
+    def __init__(self, fpath: Union[str, Path], file_hash: int, module_defs=None, symbol_defs=None,
+                 symbol_deps=None, file_deps=None, mo_commented_file_deps=None):
+        self.fpath = Path(fpath)
         self.file_hash = file_hash
         self.module_defs: Set[str] = set(module_defs or {})  # a subset of symbol_defs
         self.symbol_defs: Set[str] = set(symbol_defs or {})
@@ -40,7 +40,7 @@ class AnalysedFile(object):
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
 
-        # todo: this feels a little clanky. We could just maintain separate lists of moduloes and other symbols,
+        # todo: this feels a little clanky. We could just maintain separate lists of modules and other symbols,
         #   but that feels more clanky.
         assert self.module_defs <= self.symbol_defs, "modules must be symbols"
 
