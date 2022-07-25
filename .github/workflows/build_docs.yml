@@ -1,4 +1,3 @@
-# Please keep in sync with /environment.yml
 name: Build Docs
 
 on: workflow_dispatch
