@@ -1,0 +1,41 @@
+name: Build Docs
+
+on: workflow_dispatch
+
+jobs:
+  build-docs:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: set git user
+      run: |
+        git config --global user.email "metomi@metoffice.gov.uk"
+        git config --global user.name "SciFab Developers"
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    - name: install sphinx
+      run: pip install sphinx sphinx-rtd-theme
+    - name: install fab
+      run: pip install .
+    - name: build docs
+      run: |
+        cd docs
+        rm -rf build
+        sphinx-apidoc -f -o source/apidoc ../source/fab
+        make html
+    - name: move built docs to docs root
+      run: |
+        mv docs/build/html/* docs/
+    - name: git add built docs
+      run: |
+        git add docs/*
+    - name: commit
+      run: |
+        git commit -m "docs build"
+    - name: push to gh_pages branch
+      run: |
+        echo "pushing from $GITHUB_REF_NAME to gh_pages"
+        git push --force origin $GITHUB_REF_NAME:gh_pages
