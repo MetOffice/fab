@@ -101,7 +101,7 @@ class FindSourceFiles(Step):
         :param path_filters:
             Iterable of PathFilter for inclusions and exclusions. The filters are processed in order.
         :param name:
-            A human-friendly label for this step, with a sensible default.
+            Human friendly name for logger output, with sensible default.
 
         """
         super().__init__(name)
@@ -111,9 +111,14 @@ class FindSourceFiles(Step):
 
     def run(self, artefact_store, config):
         """
-        Recursively get all files in the given folder.
+        Recursively get all files in the given folder, with filtering.
 
-        Requires no input artefact_store. By default, creates the "all_source" label in the artefacts.
+        :param artefact_store:
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
 
         """
         super().run(artefact_store, config)

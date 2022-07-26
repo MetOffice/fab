@@ -14,7 +14,7 @@ LFRIC_REVISION = 36615
 def lfric_source_config(revision=LFRIC_REVISION):
     return BuildConfig(
         project_label=f'lfric source {revision}',
-        steps=[GrabFcm(src='fcm:lfric.xm_tr', revision=revision, dst_label='lfric')]
+        steps=[GrabFcm(src='fcm:lfric.xm_tr', revision=revision, dst='lfric')]
     )
 
 
@@ -22,7 +22,7 @@ def gpl_utils_source_config(revision=LFRIC_REVISION):
     return BuildConfig(
         project_label=f'lfric source {revision}',
         steps=[GrabSvn(src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
-                       revision=revision, dst_label='gpl_utils')]
+                       revision=revision, dst='gpl_utils')]
     )
 
 

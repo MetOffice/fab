@@ -19,7 +19,7 @@ def gcom_grab_config(revision=None):
     return BuildConfig(
         project_label=f'gcom_source_{revision}',
         steps=[
-            GrabFcm(src='fcm:gcom.xm_tr/build', revision=revision, dst_label="gcom"),
+            GrabFcm(src='fcm:gcom.xm_tr/build', revision=revision, dst="gcom"),
         ])
 
 

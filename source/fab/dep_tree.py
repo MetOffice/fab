@@ -7,6 +7,9 @@
 Classes and helper functions related to the dependency tree, as created by the analysis stage.
 
 """
+
+# todo: we've since adopted the term "source tree", so we should probably rename this module to match.
+
 import logging
 from pathlib import Path
 from typing import Set, Dict, Iterable, Union
@@ -17,15 +20,35 @@ logger = logging.getLogger(__name__)
 # todo: this might be better placed in the analyse step
 class AnalysedFile(object):
     """
-    An analysis result for a single file, containing symbol definitions and depdendencies.
+    An analysis result for a single file, containing symbol definitions and dependencies.
 
-    File dependencies will also be stored here.
-    The object can present itself as a dict for use with a csv.DictWriter.
+    File dependencies are set after construction.
+
+    The object can represent itself as a dict for use with a csv.DictWriter.
 
     """
-
     def __init__(self, fpath: Union[str, Path], file_hash: int, module_defs=None, symbol_defs=None,
                  symbol_deps=None, file_deps=None, mo_commented_file_deps=None):
+        """
+        :param fpath:
+            The source file that was analysed.
+        :param file_hash:
+            The hash of the source.
+        :param module_defs:
+            Set of module names defined by this source file.
+            A subset of symbol_defs
+        :param symbol_defs:
+            Set of symbol names defined by this source file.
+        :param symbol_deps:
+            Set of symbol names used by this source file.
+            Can include symbols in the same file.
+        :param file_deps:
+            Other files on which this source depends. Must not include itself.
+        :param mo_commented_file_deps:
+            A set of C file names, without paths, on which this file depends.
+            Comes from "DEPENDS ON:" comments which end in ".o".
+
+        """
         self.fpath = Path(fpath)
         self.file_hash = file_hash
         self.module_defs: Set[str] = set(module_defs or {})  # a subset of symbol_defs
@@ -118,30 +141,35 @@ class AnalysedFile(object):
         )
 
 
-# Possibly overkill to have a class for this.
+# Possibly overkill to have a class for this, but it makes analysis code simpler via type filtering.
 class EmptySourceFile(object):
     """
     An analysis result for a file which resulted in an empty parse tree.
 
     """
-
-    def __init__(self, fpath):
+    def __init__(self, fpath: Path):
         self.fpath = fpath
 
 
-def extract_sub_tree(
-        src_tree: Dict[Path, AnalysedFile], key: Path, verbose=False) -> Dict[Path, AnalysedFile]:
+def extract_sub_tree(source_tree: Dict[Path, AnalysedFile], root: Path, verbose=False) -> Dict[Path, AnalysedFile]:
     """
-    Extract the subtree required to build the target, from the full dict of all analysed source files.
+    Extract the subtree required to build the target, from the full source tree of all analysed source files.
+
+    :param source_tree:
+        The source tree of analysed files.
+    :param root:
+        The root of the dependency tree, this is the filename containing the Fortran program.
+    :param verbose:
+        Log missing dependencies.
 
     """
     result: Dict[Path, AnalysedFile] = dict()
     missing: Set[Path] = set()
 
-    _extract_sub_tree(src_tree=src_tree, key=key, dst_tree=result, missing=missing, verbose=verbose)
+    _extract_sub_tree(src_tree=source_tree, key=root, dst_tree=result, missing=missing, verbose=verbose)
 
     if missing:
-        logger.warning(f"{key} has missing deps: {missing}")
+        logger.warning(f"{root} has missing deps: {missing}")
 
     return result
 
@@ -178,8 +206,10 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
 def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
+    These are the comments which refer to a .o file and not those which just refer to symbols.
 
-    (These do not include "DEPENDS ON:" code comments which refer to symbols)
+    :param source_tree:
+        The source tree of analysed files.
 
     """
     analysed_fortran = filter_source_tree(source_tree, '.f90')
@@ -196,24 +226,31 @@ def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
 
 def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable[str]):
     """
-    Pull out files with the given extension from a source tree.
+    Pull out files with the given extensions from a source tree.
 
     Returns a list of :class:`~fab.dep_tree.AnalysedFile`.
+
+    :param source_tree:
+        The source tree of analysed files.
+    :param suffixes:
+        The suffixes we want, including the dot.
 
     """
     all_files: Iterable[AnalysedFile] = source_tree.values()
     return [af for af in all_files if af.fpath.suffix in suffixes]
 
 
-def validate_dependencies(build_tree):
+def validate_dependencies(source_tree):
     """
-    If any dep is not in the tree, then it's unknown code and we won't be able to compile.
+    If any dep is missing from the tree, then it's unknown code and we won't be able to compile.
 
-    This was added as a helpful message when building the unreferenced dependencies list.
+    :param source_tree:
+        The source tree of analysed files.
+
     """
     missing = set()
-    for f in build_tree.values():
-        missing.update([str(file_dep) for file_dep in f.file_deps if file_dep not in build_tree])
+    for f in source_tree.values():
+        missing.update([str(file_dep) for file_dep in f.file_deps if file_dep not in source_tree])
 
     if missing:
         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")

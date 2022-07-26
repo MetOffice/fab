@@ -4,7 +4,8 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-A step for running multiple files through a command line tool using multiprocessing.
+A step for running multiple files through a command line tool using multiprocessing,
+with common and path-specific flags.
 
 """
 from typing import Dict, List
@@ -12,6 +13,11 @@ from typing import Dict, List
 from fab.build_config import FlagsConfig, AddFlags
 
 from fab.steps import Step
+
+
+# todo: this seems misnamed.
+#   It's a base class for steps which call a command line tool in parallel,
+#   with flags and path-specific flags. Perhaps we don't need it all all, it's small.
 
 
 # Initial motivation: unify constructors for preprocessors and compilers as they were already diverging.
@@ -28,4 +34,13 @@ class MpExeStep(Step):
 
     # todo: can we do more up in this superclass?
     def run(self, artefact_store: Dict, config):
+        """
+        :param artefact_store:
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
+
+        """
         super().run(artefact_store, config)

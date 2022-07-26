@@ -3,6 +3,10 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+"""
+Contains the :class:`~fab.build_config.BuildConfig` and helper classes.
+
+"""
 import getpass
 import logging
 import os
@@ -26,29 +30,30 @@ class BuildConfig(object):
     """
     Contains and runs a list of build steps.
 
-    :param str project_label:
-        Name of the build project. The project workspace folder is created from this name, with spaces replaced
-        by underscores.
-    :param Path source_root:
-        Optional argument to allow the config to find the source code outside it's project workspace.
-        This is useful, for example, when the :py:mod:`fab.steps.grab <grab>` is in a separate script to be run
-        less frequently. In this scenario, the source code will be found in a  different project workspace folder.
-    :param List[Step] steps:
-        The list of build steps to run.
-    :param bool multiprocessing:
-        An option to disable multiprocessing to aid debugging.
-    :param int n_procs:
-        The number of cores to use for multiprocessing operations. Defaults to the number of available cores - 1.
-    :param bool reuse_artefacts:
-        A flag to avoid reprocessing artefacts a second time.
-        WARNING: Currently unsophisticated, the mere existence of an output file means it won't be reprocessed.
-        The logic behind flag will be improved in the future.
-
     """
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
                  multiprocessing=True, n_procs: int = None, reuse_artefacts=False):
+        """
+        :param str project_label:
+            Name of the build project. The project workspace folder is created from this name, with spaces replaced
+            by underscores.
+        :param Path source_root:
+            Optional argument to allow the config to find source code outside it's project workspace.
+            This is useful, for example, when the :py:mod:`fab.steps.grab <grab>` is in a separate script to be run
+            less frequently. In this scenario, the source code will be found in a different project workspace folder.
+        :param List[Step] steps:
+            The list of build steps to run.
+        :param bool multiprocessing:
+            An option to disable multiprocessing to aid debugging.
+        :param int n_procs:
+            The number of cores to use for multiprocessing operations. Defaults to the number of available cores.
+        :param bool reuse_artefacts:
+            A flag to avoid reprocessing certain files on subsequent runs.
+            WARNING: Currently unsophisticated, this flag should only be used by Fab developers.
+            The logic behind flag will soon be improved, in a work package called "incremental build".
 
+        """
         self.project_label: str = project_label
 
         # workspace folder
@@ -134,21 +139,47 @@ class BuildConfig(object):
         metrics_summary(metrics_folder=self.metrics_folder)
 
 
+# todo: better name? perhaps PathFlags?
 class AddFlags(object):
     """
-    Add flags when our path filter matches.
-
-    For example, add an include path for certain sub-folders.
+    Add command-line flags when our path filter matches.
+    Generally used inside a :class:`~fab.build_config.FlagsConfig`.
 
     """
-
     def __init__(self, match: str, flags: List[str]):
+        """
+        :param match:
+            The string to match against each file path.
+        :param flags:
+            The command-line flags to add for matching files.
+
+        Both the *match* and *flags* arguments can make use of templating.
+
+        For example::
+
+            # For source in the um folder, add an absolute include path
+            AddFlags(match="$source/um/*", flags=['-I$source/include']),
+
+            # For source in the um folder, add an include path relative to each source file.
+            AddFlags(match="$source/um/*", flags=['-I$relative/include']),
+
+        """
         self.match: str = match
         self.flags: List[str] = flags
 
+    # todo: we don't need the project_workspace, we could just pass in the output folder
     def run(self, fpath: Path, input_flags: List[str], source_root: Path, project_workspace: Path):
         """
-        See if our filter matches the incoming file. If it does, add our flags.
+        Check if our filter matches a given file. If it does, add our flags.
+
+        :param fpath:
+            Filepath to check.
+        :param input_flags:
+            The list of command-line flags Fab is building for this file.
+        :param source_root:
+            For templating `$source`.
+        :param project_workspace:
+            For templating `$output`.
 
         """
         params = {'relative': fpath.parent, 'source': source_root, 'output': project_workspace / BUILD_OUTPUT}
@@ -164,20 +195,35 @@ class AddFlags(object):
 
 class FlagsConfig(object):
     """
-    Return flags for a given path. Contains a list of PathFlags.
+    Return command-line flags for a given path.
 
-    Multiple path filters can match a given path.
-    For now, simply allows appending flags but will likely evolve to replace or remove flags.
+    Simply allows appending flags but may evolve to also replace and remove flags.
 
     """
 
     def __init__(self, common_flags=None, path_flags: List[AddFlags] = None):
+        """
+        :param common_flags:
+            Flags to apply to all files.
+        :param path_flags:
+            Flags to apply to selected files.
+
+        """
         self.common_flags = common_flags or []
         self.path_flags = path_flags or []
 
     # todo: there's templating both in this method and the run method it calls.
     #       make sure it's all properly documented and rationalised.
-    def flags_for_path(self, path, source_root, project_workspace):
+    def flags_for_path(self, path: Path, source_root: Path, project_workspace: Path):
+        """
+        :param path:
+            The file path for which we want command-line flags.
+        :param source_root:
+            Passed through for templating.
+        :param project_workspace:
+            Passed through for templating.
+
+        """
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,
         # so we take care of it for them here instead.
