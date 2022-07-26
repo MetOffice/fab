@@ -23,7 +23,7 @@ def src_tree():
 class Test_extract_sub_tree(object):
 
     def test_vanilla(self, src_tree):
-        result = extract_sub_tree(src_tree=src_tree, key=Path('root.f90'))
+        result = extract_sub_tree(source_tree=src_tree, root=Path('root.f90'))
         expect = src_tree.copy()
         del expect[Path('foo.f90')]
         assert result == expect
