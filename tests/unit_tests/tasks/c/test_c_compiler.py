@@ -13,6 +13,7 @@ from fab.build_config import AddFlags
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_c import CompileC
 
+# TOD: THIS SHOULD BE IN THE STEPS FOLDER, NOT TASKS
 
 class Test_Compiler(object):
 

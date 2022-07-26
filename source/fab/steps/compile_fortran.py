@@ -39,7 +39,7 @@ class CompileFortran(MpExeStep):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
-        # runtime
+        # runtime attributes for subprocess to read
         self._last_compile: Dict[Path, CompiledFile] = {}
         self._mod_hashes: Dict[str, int] = {}
 
@@ -53,10 +53,7 @@ class CompileFortran(MpExeStep):
         super().run(artefact_store, config)
 
         # read csv of last compile states
-        self._last_compile = self.read_compile_result()
-
-        # mod hashes are made available to subprocesses for reading, and updated each pass with new mods
-        self._mod_hashes = {}
+        self._last_compile = self.read_compile_result(config)
 
         # get all the source to compile, for all build trees, into one big lump
         build_trees: Dict[str, List] = self.source_getter(artefact_store)
@@ -78,8 +75,6 @@ class CompileFortran(MpExeStep):
 
         # what can we compile next?
         compile_next = self.get_compile_next(compiled, uncompiled)
-        if len(compile_next) == 0:
-            raise RuntimeError(f"Nothing can be compiled this pass. Needed to compile {uncompiled}")
 
         # compile
         logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
@@ -96,59 +91,6 @@ class CompileFortran(MpExeStep):
         compiled.update({cf.input_fpath: cf for cf in compiled_this_pass})
 
         # remove compiled files from remaining files
-        uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
-        return uncompiled
-
-
-
-
-
-
-
-
-    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile], build_trees: Dict[str, List], artefact_store):
-        """
-        Create our artefact collection; object files for each compiled file, per root symbol.
-
-        """
-        # add the targets' new object files to the artefact store
-        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled_files.values()}
-        object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
-        for root, source_files in build_trees.items():
-            new_objects = [lookup[af.fpath].output_fpath for af in source_files]
-            object_files[root].update(new_objects)
-
-
-
-
-
-    def compile_pass_old_DELETE_ME(self, compiled: Dict[Path, CompiledFile], uncompiled: List, config):
-
-        # remove compiled from uncompiled
-        uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
-
-        # what can we compile next?
-        compile_next = self.get_compile_next(compiled, uncompiled)
-
-        # compile
-        logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
-        results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
-        check_for_errors(results_this_pass, caller_label=self.name)
-
-        # check what we compiled
-        compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
-        if len(compiled_this_pass) == 0:
-            raise RuntimeError(f"Nothing compiled this pass. Needed to compile {compile_next}")
-        logger.debug(f"compiled {len(compiled_this_pass)} files")
-
-        # hash the modules we just created
-        new_mod_hashes = get_mod_hashes(compile_next, config)
-        self._mod_hashes.update(new_mod_hashes)
-
-        # remove compiled files from list
-        compiled.update({cf.input_fpath: cf for cf in compiled_this_pass})
-
-        # remove from remaining to compile
         uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
         return uncompiled
 
@@ -173,9 +115,21 @@ class CompileFortran(MpExeStep):
                 for u in unf:
                     msg += f'\n    {str(u)}'
 
-            raise RuntimeError(msg)
+            raise ValueError(msg)
 
         return compile_next
+
+    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile], build_trees: Dict[str, List], artefact_store):
+        """
+        Create our artefact collection; object files for each compiled file, per root symbol.
+
+        """
+        # add the targets' new object files to the artefact store
+        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled_files.values()}
+        object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
+        for root, source_files in build_trees.items():
+            new_objects = [lookup[af.fpath].output_fpath for af in source_files]
+            object_files[root].update(new_objects)
 
     # todo: identical to the c version - make a super class
     def process_file(self, analysed_file: AnalysedFile):
@@ -291,7 +245,7 @@ class CompileFortran(MpExeStep):
         # compilation_progress_file.flush()
         # compilation_progress_file.close()
 
-    def read_compile_result(self) -> Dict[Path, CompiledFile]:
+    def read_compile_result(self, config) -> Dict[Path, CompiledFile]:
         """
         Read the results of the last compile run.
 
@@ -299,7 +253,7 @@ class CompileFortran(MpExeStep):
         with TimerLogger('loading compile results'):
             prev_results: Dict[Path, CompiledFile] = dict()
             try:
-                with open(self._config.project_workspace / COMPILATION_CSV, "rt") as csv_file:
+                with open(config.project_workspace / COMPILATION_CSV, "rt") as csv_file:
                     dict_reader = csv.DictReader(csv_file)
                     for row in dict_reader:
                         compiled_file = CompiledFile.from_str_dict(row)

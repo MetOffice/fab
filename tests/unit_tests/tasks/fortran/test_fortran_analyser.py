@@ -37,12 +37,12 @@ class Test_Analyser(object):
     def test_empty_file(self):
         mock_tree = Mock(content=[None])
         with mock.patch('fab.tasks.fortran.FortranAnalyser._parse_file', return_value=mock_tree):
-            result = FortranAnalyser().run(HashedFile(fpath=None, file_hash=None))
+            result = FortranAnalyser().run(HashedFile(input_fpath=None, file_hash=None))
 
         assert type(result) is EmptySourceFile
 
     def test_module_file(self, module_fpath, module_expected):
-        result = FortranAnalyser().run(HashedFile(fpath=module_fpath, file_hash=None))
+        result = FortranAnalyser().run(HashedFile(input_fpath=module_fpath, file_hash=None))
         assert result == module_expected
 
     def test_program_file(self, module_fpath, module_expected):
@@ -50,7 +50,7 @@ class Test_Analyser(object):
         with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
             tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
             tmp_file.flush()
-            result = FortranAnalyser().run(HashedFile(fpath=Path(tmp_file.name), file_hash=None))
+            result = FortranAnalyser().run(HashedFile(input_fpath=Path(tmp_file.name), file_hash=None))
 
             module_expected.fpath = Path(tmp_file.name)
             module_expected.module_defs = set()

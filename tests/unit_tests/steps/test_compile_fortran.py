@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+
 from fab.constants import BUILD_TREES, OBJECT_FILES
 
 from fab.dep_tree import AnalysedFile
@@ -29,14 +30,31 @@ def artefact_store(analysed_files):
     return artefact_store
 
 
+class Test_compile_pass(object):
+
+    def test_vanilla(self, compiler, analysed_files):
+        a, b, c = analysed_files
+        uncompiled = {a, b}
+        compiled = {c.fpath: mock.Mock(input_fpath=c.fpath)}
+
+        run_mp_results = [mock.Mock(spec=CompiledFile, input_fpath=Path('b.f90'))]
+
+        with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', return_value=run_mp_results):
+            with mock.patch('fab.steps.compile_fortran.get_mod_hashes'):
+                uncompiled_result = compiler.compile_pass(compiled=compiled, uncompiled=uncompiled, config=None)
+
+        assert Path('b.f90') in compiled
+        assert list(uncompiled_result)[0].fpath == Path('a.f90')
+
+
 class Test_get_compile_next(object):
 
     def test_vanilla(self, compiler, analysed_files):
         a, b, c = analysed_files
-        to_compile = {a, b}
-        already_compiled_files = {c.fpath}
+        uncompiled = {a, b}
+        compiled = {c.fpath: mock.Mock(input_fpath=c.fpath)}
 
-        compile_next = compiler.get_compile_next(already_compiled_files, to_compile)
+        compile_next = compiler.get_compile_next(compiled, uncompiled)
 
         assert compile_next == {b, }
 
@@ -46,35 +64,8 @@ class Test_get_compile_next(object):
         to_compile = {a, b}
         already_compiled_files = set([])
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(ValueError):
             compiler.get_compile_next(already_compiled_files, to_compile)
-
-
-class Test_run(object):
-
-    def test_vanilla(self, compiler, analysed_files, artefact_store):
-
-        def mp_return(items, func):
-            return [CompiledFile(input_fpath=i.input_fpath, output_fpath=i.input_fpath.with_suffix('.o')) for i in items]
-
-        with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
-            compiler.run(artefact_store, config=None)
-
-        compiled = artefact_store[OBJECT_FILES]
-        # expected = [i.input_fpath.with_suffix('.o') for i in reversed(analysed_files)]
-        expected = {None: {i.fpath.with_suffix('.o') for i in analysed_files}}
-        assert compiled == expected
-
-    def test_exception(self, compiler, analysed_files, artefact_store):
-        # Like vanilla but run_mp returns an exception from the compiler.
-        # All exceptions from a single pass are collated and raised together.
-
-        def mp_return(items, func):
-            return [Exception("Pretend it didn't compile") for i in items]
-
-        with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', side_effect=mp_return):
-            with pytest.raises(RuntimeError):
-                compiler.run(artefact_store, config=None)
 
 
 class Test_store_artefacts(object):
@@ -101,7 +92,7 @@ class Test_store_artefacts(object):
             Path('dep2.f90'): mock.Mock(input_fpath=Path('dep2.f90'), output_fpath=Path('dep2.o')),
         }
 
-        # where it stores the object paths
+        # where it stores the results
         artefact_store = {}
 
         compiler.store_artefacts(compiled_files=compiled_files, build_trees=build_trees, artefact_store=artefact_store)
@@ -114,24 +105,12 @@ class Test_store_artefacts(object):
         }
 
 
-class Test_comple_pass(object):
+class Test_process_file(object):
+    pass
 
-    def test_vanilla(self, compiler):
 
-        compiled_files: Dict[Path, CompiledFile] = {
-            Path(): mock.Mock(),
-        }
+# compile_file?
 
-        to_compile: List = [
-            An
-        ]
+# recompile_check
 
-        config = {}
-
-        compiler.compile_pass(compiled=compiled_files, uncompiled=to_compile, config=config)
-
-    def test_last_pass(self, compiler):
-        pass
-
-    def test_nothing_compiled(self, compiler):
-        pass
+# write_compile_result & read_compile_result - perhaps as integration tests?

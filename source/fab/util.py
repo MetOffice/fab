@@ -124,14 +124,14 @@ class TimerLogger(Timer):
 # todo: move this
 class CompiledFile(object):
     def __init__(self, input_fpath, output_fpath,
-                 source_hash, flags_hash, module_deps_hashes: Dict[str, int]):
+                 source_hash=None, flags_hash=None, module_deps_hashes: Dict[str, int] = None):
         # todo: Should just be the input_fpath, not the whole analysed file
         self.input_fpath = Path(input_fpath)
         self.output_fpath = Path(output_fpath)
 
-        self.source_hash = source_hash
-        self.flags_hash = flags_hash
-        self.module_deps_hashes = module_deps_hashes
+        self.source_hash = source_hash or 0
+        self.flags_hash = flags_hash or 0
+        self.module_deps_hashes = module_deps_hashes or {}
 
     #
     # persistence
@@ -222,7 +222,7 @@ def by_type(iterable, cls):
     return filter(lambda i: isinstance(i, cls), iterable)
 
 
-def check_for_errors(results, caller_label=None):
+def check_for_errors(results: Iterable, caller_label=None):
     """
     A helper function for multiprocessing steps, checks a list of results for any exceptions and handles gracefully.
     """
@@ -245,8 +245,6 @@ def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
     for af in analysed_files:
         for mod_def in af.module_defs:
             fpath: Path = config.project_workspace / BUILD_OUTPUT / f'{mod_def}.mod'
-            if not fpath.exists():
-                raise FileNotFoundError(f"module file not found {fpath}")
             mod_hashes[mod_def] = file_checksum(fpath).file_hash
 
     return mod_hashes

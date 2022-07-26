@@ -1,10 +1,12 @@
 from pathlib import Path
+from typing import Set, Dict
 from unittest import mock
 
 import pytest
+from fab.dep_tree import AnalysedFile
 
 from fab.artefacts import CollectionConcat, SuffixFilter
-from fab.util import run_command
+from fab.util import run_command, check_for_errors, get_mod_hashes
 from fab.util import suffix_filter, case_insensitive_replace
 
 
@@ -89,3 +91,31 @@ class TestSuffixFilter(object):
         getter = SuffixFilter('barz', ['.b', '.c'])
         result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
         assert result == [Path('bar.b'), Path('bar.c')]
+
+
+class Test_check_for_errors(object):
+
+    def test_no_error(self):
+        check_for_errors(['foo', 'bar'])
+
+    def test_error(self):
+        with pytest.raises(RuntimeError):
+            check_for_errors(['foo', MemoryError('bar')])
+
+
+class Test_get_mod_hashes(object):
+
+    def test_vanilla(self):
+        # get a hash value for every module in the analysed file
+        analysed_files = {
+            mock.Mock(module_defs=['foo', 'bar']),
+        }
+
+        config = mock.Mock(project_workspace=Path('proj'))
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
+            with mock.patch('fab.util.file_checksum', side_effect=[mock.Mock(file_hash=123), mock.Mock(file_hash=456)]):
+                result = get_mod_hashes(analysed_files=analysed_files, config=config)
+
+        assert result == {'foo': 123, 'bar': 456}
+
