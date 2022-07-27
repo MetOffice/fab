@@ -6,7 +6,8 @@ import pytest
 from fab.constants import BUILD_TREES, OBJECT_FILES
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.compile_fortran import CompileFortran
+from fab.steps.compile_fortran import CompileFortran, NO_PREVIOUS_RESULT, SOURCE_CHANGED, FLAGS_CHANGED, \
+    MODULE_DEPENDENCIES_CHANGED, OBJECT_FILE_NOT_PRESENT, MODULE_FILE_NOT_PRESENT
 from fab.util import CompiledFile
 
 
@@ -62,7 +63,7 @@ class Test_get_compile_next(object):
         # like vanilla, except c hasn't been compiled
         a, b, c = analysed_files
         to_compile = {a, b}
-        already_compiled_files = set([])
+        already_compiled_files = {}
 
         with pytest.raises(ValueError):
             compiler.get_compile_next(already_compiled_files, to_compile)
@@ -109,8 +110,86 @@ class Test_process_file(object):
     pass
 
 
-# compile_file?
+class Test_recompile_check(object):
 
-# recompile_check
+    @pytest.fixture
+    def foo(self, compiler):
+        analysed_file = mock.Mock(fpath=Path('mod.f90'), file_hash=111, module_defs={'mod'}, module_deps={'foo', 'bar'})
+        flags_hash = 222
+        last_compile = mock.Mock(source_hash=111, flags_hash=222, module_deps_hashes={'foo': 333, 'bar': 444})
 
-# write_compile_result & read_compile_result - perhaps as integration tests?
+        compiler._config = mock.Mock(project_workspace=Path('proj'))
+        compiler._mod_hashes = {'foo': 333, 'bar': 444}
+
+        return analysed_file, flags_hash, last_compile, compiler
+
+    def test_first_encounter(self, compiler):
+        result = compiler.recompile_check(analysed_file=None, flags_hash=None, last_compile=None)
+        assert result == NO_PREVIOUS_RESULT
+
+    def test_nothing_changed(self, foo):
+        analysed_file, flags_hash, last_compile, compiler = foo
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
+            recompile_reasons = compiler.recompile_check(
+                analysed_file=analysed_file, flags_hash=flags_hash, last_compile=last_compile)
+
+        assert not recompile_reasons
+
+    def test_source_changed(self, foo):
+        analysed_file, flags_hash, last_compile, compiler = foo
+        analysed_file.file_hash = 999
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
+            recompile_reasons = compiler.recompile_check(
+                analysed_file=analysed_file, flags_hash=flags_hash, last_compile=last_compile)
+
+        assert recompile_reasons == SOURCE_CHANGED
+
+    def test_flags_changed(self, foo):
+        analysed_file, _, last_compile, compiler = foo
+        flags_hash = 999
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
+            recompile_reasons = compiler.recompile_check(
+                analysed_file=analysed_file, flags_hash=flags_hash, last_compile=last_compile)
+
+        assert recompile_reasons == FLAGS_CHANGED
+
+    def test_mod_deps_changed(self, foo):
+        analysed_file, flags_hash, last_compile, compiler = foo
+        compiler._mod_hashes['bar'] = 999
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
+            recompile_reasons = compiler.recompile_check(
+                analysed_file=analysed_file, flags_hash=flags_hash, last_compile=last_compile)
+
+        assert recompile_reasons == MODULE_DEPENDENCIES_CHANGED
+
+    def test_obj_missing(self, foo):
+        analysed_file, flags_hash, last_compile, compiler = foo
+
+        with mock.patch('pathlib.Path.exists', side_effect=[False, True]):
+            recompile_reasons = compiler.recompile_check(
+                analysed_file=analysed_file, flags_hash=flags_hash, last_compile=last_compile)
+
+        assert recompile_reasons == OBJECT_FILE_NOT_PRESENT
+
+    def test_mod_defs_missing(self, foo):
+        analysed_file, flags_hash, last_compile, compiler = foo
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, False]):
+            recompile_reasons = compiler.recompile_check(
+                analysed_file=analysed_file, flags_hash=flags_hash, last_compile=last_compile)
+
+        assert recompile_reasons == MODULE_FILE_NOT_PRESENT
+
+    # def multiple_reasons(self, foo):
+    #     # ensure multiple reasons get joined and returned
+    #     pass
+
+
+
+# todo: test compile_file here? it's just glue
+
+# todo: test write_compile_result & read_compile_result here - perhaps as integration tests?

@@ -30,6 +30,14 @@ DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
 COMPILATION_CSV = "__fortran_compilation.csv"
 
+# reasons to recompile, stored as constants for testability
+NO_PREVIOUS_RESULT = 'no previous result'
+SOURCE_CHANGED = 'source changed'
+FLAGS_CHANGED = 'flags changed'
+MODULE_DEPENDENCIES_CHANGED = 'module dependencies changed'
+OBJECT_FILE_NOT_PRESENT = 'object file not present'
+MODULE_FILE_NOT_PRESENT = 'module file(s) file not present'
+
 
 class CompileFortran(MpExeStep):
 
@@ -40,7 +48,7 @@ class CompileFortran(MpExeStep):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
         # runtime attributes for subprocess to read
-        self._last_compile: Dict[Path, CompiledFile] = {}
+        self._last_compiles: Dict[Path, CompiledFile] = {}
         self._mod_hashes: Dict[str, int] = {}
 
     def run(self, artefact_store, config):
@@ -53,7 +61,7 @@ class CompileFortran(MpExeStep):
         super().run(artefact_store, config)
 
         # read csv of last compile states
-        self._last_compile = self.read_compile_result(config)
+        self._last_compiles = self.read_compile_result(config)
 
         # get all the source to compile, for all build trees, into one big lump
         build_trees: Dict[str, List] = self.source_getter(artefact_store)
@@ -150,7 +158,7 @@ class CompileFortran(MpExeStep):
         flags_hash = string_checksum(str(flags))
 
         # do we need to recompile?
-        last_compile = self._last_compile.get(analysed_file.fpath)
+        last_compile = self._last_compiles.get(analysed_file.fpath)
         recompile_reasons = self.recompile_check(analysed_file, flags_hash, last_compile)
 
         if recompile_reasons:
@@ -176,6 +184,44 @@ class CompileFortran(MpExeStep):
             module_deps_hashes=module_deps_hashes
         )
 
+    def recompile_check(self, analysed_file: AnalysedFile, flags_hash: int, last_compile: CompiledFile):
+
+        # todo: other environmental considerations for the future:
+        #   - env vars, e.g OMPI_FC
+        #   - compiler version
+
+        recompile_reasons = []
+        # first encounter?
+        if not last_compile:
+            recompile_reasons.append(NO_PREVIOUS_RESULT)
+
+        else:
+            # source changed?
+            if analysed_file.file_hash != last_compile.source_hash:
+                recompile_reasons.append(SOURCE_CHANGED)
+
+            # flags changed?
+            if flags_hash != last_compile.flags_hash:
+                recompile_reasons.append(FLAGS_CHANGED)
+
+            # have any of the modules on which we depend changed?
+            module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
+            if module_deps_hashes != last_compile.module_deps_hashes:
+                recompile_reasons.append(MODULE_DEPENDENCIES_CHANGED)
+
+            # is the object file still there?
+            obj_file = analysed_file.fpath.with_suffix('.o')
+            if not obj_file.exists():
+                recompile_reasons.append(OBJECT_FILE_NOT_PRESENT)
+
+            # are the module files we define still there?
+            build_output = self._config.project_workspace / BUILD_OUTPUT
+            mod_def_files = [build_output / f'{mod}.mod' for mod in analysed_file.module_defs]
+            if not all([mod.exists() for mod in mod_def_files]):
+                recompile_reasons.append(MODULE_FILE_NOT_PRESENT)
+
+        return ", ".join(recompile_reasons)
+
     def compile_file(self, analysed_file, flags):
         with Timer() as timer:
             output_fpath = analysed_file.fpath.with_suffix('.o')
@@ -191,44 +237,6 @@ class CompileFortran(MpExeStep):
             run_command(command)
 
         send_metric(self.name, str(analysed_file.fpath), timer.taken)
-
-    def recompile_check(self, analysed_file, flags_hash, last_compile):
-
-        # todo: other environmental considerations for the future:
-        #   - certain env vars, e.g OMPI_FC
-        #   - compiler version
-
-        recompile_reasons = []
-        # first encounter?
-        if not last_compile:
-            recompile_reasons.append('no previous result')
-
-        else:
-            # source changed?
-            if analysed_file.file_hash != last_compile.source_hash:
-                recompile_reasons.append('source changed')
-
-            # flags changed?
-            if flags_hash != last_compile.flags_hash:
-                recompile_reasons.append('flags changed')
-
-            # have any of the modules on which we depend changed?
-            module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
-            if module_deps_hashes != last_compile.module_deps_hashes:
-                recompile_reasons.append('module dependencies changed')
-
-            # is the object file still there?
-            obj_file = analysed_file.fpath.with_suffix('.o')
-            if not obj_file.exists():
-                recompile_reasons.append('object file no longer present')
-
-            # are the module files we define still there?
-            build_output = self._config.project_workspace / BUILD_OUTPUT
-            mod_def_files = [build_output / f'{mod}.mod' for mod in analysed_file.module_defs]
-            if not all([mod.exists() for mod in mod_def_files]):
-                recompile_reasons.append('module file(s) file no longer present')
-
-        return ", ".join(recompile_reasons)
 
     def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
         """
