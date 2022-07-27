@@ -175,6 +175,9 @@ class CompiledFile(object):
             module_deps_hashes=module_deps_hashes,
         )
 
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+
 
 def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path: Path):
     build_output = project_workspace / BUILD_OUTPUT

@@ -243,15 +243,12 @@ class CompileFortran(MpExeStep):
         Write the compilation results to csv.
 
         """
-        compilation_progress_file = open(self._config.project_workspace / COMPILATION_CSV, "wt")
+        compilation_progress_file = open(config.project_workspace / COMPILATION_CSV, "wt")
         dict_writer = csv.DictWriter(compilation_progress_file, fieldnames=CompiledFile.field_names())
         dict_writer.writeheader()
 
         for cf in compiled.values():
             dict_writer.writerow(cf.to_str_dict())
-
-        # compilation_progress_file.flush()
-        # compilation_progress_file.close()
 
     def read_compile_result(self, config) -> Dict[Path, CompiledFile]:
         """

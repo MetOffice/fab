@@ -184,10 +184,17 @@ class Test_recompile_check(object):
 
         assert recompile_reasons == MODULE_FILE_NOT_PRESENT
 
-    # def multiple_reasons(self, foo):
-    #     # ensure multiple reasons get joined and returned
-    #     pass
+    def multiple_reasons(self, foo):
+        analysed_file, flags_hash, last_compile, compiler = foo
+        analysed_file.file_hash = 999
+        flags_hash = 999
 
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
+            recompile_reasons = compiler.recompile_check(
+                analysed_file=analysed_file, flags_hash=flags_hash, last_compile=last_compile)
+
+        assert SOURCE_CHANGED in recompile_reasons
+        assert FLAGS_CHANGED in recompile_reasons
 
 
 # todo: test compile_file here? it's just glue
