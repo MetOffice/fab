@@ -1,9 +1,7 @@
 from pathlib import Path
-from typing import Set, Dict
 from unittest import mock
 
 import pytest
-from fab.dep_tree import AnalysedFile
 
 from fab.artefacts import CollectionConcat, SuffixFilter
 from fab.util import run_command, check_for_errors, get_mod_hashes
@@ -118,4 +116,3 @@ class Test_get_mod_hashes(object):
                 result = get_mod_hashes(analysed_files=analysed_files, config=config)
 
         assert result == {'foo': 123, 'bar': 456}
-

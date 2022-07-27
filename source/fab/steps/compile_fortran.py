@@ -12,7 +12,7 @@ import logging
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict, Iterable
+from typing import List, Set, Dict
 
 from fab.constants import OBJECT_FILES, BUILD_OUTPUT
 
