@@ -51,7 +51,7 @@ class AnalysedFile(object):
             Comes from "DEPENDS ON:" comments which end in ".o".
 
         """
-        self.fpath: Path = Path(fpath)
+        self.fpath = Path(fpath)
         self.file_hash = file_hash
         self.module_defs: Set[str] = set(module_defs or {})  # a subset of symbol_defs
         self.symbol_defs: Set[str] = set(symbol_defs or {})
