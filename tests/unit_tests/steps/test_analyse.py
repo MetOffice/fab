@@ -43,12 +43,25 @@ class Test_load_analysis_results(object):
     @pytest.fixture
     def csv_lines(self):
         # a module with a dependency on a fortran and c file, plus a mo commented dep
-        return [
-            'fpath,file_hash,symbol_defs,symbol_deps,file_deps,mo_commented_file_deps',
-            'my_mod.f90,123,my_mod,dep1_mod;dep2,,mo_dep.c',
-            'dep1_mod.f90,234,dep1_mod,,,',
-            'dep2.c,345,dep2,,,',
+
+        data = [
+            AnalysedFile(fpath='my_mod.f90',
+                         file_hash=123, module_defs={'my_mod'}, symbol_defs={'my_mod'},
+                         symbol_deps={'dep1_mod', 'dep2'}, mo_commented_file_deps={'mo_dep.c'}),
+            AnalysedFile(fpath='dep1_mod.f90',
+                         file_hash=234, module_defs={'dep1_mod'}, symbol_defs={'dep1_mod'}),
+            AnalysedFile(fpath='dep2.c',
+                         file_hash=345, symbol_defs={'dep2'}),
         ]
+
+        lines = [','.join(AnalysedFile.field_names())]  # header row
+        for af in data:
+            str_dict = af.to_str_dict()
+            columns = [str_dict[field_name] for field_name in af.field_names()]
+            row = ','.join(columns)
+            lines.append(row)
+
+        return lines
 
     @pytest.fixture
     def latest_file_hashes(self):
@@ -70,10 +83,10 @@ class Test_load_analysis_results(object):
 
         expected = {
             Path('my_mod.f90'): AnalysedFile(
-                fpath=Path('my_mod.f90'), file_hash=123, symbol_defs={'my_mod', }, symbol_deps={'dep1_mod', 'dep2'},
-                mo_commented_file_deps={'mo_dep.c', }),
+                fpath=Path('my_mod.f90'), file_hash=123, module_defs={'my_mod', }, symbol_defs={'my_mod', },
+                symbol_deps={'dep1_mod', 'dep2'}, mo_commented_file_deps={'mo_dep.c', }),
             Path('dep1_mod.f90'): AnalysedFile(
-                fpath=Path('dep1_mod.f90'), file_hash=234, symbol_defs={'dep1_mod', }),
+                fpath=Path('dep1_mod.f90'), file_hash=234, module_defs={'dep1_mod', }, symbol_defs={'dep1_mod', }),
             Path('dep2.c'): AnalysedFile(
                 fpath=Path('dep2.c'), file_hash=345, symbol_defs={'dep2', }),
         }
@@ -92,10 +105,10 @@ class Test_load_analysis_results(object):
 
         expected = {
             Path('my_mod.f90'): AnalysedFile(
-                fpath=Path('my_mod.f90'), file_hash=123, symbol_defs={'my_mod', }, symbol_deps={'dep1_mod', 'dep2'},
-                mo_commented_file_deps={'mo_dep.c', }),
+                fpath=Path('my_mod.f90'), file_hash=123, module_defs={'my_mod', }, symbol_defs={'my_mod', },
+                symbol_deps={'dep1_mod', 'dep2'}, mo_commented_file_deps={'mo_dep.c', }),
             Path('dep1_mod.f90'): AnalysedFile(
-                fpath=Path('dep1_mod.f90'), file_hash=234, symbol_defs={'dep1_mod', }),
+                fpath=Path('dep1_mod.f90'), file_hash=234, module_defs={'dep1_mod', }, symbol_defs={'dep1_mod', }),
         }
 
         assert results == expected
@@ -144,7 +157,7 @@ class Test_gen_symbol_table(object):
 
     def test_duplicate_symbol(self, analysed_files):
         # duplicate a symbol from the first file in the second file
-        analysed_files[1].symbol_defs.append('foo_1')
+        analysed_files[1].symbol_defs.add('foo_1')
 
         analyser = Analyse(root_symbol=None)
 

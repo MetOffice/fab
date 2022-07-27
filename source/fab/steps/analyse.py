@@ -303,7 +303,7 @@ class Analyse(Step):
             with open(self._config.project_workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
-                    analysed_file = AnalysedFile.from_dict(row)
+                    analysed_file = AnalysedFile.from_str_dict(row)
 
                     # file no longer there?
                     if analysed_file.fpath not in latest_file_hashes:
@@ -359,7 +359,7 @@ class Analyse(Step):
             analysis_dict_writer.writeheader()
 
             # re-write the progress so far
-            unchanged_rows = (pu.as_dict() for pu in unchanged)
+            unchanged_rows = (af.to_str_dict() for af in unchanged)
             analysis_dict_writer.writerows(unchanged_rows)
             analysis_progress_file.flush()
 
@@ -388,7 +388,7 @@ class Analyse(Step):
                     exceptions.add(af)
                 elif isinstance(af, AnalysedFile):
                     new_program_units.add(af)
-                    dict_writer.writerow(af.as_dict())
+                    dict_writer.writerow(af.to_str_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {af}")
             log_or_dot_finish(logger)
