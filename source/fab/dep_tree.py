@@ -67,7 +67,7 @@ class AnalysedFile(object):
         assert all([d and len(d) for d in self.module_deps]), "bad symbol dependencies"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
 
-       # todo: this feels a little clanky. We could just maintain separate lists of modules and other symbols,
+        # todo: this feels a little clanky. We could just maintain separate lists of modules and other symbols,
         #   but that feels more clanky.
         assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
         assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
@@ -150,7 +150,7 @@ class AnalysedFile(object):
             file_hash=int(d["file_hash"]),
             module_defs=set(d["module_defs"].split(';')) if d["module_defs"] else set(),
             symbol_defs=set(d["symbol_defs"].split(';')) if d["symbol_defs"] else set(),
-           module_deps=set(d["module_deps"].split(';')) if d["module_deps"] else set(),
+            module_deps=set(d["module_deps"].split(';')) if d["module_deps"] else set(),
             symbol_deps=set(d["symbol_deps"].split(';')) if d["symbol_deps"] else set(),
             file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
             mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()
