@@ -12,7 +12,7 @@ import logging
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Optional
 
 from fab.constants import OBJECT_FILES, BUILD_OUTPUT
 
@@ -184,7 +184,7 @@ class CompileFortran(MpExeStep):
             module_deps_hashes=module_deps_hashes
         )
 
-    def recompile_check(self, analysed_file: AnalysedFile, flags_hash: int, last_compile: CompiledFile):
+    def recompile_check(self, analysed_file: AnalysedFile, flags_hash: int, last_compile: Optional[CompiledFile]):
 
         # todo: other environmental considerations for the future:
         #   - env vars, e.g OMPI_FC
