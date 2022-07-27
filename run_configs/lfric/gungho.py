@@ -43,8 +43,8 @@ def gungho():
         GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label=''),
         GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
 
-        # GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst_label='um_physics/source/kernel/stph/'),
-        # GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst_label='um_physics/source/constants'),
+        # GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst='um_physics/source/kernel/stph/'),
+        # GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst='um_physics/source/constants'),
         GrabFolder(src=lfric_source / 'um_physics/source/', dst_label=''),
 
         # generate more source files in source and source/configuration

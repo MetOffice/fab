@@ -6,7 +6,7 @@ Glossary
 
     Step
         A build step which typically reads from, and adds to, an in-memory :term:`Artefact` repository called
-        the :term:`Artefact Store`. All steps are derived from the :class:`~fab.steps.Step` base class.
+        the :term:`Artefact Store`. Steps are derived from the :class:`~fab.steps.Step` base class.
 
     Artefact Store
         At the start of a build run, Fab creates an empty ``artefact_store``.
@@ -40,21 +40,22 @@ Glossary
         such as the *.mod* files created by the Fortran preprocessor - although this particular case is under review.
 
     Artefact Getter
-        A helper class which tells a build step which files to read. Fab's built-in steps come with
-        sensible defaults so the user doesn't have to write unnecessary config.
+        A helper class which a :term:`Step` uses to get artefacts from the :term:`Artefact Store`.
+        Fab's built-in steps come with sensible defaults so the user doesn't have to write unnecessary config.
 
         As an example, the Fortran preprocessor has a default artefact getter which reads *".F90"* files
         from the :term:`Named Collection` called _"all_source"_.
 
-        All artefact getters are derived from :class:`~fab.artefacts.ArtefactsGetter`.
+        Artefact getters are derived from :class:`~fab.artefacts.ArtefactsGetter`.
 
     Source Tree
-        The :class:`~fab.steps.analyse.Analyse` step produces a source tree which is represented as
-        a mapping from Path to :class:`~fab.dep_tree.AnalysedFile`.
+        The :class:`~fab.steps.analyse.Analyse` step produces a dependency tree of the entire project source.
+        This is represented as a mapping from Path to :class:`~fab.dep_tree.AnalysedFile`.
         The tree structure is defined as the AnalysedFiles' file dependencies are Paths, i.e other entries in the tree.
 
-        When building an executable, a sub-tree is extracted containing only the files needed to build the target
-        program. When building a library, all compiled source code is included in the output.
+        When building executables, a sub-tree is extracted from the :term:`Source Tree`, for each executable
+        we want to build. Each build tree contains only the files needed to build that target.
+        When building a library, all source code is included in a single build tree.
 
-        Fab's source code uses the term *project source tree* for everything that's been analysed,
+        Fab's source code uses the term *source tree* for everything that's been analysed,
         and *build trees* for sub-trees extracted for each target exe.

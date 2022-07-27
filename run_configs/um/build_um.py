@@ -10,6 +10,7 @@
 
 import logging
 import os
+import re
 import warnings
 from argparse import ArgumentParser
 from pathlib import Path
@@ -29,7 +30,6 @@ from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, Exclude, Include
-from fab.util import case_insensitive_replace
 
 logger = logging.getLogger('fab')
 
@@ -56,19 +56,19 @@ def um_atmos_safe_config(revision):
         # todo: these repo defs could make a good set of reusable variables
 
         # UM 12.1, 16th November 2021
-        GrabFcm(src='fcm:um.xm_tr/src', dst_label='um', revision=revision),
+        GrabFcm(src='fcm:um.xm_tr/src', dst='um', revision=revision),
 
         # JULES 6.2, for UM 12.1
-        GrabFcm(src='fcm:jules.xm_tr/src', dst_label='jules', revision=um_revision),
+        GrabFcm(src='fcm:jules.xm_tr/src', dst='jules', revision=um_revision),
 
         # SOCRATES 21.11, for UM 12.1
-        GrabFcm(src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=um_revision),
+        GrabFcm(src='fcm:socrates.xm_tr/src', dst='socrates', revision=um_revision),
 
         # SHUMLIB, for UM 12.1
-        GrabFcm(src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=um_revision),
+        GrabFcm(src='fcm:shumlib.xm_tr/', dst='shumlib', revision=um_revision),
 
         # CASIM, for UM 12.1
-        GrabFcm(src='fcm:casim.xm_tr/src', dst_label='casim', revision=um_revision),
+        GrabFcm(src='fcm:casim.xm_tr/src', dst='casim', revision=um_revision),
 
 
         MyCustomCodeFixes(name="my custom code fixes"),
@@ -285,6 +285,15 @@ class MyCustomCodeFixes(Step):
         orig = open(os.path.expanduser(inpath), "rt").read()
         open(os.path.expanduser(outpath), "wt").write(
             case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
+
+
+def case_insensitive_replace(in_str: str, find: str, replace_with: str):
+    """
+    Replace, for example, NameListFile *or* NAMELISTFILE with the given string.
+
+    """
+    compiled_re = re.compile(find, re.IGNORECASE)
+    return compiled_re.sub(replace_with, in_str)
 
 
 if __name__ == '__main__':

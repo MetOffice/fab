@@ -15,7 +15,8 @@ from typing import List
 from fab.metrics import send_metric
 
 from fab.steps.mp_exe import MpExeStep
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer, by_type, check_for_errors
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer, by_type
+from fab.steps import check_for_errors
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class PreProcessor(MpExeStep):
     """
-    Base class for preprocessors. A build step which calls a preprocessor.
+    Preprocess Fortran or C files with multiprocessing.
 
     """
     DEFAULT_SOURCE: ArtefactsGetter
@@ -36,14 +37,20 @@ class PreProcessor(MpExeStep):
                  preprocessor='cpp', common_flags: List[str] = None, path_flags: List = None,
                  name=None):
         """
-        Kwargs:
-            - source: Defines the files to preprocess. Defaults to DEFAULT_SOURCE.
-            - output_collection: The name of the output artefact collection, defaulting to DEFAULT_OUTPUT_NAME.
-            - output_suffix: Defaults to DEFAULT_OUTPUT_SUFFIX.
-            - preprocessor: The name of the executable. Defaults to 'cpp'.
-            - common_flags: Used to construct a :class:`~fab.config.FlagsConfig' object.
-            - path_flags: Used to construct a :class:`~fab.config.FlagsConfig' object.
-            - name: Used for logger output.
+        :param source:
+            Defines the files to preprocess. Defaults to DEFAULT_SOURCE.
+        :param output_collection:
+            The name of the output artefact collection, defaulting to DEFAULT_OUTPUT_NAME.
+        :param output_suffix:
+            Defaults to DEFAULT_OUTPUT_SUFFIX.
+        :param preprocessor:
+            The name of the executable. Defaults to 'cpp'.
+        :param common_flags:
+            Used to construct a :class:`~fab.config.FlagsConfig' object.
+        :param path_flags:
+            Used to construct a :class:`~fab.config.FlagsConfig' object.
+        :param name:
+            Human friendly name for logger output, with sensible default.
 
         """
         super().__init__(exe=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name or self.LABEL)
@@ -54,10 +61,14 @@ class PreProcessor(MpExeStep):
 
     def run(self, artefact_store, config):
         """
-        Preprocess all input files from `self.source_getter`, creating the artefact collection named
-        `self.output_collection`.
+        Uses multiprocessing, unless disabled in the *config*.
 
-        This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+        :param artefact_store:
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
 
         """
         super().run(artefact_store, config)
@@ -65,13 +76,13 @@ class PreProcessor(MpExeStep):
         files = list(self.source_getter(artefact_store))
         logger.info(f'preprocessing {len(files)} files')
 
-        results = self.run_mp(items=files, func=self.process_artefact)
+        results = self.run_mp(items=files, func=self._process_artefact)
         check_for_errors(results, caller_label=self.name)
 
         log_or_dot_finish(logger)
         artefact_store[self.output_collection] = list(by_type(results, Path))
 
-    def process_artefact(self, fpath):
+    def _process_artefact(self, fpath):
         """
         Expects an input file in the source folder.
         Writes the output file to the output folder, with a lower case extension.
@@ -109,7 +120,12 @@ class PreProcessor(MpExeStep):
 def fortran_preprocessor(preprocessor=None, source=None,
                          output_collection='preprocessed_fortran', output_suffix='.f90',
                          name='preprocess fortran', **pp_kwds):
+    """
+    Return a step to preprocess Fortran files with multiprocessing.
 
+    Params as per :class:`~fab.steps.preprocess.PreProcessor`.
+
+    """
     return PreProcessor(
         preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
         source=source or SuffixFilter('all_source', '.F90'),
@@ -123,7 +139,12 @@ def fortran_preprocessor(preprocessor=None, source=None,
 def c_preprocessor(preprocessor=None, source=None,
                    output_collection='preprocessed_c', output_suffix='.c',
                    name='preprocess c', **pp_kwds):
+    """
+    Return a step to preprocess C files with multiprocessing.
 
+    Params as per :class:`~fab.steps.preprocess.PreProcessor`.
+
+    """
     return PreProcessor(
         preprocessor=preprocessor or os.getenv('CPP', 'cpp -P'),
         source=source or SuffixFilter('all_source', '.c'),
