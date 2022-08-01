@@ -25,7 +25,7 @@ def jules_config(revision=None):
 
     config = BuildConfig(project_label=f'jules_{revision}')
     # config.multiprocessing = False
-    config.debug_skip = True
+    # config.debug_skip = True
 
     logger = logging.getLogger('fab')
     logger.info(f'building jules revision {revision}')
