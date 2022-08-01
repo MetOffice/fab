@@ -22,7 +22,7 @@ copyright = '2022'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
-release = '0.9.0a1'
+release = '0.10.0.dev'
 
 
 # -- General configuration ---------------------------------------------------
@@ -34,6 +34,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.graphviz',
+    'sphinx.ext.intersphinx',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -67,3 +68,6 @@ autodoc_member_order = 'bysource'
 
 # Join the class and constructor docstrings.
 autoclass_content = 'both'
+
+#
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}

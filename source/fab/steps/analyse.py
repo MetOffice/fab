@@ -88,7 +88,7 @@ class Analyse(Step):
         :param ignore_mod_deps:
             Third party Fortran module names to be ignored.
         :param name:
-            Defaults to 'analyser'
+            Human friendly name for logger output, with sensible default.
 
         """
         super().__init__(name)
@@ -101,11 +101,11 @@ class Analyse(Step):
         self.fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
         self.c_analyser = CAnalyser()
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict, config):
         """
         Creates the *build_trees* artefact from the files in `self.source_getter`.
 
-        Steps, in order:
+        Does the following, in order:
             - Create a hash of every source file. Used to check if it's already been analysed.
             - Parse the C and Fortran files to find external symbol definitions and dependencies in each file.
                 - Analysis results are stored in a csv as-we-go, so analysis can be resumed if interrupted.
@@ -115,6 +115,13 @@ class Analyse(Step):
             - (Optionally) Extract a sub tree for every root symbol, if provided. For building executables.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+
+        :param artefact_store:
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
 
         """
         super().run(artefact_store, config)
@@ -301,7 +308,7 @@ class Analyse(Step):
             with open(self._config.project_workspace / "__analysis.csv", "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
-                    analysed_file = AnalysedFile.from_dict(row)
+                    analysed_file = AnalysedFile.from_str_dict(row)
 
                     # file no longer there?
                     if analysed_file.fpath not in latest_file_hashes:
@@ -357,7 +364,7 @@ class Analyse(Step):
             analysis_dict_writer.writeheader()
 
             # re-write the progress so far
-            unchanged_rows = (pu.as_dict() for pu in unchanged)
+            unchanged_rows = (af.to_str_dict() for af in unchanged)
             analysis_dict_writer.writerows(unchanged_rows)
             analysis_progress_file.flush()
 
@@ -386,7 +393,7 @@ class Analyse(Step):
                     exceptions.add(af)
                 elif isinstance(af, AnalysedFile):
                     new_program_units.add(af)
-                    dict_writer.writerow(af.as_dict())
+                    dict_writer.writerow(af.to_str_dict())
                 else:
                     raise RuntimeError(f"Unexpected analysis result type: {af}")
             log_or_dot_finish(logger)
@@ -429,5 +436,5 @@ class Analyse(Step):
                 continue
 
             # add the file and it's file deps
-            sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
+            sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
             build_tree.update(sub_tree)

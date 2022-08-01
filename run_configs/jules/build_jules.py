@@ -48,8 +48,8 @@ def jules_config(revision=None):
 
     config.steps = [
 
-        GrabFcm(src='fcm:jules.xm_tr/src', revision=revision, dst_label='src'),
-        GrabFcm(src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils'),
+        GrabFcm(src='fcm:jules.xm_tr/src', revision=revision, dst='src'),
+        GrabFcm(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
 
         FindSourceFiles(path_filters=[
             Exclude('src/control/um/'),
