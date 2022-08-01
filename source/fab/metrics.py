@@ -161,6 +161,18 @@ def metrics_summary(metrics_folder: Path):
     Create various summaries for the metrics, including charts if matplotlib is installed.
 
     """
+
+    #
+    # metrics[group][item] = value
+    #
+    # metrics['run']['time taken'] = total time taken
+    # metrics['run']['machine'] = machine name
+    #
+    # metrics['steps']['compile fortran'] = step time taken
+    #
+    # metrics['compile fortran'][filename] = {'time_taken': timer.taken, 'start': timer.start}
+    #
+
     try:
         import matplotlib  # type: ignore
         matplotlib.use('Agg')
@@ -171,34 +183,74 @@ def metrics_summary(metrics_folder: Path):
     with open(metrics_folder / JSON_FILENAME, 'rt') as outfile:
         metrics = json.load(outfile)
 
+    logger.info('creating metrics summary')
     logger.debug(f'metrics_summary: got metrics for: {metrics.keys()}')
     metrics_folder.mkdir(parents=True, exist_ok=True)
 
+    #
     # graphs for individual steps
+    #
     step_names = ['preprocess fortran', 'preprocess c', 'compile fortran']
+
+    # histogram
     for step_name in step_names:
+
+        # do we have metrics for this step?
         if step_name not in metrics or step_name not in metrics['steps']:
             continue
 
-        fbase = metrics_folder / step_name.replace(' ', '_')
+        fbase = metrics_folder / ('hist_' + step_name.replace(' ', '_'))
 
         values = metrics[step_name].values()
+        run_times = [value['time_taken'] for value in values]
         total_time = datetime.timedelta(seconds=int(metrics["steps"][step_name]))
 
         if plt:
-            plt.hist(values, 10)
+            plt.hist(run_times, 10)
             plt.suptitle(f'{step_name} histogram\n'
-                         f'{len(values)} files took {total_time}')
+                         f'{len(run_times)} files took {total_time}')
             plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
             plt.xlabel('time (s)')
             plt.savefig(f"{fbase}.png")
             plt.close()
 
-        top_ten = sorted(metrics[step_name].items(), key=lambda kv: kv[1], reverse=True)[:10]
-        with open(f"{fbase}.txt", "wt") as txt_file:
-            txt_file.write("top ten\n")
-            for i in top_ten:
-                txt_file.write(f"{i}\n")
+    # busby style metrics
+    # https://www.osti.gov/biblio/1393322
+    for step_name in step_names:
+
+        # do we have metrics for this step?
+        if step_name not in metrics or step_name not in metrics['steps']:
+            continue
+
+        fbase = metrics_folder / ('busby_' + step_name.replace(' ', '_'))
+
+        sorted_items = sorted(metrics[step_name].items(), key=lambda item: item[1]['start'])
+        values = [item[1] for item in sorted_items]
+        t0 = values[0]['start']
+        starts = [value['start'] - t0 for value in values]
+        durations = [value['time_taken'] for value in values]
+
+        # total_time = datetime.timedelta(seconds=int(metrics["steps"][step_name]))
+
+        if plt:
+            plt.figure(figsize=[10, 10])
+
+            plt.barh(
+                y=list(range(len(values))),
+                width=durations,
+                left=starts,
+                # height=0.8,
+                height=1,
+            )
+            # plt.suptitle(f'{step_name} histogram\n'
+            #              f'{len(run_times)} files took {total_time}')
+            # plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
+            # plt.xlabel('time (s)')
+
+            plt.savefig(f"{fbase}.png")
+            # plt.show()
+
+            plt.close()
 
     # overall pie chart of time taken by each step
     if plt:

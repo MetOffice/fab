@@ -112,7 +112,7 @@ class PreProcessor(MpExeStep):
                 except Exception as err:
                     raise Exception(f"error preprocessing {fpath}: {err}")
 
-            send_metric(self.name, str(fpath), timer.taken)
+            send_metric(self.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
 
         return output_fpath
 

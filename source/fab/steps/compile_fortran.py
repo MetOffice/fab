@@ -175,6 +175,6 @@ class CompileFortran(MpExeStep):
                 except Exception as err:
                     return Exception("Error calling compiler:", err)
 
-            send_metric(self.name, str(analysed_file.fpath), timer.taken)
+            send_metric(self.name, str(analysed_file.fpath), {'time_taken': timer.taken, 'start': timer.start})
 
         return CompiledFile(analysed_file, output_fpath)
