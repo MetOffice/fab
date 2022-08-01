@@ -20,9 +20,9 @@ from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type
-from fab.steps import check_for_errors, \
-    get_mod_hashes, TimerLogger, string_checksum
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, TimerLogger, \
+    get_mod_hashes, string_checksum
+from fab.steps import check_for_errors
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
@@ -116,7 +116,7 @@ class CompileFortran(MpExeStep):
         logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
         results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
         check_for_errors(results_this_pass, caller_label=self.name)
-        compiled_this_pass: Set[CompiledFile] = set(by_type(results_this_pass, CompiledFile))
+        compiled_this_pass = list(by_type(results_this_pass, CompiledFile))
         logger.debug(f"compiled {len(compiled_this_pass)} files")
 
         # hash the modules we just created
