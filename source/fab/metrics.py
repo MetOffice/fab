@@ -23,6 +23,9 @@ stop
     return metrics from summary pipe
 
 """
+
+# todo: replace this module with something like prometheus & grafana?
+
 import datetime
 import json
 import logging
@@ -44,11 +47,14 @@ _metric_send_conn: Optional[Connection] = None
 _metric_recv_process: Optional[Process] = None
 
 
-def init_metrics(metrics_folder):
+def init_metrics(metrics_folder: Path):
     """
     Create the pipe for sending metrics, the process to read them, and another pipe to push the final collated data.
 
     Only one call to init_metrics can be called before calling stop_metrics.
+
+    :param metrics_folder:
+        The folder where we will write metrics.
 
     """
     global _metric_recv_conn, _metric_send_conn
@@ -75,6 +81,9 @@ def _read_metric(metrics_folder: Path):
 
     Reads from the metric pipe until the pipe is closed,
     at which point it pushes the collated metrics onto the "collated metrics" pipe and ends.
+
+    :param metrics_folder:
+        The folder where we will write metrics.
 
     """
     # An example metric is the time taken to preprocess a file; metrics['preprocess c']['my_file.c']
@@ -111,6 +120,20 @@ def send_metric(group: str, name: str, value):
     """
     Pass a metric to the reader process.
 
+    Metrics will be written to a json file after build steps have run.
+
+    Example::
+
+        send_metric('my step', 'reading took', 123)
+        send_metric('my step', 'writing took', 456)
+
+    :param group:
+        Name of the metrics group.
+    :param name:
+        Name of the metric.
+    :param value:
+        Value of the metric.
+
     """
     _metric_send_conn.send([group, name, value])  # type: ignore
 
@@ -118,8 +141,6 @@ def send_metric(group: str, name: str, value):
 def stop_metrics():
     """
     Close the metrics pipe and reader process.
-
-    Return the final collection of metrics.
 
     """
     global _metric_recv_conn, _metric_send_conn

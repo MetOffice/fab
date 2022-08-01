@@ -34,6 +34,13 @@ class RootIncFiles(Step):
         Checks for name clash. This step does not create any artefacts.
         It's up to the user to configure other tools to find these files.
 
+        :param artefact_store:
+            Artefacts created by previous Steps.
+            This is where we find the artefacts to process.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
+
         """
         super().run(artefact_store, config)
 

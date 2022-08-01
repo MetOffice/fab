@@ -20,7 +20,8 @@ from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, check_for_errors, \
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type
+from fab.steps import check_for_errors, \
     get_mod_hashes, TimerLogger, string_checksum
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
@@ -40,9 +41,29 @@ MODULE_FILE_NOT_PRESENT = 'module file(s) file not present'
 
 
 class CompileFortran(MpExeStep):
+    """
+    Compiles all Fortran files in all build trees, creating or extending a set of compiled files for each target.
 
+    This step uses multiprocessing.
+    The files are compiled in multiple passes, with each pass enabling further files to be compiled in the next pass.
+
+    """
     def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
                  source: ArtefactsGetter = None, name='compile fortran'):
+        """
+        :param compiler:
+            The command line compiler to call. Defaults to `gfortran -c`.
+        :param common_flags:
+            A list of strings to be included in the command line call, for all files.
+        :param path_flags:
+            A list of :class:`~fab.build_config.AddFlags`, defining flags to be included in the command line call
+            for selected files.
+        :param source:
+            An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
+        :param name:
+            Human friendly name for logger output, with sensible default.
+
+        """
         compiler = compiler or os.getenv('FC', 'gfortran -c')
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
@@ -55,7 +76,14 @@ class CompileFortran(MpExeStep):
         """
         Compile all Fortran files in all build trees.
 
-        This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+        Uses multiprocessing, unless disabled in the *config*.
+
+        :param artefact_store:
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
 
         """
         super().run(artefact_store, config)

@@ -87,7 +87,7 @@ class Analyse(Step):
         :param ignore_mod_deps:
             Third party Fortran module names to be ignored.
         :param name:
-            Defaults to 'analyser'
+            Human friendly name for logger output, with sensible default.
 
         """
         super().__init__(name)
@@ -100,11 +100,11 @@ class Analyse(Step):
         self.fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
         self.c_analyser = CAnalyser()
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict, config):
         """
         Creates the *build_trees* artefact from the files in `self.source_getter`.
 
-        Steps, in order:
+        Does the following, in order:
             - Create a hash of every source file. Used to check if it's already been analysed.
             - Parse the C and Fortran files to find external symbol definitions and dependencies in each file.
                 - Analysis results are stored in a csv as-we-go, so analysis can be resumed if interrupted.
@@ -114,6 +114,13 @@ class Analyse(Step):
             - (Optionally) Extract a sub tree for every root symbol, if provided. For building executables.
 
         This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
+
+        :param artefact_store:
+            Contains artefacts created by previous Steps, and where we add our new artefacts.
+            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
+        :param config:
+            The :class:`fab.build_config.BuildConfig` object where we can read settings
+            such as the project workspace folder or the multiprocessing flag.
 
         """
         super().run(artefact_store, config)
@@ -426,5 +433,5 @@ class Analyse(Step):
                 continue
 
             # add the file and it's file deps
-            sub_tree = extract_sub_tree(src_tree=all_analysed_files, key=analysed_fpath)
+            sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
             build_tree.update(sub_tree)

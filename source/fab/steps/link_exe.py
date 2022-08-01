@@ -55,7 +55,7 @@ class LinkerBase(Step, ABC):
             An optional :class:`~fab.artefacts.ArtefactsGetter`.
             Typically not required, as there is a sensible default.
         :param name:
-            A descriptive label for this step.
+            Human friendly name for logger output, with sensible default.
 
         """
         super().__init__(name)
@@ -63,7 +63,7 @@ class LinkerBase(Step, ABC):
         self.linker = linker
         self.flags: List[str] = flags or []
 
-    def call_linker(self, filename, objects):
+    def _call_linker(self, filename, objects):
         command = self.linker.split()
         command.extend(['-o', filename])
         command.extend(map(str, sorted(objects)))
@@ -79,21 +79,17 @@ class LinkerBase(Step, ABC):
 
 class LinkExe(LinkerBase):
     """
-    Produce an executable for every build tree.
+    Link object files into an executable for every build target.
 
     Expects one or more build targets from its artefact getter, of the form Dict[name, object_files].
 
     """
     def run(self, artefact_store, config):
-        """
-        Link the object files for every build target in the artefact_store.
-
-        """
         super().run(artefact_store, config)
 
         target_objects = self.source_getter(artefact_store)
         for root, objects in target_objects.items():
-            self.call_linker(
+            self._call_linker(
                 filename=str(config.project_workspace / f'{root}.exe'),
                 objects=objects)
 
@@ -101,9 +97,9 @@ class LinkExe(LinkerBase):
 # todo: the bit about Dict[None, object_files] seems too obscure - try to rethink this.
 class LinkSharedObject(LinkExe):
     """
-    Produce a shared object (*.so*) file from the given build tree.
+    Produce a shared object (*.so*) file from the given build target.
 
-    Expects a single build target from its artefact getter, of the form Dict[None, object_files].
+    Expects a *single build target* from its artefact getter, of the form Dict[None, object_files].
     We can assume the list of object files is the entire project source, compiled.
 
     """
@@ -112,7 +108,8 @@ class LinkSharedObject(LinkExe):
         """
         Params are as for :class:`~fab.steps.link_exe.LinkerBase`, with the addition of:
 
-        *param output_fpath: File path of the shared object to create.
+        :param output_fpath:
+            File path of the shared object to create.
 
         """
         super().__init__(linker=linker, flags=flags, source=source, name=name)
@@ -132,6 +129,6 @@ class LinkSharedObject(LinkExe):
         assert list(target_objects.keys()) == [None]
 
         objects = target_objects[None]
-        self.call_linker(
+        self._call_linker(
             filename=Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT),
             objects=objects)
