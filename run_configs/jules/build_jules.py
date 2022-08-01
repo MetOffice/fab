@@ -98,5 +98,4 @@ if __name__ == '__main__':
 
     # logger.setLevel(logging.DEBUG)
 
-    # while True:
     jules_config(revision=args.revision).run()
