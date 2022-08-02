@@ -37,15 +37,15 @@ def gungho():
 
     config.steps = [
 
-        GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/driver/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'infrastructure/source/', dst=''),
+        GrabFolder(src=lfric_source / 'components/driver/source/', dst=''),
+        GrabFolder(src=lfric_source / 'components/science/source/', dst=''),
+        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst=''),
+        GrabFolder(src=lfric_source / 'gungho/source/', dst=''),
 
         # GrabFolder(src=lfric_source / 'um_physics/source/kernel/stph/', dst='um_physics/source/kernel/stph/'),
         # GrabFolder(src=lfric_source / 'um_physics/source/constants/', dst='um_physics/source/constants'),
-        GrabFolder(src=lfric_source / 'um_physics/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'um_physics/source/', dst=''),
 
         # generate more source files in source and source/configuration
         Configurator(
