@@ -8,28 +8,28 @@ SCRIPT_DIR=$( dirname "${BASH_SOURCE[0]}" )
 cd "$SCRIPT_DIR"/../../run_configs
 echo $(pwd)
 
-#echo
-#echo "build gcom object archive and shared object"
-#echo
-#cd gcom
-#python -m grab_gcom
-#python -m build_gcom_ar
-#python -m build_gcom_so
-#cd ..
-#
-#echo
-#echo "build jules"
-#echo
-#cd jules
-#python -m build_jules
-#cd ..
-#
-#echo
-#echo "build um"
-#echo
-#cd um
-#python -m build_um
-#cd ..
+echo
+echo "build gcom object archive and shared object"
+echo
+cd gcom
+python -m grab_gcom
+python -m build_gcom_ar
+python -m build_gcom_so
+cd ..
+
+echo
+echo "build jules"
+echo
+cd jules
+python -m build_jules
+cd ..
+
+echo
+echo "build um"
+echo
+cd um
+python -m build_um
+cd ..
 
 echo
 echo "build lfric"
