@@ -2,8 +2,6 @@
 import logging
 import os
 
-from fab.metrics import metrics_summary
-
 from fab.steps.compile_c import CompileC
 
 from fab.build_config import BuildConfig, AddFlags
