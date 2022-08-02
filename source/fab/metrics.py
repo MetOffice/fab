@@ -234,8 +234,6 @@ def metrics_summary(metrics_folder: Path):
 
             # larger plot after 500 files
             size = max(10.0, 10 * len(values) / 500)
-            print('len(values)', len(values))
-            print('size', size)
             plt.figure(figsize=[size, size])
 
             plt.barh(
