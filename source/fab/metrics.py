@@ -230,32 +230,22 @@ def metrics_summary(metrics_folder: Path):
         starts = [value['start'] - t0 for value in values]
         durations = [value['time_taken'] for value in values]
 
-        # total_time = datetime.timedelta(seconds=int(metrics["steps"][step_name]))
-
         if plt:
 
             # larger plot after 500 files
             size = max(10.0, 10 * len(values) / 500)
             print('len(values)', len(values))
             print('size', size)
-            # plt.figure(figsize=[10, size])
             plt.figure(figsize=[size, size])
 
             plt.barh(
                 y=list(range(len(values))),
                 width=durations,
                 left=starts,
-                # height=0.8,
                 height=1,
             )
-            # plt.suptitle(f'{step_name} histogram\n'
-            #              f'{len(run_times)} files took {total_time}')
-            # plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
-            # plt.xlabel('time (s)')
 
             plt.savefig(f"{fbase}.png")
-            # plt.show()
-
             plt.close()
 
     # overall pie chart of time taken by each step
