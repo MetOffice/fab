@@ -64,7 +64,7 @@ class AnalysedFile(object):
 
         assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
-        assert all([d and len(d) for d in self.module_deps]), "bad symbol dependencies"
+        assert all([d and len(d) for d in self.module_deps]), "bad module dependencies"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
 
         # todo: this feels a little clanky. We could just maintain separate lists of modules and other symbols,
