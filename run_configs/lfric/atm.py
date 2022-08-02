@@ -2,6 +2,8 @@
 import logging
 import os
 
+from fab.metrics import metrics_summary
+
 from fab.steps.compile_c import CompileC
 
 from fab.build_config import BuildConfig, AddFlags
@@ -39,19 +41,19 @@ def atm_config():
         # todo: use different dst_labels because they all go into the same folder,
         #       making it hard to see what came from where?
         # internal dependencies
-        GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label='lfric', name='infrastructure/source'),
-        GrabFolder(src=lfric_source / 'components/driver/source/', dst_label='lfric', name='components/driver/source'),
-        GrabFolder(src=lfric_source / 'components/science/source/', dst_label='lfric',
+        GrabFolder(src=lfric_source / 'infrastructure/source/', dst='lfric', name='infrastructure/source'),
+        GrabFolder(src=lfric_source / 'components/driver/source/', dst='lfric', name='components/driver/source'),
+        GrabFolder(src=lfric_source / 'components/science/source/', dst='lfric',
                    name='components/science/source'),
-        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric',
+        GrabFolder(src=lfric_source / 'components/lfric-xios/source/', dst='lfric',
                    name='components/lfric-xios/source'),
 
         # coupler - oasis component
-        GrabFolder(src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric',
+        GrabFolder(src=lfric_source / 'components/coupler-oasis/source/', dst='lfric',
                    name='components/coupler-oasis/source'),
 
         # gungho dynamical core
-        GrabFolder(src=lfric_source / 'gungho/source/', dst_label='lfric', name='gungho/source'),
+        GrabFolder(src=lfric_source / 'gungho/source/', dst='lfric', name='gungho/source'),
 
         # UM physics - versions as required by the LFRIC_REVISION in grab_lfric.py
         GrabFcm(src='fcm:um.xm_tr/src', dst='science/um', revision=110487),
@@ -60,12 +62,12 @@ def atm_config():
         GrabFcm(src='fcm:shumlib.xm_tr/', dst='science/shumlib', revision='um12.2'),
         GrabFcm(src='fcm:casim.xm_tr/src', dst='science/casim', revision='um12.2'),
 
-        GrabFolder(src=lfric_source / 'um_physics/source/', dst_label='lfric', name='um_physics/source'),
-        GrabFolder(src=lfric_source / 'socrates/source/', dst_label='lfric', name='socrates/source'),
-        GrabFolder(src=lfric_source / 'jules/source/', dst_label='lfric', name='jules/source'),
+        GrabFolder(src=lfric_source / 'um_physics/source/', dst='lfric', name='um_physics/source'),
+        GrabFolder(src=lfric_source / 'socrates/source/', dst='lfric', name='socrates/source'),
+        GrabFolder(src=lfric_source / 'jules/source/', dst='lfric', name='jules/source'),
 
         # lfric_atm
-        GrabFolder(src=lfric_source / 'lfric_atm/source/', dst_label='lfric', name='lfric_atm/source'),
+        GrabFolder(src=lfric_source / 'lfric_atm/source/', dst='lfric', name='lfric_atm/source'),
 
         # generate more source files in source and source/configuration
         Configurator(lfric_source=lfric_source,
@@ -551,4 +553,6 @@ def file_filtering(config):
 
 if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
+
     atm_config().run()
+    # metrics_summary(metrics_folder=atm_config().metrics_folder)
