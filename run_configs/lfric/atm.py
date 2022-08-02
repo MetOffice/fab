@@ -551,4 +551,6 @@ def file_filtering(config):
 
 if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
+
     atm_config().run()
+    # metrics_summary(metrics_folder=atm_config().metrics_folder)

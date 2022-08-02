@@ -25,6 +25,7 @@ def module_expected(module_fpath):
         file_hash=None,
         module_defs={'foo_mod'},
         symbol_defs={'external_sub', 'external_func', 'foo_mod'},
+        module_deps={'bar_mod'},
         symbol_deps={'monty_func', 'bar_mod'},
         file_deps=set(),
         mo_commented_file_deps={'some_file.c'},
