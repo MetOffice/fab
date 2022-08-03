@@ -10,6 +10,7 @@ Fortran file compilation.
 import csv
 import logging
 import os
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Optional
@@ -200,11 +201,12 @@ class CompileFortran(MpExeStep):
 
         # get the hashes of the modules we depend on
         # record them so we know if they've changed next time we compile.
-        try:
-            module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
-        except KeyError:
-            missing_mod_hashes = set(analysed_file.module_deps) - set(self._mod_hashes)
-            return RuntimeError(f"Error compiling {analysed_file.fpath}: Missing module hash for {missing_mod_hashes}")
+        module_deps_hashes = {}
+        for mod_dep in analysed_file.module_deps:
+            if mod_dep not in self._mod_hashes:
+                logger.debug(f"Dependecy {mod_dep} appears to be external to this project and hasn't been hashed.")
+                continue
+            module_deps_hashes[mod_dep] = self._mod_hashes[mod_dep]
 
         return CompiledFile(
             input_fpath=analysed_file.fpath, output_fpath=analysed_file.fpath.with_suffix('.o'),
