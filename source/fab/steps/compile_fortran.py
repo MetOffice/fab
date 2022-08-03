@@ -10,7 +10,6 @@ Fortran file compilation.
 import csv
 import logging
 import os
-import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Optional
