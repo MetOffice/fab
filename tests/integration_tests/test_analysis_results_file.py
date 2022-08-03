@@ -58,6 +58,6 @@ def test_analysis_results():
             prev_results=loaded_results, latest_file_hashes=latest_file_hashes)
         assert unchanged == {AnalysedFile(fpath=Path('no_change.f90'), file_hash=222)}
         assert changed == {
-            HashedFile(input_fpath=Path('change.f90'), file_hash=123),
-            HashedFile(input_fpath=Path('new.f90'), file_hash=444)
+            HashedFile(fpath=Path('change.f90'), file_hash=123),
+            HashedFile(fpath=Path('new.f90'), file_hash=444)
         }

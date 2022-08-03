@@ -47,7 +47,7 @@ def log_or_dot_finish(logger):
         print('')
 
 
-HashedFile = namedtuple("HashedFile", ['input_fpath', 'file_hash'])
+HashedFile = namedtuple("HashedFile", ['fpath', 'file_hash'])
 
 
 def file_checksum(fpath):
