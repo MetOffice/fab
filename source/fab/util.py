@@ -99,15 +99,15 @@ class Timer(object):
 
     """
     def __init__(self):
-        self._start: Optional[float] = None
+        self.start: Optional[float] = None
         self.taken: Optional[float] = None
 
     def __enter__(self):
-        self._start = perf_counter()
+        self.start = perf_counter()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.taken = perf_counter() - self._start
+        self.taken = perf_counter() - self.start
 
 
 class TimerLogger(Timer):

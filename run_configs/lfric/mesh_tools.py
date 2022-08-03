@@ -20,11 +20,11 @@ def mesh_tools():
     config = BuildConfig(project_label='mesh_tools')
     config.steps = [
 
-        GrabFolder(src=lfric_source / 'infrastructure/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'mesh_tools/source/', dst_label=''),
-        GrabFolder(src=lfric_source / 'components/science/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'infrastructure/source/', dst=''),
+        GrabFolder(src=lfric_source / 'mesh_tools/source/', dst=''),
+        GrabFolder(src=lfric_source / 'components/science/source/', dst=''),
 
-        GrabFolder(src=lfric_source / 'gungho/source/', dst_label=''),
+        GrabFolder(src=lfric_source / 'gungho/source/', dst=''),
 
         # generate more source files in source and source/configuration
         Configurator(

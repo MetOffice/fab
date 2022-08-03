@@ -264,7 +264,7 @@ class CompileFortran(MpExeStep):
             log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
             run_command(command)
 
-        send_metric(self.name, str(analysed_file.fpath), timer.taken)
+        send_metric(self.name, str(analysed_file.fpath), {'time_taken': timer.taken, 'start': timer.start})
 
     def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
         """
