@@ -27,8 +27,10 @@ class AnalysedFile(object):
     The object can represent itself as a dict for use with a csv.DictWriter.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: int, module_defs=None, symbol_defs=None,
-                 symbol_deps=None, file_deps=None, mo_commented_file_deps=None):
+    def __init__(self, fpath: Union[str, Path], file_hash: int,
+                 module_defs=None, symbol_defs=None,
+                 module_deps=None, symbol_deps=None,
+                 file_deps=None, mo_commented_file_deps=None):
         """
         :param fpath:
             The source file that was analysed.
@@ -53,6 +55,7 @@ class AnalysedFile(object):
         self.file_hash = file_hash
         self.module_defs: Set[str] = set(module_defs or {})  # a subset of symbol_defs
         self.symbol_defs: Set[str] = set(symbol_defs or {})
+        self.module_deps: Set[str] = set(module_deps or {})
         self.symbol_deps: Set[str] = set(symbol_deps or {})
         self.file_deps: Set[Path] = set(file_deps or {})
 
@@ -61,11 +64,13 @@ class AnalysedFile(object):
 
         assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
+        assert all([d and len(d) for d in self.module_deps]), "bad module dependencies"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
 
         # todo: this feels a little clanky. We could just maintain separate lists of modules and other symbols,
         #   but that feels more clanky.
-        assert self.module_defs <= self.symbol_defs, "modules must be symbols"
+        assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
+        assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
 
     def add_module_def(self, name):
         self.module_defs.add(name.lower())
@@ -74,6 +79,10 @@ class AnalysedFile(object):
     def add_symbol_def(self, name):
         assert name and len(name)
         self.symbol_defs.add(name.lower())
+
+    def add_module_dep(self, name):
+        self.module_deps.add(name.lower())
+        self.add_symbol_dep(name)
 
     def add_symbol_dep(self, name):
         assert name and len(name)
@@ -87,7 +96,11 @@ class AnalysedFile(object):
     def field_names(cls):
         """Defines the order in which we want fields to appear if a human is reading them"""
         return [
-            'fpath', 'file_hash', 'module_defs', 'symbol_defs', 'symbol_deps', 'file_deps', 'mo_commented_file_deps']
+            'fpath', 'file_hash',
+            'module_defs', 'symbol_defs',
+            'module_deps', 'symbol_deps',
+            'file_deps', 'mo_commented_file_deps',
+        ]
 
     def __str__(self):
         values = [getattr(self, field_name) for field_name in self.field_names()]
@@ -106,6 +119,7 @@ class AnalysedFile(object):
             self.file_hash,
             tuple(sorted(self.module_defs)),
             tuple(sorted(self.symbol_defs)),
+            tuple(sorted(self.module_deps)),
             tuple(sorted(self.symbol_deps)),
             tuple(sorted(self.file_deps)),
             tuple(sorted(self.mo_commented_file_deps)),
@@ -122,6 +136,7 @@ class AnalysedFile(object):
             "file_hash": str(self.file_hash),
             "module_defs": ';'.join(self.module_defs),
             "symbol_defs": ';'.join(self.symbol_defs),
+            "module_deps": ';'.join(self.module_deps),
             "symbol_deps": ';'.join(self.symbol_deps),
             "file_deps": ';'.join(map(str, self.file_deps)),
             "mo_commented_file_deps": ';'.join(self.mo_commented_file_deps),
@@ -135,6 +150,7 @@ class AnalysedFile(object):
             file_hash=int(d["file_hash"]),
             module_defs=set(d["module_defs"].split(';')) if d["module_defs"] else set(),
             symbol_defs=set(d["symbol_defs"].split(';')) if d["symbol_defs"] else set(),
+            module_deps=set(d["module_deps"].split(';')) if d["module_deps"] else set(),
             symbol_deps=set(d["symbol_deps"].split(';')) if d["symbol_deps"] else set(),
             file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
             mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()

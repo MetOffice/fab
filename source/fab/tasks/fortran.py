@@ -155,7 +155,7 @@ class FortranAnalyser(object):
             logger.debug(f"ignoring use of {use_name}")
         elif use_name not in self._intrinsic_modules:
             # found a dependency on fortran
-            analysed_file.add_symbol_dep(use_name)
+            analysed_file.add_module_dep(use_name)
 
     def _process_variable_binding(self, fpath):
         # This should be a line binding from C to a variable definition
