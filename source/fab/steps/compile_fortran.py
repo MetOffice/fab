@@ -64,6 +64,9 @@ class CompileFortran(MpExeStep):
             Human friendly name for logger output, with sensible default.
 
         """
+
+        # todo: perhaps this should add the -J (or -modules) automatically
+
         compiler = compiler or os.getenv('FC', 'gfortran -c')
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER

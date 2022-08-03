@@ -45,7 +45,7 @@ class LinkerBase(Step, ABC):
     compiler steps.
 
     """
-    def __init__(self, linker: str, flags=None, source: ArtefactsGetter = None, name='link'):
+    def __init__(self, linker: str = None, flags=None, source: ArtefactsGetter = None, name='link'):
         """
         :param linker:
             E.g 'gcc' or 'ld'.
@@ -60,7 +60,7 @@ class LinkerBase(Step, ABC):
         """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.linker = linker
+        self.linker = linker or os.getenv('LD', 'gcc')
         self.flags: List[str] = flags or []
 
     def _call_linker(self, filename, objects):
