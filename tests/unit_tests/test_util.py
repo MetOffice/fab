@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
-from fab.util import run_command, check_for_errors, get_mod_hashes
+from fab.util import run_command, get_mod_hashes
 from fab.util import suffix_filter
 
 
@@ -70,16 +70,6 @@ class TestSuffixFilter(object):
         getter = SuffixFilter('barz', ['.b', '.c'])
         result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
         assert result == [Path('bar.b'), Path('bar.c')]
-
-
-class Test_check_for_errors(object):
-
-    def test_no_error(self):
-        check_for_errors(['foo', 'bar'])
-
-    def test_error(self):
-        with pytest.raises(RuntimeError):
-            check_for_errors(['foo', MemoryError('bar')])
 
 
 class Test_get_mod_hashes(object):

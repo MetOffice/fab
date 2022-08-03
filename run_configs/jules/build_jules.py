@@ -27,7 +27,7 @@ def jules_config(revision=None):
 
     config = BuildConfig(project_label=f'jules_{revision}')
     # config.multiprocessing = False
-    config.debug_skip = True
+    # config.reuse_artefacts = True
 
     logger.info(f'building jules revision {revision}')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")

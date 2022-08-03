@@ -278,20 +278,6 @@ def by_type(iterable, cls):
     return filter(lambda i: isinstance(i, cls), iterable)
 
 
-def check_for_errors(results: Iterable, caller_label=None):
-    """
-    A helper function for multiprocessing steps, checks a list of results for any exceptions and handles gracefully.
-    """
-    caller_label = f'during {caller_label}' if caller_label else ''
-
-    exceptions = list(by_type(results, Exception))
-    if exceptions:
-        formatted_errors = "\n\n".join(map(str, exceptions))
-        raise RuntimeError(
-            f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
-        )
-
-
 def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
     """
     Get the hash of every module file defined in the list of analysed files.
