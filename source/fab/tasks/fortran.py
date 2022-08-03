@@ -69,7 +69,7 @@ class FortranAnalyser(object):
     A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFile`.
 
     """
-    _intrinsic_modules = ['iso_fortran_env']
+    _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
 
     def __init__(self, std="f2008", ignore_mod_deps=None):
         self.f2008_parser = ParserFactory().create(std=std)
