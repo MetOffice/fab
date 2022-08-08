@@ -43,6 +43,7 @@ class TestTinyProject(object):
         config.run()
 
         # check it built ok
+        # todo: we'll be expanding these tests in this branch
 
         # record the file timestamps
 
