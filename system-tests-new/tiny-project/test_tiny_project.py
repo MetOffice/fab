@@ -179,7 +179,7 @@ class TestTinyProject(object):
         assert build_output / 'my_mod.mod' not in changed_paths
 
     def test_incremental_build_mod(self, configs):
-        # incremental fortran build, changing module source but not interface
+        # incremental fortran build, changing module including interface
         grab_config, build_config = configs
         grab_config.run()
 
