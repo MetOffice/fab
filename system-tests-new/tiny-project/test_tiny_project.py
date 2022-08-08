@@ -3,19 +3,15 @@ from pathlib import Path
 
 import pytest
 
-from fab.util import file_walk, file_checksum
-
-from fab.constants import BUILD_OUTPUT
-
-from fab.steps.walk_source import FindSourceFiles, Exclude, Include
-
 from fab.build_config import BuildConfig
+from fab.constants import BUILD_OUTPUT
 from fab.steps.analyse import Analyse
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-
+from fab.steps.walk_source import FindSourceFiles, Exclude, Include
+from fab.util import file_checksum
 
 PROJECT_LABEL = 'tiny project'
 
@@ -27,6 +23,7 @@ class TestTinyProject(object):
         - Incremental Fortran build
 
     """
+
     # todo: check incremental build of other file types as Fab is upgraded
 
     # helpers
