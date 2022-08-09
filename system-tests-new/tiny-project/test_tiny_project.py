@@ -1,4 +1,5 @@
 import csv
+import logging
 from pathlib import Path
 
 import pytest
@@ -19,32 +20,31 @@ PROJECT_LABEL = 'tiny project'
 class TestTinyProject(object):
     """
     Checks:
-        - Basic Fortran project build
-        - Incremental Fortran build
+        - basic Fortran project build
+        - incremental Fortran build, with and without mod changes
+
+    Each test runs in a different fab workspace each time, with a rolling history kept of the last three runs.
 
     """
 
     # todo: check incremental build of other file types as Fab is upgraded
 
-    # helpers
-
     @pytest.fixture
-    def configs(self, tmp_path):
-        fab_workspace = tmp_path
-        this_folder = Path(__file__).parent
+    def configs(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
+        logging.getLogger('fab').setLevel(logging.WARNING)
 
         grab_config = BuildConfig(
             project_label=PROJECT_LABEL,
-            fab_workspace=fab_workspace,
+            fab_workspace=tmp_path,
             steps=[
-                GrabFolder(this_folder / 'project-source', dst='src'),
+                GrabFolder(Path(__file__).parent / 'project-source', dst='src'),
             ],
-            multiprocessing=False,  # PyCharm on VDI can't debug with MP
+            multiprocessing=False,
         )
 
         build_config = BuildConfig(
             project_label=PROJECT_LABEL,
-            fab_workspace=fab_workspace,
+            fab_workspace=tmp_path,
             steps=[
                 FindSourceFiles(),
                 fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
@@ -52,12 +52,13 @@ class TestTinyProject(object):
                 CompileFortran(compiler='gfortran -c', common_flags=['-J', '$output']),
                 LinkExe(flags=['-lgfortran']),
             ],
-            multiprocessing=False,  # PyCharm on VDI can't debug with MP
+            multiprocessing=False,
         )
 
         return grab_config, build_config
 
     def test_clean_build(self, configs):
+        # just make sure an exe appears
         grab_config, build_config = configs
         assert not (build_config.project_workspace / 'my_prog.exe').exists()
 
@@ -104,7 +105,7 @@ class TestTinyProject(object):
         Get the contents of each csv file in the project workspace.
 
         The row order is not deterministic so we put rows in a set for easy comparison.
-        Each row is a dict, which can't go in a set. We sort and tuple the fields for easy comparison.
+        Each row is a dict, which can't go in a set, so we sort and tuple row items for easy comparison.
 
         """
         output_files = self.find_output_files(
@@ -134,6 +135,7 @@ class TestTinyProject(object):
         return temp_store['output files']
 
     def test_no_change_rebuild(self, configs):
+        # ensure a rebuild with no changes does not recompile any fortran
         grab_config, build_config = configs
         grab_config.run()
 
@@ -150,7 +152,7 @@ class TestTinyProject(object):
         assert rebuild_csvs == clean_csvs
 
     def test_incremental_build_no_mod(self, configs):
-        # incremental fortran build, changing module source but not interface
+        # test incremental fortran build, no module change
         grab_config, build_config = configs
         grab_config.run()
 
@@ -179,7 +181,7 @@ class TestTinyProject(object):
         assert build_output / 'my_mod.mod' not in changed_paths
 
     def test_incremental_build_mod(self, configs):
-        # incremental fortran build, changing module including interface
+        # test incremental fortran build with module change
         grab_config, build_config = configs
         grab_config.run()
 
