@@ -72,6 +72,7 @@ def jules_config(revision=None):
             common_flags=[
                 '-c',
                 '-J', '$output'],
+            two_pass_flag='-fsyntax-only',
             # required for newer compilers
             # path_flags=[
             #     AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),

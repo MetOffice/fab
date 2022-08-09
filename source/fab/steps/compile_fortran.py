@@ -37,7 +37,7 @@ class CompileFortran(MpExeStep):
 
     """
     def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
-                 source: ArtefactsGetter = None, name='compile fortran'):
+                 source: ArtefactsGetter = None, two_pass_flag=None, name='compile fortran'):
         """
         :param compiler:
             The command line compiler to call. Defaults to `gfortran -c`.
@@ -48,6 +48,10 @@ class CompileFortran(MpExeStep):
             for selected files.
         :param source:
             An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
+        :param two_pass_flag:
+            Optionally supply a flag which enables the 'syntax checking' feature of the compiler.
+            Fab uses this to quickly build all the mod files first, potentially shortening multi-pass bottlenecks.
+            Slower object file compilation can then follow in a single pass.
         :param name:
             Human friendly name for logger output, with sensible default.
 
@@ -55,6 +59,7 @@ class CompileFortran(MpExeStep):
         compiler = compiler or os.getenv('FC', 'gfortran -c')
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
+        self.two_pass_flag = two_pass_flag
 
     def run(self, artefact_store, config):
         """
@@ -72,12 +77,16 @@ class CompileFortran(MpExeStep):
 
         # get all the source to compile, for all build trees, into one big lump
         build_lists: Dict[str, List] = self.source_getter(artefact_store)
-        to_compile = sum(build_lists.values(), [])
+        to_compile = set(sum(build_lists.values(), []))
         logger.info(f"compiling {len(to_compile)} fortran files")
 
         # compile everything in multiple passes
         all_compiled: List[CompiledFile] = []  # todo: use set?
         already_compiled_files: Set[Path] = set([])  # a quick lookup
+
+        if self.two_pass_flag:
+            logger.info("Starting two-pass compile: mod files, multiple passes")
+            self._two_pass_stage = 1
 
         per_pass = []
         while to_compile:
@@ -106,16 +115,25 @@ class CompileFortran(MpExeStep):
             # remove from remaining to compile
             to_compile = set(filter(lambda af: af.fpath not in compiled_fpaths, to_compile))
 
-        log_or_dot_finish(logger)
-        logger.debug(f"compiled per pass {per_pass}")
-        logger.info(f"total fortran compiled {sum(per_pass)}")
-
         if to_compile:
             logger.debug(f"there were still {len(to_compile)} files left to compile")
             for af in to_compile:
                 logger.debug(af.fpath)
             logger.error(f"there were still {len(to_compile)} files left to compile")
             exit(1)
+
+        if self.two_pass_flag:
+            logger.info("Finalising two-pass compile: object files, single pass")
+            self._two_pass_stage = 2
+
+            to_compile = sum(build_lists.values(), [])
+            # todo: order by last compile duration
+            obj_results = self.run_mp(items=to_compile, func=self.compile_file)
+            check_for_errors(obj_results, caller_label=self.name)
+
+        log_or_dot_finish(logger)
+        logger.debug(f"compiled per pass {per_pass}")
+        logger.info(f"total fortran compiled {sum(per_pass)}")
 
         # add the targets' new object files to the artefact store
         lookup = {compiled_file.analysed_file.fpath: compiled_file for compiled_file in all_compiled}
@@ -124,7 +142,7 @@ class CompileFortran(MpExeStep):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 
-    def get_compile_next(self, already_compiled_files: Set[Path], to_compile: List[AnalysedFile]):
+    def get_compile_next(self, already_compiled_files: Set[Path], to_compile: Set[AnalysedFile]):
 
         # find what to compile next
         compile_next = set()
@@ -160,12 +178,19 @@ class CompileFortran(MpExeStep):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
+                # tool
                 command = self.exe.split()
+
+                # flags
                 command.extend(self.flags.flags_for_path(
                     path=analysed_file.fpath,
                     source_root=self._config.source_root,
                     project_workspace=self._config.project_workspace))
                 command.extend(os.getenv('FFLAGS', '').split())
+                if self.two_pass_flag and self._two_pass_stage == 1:
+                    command.append(self.two_pass_flag)
+
+                # files
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])
 
