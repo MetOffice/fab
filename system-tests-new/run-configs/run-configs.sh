@@ -10,34 +10,39 @@ cd "$SCRIPT_DIR"/../../run_configs
 echo $(pwd)
 
 echo
-echo "build gcom object archive and shared object"
+echo "building gcom variants"
 echo
 cd gcom
-python -m grab_gcom
-python -m build_gcom_ar
-python -m build_gcom_so
+./grab_gcom.py
+./build_gcom_ar.py
+./build_gcom_so.py
 cd ..
 
 echo
-echo "build jules"
+echo "building jules variants"
 echo
 cd jules
-python -m build_jules
+./build_jules.py
+./build_jules.py --two-stage
 cd ..
 
 echo
-echo "build um"
+echo "building um variants"
 echo
 cd um
-python -m build_um
+./build_um.py
+./build_um.py --two-stage
 cd ..
 
 echo
-echo "build lfric"
+echo "building lfric sub-projects variants"
 echo
 cd lfric
-python -m grab_lfric
-python -m gungho
-python -m mesh_tools
-python -m atm
+./grab_lfric.py
+./grab_lfric.py --two-stage
+./gungho.py
+./gungho.py --two-stage
+./mesh_tools.py
+./mesh_tools.py --two-stage
+./atm.py
 cd ..

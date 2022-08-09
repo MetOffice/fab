@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import os
+from argparse import ArgumentParser
 
 from fab.steps.compile_c import CompileC
 
@@ -24,12 +25,12 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def atm_config():
+def atm_config(two_stage=False):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     config = BuildConfig(
-        project_label='atm',
+        project_label=f'atm {int(two_stage)+1}stage',
         # multiprocessing=False,
         reuse_artefacts=True,
     )
@@ -129,6 +130,7 @@ def atm_config():
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
             ],
+            two_stage_flag='-fsyntax-only' if two_stage else None,
             path_flags=[
                 AddFlags('$output/science/*', ['-fdefault-real-8', '-fdefault-double-8']),
             ]
@@ -550,7 +552,11 @@ def file_filtering(config):
 
 
 if __name__ == '__main__':
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--two-stage', action='store_true')
+    args = arg_parser.parse_args()
+
     # logger.setLevel(logging.DEBUG)
 
-    atm_config().run()
+    atm_config(two_stage=args.two_stage).run()
     # metrics_summary(metrics_folder=atm_config().metrics_folder)

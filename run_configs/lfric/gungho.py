@@ -6,6 +6,7 @@
 # ##############################################################################
 import logging
 import os
+from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_OUTPUT
@@ -25,12 +26,12 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def gungho():
+def gungho_config(two_stage=False):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     config = BuildConfig(
-        project_label='gungho',
+        project_label=f'gungho {int(two_stage)+1}stage',
         # multiprocessing=False,
         reuse_artefacts=True,
     )
@@ -87,7 +88,9 @@ def gungho():
 
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64',
                 '-DUSE_XIOS', '-DUSE_MPI=YES',
-            ]),
+            ],
+            two_stage_flag='-fsyntax-only' if two_stage else None,
+        ),
 
         ArchiveObjects(),
 
@@ -108,5 +111,8 @@ def gungho():
 
 
 if __name__ == '__main__':
-    gungho_config = gungho()
-    gungho_config.run()
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--two-stage', action='store_true')
+    args = arg_parser.parse_args()
+
+    gungho_config(two_stage=args.two_stage).run()
