@@ -19,9 +19,9 @@ from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, Exclude
 
 
-def jules_config(revision=None):
+def jules_config(revision=None, two_stage=False):
 
-    config = BuildConfig(project_label=f'jules_{revision}')
+    config = BuildConfig(project_label=f'jules_{revision}_{int(two_stage)+1}stage')
     # config.multiprocessing = False
     # config.debug_skip = True
 
@@ -72,7 +72,7 @@ def jules_config(revision=None):
             common_flags=[
                 '-c',
                 '-J', '$output'],
-            two_pass_flag='-fsyntax-only',
+            two_stage_flag='-fsyntax-only' if two_stage else None
             # required for newer compilers
             # path_flags=[
             #     AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
@@ -90,6 +90,7 @@ def jules_config(revision=None):
 if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('JULES_REVISION', 'vn6.3'))
+    arg_parser.add_argument('--two-stage', default=False)
     args = arg_parser.parse_args()
 
-    jules_config(revision=args.revision).run()
+    jules_config(revision=args.revision, two_stage=args.two_stage).run()
