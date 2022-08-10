@@ -211,7 +211,7 @@ class CompileFortran(MpExeStep):
             module_deps_hashes[mod_dep] = self._mod_hashes[mod_dep]
 
         return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=analysed_file.fpath.with_suffix('.o'),
+            input_fpath=analysed_file.fpath, output_fpath=analysed_file.compiled_path,
             source_hash=analysed_file.file_hash, flags_hash=flags_hash,
             module_deps_hashes=module_deps_hashes
         )
@@ -242,8 +242,7 @@ class CompileFortran(MpExeStep):
                 recompile_reasons.append(MODULE_DEPENDENCIES_CHANGED)
 
             # is the object file still there?
-            obj_file = analysed_file.fpath.with_suffix('.o')
-            if not obj_file.exists():
+            if not analysed_file.compiled_path.exists():
                 recompile_reasons.append(OBJECT_FILE_NOT_PRESENT)
 
             # are the module files we define still there?
@@ -256,7 +255,7 @@ class CompileFortran(MpExeStep):
 
     def compile_file(self, analysed_file, flags):
         with Timer() as timer:
-            output_fpath = analysed_file.fpath.with_suffix('.o')
+            output_fpath = analysed_file.compiled_path
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             command = self.exe.split()
