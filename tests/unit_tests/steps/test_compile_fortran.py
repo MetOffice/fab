@@ -107,7 +107,37 @@ class Test_store_artefacts(object):
 
 
 class Test_process_file(object):
-    pass
+
+    def test_vanilla(self, compiler):
+        # ensure the compiler is called and the dep hashes are correct
+        compiled_file, patches = self._common(compiler=compiler, recompile_reasons=['because'])
+
+        assert patches['compile_file'].call_count == 1
+        assert compiled_file.module_deps_hashes == {'util': 456}
+
+    def test_skip(self, compiler):
+        # ensure the compiler is NOT called, and the dep hashes are still correct
+        compiled_file, patches = self._common(compiler=compiler, recompile_reasons=[])
+
+        assert patches['compile_file'].call_count == 0
+        assert compiled_file.module_deps_hashes == {'util': 456}
+
+    def _common(self, compiler, recompile_reasons):
+        analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=123)
+        analysed_file.add_module_def('my_mod')
+        analysed_file.add_module_dep('util')
+
+        with mock.patch.multiple(
+            compiler,
+            _last_compiles=mock.DEFAULT,
+            _mod_hashes={'util': 456},
+            recompile_check=mock.Mock(return_value=recompile_reasons),
+            compile_file=mock.DEFAULT,
+            _config=mock.Mock(project_workspace=Path('fooproj'), source_root=Path('foosrc')),
+        ) as patches:
+            compiled_file = compiler.process_file(analysed_file)
+
+        return compiled_file, patches
 
 
 class Test_recompile_check(object):

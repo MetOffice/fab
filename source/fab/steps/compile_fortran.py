@@ -199,10 +199,11 @@ class CompileFortran(MpExeStep):
             except Exception as err:
                 return Exception("Error compiling file:", err)
         else:
+            # We could just return last_compile at this point.
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
-        # get the hashes of the modules we depend on
-        # record them so we know if they've changed next time we compile.
+        # Get the hashes of the modules we depend on.
+        # Record them so we know if they've changed next time we compile.
         module_deps_hashes = {}
         for mod_dep in analysed_file.module_deps:
             if mod_dep not in self._mod_hashes:

@@ -1,15 +1,14 @@
 from pathlib import Path
-from unittest import mock
 
-from fab.util import CompiledFile
-
+from fab.build_config import BuildConfig
 from fab.steps.compile_fortran import CompileFortran
+from fab.util import CompiledFile
 
 
 def test_compilation_results(tmp_path):
-
     # write a few compilation results to file
-    config = mock.Mock(project_workspace=Path(tmp_path))
+    config = BuildConfig('foo')
+    config.project_workspace = Path(tmp_path)
 
     compiled = {
         Path('main.f90'): CompiledFile(
