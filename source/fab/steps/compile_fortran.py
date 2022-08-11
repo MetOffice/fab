@@ -203,7 +203,7 @@ class CompileFortran(MpExeStep):
                     return Exception("Error calling compiler:", err)
 
             # todo: probably better to record both mod and obj metrics
-            metric_name = self.name + f' stage {self._stage}' if self._stage else ''
+            metric_name = self.name + (f' stage {self._stage}' if self._stage else '')
             send_metric(
                 group=metric_name,
                 name=str(analysed_file.fpath),
