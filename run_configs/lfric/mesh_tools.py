@@ -16,11 +16,11 @@ from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserW
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 
-def mesh_tools_config(two_stage=False):
+def mesh_tools_config(two_stage=False, opt='Og'):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
-    config = BuildConfig(project_label=f'mesh tools {int(two_stage)+1}stage')
+    config = BuildConfig(project_label=f'mesh tools {opt} {int(two_stage)+1}stage')
     config.steps = [
 
         GrabFolder(src=lfric_source / 'infrastructure/source/', dst=''),
@@ -59,7 +59,10 @@ def mesh_tools_config(two_stage=False):
 
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
-            common_flags=['-c', '-J', '$output'],
+            common_flags=[
+                '-c', '-J', '$output',
+                f'-{opt}',
+            ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
         ),
 
@@ -83,6 +86,7 @@ def mesh_tools_config(two_stage=False):
 if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
-    mesh_tools_config(two_stage=args.two_stage).run()
+    mesh_tools_config(two_stage=args.two_stage, opt=args.opt).run()

@@ -26,12 +26,12 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def gungho_config(two_stage=False):
+def gungho_config(two_stage=False, opt='Og'):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     config = BuildConfig(
-        project_label=f'gungho {int(two_stage)+1}stage',
+        project_label=f'gungho {opt} {int(two_stage)+1}stage',
         # multiprocessing=False,
         reuse_artefacts=True,
     )
@@ -81,7 +81,9 @@ def gungho_config(two_stage=False):
                 '-c', '-J', '$output',
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
-                '-Og', '-std=f2008',
+                # '-Og',
+                f'-{opt}',
+                '-std=f2008',
 
                 '-Wall', '-Werror=conversion', '-Werror=unused-variable', '-Werror=character-truncation',
                 '-Werror=unused-value', '-Werror=tabs',
@@ -113,6 +115,7 @@ def gungho_config(two_stage=False):
 if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
-    gungho_config(two_stage=args.two_stage).run()
+    gungho_config(two_stage=args.two_stage, opt=args.opt).run()

@@ -25,14 +25,16 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def atm_config(two_stage=False):
+def atm_config(two_stage=False, opt='Og'):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
+    # TODO: these example configs are getting more and more gfortran-specific, which probably needs to change.
+
     config = BuildConfig(
-        project_label=f'atm {int(two_stage)+1}stage',
+        project_label=f'atm {opt} {int(two_stage)+1}stage',
         # multiprocessing=False,
-        reuse_artefacts=True,
+        # reuse_artefacts=True,
     )
 
     config.steps = [
@@ -125,7 +127,8 @@ def atm_config(two_stage=False):
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
                 '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
 
-                '-Og',
+                # '-Og',
+                f'-{opt}',
 
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
@@ -554,9 +557,10 @@ def file_filtering(config):
 if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
     # logger.setLevel(logging.DEBUG)
 
-    atm_config(two_stage=args.two_stage).run()
+    atm_config(two_stage=args.two_stage, opt=args.opt).run()
     # metrics_summary(metrics_folder=atm_config().metrics_folder)

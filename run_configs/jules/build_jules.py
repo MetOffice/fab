@@ -19,14 +19,14 @@ from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, Exclude
 
 
-def jules_config(revision=None, two_stage=False):
+def jules_config(revision=None, two_stage=False, opt='Og'):
 
-    config = BuildConfig(project_label=f'jules {revision} {int(two_stage)+1}stage')
+    config = BuildConfig(project_label=f'jules {revision} {opt} {int(two_stage)+1}stage')
     # config.multiprocessing = False
-    # config.debug_skip = True
+    # config.reuse_artefacts = True
 
     logger = logging.getLogger('fab')
-    logger.info(f'building jules revision {revision}, {int(two_stage)+1} stage')
+    logger.info(f'building jules revision {revision} {opt} {int(two_stage)+1}-stage')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
 
     # todo: there are likely to be config differences between revisions...
@@ -71,7 +71,9 @@ def jules_config(revision=None, two_stage=False):
             compiler='gfortran',
             common_flags=[
                 '-c',
-                '-J', '$output'],
+                '-J', '$output',
+                f'-{opt}',
+            ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
             # required for newer compilers
             # path_flags=[
@@ -91,6 +93,7 @@ if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('JULES_REVISION', 'vn6.3'))
     arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
-    jules_config(revision=args.revision, two_stage=args.two_stage).run()
+    jules_config(revision=args.revision, two_stage=args.two_stage, opt=args.opt).run()
