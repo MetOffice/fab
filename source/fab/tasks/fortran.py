@@ -103,7 +103,6 @@ class FortranAnalyser(object):
                     self._process_use_statement(analysed_file, obj)  # raises
 
                 elif obj_type == Call_Stmt:
-                    # self._process_use_statement(analysed_file, obj)  # raises
                     called_name = _typed_child(obj, Name)
                     analysed_file.add_symbol_dep(called_name.string)
 
