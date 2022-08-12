@@ -248,7 +248,7 @@ class CompileFortran(MpExeStep):
 
             # are the module files we define still there?
             build_output = self._config.project_workspace / BUILD_OUTPUT
-            mod_def_files = [build_output / f'{mod}.mod' for mod in analysed_file.module_defs]
+            mod_def_files = [build_output / mod for mod in analysed_file.mod_filenames]
             if not all([mod.exists() for mod in mod_def_files]):
                 recompile_reasons.append(MODULE_FILE_NOT_PRESENT)
 

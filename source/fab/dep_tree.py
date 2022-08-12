@@ -99,6 +99,11 @@ class AnalysedFile(object):
         # throughout the codebase, so we've DRY'd it here.
         return self.fpath.with_suffix('.o')
 
+    @property
+    def mod_filenames(self):
+        """The mod_filenames property defines which module files are expected to be created (but not where)."""
+        return {f'{mod}.mod' for mod in self.module_defs}
+
     @classmethod
     def field_names(cls):
         """Defines the order in which we want fields to appear if a human is reading them"""
