@@ -107,14 +107,48 @@ class Test_store_artefacts(object):
 
 
 class Test_process_file(object):
-    pass
+
+    def test_vanilla(self, compiler):
+        # ensure the compiler is called and the dep hashes are correct
+        compiled_file, patches = self._common(compiler=compiler, recompile_reasons=['because'])
+
+        assert patches['compile_file'].call_count == 1
+        assert compiled_file.module_deps_hashes == {'util': 456}
+
+    def test_skip(self, compiler):
+        # ensure the compiler is NOT called, and the dep hashes are still correct
+        compiled_file, patches = self._common(compiler=compiler, recompile_reasons=[])
+
+        assert patches['compile_file'].call_count == 0
+        assert compiled_file.module_deps_hashes == {'util': 456}
+
+    def _common(self, compiler, recompile_reasons):
+        analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=123)
+        analysed_file.add_module_def('my_mod')
+        analysed_file.add_module_dep('util')
+
+        with mock.patch.multiple(
+            compiler,
+            _last_compiles=mock.DEFAULT,
+            _mod_hashes={'util': 456},
+            recompile_check=mock.Mock(return_value=recompile_reasons),
+            compile_file=mock.DEFAULT,
+            _config=mock.Mock(project_workspace=Path('fooproj'), source_root=Path('foosrc')),
+        ) as patches:
+            compiled_file = compiler.process_file(analysed_file)
+
+        return compiled_file, patches
 
 
 class Test_recompile_check(object):
 
     @pytest.fixture
-    def foo(self, compiler):
-        analysed_file = mock.Mock(fpath=Path('mod.f90'), file_hash=111, module_defs={'mod'}, module_deps={'foo', 'bar'})
+    def params(self, compiler):
+        analysed_file = AnalysedFile(fpath=Path('mod.f90'), file_hash=111)
+        analysed_file.add_module_def('mod')
+        analysed_file.add_module_dep('foo')
+        analysed_file.add_module_dep('bar')
+
         flags_hash = 222
         last_compile = mock.Mock(source_hash=111, flags_hash=222, module_deps_hashes={'foo': 333, 'bar': 444})
 
@@ -127,8 +161,8 @@ class Test_recompile_check(object):
         result = compiler.recompile_check(analysed_file=None, flags_hash=None, last_compile=None)
         assert result == NO_PREVIOUS_RESULT
 
-    def test_nothing_changed(self, foo):
-        analysed_file, flags_hash, last_compile, compiler = foo
+    def test_nothing_changed(self, params):
+        analysed_file, flags_hash, last_compile, compiler = params
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
             recompile_reasons = compiler.recompile_check(
@@ -136,8 +170,8 @@ class Test_recompile_check(object):
 
         assert not recompile_reasons
 
-    def test_source_changed(self, foo):
-        analysed_file, flags_hash, last_compile, compiler = foo
+    def test_source_changed(self, params):
+        analysed_file, flags_hash, last_compile, compiler = params
         analysed_file.file_hash = 999
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
@@ -146,8 +180,8 @@ class Test_recompile_check(object):
 
         assert recompile_reasons == SOURCE_CHANGED
 
-    def test_flags_changed(self, foo):
-        analysed_file, _, last_compile, compiler = foo
+    def test_flags_changed(self, params):
+        analysed_file, _, last_compile, compiler = params
         flags_hash = 999
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
@@ -156,8 +190,8 @@ class Test_recompile_check(object):
 
         assert recompile_reasons == FLAGS_CHANGED
 
-    def test_mod_deps_changed(self, foo):
-        analysed_file, flags_hash, last_compile, compiler = foo
+    def test_mod_deps_changed(self, params):
+        analysed_file, flags_hash, last_compile, compiler = params
         compiler._mod_hashes['bar'] = 999
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
@@ -166,8 +200,8 @@ class Test_recompile_check(object):
 
         assert recompile_reasons == MODULE_DEPENDENCIES_CHANGED
 
-    def test_obj_missing(self, foo):
-        analysed_file, flags_hash, last_compile, compiler = foo
+    def test_obj_missing(self, params):
+        analysed_file, flags_hash, last_compile, compiler = params
 
         with mock.patch('pathlib.Path.exists', side_effect=[False, True]):
             recompile_reasons = compiler.recompile_check(
@@ -175,8 +209,8 @@ class Test_recompile_check(object):
 
         assert recompile_reasons == OBJECT_FILE_NOT_PRESENT
 
-    def test_mod_defs_missing(self, foo):
-        analysed_file, flags_hash, last_compile, compiler = foo
+    def test_mod_defs_missing(self, params):
+        analysed_file, flags_hash, last_compile, compiler = params
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, False]):
             recompile_reasons = compiler.recompile_check(
@@ -184,8 +218,8 @@ class Test_recompile_check(object):
 
         assert recompile_reasons == MODULE_FILE_NOT_PRESENT
 
-    def multiple_reasons(self, foo):
-        analysed_file, flags_hash, last_compile, compiler = foo
+    def multiple_reasons(self, params):
+        analysed_file, flags_hash, last_compile, compiler = params
         analysed_file.file_hash = 999
         flags_hash = 999
 

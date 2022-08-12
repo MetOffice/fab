@@ -93,6 +93,18 @@ class AnalysedFile(object):
         assert name and len(name)
         self.file_deps.add(name)
 
+    @property
+    def compiled_path(self):
+        """The compiled_path property defines where the compiler is expected to put the object file."""
+        # This might not seem relevant to the concept of an AnalysedFile. However, it is required in several places
+        # throughout the codebase, so we've DRY'd it here.
+        return self.fpath.with_suffix('.o')
+
+    @property
+    def mod_filenames(self):
+        """The mod_filenames property defines which module files are expected to be created (but not where)."""
+        return {f'{mod}.mod' for mod in self.module_defs}
+
     @classmethod
     def field_names(cls):
         """Defines the order in which we want fields to appear if a human is reading them"""

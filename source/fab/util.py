@@ -154,6 +154,12 @@ class CompiledFile(object):
             The file that was compiled.
         :param output_fpath:
             The object file that was created.
+        :param source_hash:
+            Hash of the compiled source.
+        :param flags_hash:
+            Hash of the compiler flags.
+        :param module_deps_hashes:
+            Hash of each module on which we depend.
 
         """
         # todo: Should just be the input_fpath, not the whole analysed file

@@ -33,7 +33,8 @@ class BuildConfig(object):
     """
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
-                 multiprocessing=True, n_procs: int = None, reuse_artefacts=False, fab_workspace=None):
+                 multiprocessing=True, n_procs: int = None, reuse_artefacts=False,
+                 fab_workspace: Optional[Path] = None):
         """
         :param str project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
@@ -53,7 +54,7 @@ class BuildConfig(object):
             WARNING: Currently unsophisticated, this flag should only be used by Fab developers.
             The logic behind flag will soon be improved, in a work package called "incremental build".
         :param fab_workspace:
-            Optional path to use as the fab workspace. If set, overrides the FAB_WORKSPACE environment variable.
+            Overrides the FAB_WORKSPACE environment variable.
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
 
         """
@@ -66,7 +67,7 @@ class BuildConfig(object):
             else:
                 fab_workspace = Path(os.path.expanduser("~/fab-workspace"))
                 logger.info(f"FAB_WORKSPACE not set. Defaulting to {fab_workspace}.")
-        logger.info(f"FAB_WORKSPACE is {fab_workspace}.")
+        logger.info(f"fab workspace is {fab_workspace}.")
 
         self.project_workspace = fab_workspace / (project_label.replace(' ', '-'))
         self.metrics_folder = self.project_workspace / 'metrics' / self.project_label.replace(' ', '_', -1)
@@ -207,7 +208,7 @@ class FlagsConfig(object):
 
     """
 
-    def __init__(self, common_flags: List[str] = None, path_flags: List[AddFlags] = None):
+    def __init__(self, common_flags: Optional[List[str]] = None, path_flags: Optional[List[AddFlags]] = None):
         """
         :param common_flags:
             Flags to apply to all files.

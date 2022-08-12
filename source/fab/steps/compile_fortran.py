@@ -199,10 +199,11 @@ class CompileFortran(MpExeStep):
             except Exception as err:
                 return Exception("Error compiling file:", err)
         else:
+            # We could just return last_compile at this point.
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
-        # get the hashes of the modules we depend on
-        # record them so we know if they've changed next time we compile.
+        # Get the hashes of the modules we depend on.
+        # Record them so we know if they've changed next time we compile.
         module_deps_hashes = {}
         for mod_dep in analysed_file.module_deps:
             if mod_dep not in self._mod_hashes:
@@ -211,7 +212,7 @@ class CompileFortran(MpExeStep):
             module_deps_hashes[mod_dep] = self._mod_hashes[mod_dep]
 
         return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=analysed_file.fpath.with_suffix('.o'),
+            input_fpath=analysed_file.fpath, output_fpath=analysed_file.compiled_path,
             source_hash=analysed_file.file_hash, flags_hash=flags_hash,
             module_deps_hashes=module_deps_hashes
         )
@@ -242,13 +243,12 @@ class CompileFortran(MpExeStep):
                 recompile_reasons.append(MODULE_DEPENDENCIES_CHANGED)
 
             # is the object file still there?
-            obj_file = analysed_file.fpath.with_suffix('.o')
-            if not obj_file.exists():
+            if not analysed_file.compiled_path.exists():
                 recompile_reasons.append(OBJECT_FILE_NOT_PRESENT)
 
             # are the module files we define still there?
             build_output = self._config.project_workspace / BUILD_OUTPUT
-            mod_def_files = [build_output / f'{mod}.mod' for mod in analysed_file.module_defs]
+            mod_def_files = [build_output / mod for mod in analysed_file.mod_filenames]
             if not all([mod.exists() for mod in mod_def_files]):
                 recompile_reasons.append(MODULE_FILE_NOT_PRESENT)
 
@@ -256,7 +256,7 @@ class CompileFortran(MpExeStep):
 
     def compile_file(self, analysed_file, flags):
         with Timer() as timer:
-            output_fpath = analysed_file.fpath.with_suffix('.o')
+            output_fpath = analysed_file.compiled_path
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             command = self.exe.split()
