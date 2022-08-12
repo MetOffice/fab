@@ -53,7 +53,7 @@ class AnalysedFile(object):
         """
         self.fpath = Path(fpath)
         self.file_hash = file_hash
-        self.module_defs: Set[str] = set(module_defs or {})  # a subset of symbol_defs
+        self.module_defs: Set[str] = set(module_defs or {})
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.module_deps: Set[str] = set(module_deps or {})
         self.symbol_deps: Set[str] = set(symbol_deps or {})
@@ -91,6 +91,18 @@ class AnalysedFile(object):
     def add_file_dep(self, name):
         assert name and len(name)
         self.file_deps.add(name)
+
+    @property
+    def compiled_path(self):
+        """The compiled_path property defines where the compiler is expected to put the object file."""
+        # This might not seem relevant to the concept of an AnalysedFile. However, it is required in several places
+        # throughout the codebase, so we've DRY'd it here.
+        return self.fpath.with_suffix('.o')
+
+    @property
+    def mod_filenames(self):
+        """The mod_filenames property defines which module files are expected to be created (but not where)."""
+        return {f'{mod}.mod' for mod in self.module_defs}
 
     @classmethod
     def field_names(cls):
