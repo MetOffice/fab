@@ -71,7 +71,6 @@ class AnalysedFile(object):
         #   but that feels more clanky.
         assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
         assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
-        assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
 
     def add_module_def(self, name):
         self.module_defs.add(name.lower())
