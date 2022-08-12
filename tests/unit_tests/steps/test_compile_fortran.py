@@ -144,9 +144,11 @@ class Test_recompile_check(object):
 
     @pytest.fixture
     def params(self, compiler):
-        analysed_file = mock.Mock(
-            fpath=Path('mod.f90'), file_hash=111, compiled_path=Path('mod.o'),
-            module_defs={'mod'}, module_deps={'foo', 'bar'})
+        analysed_file = AnalysedFile(fpath=Path('mod.f90'), file_hash=111)
+        analysed_file.add_module_def('mod')
+        analysed_file.add_module_dep('foo')
+        analysed_file.add_module_dep('bar')
+
         flags_hash = 222
         last_compile = mock.Mock(source_hash=111, flags_hash=222, module_deps_hashes={'foo': 333, 'bar': 444})
 
