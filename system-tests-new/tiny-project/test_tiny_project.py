@@ -198,11 +198,11 @@ class TestTinyProject(object):
                 if 'END SUBROUTINE' in line:
                     out.write("""
                         SUBROUTINE added_func ()
-                        
+
                             INTEGER :: bar = 2
                             PRINT *, bar
-                        
-                        END SUBROUTINE added_func                    
+
+                        END SUBROUTINE added_func
                     """)
 
         # rebuild
