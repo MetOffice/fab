@@ -280,15 +280,15 @@ class CompileFortran(MpExeStep):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
-                command = self.exe.split()
+            command = self.exe.split()
 
-                # flags
+            # flags
             command.extend(flags)
-                command.extend(os.getenv('FFLAGS', '').split())
-                if self.two_stage_flag and self._stage == 1:
-                    command.append(self.two_stage_flag)
+            command.extend(os.getenv('FFLAGS', '').split())
+            if self.two_stage_flag and self._stage == 1:
+                command.append(self.two_stage_flag)
 
-                # files
+            # files
             command.append(str(analysed_file.fpath))
             command.extend(['-o', str(output_fpath)])
 
@@ -296,11 +296,11 @@ class CompileFortran(MpExeStep):
             run_command(command)
 
         # todo: probably better to record both mod and obj metrics
-            metric_name = self.name + (f' stage {self._stage}' if self._stage else '')
-            send_metric(
-                group=metric_name,
-                name=str(analysed_file.fpath),
-                value={'time_taken': timer.taken, 'start': timer.start})
+        metric_name = self.name + (f' stage {self._stage}' if self._stage else '')
+        send_metric(
+            group=metric_name,
+            name=str(analysed_file.fpath),
+            value={'time_taken': timer.taken, 'start': timer.start})
 
     def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
         """
