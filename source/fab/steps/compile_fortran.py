@@ -105,6 +105,7 @@ class CompileFortran(MpExeStep):
         build_lists: Dict[str, List] = self.source_getter(artefact_store)
 
         # compile everything in multiple passes
+        compiled: Dict[Path, CompiledFile] = {}
         uncompiled: Set[AnalysedFile] = set(sum(build_lists.values(), []))
         logger.info(f"compiling {len(uncompiled)} fortran files")
 
@@ -112,7 +113,6 @@ class CompileFortran(MpExeStep):
             logger.info("Starting two-stage compile: mod files, multiple passes")
             self._stage = 1
 
-        compiled: Dict[Path, CompiledFile] = {}
         while uncompiled:
             uncompiled = self.compile_pass(compiled, uncompiled, config)
         log_or_dot_finish(logger)
@@ -121,10 +121,13 @@ class CompileFortran(MpExeStep):
             logger.info("Finalising two-stage compile: object files, single pass")
             self._stage = 2
 
-            to_compile = sum(build_lists.values(), [])
-            # todo: order by last compile duration
-            obj_results = self.run_mp(items=to_compile, func=self.compile_file)
-            check_for_errors(obj_results, caller_label=self.name)
+            # a single pass should now compile all the object files in one go
+            uncompiled = set(sum(build_lists.values(), []))  # todo: order by last compile duration
+            results_this_pass = self.run_mp(items=uncompiled, func=self.process_file)
+            log_or_dot_finish(logger)
+            check_for_errors(results_this_pass, caller_label=self.name)
+            compiled_this_pass = list(by_type(results_this_pass, CompiledFile))
+            logger.info(f"stage 2 compiled {len(compiled_this_pass)} files")
 
         self.write_compile_result(compiled, config)
 
