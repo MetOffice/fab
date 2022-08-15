@@ -8,6 +8,8 @@ import logging
 import os
 from argparse import ArgumentParser
 
+from fab.steps.archive_objects import ArchiveObjects
+
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
@@ -18,6 +20,8 @@ from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.walk_source import FindSourceFiles, Exclude
 
+logger = logging.getLogger('fab')
+
 
 def jules_config(revision=None, two_stage=False, opt='Og'):
 
@@ -25,7 +29,6 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
     # config.multiprocessing = False
     # config.reuse_artefacts = True
 
-    logger = logging.getLogger('fab')
     logger.info(f'building jules revision {revision} {opt} {int(two_stage)+1}-stage')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
 
@@ -33,12 +36,8 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
     # A big list of symbols which are used in jules without a use statement.
     # Fab doesn't automatically identify such dependencies, and so they must be specified here by the user.
     unreferenced_dependencies = [
-        'sunny', 'solpos', 'solang', 'redis', 'init_time', 'init_irrigation', 'init_urban', 'init_fire', 'init_drive',
-        'init_imogen', 'init_prescribed_data', 'init_vars_tmp', 'imogen_check', 'imogen_update_clim', 'control',
-        'imogen_update_carb', 'next_time', 'sow', 'emerge', 'develop', 'partition', 'radf_co2', 'radf_non_co2',
-        'adf_ch4gcm_anlg', 'drdat', 'clim_calc', 'diffcarb_land_co2', 'ocean_co2', 'diffcarb_land_ch4',
-        'diff_atmos_ch4', 'day_calc', 'response', 'radf_ch4', 'gcm_anlg', 'delta_temp', 'rndm', 'invert', 'vgrav',
-        'conversions_mod', 'water_constants_mod', 'planet_constants_mod', 'veg_param_mod', 'flake_interface'
+        # this is on a one-line if statement, which fab doesn't currently identify
+        'imogen_update_carb',
     ]
 
     config.steps = [
@@ -81,6 +80,8 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
             # ]
         ),
 
+        ArchiveObjects(),
+
         LinkExe(
             linker='mpifort',
             flags=['-lm', '-lnetcdff', '-lnetcdf']),
@@ -95,5 +96,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--two-stage', action='store_true')
     arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
+
+    # logger.setLevel(logging.DEBUG)
 
     jules_config(revision=args.revision, two_stage=args.two_stage, opt=args.opt).run()

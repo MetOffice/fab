@@ -6,12 +6,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from fab.constants import BUILD_TREES
-
 from fab.build_config import AddFlags
-
+from fab.constants import BUILD_TREES
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_c import CompileC
+
+# TODO: THIS SHOULD BE IN THE STEPS FOLDER, NOT TASKS
 
 
 class Test_Compiler(object):

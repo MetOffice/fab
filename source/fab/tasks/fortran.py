@@ -9,7 +9,7 @@ import logging
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
-    Char_Literal_Constant, Interface_Block, Name, Comment, Module)
+    Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt)
 from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
@@ -69,7 +69,7 @@ class FortranAnalyser(object):
     A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFile`.
 
     """
-    _intrinsic_modules = ['iso_fortran_env']
+    _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
 
     def __init__(self, std="f2008", ignore_mod_deps=None):
         self.f2008_parser = ParserFactory().create(std=std)
@@ -101,6 +101,10 @@ class FortranAnalyser(object):
                 # todo: ?replace these with function lookup dict[type, func]? - Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
                     self._process_use_statement(analysed_file, obj)  # raises
+
+                elif obj_type == Call_Stmt:
+                    called_name = _typed_child(obj, Name)
+                    analysed_file.add_symbol_dep(called_name.string)
 
                 elif obj_type == Program_Stmt:
                     analysed_file.add_symbol_def(str(obj.get_name()))
@@ -148,7 +152,7 @@ class FortranAnalyser(object):
 
         if use_name in self.ignore_mod_deps:
             logger.debug(f"ignoring use of {use_name}")
-        elif use_name not in self._intrinsic_modules:
+        elif use_name.lower() not in self._intrinsic_modules:
             # found a dependency on fortran
             analysed_file.add_module_dep(use_name)
 

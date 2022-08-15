@@ -21,7 +21,7 @@ from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_t
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
-from fab.util import HashedFile, do_checksum, log_or_dot_finish, TimerLogger
+from fab.util import HashedFile, file_checksum, log_or_dot_finish, TimerLogger
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,8 @@ class Analyse(Step):
             Only the symbol definitions and dependencies need be provided.
         :param unreferenced_deps:
             A list of symbols which are needed for the build, but which cannot be automatically
-            determined. For example, functions that are called without a module use statement. Assuming the files
+            determined. For example, functions that are called without a module use statement,
+            or functions that are not called in a simple call statement. Assuming the files
             containing these symbols are present and will be analysed, those files and all their dependencies
             will be added to the build tree(s).
         :param ignore_mod_deps:
@@ -146,7 +147,7 @@ class Analyse(Step):
         else:
             build_trees = {None: project_source_tree}
 
-        # throw in any extra source we need, which Fab can't automatically detect (i.e. not using use statements)
+        # throw in any extra source we need, which Fab can't automatically detect
         for build_tree in build_trees.values():
             self._add_unreferenced_deps(symbols, project_source_tree, build_tree)
             validate_dependencies(build_tree)
@@ -279,6 +280,10 @@ class Analyse(Step):
             for analysed_file in analysed_files:
                 for symbol_dep in analysed_file.symbol_deps:
                     file_dep = symbols.get(symbol_dep)
+                    # don't depend on oneself!
+                    if file_dep == analysed_file.fpath:
+                        continue
+                    # warn of missing file
                     if not file_dep:
                         deps_not_found.add(symbol_dep)
                         logger.debug(f"not found {symbol_dep} for {analysed_file.fpath}")
@@ -288,7 +293,7 @@ class Analyse(Step):
             logger.info(f"{len(deps_not_found)} deps not found")
 
     def _get_file_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
-        mp_results = self.run_mp(items=fpaths, func=do_checksum)
+        mp_results = self.run_mp(items=fpaths, func=file_checksum)
         latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in mp_results}
         return latest_file_hashes
 
@@ -403,11 +408,9 @@ class Analyse(Step):
         """
         Add files to the build tree.
 
-        This is used for building Fortran code which does not use modules to declare dependencies.
-        In this case, Fab cannot determine those dependencies and the user is required to list them.
+        This is used for building Fortran code which Fab doesn't know is a dependency.
 
         """
-
         if not self.unreferenced_deps:
             return
         logger.info(f"Adding {len(self.unreferenced_deps or [])} unreferenced dependencies")

@@ -16,6 +16,6 @@ PROJECT_SOURCE_TREE = 'project source tree'
 
 BUILD_TREES = 'build trees'
 
-COMPILED_FILES = 'compiled files'
+OBJECT_FILES = 'object files'
 
 OBJECT_ARCHIVES = 'object archives'

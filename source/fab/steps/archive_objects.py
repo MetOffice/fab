@@ -12,14 +12,14 @@ import logging
 from string import Template
 from typing import Dict
 
-from fab.constants import BUILD_OUTPUT, COMPILED_FILES, OBJECT_ARCHIVES
+from fab.constants import BUILD_OUTPUT, OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import Step
 from fab.util import log_or_dot, run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = CollectionGetter(COMPILED_FILES)
+DEFAULT_SOURCE_GETTER = CollectionGetter(OBJECT_FILES)
 
 
 # todo: two diagrams showing the flow of artefacts in the exe and library use cases

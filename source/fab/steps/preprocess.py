@@ -126,6 +126,7 @@ def fortran_preprocessor(preprocessor=None, source=None,
     Params as per :class:`~fab.steps.preprocess.PreProcessor`.
 
     """
+    # todo: we want to add -P ... IF it's not already there
     return PreProcessor(
         preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
         source=source or SuffixFilter('all_source', '.F90'),

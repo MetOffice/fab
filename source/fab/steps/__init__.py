@@ -30,6 +30,9 @@ class Step(ABC):
         """
         self.name = name
 
+        # runtime
+        self._config = None
+
     @abstractmethod
     def run(self, artefact_store: Dict, config):
         """
@@ -44,7 +47,6 @@ class Step(ABC):
         For the duration of this run, the given config will be available to all our methods as `self._config`.
         This is useful for multiprocessing steps, where it's cleanest to pass a list of artifacts through a function.
         In this case it's messy to also pass the config, so setting it here makes it available to all our methods.
-        Because it's a runtime attribute, we don't show it in the constructor.
 
         """
         self._config = config
