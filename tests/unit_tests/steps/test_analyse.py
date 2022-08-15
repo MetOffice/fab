@@ -31,7 +31,7 @@ def test_get_file_checksums(analyser):
         return HashedFile(fpath, hash(str(fpath)))
 
     # we don't actually try to hash the files in this test, we just return something repeatable as a fake hash
-    with mock.patch('fab.steps.analyse.do_checksum', side_effect=fake_hasher):
+    with mock.patch('fab.steps.analyse.file_checksum', side_effect=fake_hasher):
         result = analyser._get_file_checksums(fpaths)
 
     expected = {fpath: hash(str(fpath)) for fpath in fpaths}

@@ -13,7 +13,7 @@ from abc import ABC
 from string import Template
 from typing import List
 
-from fab.constants import BUILD_OUTPUT, COMPILED_FILES
+from fab.constants import BUILD_OUTPUT, OBJECT_FILES
 from fab.steps import Step, archive_objects
 from fab.util import log_or_dot, run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -30,7 +30,7 @@ class DefaultLinkerSource(ArtefactsGetter):
     """
     def __call__(self, artefact_store):
         return CollectionGetter(archive_objects.OBJECT_ARCHIVES)(artefact_store) \
-               or CollectionGetter(COMPILED_FILES)(artefact_store)
+               or CollectionGetter(OBJECT_FILES)(artefact_store)
 
 
 DEFAULT_SOURCE_GETTER = DefaultLinkerSource()
@@ -45,7 +45,7 @@ class LinkerBase(Step, ABC):
     compiler steps.
 
     """
-    def __init__(self, linker: str, flags=None, source: ArtefactsGetter = None, name='link'):
+    def __init__(self, linker: str = None, flags=None, source: ArtefactsGetter = None, name='link'):
         """
         :param linker:
             E.g 'gcc' or 'ld'.
@@ -60,7 +60,7 @@ class LinkerBase(Step, ABC):
         """
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.linker = linker
+        self.linker = linker or os.getenv('LD', 'gcc')
         self.flags: List[str] = flags or []
 
     def _call_linker(self, filename, objects):

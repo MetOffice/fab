@@ -12,7 +12,7 @@ import os
 from collections import defaultdict
 from typing import List, Dict
 
-from fab.constants import COMPILED_FILES
+from fab.constants import OBJECT_FILES
 
 from fab.metrics import send_metric
 
@@ -82,19 +82,19 @@ class CompileC(MpExeStep):
         check_for_errors(results, caller_label=self.name)
         compiled_c = by_type(results, CompiledFile)
 
-        lookup = {compiled_file.analysed_file: compiled_file for compiled_file in compiled_c}
+        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled_c}
         logger.info(f"compiled {len(lookup)} c files")
 
         # add the targets' new object files to the artefact store
-        target_object_files = artefact_store.setdefault(COMPILED_FILES, defaultdict(set))
+        target_object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
         for root, source_files in build_lists.items():
-            new_objects = [lookup[af].output_fpath for af in source_files]
+            new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 
     # todo: identical to the fortran version - make a super class
     def _compile_file(self, analysed_file: AnalysedFile):
         # todo: should really use input_to_output_fpath() here
-        output_fpath = analysed_file.fpath.with_suffix('.o')
+        output_fpath = analysed_file.compiled_path
 
         # already compiled?
         if self._config.reuse_artefacts and output_fpath.exists():
@@ -119,4 +119,4 @@ class CompileC(MpExeStep):
 
             send_metric(self.name, str(analysed_file.fpath), timer.taken)
 
-        return CompiledFile(analysed_file, output_fpath)
+        return CompiledFile(analysed_file.fpath, output_fpath)

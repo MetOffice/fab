@@ -10,7 +10,7 @@ Build steps for pulling source code from remote repos and local folders.
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Union
 
 from svn import remote  # type: ignore
 
@@ -62,6 +62,19 @@ class GrabFolder(GrabBase):
     Copy a source folder to the project workspace.
 
     """
+
+    def __init__(self, src: Union[Path, str], dst: str, name=None):
+        """
+        :param src:
+            The source location to grab. The nature of this parameter is depends on the subclass.
+        :param dst:
+            The name of a sub folder, in the project workspace, in which to put the source.
+        :param name:
+            Human friendly name for logger output, with sensible default.
+
+        """
+        super().__init__(src=str(src), dst=dst, name=name)
+
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 

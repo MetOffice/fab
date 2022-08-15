@@ -16,7 +16,9 @@ import zlib
 from collections import namedtuple
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional
+from typing import Iterator, Iterable, Optional, Set, Dict
+
+from fab.dep_tree import AnalysedFile
 
 from fab.constants import BUILD_OUTPUT
 
@@ -48,13 +50,31 @@ def log_or_dot_finish(logger):
 HashedFile = namedtuple("HashedFile", ['fpath', 'file_hash'])
 
 
-def do_checksum(fpath: Path):
+def file_checksum(fpath):
     """
-    Checksum contents of a file.
+    Return a checksum of the given file.
+
+    This function is deterministic, returning the same result across Python invocations.
+
+    We use crc32 for now because it's deterministic, unlike out-the-box hash.
+    We could seed hash with a non-random or look into hashlib, if/when we want to improve this.
 
     """
     with open(fpath, "rb") as infile:
-        return HashedFile(fpath, zlib.crc32(bytes(infile.read())))
+        return HashedFile(fpath, zlib.crc32(infile.read()))
+
+
+def string_checksum(s: str):
+    """
+    Return a checksum of the given string.
+
+    This function is deterministic, returning the same result across Python invocations.
+
+    We use crc32 for now because it's deterministic, unlike out-the-box hash.
+    We could seed hash with a non-random or look into hashlib, if/when we want to improve this.
+
+    """
+    return zlib.crc32(s.encode())
 
 
 def file_walk(path: Path) -> Iterator[Path]:
@@ -127,18 +147,73 @@ class CompiledFile(object):
     A Fortran or C file which has been compiled.
 
     """
-    def __init__(self, analysed_file, output_fpath: Path):
+    def __init__(self, input_fpath, output_fpath,
+                 source_hash=None, flags_hash=None, module_deps_hashes: Dict[str, int] = None):
         """
-        :param analysed_file:
+        :param input_fpath:
             The file that was compiled.
         :param output_fpath:
-            The object file.
+            The object file that was created.
+        :param source_hash:
+            Hash of the compiled source.
+        :param flags_hash:
+            Hash of the compiler flags.
+        :param module_deps_hashes:
+            Hash of each module on which we depend.
 
         """
-        # todo: A compiled file shouldn't know whether its source file was analysed or not.
-        #       It needn't be in some use cases. This is a code smell and needs revisiting.
-        self.analysed_file = analysed_file
-        self.output_fpath = output_fpath
+        # todo: Should just be the input_fpath, not the whole analysed file
+        self.input_fpath = Path(input_fpath)
+        self.output_fpath = Path(output_fpath)
+
+        self.source_hash = source_hash or 0
+        self.flags_hash = flags_hash or 0
+        self.module_deps_hashes = module_deps_hashes or {}
+
+    #
+    # persistence
+    #
+    @classmethod
+    def field_names(cls):
+        return [
+            'input_fpath', 'output_fpath',
+            'source_hash', 'flags_hash', 'module_deps_hashes',
+        ]
+
+    def to_str_dict(self):
+        """
+        Convert to a dict of strings. For example, when writing to a CsvWriter.
+
+        """
+        return {
+            "input_fpath": str(self.input_fpath),
+            "output_fpath": str(self.output_fpath),
+            "source_hash": str(self.source_hash),
+            "flags_hash": str(self.flags_hash),
+            "module_deps_hashes": ';'.join([f'{k}={v}' for k, v in self.module_deps_hashes.items()]),
+        }
+
+    @classmethod
+    def from_str_dict(cls, d):
+        """Convert from a dict of strings. For example, when reading from a CsvWriter."""
+
+        if d["module_deps_hashes"]:
+            # json would be easier now we're also serialising dicts
+            module_deps_hashes = [i.split('=') for i in d["module_deps_hashes"].split(';')]
+            module_deps_hashes = {i[0]: int(i[1]) for i in module_deps_hashes}
+        else:
+            module_deps_hashes = {}
+
+        return cls(
+            input_fpath=Path(d["input_fpath"]),
+            output_fpath=Path(d["output_fpath"]),
+            source_hash=int(d["source_hash"]),
+            flags_hash=int(d["flags_hash"]),
+            module_deps_hashes=module_deps_hashes,
+        )
+
+    def __eq__(self, other):
+        return vars(self) == vars(other)
 
 
 # todo: we should probably pass in the output folder, not the project workspace
@@ -207,3 +282,17 @@ def by_type(iterable, cls):
 
     """
     return filter(lambda i: isinstance(i, cls), iterable)
+
+
+def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
+    """
+    Get the hash of every module file defined in the list of analysed files.
+
+    """
+    mod_hashes = {}
+    for af in analysed_files:
+        for mod_def in af.module_defs:
+            fpath: Path = config.project_workspace / BUILD_OUTPUT / f'{mod_def}.mod'
+            mod_hashes[mod_def] = file_checksum(fpath).file_hash
+
+    return mod_hashes
