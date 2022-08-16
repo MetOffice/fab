@@ -9,7 +9,6 @@ import os
 from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
-from fab.constants import BUILD_OUTPUT
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran
@@ -32,7 +31,7 @@ def gungho_config(two_stage=False, opt='Og'):
 
     config = BuildConfig(
         project_label=f'gungho {opt} {int(two_stage)+1}stage',
-        # multiprocessing=False,
+        multiprocessing=False,
         reuse_artefacts=True,
     )
 
@@ -66,7 +65,7 @@ def gungho_config(two_stage=False, opt='Og'):
 
         psyclone_preprocessor(),
 
-        Psyclone(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
+        Psyclone(kernel_roots=[config.build_output]),
 
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 

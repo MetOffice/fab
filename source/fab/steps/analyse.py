@@ -236,8 +236,8 @@ class Analyse(Step):
         all_exceptions = fortran_exceptions | c_exceptions
         if all_exceptions:
             logger.error(f"{len(all_exceptions)} analysis errors")
-            errs_str = "\n\n".join(map(str, all_exceptions))
-            logger.debug(f"\nSummary of analysis errors:\n{errs_str}")
+            # errs_str = "\n\n".join(map(str, set(all_exceptions)))
+            # logger.debug(f"\nSummary of analysis errors:\n{errs_str}")
 
         # warn about naughty fortran usage?
         if self.fortran_analyser.depends_on_comment_found:
@@ -389,7 +389,7 @@ class Analyse(Step):
                 if isinstance(af, EmptySourceFile):
                     continue
                 elif isinstance(af, Exception):
-                    logger.error(f"\n{af}")
+                    # logger.error(f"\n{af}")
                     exceptions.add(af)
                 elif isinstance(af, AnalysedFile):
                     new_program_units.add(af)

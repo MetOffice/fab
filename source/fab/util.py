@@ -20,8 +20,6 @@ from typing import Iterator, Iterable, Optional, Set, Dict
 
 from fab.dep_tree import AnalysedFile
 
-from fab.constants import BUILD_OUTPUT
-
 logger = logging.getLogger(__name__)
 
 
@@ -217,19 +215,19 @@ class CompiledFile(object):
 
 
 # todo: we should probably pass in the output folder, not the project workspace
-def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path: Path):
+def input_to_output_fpath(config, input_path: Path):
     """
     Convert a path in the project's source folder to the equivalent path in the output folder.
 
     Allows the given path to already be in the output folder.
 
-    :param source_root:
-        The project's source folder. This can sometimes be outside the project workspace.
-    :param project_workspace:
-        The project's workspace folder, in which the output folder can be found.
+    :param config:
+        The config object, which defines the source and output folders.
+    :param input_path:
+        The path to transform from input to output folders.
 
     """
-    build_output = project_workspace / BUILD_OUTPUT
+    build_output = config.build_output
 
     # perhaps it's already in the output folder? todo: can use Path.is_relative_to from Python 3.9
     try:
@@ -237,7 +235,7 @@ def input_to_output_fpath(source_root: Path, project_workspace: Path, input_path
         return input_path
     except ValueError:
         pass
-    rel_path = input_path.relative_to(source_root)
+    rel_path = input_path.relative_to(config.source_root)
     return build_output / rel_path
 
 
@@ -292,7 +290,7 @@ def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
     mod_hashes = {}
     for af in analysed_files:
         for mod_def in af.module_defs:
-            fpath: Path = config.project_workspace / BUILD_OUTPUT / f'{mod_def}.mod'
+            fpath: Path = config.build_output / f'{mod_def}.mod'
             mod_hashes[mod_def] = file_checksum(fpath).file_hash
 
     return mod_hashes

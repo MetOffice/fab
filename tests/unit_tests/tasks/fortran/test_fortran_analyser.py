@@ -4,9 +4,12 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
+from fparser.common.readfortran import FortranFileReader
+from fparser.two.Fortran2008 import Type_Declaration_Stmt
+from fparser.two.parser import ParserFactory
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
-from fab.tasks.fortran import FortranAnalyser
+from fab.tasks.fortran import FortranAnalyser, iter_content
 from fab.util import HashedFile
 
 
@@ -57,3 +60,50 @@ class Test_Analyser(object):
             module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
 
             assert result == module_expected
+
+
+# todo: test more methods!
+
+class Test_process_variable_binding(object):
+
+    # todo: define and depend, with and without bind name
+
+    def test_define_without_bind_name(self, tmp_path):
+        fpath = tmp_path / 'temp.f90'
+
+        open(fpath, 'wt').write("""
+            MODULE f_var
+            
+            USE, INTRINSIC :: ISO_C_BINDING
+            
+            IMPLICIT NONE
+            PRIVATE
+            
+            CHARACTER(kind=c_char, len=1), &
+              DIMENSION(12), BIND(c), TARGET, SAVE :: &
+                helloworld=['H','e','L','l','O',' ','w','O','r','L','d','?']
+            
+            END MODULE f_var              
+        """)
+
+        # parse
+        reader = FortranFileReader(str(fpath), ignore_comments=False)
+        f2008_parser = ParserFactory().create(std="f2008")
+        tree = f2008_parser(reader)
+
+        # find the tree node representing the variable binding
+        var_decl = next(obj for obj in iter_content(tree) if type(obj) == Type_Declaration_Stmt)
+
+        # run our handler
+        fpath = Path('foo')
+        analysed_file = AnalysedFile(fpath=fpath, file_hash=0)
+        analyser = FortranAnalyser()
+        analyser._process_variable_binding(analysed_file=analysed_file, fpath=fpath, obj=var_decl)
+
+        print(analysed_file)
+
+    def test_define_with_bind_name(self, tmp_path):
+        pass
+
+    def test_depend___(self):
+        pass

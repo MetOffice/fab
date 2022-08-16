@@ -13,8 +13,8 @@ from abc import ABC
 from string import Template
 from typing import List
 
-from fab.constants import BUILD_OUTPUT, OBJECT_FILES
-from fab.steps import Step, archive_objects
+from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
+from fab.steps import Step
 from fab.util import log_or_dot, run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
@@ -29,7 +29,7 @@ class DefaultLinkerSource(ArtefactsGetter):
 
     """
     def __call__(self, artefact_store):
-        return CollectionGetter(archive_objects.OBJECT_ARCHIVES)(artefact_store) \
+        return CollectionGetter(OBJECT_ARCHIVES)(artefact_store) \
                or CollectionGetter(OBJECT_FILES)(artefact_store)
 
 
@@ -89,9 +89,9 @@ class LinkExe(LinkerBase):
 
         target_objects = self.source_getter(artefact_store)
         for root, objects in target_objects.items():
-            self._call_linker(
-                filename=str(config.project_workspace / f'{root}.exe'),
-                objects=objects)
+            exe_path = config.project_workspace / f'{root}.exe'
+            self._call_linker(filename=str(exe_path), objects=objects)
+            artefact_store.setdefault(EXECUTABLES, []).append(exe_path)
 
 
 # todo: the bit about Dict[None, object_files] seems too obscure - try to rethink this.
@@ -130,5 +130,5 @@ class LinkSharedObject(LinkExe):
 
         objects = target_objects[None]
         self._call_linker(
-            filename=Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT),
+            filename=Template(self.output_fpath).substitute(output=config.build_output),
             objects=objects)
