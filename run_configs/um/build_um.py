@@ -37,13 +37,13 @@ logger = logging.getLogger('fab')
 # todo: fail fast, check gcom exists
 
 
-def um_atmos_safe_config(revision):
+def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
     um_revision = revision.replace('vn', 'um')
 
     config = BuildConfig(
-        project_label=f'um atmos safe {revision}',
+        project_label=f'um atmos safe {revision} {opt} {int(two_stage)+1}stage',
         # multiprocessing=False,
-        reuse_artefacts=True,
+        # reuse_artefacts=True,
     )
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
@@ -136,9 +136,9 @@ def um_atmos_safe_config(revision):
                 '-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8',
                 '-c',
                 '-J', '$output',  # .mod file output and include folder
-                # '-O2'
+                f'-{opt}',
             ],
-
+            two_stage_flag='-fsyntax-only' if two_stage else None,
             path_flags=[
                 # mpl include - todo: just add this for everything?
                 AddFlags("$output/um/*", ['-I' + gcom_build]),
@@ -299,7 +299,9 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
 if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('UM_REVISION', 'vn12.1'))
+    arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
     # logging.getLogger('fab').setLevel(logging.DEBUG)
-    um_atmos_safe_config(revision=args.revision).run()
+    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage, opt=args.opt).run()

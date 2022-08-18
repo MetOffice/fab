@@ -158,7 +158,7 @@ def stop_metrics():
 
 def metrics_summary(metrics_folder: Path):
     """
-    Create various summaries for the metrics, including charts if matplotlib is installed.
+    Create various summary charts from the metrics json.
 
     """
 
@@ -178,7 +178,8 @@ def metrics_summary(metrics_folder: Path):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt  # type: ignore
     except ImportError:
-        plt = None
+        logger.warning('matplotlib not installed, no metrics summary charts produced')
+        return
 
     with open(metrics_folder / JSON_FILENAME, 'rt') as outfile:
         metrics = json.load(outfile)
@@ -187,42 +188,33 @@ def metrics_summary(metrics_folder: Path):
     logger.debug(f'metrics_summary: got metrics for: {metrics.keys()}')
     metrics_folder.mkdir(parents=True, exist_ok=True)
 
-    #
-    # graphs for individual steps
-    #
-    step_names = ['preprocess fortran', 'preprocess c', 'compile fortran']
+    metric_names = [
+        'preprocess fortran', 'preprocess c',
+        'compile fortran', 'compile fortran stage 1', 'compile fortran stage 2'
+    ]
 
     # histogram
-    for step_name in step_names:
-
-        # do we have metrics for this step?
-        if step_name not in metrics or step_name not in metrics['steps']:
+    for step_name in metric_names:
+        # do we have these metrics?
+        if step_name not in metrics:
             continue
-
-        fbase = metrics_folder / ('hist_' + step_name.replace(' ', '_'))
 
         values = metrics[step_name].values()
         run_times = [value['time_taken'] for value in values]
-        total_time = datetime.timedelta(seconds=int(metrics["steps"][step_name]))
 
-        if plt:
-            plt.hist(run_times, 10)
-            plt.suptitle(f'{step_name} histogram\n'
-                         f'{len(run_times)} files took {total_time}')
-            plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
-            plt.xlabel('time (s)')
-            plt.savefig(f"{fbase}.png")
-            plt.close()
+        plt.hist(run_times, 10)
+        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
+        plt.xlabel('time (s)')
 
-    # busby style metrics
-    # https://www.osti.gov/biblio/1393322
-    for step_name in step_names:
+        fbase = metrics_folder / ('hist_' + step_name.replace(' ', '_'))
+        plt.savefig(f"{fbase}.png")
+        plt.close()
 
-        # do we have metrics for this step?
-        if step_name not in metrics or step_name not in metrics['steps']:
+    # busby style plot -  https://www.osti.gov/biblio/1393322
+    for step_name in metric_names:
+        # do we have these metrics?
+        if step_name not in metrics:
             continue
-
-        fbase = metrics_folder / ('busby_' + step_name.replace(' ', '_'))
 
         sorted_items = sorted(metrics[step_name].items(), key=lambda item: item[1]['start'])
         values = [item[1] for item in sorted_items]
@@ -230,35 +222,34 @@ def metrics_summary(metrics_folder: Path):
         starts = [value['start'] - t0 for value in values]
         durations = [value['time_taken'] for value in values]
 
-        if plt:
+        # taller plot after 500 files
+        # todo: we should also increase the width when lots of quick files become sub-pixel
+        size = max(10.0, 10 * len(values) / 500)
+        plt.figure(figsize=[10, size])
 
-            # larger plot after 500 files
-            size = max(10.0, 10 * len(values) / 500)
-            plt.figure(figsize=[size, size])
+        plt.barh(
+            y=list(range(len(values))),
+            width=durations,
+            left=starts,
+            height=1,
+        )
 
-            plt.barh(
-                y=list(range(len(values))),
-                width=durations,
-                left=starts,
-                height=1,
-            )
-
-            plt.savefig(f"{fbase}.png")
-            plt.close()
+        fbase = metrics_folder / ('busby_' + step_name.replace(' ', '_'))
+        plt.savefig(f"{fbase}.png")
+        plt.close()
 
     # overall pie chart of time taken by each step
-    if plt:
-        run = metrics['run']
-        time_taken = datetime.timedelta(seconds=int(run['time taken']))
-        min_label_thresh = time_taken.seconds * 0.01
-        step_metrics = metrics['steps'].items()
-        step_times = [kv[1] for kv in step_metrics]
-        step_labels = [kv[0] if kv[1] > min_label_thresh else "" for kv in step_metrics]
+    run = metrics['run']
+    time_taken = datetime.timedelta(seconds=int(run['time taken']))
+    min_label_thresh = time_taken.seconds * 0.01
+    step_metrics = metrics['steps'].items()
+    step_times = [kv[1] for kv in step_metrics]
+    step_labels = [kv[0] if kv[1] > min_label_thresh else "" for kv in step_metrics]
 
-        plt.pie(step_times, labels=step_labels, normalize=True,
-                wedgeprops={"linewidth": 1, "edgecolor": "white"})
-        plt.suptitle(f"{run['label']} took {time_taken}\n"
-                     f"on {run['sysname']}, {run['nodename']}, {run['machine']}")
-        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
-        plt.savefig(metrics_folder / "pie.png")
-        plt.close()
+    plt.pie(step_times, labels=step_labels, normalize=True,
+            wedgeprops={"linewidth": 1, "edgecolor": "white"})
+    plt.suptitle(f"{run['label']} took {time_taken}\n"
+                 f"on {run['sysname']}, {run['nodename']}, {run['machine']}")
+    plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
+    plt.savefig(metrics_folder / "pie.png")
+    plt.close()
