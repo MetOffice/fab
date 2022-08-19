@@ -37,6 +37,8 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     'configurator_output',
 ])
 
+ANALYSIS_CSV = "__analysis.csv"
+
 
 # todo: split out c and fortran? this class is still a bit big
 # This has all been done as a single step, for now, because we don't have a simple mp pattern
@@ -305,7 +307,7 @@ class Analyse(Step):
         """
         prev_results: Dict[Path, AnalysedFile] = dict()
         try:
-            with open(self._config.project_workspace / "__analysis.csv", "rt") as csv_file:
+            with open(self._config.build_output / ANALYSIS_CSV, "rt") as csv_file:
                 dict_reader = csv.DictReader(csv_file)
                 for row in dict_reader:
                     analysed_file = AnalysedFile.from_str_dict(row)
@@ -359,7 +361,7 @@ class Analyse(Step):
         The returned context is a csv.DictWriter.
         """
         with TimerLogger("starting analysis progress file"):
-            analysis_progress_file = open(self._config.project_workspace / "__analysis.csv", "wt")
+            analysis_progress_file = open(self._config.build_output / ANALYSIS_CSV, "wt")
             analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
             analysis_dict_writer.writeheader()
 

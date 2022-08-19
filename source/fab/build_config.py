@@ -86,6 +86,10 @@ class BuildConfig(object):
 
         self.reuse_artefacts = reuse_artefacts
 
+    @property
+    def build_output(self):
+        return self.project_workspace / BUILD_OUTPUT
+
     def run(self):
         """
         Execute the build steps in order.
