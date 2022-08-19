@@ -49,7 +49,7 @@ class CompileFortran(MpExeStep):
 
     """
     def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
-                 source: ArtefactsGetter = None, name='compile fortran'):
+                 source: ArtefactsGetter = None, two_stage_flag=None, name='compile fortran'):
         """
         :param compiler:
             The command line compiler to call. Defaults to `gfortran -c`.
@@ -60,6 +60,10 @@ class CompileFortran(MpExeStep):
             for selected files.
         :param source:
             An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
+        :param two_stage_flag:
+            Optionally supply a flag which enables the 'syntax checking' feature of the compiler.
+            Fab uses this to quickly build all the mod files first, potentially shortening dependency bottlenecks.
+            The slower object file compilation can then follow in a second stage, all at once.
         :param name:
             Human friendly name for logger output, with sensible default.
 
@@ -71,7 +75,10 @@ class CompileFortran(MpExeStep):
         super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
-        # runtime attributes for subprocess to read
+        self.two_stage_flag = two_stage_flag
+
+        # runtime
+        self._stage = None
         self._last_compiles: Dict[Path, CompiledFile] = {}
         self._mod_hashes: Dict[str, int] = {}
 
@@ -95,20 +102,36 @@ class CompileFortran(MpExeStep):
         self._last_compiles = self.read_compile_result(config)
 
         # get all the source to compile, for all build trees, into one big lump
-        build_trees: Dict[str, List] = self.source_getter(artefact_store)
+        build_lists: Dict[str, List] = self.source_getter(artefact_store)
 
         # compile everything in multiple passes
-        uncompiled: Set[AnalysedFile] = set(sum(build_trees.values(), []))
+        compiled: Dict[Path, CompiledFile] = {}
+        uncompiled: Set[AnalysedFile] = set(sum(build_lists.values(), []))
         logger.info(f"compiling {len(uncompiled)} fortran files")
 
-        compiled: Dict[Path, CompiledFile] = {}
+        if self.two_stage_flag:
+            logger.info("Starting two-stage compile: mod files, multiple passes")
+            self._stage = 1
+
         while uncompiled:
             uncompiled = self.compile_pass(compiled, uncompiled, config)
         log_or_dot_finish(logger)
 
+        if self.two_stage_flag:
+            logger.info("Finalising two-stage compile: object files, single pass")
+            self._stage = 2
+
+            # a single pass should now compile all the object files in one go
+            uncompiled = set(sum(build_lists.values(), []))  # todo: order by last compile duration
+            results_this_pass = self.run_mp(items=uncompiled, func=self.process_file)
+            log_or_dot_finish(logger)
+            check_for_errors(results_this_pass, caller_label=self.name)
+            compiled_this_pass = list(by_type(results_this_pass, CompiledFile))
+            logger.info(f"stage 2 compiled {len(compiled_this_pass)} files")
+
         self.write_compile_result(compiled, config)
 
-        self.store_artefacts(compiled, build_trees, artefact_store)
+        self.store_artefacts(compiled, build_lists, artefact_store)
 
     def compile_pass(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFile], config):
 
@@ -259,16 +282,28 @@ class CompileFortran(MpExeStep):
             output_fpath = analysed_file.compiled_path
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
+            # tool
             command = self.exe.split()
+
+            # flags
             command.extend(flags)
             command.extend(os.getenv('FFLAGS', '').split())
+            if self.two_stage_flag and self._stage == 1:
+                command.append(self.two_stage_flag)
+
+            # files
             command.append(str(analysed_file.fpath))
             command.extend(['-o', str(output_fpath)])
 
             log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
             run_command(command)
 
-        send_metric(self.name, str(analysed_file.fpath), {'time_taken': timer.taken, 'start': timer.start})
+        # todo: probably better to record both mod and obj metrics
+        metric_name = self.name + (f' stage {self._stage}' if self._stage else '')
+        send_metric(
+            group=metric_name,
+            name=str(analysed_file.fpath),
+            value={'time_taken': timer.taken, 'start': timer.start})
 
     def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
         """

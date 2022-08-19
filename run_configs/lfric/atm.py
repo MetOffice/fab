@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import os
+from argparse import ArgumentParser
 
 from fab.steps.compile_c import CompileC
 
@@ -24,14 +25,16 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def atm_config():
+def atm_config(two_stage=False, opt='Og'):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
+    # TODO: these example configs are getting more and more gfortran-specific, which probably needs to change.
+
     config = BuildConfig(
-        project_label='atm',
+        project_label=f'atm {opt} {int(two_stage)+1}stage',
         # multiprocessing=False,
-        reuse_artefacts=True,
+        # reuse_artefacts=True,
     )
 
     config.steps = [
@@ -124,11 +127,13 @@ def atm_config():
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
                 '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
 
-                '-Og',
+                # '-Og',
+                f'-{opt}',
 
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
             ],
+            two_stage_flag='-fsyntax-only' if two_stage else None,
             path_flags=[
                 AddFlags('$output/science/*', ['-fdefault-real-8', '-fdefault-double-8']),
             ]
@@ -550,7 +555,12 @@ def file_filtering(config):
 
 
 if __name__ == '__main__':
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
+    args = arg_parser.parse_args()
+
     # logger.setLevel(logging.DEBUG)
 
-    atm_config().run()
+    atm_config(two_stage=args.two_stage, opt=args.opt).run()
     # metrics_summary(metrics_folder=atm_config().metrics_folder)
