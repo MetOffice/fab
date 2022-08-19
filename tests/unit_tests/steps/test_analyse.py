@@ -3,6 +3,8 @@ from unittest import mock
 from unittest.mock import mock_open
 
 import pytest
+
+from fab.build_config import BuildConfig
 from fab.util import HashedFile
 
 from fab.dep_tree import AnalysedFile
@@ -16,9 +18,13 @@ from fab.steps.analyse import Analyse
 
 
 @pytest.fixture
-def analyser():
+def analyser(tmp_path):
     analyser = Analyse()
-    analyser._config = mock.Mock(multiprocessing=False, project_workspace=Path('workspace'))
+    analyser._config = BuildConfig(
+        'proj',
+        fab_workspace=Path('tmp_path'),
+        multiprocessing=False,
+    )
     return analyser
 
 
