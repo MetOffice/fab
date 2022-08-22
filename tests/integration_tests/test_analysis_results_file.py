@@ -4,7 +4,6 @@ Test reading and writing analysis results.
 """
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest import mock
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
