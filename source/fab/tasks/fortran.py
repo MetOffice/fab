@@ -104,7 +104,8 @@ class FortranAnalyser(object):
 
                 elif obj_type == Call_Stmt:
                     called_name = _typed_child(obj, Name)
-                    analysed_file.add_symbol_dep(called_name.string)
+                    if called_name:
+                        analysed_file.add_symbol_dep(called_name.string)
 
                 elif obj_type == Program_Stmt:
                     analysed_file.add_symbol_def(str(obj.get_name()))
