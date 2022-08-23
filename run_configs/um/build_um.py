@@ -49,7 +49,8 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
     gcom_build = os.getenv('GCOM_BUILD') or \
         os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output")
-    logger.info(f"expecting gcom at {gcom_build}")
+    if not os.path.exists(gcom_build):
+        raise RuntimeError('gcom not found')
 
     config.steps = [
 
