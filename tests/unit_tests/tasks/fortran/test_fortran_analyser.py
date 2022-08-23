@@ -4,9 +4,9 @@ from unittest import mock
 from unittest.mock import Mock
 
 import pytest
-from fparser.common.readfortran import FortranFileReader
-from fparser.two.Fortran2008 import Type_Declaration_Stmt
-from fparser.two.parser import ParserFactory
+from fparser.common.readfortran import FortranFileReader  # type: ignore
+from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
+from fparser.two.parser import ParserFactory  # type: ignore
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.tasks.fortran import FortranAnalyser, iter_content
