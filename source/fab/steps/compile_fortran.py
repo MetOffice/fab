@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
-COMPILATION_CSV = "__fortran_compilation.csv"
+FORTRAN_COMPILED_CSV = "__fortran_compilation.csv"
 
 # reasons to recompile, stored as constants for testability
 NO_PREVIOUS_RESULT = 'no previous result'
@@ -310,7 +310,7 @@ class CompileFortran(MpExeStep):
         Write the compilation results to csv.
 
         """
-        compilation_progress_file = open(config.project_workspace / COMPILATION_CSV, "wt")
+        compilation_progress_file = open(config.build_output / FORTRAN_COMPILED_CSV, "wt")
         dict_writer = csv.DictWriter(compilation_progress_file, fieldnames=CompiledFile.field_names())
         dict_writer.writeheader()
 
@@ -325,7 +325,7 @@ class CompileFortran(MpExeStep):
         with TimerLogger('loading compile results'):
             prev_results: Dict[Path, CompiledFile] = dict()
             try:
-                with open(config.project_workspace / COMPILATION_CSV, "rt") as csv_file:
+                with open(config.build_output / FORTRAN_COMPILED_CSV, "rt") as csv_file:
                     dict_reader = csv.DictReader(csv_file)
                     for row in dict_reader:
                         compiled_file = CompiledFile.from_str_dict(row)
