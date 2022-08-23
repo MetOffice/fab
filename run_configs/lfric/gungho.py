@@ -31,8 +31,8 @@ def gungho_config(two_stage=False, opt='Og'):
 
     config = BuildConfig(
         project_label=f'gungho {opt} {int(two_stage)+1}stage',
-        multiprocessing=False,
-        reuse_artefacts=True,
+        # multiprocessing=False,
+        # reuse_artefacts=True,
     )
 
     config.steps = [
