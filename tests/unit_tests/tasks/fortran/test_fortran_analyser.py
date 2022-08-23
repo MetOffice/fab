@@ -73,17 +73,17 @@ class Test_process_variable_binding(object):
 
         open(fpath, 'wt').write("""
             MODULE f_var
-            
+
             USE, INTRINSIC :: ISO_C_BINDING
-            
+
             IMPLICIT NONE
             PRIVATE
-            
+
             CHARACTER(kind=c_char, len=1), &
               DIMENSION(12), BIND(c), TARGET, SAVE :: &
                 helloworld=['H','e','L','l','O',' ','w','O','r','L','d','?']
-            
-            END MODULE f_var              
+
+            END MODULE f_var
         """)
 
         # parse
