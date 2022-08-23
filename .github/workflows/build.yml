@@ -1,4 +1,3 @@
-# Please keep in sync with /environment.yml
 name: Build
 
 on: [push, pull_request]

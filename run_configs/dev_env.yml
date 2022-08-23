@@ -1,0 +1,11 @@
+# For running the example configs.
+name: sci-fab
+dependencies:
+  - libclang
+  - python>=3.8
+  - pip>=21.2.4
+  - python-clang
+  - pip:
+      - jinja2
+      - psyclone==2.1.0
+      - svn

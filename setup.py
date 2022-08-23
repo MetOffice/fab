@@ -45,9 +45,9 @@ setuptools.setup(
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
     python_requires='>=3.7, <4',
-    install_requires=['fparser', 'svn'],
+    install_requires=['fparser'],
     extras_require={
-        'dev': ['flake8', 'mypy'],
+        'dev': ['flake8', 'mypy', 'matplotlib', 'sphinx', 'sphinx_rtd_theme'],
         'tests': ['pytest', 'pytest-cov', 'pytest-mock']
     }
 )
