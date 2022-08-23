@@ -12,7 +12,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Union
 
-from svn import remote  # type: ignore
+try:
+    import svn
+    from svn import remote  # type: ignore
+except:
+    svn = None
 
 from fab.steps import Step
 from fab.util import run_command
@@ -122,33 +126,34 @@ class GrabFcm(GrabBase):
         run_command(['fcm', 'export', '--force', src, str(config.source_root / self.dst_label)])
 
 
-class GrabSvn(GrabBase):
-    """
-    Grab an SVN repo folder to the project workspace.
-
-    """
-    def __init__(self, src, dst, revision=None, name=None):
+if svn:
+    class GrabSvn(GrabBase):
         """
-        :param src:
-            Such as `fcm:jules.xm_tr/src`.
-        :param dst:
-            The name of a sub folder, in the project workspace, in which to put the source.
-        :param revision:
-            E.g 36615
-        :param name:
-            Human friendly name for logger output, with sensible default.
-
-        Example:
-
-            GrabSvn(src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
-                       revision=36615, dst='gpl_utils')
+        Grab an SVN repo folder to the project workspace.
 
         """
-        super().__init__(src, dst, name)
-        self.revision = revision
+        def __init__(self, src, dst, revision=None, name=None):
+            """
+            :param src:
+                Such as `fcm:jules.xm_tr/src`.
+            :param dst:
+                The name of a sub folder, in the project workspace, in which to put the source.
+            :param revision:
+                E.g 36615
+            :param name:
+                Human friendly name for logger output, with sensible default.
 
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
+            Example:
 
-        r = remote.RemoteClient(self.src)
-        r.export(str(config.source_root / self.dst_label), revision=self.revision, force=True)
+                GrabSvn(src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
+                           revision=36615, dst='gpl_utils')
+
+            """
+            super().__init__(src, dst, name)
+            self.revision = revision
+
+        def run(self, artefact_store: Dict, config):
+            super().run(artefact_store, config)
+
+            r = remote.RemoteClient(self.src)
+            r.export(str(config.source_root / self.dst_label), revision=self.revision, force=True)
