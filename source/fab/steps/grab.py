@@ -15,7 +15,7 @@ from typing import Dict, Union
 try:
     import svn
     from svn import remote  # type: ignore
-except:
+except ImportError:
     svn = None
 
 from fab.steps import Step
