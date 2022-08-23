@@ -20,13 +20,14 @@ PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
 
 def test_CFortranInterop(tmp_path):
+
     # build
     config = BuildConfig(
         fab_workspace=tmp_path,
         project_label='foo',
         source_root=PROJECT_SOURCE,
         multiprocessing=False,
-        # verbose=True,
+        verbose=True,
 
         steps=[
             FindSourceFiles(),
@@ -43,7 +44,6 @@ def test_CFortranInterop(tmp_path):
         ],
     )
     config.run()
-
     assert len(config._artefact_store[EXECUTABLES]) == 1
 
     # run

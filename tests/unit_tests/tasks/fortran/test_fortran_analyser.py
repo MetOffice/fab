@@ -98,12 +98,14 @@ class Test_process_variable_binding(object):
         fpath = Path('foo')
         analysed_file = AnalysedFile(fpath=fpath, file_hash=0)
         analyser = FortranAnalyser()
-        analyser._process_variable_binding(analysed_file=analysed_file, fpath=fpath, obj=var_decl)
+        analyser._process_variable_binding(analysed_file=analysed_file, obj=var_decl)
 
-        print(analysed_file)
+        assert analysed_file.symbol_defs == {'helloworld', }
 
-    def test_define_with_bind_name(self, tmp_path):
-        pass
+    # todo: test named variable binding
+    # def test_define_with_bind_name(self, tmp_path):
+    #     pass
 
-    def test_depend___(self):
-        pass
+    # todo: test depending on a c variable, rather then defining one for c
+    # def test_depend_foo(self):
+    #     pass

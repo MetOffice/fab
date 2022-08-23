@@ -131,7 +131,7 @@ class FortranAnalyser(object):
                     # bound?
                     specs = _typed_child(obj, Attr_Spec_List)
                     if specs and _typed_child(specs, Language_Binding_Spec):
-                        self._process_variable_binding(analysed_file, fpath, obj)
+                        self._process_variable_binding(analysed_file, obj)
 
                 elif obj_type == Comment:
                     self._process_comment(analysed_file, obj)
@@ -169,12 +169,11 @@ class FortranAnalyser(object):
             # found a dependency on fortran
             analysed_file.add_module_dep(use_name)
 
-    def _process_variable_binding(self, analysed_file, fpath, obj: Type_Declaration_Stmt):
+    def _process_variable_binding(self, analysed_file, obj: Type_Declaration_Stmt):
         # The name keyword on the bind statement is optional.
         # If it doesn't exist, the Fortran variable name is used
 
-        # todo: what about named binding?
-        #       what does a binding name mean, when there can be multiple entities declared? (or can there?)
+        # todo: write and test named variable binding.
         # specs = _typed_child(obj, Attr_Spec_List)
         # bind = _typed_child(specs, Language_Binding_Spec)
         # name = _typed_child(bind, Char_Literal_Constant)
