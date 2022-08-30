@@ -4,8 +4,8 @@ Test reading and writing analysis results.
 """
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest import mock
 
+from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 from fab.util import HashedFile
@@ -39,7 +39,8 @@ def test_analysis_results():
         analyser = Analyse(root_symbol=None)
 
         # simulate the effect of calling run, in which the superclass sets up the _config attribute (is this too ugly?)
-        analyser._config = mock.Mock(project_workspace=Path(tmpdir))
+        analyser._config = BuildConfig('proj', fab_workspace=Path(tmpdir))
+        analyser._config.build_output.mkdir(exist_ok=True, parents=True)
 
         # create the initial analysis file
         with analyser._new_analysis_file(unchanged=previous_results):
