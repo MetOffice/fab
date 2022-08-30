@@ -218,7 +218,7 @@ class CompileFortran(MpExeStep):
                 logger.debug(f'CompileFortran {recompile_reasons} for {analysed_file.fpath}')
                 self.compile_file(analysed_file, flags)
             except Exception as err:
-                return Exception("Error compiling file:", err)
+                return Exception(f"Error compiling {analysed_file.fpath}: {err}")
         else:
             # We could just return last_compile at this point.
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
