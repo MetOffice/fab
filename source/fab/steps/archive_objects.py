@@ -95,6 +95,16 @@ class ArchiveObjects(Step):
 
     def run(self, artefact_store: Dict, config):
         """
+        Creates an object archive from the all the object files in the artefact store.
+
+        By default, it finds objects files in the artefact collection named by :const:`fab.constants.COMPILED_FILES`,
+        where it expects to find one or more build targets, each providing list of compiled object files.
+
+        When an object archive *is* the build target, or when building a shared object,
+        expects a single build target with no name.
+
+        When building exes, each build target has a name.
+
         :param artefact_store:
             Contains artefacts created by previous Steps, and where we add our new artefacts.
             This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
@@ -105,9 +115,6 @@ class ArchiveObjects(Step):
         """
         super().run(artefact_store, config)
 
-        # We're expecting one or more build targets in the artefact store.
-        # When building exes, each build target has a name and a list of compiled files.
-        # When building a shared object there is a single build target with no name.
         target_objects = self.source_getter(artefact_store)
         assert target_objects.keys()
         if self.output_fpath and list(target_objects.keys()) != [None]:
