@@ -44,7 +44,7 @@ class Test_archive_objects(object):
 
         # ensure the correct command line calls were made
         mock_run_command.assert_called_once_with([
-            'ar', 'cr', str(config.build_output / f'mylib.a'), f'util1.o', 'util2.o'])
+            'ar', 'cr', str(config.build_output / 'mylib.a'), 'util1.o', 'util2.o'])
 
         # ensure the correct artefacts were created
         assert artefact_store[OBJECT_ARCHIVES] == {
