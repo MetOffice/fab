@@ -121,7 +121,8 @@ class ArchiveObjects(Step):
             else:
                 # we're building a single object archive with a given filename
                 assert len(target_objects) == 1, "unexpected root of None with multiple build targets"
-                output_fpath = Template(self.output_fpath).substitute(output=config.project_workspace / BUILD_OUTPUT)
+                output_fpath = Template(str(self.output_fpath)).substitute(
+                    output=config.project_workspace / BUILD_OUTPUT)
 
             command = [self.archiver]
             command.extend(['cr', output_fpath])

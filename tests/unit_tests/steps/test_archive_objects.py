@@ -2,7 +2,7 @@ from unittest import mock
 from unittest.mock import call
 
 from fab.build_config import BuildConfig
-from fab.constants import BUILD_OUTPUT, OBJECT_FILES, OBJECT_ARCHIVES
+from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps.archive_objects import ArchiveObjects
 
 
