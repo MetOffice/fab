@@ -2,17 +2,14 @@
 Test CAnalyser.
 
 """
-import sys
 from pathlib import Path
 from typing import List, Tuple
-from unittest import mock
-from unittest.mock import Mock, mock_open
+from unittest.mock import Mock
 
 import clang  # type: ignore
-import pytest
 
 from fab.dep_tree import AnalysedFile
-from fab.tasks.c import CAnalyser, CTextReaderPragmas
+from fab.tasks.c import CAnalyser
 from fab.util import HashedFile
 
 
@@ -158,36 +155,3 @@ class Test_process_symbol_dependency(object):
         analyser._process_symbol_dependency(analysed_file, node, usr_symbols)
 
         return analysed_file
-
-
-class Test__CTextReaderPragmas(object):
-
-    @pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher for mock_open iteration")
-    def test_vanilla(self):
-        input = [
-            '',
-            '// hi there, ignore me',
-            '',
-            '#include <foo>',
-            '',
-            '#include "bar.h"',
-            '',
-        ]
-        data = "\n".join(input)
-
-        with mock.patch('fab.tasks.c.open', mock_open(read_data=data)):
-            result = CTextReaderPragmas(fpath="foo")
-            output = list(result)
-
-        assert output == [
-            '\n',
-            '// hi there, ignore me\n',
-            '\n',
-            '#pragma FAB SysIncludeStart\n',
-            '#include <foo>\n',
-            '#pragma FAB SysIncludeEnd\n',
-            '\n',
-            '#pragma FAB UsrIncludeStart\n',
-            '#include "bar.h"\n',
-            '#pragma FAB UsrIncludeEnd\n',
-        ]
