@@ -130,5 +130,3 @@ class CAnalyser(object):
         if node.spelling in usr_symbols:
             logger.debug('  * Is a user symbol (so a dependency)')
             analysed_file.add_symbol_dep(node.spelling)
-
-
