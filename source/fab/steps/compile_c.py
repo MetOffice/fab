@@ -72,7 +72,7 @@ class CompileC(MpExeStep):
         """
         super().run(artefact_store, config)
 
-        # get all the source to compile, for all build trees, into one big lump
+        # gather all the source to compile, for all build trees, into one big lump
         build_lists: Dict = self.source_getter(artefact_store)
         to_compile = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} c files")
