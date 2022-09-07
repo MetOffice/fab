@@ -125,6 +125,7 @@ class GrabFcm(GrabBase):
         src = f'{self.src}@{self.revision}' if self.revision else self.src
         run_command(['fcm', 'export', '--force', src, str(config.source_root / self.dst_label)])
 
+
 if svn:
     class GrabSvn(GrabBase):
         """
