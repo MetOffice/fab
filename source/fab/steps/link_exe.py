@@ -68,7 +68,7 @@ class LinkerBase(Step, ABC):
         command.extend(['-o', filename])
         command.extend(map(str, sorted(objects)))
         # note: this must this come after the list of object files?
-        command.extend(os.getenv('LDFLAGS', []).split())
+        command.extend(os.getenv('LDFLAGS', '').split())
         command.extend(self.flags)
         log_or_dot(logger, 'Link running command: ' + ' '.join(command))
         try:
