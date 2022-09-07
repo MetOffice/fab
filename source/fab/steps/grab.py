@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, Union
 
 try:
-    import svn
+    import svn  # type: ignore
     from svn import remote  # type: ignore
 except ImportError:
     svn = None
