@@ -137,21 +137,25 @@ class AnalysedFile(object):
             tuple(sorted(self.mo_commented_file_deps)),
         ))
 
+    # Json would be better because we wouldn't have to worry sorting collections.
+    # However, we're planning to revisit csv and possibly replace with a database soon.
     def to_str_dict(self) -> Dict[str, str]:
         """
         Convert to a dict of strings. For example, when writing to a CsvWriter.
+
+        Collections are sorted into a single, semicolon separated string, for repeatable results.
 
         """
         # note: our sets currently become strings with undefined order
         return {
             "fpath": str(self.fpath),
             "file_hash": str(self.file_hash),
-            "module_defs": ';'.join(self.module_defs),
-            "symbol_defs": ';'.join(self.symbol_defs),
-            "module_deps": ';'.join(self.module_deps),
-            "symbol_deps": ';'.join(self.symbol_deps),
-            "file_deps": ';'.join(map(str, self.file_deps)),
-            "mo_commented_file_deps": ';'.join(self.mo_commented_file_deps),
+            "module_defs": ';'.join(sorted(self.module_defs)),
+            "symbol_defs": ';'.join(sorted(self.symbol_defs)),
+            "module_deps": ';'.join(sorted(self.module_deps)),
+            "symbol_deps": ';'.join(sorted(self.symbol_deps)),
+            "file_deps": ';'.join(sorted(map(str, self.file_deps))),
+            "mo_commented_file_deps": ';'.join(sorted(self.mo_commented_file_deps)),
         }
 
     @classmethod
