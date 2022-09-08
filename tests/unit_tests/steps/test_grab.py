@@ -61,3 +61,13 @@ class TestGrabFcm(object):
 
         mock_run.assert_called_once_with(
             ['fcm', 'export', '--force', f'{source_url}@{revision}', str(source_root / dst_label)])
+
+    # todo: test missing repo
+    # def test_missing(self):
+    #     assert False
+
+
+# todo: test GrabSvn
+# class TestGrabSvn(object):
+#     def test(self):
+#         assert False

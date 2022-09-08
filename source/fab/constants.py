@@ -14,8 +14,9 @@ BUILD_OUTPUT = "build_output"
 
 PROJECT_SOURCE_TREE = 'project source tree'
 
+# artefact collection names
+PRAGMAD_C = 'pragmad_c'
 BUILD_TREES = 'build trees'
-
 OBJECT_FILES = 'object files'
-
 OBJECT_ARCHIVES = 'object archives'
+EXECUTABLES = 'executables'

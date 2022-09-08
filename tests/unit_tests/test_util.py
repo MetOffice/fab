@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
+from fab.build_config import BuildConfig
 from fab.util import run_command, get_mod_hashes
 from fab.util import suffix_filter
 
@@ -80,7 +81,7 @@ class Test_get_mod_hashes(object):
             mock.Mock(module_defs=['foo', 'bar']),
         }
 
-        config = mock.Mock(project_workspace=Path('proj'))
+        config = BuildConfig('proj', fab_workspace=Path('/fab_workspace'))
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
             with mock.patch('fab.util.file_checksum', side_effect=[mock.Mock(file_hash=123), mock.Mock(file_hash=456)]):
