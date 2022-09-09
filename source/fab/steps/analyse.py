@@ -171,7 +171,8 @@ class Analyse(Step):
             file_hashes = self._get_file_checksums(files)
 
         with TimerLogger("loading previous analysis results"):
-            prev_results = self._load_analysis_results(latest_file_hashes=file_hashes)
+            prev_results = load_analysis_results(
+                fpath=self._config.build_output / ANALYSIS_CSV, latest_file_hashes=file_hashes)
             changed, unchanged = self._what_needs_reanalysing(prev_results=prev_results, latest_file_hashes=file_hashes)
 
         with TimerLogger("analysing files"):
@@ -297,34 +298,6 @@ class Analyse(Step):
         latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in mp_results}
         return latest_file_hashes
 
-    def _load_analysis_results(self, latest_file_hashes: Dict[Path, int]) -> Dict[Path, AnalysedFile]:
-        """
-        The analysis file includes the hash of each file when we last analysed it.
-        We discard previous results from files which are no longer present.
-
-        """
-        prev_results: Dict[Path, AnalysedFile] = dict()
-        try:
-            with open(self._config.build_output / ANALYSIS_CSV, "rt") as csv_file:
-                dict_reader = csv.DictReader(csv_file)
-                for row in dict_reader:
-                    analysed_file = AnalysedFile.from_str_dict(row)
-
-                    # file no longer there?
-                    if analysed_file.fpath not in latest_file_hashes:
-                        logger.info(f"file no longer present: {analysed_file.fpath}")
-                        continue
-
-                    # ok, we have previously analysed this file
-                    prev_results[analysed_file.fpath] = analysed_file
-
-            logger.info(f"loaded {len(prev_results)} previous analysis results")
-        except FileNotFoundError:
-            logger.info("no previous analysis results")
-            pass
-
-        return prev_results
-
     def _what_needs_reanalysing(self, prev_results: Dict[Path, AnalysedFile], latest_file_hashes: Dict[Path, int]) -> \
             Tuple[Set[HashedFile], Set[AnalysedFile]]:
         """
@@ -437,3 +410,37 @@ class Analyse(Step):
             # add the file and it's file deps
             sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
             build_tree.update(sub_tree)
+
+
+def load_analysis_results(fpath, latest_file_hashes: Dict[Path, int]) -> Dict[Path, AnalysedFile]:
+    """
+    The analysis csv file includes the hash of each file when we last analysed it.
+    We discard previous results from files which are no longer present.
+
+    :param fpath:
+        Path to analysis csv file.
+    :param latest_file_hashes:
+        The current state of the file system.
+
+    """
+    results: Dict[Path, AnalysedFile] = dict()
+    try:
+        with open(fpath, "rt") as csv_file:
+            dict_reader = csv.DictReader(csv_file)
+            for row in dict_reader:
+                analysed_file = AnalysedFile.from_str_dict(row)
+
+                # file no longer there?
+                if analysed_file.fpath not in latest_file_hashes:
+                    logger.info(f"file no longer present: {analysed_file.fpath}")
+                    continue
+
+                # ok, we have previously analysed this file
+                results[analysed_file.fpath] = analysed_file
+
+        logger.info(f"loaded {len(results)} previous analysis results")
+    except FileNotFoundError:
+        logger.info("no previous analysis results")
+        pass
+
+    return results

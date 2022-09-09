@@ -38,14 +38,15 @@ def test_FortranDependencies(tmp_path):
     assert len(config._artefact_store[EXECUTABLES]) == 2
 
     # run both
-    expected = {
+    output = set()
+    for exe in config._artefact_store[EXECUTABLES]:
+        res = subprocess.run(exe, capture_output=True)
+        output.add(res.stdout.decode())
+
+    # check output
+    assert output == {
         'Hello               \n',
         'Good bye            \n',
     }
-    actual = set()
 
-    for exe in config._artefact_store[EXECUTABLES]:
-        res = subprocess.run(exe, capture_output=True)
-        actual.add(res.stdout.decode())
-
-    assert actual == expected
+    # load and check the analysis csv
