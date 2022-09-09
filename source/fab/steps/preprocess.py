@@ -13,11 +13,12 @@ from pathlib import Path
 from typing import List
 
 from fab.build_config import FlagsConfig
+from fab.constants import PRAGMAD_C
 from fab.metrics import send_metric
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer, by_type
 from fab.steps import check_for_errors, Step
-from fab.artefacts import ArtefactsGetter, SuffixFilter
+from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
 logger = logging.getLogger(__name__)
 
@@ -91,10 +92,7 @@ class PreProcessor(Step):
         Writes the output file to the output folder, with a lower case extension.
 
         """
-        output_fpath = input_to_output_fpath(
-            source_root=self._config.source_root,
-            project_workspace=self._config.project_workspace,
-            input_path=fpath).with_suffix(self.output_suffix)
+        output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
 
         # already preprocessed?
         if self._config.reuse_artefacts and output_fpath.exists():
@@ -104,8 +102,7 @@ class PreProcessor(Step):
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
                 command = self.exe.split()
-                command.extend(self.flags.flags_for_path(
-                    path=fpath, source_root=self._config.source_root, project_workspace=self._config.project_workspace))
+                command.extend(self.flags.flags_for_path(path=fpath, config=self._config))
                 command.append(str(fpath))
                 command.append(str(output_fpath))
 
@@ -140,6 +137,21 @@ def fortran_preprocessor(preprocessor=None, source=None,
     )
 
 
+class DefaultCPreprocessorSource(ArtefactsGetter):
+    """
+    A source getter specifically for c preprocessing.
+    Looks for the default output from pragma injection, falls back to default source finder.
+    This allows the step to work with or without a preceding pragma step.
+
+    """
+    def __call__(self, artefact_store):
+        return CollectionGetter(PRAGMAD_C)(artefact_store) \
+               or SuffixFilter('all_source', '.c')(artefact_store)
+
+
+DEFAULT_SOURCE_GETTER = DefaultCPreprocessorSource()
+
+
 def c_preprocessor(preprocessor=None, source=None,
                    output_collection='preprocessed_c', output_suffix='.c',
                    name='preprocess c', **pp_kwds):
@@ -151,7 +163,7 @@ def c_preprocessor(preprocessor=None, source=None,
     """
     return PreProcessor(
         preprocessor=preprocessor or os.getenv('CPP', 'cpp -P'),
-        source=source or SuffixFilter('all_source', '.c'),
+        source=source or DEFAULT_SOURCE_GETTER,
         output_collection=output_collection,
         output_suffix=output_suffix,
         name=name,
