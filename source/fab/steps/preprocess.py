@@ -101,7 +101,7 @@ class PreProcessor(Step):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.exe.split()
+                command = self.exe.split()  # type: ignore
                 command.extend(self.flags.flags_for_path(path=fpath, config=self._config))
                 command.append(str(fpath))
                 command.append(str(output_fpath))

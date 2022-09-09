@@ -105,7 +105,7 @@ class CompileC(Step):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.exe.split()
+                command = self.exe.split()  # type: ignore
                 command.extend(self.flags.flags_for_path(path=analysed_file.fpath, config=self._config))
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])

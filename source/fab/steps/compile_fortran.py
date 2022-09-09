@@ -281,7 +281,7 @@ class CompileFortran(Step):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
-            command = self.exe.split()
+            command = self.exe.split()  # type: ignore
 
             # flags
             command.extend(flags)
