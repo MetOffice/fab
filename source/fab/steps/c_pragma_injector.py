@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 from typing import Dict, Pattern, Optional, Match
 
+from fab.constants import PRAGMAD_C
 from fab.steps import Step
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 from fab.tasks import TaskException
@@ -25,8 +26,12 @@ class CPragmaInjector(Step):
 
     By default, reads .c files from the *all_source* artefact and creates the *pragmad_c* artefact.
 
+    This step does not write to the build output folder, it creates the pragmad c in the same folder as the c file.
+    This is because a subsequent preprocessing step needs to look in the source folder for header files,
+    including in paths relative to the c file.
+
     """
-    def __init__(self, source: ArtefactsGetter = None, output_name="pragmad_c", name="c pragmas"):
+    def __init__(self, source: ArtefactsGetter = None, output_name=None, name="c pragmas"):
         """
         :param source:
             An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
@@ -34,11 +39,12 @@ class CPragmaInjector(Step):
             The name of the artefact collection to create in the artefact store, with a sensible default
         :param name:
             Human friendly name for logger output, with sensible default.
+
         """
         super().__init__(name=name)
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.output_name = output_name
+        self.output_name = output_name or PRAGMAD_C
 
     def run(self, artefact_store: Dict, config):
         """

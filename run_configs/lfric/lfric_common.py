@@ -155,14 +155,8 @@ class Psyclone(Step):
         modified_alg = x90_file.with_suffix('.f90')
 
         # generate into the build output, not the source
-        generated = input_to_output_fpath(
-            source_root=self._config.source_root,
-            project_workspace=self._config.project_workspace,
-            input_path=generated)
-        modified_alg = input_to_output_fpath(
-            source_root=self._config.source_root,
-            project_workspace=self._config.project_workspace,
-            input_path=modified_alg)
+        generated = input_to_output_fpath(config=self._config, input_path=generated)
+        modified_alg = input_to_output_fpath(config=self._config, input_path=modified_alg)
         generated.parent.mkdir(parents=True, exist_ok=True)
 
         # -d specifies "a root directory structure containing kernel source"

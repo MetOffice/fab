@@ -10,6 +10,11 @@ from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt)
+
+# todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
+from fparser.two.Fortran2008 import (  # type: ignore
+    Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
+
 from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
@@ -83,20 +88,20 @@ class FortranAnalyser(object):
         log_or_dot(logger, f"analysing {fpath}")
 
         # parse the file
-        try:
-            tree = self._parse_file(fpath=fpath)
-        except Exception as err:
-            return err
-        if tree.content[0] is None:
+        parse_result = self._parse_file(fpath=fpath)
+        if isinstance(parse_result, Exception):
+            return parse_result
+
+        if parse_result.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             return EmptySourceFile(fpath)
 
         analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
         # see what's in the tree
-        try:
-            for obj in iter_content(tree):
-                obj_type = type(obj)
+        for obj in iter_content(parse_result):
+            obj_type = type(obj)
+            try:
 
                 # todo: ?replace these with function lookup dict[type, func]? - Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
@@ -104,6 +109,8 @@ class FortranAnalyser(object):
 
                 elif obj_type == Call_Stmt:
                     called_name = _typed_child(obj, Name)
+                    # called_name will be None for calls like thing%method(),
+                    # which is fine as it doesn't reveal a dependency on an external function.
                     if called_name:
                         analysed_file.add_symbol_dep(called_name.string)
 
@@ -116,17 +123,22 @@ class FortranAnalyser(object):
                 elif obj_type in (Subroutine_Stmt, Function_Stmt):
                     self._process_subroutine_or_function(analysed_file, fpath, obj)
 
-                # todo: we've not needed this so far, for jules or um...(?)
-                elif obj_type == "variable binding not yet supported":
-                    return self._process_variable_binding(fpath)
+                # variables with c binding are found inside a Type_Declaration_Stmt.
+                # todo: This was used for exporting a Fortran variable for use in C.
+                #       Variable bindings are bidirectional - does this work the other way round, too?
+                #       Make sure we have a test for it.
+                elif obj_type == Type_Declaration_Stmt:
+                    # bound?
+                    specs = _typed_child(obj, Attr_Spec_List)
+                    if specs and _typed_child(specs, Language_Binding_Spec):
+                        self._process_variable_binding(analysed_file, obj)
 
                 elif obj_type == Comment:
                     self._process_comment(analysed_file, obj)
 
-        except Exception as err:
-            return err
+            except Exception:
+                logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
 
-        logger.debug(f"    analysed {analysed_file.fpath}")
         return analysed_file
 
     def _parse_file(self, fpath):
@@ -139,10 +151,10 @@ class FortranAnalyser(object):
         except FortranSyntaxError as err:
             # we can't return the FortranSyntaxError, it breaks multiprocessing!
             logger.error(f"\nsyntax error in {fpath}\n{err}")
-            raise Exception(f"syntax error in {fpath}\n{err}")
+            return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
             logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
-            raise Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
+            return Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
 
     def _process_use_statement(self, analysed_file, obj):
         use_name = _typed_child(obj, Name)
@@ -157,17 +169,24 @@ class FortranAnalyser(object):
             # found a dependency on fortran
             analysed_file.add_module_dep(use_name)
 
-    def _process_variable_binding(self, fpath):
-        # This should be a line binding from C to a variable definition
-        # (procedure binds are dealt with above)
+    def _process_variable_binding(self, analysed_file, obj: Type_Declaration_Stmt):
         # The name keyword on the bind statement is optional.
         # If it doesn't exist, the Fortran variable name is used
-        # logger.debug('Found C bound variable called "%s"', bind_name)
-        # Add to the C database
-        # symbol_id = CSymbolID(cbind_name, reader.filename)
-        # cstate.add_c_symbol(symbol_id)
-        # new_artifact.add_definition(cbind_name)
-        return NotImplementedError(f"variable bindings not yet implemented {fpath}")
+
+        # todo: write and test named variable binding.
+        # specs = _typed_child(obj, Attr_Spec_List)
+        # bind = _typed_child(specs, Language_Binding_Spec)
+        # name = _typed_child(bind, Char_Literal_Constant)
+        # if not name:
+        #     name = _typed_child(obj, Name)
+        #     logger.debug(f"unnamed variable binding, using fortran name '{name}' in {fpath}")
+        # else:
+        #     logger.debug(f"variable binding called '{name}' in {fpath}")
+
+        entities = _typed_child(obj, Entity_Decl_List)
+        for entity in entities.items:
+            name = _typed_child(entity, Name)
+            analysed_file.add_symbol_def(name.string)
 
     def _process_comment(self, analysed_file, obj):
         # Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
@@ -192,7 +211,7 @@ class FortranAnalyser(object):
             name = _typed_child(bind, Char_Literal_Constant)
             if not name:
                 name = _typed_child(obj, Name)
-                logger.info(f"Warning: unnamed binding, using fortran name '{name}' in {fpath}")
+                logger.debug(f"unnamed binding, using fortran name '{name}' in {fpath}")
             bind_name = name.string.replace('"', '')
 
             # importing a c function into fortran, i.e binding within an interface block
