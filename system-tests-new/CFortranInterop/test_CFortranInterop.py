@@ -27,7 +27,6 @@ def test_CFortranInterop(tmp_path):
         project_label='foo',
         source_root=PROJECT_SOURCE,
         multiprocessing=False,
-        verbose=True,
 
         steps=[
             FindSourceFiles(),
