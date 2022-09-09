@@ -12,17 +12,17 @@ import os
 from pathlib import Path
 from typing import List
 
+from fab.build_config import FlagsConfig
 from fab.metrics import send_metric
 
-from fab.steps.mp_exe import MpExeStep
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer, by_type
-from fab.steps import check_for_errors
+from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 logger = logging.getLogger(__name__)
 
 
-class PreProcessor(MpExeStep):
+class PreProcessor(Step):
     """
     Preprocess Fortran or C files with multiprocessing.
 
@@ -53,9 +53,12 @@ class PreProcessor(MpExeStep):
             Human friendly name for logger output, with sensible default.
 
         """
-        super().__init__(exe=preprocessor, common_flags=common_flags, path_flags=path_flags, name=name or self.LABEL)
+        super().__init__(name=name or self.LABEL)
 
+        self.exe = preprocessor
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or self.DEFAULT_SOURCE
+
         self.output_collection = output_collection or self.DEFAULT_OUTPUT_NAME
         self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
 
