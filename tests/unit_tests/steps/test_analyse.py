@@ -8,7 +8,7 @@ from fab.build_config import BuildConfig
 from fab.util import HashedFile
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.analyse import Analyse
+from fab.steps.analyse import Analyse, get_previous_analyses
 
 
 # These methods are just glue code and do not currently have a test.
@@ -76,7 +76,7 @@ class Test_load_analysis_results(object):
     def test_no_analysis_file(self, analyser):
         # there's nothing to load
         with mock.patch('fab.steps.analyse.open', side_effect=FileNotFoundError('mwah-ha-ha-haa')):
-            results = analyser._load_analysis_results(latest_file_hashes=dict())
+            results = get_previous_analyses(fpath=None, latest_file_hashes=dict())
 
         assert results == dict()
 
@@ -85,7 +85,7 @@ class Test_load_analysis_results(object):
 
         file_data = "\n".join(csv_lines)
         with mock.patch('fab.steps.analyse.open', mock_open(read_data=file_data)):
-            results = analyser._load_analysis_results(latest_file_hashes=latest_file_hashes)
+            results = get_previous_analyses(fpath=None, latest_file_hashes=latest_file_hashes)
 
         expected = {
             Path('my_mod.f90'): AnalysedFile(
@@ -107,7 +107,7 @@ class Test_load_analysis_results(object):
 
         file_data = "\n".join(csv_lines)
         with mock.patch('fab.steps.analyse.open', mock_open(read_data=file_data)):
-            results = analyser._load_analysis_results(latest_file_hashes=latest_file_hashes)
+            results = get_previous_analyses(fpath=None, latest_file_hashes=latest_file_hashes)
 
         expected = {
             Path('my_mod.f90'): AnalysedFile(

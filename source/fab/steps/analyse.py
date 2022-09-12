@@ -448,7 +448,7 @@ def get_previous_analyses(fpath, latest_file_hashes: Dict[Path, int]) -> Dict[Pa
     results = _load_analysis_file(fpath)
 
     # remove any data for files which are no longer present in the file system
-    for path in results:
+    for path in list(results.keys()):
         if path not in latest_file_hashes:
             del results[path]
 
