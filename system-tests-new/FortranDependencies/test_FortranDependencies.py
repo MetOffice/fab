@@ -5,19 +5,16 @@
 # ##############################################################################
 import subprocess
 from pathlib import Path
-from typing import Dict
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.dep_tree import AnalysedFile
-from fab.steps.analyse import Analyse, get_previous_analyses, ANALYSIS_CSV, _load_analysis_file
-from fab.steps.c_pragma_injector import CPragmaInjector
+from fab.steps.analyse import Analyse, ANALYSIS_CSV, _load_analysis_file
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.link_exe import LinkExe
-from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
+from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.walk_source import FindSourceFiles
-from fab.util import file_checksum
 
 
 def test_FortranDependencies(tmp_path):
