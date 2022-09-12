@@ -104,10 +104,7 @@ class CompileC(MpExeStep):
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
                 command = self.exe.split()
-                command.extend(self.flags.flags_for_path(
-                    path=analysed_file.fpath,
-                    source_root=self._config.source_root,
-                    project_workspace=self._config.project_workspace))
+                command.extend(self.flags.flags_for_path(path=analysed_file.fpath, config=self._config))
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])
 

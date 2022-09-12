@@ -5,7 +5,6 @@ from argparse import ArgumentParser
 from fab.steps.archive_objects import ArchiveObjects
 
 from fab.build_config import BuildConfig
-from fab.constants import BUILD_OUTPUT
 from fab.steps.analyse import Analyse
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
@@ -45,7 +44,7 @@ def mesh_tools_config(two_stage=False, opt='Og'):
 
         psyclone_preprocessor(),
 
-        Psyclone(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
+        Psyclone(kernel_roots=[config.build_output]),
 
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 

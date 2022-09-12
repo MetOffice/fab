@@ -6,14 +6,12 @@ C language handling classes.
 
 """
 import logging
-import re
 from collections import deque
-from typing import List, Pattern, Optional, Match
+from typing import List, Optional
 
 import clang.cindex  # type: ignore
 
 from fab.dep_tree import AnalysedFile
-from fab.tasks import TaskException
 from fab.util import log_or_dot, HashedFile
 
 logger = logging.getLogger(__name__)
@@ -82,27 +80,40 @@ class CAnalyser(object):
         fpath, file_hash = hashed_file
         log_or_dot(logger, f"analysing {fpath}")
 
+        try:
+            index = clang.cindex.Index.create()
+            translation_unit = index.parse(fpath, args=["-xc"])
+        except Exception as err:
+            logger.exception(f'error parsing {fpath}')
+            return err
+
         analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
-        index = clang.cindex.Index.create()
-        translation_unit = index.parse(fpath, args=["-xc"])
 
         # Create include region line mappings
-        self._locate_include_regions(translation_unit)
+        try:
+            self._locate_include_regions(translation_unit)
+        except Exception as err:
+            logger.exception(f'error locating include regions {fpath}')
+            return err
 
         # Now walk the actual nodes and find all relevant external symbols
-        usr_symbols: List[str] = []
-        for node in translation_unit.cursor.walk_preorder():
-            if not node.spelling:
-                continue
-            # ignore sys include stuff
-            if self._check_for_include(node.location.line) == "sys_include":
-                continue
-            logger.debug('Considering node: %s', node.spelling)
+        try:
+            usr_symbols: List[str] = []
+            for node in translation_unit.cursor.walk_preorder():
+                if not node.spelling:
+                    continue
+                # ignore sys include stuff
+                if self._check_for_include(node.location.line) == "sys_include":
+                    continue
+                logger.debug('Considering node: %s', node.spelling)
 
-            if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL}:
-                self._process_symbol_declaration(analysed_file, node, usr_symbols)
-            elif node.kind in {clang.cindex.CursorKind.CALL_EXPR, clang.cindex.CursorKind.DECL_REF_EXPR}:
-                self._process_symbol_dependency(analysed_file, node, usr_symbols)
+                if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL}:
+                    self._process_symbol_declaration(analysed_file, node, usr_symbols)
+                elif node.kind in {clang.cindex.CursorKind.CALL_EXPR, clang.cindex.CursorKind.DECL_REF_EXPR}:
+                    self._process_symbol_dependency(analysed_file, node, usr_symbols)
+        except Exception as err:
+            logger.exception(f'error walking parsed nodes {fpath}')
+            return err
 
         return analysed_file
 
@@ -132,36 +143,3 @@ class CAnalyser(object):
         if node.spelling in usr_symbols:
             logger.debug('  * Is a user symbol (so a dependency)')
             analysed_file.add_symbol_dep(node.spelling)
-
-
-def CTextReaderPragmas(fpath):
-    """
-    Reads a C source file but when encountering an #include
-    preprocessor directive injects a special Fab-specific
-    #pragma which can be picked up later by the Analyser
-    after the preprocessing
-    """
-
-    _include_re: str = r'^\s*#include\s+(\S+)'
-    _include_pattern: Pattern = re.compile(_include_re)
-
-    for line in open(fpath, 'rt', encoding='utf-8'):
-        include_match: Optional[Match] = _include_pattern.match(line)
-        if include_match:
-            # For valid C the first character of the matched
-            # part of the group will indicate whether this is
-            # a system library include or a user include
-            include: str = include_match.group(1)
-            if include.startswith('<'):
-                yield '#pragma FAB SysIncludeStart\n'
-                yield line
-                yield '#pragma FAB SysIncludeEnd\n'
-            elif include.startswith(('"', "'")):
-                yield '#pragma FAB UsrIncludeStart\n'
-                yield line
-                yield '#pragma FAB UsrIncludeEnd\n'
-            else:
-                msg = 'Found badly formatted #include'
-                raise TaskException(msg)
-        else:
-            yield line
