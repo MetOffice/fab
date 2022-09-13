@@ -40,7 +40,7 @@ def test_FortranDependencies(tmp_path):
     # run both
     output = set()
     for exe in config._artefact_store[EXECUTABLES]:
-        res = subprocess.run(exe, capture_output=True)
+        res = subprocess.run(str(exe), capture_output=True)
         output.add(res.stdout.decode())
 
     # check output
