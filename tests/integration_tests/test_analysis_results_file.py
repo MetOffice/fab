@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
-from fab.steps.analyse import Analyse, ANALYSIS_CSV
+from fab.steps.analyse import Analyse
 from fab.util import HashedFile
 
 
