@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 
 from fab.dep_tree import AnalysedFile
@@ -152,7 +153,7 @@ class Test_recompile_check(object):
         flags_hash = 222
         last_compile = mock.Mock(source_hash=111, flags_hash=222, module_deps_hashes={'foo': 333, 'bar': 444})
 
-        compiler._config = mock.Mock(project_workspace=Path('proj'))
+        compiler._config = BuildConfig('proj', fab_workspace=Path('/fab_workspace'))
         compiler._mod_hashes = {'foo': 333, 'bar': 444}
 
         return analysed_file, flags_hash, last_compile, compiler

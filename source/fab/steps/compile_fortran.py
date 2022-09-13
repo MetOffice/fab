@@ -14,7 +14,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Optional
 
-from fab.constants import OBJECT_FILES, BUILD_OUTPUT
+from fab.constants import OBJECT_FILES
 
 from fab.metrics import send_metric
 
@@ -206,9 +206,7 @@ class CompileFortran(MpExeStep):
 
         """
         # flags for this file
-        flags = self.flags.flags_for_path(
-            path=analysed_file.fpath, source_root=self._config.source_root,
-            project_workspace=self._config.project_workspace)
+        flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         flags_hash = string_checksum(str(flags))
 
         # do we need to recompile?
@@ -220,7 +218,7 @@ class CompileFortran(MpExeStep):
                 logger.debug(f'CompileFortran {recompile_reasons} for {analysed_file.fpath}')
                 self.compile_file(analysed_file, flags)
             except Exception as err:
-                return Exception("Error compiling file:", err)
+                return Exception(f"Error compiling {analysed_file.fpath}: {err}")
         else:
             # We could just return last_compile at this point.
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
@@ -270,8 +268,7 @@ class CompileFortran(MpExeStep):
                 recompile_reasons.append(OBJECT_FILE_NOT_PRESENT)
 
             # are the module files we define still there?
-            build_output = self._config.project_workspace / BUILD_OUTPUT
-            mod_def_files = [build_output / mod for mod in analysed_file.mod_filenames]
+            mod_def_files = [self._config.build_output / mod for mod in analysed_file.mod_filenames]
             if not all([mod.exists() for mod in mod_def_files]):
                 recompile_reasons.append(MODULE_FILE_NOT_PRESENT)
 

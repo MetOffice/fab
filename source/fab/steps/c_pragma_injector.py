@@ -7,12 +7,14 @@
 Add custom pragmas to C code which identify user and system include regions.
 
 """
+import re
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Pattern, Optional, Match
 
+from fab.constants import PRAGMAD_C
 from fab.steps import Step
-from fab.tasks.c import CTextReaderPragmas
 from fab.artefacts import ArtefactsGetter, SuffixFilter
+from fab.tasks import TaskException
 
 DEFAULT_SOURCE_GETTER = SuffixFilter('all_source', '.c')
 
@@ -24,8 +26,12 @@ class CPragmaInjector(Step):
 
     By default, reads .c files from the *all_source* artefact and creates the *pragmad_c* artefact.
 
+    This step does not write to the build output folder, it creates the pragmad c in the same folder as the c file.
+    This is because a subsequent preprocessing step needs to look in the source folder for header files,
+    including in paths relative to the c file.
+
     """
-    def __init__(self, source: ArtefactsGetter = None, output_name="pragmad_c", name="c pragmas"):
+    def __init__(self, source: ArtefactsGetter = None, output_name=None, name="c pragmas"):
         """
         :param source:
             An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
@@ -33,11 +39,12 @@ class CPragmaInjector(Step):
             The name of the artefact collection to create in the artefact store, with a sensible default
         :param name:
             Human friendly name for logger output, with sensible default.
+
         """
         super().__init__(name=name)
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.output_name = output_name
+        self.output_name = output_name or PRAGMAD_C
 
     def run(self, artefact_store: Dict, config):
         """
@@ -57,5 +64,38 @@ class CPragmaInjector(Step):
 
     def _process_artefact(self, fpath: Path):
         prag_output_fpath = fpath.with_suffix('.prag')
-        prag_output_fpath.open('w').writelines(CTextReaderPragmas(fpath))
+        prag_output_fpath.open('w').writelines(inject_pragmas(fpath))
         return prag_output_fpath
+
+
+def inject_pragmas(fpath):
+    """
+    Reads a C source file but when encountering an #include
+    preprocessor directive injects a special Fab-specific
+    #pragma which can be picked up later by the Analyser
+    after the preprocessing
+    """
+
+    _include_re: str = r'^\s*#include\s+(\S+)'
+    _include_pattern: Pattern = re.compile(_include_re)
+
+    for line in open(fpath, 'rt', encoding='utf-8'):
+        include_match: Optional[Match] = _include_pattern.match(line)
+        if include_match:
+            # For valid C the first character of the matched
+            # part of the group will indicate whether this is
+            # a system library include or a user include
+            include: str = include_match.group(1)
+            if include.startswith('<'):
+                yield '#pragma FAB SysIncludeStart\n'
+                yield line
+                yield '#pragma FAB SysIncludeEnd\n'
+            elif include.startswith(('"', "'")):
+                yield '#pragma FAB UsrIncludeStart\n'
+                yield line
+                yield '#pragma FAB UsrIncludeEnd\n'
+            else:
+                msg = 'Found badly formatted #include'
+                raise TaskException(msg)
+        else:
+            yield line

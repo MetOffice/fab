@@ -6,7 +6,6 @@ from argparse import ArgumentParser
 from fab.steps.compile_c import CompileC
 
 from fab.build_config import BuildConfig, AddFlags
-from fab.constants import BUILD_OUTPUT
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
@@ -105,7 +104,7 @@ def atm_config(two_stage=False, opt='Og'):
 
         psyclone_preprocessor(set_um_physics=True),
 
-        Psyclone(kernel_roots=[config.project_workspace / BUILD_OUTPUT]),
+        Psyclone(kernel_roots=[config.build_output]),
 
         # todo: do we need this one in here?
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),

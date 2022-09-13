@@ -72,7 +72,7 @@ class CompileC(MpExeStep):
         """
         super().run(artefact_store, config)
 
-        # get all the source to compile, for all build trees, into one big lump
+        # gather all the source to compile, for all build trees, into one big lump
         build_lists: Dict = self.source_getter(artefact_store)
         to_compile = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} c files")
@@ -104,10 +104,7 @@ class CompileC(MpExeStep):
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
                 command = self.exe.split()
-                command.extend(self.flags.flags_for_path(
-                    path=analysed_file.fpath,
-                    source_root=self._config.source_root,
-                    project_workspace=self._config.project_workspace))
+                command.extend(self.flags.flags_for_path(path=analysed_file.fpath, config=self._config))
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])
 

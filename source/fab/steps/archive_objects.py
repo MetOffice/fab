@@ -12,7 +12,7 @@ import logging
 from string import Template
 from typing import Dict
 
-from fab.constants import BUILD_OUTPUT, OBJECT_FILES, OBJECT_ARCHIVES
+from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import Step
 from fab.util import log_or_dot, run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -117,12 +117,12 @@ class ArchiveObjects(Step):
 
             if root:
                 # we're building an object archive for an exe
-                output_fpath = str(config.project_workspace / BUILD_OUTPUT / f'{root}.a')
+                output_fpath = str(config.build_output / f'{root}.a')
             else:
                 # we're building a single object archive with a given filename
                 assert len(target_objects) == 1, "unexpected root of None with multiple build targets"
                 output_fpath = Template(str(self.output_fpath)).substitute(
-                    output=config.project_workspace / BUILD_OUTPUT)
+                    output=config.build_output)
 
             command = [self.archiver]
             command.extend(['cr', output_fpath])

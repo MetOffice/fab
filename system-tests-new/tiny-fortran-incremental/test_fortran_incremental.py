@@ -223,13 +223,13 @@ class TestFortranIncremental(object):
         }
         assert set(changed_hashes.keys()) - allowed_hash_changes == set()
 
-        # The analysis csv should have changes to both rows
+        # The analysis csv should only have changes for the single changed source file
         clean_analysis_csv = clean_csvs[build_config.build_output / ANALYSIS_CSV]
         rebuild_analysis_csv = rebuild_csvs[build_config.build_output / ANALYSIS_CSV]
         changed_analysis_csv = rebuild_analysis_csv - clean_analysis_csv
-        assert len(changed_analysis_csv) == 2
+        assert len(changed_analysis_csv) == 1
 
-        # The fortran csv should have changes to both rows
+        # The compilation csv should have changes for both files because it includes dependency hashes
         clean_fortran_csv = clean_csvs[build_config.build_output / FORTRAN_COMPILED_CSV]
         rebuild_fortran_csv = rebuild_csvs[build_config.build_output / FORTRAN_COMPILED_CSV]
         changed_fortran_csv = rebuild_fortran_csv - clean_fortran_csv
