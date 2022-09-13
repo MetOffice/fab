@@ -41,7 +41,6 @@ def test_analysis_results():
         # simulate the effect of calling run, in which the superclass sets up the _config attribute (is this too ugly?)
         config = BuildConfig('proj', fab_workspace=Path(tmpdir))
         config.build_output.mkdir(exist_ok=True, parents=True)
-        analysis_fpath = config.build_output / ANALYSIS_CSV
         analyser._config = config
 
         # create the initial analysis file
