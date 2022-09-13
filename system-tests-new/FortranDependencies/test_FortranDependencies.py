@@ -55,23 +55,23 @@ def test_FortranDependencies(tmp_path):
 
     assert analysis == {
         project_source / 'first.f90': AnalysedFile(
-            fpath=project_source / 'first.f90', file_hash=602051652,
+            fpath=project_source / 'first.f90', file_hash=193489053,
             module_defs=None, symbol_defs={'first'},
             module_deps={'greeting_mod', 'constants_mod'}, symbol_deps={'greeting_mod', 'constants_mod', 'greet'}),
         project_source / 'two.f90': AnalysedFile(
-            fpath=project_source / 'two.f90', file_hash=2677078225,
+            fpath=project_source / 'two.f90', file_hash=2557739057,
             module_defs=None, symbol_defs={'second'},
             module_deps={'constants_mod', 'bye_mod'}, symbol_deps={'constants_mod', 'bye_mod', 'farewell'}),
         project_source / 'greeting_mod.f90': AnalysedFile(
-            fpath=project_source / 'greeting_mod.f90', file_hash=3589757085,
+            fpath=project_source / 'greeting_mod.f90', file_hash=62446538,
             module_defs={'greeting_mod'}, symbol_defs={'greeting_mod'},
             module_deps={'constants_mod'}, symbol_deps={'constants_mod'}),
         project_source / 'bye_mod.f90': AnalysedFile(
-            fpath=project_source / 'bye_mod.f90', file_hash=3148775555,
+            fpath=project_source / 'bye_mod.f90', file_hash=3332267073,
             module_defs={'bye_mod'}, symbol_defs={'bye_mod'},
             module_deps={'constants_mod'}, symbol_deps={'constants_mod'}),
         project_source / 'constants_mod.f90': AnalysedFile(
-            fpath=project_source / 'constants_mod.f90', file_hash=734401370,
+            fpath=project_source / 'constants_mod.f90', file_hash=233796393,
             module_defs={'constants_mod'}, symbol_defs={'constants_mod'},
             module_deps=None, symbol_deps=None),
     }
