@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
-from fab.steps.analyse import Analyse, ANALYSIS_CSV, get_previous_analyses
+from fab.steps.analyse import Analyse, ANALYSIS_CSV
 from fab.util import HashedFile
 
 
@@ -49,14 +49,14 @@ def test_analysis_results():
             pass
 
         # check it loads correctly with no changes detected
-        loaded_results = get_previous_analyses(fpath=analysis_fpath, latest_file_hashes=previous_file_hashes)
+        loaded_results = analyser._load_analysis_results(latest_file_hashes=previous_file_hashes)
         changed, unchanged = analyser._what_needs_reanalysing(
             prev_results=loaded_results, latest_file_hashes=previous_file_hashes)
         assert not changed
         assert unchanged == previous_results
 
         # check we correctly identify new, changed, unchanged and removed files
-        loaded_results = get_previous_analyses(fpath=analysis_fpath, latest_file_hashes=latest_file_hashes)
+        loaded_results = analyser._load_analysis_results(latest_file_hashes=latest_file_hashes)
         changed, unchanged = analyser._what_needs_reanalysing(
             prev_results=loaded_results, latest_file_hashes=latest_file_hashes)
         assert unchanged == {AnalysedFile(fpath=Path('no_change.f90'), file_hash=222)}
