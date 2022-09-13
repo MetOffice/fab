@@ -8,13 +8,16 @@ Some constants to help keep things tidy and manageable.
 
 """
 
+
+# Might be better to use enums
+
+
 # folders underneath workspace
 SOURCE_ROOT = "source"
 BUILD_OUTPUT = "build_output"
 
+# names of artefact collections
 PROJECT_SOURCE_TREE = 'project source tree'
-
-# artefact collection names
 PRAGMAD_C = 'pragmad_c'
 BUILD_TREES = 'build trees'
 OBJECT_FILES = 'object files'
