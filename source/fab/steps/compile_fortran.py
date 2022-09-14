@@ -10,6 +10,7 @@ Fortran file compilation.
 import csv
 import logging
 import os
+import zlib
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Optional
@@ -79,7 +80,7 @@ class CompileFortran(MpExeStep):
 
         # runtime
         self._stage = None
-        self._last_compiles: Dict[Path, CompiledFile] = {}
+        # self._last_compiles: Dict[Path, CompiledFile] = {}
         self._mod_hashes: Dict[str, int] = {}
 
     def run(self, artefact_store, config):
@@ -99,7 +100,7 @@ class CompileFortran(MpExeStep):
         super().run(artefact_store, config)
 
         # read csv of last compile states
-        self._last_compiles = self.read_compile_result(config)
+        # self._last_compiles = self.read_compile_result(config)
 
         # get all the source to compile, for all build trees, into one big lump
         build_lists: Dict[str, List] = self.source_getter(artefact_store)
@@ -129,7 +130,7 @@ class CompileFortran(MpExeStep):
             compiled_this_pass = list(by_type(results_this_pass, CompiledFile))
             logger.info(f"stage 2 compiled {len(compiled_this_pass)} files")
 
-        self.write_compile_result(compiled, config)
+        # self.write_compile_result(compiled, config)
 
         self.store_artefacts(compiled, build_lists, artefact_store)
 
@@ -205,37 +206,37 @@ class CompileFortran(MpExeStep):
         * hash of the module files on which we depend
 
         """
-        # flags for this file
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
+
+        # the combo hash is a hash of all the things which should cause a recompile
         flags_hash = string_checksum(str(flags))
+        mod_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
+        combo_hash = zlib.crc32(
+            (
+                analysed_file.file_hash +
+                flags_hash +
+                sum(mod_deps_hashes.values())
+            ).to_bytes(8, 'big')
+        )
 
-        # do we need to recompile?
-        last_compile = self._last_compiles.get(analysed_file.fpath)
-        recompile_reasons = self.recompile_check(analysed_file, flags_hash, last_compile)
+        # the object filename includes the combo hash, e.g /foo/bar.f90 --> /foo/bar.12345.o
+        p = analysed_file.fpath
+        combo_hash_filename = p.parent / f'{p.stem}.{combo_hash:x}.o'
 
-        if recompile_reasons:
+        if not combo_hash_filename.exists():
             try:
-                logger.debug(f'CompileFortran {recompile_reasons} for {analysed_file.fpath}')
-                self.compile_file(analysed_file, flags)
+                logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
+                self.compile_file(analysed_file, flags, output_fpath=combo_hash_filename)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}: {err}")
         else:
             # We could just return last_compile at this point.
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
-        # Get the hashes of the modules we depend on.
-        # Record them so we know if they've changed next time we compile.
-        module_deps_hashes = {}
-        for mod_dep in analysed_file.module_deps:
-            if mod_dep not in self._mod_hashes:
-                logger.debug(f"Dependecy {mod_dep} appears to be external to this project and hasn't been hashed.")
-                continue
-            module_deps_hashes[mod_dep] = self._mod_hashes[mod_dep]
-
         return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=analysed_file.compiled_path,
+            input_fpath=analysed_file.fpath, output_fpath=combo_hash_filename,
             source_hash=analysed_file.file_hash, flags_hash=flags_hash,
-            module_deps_hashes=module_deps_hashes
+            module_deps_hashes=mod_deps_hashes
         )
 
     def recompile_check(self, analysed_file: AnalysedFile, flags_hash: int, last_compile: Optional[CompiledFile]):
@@ -274,9 +275,9 @@ class CompileFortran(MpExeStep):
 
         return ", ".join(recompile_reasons)
 
-    def compile_file(self, analysed_file, flags):
+    def compile_file(self, analysed_file, flags, output_fpath):
         with Timer() as timer:
-            output_fpath = analysed_file.compiled_path
+            # output_fpath = analysed_file.compiled_path
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
@@ -302,33 +303,33 @@ class CompileFortran(MpExeStep):
             name=str(analysed_file.fpath),
             value={'time_taken': timer.taken, 'start': timer.start})
 
-    def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
-        """
-        Write the compilation results to csv.
+    # def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
+    #     """
+    #     Write the compilation results to csv.
+    #
+    #     """
+    #     compilation_progress_file = open(config.build_output / FORTRAN_COMPILED_CSV, "wt")
+    #     dict_writer = csv.DictWriter(compilation_progress_file, fieldnames=CompiledFile.field_names())
+    #     dict_writer.writeheader()
+    #
+    #     for cf in compiled.values():
+    #         dict_writer.writerow(cf.to_str_dict())
 
-        """
-        compilation_progress_file = open(config.build_output / FORTRAN_COMPILED_CSV, "wt")
-        dict_writer = csv.DictWriter(compilation_progress_file, fieldnames=CompiledFile.field_names())
-        dict_writer.writeheader()
-
-        for cf in compiled.values():
-            dict_writer.writerow(cf.to_str_dict())
-
-    def read_compile_result(self, config) -> Dict[Path, CompiledFile]:
-        """
-        Read the results of the last compile run.
-
-        """
-        with TimerLogger('loading compile results'):
-            prev_results: Dict[Path, CompiledFile] = dict()
-            try:
-                with open(config.build_output / FORTRAN_COMPILED_CSV, "rt") as csv_file:
-                    dict_reader = csv.DictReader(csv_file)
-                    for row in dict_reader:
-                        compiled_file = CompiledFile.from_str_dict(row)
-                        prev_results[compiled_file.input_fpath] = compiled_file
-            except FileNotFoundError:
-                pass
-            logger.info(f"loaded {len(prev_results)} compile results")
-
-        return prev_results
+    # def read_compile_result(self, config) -> Dict[Path, CompiledFile]:
+    #     """
+    #     Read the results of the last compile run.
+    #
+    #     """
+    #     with TimerLogger('loading compile results'):
+    #         prev_results: Dict[Path, CompiledFile] = dict()
+    #         try:
+    #             with open(config.build_output / FORTRAN_COMPILED_CSV, "rt") as csv_file:
+    #                 dict_reader = csv.DictReader(csv_file)
+    #                 for row in dict_reader:
+    #                     compiled_file = CompiledFile.from_str_dict(row)
+    #                     prev_results[compiled_file.input_fpath] = compiled_file
+    #         except FileNotFoundError:
+    #             pass
+    #         logger.info(f"loaded {len(prev_results)} compile results")
+    #
+    #     return prev_results
