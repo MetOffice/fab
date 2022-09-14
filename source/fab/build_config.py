@@ -18,7 +18,7 @@ from pathlib import Path
 from string import Template
 from typing import List, Optional, Dict, Any
 
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, ARTEFACT_REPOSITORY_FOLDER
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps import Step
 from fab.util import TimerLogger, by_type
@@ -69,6 +69,7 @@ class BuildConfig(object):
                 logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
         logger.info(f"\nfab workspace is {fab_workspace}")
 
+        self.fab_workspace = fab_workspace
         self.project_workspace = fab_workspace / (project_label.replace(' ', '-'))
         self.metrics_folder = self.project_workspace / 'metrics' / self.project_label.replace(' ', '_', -1)
 
@@ -95,6 +96,10 @@ class BuildConfig(object):
     @property
     def build_output(self):
         return self.project_workspace / BUILD_OUTPUT
+
+    @property
+    def artefact_repository_folder(self):
+        return self.fab_workspace / ARTEFACT_REPOSITORY_FOLDER
 
     def run(self):
         """

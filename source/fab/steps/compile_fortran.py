@@ -217,16 +217,28 @@ class CompileFortran(MpExeStep):
                 flags_hash +
                 sum(mod_deps_hashes.values())
             ).to_bytes(8, 'big')
+            + self.exe.encode()
         )
 
         # the object filename includes the combo hash, e.g /foo/bar.f90 --> /foo/bar.12345.o
         p = analysed_file.fpath
-        combo_hash_filename = p.parent / f'{p.stem}.{combo_hash:x}.o'
+        object_filename = self._config.artefact_repository_folder / f'{p.stem}.{combo_hash:x}.o'
 
-        if not combo_hash_filename.exists():
+        # are the module files we define still there?
+        mods_missing = False
+        mod_def_files = [self._config.build_output / mod for mod in analysed_file.mod_filenames]
+        if not all([mod.exists() for mod in mod_def_files]):
+            mods_missing = True
+
+        # todo: other environmental considerations for the future:
+        #   - env vars, e.g OMPI_FC
+        #   - compiler version
+
+        # do we need to recompile?
+        if not object_filename.exists() or mods_missing:
             try:
                 logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
-                self.compile_file(analysed_file, flags, output_fpath=combo_hash_filename)
+                self.compile_file(analysed_file, flags, output_fpath=object_filename)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}: {err}")
         else:
@@ -234,46 +246,10 @@ class CompileFortran(MpExeStep):
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
         return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=combo_hash_filename,
+            input_fpath=analysed_file.fpath, output_fpath=object_filename,
             source_hash=analysed_file.file_hash, flags_hash=flags_hash,
             module_deps_hashes=mod_deps_hashes
         )
-
-    def recompile_check(self, analysed_file: AnalysedFile, flags_hash: int, last_compile: Optional[CompiledFile]):
-
-        # todo: other environmental considerations for the future:
-        #   - env vars, e.g OMPI_FC
-        #   - compiler version
-
-        recompile_reasons = []
-        # first encounter?
-        if not last_compile:
-            recompile_reasons.append(NO_PREVIOUS_RESULT)
-
-        else:
-            # source changed?
-            if analysed_file.file_hash != last_compile.source_hash:
-                recompile_reasons.append(SOURCE_CHANGED)
-
-            # flags changed?
-            if flags_hash != last_compile.flags_hash:
-                recompile_reasons.append(FLAGS_CHANGED)
-
-            # have any of the modules on which we depend changed?
-            module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
-            if module_deps_hashes != last_compile.module_deps_hashes:
-                recompile_reasons.append(MODULE_DEPENDENCIES_CHANGED)
-
-            # is the object file still there?
-            if not analysed_file.compiled_path.exists():
-                recompile_reasons.append(OBJECT_FILE_NOT_PRESENT)
-
-            # are the module files we define still there?
-            mod_def_files = [self._config.build_output / mod for mod in analysed_file.mod_filenames]
-            if not all([mod.exists() for mod in mod_def_files]):
-                recompile_reasons.append(MODULE_FILE_NOT_PRESENT)
-
-        return ", ".join(recompile_reasons)
 
     def compile_file(self, analysed_file, flags, output_fpath):
         with Timer() as timer:

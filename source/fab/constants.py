@@ -16,6 +16,8 @@ Some constants to help keep things tidy and manageable.
 SOURCE_ROOT = "source"
 BUILD_OUTPUT = "build_output"
 
+ARTEFACT_REPOSITORY_FOLDER = '_artefact_repository'
+
 # names of artefact collections
 PROJECT_SOURCE_TREE = 'project source tree'
 PRAGMAD_C = 'pragmad_c'
