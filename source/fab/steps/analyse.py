@@ -303,8 +303,6 @@ class Analyse(Step):
 
         Reads the analysis csv file, discarding results from files which are no longer present.
 
-        :param fpath:
-            Path to analysis csv file.
         :param latest_file_hashes:
             The current state of the file system.
 
@@ -433,7 +431,12 @@ class Analyse(Step):
             build_tree.update(sub_tree)
 
 
-def _load_analysis_file(fpath) -> Dict[Path, AnalysedFile]:
+def _load_analysis_file(fpath: Union[str, Path]) -> Dict[Path, AnalysedFile]:
+    """
+    :param fpath:
+    Path to analysis csv file.
+
+    """
     # Return the contents of an analysis csv.
     results: Dict[Path, AnalysedFile] = dict()
     try:
@@ -443,7 +446,7 @@ def _load_analysis_file(fpath) -> Dict[Path, AnalysedFile]:
             # read every row and convert into an AnalysedFile object
             for row in dict_reader:
                 analysed_file = AnalysedFile.from_str_dict(row)
-                results[analysed_file.fpath] = AnalysedFile.from_str_dict(row)
+                results[analysed_file.fpath] = analysed_file
     except FileNotFoundError:
         logger.info("no previous analysis results")
         pass
