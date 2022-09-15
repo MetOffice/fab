@@ -185,5 +185,5 @@ def call_rsync(src: Union[str, Path], dst: Union[str, Path]):
     if not src.endswith('/'):
         src += '/'
 
-    command = ['rsync', '-ruq', src, str(dst)]
+    command = ['rsync', '-times', '-ruq', src, str(dst)]
     run_command(command)
