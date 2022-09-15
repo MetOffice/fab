@@ -215,7 +215,7 @@ class CompileFortran(MpExeStep):
 
         # the object filename includes the combo hash, e.g /foo/bar.f90 --> /foo/bar.12345.o
         p = analysed_file.fpath
-        object_filename = self._config.artefact_repository_folder / f'{p.stem}.{combo_hash:x}.o'
+        object_filename = self._config.prebuild_folder / f'{p.stem}.{combo_hash:x}.o'
 
         # are the module files we define still there?
         mods_missing = False

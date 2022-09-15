@@ -7,6 +7,7 @@
 Build steps for pulling source code from remote repos and local folders.
 
 """
+import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -22,7 +23,10 @@ from fab.steps import Step
 from fab.util import run_command
 
 
-class GrabBase(Step, ABC):
+logger = logging.getLogger(__name__)
+
+
+class GrabSourceBase(Step, ABC):
     """
     Base class for grab steps. All grab steps require a source and a folder in which to put it.
 
@@ -61,7 +65,7 @@ class GrabBase(Step, ABC):
             config.source_root.mkdir(parents=True, exist_ok=True)
 
 
-class GrabFolder(GrabBase):
+class GrabFolder(GrabSourceBase):
     """
     Copy a source folder to the project workspace.
 
@@ -82,20 +86,14 @@ class GrabFolder(GrabBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        # we want the source folder to end with a / for rsync because we don't want it to create a sub folder
-        src = os.path.expanduser(self.src)
-        if not src.endswith('/'):
-            src += '/'
-
         dst: Path = config.source_root / self.dst_label
         dst.mkdir(parents=True, exist_ok=True)
 
-        command = ['rsync', '-ruq', src, str(dst)]
-        run_command(command)
+        call_rsync(src=self.src, dst=dst)
 
 
 # todo: checkout operation might be quicker for some use cases, add an option for this?
-class GrabFcm(GrabBase):
+class GrabFcm(GrabSourceBase):
     """
     Grab an FCM repo folder to the project workspace.
 
@@ -127,7 +125,7 @@ class GrabFcm(GrabBase):
 
 
 if svn:
-    class GrabSvn(GrabBase):
+    class GrabSvn(GrabSourceBase):
         """
         Grab an SVN repo folder to the project workspace.
 
@@ -157,3 +155,35 @@ if svn:
 
             r = remote.RemoteClient(self.src)
             r.export(str(config.source_root / self.dst_label), revision=self.revision, force=True)
+
+
+class GrabPreBuild(Step):
+    """
+    Copy the contents of another pre-build folder into our own.
+
+    """
+    def __init__(self, path, objects=True, allow_fail=False):
+        super().__init__(name=f'prebuild {path}')
+        self.src = path
+        self.objects = objects
+        self.allow_fail = allow_fail
+    
+    def run(self, artefact_store: Dict, config):
+        dst = config.prebuild_folder
+        try:
+            call_rsync(src=self.src, dst=dst)
+        except RuntimeError as err:
+            msg = f"could not grab pre-build '{self.src}': {err}"
+            if not self.allow_fail:
+                raise RuntimeError(msg)
+            logger.warning(msg)
+
+
+def call_rsync(src: Union[str, Path], dst: Union[str, Path]):
+    # we want the source folder to end with a / for rsync because we don't want it to create a sub folder
+    src = os.path.expanduser(str(src))
+    if not src.endswith('/'):
+        src += '/'
+
+    command = ['rsync', '-ruq', src, str(dst)]
+    run_command(command)

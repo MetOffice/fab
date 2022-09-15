@@ -8,13 +8,15 @@ import logging
 import os
 from argparse import ArgumentParser
 
+from fab.constants import PREBUILD
+
 from fab.steps.archive_objects import ArchiveObjects
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab import GrabFcm
+from fab.steps.grab import GrabFcm, GrabPreBuild
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
@@ -44,6 +46,9 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
 
         GrabFcm(src='fcm:jules.xm_tr/src', revision=revision, dst='src'),
         GrabFcm(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
+        
+        # Copy another pre-build folder into our own.
+        GrabPreBuild(path=f'/home/ho6/dbrown/fab_workspace/{config.project_label}/{PREBUILD}', allow_fail=True),
 
         FindSourceFiles(path_filters=[
             Exclude('src/control/um/'),
