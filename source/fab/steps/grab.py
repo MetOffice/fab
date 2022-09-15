@@ -163,7 +163,7 @@ class GrabPreBuild(Step):
 
     """
     def __init__(self, path, objects=True, allow_fail=False):
-        super().__init__(name=f'prebuild {path}')
+        super().__init__(name=f'GrabPreBuild {path}')
         self.src = path
         self.objects = objects
         self.allow_fail = allow_fail
@@ -171,7 +171,14 @@ class GrabPreBuild(Step):
     def run(self, artefact_store: Dict, config):
         dst = config.prebuild_folder
         try:
-            call_rsync(src=self.src, dst=dst)
+            res = call_rsync(src=self.src, dst=dst)
+
+            # logger.info(res.decode())
+            # log the number of files transferred
+
+            to_print = [line for line in res.decode().split('\n') if 'Number of' in line]
+            logger.info('\n'.join(to_print))
+
         except RuntimeError as err:
             msg = f"could not grab pre-build '{self.src}': {err}"
             if not self.allow_fail:
@@ -185,5 +192,5 @@ def call_rsync(src: Union[str, Path], dst: Union[str, Path]):
     if not src.endswith('/'):
         src += '/'
 
-    command = ['rsync', '-times', '-ruq', src, str(dst)]
-    run_command(command)
+    command = ['rsync', '-times', '--stats', '-ru', src, str(dst)]
+    return run_command(command)

@@ -254,6 +254,8 @@ def run_command(command, env=None):
     if res.returncode != 0:
         raise RuntimeError(f"Command failed:\n{command}\n{res.stderr.decode()}")
 
+    return res.stdout
+
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
     """

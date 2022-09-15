@@ -48,7 +48,8 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
         GrabFcm(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
         
         # Copy another pre-build folder into our own.
-        GrabPreBuild(path=f'/home/ho6/dbrown/fab_workspace/{config.project_label}/{PREBUILD}', allow_fail=True),
+        # GrabPreBuild(path=f'/home/ho6/dbrown/fab_workspace/{config.project_label}/{PREBUILD}', allow_fail=True),
+        GrabPreBuild(path=f'/home/h02/bblay/temp_prebuild', allow_fail=True),
 
         FindSourceFiles(path_filters=[
             Exclude('src/control/um/'),
