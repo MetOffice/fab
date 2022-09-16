@@ -6,9 +6,8 @@
 ##############################################################################
 import logging
 import os
+import sys
 from argparse import ArgumentParser
-
-from fab.constants import PREBUILD
 
 from fab.steps.archive_objects import ArchiveObjects
 
@@ -28,8 +27,10 @@ logger = logging.getLogger('fab')
 def jules_config(revision=None, two_stage=False, opt='Og'):
 
     config = BuildConfig(project_label=f'jules {revision} {opt} {int(two_stage)+1}stage')
-    # config.multiprocessing = False
-    # config.reuse_artefacts = True
+    # aid for debugging - for some reason pycharm can't debug this with multiprocessing enabled
+    if 'pydevd' in str(sys.gettrace()):
+        logger.info('debugger detected, running without multiprocessing')
+        config.multiprocessing = False
 
     logger.info(f'building jules revision {revision} {opt} {int(two_stage)+1}-stage')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
@@ -46,10 +47,9 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
 
         GrabFcm(src='fcm:jules.xm_tr/src', revision=revision, dst='src'),
         GrabFcm(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
-        
+
         # Copy another pre-build folder into our own.
-        # GrabPreBuild(path=f'/home/ho6/dbrown/fab_workspace/{config.project_label}/{PREBUILD}', allow_fail=True),
-        GrabPreBuild(path=f'/home/h02/bblay/temp_prebuild', allow_fail=True),
+        GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
 
         FindSourceFiles(path_filters=[
             Exclude('src/control/um/'),

@@ -7,8 +7,7 @@ from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.compile_fortran import CompileFortran, NO_PREVIOUS_RESULT, SOURCE_CHANGED, FLAGS_CHANGED, \
-    MODULE_DEPENDENCIES_CHANGED, OBJECT_FILE_NOT_PRESENT, MODULE_FILE_NOT_PRESENT
+from fab.steps.compile_fortran import CompileFortran
 from fab.util import CompiledFile
 
 

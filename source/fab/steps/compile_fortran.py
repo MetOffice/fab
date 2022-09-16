@@ -20,7 +20,7 @@ from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, TimerLogger, \
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
     get_mod_hashes, string_checksum
 from fab.steps import check_for_errors
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
@@ -28,16 +28,6 @@ from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
-
-FORTRAN_COMPILED_CSV = "__fortran_compilation.csv"
-
-# reasons to recompile, stored as constants for testability
-NO_PREVIOUS_RESULT = 'no previous result'
-SOURCE_CHANGED = 'source changed'
-FLAGS_CHANGED = 'flags changed'
-MODULE_DEPENDENCIES_CHANGED = 'module dependencies changed'
-OBJECT_FILE_NOT_PRESENT = 'object file not present'
-MODULE_FILE_NOT_PRESENT = 'module file(s) file not present'
 
 
 class CompileFortran(MpExeStep):

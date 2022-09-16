@@ -167,7 +167,7 @@ class GrabPreBuild(Step):
         self.src = path
         self.objects = objects
         self.allow_fail = allow_fail
-    
+
     def run(self, artefact_store: Dict, config):
         dst = config.prebuild_folder
         try:

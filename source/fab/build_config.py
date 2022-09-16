@@ -57,7 +57,7 @@ class BuildConfig(object):
             Overrides the FAB_WORKSPACE environment variable.
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
         :param prebuild_folder:
-            Optionally specify the pre-build folder. Defaults to <project workspace>/build_output/prebuilds.
+            Optionally specify the pre-build folder. Defaults to <project workspace>/build_output/_prebuild.
 
         """
         self.project_label: str = project_label.replace(' ', '_')
