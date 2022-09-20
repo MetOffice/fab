@@ -39,7 +39,7 @@ class Test_CompileC(object):
 
         # ensure it created the correct artefact collection
         assert artefact_store[OBJECT_FILES] == {
-            None: {analysed_file.compiled_path, }
+            None: {analysed_file.fpath.with_suffix('.o'), }
         }
 
     def test_exception_handling(self):

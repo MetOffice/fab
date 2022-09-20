@@ -108,36 +108,67 @@ class Test_store_artefacts(object):
 
 class Test_process_file(object):
 
-    def test_vanilla(self, compiler):
-        # ensure the compiler is called and the dep hashes are correct
-        compiled_file, patches = self._common(compiler=compiler, recompile_reasons=['because'])
+    # def test_vanilla(self, compiler):
+    #     # ensure the compiler is called and the dep hashes are correct
+    #     compiled_file, patches = self._common(compiler=compiler)
+    #
+    #     assert patches['compile_file'].call_count == 1
+    #     assert compiled_file.module_deps_hashes == {'util': 456}
+    #
+    # def test_skip(self, compiler):
+    #     # ensure the compiler is NOT called, and the dep hashes are still correct
+    #     compiled_file, patches = self._common(compiler=compiler)
+    #
+    #     assert patches['compile_file'].call_count == 0
+    #     assert compiled_file.module_deps_hashes == {'util': 456}
+    #
+    # def _common(self, compiler):
+    #     analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=123)
+    #     analysed_file.add_module_def('my_mod')
+    #     analysed_file.add_module_dep('util')
+    #
+    #     with mock.patch.multiple(
+    #         compiler,
+    #         _mod_hashes={'util': 456},
+    #         compile_file=mock.DEFAULT,
+    #         _config=BuildConfig('fooproj', source_root=Path('foosrc')),
+    #     ) as patches:
+    #         compiled_file = compiler.process_file(analysed_file)
+    #
+    #     return compiled_file, patches
 
-        assert patches['compile_file'].call_count == 1
-        assert compiled_file.module_deps_hashes == {'util': 456}
-
-    def test_skip(self, compiler):
-        # ensure the compiler is NOT called, and the dep hashes are still correct
-        compiled_file, patches = self._common(compiler=compiler, recompile_reasons=[])
-
-        assert patches['compile_file'].call_count == 0
-        assert compiled_file.module_deps_hashes == {'util': 456}
-
-    def _common(self, compiler, recompile_reasons):
+    def test_vanilla(self):
         analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=123)
-        analysed_file.add_module_def('my_mod')
-        analysed_file.add_module_dep('util')
+        compiler.process_file(analysed_file)
 
-        with mock.patch.multiple(
-            compiler,
-            _last_compiles=mock.DEFAULT,
-            _mod_hashes={'util': 456},
-            recompile_check=mock.Mock(return_value=recompile_reasons),
-            compile_file=mock.DEFAULT,
-            _config=mock.Mock(project_workspace=Path('fooproj'), source_root=Path('foosrc')),
-        ) as patches:
-            compiled_file = compiler.process_file(analysed_file)
+    def test_file_hash(self):
+        # changing the source must change the combo hash
+        pass
 
-        return compiled_file, patches
+    def test_flags_hash(self):
+        # changing the flags must change the combo hash
+        pass
+
+    def test_deps_hash(self):
+        # changing the checksums of any module dependency must change the combo hash
+        pass
+
+    def test_compiler_hash(self):
+        # changing the compiler must change the combo hash
+        pass
+
+    @pytest.skip(reason='not yet implemented')
+    def test_compiler_version_hash(self):
+        # changing the compiler version must change the combo hash
+        raise NotImplementedError
+
+    def test_mod_missing(self):
+        # one of the mods we define is not present, so we must recompile
+        pass
+
+    def test_obj_missing(self):
+        # the object file we define is not present, so we must recompile
+        pass
 
 
 class Test_recompile_check(object):

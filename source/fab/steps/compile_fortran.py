@@ -191,17 +191,15 @@ class CompileFortran(MpExeStep):
         """
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
 
-        # the combo hash is a hash of all the things which should cause a recompile
+        # the combo hash is a checksum of all the things which should cause a recompile
         flags_hash = string_checksum(str(flags))
         mod_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
-        combo_hash = zlib.crc32(
-            (
-                analysed_file.file_hash +
-                flags_hash +
-                sum(mod_deps_hashes.values())
-            ).to_bytes(8, 'big')
-            + self.exe.encode()
-        )
+        combo_hash = sum([
+            analysed_file.file_hash,
+            flags_hash,
+            sum(mod_deps_hashes.values()),
+            zlib.crc32(self.exe.encode()),
+        ])
 
         # the object filename includes the combo hash, e.g /foo/bar.f90 --> /foo/bar.12345.o
         p = analysed_file.fpath
