@@ -115,22 +115,24 @@ class Test_process_file(object):
         compiler.flags = mock.Mock()
         compiler.flags.flags_for_path.return_value = flags
 
-        compiler._mod_hashes = {'mod1': 12345, 'mod2': 23456}
+        compiler._mod_hashes = {'mod_dep_1': 12345, 'mod_dep_2': 23456}
         compiler._config = BuildConfig('proj', fab_workspace=Path('/fab'))
 
         analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=34567)
-        analysed_file.add_module_def('mod1')
-        analysed_file.add_module_def('mod2')
+        analysed_file.add_module_dep('mod_dep_1')
+        analysed_file.add_module_dep('mod_dep_2')
+        analysed_file.add_module_def('mod_def_1')
+        analysed_file.add_module_def('mod_def_2')
 
-        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.16154b95e.o')
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.161554537.o')
 
         return compiler, flags, analysed_file, expect_output_fpath
 
     def test_vanilla(self):
-        # call compile_file() and return a CompiledFile for a fresh compile
+        # call compile_file() and return a CompiledFile
         compiler, flags, analysed_file, expect_output_fpath = self.content()
 
-        with mock.patch('pathlib.Path.exists', return_value=False):
+        with mock.patch('pathlib.Path.exists', return_value=False):  # no output files exist
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 res = compiler.process_file(analysed_file)
 
@@ -141,7 +143,7 @@ class Test_process_file(object):
         # don't call compile_file(), but still return the same CompiledFile
         compiler, flags, analysed_file, expect_output_fpath = self.content()
 
-        with mock.patch('pathlib.Path.exists', return_value=True):
+        with mock.patch('pathlib.Path.exists', return_value=True):  # mod def files and obj file all exist
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 res = compiler.process_file(analysed_file)
 
@@ -152,9 +154,9 @@ class Test_process_file(object):
         # changing the source must change the combo hash
         compiler, flags, analysed_file, expect_output_fpath = self.content()
         analysed_file.file_hash += 1
-        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.16154b95f.o')  # e -> f at the end
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.161554538.o')  # hash += 1
 
-        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 res = compiler.process_file(analysed_file)
 
@@ -164,9 +166,9 @@ class Test_process_file(object):
     def test_flags_hash(self):
         # changing the flags must change the combo hash
         compiler, flags, analysed_file, expect_output_fpath = self.content(flags=['flag1', 'flag3'])
-        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.162171f33.o')  # e -> f at the end
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.16217ab0c.o')
 
-        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 res = compiler.process_file(analysed_file)
 
@@ -175,24 +177,56 @@ class Test_process_file(object):
 
     def test_deps_hash(self):
         # changing the checksums of any module dependency must change the combo hash
-        pass
+        compiler, flags, analysed_file, expect_output_fpath = self.content()
+        compiler._mod_hashes['mod_dep_1'] += 1
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.161554538.o')  # hash += 1
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
     def test_compiler_hash(self):
         # changing the compiler must change the combo hash
-        pass
+        compiler, flags, analysed_file, expect_output_fpath = self.content()
+        compiler.exe = 'bar_cc'
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.e2a37224.o')  # hash += 1
 
-    # @pytest.mark.skip(reason='not yet implemented')
-    # def test_compiler_version_hash(self):
-    #     # changing the compiler version must change the combo hash
-    #     raise NotImplementedError
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
+
+    @pytest.mark.skip(reason='not yet implemented')
+    def test_compiler_version_hash(self):
+        # changing the compiler version must change the combo hash
+        raise NotImplementedError
 
     def test_mod_missing(self):
         # one of the mods we define is not present, so we must recompile
-        pass
+        compiler, flags, analysed_file, expect_output_fpath = self.content()
+
+        with mock.patch('pathlib.Path.exists', side_effect=[False, True, True]):  # one mod file missing
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
     def test_obj_missing(self):
         # the object file we define is not present, so we must recompile
-        pass
+        compiler, flags, analysed_file, expect_output_fpath = self.content()
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # object file missing
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
 
 class Test_recompile_check(object):
