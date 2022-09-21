@@ -137,9 +137,47 @@ class Test_process_file(object):
     #
     #     return compiled_file, patches
 
+    # @pytest.fixture
+    # def flags(self):
+    #     flags = mock.Mock()
+    #     flags.flags_for_path.return_value = ['flag1', 'flag2']
+    #     return flags
+    #
+    # @pytest.fixture
+    # def mod_hashes(self):
+    #     return {'mod1': 123, 'mod2': 456}
+    #
+    # @pytest.fixture()
+    # def compiler():
+    #     compiler = CompileFortran(compiler="foo_cc")
+    #     # compiler.flags = flags
+    #     # compiler._mod_hashes = mod_hashes
+
     def test_vanilla(self):
+        # call compile_file() and return a CompiledFile for a fresh compile
+
+        compiler = CompileFortran(compiler="foo_cc")
+        flags = ['flag1', 'flag2']
+        compiler.flags = mock.Mock()
+        compiler.flags.flags_for_path.return_value = flags
+        compiler._mod_hashes = {'mod1': 123, 'mod2': 456}
+        compiler._config = BuildConfig('proj', fab_workspace=Path('/fab'))
+
         analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=123)
-        compiler.process_file(analysed_file)
+
+        with mock.patch('pathlib.Path.exists', return_value=False):
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.1615432d2.o')
+
+        mock_compile_file.assert_called_once_with(
+            analysed_file, flags, output_fpath=expect_output_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
+
+    def test_no_change(self):
+        # don't call compile_file(), but still return the same CompiledFile
+        pass
 
     def test_file_hash(self):
         # changing the source must change the combo hash
@@ -157,7 +195,7 @@ class Test_process_file(object):
         # changing the compiler must change the combo hash
         pass
 
-    @pytest.skip(reason='not yet implemented')
+    @pytest.mark.skip(reason='not yet implemented')
     def test_compiler_version_hash(self):
         # changing the compiler version must change the combo hash
         raise NotImplementedError

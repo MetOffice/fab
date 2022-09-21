@@ -226,11 +226,7 @@ class CompileFortran(MpExeStep):
             # We could just return last_compile at this point.
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
-        return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=object_filename,
-            source_hash=analysed_file.file_hash, flags_hash=flags_hash,
-            module_deps_hashes=mod_deps_hashes
-        )
+        return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=object_filename)
 
     def compile_file(self, analysed_file, flags, output_fpath):
         with Timer() as timer:

@@ -145,70 +145,17 @@ class CompiledFile(object):
     A Fortran or C file which has been compiled.
 
     """
-    def __init__(self, input_fpath, output_fpath,
-                 source_hash=None, flags_hash=None, module_deps_hashes: Dict[str, int] = None):
+    def __init__(self, input_fpath, output_fpath):
         """
         :param input_fpath:
             The file that was compiled.
         :param output_fpath:
             The object file that was created.
-        :param source_hash:
-            Hash of the compiled source.
-        :param flags_hash:
-            Hash of the compiler flags.
-        :param module_deps_hashes:
-            Hash of each module on which we depend.
 
         """
         # todo: Should just be the input_fpath, not the whole analysed file
         self.input_fpath = Path(input_fpath)
         self.output_fpath = Path(output_fpath)
-
-        self.source_hash = source_hash or 0
-        self.flags_hash = flags_hash or 0
-        self.module_deps_hashes = module_deps_hashes or {}
-
-    #
-    # persistence
-    #
-    @classmethod
-    def field_names(cls):
-        return [
-            'input_fpath', 'output_fpath',
-            'source_hash', 'flags_hash', 'module_deps_hashes',
-        ]
-
-    def to_str_dict(self):
-        """
-        Convert to a dict of strings. For example, when writing to a CsvWriter.
-
-        """
-        return {
-            "input_fpath": str(self.input_fpath),
-            "output_fpath": str(self.output_fpath),
-            "source_hash": str(self.source_hash),
-            "flags_hash": str(self.flags_hash),
-            "module_deps_hashes": ';'.join([f'{k}={v}' for k, v in self.module_deps_hashes.items()]),
-        }
-
-    @classmethod
-    def from_str_dict(cls, d):
-        """Convert from a dict of strings. For example, when reading from a CsvWriter."""
-
-        if d["module_deps_hashes"]:
-            # json would be easier now we're also serialising dicts
-            module_deps_hashes = [i.split('=') for i in d["module_deps_hashes"].split(';')]
-            module_deps_hashes = {i[0]: int(i[1]) for i in module_deps_hashes}
-        else:
-            module_deps_hashes = {}
-
-        return cls(
-            input_fpath=Path(d["input_fpath"]),
-            output_fpath=Path(d["output_fpath"]),
-            source_hash=int(d["source_hash"]),
-            flags_hash=int(d["flags_hash"]),
-            module_deps_hashes=module_deps_hashes,
-        )
 
     def __eq__(self, other):
         return vars(self) == vars(other)
