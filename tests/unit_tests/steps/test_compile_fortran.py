@@ -108,84 +108,70 @@ class Test_store_artefacts(object):
 
 class Test_process_file(object):
 
-    # def test_vanilla(self, compiler):
-    #     # ensure the compiler is called and the dep hashes are correct
-    #     compiled_file, patches = self._common(compiler=compiler)
-    #
-    #     assert patches['compile_file'].call_count == 1
-    #     assert compiled_file.module_deps_hashes == {'util': 456}
-    #
-    # def test_skip(self, compiler):
-    #     # ensure the compiler is NOT called, and the dep hashes are still correct
-    #     compiled_file, patches = self._common(compiler=compiler)
-    #
-    #     assert patches['compile_file'].call_count == 0
-    #     assert compiled_file.module_deps_hashes == {'util': 456}
-    #
-    # def _common(self, compiler):
-    #     analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=123)
-    #     analysed_file.add_module_def('my_mod')
-    #     analysed_file.add_module_dep('util')
-    #
-    #     with mock.patch.multiple(
-    #         compiler,
-    #         _mod_hashes={'util': 456},
-    #         compile_file=mock.DEFAULT,
-    #         _config=BuildConfig('fooproj', source_root=Path('foosrc')),
-    #     ) as patches:
-    #         compiled_file = compiler.process_file(analysed_file)
-    #
-    #     return compiled_file, patches
+    def content(self, flags=None):
+        compiler = CompileFortran(compiler="foo_cc")
 
-    # @pytest.fixture
-    # def flags(self):
-    #     flags = mock.Mock()
-    #     flags.flags_for_path.return_value = ['flag1', 'flag2']
-    #     return flags
-    #
-    # @pytest.fixture
-    # def mod_hashes(self):
-    #     return {'mod1': 123, 'mod2': 456}
-    #
-    # @pytest.fixture()
-    # def compiler():
-    #     compiler = CompileFortran(compiler="foo_cc")
-    #     # compiler.flags = flags
-    #     # compiler._mod_hashes = mod_hashes
+        flags = flags or ['flag1', 'flag2']
+        compiler.flags = mock.Mock()
+        compiler.flags.flags_for_path.return_value = flags
+
+        compiler._mod_hashes = {'mod1': 12345, 'mod2': 23456}
+        compiler._config = BuildConfig('proj', fab_workspace=Path('/fab'))
+
+        analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=34567)
+        analysed_file.add_module_def('mod1')
+        analysed_file.add_module_def('mod2')
+
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.16154b95e.o')
+
+        return compiler, flags, analysed_file, expect_output_fpath
 
     def test_vanilla(self):
         # call compile_file() and return a CompiledFile for a fresh compile
-
-        compiler = CompileFortran(compiler="foo_cc")
-        flags = ['flag1', 'flag2']
-        compiler.flags = mock.Mock()
-        compiler.flags.flags_for_path.return_value = flags
-        compiler._mod_hashes = {'mod1': 123, 'mod2': 456}
-        compiler._config = BuildConfig('proj', fab_workspace=Path('/fab'))
-
-        analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=123)
+        compiler, flags, analysed_file, expect_output_fpath = self.content()
 
         with mock.patch('pathlib.Path.exists', return_value=False):
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 res = compiler.process_file(analysed_file)
 
-        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.1615432d2.o')
-
-        mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_output_fpath)
+        mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
     def test_no_change(self):
         # don't call compile_file(), but still return the same CompiledFile
-        pass
+        compiler, flags, analysed_file, expect_output_fpath = self.content()
+
+        with mock.patch('pathlib.Path.exists', return_value=True):
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        mock_compile_file.assert_not_called()
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
     def test_file_hash(self):
         # changing the source must change the combo hash
-        pass
+        compiler, flags, analysed_file, expect_output_fpath = self.content()
+        analysed_file.file_hash += 1
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.16154b95f.o')  # e -> f at the end
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
     def test_flags_hash(self):
         # changing the flags must change the combo hash
-        pass
+        compiler, flags, analysed_file, expect_output_fpath = self.content(flags=['flag1', 'flag3'])
+        expect_output_fpath = Path('/fab/proj/build_output/_prebuild/foofile.162171f33.o')  # e -> f at the end
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                res = compiler.process_file(analysed_file)
+
+        mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
     def test_deps_hash(self):
         # changing the checksums of any module dependency must change the combo hash
@@ -195,10 +181,10 @@ class Test_process_file(object):
         # changing the compiler must change the combo hash
         pass
 
-    @pytest.mark.skip(reason='not yet implemented')
-    def test_compiler_version_hash(self):
-        # changing the compiler version must change the combo hash
-        raise NotImplementedError
+    # @pytest.mark.skip(reason='not yet implemented')
+    # def test_compiler_version_hash(self):
+    #     # changing the compiler version must change the combo hash
+    #     raise NotImplementedError
 
     def test_mod_missing(self):
         # one of the mods we define is not present, so we must recompile
