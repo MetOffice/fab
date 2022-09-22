@@ -93,7 +93,7 @@ class BuildConfig(object):
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
         # runtime
-        self._artefact_store: Dict[str, Any] = dict()
+        self._artefact_store: Dict[str, Any] = None
 
     @property
     def build_output(self):
@@ -112,6 +112,8 @@ class BuildConfig(object):
 
         self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
+
+        self._artefact_store = dict()
 
         try:
             with TimerLogger(f'running {self.project_label} build steps') as steps_timer:

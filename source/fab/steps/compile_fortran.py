@@ -9,6 +9,7 @@ Fortran file compilation.
 """
 import logging
 import os
+import shutil
 import zlib
 from collections import defaultdict
 from pathlib import Path
@@ -21,7 +22,7 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    get_mod_hashes, string_checksum
+    get_mod_hashes, string_checksum, flags_checksum, remove_minus_J
 from fab.steps import check_for_errors
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
@@ -59,10 +60,15 @@ class CompileFortran(MpExeStep):
 
         """
 
-        # todo: perhaps this should add the -J (or -modules) automatically
-
+        # todo: Fab should be compiler-aware
         compiler = compiler or os.getenv('FC', 'gfortran -c')
-        super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
+        env_flags = os.getenv('FFLAGS', '').split()
+        super().__init__(
+            exe=compiler,
+            common_flags=remove_minus_J(common_flags + env_flags, verbose=True),
+            path_flags=path_flags,
+            name=name,
+        )
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
         self.two_stage_flag = two_stage_flag
@@ -177,56 +183,51 @@ class CompileFortran(MpExeStep):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    # todo: identical to the c version - make a super class
     def process_file(self, analysed_file: AnalysedFile):
-        """
-        Prepare to compile a fortran file, and compile it if anything has changed since it was last compiled.
+        # todo: include compiler version in hashes
 
-        Returns a compilation result, including various hashes from the time of compilation:
+        # get a combo hash of things which matter to the mod files we define
+        mod_combo_hash = sum([analysed_file.file_hash, zlib.crc32(self.exe.encode())])
+        mod_file_prebuilds = {self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
+                              for mod_def in analysed_file.module_defs}
 
-        * hash of the source file
-        * hash of the compile flags
-        * hash of the module files on which we depend
-
-        """
+        # get a combo hash of things which matter to the object file we define
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
-
-        # the combo hash is a checksum of all the things which should cause a recompile
-        flags_hash = string_checksum(str(flags))
         mod_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
-        combo_hash = sum([
-            analysed_file.file_hash,
-            flags_hash,
-            sum(mod_deps_hashes.values()),
-            zlib.crc32(self.exe.encode()),
-        ])
+        obj_combo_hash = sum([analysed_file.file_hash, flags_checksum(flags),
+            sum(mod_deps_hashes.values()), zlib.crc32(self.exe.encode())])
+        obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
 
-        # the object filename includes the combo hash, e.g /foo/bar.f90 --> /foo/bar.12345.o
-        p = analysed_file.fpath
-        object_filename = self._config.prebuild_folder / f'{p.stem}.{combo_hash:x}.o'
+        # have we got the object and all the mod files we need to avoid a recompile?
+        prebuilds = [obj_file_prebuild, *mod_file_prebuilds]
+        prebuilds_exist = list(map(lambda f: f.exists(), prebuilds))
+        if not all(prebuilds_exist):
 
-        # are the module files we define still there?
-        mods_missing = False
-        mod_def_files = [self._config.build_output / mod for mod in analysed_file.mod_filenames]
-        if not all([mod.exists() for mod in mod_def_files]):
-            mods_missing = True
-
-        # todo: other environmental considerations for the future:
-        #   - env vars, e.g OMPI_FC
-        #   - compiler version
-
-        # do we need to recompile?
-        if not object_filename.exists() or mods_missing:
+            # compile
             try:
                 logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
-                self.compile_file(analysed_file, flags, output_fpath=object_filename)
+                self.compile_file(analysed_file, flags, output_fpath=obj_file_prebuild)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}: {err}")
+
+            # Store the mod files for reuse.
+            for mod_def in analysed_file.module_defs:
+                shutil.copy(
+                    self._config.build_output / f'{mod_def}.mod',
+                    self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
+                )
+
         else:
-            # We could just return last_compile at this point.
+            # restore the mod files we would have created
+            for mod_def in analysed_file.module_defs:
+                shutil.copy(
+                    self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
+                    self._config.build_output / f'{mod_def}.mod',
+                )
+
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
-        return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=object_filename)
+        return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
     def compile_file(self, analysed_file, flags, output_fpath):
         with Timer() as timer:
@@ -237,9 +238,10 @@ class CompileFortran(MpExeStep):
 
             # flags
             command.extend(flags)
-            command.extend(os.getenv('FFLAGS', '').split())
             if self.two_stage_flag and self._stage == 1:
                 command.append(self.two_stage_flag)
+            # todo: Fab should be compiler aware. Some compilers might not use -J for this.
+            command.extend(['-J', str(self._config.build_output)])
 
             # files
             command.append(str(analysed_file.fpath))

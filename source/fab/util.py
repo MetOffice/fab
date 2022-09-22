@@ -62,6 +62,31 @@ def file_checksum(fpath):
         return HashedFile(fpath, zlib.crc32(infile.read()))
 
 
+def remove_minus_J(flags, verbose=False):
+    """
+    Remove the -J <folder> from the given flags.
+
+    """
+    # todo: what if there's two -Js ?
+    # todo: Fab should be compiler aware, with the possibly of different flags to ignore per compiler
+    try:
+        found = flags.index('-J')
+        if verbose:
+            logger.info(f"removing -J <folder> from {flags}")
+        flags = flags[:found] + flags[found+2:]
+    except ValueError:
+        pass
+    return flags
+
+
+def flags_checksum(flags: list[str]):
+    """
+    Return a checksum of the flags, ignoring anything which should not cause a rebuild.
+
+    """
+    return string_checksum(str(remove_minus_J(flags)))
+
+
 def string_checksum(s: str):
     """
     Return a checksum of the given string.

@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Iterable
 
 import pytest
+from fab.constants import PREBUILD
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse, ANALYSIS_CSV
-from fab.steps.compile_fortran import CompileFortran, FORTRAN_COMPILED_CSV
+from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
 from fab.steps.link_exe import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
@@ -108,12 +109,12 @@ class TestFortranIncremental(object):
         fortran_timestamps = set(filter(lambda i: i[0].suffix in ['.o', '.mod'], rebuild_timestamps.items()))
         assert fortran_timestamps <= set(clean_timestamps.items())
 
-        # Only the analysis csv hash is allowed to change, because it stores sets.
+        # The analysis csv hash is allowed to change, because it stores sets.
         # We check below that the contents are equivalent.
         changed_hashes = dict(set(rebuild_hashes.items()) - set(clean_hashes.items()))
         assert set(changed_hashes.keys()) - {build_config.build_output / ANALYSIS_CSV, } == set()
 
-        # csv contents should not have changed
+        # csv contents should not have changed beyond set order
         assert rebuild_csvs == clean_csvs
 
     def test_mod_implementation_only_change(self, build_config):
@@ -138,21 +139,19 @@ class TestFortranIncremental(object):
         # ensure the object file, but not the mod file, changes timestamp
         changed_timestamps = dict(set(rebuild_timestamps.items()) - set(clean_timestamps.items()))
         allowed_timestamp_changes = {
-            build_config.build_output / 'src/my_prog.f90',
-            build_config.build_output / 'src/my_mod.f90',
-            build_config.build_output / 'src/my_mod.o',
-            build_config.build_output / ANALYSIS_CSV,
-            build_config.build_output / FORTRAN_COMPILED_CSV,
+            build_config.build_output / 'src/my_prog.f90',  # preprocessed again
+            build_config.build_output / 'src/my_mod.f90',  # preprocessed again
+            build_config.build_output / PREBUILD / 'my_mod.f4c9d88e.o',  # new object file
+            build_config.build_output / ANALYSIS_CSV,  # new file hash in there
         }
         assert set(changed_timestamps.keys()) - allowed_timestamp_changes == set()
 
-        # ensure the object file, but not the mod file, changes hash
+        # ensure the mod file doesn't change hash
         changed_hashes = dict(set(rebuild_hashes.items()) - set(clean_hashes.items()))
         allowed_hash_changes = {
             build_config.build_output / 'src/my_mod.f90',
-            build_config.build_output / 'src/my_mod.o',
+            build_config.build_output / PREBUILD / 'my_mod.f4c9d88e.o',
             build_config.build_output / ANALYSIS_CSV,
-            build_config.build_output / FORTRAN_COMPILED_CSV,
         }
         assert set(changed_hashes.keys()) - allowed_hash_changes == set()
 
@@ -163,14 +162,6 @@ class TestFortranIncremental(object):
         # ...one row, for my_mod.f90
         assert len(changed_analysis_csv) == 1
         assert dict(changed_analysis_csv.pop())['fpath'] == str(build_config.build_output / 'src/my_mod.f90')
-
-        # The fortran csv should have some changes...
-        clean_fortran_csv = clean_csvs[build_config.build_output / FORTRAN_COMPILED_CSV]
-        rebuild_fortran_csv = rebuild_csvs[build_config.build_output / FORTRAN_COMPILED_CSV]
-        changed_fortran_csv = rebuild_fortran_csv - clean_fortran_csv
-        # ...one row, for my_mod.f90
-        assert len(changed_fortran_csv) == 1
-        assert dict(changed_fortran_csv.pop())['input_fpath'] == str(build_config.build_output / 'src/my_mod.f90')
 
     def test_mod_interface_change(self, build_config):
         # test incremental fortran build with module change
@@ -202,12 +193,11 @@ class TestFortranIncremental(object):
         changed_timestamps = dict(set(rebuild_timestamps.items()) - set(clean_timestamps.items()))
         allowed_timestamp_changes = {
             build_config.build_output / 'src/my_prog.f90',
-            build_config.build_output / 'src/my_prog.o',
+            build_config.build_output / PREBUILD / 'my_prog.189b4436a.o',
             build_config.build_output / 'src/my_mod.f90',
-            build_config.build_output / 'src/my_mod.o',
+            build_config.build_output / PREBUILD / 'my_mod.1551550c4.o',
             build_config.build_output / 'my_mod.mod',
             build_config.build_output / ANALYSIS_CSV,
-            build_config.build_output / FORTRAN_COMPILED_CSV,
         }
         assert set(changed_timestamps.keys()) - allowed_timestamp_changes == set()
 
@@ -219,7 +209,6 @@ class TestFortranIncremental(object):
             build_config.build_output / 'src/my_mod.o',
             build_config.build_output / 'my_mod.mod',
             build_config.build_output / ANALYSIS_CSV,
-            build_config.build_output / FORTRAN_COMPILED_CSV,
         }
         assert set(changed_hashes.keys()) - allowed_hash_changes == set()
 
@@ -228,9 +217,3 @@ class TestFortranIncremental(object):
         rebuild_analysis_csv = rebuild_csvs[build_config.build_output / ANALYSIS_CSV]
         changed_analysis_csv = rebuild_analysis_csv - clean_analysis_csv
         assert len(changed_analysis_csv) == 1
-
-        # The compilation csv should have changes for both files because it includes dependency hashes
-        clean_fortran_csv = clean_csvs[build_config.build_output / FORTRAN_COMPILED_CSV]
-        rebuild_fortran_csv = rebuild_csvs[build_config.build_output / FORTRAN_COMPILED_CSV]
-        changed_fortran_csv = rebuild_fortran_csv - clean_fortran_csv
-        assert len(changed_fortran_csv) == 2
