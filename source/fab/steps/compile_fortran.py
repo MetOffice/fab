@@ -62,6 +62,7 @@ class CompileFortran(MpExeStep):
 
         # todo: Fab should be compiler-aware
         compiler = compiler or os.getenv('FC', 'gfortran -c')
+        common_flags = common_flags or []
         env_flags = os.getenv('FFLAGS', '').split()
         super().__init__(
             exe=compiler,

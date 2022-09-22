@@ -1,5 +1,6 @@
 from pathlib import Path
 from unittest import mock
+from unittest.mock import call
 
 import pytest
 
@@ -134,9 +135,18 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', return_value=False):  # no output files exist
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                res = compiler.process_file(analysed_file)
+                with mock.patch('shutil.copy') as mock_copy:
+                    res = compiler.process_file(analysed_file)
 
         mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_output_fpath)
+        mock_copy.assert_has_calls(
+            calls=[
+                call(Path('/fab/proj/build_output/mod_def_1.mod'),
+                     Path('/fab/proj/build_output/_prebuild/mod_def_1.eac3b22d.mod')),
+                call(Path('/fab/proj/build_output/mod_def_2.mod'),
+                     Path('/fab/proj/build_output/_prebuild/mod_def_2.eac3b22d.mod')),
+            ],
+        )
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_output_fpath)
 
     def test_no_change(self):
