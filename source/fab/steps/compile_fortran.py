@@ -212,6 +212,8 @@ class CompileFortran(MpExeStep):
                 return Exception(f"Error compiling {analysed_file.fpath}: {err}")
 
             # Store the mod files for reuse.
+            # todo: we could sometimes avoid these copies if we've got a prebuild
+            #       from different flags (which don't affect mods).
             for mod_def in analysed_file.module_defs:
                 shutil.copy(
                     self._config.build_output / f'{mod_def}.mod',
