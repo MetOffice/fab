@@ -215,7 +215,7 @@ class CompileFortran(MpExeStep):
             # todo: we could sometimes avoid these copies if we've got a prebuild
             #       from different flags (which don't affect mods).
             for mod_def in analysed_file.module_defs:
-                shutil.copy(
+                shutil.copy2(
                     self._config.build_output / f'{mod_def}.mod',
                     self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
                 )
@@ -223,7 +223,7 @@ class CompileFortran(MpExeStep):
         else:
             # restore the mod files we would have created
             for mod_def in analysed_file.module_defs:
-                shutil.copy(
+                shutil.copy2(
                     self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
                     self._config.build_output / f'{mod_def}.mod',
                 )
