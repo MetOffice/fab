@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Iterable
 
 import pytest
-from fab.constants import PREBUILD
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse, ANALYSIS_CSV

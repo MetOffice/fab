@@ -22,7 +22,7 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    get_mod_hashes, string_checksum, flags_checksum, remove_minus_J
+    get_mod_hashes, flags_checksum, remove_minus_J
 from fab.steps import check_for_errors
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
@@ -196,7 +196,7 @@ class CompileFortran(MpExeStep):
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         mod_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
         obj_combo_hash = sum([analysed_file.file_hash, flags_checksum(flags),
-            sum(mod_deps_hashes.values()), zlib.crc32(self.exe.encode())])
+                              sum(mod_deps_hashes.values()), zlib.crc32(self.exe.encode())])
         obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
 
         # have we got the object and all the mod files we need to avoid a recompile?

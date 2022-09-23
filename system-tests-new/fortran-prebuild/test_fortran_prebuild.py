@@ -3,8 +3,7 @@ import zlib
 from pathlib import Path
 from unittest import mock
 
-import pytest
-from fab.util import file_walk, file_checksum, run_command
+from fab.util import file_walk, run_command
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
