@@ -15,11 +15,11 @@ from fab.util import HashedFile
 
 def test_simple_result(tmp_path):
     fpath = Path(Path(__file__).parent / "test_c_analyser.c")
-    result = CAnalyser().run(HashedFile(fpath, None))
+    result = CAnalyser().run(HashedFile(fpath, 0))
 
     expected = AnalysedFile(
         fpath=fpath,
-        file_hash=None,
+        file_hash=0,
         symbol_deps={'usr_var', 'usr_func'},
         symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
         file_deps=set(),

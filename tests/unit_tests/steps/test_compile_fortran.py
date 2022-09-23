@@ -19,9 +19,9 @@ def compiler():
 
 @pytest.fixture
 def analysed_files():
-    a = AnalysedFile(fpath=Path('a.f90'), file_deps={Path('b.f90')}, file_hash=None)
-    b = AnalysedFile(fpath=Path('b.f90'), file_deps={Path('c.f90')}, file_hash=None)
-    c = AnalysedFile(fpath=Path('c.f90'), file_hash=None)
+    a = AnalysedFile(fpath=Path('a.f90'), file_deps={Path('b.f90')}, file_hash=0)
+    b = AnalysedFile(fpath=Path('b.f90'), file_deps={Path('c.f90')}, file_hash=0)
+    c = AnalysedFile(fpath=Path('c.f90'), file_hash=0)
     return a, b, c
 
 
