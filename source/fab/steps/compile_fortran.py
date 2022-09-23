@@ -212,8 +212,7 @@ class CompileFortran(MpExeStep):
                 return Exception(f"Error compiling {analysed_file.fpath}: {err}")
 
             # Store the mod files for reuse.
-            # todo: we could sometimes avoid these copies if we've got a prebuild
-            #       from different flags (which don't affect mods).
+            # todo: we could sometimes avoid these copies because mods can change less frequently than obj
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
                     self._config.build_output / f'{mod_def}.mod',
@@ -247,11 +246,13 @@ class CompileFortran(MpExeStep):
             command.extend(['-J', str(self._config.build_output)])
 
             # files
-            command.append(str(analysed_file.fpath))
+            # command.append(str(analysed_file.fpath))
+            command.append(analysed_file.fpath.name)
             command.extend(['-o', str(output_fpath)])
 
             log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
-            run_command(command)
+
+            run_command(command, cwd=analysed_file.fpath.parent)
 
         # todo: probably better to record both mod and obj metrics
         metric_name = self.name + (f' stage {self._stage}' if self._stage else '')

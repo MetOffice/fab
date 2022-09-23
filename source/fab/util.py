@@ -211,7 +211,7 @@ def input_to_output_fpath(config, input_path: Path):
     return build_output / rel_path
 
 
-def run_command(command, env=None):
+def run_command(command, env=None, cwd=None):
     """
     Run a CLI command.
 
@@ -222,7 +222,7 @@ def run_command(command, env=None):
 
     """
     logger.debug(f'run_command: {command}')
-    res = subprocess.run(command, capture_output=True, env=env)
+    res = subprocess.run(command, capture_output=True, env=env, cwd=cwd)
     if res.returncode != 0:
         raise RuntimeError(f"Command failed:\n{command}\n{res.stderr.decode()}")
 

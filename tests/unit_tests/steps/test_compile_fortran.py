@@ -159,7 +159,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', return_value=False):  # no output files exist
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
@@ -172,7 +172,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', return_value=True):  # mod def files and obj file all exist
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
@@ -187,7 +187,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
@@ -201,7 +201,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
@@ -216,7 +216,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_object_fpath)
@@ -231,7 +231,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
@@ -249,7 +249,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[False, True, True]):  # one mod file missing
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
@@ -262,7 +262,7 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # object file missing
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)

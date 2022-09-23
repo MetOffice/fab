@@ -136,24 +136,15 @@ class TestFortranIncremental(object):
         # rebuild
         rebuild_timestamps, rebuild_hashes, rebuild_csvs = self.build(build_config)
 
-        # ensure the object file, but not the mod file, changes timestamp
-        changed_timestamps = dict(set(rebuild_timestamps.items()) - set(clean_timestamps.items()))
-        allowed_timestamp_changes = {
-            build_config.build_output / 'src/my_prog.f90',  # preprocessed again
-            build_config.build_output / 'src/my_mod.f90',  # preprocessed again
-            build_config.build_output / PREBUILD / 'my_mod.f4c9d88e.o',  # new object file
-            build_config.build_output / ANALYSIS_CSV,  # new file hash in there
-        }
-        assert set(changed_timestamps.keys()) - allowed_timestamp_changes == set()
+        # ensure my_prog still only has one object file, and the timestamp hasn't changed
+        my_prog_clean_objs = {k: v for k, v in clean_timestamps.items() if 'my_prog' in str(k) and k.suffix == '.o'}
+        my_prog_rebuild_objs = {k: v for k, v in rebuild_timestamps.items() if 'my_prog' in str(k) and k.suffix == '.o'}
+        assert my_prog_clean_objs == my_prog_rebuild_objs
+        assert len(my_prog_rebuild_objs) == 1
 
         # ensure the mod file doesn't change hash
-        changed_hashes = dict(set(rebuild_hashes.items()) - set(clean_hashes.items()))
-        allowed_hash_changes = {
-            build_config.build_output / 'src/my_mod.f90',
-            build_config.build_output / PREBUILD / 'my_mod.f4c9d88e.o',
-            build_config.build_output / ANALYSIS_CSV,
-        }
-        assert set(changed_hashes.keys()) - allowed_hash_changes == set()
+        assert clean_hashes[build_config.build_output / 'my_mod.mod'] == \
+               rebuild_hashes[build_config.build_output / 'my_mod.mod']
 
         # The analysis csv should have some changes...
         clean_analysis_csv = clean_csvs[build_config.build_output / ANALYSIS_CSV]
@@ -189,28 +180,19 @@ class TestFortranIncremental(object):
         # rebuild
         rebuild_timestamps, rebuild_hashes, rebuild_csvs = self.build(build_config)
 
-        # ensure both the object file and mod file have changed timestamps
-        changed_timestamps = dict(set(rebuild_timestamps.items()) - set(clean_timestamps.items()))
-        allowed_timestamp_changes = {
-            build_config.build_output / 'src/my_prog.f90',
-            build_config.build_output / PREBUILD / 'my_prog.189b4436a.o',
-            build_config.build_output / 'src/my_mod.f90',
-            build_config.build_output / PREBUILD / 'my_mod.1551550c4.o',
-            build_config.build_output / 'my_mod.mod',
-            build_config.build_output / ANALYSIS_CSV,
-        }
-        assert set(changed_timestamps.keys()) - allowed_timestamp_changes == set()
+        # ensure my_prog now has an extra object file
+        expect_first_obj = Path(build_config.prebuild_folder / 'my_prog.1a07264d8.o')
+        expect_second_obj = Path(build_config.prebuild_folder / 'my_prog.12d6465f2.o')
 
-        # ensure the object file, but not the mod file, changes hash
-        changed_hashes = dict(set(rebuild_hashes.items()) - set(clean_hashes.items()))
-        allowed_hash_changes = {
-            build_config.build_output / 'src/my_prog.o',
-            build_config.build_output / 'src/my_mod.f90',
-            build_config.build_output / 'src/my_mod.o',
-            build_config.build_output / 'my_mod.mod',
-            build_config.build_output / ANALYSIS_CSV,
-        }
-        assert set(changed_hashes.keys()) - allowed_hash_changes == set()
+        assert expect_first_obj in clean_timestamps
+        assert expect_second_obj not in clean_timestamps
+
+        assert expect_first_obj in rebuild_timestamps
+        assert expect_second_obj in rebuild_timestamps
+
+        # ensure the mod file hash changed
+        assert clean_hashes[build_config.build_output / 'my_mod.mod'] != \
+               rebuild_hashes[build_config.build_output / 'my_mod.mod']
 
         # The analysis csv should only have changes for the single changed source file
         clean_analysis_csv = clean_csvs[build_config.build_output / ANALYSIS_CSV]
