@@ -194,6 +194,11 @@ class CompileFortran(MpExeStep):
         # todo: include compiler version in hashes
 
         # get a combo hash of things which matter to the mod files we define
+        if analysed_file.file_hash is None:
+            raise ValueError(f"unexpected None file hash: {analysed_file}")
+        assert analysed_file.file_hash is not None
+        assert self.exe is not None
+
         mod_combo_hash = sum([analysed_file.file_hash, zlib.crc32(self.exe.encode())])
         mod_file_prebuilds = {self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
                               for mod_def in analysed_file.module_defs}

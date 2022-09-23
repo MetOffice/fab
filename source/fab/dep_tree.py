@@ -51,6 +51,8 @@ class AnalysedFile(object):
             Comes from "DEPENDS ON:" comments which end in ".o".
 
         """
+        assert file_hash is not None
+
         self.fpath = Path(fpath)
         self.file_hash = file_hash
         self.module_defs: Set[str] = set(module_defs or {})
@@ -154,7 +156,7 @@ class AnalysedFile(object):
     @classmethod
     def from_str_dict(cls, d):
         """Convert from a dict of strings. For example, when reading from a CsvWriter."""
-        return cls(
+        result = cls(
             fpath=Path(d["fpath"]),
             file_hash=int(d["file_hash"]),
             module_defs=set(d["module_defs"].split(';')) if d["module_defs"] else set(),
@@ -164,6 +166,10 @@ class AnalysedFile(object):
             file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
             mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()
         )
+
+        assert result.file_hash is not None
+
+        return result
 
 
 # Possibly overkill to have a class for this, but it makes analysis code simpler via type filtering.
