@@ -179,15 +179,11 @@ class TestFortranIncremental(object):
         # rebuild
         rebuild_timestamps, rebuild_hashes, rebuild_csvs = self.build(build_config)
 
-        # ensure my_prog now has an extra object file
-        expect_first_obj = Path(build_config.prebuild_folder / 'my_prog.1a07264d8.o')
-        expect_second_obj = Path(build_config.prebuild_folder / 'my_prog.12d6465f2.o')
-
-        assert expect_first_obj in clean_timestamps
-        assert expect_second_obj not in clean_timestamps
-
-        assert expect_first_obj in rebuild_timestamps
-        assert expect_second_obj in rebuild_timestamps
+        # ensure my_prog got an extra object file
+        my_prog_clean_objs = {k: v for k, v in clean_timestamps.items() if 'my_prog' in str(k) and k.suffix == '.o'}
+        my_prog_rebuild_objs = {k: v for k, v in rebuild_timestamps.items() if 'my_prog' in str(k) and k.suffix == '.o'}
+        assert len(my_prog_clean_objs) == 1
+        assert len(my_prog_rebuild_objs) == 2
 
         # ensure the mod file hash changed
         assert clean_hashes[build_config.build_output / 'my_mod.mod'] != \
