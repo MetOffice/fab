@@ -185,6 +185,12 @@ class CompileFortran(MpExeStep):
             object_files[root].update(new_objects)
 
     def process_file(self, analysed_file: AnalysedFile):
+        """
+        Prepare to compile a fortran file, and compile it if anything has changed since it was last compiled.
+
+        Returns a compilation result, regardless of whether it was compiled or prebuilt.
+
+        """
         # todo: include compiler version in hashes
 
         # get a combo hash of things which matter to the mod files we define
@@ -194,7 +200,7 @@ class CompileFortran(MpExeStep):
 
         # get a combo hash of things which matter to the object file we define
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
-        mod_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
+        mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
         obj_combo_hash = sum([analysed_file.file_hash, flags_checksum(flags),
                               sum(mod_deps_hashes.values()), zlib.crc32(self.exe.encode())])
         obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
@@ -246,7 +252,6 @@ class CompileFortran(MpExeStep):
             command.extend(['-J', str(self._config.build_output)])
 
             # files
-            # command.append(str(analysed_file.fpath))
             command.append(analysed_file.fpath.name)
             command.extend(['-o', str(output_fpath)])
 
