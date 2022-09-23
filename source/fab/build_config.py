@@ -85,7 +85,12 @@ class BuildConfig(object):
         self.multiprocessing = multiprocessing
         self.n_procs = n_procs
         if self.multiprocessing and not self.n_procs:
-            self.n_procs = max(1, len(os.sched_getaffinity(0)))
+            try:
+                self.n_procs = max(1, len(os.sched_getaffinity(0)))
+            except AttributeError:
+                logger.error('could not enable multiprocessing')
+                self.multiprocessing = False
+                self.n_procs = None
 
         self.reuse_artefacts = reuse_artefacts
 
