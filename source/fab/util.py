@@ -16,7 +16,7 @@ import zlib
 from collections import namedtuple
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Set, Dict
+from typing import Iterator, Iterable, Optional, Set, Dict, List
 
 from fab.dep_tree import AnalysedFile
 
@@ -79,7 +79,7 @@ def remove_minus_J(flags, verbose=False):
     return flags
 
 
-def flags_checksum(flags: list[str]):
+def flags_checksum(flags: List[str]):
     """
     Return a checksum of the flags, ignoring anything which should not cause a rebuild.
 
