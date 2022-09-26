@@ -79,6 +79,3 @@ class TestFortranPrebuild(object):
         # make sure the exe was built
         exe = my_config.project_workspace / 'my_prog.exe'
         assert exe.exists()
-
-        print(tmp_path)
-        print(run_command(['gfortran', '--version']))

@@ -98,7 +98,7 @@ class BuildConfig(object):
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
         # runtime
-        self._artefact_store: Dict[str, Any] = None  # type: ignore
+        self._artefact_store: Optional[Dict[str, Any]] = None
 
     @property
     def build_output(self):

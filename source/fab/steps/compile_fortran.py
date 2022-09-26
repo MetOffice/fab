@@ -190,29 +190,32 @@ class CompileFortran(MpExeStep):
 
         Returns a compilation result, regardless of whether it was compiled or prebuilt.
 
+        .. note::
+
+            When compiling, any newly built object and mod files go *into* the prebuild folder.
+            If nothing has changed, prebuilt mod files are copied *from* the prebuild folder.
+
+            Prebuild filenames include a "combo-hash" of everything that, if changed, must trigger a recompile.
+            For mod and object files, this includes a checksum of: source code, compiler.
+            For object files, this also includes a checksum of: compiler flags, modules on which we depend.
+
+            Before compiling a file, we calculate the combo hashes and see if the output files already exists.
+
         """
         # todo: include compiler version in hashes
 
-        # get a combo hash of things which matter to the mod files we define
-        if analysed_file.file_hash is None:
-            raise ValueError(f"unexpected None file hash: {analysed_file}")
-        assert analysed_file.file_hash is not None
-        assert self.exe is not None
-
-        mod_combo_hash = sum([analysed_file.file_hash, zlib.crc32(self.exe.encode())])
-        mod_file_prebuilds = {self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
-                              for mod_def in analysed_file.module_defs}
-
-        # get a combo hash of things which matter to the object file we define
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
-        mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
-        obj_combo_hash = sum([analysed_file.file_hash, flags_checksum(flags),
-                              sum(mod_deps_hashes.values()), zlib.crc32(self.exe.encode())])
+        mod_combo_hash = self._get_mod_combo_hash(analysed_file)
+        obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
+
         obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+        mod_files_prebuild = [
+            self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
+            for mod_def in analysed_file.module_defs
+        ]
 
         # have we got the object and all the mod files we need to avoid a recompile?
-        prebuilds = [obj_file_prebuild, *mod_file_prebuilds]
-        prebuilds_exist = list(map(lambda f: f.exists(), prebuilds))
+        prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_files_prebuild))
         if not all(prebuilds_exist):
 
             # compile
@@ -242,7 +245,40 @@ class CompileFortran(MpExeStep):
 
         return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
+    def _get_obj_combo_hash(self, analysed_file, flags):
+        # get a combo hash of things which matter to the object file we define
+        mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
+        try:
+            obj_combo_hash = sum([
+                analysed_file.file_hash,
+                flags_checksum(flags),
+                sum(mod_deps_hashes.values()),
+                zlib.crc32(self.exe.encode())
+            ])
+        except TypeError:
+            raise ValueError("could not generate combo hash for object file")
+        return obj_combo_hash
+
+    def _get_mod_combo_hash(self, analysed_file):
+        # get a combo hash of things which matter to the mod files we define
+        try:
+            mod_combo_hash = sum([
+                analysed_file.file_hash,
+                zlib.crc32(self.exe.encode())
+            ])
+        except TypeError:
+            raise ValueError("could not generate combo hash for mod files")
+        return mod_combo_hash
+
     def compile_file(self, analysed_file, flags, output_fpath):
+        """
+        Call the compiler.
+
+        The current working folder for the command is set to the folder where the source file lives.
+        This is done to stop the compiler inserting folder information into the mod files,
+        which would cause them to have different checksums depending on where they live.
+
+        """
         with Timer() as timer:
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
