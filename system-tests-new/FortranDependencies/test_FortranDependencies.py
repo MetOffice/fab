@@ -12,9 +12,9 @@ from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse, ANALYSIS_CSV, _load_analysis_file
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.find_source_files import FindSourceFiles
 
 
 def test_FortranDependencies(tmp_path):

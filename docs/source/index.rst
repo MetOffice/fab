@@ -6,11 +6,6 @@
 Welcome to Fab's documentation!
 ===============================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
 
 Indices and tables
 ==================
@@ -20,13 +15,14 @@ Indices and tables
 * :ref:`search`
 
 
-Contents
---------
-
 .. toctree::
+   :maxdepth: 2
+   :caption: Contents:
 
    overview
-   usage
+   install
+   howto_write_config
+   advanced_config
    Api Reference <apidoc/modules>
    development
    glossary

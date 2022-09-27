@@ -9,7 +9,7 @@ from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES
 
 from fab.steps.archive_objects import ArchiveObjects
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 
 
 class TestLinkExe(object):

@@ -59,3 +59,10 @@ Glossary
 
         Fab's source code uses the term *source tree* for everything that's been analysed,
         and *build trees* for sub-trees extracted for each target exe.
+
+    Fab Workspace
+        The folder in which all Fab output is created. Defaults to *~/fab-workspace*, and can be overridden
+        by the *FAB_WORKSPACE* environment variable. See also :class:`~fab.build_config.BuildConfig`.
+
+    Project Workspace
+        A folder inside the fab workspace, containing all output from (typically) a single build config.

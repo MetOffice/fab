@@ -10,7 +10,7 @@ Build steps for pulling source code from remote repos and local folders.
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 try:
     import svn  # type: ignore
@@ -29,19 +29,20 @@ class GrabBase(Step, ABC):
     Unlike most steps, grab steps don't need to read or create artefact collections.
 
     """
-    def __init__(self, src: str, dst: str, name=None):
+    def __init__(self, src: str, dst: str = None, name=None):
         """
         :param src:
             The source location to grab. The nature of this parameter is depends on the subclass.
         :param dst:
             The name of a sub folder, in the project workspace, in which to put the source.
+            If not specified, the code is copied into the root of the source folder.
         :param name:
             Human friendly name for logger output, with sensible default.
 
         """
         super().__init__(name=name or f'{self.__class__.__name__} {dst or src}'.strip())
         self.src: str = src
-        self.dst_label: str = dst
+        self.dst_label: str = dst or ''
 
     @abstractmethod
     def run(self, artefact_store: Dict, config):
@@ -67,12 +68,13 @@ class GrabFolder(GrabBase):
 
     """
 
-    def __init__(self, src: Union[Path, str], dst: str, name=None):
+    def __init__(self, src: Union[Path, str], dst: str = None, name=None):
         """
         :param src:
             The source location to grab. The nature of this parameter is depends on the subclass.
         :param dst:
             The name of a sub folder, in the project workspace, in which to put the source.
+            If not specified, the code is copied into the root of the source folder.
         :param name:
             Human friendly name for logger output, with sensible default.
 
@@ -100,12 +102,13 @@ class GrabFcm(GrabBase):
     Grab an FCM repo folder to the project workspace.
 
     """
-    def __init__(self, src: str, dst: str, revision=None, name=None):
+    def __init__(self, src: str, dst: str = None, revision=None, name=None):
         """
         :param src:
             Such as `fcm:jules.xm_tr/src`.
         :param dst:
             The name of a sub folder, in the project workspace, in which to put the source.
+            If not specified, the code is copied into the root of the source folder.
         :param revision:
             E.g 'vn6.3'
         :param name:
@@ -132,12 +135,13 @@ if svn:
         Grab an SVN repo folder to the project workspace.
 
         """
-        def __init__(self, src, dst, revision=None, name=None):
+        def __init__(self, src, dst=None, revision=None, name=None):
             """
             :param src:
                 Such as `fcm:jules.xm_tr/src`.
             :param dst:
                 The name of a sub folder, in the project workspace, in which to put the source.
+                If not specified, the code is copied into the root of the source folder.
             :param revision:
                 E.g 36615
             :param name:

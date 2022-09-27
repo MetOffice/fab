@@ -88,7 +88,9 @@ class Exclude(PathFilter):
 
 class FindSourceFiles(Step):
     """
-    Return all the files in the source folder, with filtering.
+    Find all the files in the source folder, with filtering.
+
+    Stores the list of files in the :term:`Artefact Store`.
 
     """
     def __init__(self, source_root=None, output_collection="all_source",
