@@ -299,31 +299,23 @@ class Analyse(Step):
 
     def _load_analysis_results(self, latest_file_hashes: Dict[Path, int]) -> Dict[Path, AnalysedFile]:
         """
-        The analysis file includes the hash of each file when we last analysed it.
-        We discard previous results from files which are no longer present.
+        Load analysis results for the given files.
+
+        Reads the analysis csv file, discarding results from files which are no longer present.
+
+        :param latest_file_hashes:
+            The current state of the file system.
 
         """
-        prev_results: Dict[Path, AnalysedFile] = dict()
-        try:
-            with open(self._config.build_output / ANALYSIS_CSV, "rt") as csv_file:
-                dict_reader = csv.DictReader(csv_file)
-                for row in dict_reader:
-                    analysed_file = AnalysedFile.from_str_dict(row)
+        # read the contents of the file
+        results = _load_analysis_file(fpath=self._config.build_output / ANALYSIS_CSV)
 
-                    # file no longer there?
-                    if analysed_file.fpath not in latest_file_hashes:
-                        logger.info(f"file no longer present: {analysed_file.fpath}")
-                        continue
+        # remove any data for files which are no longer present in the file system
+        for path in list(results.keys()):
+            if path not in latest_file_hashes:
+                del results[path]
 
-                    # ok, we have previously analysed this file
-                    prev_results[analysed_file.fpath] = analysed_file
-
-            logger.info(f"loaded {len(prev_results)} previous analysis results")
-        except FileNotFoundError:
-            logger.info("no previous analysis results")
-            pass
-
-        return prev_results
+        return results
 
     def _what_needs_reanalysing(self, prev_results: Dict[Path, AnalysedFile], latest_file_hashes: Dict[Path, int]) -> \
             Tuple[Set[HashedFile], Set[AnalysedFile]]:
@@ -437,3 +429,27 @@ class Analyse(Step):
             # add the file and it's file deps
             sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
             build_tree.update(sub_tree)
+
+
+def _load_analysis_file(fpath: Union[str, Path]) -> Dict[Path, AnalysedFile]:
+    """
+    :param fpath:
+    Path to analysis csv file.
+
+    """
+    # Return the contents of an analysis csv.
+    results: Dict[Path, AnalysedFile] = dict()
+    try:
+        with open(fpath, "rt") as csv_file:
+            dict_reader = csv.DictReader(csv_file)
+
+            # read every row and convert into an AnalysedFile object
+            for row in dict_reader:
+                analysed_file = AnalysedFile.from_str_dict(row)
+                results[analysed_file.fpath] = analysed_file
+    except FileNotFoundError:
+        logger.info("no previous analysis results")
+        pass
+
+    logger.info(f"loaded {len(results)} previous analysis results")
+    return results

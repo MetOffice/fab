@@ -37,36 +37,36 @@ class ArchiveObjects(Step):
     By default, it finds the build targets and their object files in the artefact collection named by
     :py:const:`fab.constants.COMPILED_FILES`.
 
-    This step has two use cases:
+    This step has three use cases:
 
-    * Building a library for static linking, typically as the end product of a build config.
-      This requires the user to provide a file name to create.
-    * Building one or more object archives for use by a subsequent linker step.
-      This automatically generates the output file names.
+    * The **object archive** is the end goal of the build.
+    * The object archive is a convenience step before linking a **shared object**.
+    * One or more object archives as convenience steps before linking **executables**.
 
-    **Creating a Static Library:**
+    The benefit of creating an object archive before linking is simply to reduce the size
+    of the linker command, which might otherwise include thousands of .o files, making any error output
+    difficult to read. You don't have to use this step before linking.
+    The linker step has a default artefact getter which will work with or without this preceding step.
 
-    When building a shared object there is expected to be a single build target with a name of `None`.
+    **Creating a Static or Shared Library:**
+
+    When building a library there is expected to be a single build target with a `None` name.
     This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *without* a root symbol.
     We can assume the list of object files is the entire project source, compiled.
 
-    In this case you must specify an output file path.
+    In this case you must specify an *output_fpath*.
 
-    **Creating Linker Input:**
+    **Creating Executables:**
 
-    When creating linker input, there is expected to be one or more build targets, each with a name.
+    When creating executables, there is expected to be one or more build targets, each with a name.
     This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *with* a root symbol(s).
     We can assume each list of object files is sufficient to build each *<root_symbol>.exe*.
 
-    In this case you cannot specify an output file path because they are automatically created from the
+    In this case you cannot specify an *output_fpath* path because they are automatically created from the
     target name.
 
-    The benefit of this use case is simply to reduce the size of the subsequent linker command, which might
-    otherwise include thousands of .o files, making any error output difficult to read.
-    You don't have to use this step when making exes. The linker step has a default artefact getter which will
-    work with or without this step.
-
     """
+    # todo: the output path should not be an abs fpath, it should be relative to the proj folder
     def __init__(self, source: ArtefactsGetter = None, archiver='ar',
                  output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
         """
@@ -90,7 +90,7 @@ class ArchiveObjects(Step):
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.archiver = archiver
-        self.output_fpath = output_fpath
+        self.output_fpath = str(output_fpath) if output_fpath else None
         self.output_collection = output_collection
 
     def run(self, artefact_store: Dict, config):
@@ -105,9 +105,6 @@ class ArchiveObjects(Step):
         """
         super().run(artefact_store, config)
 
-        # We're expecting one or more build targets in the artefact store.
-        # When building exes, each build target has a name and a list of compiled files.
-        # When building a shared object there is a single build target with no name.
         target_objects = self.source_getter(artefact_store)
         assert target_objects.keys()
         if self.output_fpath and list(target_objects.keys()) != [None]:
@@ -115,7 +112,7 @@ class ArchiveObjects(Step):
         if not self.output_fpath and list(target_objects.keys()) == [None]:
             raise ValueError("You must specify an output path when building a library.")
 
-        target_archives = artefact_store.setdefault(self.output_collection, {})
+        output_archives = artefact_store.setdefault(self.output_collection, {})
         for root, objects in target_objects.items():
 
             if root:
@@ -124,7 +121,8 @@ class ArchiveObjects(Step):
             else:
                 # we're building a single object archive with a given filename
                 assert len(target_objects) == 1, "unexpected root of None with multiple build targets"
-                output_fpath = Template(self.output_fpath).substitute(output=config.build_output)
+                output_fpath = Template(str(self.output_fpath)).substitute(
+                    output=config.build_output)
 
             command = [self.archiver]
             command.extend(['cr', output_fpath])
@@ -136,4 +134,4 @@ class ArchiveObjects(Step):
             except Exception as err:
                 raise Exception(f"error creating object archive: {err}")
 
-            target_archives[root] = [output_fpath]
+            output_archives[root] = [output_fpath]
