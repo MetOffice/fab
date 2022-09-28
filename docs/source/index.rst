@@ -21,6 +21,7 @@ Indices and tables
 
    overview
    install
+   usage
    howto_write_config
    advanced_config
    Api Reference <apidoc/modules>

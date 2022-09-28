@@ -20,14 +20,6 @@ Then install the folder it created::
 
     pip install ./fab
 
-Uninstall fab
--------------
-To uninstall fab::
-
-    pip uninstall sci-fab
-
-
-If you installed from a folder, provide the *fab folder* instead of *sci-fab*.
 
 Conda
 -----
@@ -42,7 +34,7 @@ Activate the new environment::
 
 Install fab::
 
-    pip install fab
+    pip install ./fab
 
 
 Configuration
@@ -52,7 +44,7 @@ You can optionally tell Fab where it's workspace should live.
 Useful on systems where your home space is on a network drive,
 which may not be as fast as your local hard drive::
 
-    export FAB_WORKSPACE-/tmp/persistent/fab_workspace
+    export FAB_WORKSPACE=/tmp/persistent/fab_workspace
 
 If you don't do this, Fab will create a project workspace underneath ``~/fab-workspace``.
 
@@ -71,9 +63,3 @@ will allow you to change the code without reinstalling Fab every time::
 Please be aware of some considerations when
 `using pip and conda <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#using-pip-in-an-environment>`_
 together.
-
-Docker
-------
-You can create a development environment for running Fab using the docker file in Fab's github repo.
-For example, PyCharm can use the interpreter inside the container and will automatically volume mount and PYTHONPATH
-your source code.
