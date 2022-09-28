@@ -14,15 +14,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Optional
 
+from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 
 from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, TimerLogger, \
     get_mod_hashes, string_checksum
-from fab.steps import check_for_errors
+from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ OBJECT_FILE_NOT_PRESENT = 'object file not present'
 MODULE_FILE_NOT_PRESENT = 'module file(s) file not present'
 
 
-class CompileFortran(MpExeStep):
+class CompileFortran(Step):
     """
     Compiles all Fortran files in all build trees, creating or extending a set of compiled files for each target.
 
@@ -70,9 +70,10 @@ class CompileFortran(MpExeStep):
         """
 
         # todo: perhaps this should add the -J (or -modules) automatically
+        super().__init__(name=name)
 
-        compiler = compiler or os.getenv('FC', 'gfortran -c')
-        super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
+        self.exe = compiler or os.getenv('FC', 'gfortran -c')
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
         self.two_stage_flag = two_stage_flag
@@ -280,7 +281,7 @@ class CompileFortran(MpExeStep):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
-            command = self.exe.split()
+            command = self.exe.split()  # type: ignore
 
             # flags
             command.extend(flags)
