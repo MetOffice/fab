@@ -10,7 +10,7 @@ Build steps for pulling source code from remote repos and local folders.
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Union, Optional
+from typing import Dict, Union
 
 try:
     import svn  # type: ignore
