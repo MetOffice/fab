@@ -16,24 +16,10 @@ from fab.util import file_walk
 logger = logging.getLogger(__name__)
 
 
-class PathFilter(object):
-    """
-    Deem paths as included or excluded, using simple pattern matching.
+class _PathFilter(object):
+    # Simple pattern matching using string containment check.
+    # Deems an incoming path as included or excluded.
 
-    A path is considered a match if it contains any of the given filter strings.
-
-    Path filters are expected to be provided by the user in an *ordered* collection.
-    The two convenience subclasses, :class:`~fab.steps.walk_source.Include` and :class:`~fab.steps.walk_source.Exclude`,
-    provide improved readability.
-
-    Example::
-
-        path_filters = [
-            Exclude('my_folder'),
-            Include('my_folder/my_file.F90'),
-        ]
-
-    """
     def __init__(self, *filter_strings: str, include: bool):
         """
         :param filter_strings:
@@ -51,7 +37,7 @@ class PathFilter(object):
         return None
 
 
-class Include(PathFilter):
+class Include(_PathFilter):
     """
     A path filter which includes matching paths, this convenience class improves config readability.
 
@@ -68,7 +54,7 @@ class Include(PathFilter):
         return f'Include({", ".join(self.filter_strings)})'
 
 
-class Exclude(PathFilter):
+class Exclude(_PathFilter):
     """
     A path filter which excludes matching paths, this convenience class improves config readability.
 
@@ -88,20 +74,37 @@ class Exclude(PathFilter):
 
 class FindSourceFiles(Step):
     """
-    Find all the files in the source folder, with filtering.
+    Find the files in the source folder, with filtering.
 
-    Stores the list of files in the :term:`Artefact Store`.
+    Files can be included or excluded with simple pattern matching.
+    Every file is included by default, unless the filters say otherwise.
+
+    Path filters are expected to be provided by the user in an *ordered* collection.
+    The two convenience subclasses, :class:`~fab.steps.walk_source.Include` and :class:`~fab.steps.walk_source.Exclude`,
+    improve readability.
+
+    Order matters. For example::
+
+        path_filters = [
+            Exclude('my_folder'),
+            Include('my_folder/my_file.F90'),
+        ]
+
+    In the above example, swapping the order would stop the file being included in the build.
+
+    A path matches a filter string simply if it *contains* it,
+    so the path *my_folder/my_file.F90* would match filters "my_folder", "my_file" and "r/m".
 
     """
     def __init__(self, source_root=None, output_collection="all_source",
-                 name="Walk source", path_filters: Optional[Iterable[PathFilter]] = None):
+                 name="Walk source", path_filters: Optional[Iterable[_PathFilter]] = None):
         """
         :param source_root:
             Optional path to source folder, with a sensible default.
         :param output_collection:
             Name of artefact collection to create, with a sensible default.
         :param path_filters:
-            Iterable of PathFilter for inclusions and exclusions. The filters are processed in order.
+            Iterable of Include and/or Exclude objects, to be processed in order.
         :param name:
             Human friendly name for logger output, with sensible default.
 
@@ -109,7 +112,7 @@ class FindSourceFiles(Step):
         super().__init__(name)
         self.source_root = source_root
         self.output_collection: str = output_collection
-        self.path_filters: Iterable[PathFilter] = path_filters or []
+        self.path_filters: Iterable[_PathFilter] = path_filters or []
 
     def run(self, artefact_store, config):
         """
