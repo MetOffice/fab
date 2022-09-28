@@ -31,8 +31,8 @@ Steps can read and create :term:`Named Collections <Named Collection>` of :term:
 in the :term:`Artefact Store`.
 
 
-.. image:: svg/steps_and_store.svg
-    :width: 75%
+.. image:: svg/steps_and_store2.svg
+    :width: 100%
     :alt: Artefact containment hierarchy
 
 Fab runs each step in order, passing in the :term:`Artefact Store` which contains all previous steps' output.
