@@ -16,6 +16,7 @@ You provide fab with list of build steps.
 
 .. image:: svg/steps.svg
     :width: 75%
+    :align: center
     :alt: Some simple steps
 
 Fab provides some ready made, configurable steps for you to use, and it's easy to create your own.
