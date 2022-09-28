@@ -8,7 +8,7 @@ Not only is Fab written in Python, its build configs are too, using Fab as a lib
 Writing Fab config should feel as simple as writing traditional config.
 The user isn't exposed to underlying details unless they need more control.
 
-Here's a simple config without any build steps.
+Here's a simple config without any build steps. We'll start adding steps in the next section.
 
 .. code-block::
     :linenos:
@@ -71,7 +71,7 @@ A grab step will copy files from a folder or remote repo into the project worksp
 
     Fab tries to minimise user input by providing *sensible defaults*.
     In this case, the user doesn't have to specify where the code goes.
-    The grab and FindSourceFiles steps both know where to look.
+    The grab and FindSourceFiles steps already know what to do by default.
     Sensible defaults can be overridden.
 
 Please see the documentation for :class:`~fab.steps.find_source_files.FindSourceFiles` for more information,
@@ -96,7 +96,7 @@ It was added to the :term:`Artefact Store` by the preceding step.
     *Artefact Store*
 
     Steps generally create and find artefacts in this dict, arranged into named collections.
-    The Fortran preprocessor automatically looks for source code in a collection named `'all_source'`,
+    The Fortran preprocessor automatically looks for Fortran source code in a collection named `'all_source'`,
     which is the default output from the preceding FindSourceFiles step.
 
 
@@ -129,7 +129,7 @@ including how to pass flags to the command line tool.
 
 Analyse
 =======
-We must :class:`~fab.steps.analyse.Analyse` the source code to determine Fortran compile order.
+We must :class:`~fab.steps.analyse.Analyse` the source code to determine the Fortran compile order.
 
 .. code-block::
     :linenos:
@@ -222,7 +222,7 @@ files in the *<project workspace>/build_output/um* folder.
     This can require some understanding of where and when files are placed in the *build_output* folder:
     It will generally match the structure you've created in *<project workspace>/source*, with your grab steps.
     Early steps like preprocessors generally read files from *source* and write to *build_output*.
-    Later steps like compilers generally find their files are already in *build_output*.
+    Later steps like compilers generally read files which are already in *build_output*.
 
 Path matching is done using Python's `fnmatch <https://docs.python.org/3.10/library/fnmatch.html#fnmatch.fnmatch>`_.
 We can current only *add* flags for a path, using the :class:`~fab.build_config.AddFlags` class.

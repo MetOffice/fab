@@ -14,7 +14,7 @@ into the root of the source tree, to make subsequent preprocessing flags easier 
 
 That was a simple example that didn't need to interact with the :term:`Artefact Store`.
 If you need to insert a custom step between two Fab steps, you may need your custom step to create
-an artefact collection, and to configure the subsequent step to use your new collection.
+an :term:`Artefact Collection`, and to configure the subsequent step to use your new collection.
 Many Fab steps have an optional `source` argument which overrides the default :term:`Artefacts Getter`.
 
 .. code-block::
@@ -27,9 +27,7 @@ Many Fab steps have an optional `source` argument which overrides the default :t
     config = BuildConfig('my_proj', steps=[
         FabStep1(),
         CustomStep(),
-        FabStep2(
-            source=CollectionGetter('custom_artefacts'),
-        ),
+        FabStep2(source=CollectionGetter('custom_artefacts')),
     ])
 
 

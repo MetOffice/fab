@@ -29,14 +29,14 @@ Fab will record the time taken by each step and plot them on a pie chart.
     :alt: pie chart
 
 Some steps also record metrics about their individual artefacts.
-For example, below, the Fortran preprocessor created this histogram from the processing time of individual files,
+For example below, the Fortran preprocessor created this histogram from the processing time of individual files,
 
 .. image:: img/hist.png
     :width: 66%
     :alt: pie chart
 
 and the Fortran compiler created this `busby-style graph <https://www.osti.gov/biblio/1393322>`_
-showing compilation bottlenecks.
+showing a compilation bottleneck.
 
 .. image:: img/busby.png
     :width: 66%
