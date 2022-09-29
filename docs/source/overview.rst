@@ -19,6 +19,7 @@ You provide fab with list of build steps.
     :align: center
     :alt: Some simple steps
 
+|
 Fab provides some ready made, configurable steps for you to use, and it's easy to create your own.
 All build steps are derived from the :class:`~fab.steps.Step` class.
 
@@ -28,7 +29,7 @@ All build steps are derived from the :class:`~fab.steps.Step` class.
 Artefacts
 =========
 
-Steps can read and create :term:`Named Collections <Named Collection>` of :term:`Artefact`
+Steps can read and create named collections of :term:`Artefact`
 in the :term:`Artefact Store`.
 
 
@@ -42,13 +43,9 @@ Example Config
 ==============
 
 Build configs are written in Python. Fab is designed to minimise user input by
-by providing sensible defaults.
-
-Example::
+by providing sensible defaults::
 
     config = Config(
-        label='my project',
-        steps=[
         project_label='my project',
         steps=[
             GrabFolder(src='~/my_repo'),
@@ -61,7 +58,7 @@ Example::
 
 
 In the snippet above we don't tell the compiler which files to compile,
-by default it reads the list created by the previous step.
+by default it reads the list created in the previous step.
 
 Multiprocessing
 ===============
