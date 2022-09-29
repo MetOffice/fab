@@ -1,17 +1,17 @@
 .. _install:
 
 Installation
-============
+************
 Instructions for downloading and installing Fab.
 
 Latest release
---------------
+==============
 You can install the latest release of Fab from PyPI::
 
     pip install sci-fab
 
 From Source
------------
+===========
 If you want to try the newest features, you can download the repo from github::
 
     git clone https://github.com/metomi/fab.git
@@ -22,7 +22,7 @@ Then install the folder it created::
 
 
 Conda
------
+=====
 To create a conda environment for running fab::
 
     git clone https://github.com/metomi/fab.git

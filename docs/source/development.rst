@@ -1,10 +1,10 @@
 
 Development
-===========
+***********
 Information for developers.
 
 Version numbering
------------------
+=================
 We use a `PEP 440 compliant <https://peps.python.org/pep-0440/#examples-of-compliant-version-schemes>`_
 semantic versioning, of the form ``{major}.{minor}.{patch}[{a|b|rc}N]``
 
@@ -18,7 +18,7 @@ semantic versioning, of the form ``{major}.{minor}.{patch}[{a|b|rc}N]``
 * 1.1.0a1
 
 Version bumping
----------------
+===============
 The version number needs to be updated in two places
 
 * source/fab/__init_.py

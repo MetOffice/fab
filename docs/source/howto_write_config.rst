@@ -1,10 +1,9 @@
 How to Write a Build Config
-===========================
+***************************
 You'll need a development environment with Fab installed (see :ref:`install`).
 
-
 Config File
------------
+===========
 Not only is Fab written in Python, its build configs are too.
 However, writing Fab config should feel as simple as writing traditional config.
 The user isn't exposed to underlying details unless they need more control.
@@ -36,7 +35,7 @@ The project label is used to calculate where to put any output files (see :term:
 
 
 Source Code
------------
+===========
 Let's tell Fab where our source code is.
 
 We use the :class:`~fab.steps.find_source_files.FindSourceFiles` step for this.
@@ -84,7 +83,7 @@ including how to exclude certain source code from the build.
 
 
 Preprocess
-----------
+==========
 Next we want to preprocess our source code.
 Preprocessing resolves any `#include` and `#ifdef` directives in the code,
 which must happen before we analyse it.
@@ -128,7 +127,7 @@ See the docs for :func:`~fab.steps.preprocess.fortran_preprocessor` for more,
 including how to pass arguments to the command.
 
 Analyse
--------
+=======
 We need to know the order in which to compile our Fortran code, so we must first
 :class:`~fab.steps.analyse.Analyse` it.
 
@@ -161,7 +160,7 @@ We tell the analyser which `root_symbol` we want to build into an executable.
 This argument is omitted when building a shared or static library.
 
 Compile and Link
-----------------
+================
 The :class:`~fab.steps.compile_fortran.CompileFortran` step creates mod and object files
 in the build output folder. The :class:`~fab.steps.link.LineExe` step then creates the executable.
 
@@ -199,17 +198,8 @@ and the LinkExe step uses *gcc* by default.
 These can be configured to use other compilers.
 
 
-
-Further Reading
-===============
-More advanced config topics are discussed in :ref:`Advanced Config Topics`.
-
-You can see more complicated configs in Fab's
-`example run configs <https://github.com/metomi/fab/tree/master/run_configs>`_.
-
-
 Flags
------
+=====
 Preprocess, compile and link steps usually need configuration to specify command-line arguments
 to the underlying tool, such as symbol definitions, include paths, optimisation flags, etc.
 
@@ -237,3 +227,11 @@ files in the *<project workspace>/build_output/um* folder.
 Path matching is done using Python's `fnmatch <https://docs.python.org/3.10/library/fnmatch.html#fnmatch.fnmatch>`_.
 We can current only *add* flags for a path, using the :class:`~fab.build_config.AddFlags` class.
 If demand arises, Fab developers may add classes to remove or modify flags by path - please let us know!
+
+
+Further Reading
+===============
+More advanced config topics are discussed in :ref:`Advanced Config Topics`.
+
+You can see more complicated configs in Fab's
+`example run configs <https://github.com/metomi/fab/tree/master/run_configs>`_.

@@ -1,9 +1,10 @@
 
 Usage
-=====
+*****
+You must have an environment containing the compilers and linkers you need to build your project.
 
 Conda
------
+=====
 .. note::
     *Internal Met Office Users*
 
@@ -15,7 +16,7 @@ Conda
 
 
 Containers
-----------
+==========
 You can create a development environment for running Fab using the docker file in Fab's github repo.
 For example, PyCharm can use the interpreter inside the container and will automatically volume mount and PYTHONPATH
 your source code.

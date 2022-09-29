@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to Fab's documentation!
-===============================
+*******************************
 
 
 Indices and tables
