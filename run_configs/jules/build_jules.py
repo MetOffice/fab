@@ -12,11 +12,10 @@ from fab.steps.archive_objects import ArchiveObjects
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
-from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFcm
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
+from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 
