@@ -241,7 +241,7 @@ the :class:`~fab.steps.c_pragma_injector.CPragmaInjector`.
     are for user code, and which are for system code to be ignored.
 
 The C pragma injector creates new C files with ".prag" file extensions, in the same folder as the original source.
-We then need to override the default behaviour the C preprocessor, telling it to process these new files
+We then need to override the default behaviour of the C preprocessor, telling it to process these new files
 instead of the ".c" files. This is done using the `source` argument::
 
         from fab.constants import PRAGMAD_C
