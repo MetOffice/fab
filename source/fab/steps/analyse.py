@@ -8,20 +8,18 @@ C and Fortran analysis, creating build trees.
 
 """
 
-import csv
 import logging
 import warnings
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, List, Tuple, Iterable, Set, Optional, Union
+from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.constants import BUILD_TREES
-from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, EmptySourceFile, \
+from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, \
     validate_dependencies
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
-from fab.util import HashedFile, file_checksum, log_or_dot_finish, TimerLogger
+from fab.util import TimerLogger, by_type
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
@@ -36,8 +34,6 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     'preprocessed_psyclone',
     'configurator_output',
 ])
-
-ANALYSIS_CSV = "__analysis.csv"
 
 
 # todo: split out c and fortran? this class is still a bit big
@@ -128,7 +124,12 @@ class Analyse(Step):
         """
         super().run(artefact_store, config)
 
-        analysed_files = self._analyse_source_code(artefact_store)
+        # todo: code smell - refactor (in another PR to keep things small)
+        self.fortran_analyser._prebuild_folder = self._config.prebuild_folder
+        self.c_analyser._prebuild_folder = self._config.prebuild_folder
+
+        files: List[Path] = self.source_getter(artefact_store)
+        analysed_files = self._parse_files(files=files)
 
         # add special measure symbols for files which could not be parsed
         if self.special_measure_analysis_results:
@@ -155,30 +156,6 @@ class Analyse(Step):
             validate_dependencies(build_tree)
 
         artefact_store[BUILD_TREES] = build_trees
-
-    def _analyse_source_code(self, artefact_store) -> Set[AnalysedFile]:
-        """
-        Find the symbol defs and deps in each file.
-
-        This is slow so we record our progress as we go.
-
-        """
-        # get a list of all the files we want to analyse
-        files: List[Path] = self.source_getter(artefact_store)
-
-        # take hashes of all the files we want to analyse
-        with TimerLogger(f"generating {len(files)} file hashes"):
-            file_hashes = self._get_file_checksums(files)
-
-        with TimerLogger("loading previous analysis results"):
-            prev_results = self._load_analysis_results(latest_file_hashes=file_hashes)
-            changed, unchanged = self._what_needs_reanalysing(prev_results=prev_results, latest_file_hashes=file_hashes)
-
-        with TimerLogger("analysing files"):
-            with self._new_analysis_file(unchanged) as csv_writer:
-                freshly_analysed_fortran, freshly_analysed_c = self._parse_files(changed, csv_writer)
-
-        return unchanged | freshly_analysed_fortran | freshly_analysed_c
 
     def _analyse_dependencies(self, analysed_files: Iterable[AnalysedFile]):
         """
@@ -213,8 +190,7 @@ class Analyse(Step):
 
         return build_trees
 
-    def _parse_files(self, to_analyse: Iterable[HashedFile], analysis_dict_writer: csv.DictWriter) -> \
-            Tuple[Set[AnalysedFile], Set[AnalysedFile]]:
+    def _parse_files(self, files: List[Path]) -> Set[AnalysedFile]:
         """
         Determine the symbols which are defined in, and used by, each file.
 
@@ -223,27 +199,26 @@ class Analyse(Step):
 
         """
         # fortran
-        fortran_files = set(filter(lambda f: f.fpath.suffix == '.f90', to_analyse))
+        fortran_files = set(filter(lambda f: f.suffix == '.f90', files))
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
-            analysed_fortran, fortran_exceptions = self._analyse_file_type(
-                fpaths=fortran_files, analyser=self.fortran_analyser.run, dict_writer=analysis_dict_writer)
+            fortran_results = self.run_mp(items=fortran_files, func=self.fortran_analyser.run)
 
         # c
-        c_files = set(filter(lambda f: f.fpath.suffix == '.c', to_analyse))
+        c_files = set(filter(lambda f: f.suffix == '.c', files))
         with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
-            analysed_c, c_exceptions = self._analyse_file_type(
-                fpaths=c_files, analyser=self.c_analyser.run, dict_writer=analysis_dict_writer)
+            c_results = self.run_mp(items=c_files, func=self.c_analyser.run)
 
-        # errors?
-        all_exceptions = fortran_exceptions | c_exceptions
-        if all_exceptions:
-            logger.error(f"{len(all_exceptions)} analysis errors")
+        # Check for parse errors but don't fail. The failed files might not be required.
+        results = fortran_results + c_results
+        exceptions = list(by_type(results, Exception))
+        if exceptions:
+            logger.error(f"{len(exceptions)} analysis errors")
 
         # warn about naughty fortran usage?
         if self.fortran_analyser.depends_on_comment_found:
             warnings.warn("not recommended 'DEPENDS ON:' comment found in fortran code")
 
-        return analysed_fortran, analysed_c
+        return set(by_type(results, AnalysedFile))
 
     def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
         """
@@ -292,108 +267,6 @@ class Analyse(Step):
         if deps_not_found:
             logger.info(f"{len(deps_not_found)} deps not found")
 
-    def _get_file_checksums(self, fpaths: Iterable[Path]) -> Dict[Path, int]:
-        mp_results = self.run_mp(items=fpaths, func=file_checksum)
-        latest_file_hashes: Dict[Path, int] = {fh.fpath: fh.file_hash for fh in mp_results}
-        return latest_file_hashes
-
-    def _load_analysis_results(self, latest_file_hashes: Dict[Path, int]) -> Dict[Path, AnalysedFile]:
-        """
-        Load analysis results for the given files.
-
-        Reads the analysis csv file, discarding results from files which are no longer present.
-
-        :param latest_file_hashes:
-            The current state of the file system.
-
-        """
-        # read the contents of the file
-        results = _load_analysis_file(fpath=self._config.build_output / ANALYSIS_CSV)
-
-        # remove any data for files which are no longer present in the file system
-        for path in list(results.keys()):
-            if path not in latest_file_hashes:
-                del results[path]
-
-        return results
-
-    def _what_needs_reanalysing(self, prev_results: Dict[Path, AnalysedFile], latest_file_hashes: Dict[Path, int]) -> \
-            Tuple[Set[HashedFile], Set[AnalysedFile]]:
-        """
-        Determine which files have changed since they were last analysed.
-
-        Returns, in a tuple:
-             - The changed files as a set of HashedFile
-             - The unchanged files as a set of AnalysedFile
-
-        """
-        # work out what needs to be reanalysed
-        changed: Set[HashedFile] = set()
-        unchanged: Set[AnalysedFile] = set()
-        for latest_fpath, latest_hash in latest_file_hashes.items():
-            # what happened last time we analysed this file?
-            prev_pu = prev_results.get(latest_fpath)
-            if (not prev_pu) or prev_pu.file_hash != latest_hash:
-                changed.add(HashedFile(latest_fpath, latest_hash))
-            else:
-                unchanged.add(prev_pu)
-
-        logger.info(f"{len(unchanged)} files already analysed, {len(changed)} to analyse")
-
-        return changed, unchanged
-
-    # todo: it might be better to create an analysis file per source file.
-    @contextmanager
-    def _new_analysis_file(self, unchanged: Iterable[AnalysedFile]):
-        """
-        Create the analysis file from scratch, containing any content from its previous version which is still valid.
-
-        The returned context is a csv.DictWriter.
-        """
-        with TimerLogger("starting analysis progress file"):
-            analysis_progress_file = open(self._config.build_output / ANALYSIS_CSV, "wt")
-            analysis_dict_writer = csv.DictWriter(analysis_progress_file, fieldnames=AnalysedFile.field_names())
-            analysis_dict_writer.writeheader()
-
-            # re-write the progress so far
-            unchanged_rows = (af.to_str_dict() for af in unchanged)
-            analysis_dict_writer.writerows(unchanged_rows)
-            analysis_progress_file.flush()
-
-        yield analysis_dict_writer
-
-        analysis_progress_file.close()
-
-    def _analyse_file_type(self, fpaths: Iterable[HashedFile], analyser,
-                           dict_writer: csv.DictWriter) -> Tuple[Set[AnalysedFile], Set[Exception]]:
-        """
-        Pass the files to the analyser and check the results for errors and empty files.
-
-        Returns a list of :class:`~fab.dep_tree.AnalysedFile` and a list of exceptions.
-
-        """
-        new_program_units: Set[AnalysedFile] = set()
-        exceptions = set()
-
-        def result_handler(analysis_results):
-            for af in analysis_results:
-                # todo: use by_type()? we'd have to make sure it can't ever change to stop us saving on-the-fly
-                if isinstance(af, EmptySourceFile):
-                    continue
-                elif isinstance(af, Exception):
-                    exceptions.add(af)
-                elif isinstance(af, AnalysedFile):
-                    new_program_units.add(af)
-                    dict_writer.writerow(af.to_str_dict())
-                else:
-                    raise RuntimeError(f"Unexpected analysis result type: {af}")
-            log_or_dot_finish(logger)
-
-        # we use imap here so we can save the analysis progress as we go
-        self.run_mp_imap(items=fpaths, func=analyser, result_handler=result_handler)
-
-        return new_program_units, exceptions
-
     def _add_unreferenced_deps(self, symbols: Dict[str, Path],
                                all_analysed_files: Dict[Path, AnalysedFile], build_tree: Dict[Path, AnalysedFile]):
         """
@@ -429,27 +302,3 @@ class Analyse(Step):
             # add the file and it's file deps
             sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
             build_tree.update(sub_tree)
-
-
-def _load_analysis_file(fpath: Union[str, Path]) -> Dict[Path, AnalysedFile]:
-    """
-    :param fpath:
-    Path to analysis csv file.
-
-    """
-    # Return the contents of an analysis csv.
-    results: Dict[Path, AnalysedFile] = dict()
-    try:
-        with open(fpath, "rt") as csv_file:
-            dict_reader = csv.DictReader(csv_file)
-
-            # read every row and convert into an AnalysedFile object
-            for row in dict_reader:
-                analysed_file = AnalysedFile.from_str_dict(row)
-                results[analysed_file.fpath] = analysed_file
-    except FileNotFoundError:
-        logger.info("no previous analysis results")
-        pass
-
-    logger.info(f"loaded {len(results)} previous analysis results")
-    return results

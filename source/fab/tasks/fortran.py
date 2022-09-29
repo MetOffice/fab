@@ -5,6 +5,7 @@
 Fortran language handling classes.
 """
 import logging
+from pathlib import Path
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
@@ -20,7 +21,7 @@ from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.tasks import TaskException
-from fab.util import log_or_dot, HashedFile
+from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +84,21 @@ class FortranAnalyser(object):
         # Warn the user if the code still includes this deprecated dependency mechanism
         self.depends_on_comment_found = False
 
-    def run(self, hashed_file: HashedFile):
-        fpath, file_hash = hashed_file
+        # runtime
+        self._prebuild_folder = None
+
+    # def run(self, hashed_file: HashedFile):
+    def run(self, fpath: Path):
         log_or_dot(logger, f"analysing {fpath}")
+
+        # do we already have analysis results for this file?
+        # todo: dupe - probably best in a parser base class
+        file_hash = file_checksum(fpath).file_hash
+        analysis_fpath = Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        if analysis_fpath.exists():
+            return AnalysedFile.load(analysis_fpath)
+
+        analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
         # parse the file
         parse_result = self._parse_file(fpath=fpath)
@@ -95,8 +108,6 @@ class FortranAnalyser(object):
         if parse_result.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             return EmptySourceFile(fpath)
-
-        analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
         # see what's in the tree
         for obj in iter_content(parse_result):
@@ -139,6 +150,7 @@ class FortranAnalyser(object):
             except Exception:
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
 
+        analysed_file.save(analysis_fpath)
         return analysed_file
 
     def _parse_file(self, fpath):

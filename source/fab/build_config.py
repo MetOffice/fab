@@ -113,7 +113,7 @@ class BuildConfig(object):
 
         """
         start_time = datetime.now().replace(microsecond=0)
-        self.build_output.mkdir(parents=True, exist_ok=True)
+        self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
         self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)

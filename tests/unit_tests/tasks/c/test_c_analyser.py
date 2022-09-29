@@ -4,22 +4,26 @@ Test CAnalyser.
 """
 from pathlib import Path
 from typing import List, Tuple
+from unittest import mock
 from unittest.mock import Mock
 
 import clang  # type: ignore
 
 from fab.dep_tree import AnalysedFile
 from fab.tasks.c import CAnalyser
-from fab.util import HashedFile
 
 
 def test_simple_result(tmp_path):
-    fpath = Path(Path(__file__).parent / "test_c_analyser.c")
-    result = CAnalyser().run(HashedFile(fpath, 0))
+    c_analyser = CAnalyser()
+    c_analyser._prebuild_folder = Path('/prebuild')
+
+    with mock.patch('fab.dep_tree.AnalysedFile.save'):
+        fpath = Path(__file__).parent / "test_c_analyser.c"
+        result = c_analyser.run(fpath)
 
     expected = AnalysedFile(
         fpath=fpath,
-        file_hash=0,
+        file_hash=1429445462,
         symbol_deps={'usr_var', 'usr_func'},
         symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
         file_deps=set(),
