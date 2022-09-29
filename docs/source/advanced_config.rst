@@ -2,14 +2,10 @@
 
 Advanced Config
 ***************
-coming soon
+
 
 Custom Steps
 ============
-coming soon
-
-C Code
-======
 coming soon
 
 Metrics

@@ -55,16 +55,12 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
 
         RootIncFiles(),
 
-        c_preprocessor(),
-
         fortran_preprocessor(
             preprocessor='cpp',
             common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
         ),
 
         Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
-
-        CompileC(),
 
         CompileFortran(
             compiler='gfortran',

@@ -229,6 +229,34 @@ We can current only *add* flags for a path, using the :class:`~fab.build_config.
 If demand arises, Fab developers may add classes to remove or modify flags by path - please let us know!
 
 
+C Code
+======
+Fab comes with C processing steps.
+The :func:`~fab.steps.preprocess.c_preprocessor` and :class:`~fab.steps.compile_c.CompileC` Steps
+behave like their Fortran equivalents. However, there is also a preceding step called
+the :class:`~fab.steps.c_pragma_injector.CPragmaInjector`.
+
+.. note::
+    Fab needs to inject pragmas into C code before it is preprocessed in order to know which dependencies
+    are for user code, and which are for system code to be ignored.
+
+The C pragma injector creates new C files with ".prag" file extensions, in the same folder as the original source.
+We then need to override the default behaviour the C preprocessor, telling it to process these new files
+instead of the ".c" files. This is done using the `source` argument::
+
+        from fab.constants import PRAGMAD_C
+
+        steps = [
+            ...
+            CPragmaInjector(),
+            c_preprocessor(source=CollectionGetter(PRAGMAD_C)),
+            ...
+        ]
+
+The pragma injector may be merged into the preprocessor in the future,
+and the *.prag* files may be created in the build_output instead of the source folder.
+
+
 Further Reading
 ===============
 More advanced config topics are discussed in :ref:`Advanced Config Topics`.

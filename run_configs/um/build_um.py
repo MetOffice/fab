@@ -15,6 +15,8 @@ import warnings
 from argparse import ArgumentParser
 from pathlib import Path
 
+from fab.constants import PRAGMAD_C
+
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.dep_tree import AnalysedFile
@@ -79,7 +81,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
         CPragmaInjector(),
 
         c_preprocessor(
-            source=CollectionGetter('pragmad_c'),
+            source=CollectionGetter(PRAGMAD_C),
             path_flags=[
                 # todo: this is a bit "codey" - can we safely give longer strings and split later?
                 AddFlags(match="$source/um/*", flags=[
