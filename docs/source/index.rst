@@ -20,11 +20,10 @@ Indices and tables
    :caption: Contents:
 
    overview
-   features
    install
-   usage
    howto_write_config
    advanced_config
+   features
    Api Reference <apidoc/modules>
    development
    glossary
