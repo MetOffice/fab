@@ -1,7 +1,7 @@
 .. _Advanced Config Topics:
 
-Advanced Config Topics
-**********************
+Advanced Config
+***************
 coming soon
 
 Custom Steps

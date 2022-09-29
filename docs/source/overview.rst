@@ -70,8 +70,3 @@ Steps have access to multiprocessing methods.
 The Step class includes a multiprocessing helper method called :meth:`~fab.steps.Step.run_mp` which steps can call
 from their :meth:`~fab.steps.Step.run` method to process a collection of artefacts in parallel.
 
-Limitations
-===========
-**Dependency detection:** Whilst fab can automatically determine dependencies from module use statements,
-and from standalone call statements, it doesn't currently detect a dependency from a call statement
-on a single-line if statement.

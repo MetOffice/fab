@@ -20,6 +20,7 @@ Indices and tables
    :caption: Contents:
 
    overview
+   features
    install
    usage
    howto_write_config
