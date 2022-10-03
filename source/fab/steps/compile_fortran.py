@@ -15,15 +15,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict
 
+from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 
 from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
     get_mod_hashes, flags_checksum, remove_minus_J
-from fab.steps import check_for_errors
+from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
 
-class CompileFortran(MpExeStep):
+class CompileFortran(Step):
     """
     Compiles all Fortran files in all build trees, creating or extending a set of compiled files for each target.
 
@@ -59,17 +59,16 @@ class CompileFortran(MpExeStep):
             Human friendly name for logger output, with sensible default.
 
         """
+        super().__init__(name=name)
 
         # todo: Fab should be compiler-aware
         compiler = compiler or os.getenv('FC', 'gfortran -c')
         common_flags = common_flags or []
         env_flags = os.getenv('FFLAGS', '').split()
-        super().__init__(
-            exe=compiler,
+        self.compiler = compiler or os.getenv('FC', 'gfortran -c')
+        self.flags = FlagsConfig(
             common_flags=remove_minus_J(common_flags + env_flags, verbose=True),
-            path_flags=path_flags,
-            name=name,
-        )
+            path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
         self.two_stage_flag = two_stage_flag
@@ -253,7 +252,7 @@ class CompileFortran(MpExeStep):
                 analysed_file.file_hash,
                 flags_checksum(flags),
                 sum(mod_deps_hashes.values()),
-                zlib.crc32(self.exe.encode())
+                zlib.crc32(self.compiler.encode())
             ])
         except TypeError:
             raise ValueError("could not generate combo hash for object file")
@@ -264,7 +263,7 @@ class CompileFortran(MpExeStep):
         try:
             mod_combo_hash = sum([
                 analysed_file.file_hash,
-                zlib.crc32(self.exe.encode())
+                zlib.crc32(self.compiler.encode())
             ])
         except TypeError:
             raise ValueError("could not generate combo hash for mod files")
@@ -283,7 +282,7 @@ class CompileFortran(MpExeStep):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
-            command = self.exe.split()
+            command = self.exe.split()  # type: ignore
 
             # flags
             command.extend(flags)

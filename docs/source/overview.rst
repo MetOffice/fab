@@ -71,12 +71,9 @@ Under consideration: Fab might get a config file format in the future.
 Multiprocessing
 ---------------
 
-Steps have access to multiprocessing methods. The :class:`~fab.steps.mp_exe.MpExeStep` class captures common aspects
-of any step that passes a list of artefacts through a command-line tool.
-(The existence of this class is currently under debate.)
-The Step class includes a multiprocessing utility method called :meth:`~fab.steps.Step.run_mp` which steps can call
-from their :meth:`~fab.steps.Step.run` method to pass a collection of artefacts through a processor function
-in parallel.
+Steps have access to multiprocessing methods.
+The Step class includes a multiprocessing helper method called :meth:`~fab.steps.Step.run_mp` which steps can call
+from their :meth:`~fab.steps.Step.run` method to process a collection of artefacts in parallel.
 
 Limitations
 -----------
