@@ -69,13 +69,16 @@ def remove_minus_J(flags, verbose=False):
     """
     # todo: what if there's two -Js ?
     # todo: Fab should be compiler aware, with the possibly of different flags to ignore per compiler
-    try:
-        found = flags.index('-J')
-        if verbose:
-            logger.info(f"removing -J <folder> from {flags}")
-        flags = flags[:found] + flags[found+2:]
-    except ValueError:
-        pass
+    in_minus_J = False
+    ret = []
+    for flag in flags:
+        if in_minus_J:
+            in_minus_J = False
+            continue
+        if flag == '-J':
+             in_minus_J = True
+        else:
+             ret.append(flag)
     return flags
 
 

@@ -174,7 +174,7 @@ class GrabPreBuild(Step):
             res = call_rsync(src=self.src, dst=dst)
 
             # log the number of files transferred
-            to_print = [line for line in res.splitlines if 'Number of' in line]
+            to_print = [line for line in res.splitlines() if 'Number of' in line]
             logger.info('\n'.join(to_print))
 
         except RuntimeError as err:
