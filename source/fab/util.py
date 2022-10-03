@@ -76,9 +76,9 @@ def remove_minus_J(flags, verbose=False):
             in_minus_J = False
             continue
         if flag == '-J':
-             in_minus_J = True
+            in_minus_J = True
         else:
-             ret.append(flag)
+            ret.append(flag)
     return ret
 
 
@@ -190,6 +190,7 @@ class CompiledFile(object):
 
     def __repr__(self):
         return f'CompiledFile({self.input_fpath}, {self.output_fpath})'
+
 
 # todo: we should probably pass in the output folder, not the project workspace
 def input_to_output_fpath(config, input_path: Path):
