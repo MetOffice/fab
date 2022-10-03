@@ -79,7 +79,7 @@ def remove_minus_J(flags, verbose=False):
              in_minus_J = True
         else:
              ret.append(flag)
-    return flags
+    return ret
 
 
 def flags_checksum(flags: List[str]):
