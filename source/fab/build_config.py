@@ -34,7 +34,7 @@ class BuildConfig(object):
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
                  multiprocessing=True, n_procs: int = None, reuse_artefacts=False,
-                 fab_workspace: Optional[Path] = None, verbose=False, prebuild_folder=None):
+                 fab_workspace: Optional[Path] = None, verbose=False, prebuild_folder: Optional[Path] = None):
         """
         :param str project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
@@ -76,7 +76,7 @@ class BuildConfig(object):
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
-        self.prebuild_folder = prebuild_folder or self.build_output / PREBUILD
+        self.prebuild_folder: Path = Path(prebuild_folder or self.build_output / PREBUILD)
 
         # build steps
         self.steps: List[Step] = steps or []

@@ -224,9 +224,9 @@ def run_command(command, env=None, cwd=None):
     logger.debug(f'run_command: {command}')
     res = subprocess.run(command, capture_output=True, env=env, cwd=cwd)
     if res.returncode != 0:
-        raise RuntimeError(f"Command failed:\n{command}\n{res.stderr.decode()}")
+        raise RuntimeError(f"Command failed:\n{command}\n{res.stdout.decode()}\n{res.stderr.decode()}")
 
-    return res.stdout
+    return res.stdout.decode()
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):

@@ -24,6 +24,7 @@ class TestFortranPrebuild(object):
             fab_workspace=fab_workspace,
             steps=[
                 GrabFolder(Path(__file__).parent / 'project-source', dst='src'),
+                # insert a prebuild grab step or don't insert anything
                 *([GrabPreBuild(prebuild_folder)] if prebuild_folder else []),
                 FindSourceFiles(),
                 fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
