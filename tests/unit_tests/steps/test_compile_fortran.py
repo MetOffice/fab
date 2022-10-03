@@ -227,14 +227,16 @@ class Test_process_file(object):
         # changing the compiler must change the combo hash for the mods and obj
         compiler, flags, analysed_file, expect_object_fpath = self.content()
         compiler.exe = 'bar_cc'
-        expect_object_fpath = Path('/fab/proj/build_output/_prebuild/foofile.e2a37224.o')
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 with mock.patch('shutil.copy2') as mock_copy:
                     res = compiler.process_file(analysed_file)
 
-        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
+        expect_object_fpath = Path('/fab/proj/build_output/_prebuild/foofile.e2a37224.o')
+        expect = CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
+        assert res == expect, f'{res} != {expect}'
+
         mock_compile_file.assert_called_once_with(analysed_file, flags, output_fpath=expect_object_fpath)
         self.ensure_mods_stored(mock_copy, mods_combo_hash='6c11df1a')
 

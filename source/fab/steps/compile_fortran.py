@@ -65,7 +65,7 @@ class CompileFortran(Step):
         compiler = compiler or os.getenv('FC', 'gfortran -c')
         common_flags = common_flags or []
         env_flags = os.getenv('FFLAGS', '').split()
-        self.compiler = compiler or os.getenv('FC', 'gfortran -c')
+        self.exe = compiler or os.getenv('FC', 'gfortran -c')
         self.flags = FlagsConfig(
             common_flags=remove_minus_J(common_flags + env_flags, verbose=True),
             path_flags=path_flags)
@@ -252,7 +252,7 @@ class CompileFortran(Step):
                 analysed_file.file_hash,
                 flags_checksum(flags),
                 sum(mod_deps_hashes.values()),
-                zlib.crc32(self.compiler.encode())
+                zlib.crc32(self.exe.encode())
             ])
         except TypeError:
             raise ValueError("could not generate combo hash for object file")
@@ -263,7 +263,7 @@ class CompileFortran(Step):
         try:
             mod_combo_hash = sum([
                 analysed_file.file_hash,
-                zlib.crc32(self.compiler.encode())
+                zlib.crc32(self.exe.encode())
             ])
         except TypeError:
             raise ValueError("could not generate combo hash for mod files")
