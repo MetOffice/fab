@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-This module contains :term:`Artefact Getter` classes which return :term:`Named Collections <Named Collection>`
+This module contains :term:`Artefacts Getter` classes which return :term:`Named Collections <Named Collection>`
 from the :term:`Artefact Store`.
 
 These classes are used by the `run` method of :class:`~fab.steps.Step` classes to retrieve the artefacts

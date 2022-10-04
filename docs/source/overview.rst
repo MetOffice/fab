@@ -14,14 +14,13 @@ Steps
 
 You provide fab with list of build steps.
 
-.. image:: svg/steps.svg
+.. image:: img/steps.svg
     :width: 75%
     :align: center
     :alt: Some simple steps
 
 |
 Fab provides some ready made, configurable steps for you to use, and it's easy to create your own.
-All build steps are derived from the :class:`~fab.steps.Step` class.
 
 
 .. _artefacts_overview:
@@ -33,7 +32,7 @@ Steps can read and create named collections of :term:`Artefact`
 in the :term:`Artefact Store`.
 
 
-.. image:: svg/steps_and_store2.svg
+.. image:: img/steps_and_store2.svg
     :width: 100%
     :alt: Artefact containment hierarchy
 
@@ -44,6 +43,8 @@ Example Config
 
 Build configs are written in Python. Fab is designed to minimise user input by
 by providing sensible defaults::
+
+.. code-block::
 
     config = Config(
         project_label='my project',
@@ -57,8 +58,8 @@ by providing sensible defaults::
         ])
 
 
-In the snippet above we don't tell the compiler which files to compile,
-by default it reads the list created in the previous step.
+In the snippet above we don't tell the compiler which files to compile.
+By default it knows to use the build tree created by the preceding analysis step.
 
 Multiprocessing
 ===============
