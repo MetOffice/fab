@@ -29,7 +29,7 @@ class TestFortranPrebuild(object):
                 FindSourceFiles(),
                 fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
                 Analyse(root_symbol='my_prog'),
-                CompileFortran(compiler='gfortran -c', common_flags=['-J', '$output']),
+                CompileFortran(compiler='gfortran -c'),
                 LinkExe(flags=['-lgfortran']),
             ],
             multiprocessing=False,

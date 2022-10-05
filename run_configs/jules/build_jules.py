@@ -76,7 +76,6 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
             compiler='gfortran',
             common_flags=[
                 '-c',
-                '-J', '$output',
                 f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,

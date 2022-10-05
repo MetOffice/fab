@@ -43,5 +43,5 @@ def compilers(fpic=False) -> List[Step]:
         CompileC(common_flags=['-c', '-std=c99'] + fpic),
         CompileFortran(
             compiler='gfortran',
-            common_flags=['-c', '-J', '$output'] + fpic),
+            common_flags=['-c'] + fpic),
     ]

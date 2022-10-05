@@ -134,7 +134,6 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
             common_flags=[
                 '-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8',
                 '-c',
-                '-J', '$output',  # .mod file output and include folder
                 f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,

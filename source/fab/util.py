@@ -67,7 +67,6 @@ def remove_minus_J(flags, verbose=False):
     Remove the -J <folder> from the given flags.
 
     """
-    # todo: what if there's two -Js ?
     # todo: Fab should be compiler aware, with the possibly of different flags to ignore per compiler
     in_minus_J = False
     ret = []

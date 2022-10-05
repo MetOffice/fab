@@ -59,7 +59,7 @@ def mesh_tools_config(two_stage=False, opt='Og'):
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=[
-                '-c', '-J', '$output',
+                '-c',
                 f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,

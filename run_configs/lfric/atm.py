@@ -119,8 +119,7 @@ def atm_config(two_stage=False, opt='Og'):
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=[
-                '-c', '-J', '$output',
-
+                '-c',
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',

@@ -30,7 +30,7 @@ def test_FortranDependencies(tmp_path):
             fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
             Analyse(root_symbol=['first', 'second']),
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
-            CompileFortran(compiler='gfortran', common_flags=['-c', '-J', '$output']),
+            CompileFortran(compiler='gfortran', common_flags=['-c']),
             LinkExe(flags=['-lgfortran']),
         ],
     )
