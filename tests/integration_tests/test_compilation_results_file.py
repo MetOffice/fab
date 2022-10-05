@@ -7,8 +7,8 @@ from fab.util import CompiledFile
 
 def test_compilation_results(tmp_path):
     # write a few compilation results to file
-    config = BuildConfig('foo')
-    config.project_workspace = Path(tmp_path)
+    config = BuildConfig('proj', fab_workspace=tmp_path)
+    config.build_output.mkdir(exist_ok=True, parents=True)
 
     compiled = {
         Path('main.f90'): CompiledFile(

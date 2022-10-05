@@ -12,15 +12,15 @@ import os
 from collections import defaultdict
 from typing import List, Dict
 
+from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 
 from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.mp_exe import MpExeStep
 from fab.tasks import TaskException
 from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type
-from fab.steps import check_for_errors
+from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.c')
 DEFAULT_OUTPUT_ARTEFACT = ''
 
 
-class CompileC(MpExeStep):
+class CompileC(Step):
     """
     Compiles all C files in all build trees, creating or extending a set of compiled files for each target.
 
@@ -54,8 +54,10 @@ class CompileC(MpExeStep):
             Human friendly name for logger output, with sensible default.
 
         """
-        compiler = compiler or os.getenv('CC', 'gcc -c')
-        super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
+        super().__init__(name=name)
+
+        self.exe = compiler or os.getenv('CC', 'gcc -c')
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
     def run(self, artefact_store, config):
@@ -72,7 +74,7 @@ class CompileC(MpExeStep):
         """
         super().run(artefact_store, config)
 
-        # get all the source to compile, for all build trees, into one big lump
+        # gather all the source to compile, for all build trees, into one big lump
         build_lists: Dict = self.source_getter(artefact_store)
         to_compile = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} c files")
@@ -103,11 +105,8 @@ class CompileC(MpExeStep):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.exe.split()
-                command.extend(self.flags.flags_for_path(
-                    path=analysed_file.fpath,
-                    source_root=self._config.source_root,
-                    project_workspace=self._config.project_workspace))
+                command = self.exe.split()  # type: ignore
+                command.extend(self.flags.flags_for_path(path=analysed_file.fpath, config=self._config))
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])
 

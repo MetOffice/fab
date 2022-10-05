@@ -16,7 +16,7 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
@@ -34,7 +34,7 @@ class BuildConfig(object):
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
                  multiprocessing=True, n_procs: int = None, reuse_artefacts=False,
-                 fab_workspace: Optional[Path] = None):
+                 fab_workspace: Optional[Path] = None, verbose=False):
         """
         :param str project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
@@ -66,8 +66,8 @@ class BuildConfig(object):
                 fab_workspace = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
             else:
                 fab_workspace = Path(os.path.expanduser("~/fab-workspace"))
-                logger.info(f"FAB_WORKSPACE not set. Defaulting to {fab_workspace}.")
-        logger.info(f"fab workspace is {fab_workspace}.")
+                logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
+        logger.info(f"\nfab workspace is {fab_workspace}")
 
         self.project_workspace = fab_workspace / (project_label.replace(' ', '-'))
         self.metrics_folder = self.project_workspace / 'metrics' / self.project_label.replace(' ', '_', -1)
@@ -82,9 +82,24 @@ class BuildConfig(object):
         self.multiprocessing = multiprocessing
         self.n_procs = n_procs
         if self.multiprocessing and not self.n_procs:
-            self.n_procs = max(1, len(os.sched_getaffinity(0)))
+            try:
+                self.n_procs = max(1, len(os.sched_getaffinity(0)))
+            except AttributeError:
+                logger.error('could not enable multiprocessing')
+                self.multiprocessing = False
+                self.n_procs = None
 
         self.reuse_artefacts = reuse_artefacts
+
+        if verbose:
+            logging.getLogger('fab').setLevel(logging.DEBUG)
+
+        # runtime
+        self._artefact_store: Dict[str, Any] = dict()
+
+    @property
+    def build_output(self):
+        return self.project_workspace / BUILD_OUTPUT
 
     def run(self):
         """
@@ -95,17 +110,16 @@ class BuildConfig(object):
 
         """
         start_time = datetime.now().replace(microsecond=0)
-        (self.project_workspace / BUILD_OUTPUT).mkdir(parents=True, exist_ok=True)
+        self.build_output.mkdir(parents=True, exist_ok=True)
 
         self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
 
-        artefact_store = dict()
         try:
             with TimerLogger(f'running {self.project_label} build steps') as steps_timer:
                 for step in self.steps:
                     with TimerLogger(step.name) as step_timer:
-                        step.run(artefact_store=artefact_store, config=self)
+                        step.run(artefact_store=self._artefact_store, config=self)
                     send_metric('steps', step.name, step_timer.taken)
         except Exception as err:
             logger.error(f'\n\nError running build steps:\n{err}')
@@ -175,7 +189,7 @@ class AddFlags(object):
         self.flags: List[str] = flags
 
     # todo: we don't need the project_workspace, we could just pass in the output folder
-    def run(self, fpath: Path, input_flags: List[str], source_root: Path, project_workspace: Path):
+    def run(self, fpath: Path, input_flags: List[str], config):
         """
         Check if our filter matches a given file. If it does, add our flags.
 
@@ -183,13 +197,11 @@ class AddFlags(object):
             Filepath to check.
         :param input_flags:
             The list of command-line flags Fab is building for this file.
-        :param source_root:
-            For templating `$source`.
-        :param project_workspace:
-            For templating `$output`.
+        :param config:
+            Contains the folders for templating `$source` and `$output`.
 
         """
-        params = {'relative': fpath.parent, 'source': source_root, 'output': project_workspace / BUILD_OUTPUT}
+        params = {'relative': fpath.parent, 'source': config.source_root, 'output': config.build_output}
 
         # does the file path match our filter?
         if not self.match or fnmatch(str(fpath), Template(self.match).substitute(params)):
@@ -221,25 +233,23 @@ class FlagsConfig(object):
 
     # todo: there's templating both in this method and the run method it calls.
     #       make sure it's all properly documented and rationalised.
-    def flags_for_path(self, path: Path, source_root: Path, project_workspace: Path):
+    def flags_for_path(self, path: Path, config):
         """
         Get all the flags for a given file, in a reproducible order.
 
         :param path:
             The file path for which we want command-line flags.
-        :param source_root:
-            Passed through for templating.
-        :param project_workspace:
-            Passed through for templating.
+        :param config:
+            THe config contains the source root and project workspace.
 
         """
         # We COULD make the user pass these template params to the constructor
         # but we have a design requirement to minimise the config burden on the user,
         # so we take care of it for them here instead.
-        params = {'source': source_root, 'output': project_workspace / BUILD_OUTPUT}
+        params = {'source': config.source_root, 'output': config.build_output}
         flags = [Template(i).substitute(params) for i in self.common_flags]
 
         for flags_modifier in self.path_flags:
-            flags_modifier.run(path, flags, source_root=source_root, project_workspace=project_workspace)
+            flags_modifier.run(path, flags, config=config)
 
         return flags

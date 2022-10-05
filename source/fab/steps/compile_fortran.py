@@ -14,22 +14,22 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Optional
 
-from fab.constants import OBJECT_FILES, BUILD_OUTPUT
+from fab.build_config import FlagsConfig
+from fab.constants import OBJECT_FILES
 
 from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.mp_exe import MpExeStep
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, TimerLogger, \
     get_mod_hashes, string_checksum
-from fab.steps import check_for_errors
+from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
-COMPILATION_CSV = "__fortran_compilation.csv"
+FORTRAN_COMPILED_CSV = "__fortran_compilation.csv"
 
 # reasons to recompile, stored as constants for testability
 NO_PREVIOUS_RESULT = 'no previous result'
@@ -40,7 +40,7 @@ OBJECT_FILE_NOT_PRESENT = 'object file not present'
 MODULE_FILE_NOT_PRESENT = 'module file(s) file not present'
 
 
-class CompileFortran(MpExeStep):
+class CompileFortran(Step):
     """
     Compiles all Fortran files in all build trees, creating or extending a set of compiled files for each target.
 
@@ -70,9 +70,10 @@ class CompileFortran(MpExeStep):
         """
 
         # todo: perhaps this should add the -J (or -modules) automatically
+        super().__init__(name=name)
 
-        compiler = compiler or os.getenv('FC', 'gfortran -c')
-        super().__init__(exe=compiler, common_flags=common_flags, path_flags=path_flags, name=name)
+        self.exe = compiler or os.getenv('FC', 'gfortran -c')
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
         self.two_stage_flag = two_stage_flag
@@ -206,9 +207,7 @@ class CompileFortran(MpExeStep):
 
         """
         # flags for this file
-        flags = self.flags.flags_for_path(
-            path=analysed_file.fpath, source_root=self._config.source_root,
-            project_workspace=self._config.project_workspace)
+        flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         flags_hash = string_checksum(str(flags))
 
         # do we need to recompile?
@@ -220,7 +219,7 @@ class CompileFortran(MpExeStep):
                 logger.debug(f'CompileFortran {recompile_reasons} for {analysed_file.fpath}')
                 self.compile_file(analysed_file, flags)
             except Exception as err:
-                return Exception("Error compiling file:", err)
+                return Exception(f"Error compiling {analysed_file.fpath}: {err}")
         else:
             # We could just return last_compile at this point.
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
@@ -270,8 +269,7 @@ class CompileFortran(MpExeStep):
                 recompile_reasons.append(OBJECT_FILE_NOT_PRESENT)
 
             # are the module files we define still there?
-            build_output = self._config.project_workspace / BUILD_OUTPUT
-            mod_def_files = [build_output / mod for mod in analysed_file.mod_filenames]
+            mod_def_files = [self._config.build_output / mod for mod in analysed_file.mod_filenames]
             if not all([mod.exists() for mod in mod_def_files]):
                 recompile_reasons.append(MODULE_FILE_NOT_PRESENT)
 
@@ -283,7 +281,7 @@ class CompileFortran(MpExeStep):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
-            command = self.exe.split()
+            command = self.exe.split()  # type: ignore
 
             # flags
             command.extend(flags)
@@ -310,7 +308,7 @@ class CompileFortran(MpExeStep):
         Write the compilation results to csv.
 
         """
-        compilation_progress_file = open(config.project_workspace / COMPILATION_CSV, "wt")
+        compilation_progress_file = open(config.build_output / FORTRAN_COMPILED_CSV, "wt")
         dict_writer = csv.DictWriter(compilation_progress_file, fieldnames=CompiledFile.field_names())
         dict_writer.writeheader()
 
@@ -325,7 +323,7 @@ class CompileFortran(MpExeStep):
         with TimerLogger('loading compile results'):
             prev_results: Dict[Path, CompiledFile] = dict()
             try:
-                with open(config.project_workspace / COMPILATION_CSV, "rt") as csv_file:
+                with open(config.build_output / FORTRAN_COMPILED_CSV, "rt") as csv_file:
                     dict_reader = csv.DictReader(csv_file)
                     for row in dict_reader:
                         compiled_file = CompiledFile.from_str_dict(row)

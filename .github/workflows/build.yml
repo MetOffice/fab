@@ -47,3 +47,7 @@ jobs:
       run: |
         pip install .[tests]
         python -m pytest --cov=fab tests/integration_tests
+    - name: System tests with Pytest
+      run: |
+        pip install .[tests]
+        python -m pytest --cov=fab --ignore=run-configs system-tests-new

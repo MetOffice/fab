@@ -17,7 +17,6 @@ from pathlib import Path
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
-from fab.constants import BUILD_OUTPUT
 from fab.dep_tree import AnalysedFile
 from fab.steps import Step
 from fab.steps.analyse import Analyse
@@ -118,7 +117,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
             special_measure_analysis_results={
                 AnalysedFile(
                     fpath=Path(
-                        config.project_workspace / BUILD_OUTPUT / "casim/lookup.f90"),
+                        config.build_output / "casim/lookup.f90"),
                     file_hash=None,
                     symbol_defs={'lookup'},
                     symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
