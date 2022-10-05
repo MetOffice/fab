@@ -1,4 +1,4 @@
-# For running the example configs.
+# Dev env for running the example run_configs. This is Met Office oriented.
 name: sci-fab
 dependencies:
   - libclang>=8.0.1

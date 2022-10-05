@@ -45,9 +45,9 @@ setuptools.setup(
     package_dir={'': 'source'},
     packages=setuptools.find_packages(where='source'),
     python_requires='>=3.7, <4',
-    install_requires=['fparser'],
+    install_requires=['fparser'],  # you'll also need python-clang if your project includes c code
     extras_require={
-        'dev': ['flake8', 'mypy', 'matplotlib', 'sphinx', 'sphinx_rtd_theme'],
+        'dev': ['pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy', 'matplotlib', 'sphinx', 'sphinx_rtd_theme'],
         'tests': ['pytest', 'pytest-cov', 'pytest-mock']
     }
 )
