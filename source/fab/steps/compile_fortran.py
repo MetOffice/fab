@@ -72,7 +72,7 @@ class CompileFortran(Step):
         # todo: perhaps this should add the -J (or -modules) automatically
         super().__init__(name=name)
 
-        self.exe = compiler or os.getenv('FC', 'gfortran -c')
+        self.compiler = compiler or os.getenv('FC', 'gfortran -c')
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -281,7 +281,7 @@ class CompileFortran(Step):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
-            command = self.exe.split()  # type: ignore
+            command = self.compiler.split()  # type: ignore
 
             # flags
             command.extend(flags)

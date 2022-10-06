@@ -56,7 +56,7 @@ class PreProcessor(Step):
         """
         super().__init__(name=name or self.LABEL)
 
-        self.exe = preprocessor
+        self.preprocessor = preprocessor
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or self.DEFAULT_SOURCE
 
@@ -101,7 +101,7 @@ class PreProcessor(Step):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.exe.split()  # type: ignore
+                command = self.preprocessor.split()  # type: ignore
                 command.extend(self.flags.flags_for_path(path=fpath, config=self._config))
                 command.append(str(fpath))
                 command.append(str(output_fpath))
