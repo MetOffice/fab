@@ -59,3 +59,13 @@ Glossary
 
         Fab's source code uses the term *source tree* for everything that's been analysed,
         and *build trees* for sub-trees extracted for each target exe.
+
+    Incremental Build
+        This term refers to Fab's ability to avoid reprocessing an artefact if the output is already available.
+        For example, if the user has previously built the project, there will likely be object files Fab can use
+        to avoid recompilation.
+
+    Prebuild
+        This term has much overlap with the term :term:`Incremental Build`. It refers to artefacts that were built by
+        another user, which can be copied to avoid reprocessing artefacts.
+        Technical details on how this works can be found in :ref:`development:Incremental & Prebuilds`.

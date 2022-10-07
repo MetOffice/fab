@@ -4,7 +4,33 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-C and Fortran analysis, creating build trees.
+Fab parses each C and Fortran file into an :class:`~fab.steps.dep_tree.AnalysedFile` object
+which contains the symbol definitions and dependencies for that file.
+
+From this set of analysed files, Fab builds a symbol table mapping symbols to their containing files.
+
+Fab uses the symbol table to turn symbol dependencies into file dependencies (stored in the AnalysedFile objects).
+This gives us a file dependency tree for the entire project source. The data structure is simple,
+just a dict of *<source path>: <analysed file>*, where the analysed files' dependencies are other dict keys.
+
+If we're building a library, that's the end of the analysis process as we'll compile the entire project source.
+If we're building one or more executables, which happens when we use the `root_symbol` argument,
+Fab will extract a subtree from the entire dependency tree for each root symbol we specify.
+
+Finally, the resulting artefact collection is a dict of these subtrees (*"build trees"*),
+mapping *<root symbol>: <build tree>*.
+When building a library, there will be a single tree with a root symbol of `None`.
+
+Addendum: The language parsers Fab uses are unable to detect some kinds of dependency.
+For example, fparser can't currently identify a call statement in a one-line if statement.
+We can tell Fab that certain symbols *should have been included* in the build tree
+using the `unreferenced_deps` argument.
+For every symbol we provide, its source file *and dependencies* will be added to the build trees.
+
+Sometimes a language parser will crash while parsing a *valid* source file, even though the compiler
+can compile the file perfectly well. In this case we can give Fab the analysis results it should have made
+by passing AnalysedFile objects into the `special_measure_analysis_results` argument.
+You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
 
 """
 
