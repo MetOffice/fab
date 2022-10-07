@@ -33,23 +33,23 @@ class BuildConfig(object):
     """
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
-                 multiprocessing=True, n_procs: int = None, reuse_artefacts=False,
-                 fab_workspace: Optional[Path] = None, verbose=False):
+                 multiprocessing: bool = True, n_procs: int = None, reuse_artefacts: bool = False,
+                 fab_workspace: Optional[Path] = None, verbose: bool = False):
         """
-        :param str project_label:
+        :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
-        :param Path source_root:
+        :param source_root:
             Optional argument to allow the config to find source code outside it's project workspace.
             This is useful, for example, when the :py:mod:`fab.steps.grab <grab>` is in a separate script to be run
             less frequently. In this scenario, the source code will be found in a different project workspace folder.
-        :param List[Step] steps:
+        :param steps:
             The list of build steps to run.
-        :param bool multiprocessing:
+        :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
-        :param int n_procs:
+        :param n_procs:
             The number of cores to use for multiprocessing operations. Defaults to the number of available cores.
-        :param bool reuse_artefacts:
+        :param reuse_artefacts:
             A flag to avoid reprocessing certain files on subsequent runs.
             WARNING: Currently unsophisticated, this flag should only be used by Fab developers.
             The logic behind flag will soon be improved, in a work package called "incremental build".

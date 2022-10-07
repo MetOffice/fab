@@ -30,3 +30,5 @@ Contents
    Api Reference <apidoc/modules>
    development
    glossary
+   genindex
+   modindex

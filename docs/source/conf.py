@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -71,3 +72,7 @@ autoclass_content = 'both'
 
 #
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+
+
+# include default values in argument descriptions
+typehints_defaults = 'braces-after'

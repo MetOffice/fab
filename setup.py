@@ -47,7 +47,7 @@ setuptools.setup(
     python_requires='>=3.7, <4',
     install_requires=['fparser', 'svn'],
     extras_require={
-        'dev': ['flake8', 'mypy'],
+        'dev': ['flake8', 'mypy', 'sphinx-autodoc-typehints'],
         'tests': ['pytest', 'pytest-cov', 'pytest-mock']
     }
 )
