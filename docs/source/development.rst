@@ -51,7 +51,7 @@ Note: this can change with different preprocessor flags.
 
 Fortran module files
 --------------------
-When creating an object file from a Fortran source file, the prebuild checksum is created from hashes of:
+When creating an module file from a Fortran source file, the prebuild checksum is created from hashes of:
 
  - source file
  - compiler
@@ -59,7 +59,7 @@ When creating an object file from a Fortran source file, the prebuild checksum i
 
 Fortran object files
 --------------------
-When creating a module file from a Fortran source file, the prebuild checksum is created from hashes of:
+When creating a object file from a Fortran source file, the prebuild checksum is created from hashes of:
 
  - source file
  - compiler
