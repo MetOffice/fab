@@ -18,10 +18,10 @@ from pathlib import Path
 from string import Template
 from typing import List, Optional, Dict, Any
 
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, START_TIME
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps import Step
-from fab.util import TimerLogger, by_type
+from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +64,7 @@ class BuildConfig(object):
 
         # workspace folder
         if not fab_workspace:
-            if os.getenv("FAB_WORKSPACE"):
-                fab_workspace = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
-            else:
-                fab_workspace = Path(os.path.expanduser("~/fab-workspace"))
-                logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
+            fab_workspace = get_fab_workspace()
         logger.info(f"\nfab workspace is {fab_workspace}")
 
         self.project_workspace = fab_workspace / self.project_label
@@ -120,6 +116,9 @@ class BuildConfig(object):
 
         self._artefact_store = dict()
 
+        self._artefact_store[START_TIME] = start_time
+
+        # run all the steps
         try:
             with TimerLogger(f'running {self.project_label} build steps') as steps_timer:
                 for step in self.steps:

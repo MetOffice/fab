@@ -10,6 +10,7 @@ Various utility functions live here - until we give them a proper place to live!
 
 import datetime
 import logging
+import os
 import subprocess
 import sys
 import zlib
@@ -273,6 +274,15 @@ def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
             mod_hashes[mod_def] = file_checksum(fpath).file_hash
 
     return mod_hashes
+
+
+def get_fab_workspace():
+    if os.getenv("FAB_WORKSPACE"):
+        fab_workspace = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
+    else:
+        fab_workspace = Path(os.path.expanduser("~/fab-workspace"))
+        logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
+    return fab_workspace
 
 
 def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:

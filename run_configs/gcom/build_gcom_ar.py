@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
 from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.prebuild_prune import PrebuildPrune
 from gcom_build_steps import common_build_steps
 from grab_gcom import gcom_grab_config
 
@@ -24,6 +25,8 @@ def gcom_ar_config(revision=None):
         steps=[
             *common_build_steps(),
             ArchiveObjects(output_fpath='$output/libgcom.a'),
+
+            PrebuildPrune(all_unused=True),
         ]
     )
 
