@@ -10,9 +10,9 @@ from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse, ANALYSIS_CSV
 from fab.steps.compile_fortran import CompileFortran, FORTRAN_COMPILED_CSV
 from fab.steps.grab import GrabFolder
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.find_source_files import FindSourceFiles
 from fab.util import file_walk
 
 PROJECT_LABEL = 'tiny project'
