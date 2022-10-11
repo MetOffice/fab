@@ -3,12 +3,11 @@ import logging
 import os
 from argparse import ArgumentParser
 
-from fab.steps.compile_c import CompileC
-
 from fab.build_config import BuildConfig, AddFlags
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
+from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder, GrabFcm
 from fab.steps.link import LinkExe
