@@ -8,6 +8,7 @@ Pruning of old files from the prebuild folder.
 
 """
 import logging
+import os
 import time
 from collections import defaultdict
 from datetime import timedelta
@@ -62,43 +63,49 @@ class PrebuildPrune(Step):
             # Make sure the prebuild folder file system can give us access times
             assert check_fs_access_time(config.prebuild_folder), "file access time not available on this fs"
 
-            # get the file access time for every artefact
+            # get the file access time for every prebuild file
             prebuilds_ts = dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time), strict=True))
+            most_recent_ts = max(prebuilds_ts.values())
 
-            if self.n_versions:
-                # get the glob wildcard version for each file
-                pb_file_groups = get_prebuild_file_groups(prebuild_files)
-                for pb_group in pb_file_groups.values():
-                    # sort this prebuild group by access time and remove the last n
-                    sorted_group = sorted(pb_group, key=lambda pbf: prebuilds_ts[pbf], reverse=True)
-                    for pbf in sorted_group[self.n_versions:]:
-                        logger.info(f"removing old prebuild version {pbf}")
-                        pbf.unlink()
-                        num_removed += 1
-                    raise NotImplementedError()
+            # build a set of all old files to delete
+            to_delete = set()
 
+            # identify old files
             if self.older_than:
-
-                most_recent_ts = max(prebuilds_ts.values())
                 oldest_ts_allowed = most_recent_ts - self.older_than
-
                 for pbf, ts in prebuilds_ts:
                     if ts < oldest_ts_allowed:
-                        logger.info(f"removing old prebuild file {pbf}")
-                        pbf.unlink()
-                        num_removed += 1
+                        logger.info(f"old age {pbf}")
+                        to_delete.add(pbf)
+
+            # identify old versions
+            if self.n_versions:
+
+                # group prebuild files by originating artefact - each group contains all versions of an artefact
+                pb_file_groups = get_prebuild_file_groups(prebuild_files)
+
+                # delete the n oldest in each group
+                for pb_group in pb_file_groups.values():
+                    by_age = sorted(pb_group, key=lambda pbf: prebuilds_ts[pbf], reverse=True)
+                    for pbf in by_age[self.n_versions:]:
+                        logger.info(f"old version {pbf}")
+                        to_delete.add(pbf)
+
+            # delete them all
+            num_removed = len(to_delete)
+            self.run_mp(to_delete, os.remove)
 
         logger.info(f'removed {num_removed} prebuild files')
 
     def remove_all_unused(self, prebuild_files, current_prebuilds):
         num_removed = 0
 
-        # todo: we can't populate this until the prebuild prs are merged
+        # todo: We can't populate this until the prebuild prs are merged.
+        #       Then we can make their prebuild code record the used prebuild files.
         for pbf in prebuild_files:
             if pbf not in current_prebuilds:
                 pbf.unlink()
                 num_removed += 1
-        raise NotImplementedError('fill in the artefact collection and test before review')
 
         return num_removed
 
@@ -159,7 +166,7 @@ def get_prebuild_file_groups(prebuild_files):
 
     for pbf in prebuild_files:
         stem_stem = pbf.stem.split('.')[0]  # stem returns <stem>.<hash>
-        key = pbf.parent / f'{stem_stem}.*{pbf.suffix}'
-        pbf_groups[key].add(pbf)
+        wildcard_key = pbf.parent / f'{stem_stem}.*{pbf.suffix}'
+        pbf_groups[wildcard_key].add(pbf)
 
     return pbf_groups
