@@ -179,7 +179,11 @@ class AddFlags(object):
         :param flags:
             The command-line flags to add for matching files.
 
-        Both the *match* and *flags* arguments can make use of templating.
+        Both the *match* and *flags* arguments can make use of templating:
+
+        - `$source` for *<project workspace>/source*
+        - `$output` for *<project workspace>/build_output*
+        - `$relative` for *<target file's folder>*
 
         For example::
 

@@ -11,7 +11,7 @@ from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.find_source_files import FindSourceFiles
 
 
 def common_build_steps(fpic=False) -> List[Step]:

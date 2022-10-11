@@ -13,9 +13,9 @@ from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles, Exclude
+from fab.steps.find_source_files import FindSourceFiles, Exclude
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 

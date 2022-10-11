@@ -7,7 +7,7 @@
 import os
 from argparse import ArgumentParser
 
-from fab.steps.link_exe import LinkSharedObject
+from fab.steps.link import LinkSharedObject
 
 from fab.build_config import BuildConfig
 from gcom_build_steps import common_build_steps
