@@ -1,4 +1,3 @@
-********
 Glossary
 ********
 
@@ -29,17 +28,17 @@ Glossary
         A subsequent step could read this list.
 
     Artefact
-        *Artefact* is a term for an item, usually a file, created by a build step and added to the :term:`Artefact Store`.
+        *Artefact* is a term for an item, usually a file,
+        created by a build step and added to the :term:`Artefact Store`.
 
         Some examples of artefacts are:
          - a Fortran file
          - a compiled object file
          - an executable file
 
-        Some steps may create additional files which are not currently represented or tracked by Fab,
-        such as the *.mod* files created by the Fortran preprocessor - although this particular case is under review.
+        These exist as files in the file system and paths in the artefact store.
 
-    Artefact Getter
+    Artefacts Getter
         A helper class which a :term:`Step` uses to get artefacts from the :term:`Artefact Store`.
         Fab's built-in steps come with sensible defaults so the user doesn't have to write unnecessary config.
 
@@ -59,3 +58,10 @@ Glossary
 
         Fab's source code uses the term *source tree* for everything that's been analysed,
         and *build trees* for sub-trees extracted for each target exe.
+
+    Fab Workspace
+        The folder in which all Fab output is created. Defaults to *~/fab-workspace*, and can be overridden
+        by the *FAB_WORKSPACE* environment variable. See also :class:`~fab.build_config.BuildConfig`.
+
+    Project Workspace
+        A folder inside the fab workspace, containing all output from (typically) a single build config.
