@@ -146,8 +146,8 @@ class Test_gen_symbol_table(object):
 
     @pytest.fixture
     def analysed_files(self):
-        return [AnalysedFile(fpath=Path('foo.c'), symbol_defs=['foo_1', 'foo_2'], file_hash=None),
-                AnalysedFile(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=None)]
+        return [AnalysedFile(fpath=Path('foo.c'), symbol_defs=['foo_1', 'foo_2'], file_hash=0),
+                AnalysedFile(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=0)]
 
     def test_vanilla(self, analysed_files):
         analyser = Analyse(root_symbol=None)
@@ -215,8 +215,8 @@ class Test_add_unreferenced_deps(object):
 
         # we extracted the build tree
         build_tree = {
-            Path('root.f90'): AnalysedFile(fpath=Path(), file_hash=None),
-            Path('root_dep.f90'): AnalysedFile(fpath=Path(), file_hash=None),
+            Path('root.f90'): AnalysedFile(fpath=Path(), file_hash=0),
+            Path('root_dep.f90'): AnalysedFile(fpath=Path(), file_hash=0),
         }
 
         # we want to force this symbol into the build [because it's not used via modules]
@@ -225,8 +225,8 @@ class Test_add_unreferenced_deps(object):
         # the stuff to add to the build tree will be found in here
         all_analysed_files = {
             # root.f90 and root_util.f90 would also be in here but the test doesn't need them
-            Path('util.f90'): AnalysedFile(fpath=Path('util.f90'), file_deps={Path('util_dep.f90')}, file_hash=None),
-            Path('util_dep.f90'): AnalysedFile(fpath=Path('util_dep.f90'), file_hash=None),
+            Path('util.f90'): AnalysedFile(fpath=Path('util.f90'), file_deps={Path('util_dep.f90')}, file_hash=0),
+            Path('util_dep.f90'): AnalysedFile(fpath=Path('util_dep.f90'), file_hash=0),
         }
 
         analyser._add_unreferenced_deps(symbols=symbols, all_analysed_files=all_analysed_files, build_tree=build_tree)
