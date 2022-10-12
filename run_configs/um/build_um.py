@@ -49,7 +49,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
     gcom_build = os.getenv('GCOM_BUILD') or \
-        os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output")
+        os.path.expanduser(config.project_workspace / "../gcom_object_archive_vn7.6/build_output")
     logger.info(f"expecting gcom at {gcom_build}")
 
     config.steps = [
@@ -119,7 +119,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
                 AnalysedFile(
                     fpath=Path(
                         config.build_output / "casim/lookup.f90"),
-                    file_hash=None,
+                    file_hash=0,
                     symbol_defs={'lookup'},
                     symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
                                  'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
@@ -136,7 +136,6 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
             common_flags=[
                 '-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8',
                 '-c',
-                '-J', '$output',  # .mod file output and include folder
                 f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,

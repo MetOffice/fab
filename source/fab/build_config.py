@@ -18,7 +18,7 @@ from pathlib import Path
 from string import Template
 from typing import List, Optional, Dict, Any
 
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps import Step
 from fab.util import TimerLogger, by_type
@@ -34,7 +34,7 @@ class BuildConfig(object):
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
                  multiprocessing=True, n_procs: int = None, reuse_artefacts=False,
-                 fab_workspace: Optional[Path] = None, verbose=False):
+                 fab_workspace: Optional[Path] = None, verbose=False, prebuild_folder: Optional[Path] = None):
         """
         :param str project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
@@ -56,9 +56,11 @@ class BuildConfig(object):
         :param fab_workspace:
             Overrides the FAB_WORKSPACE environment variable.
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
+        :param prebuild_folder:
+            Optionally specify the pre-build folder. Defaults to <project workspace>/build_output/_prebuild.
 
         """
-        self.project_label: str = project_label
+        self.project_label: str = project_label.replace(' ', '_')
 
         # workspace folder
         if not fab_workspace:
@@ -69,11 +71,12 @@ class BuildConfig(object):
                 logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
         logger.info(f"\nfab workspace is {fab_workspace}")
 
-        self.project_workspace = fab_workspace / (project_label.replace(' ', '-'))
-        self.metrics_folder = self.project_workspace / 'metrics' / self.project_label.replace(' ', '_', -1)
+        self.project_workspace = fab_workspace / self.project_label
+        self.metrics_folder = self.project_workspace / 'metrics' / self.project_label
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
+        self.prebuild_folder: Path = Path(prebuild_folder or self.build_output / PREBUILD)
 
         # build steps
         self.steps: List[Step] = steps or []
@@ -95,7 +98,7 @@ class BuildConfig(object):
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
         # runtime
-        self._artefact_store: Dict[str, Any] = dict()
+        self._artefact_store: Optional[Dict[str, Any]] = None
 
     @property
     def build_output(self):
@@ -114,6 +117,8 @@ class BuildConfig(object):
 
         self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
+
+        self._artefact_store = dict()
 
         try:
             with TimerLogger(f'running {self.project_label} build steps') as steps_timer:

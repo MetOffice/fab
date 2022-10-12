@@ -38,7 +38,7 @@ def test_CFortranInterop(tmp_path):
             Analyse(root_symbol='main'),
 
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
-            CompileFortran(compiler='gfortran', common_flags=['-c', '-J', '$output']),
+            CompileFortran(compiler='gfortran', common_flags=['-c']),
             LinkExe(flags=['-lgfortran']),
             # todo: on an ubuntu vm, we needed these before the object files - investigate further
             # [

@@ -7,12 +7,13 @@
 Fortran file compilation.
 
 """
-import csv
 import logging
 import os
+import shutil
+import zlib
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict, Optional
+from typing import List, Set, Dict
 
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
@@ -20,24 +21,14 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, TimerLogger, \
-    get_mod_hashes, string_checksum
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
+    get_mod_hashes, flags_checksum, remove_minus_J
 from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
-
-FORTRAN_COMPILED_CSV = "__fortran_compilation.csv"
-
-# reasons to recompile, stored as constants for testability
-NO_PREVIOUS_RESULT = 'no previous result'
-SOURCE_CHANGED = 'source changed'
-FLAGS_CHANGED = 'flags changed'
-MODULE_DEPENDENCIES_CHANGED = 'module dependencies changed'
-OBJECT_FILE_NOT_PRESENT = 'object file not present'
-MODULE_FILE_NOT_PRESENT = 'module file(s) file not present'
 
 
 class CompileFortran(Step):
@@ -68,19 +59,22 @@ class CompileFortran(Step):
             Human friendly name for logger output, with sensible default.
 
         """
-
-        # todo: perhaps this should add the -J (or -modules) automatically
         super().__init__(name=name)
 
+        # todo: Fab should be compiler-aware
+        compiler = compiler or os.getenv('FC', 'gfortran -c')
+        common_flags = common_flags or []
+        env_flags = os.getenv('FFLAGS', '').split()
         self.exe = compiler or os.getenv('FC', 'gfortran -c')
-        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+        self.flags = FlagsConfig(
+            common_flags=remove_minus_J(common_flags + env_flags, verbose=True),
+            path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
         self.two_stage_flag = two_stage_flag
 
         # runtime
         self._stage = None
-        self._last_compiles: Dict[Path, CompiledFile] = {}
         self._mod_hashes: Dict[str, int] = {}
 
     def run(self, artefact_store, config):
@@ -98,9 +92,6 @@ class CompileFortran(Step):
 
         """
         super().run(artefact_store, config)
-
-        # read csv of last compile states
-        self._last_compiles = self.read_compile_result(config)
 
         # get all the source to compile, for all build trees, into one big lump
         build_lists: Dict[str, List] = self.source_getter(artefact_store)
@@ -129,8 +120,6 @@ class CompileFortran(Step):
             check_for_errors(results_this_pass, caller_label=self.name)
             compiled_this_pass = list(by_type(results_this_pass, CompiledFile))
             logger.info(f"stage 2 compiled {len(compiled_this_pass)} files")
-
-        self.write_compile_result(compiled, config)
 
         self.store_artefacts(compiled, build_lists, artefact_store)
 
@@ -194,90 +183,102 @@ class CompileFortran(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    # todo: identical to the c version - make a super class
     def process_file(self, analysed_file: AnalysedFile):
         """
         Prepare to compile a fortran file, and compile it if anything has changed since it was last compiled.
 
-        Returns a compilation result, including various hashes from the time of compilation:
+        Returns a compilation result, regardless of whether it was compiled or prebuilt.
 
-        * hash of the source file
-        * hash of the compile flags
-        * hash of the module files on which we depend
+        .. note::
+
+            When compiling, any newly built object and mod files go *into* the prebuild folder.
+            If nothing has changed, prebuilt mod files are copied *from* the prebuild folder.
+
+            Prebuild filenames include a "combo-hash" of everything that, if changed, must trigger a recompile.
+            For mod and object files, this includes a checksum of: source code, compiler.
+            For object files, this also includes a checksum of: compiler flags, modules on which we depend.
+
+            Before compiling a file, we calculate the combo hashes and see if the output files already exists.
 
         """
-        # flags for this file
+        # todo: include compiler version in hashes
+
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
-        flags_hash = string_checksum(str(flags))
+        mod_combo_hash = self._get_mod_combo_hash(analysed_file)
+        obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
 
-        # do we need to recompile?
-        last_compile = self._last_compiles.get(analysed_file.fpath)
-        recompile_reasons = self.recompile_check(analysed_file, flags_hash, last_compile)
+        obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+        mod_files_prebuild = [
+            self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
+            for mod_def in analysed_file.module_defs
+        ]
 
-        if recompile_reasons:
+        # have we got the object and all the mod files we need to avoid a recompile?
+        prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_files_prebuild))
+        if not all(prebuilds_exist):
+
+            # compile
             try:
-                logger.debug(f'CompileFortran {recompile_reasons} for {analysed_file.fpath}')
-                self.compile_file(analysed_file, flags)
+                logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
+                self.compile_file(analysed_file, flags, output_fpath=obj_file_prebuild)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}: {err}")
+
+            # Store the mod files for reuse.
+            # todo: we could sometimes avoid these copies because mods can change less frequently than obj
+            for mod_def in analysed_file.module_defs:
+                shutil.copy2(
+                    self._config.build_output / f'{mod_def}.mod',
+                    self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
+                )
+
         else:
-            # We could just return last_compile at this point.
+            # restore the mod files we would have created
+            for mod_def in analysed_file.module_defs:
+                shutil.copy2(
+                    self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
+                    self._config.build_output / f'{mod_def}.mod',
+                )
+
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
-        # Get the hashes of the modules we depend on.
-        # Record them so we know if they've changed next time we compile.
-        module_deps_hashes = {}
-        for mod_dep in analysed_file.module_deps:
-            if mod_dep not in self._mod_hashes:
-                logger.debug(f"Dependecy {mod_dep} appears to be external to this project and hasn't been hashed.")
-                continue
-            module_deps_hashes[mod_dep] = self._mod_hashes[mod_dep]
+        return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
-        return CompiledFile(
-            input_fpath=analysed_file.fpath, output_fpath=analysed_file.compiled_path,
-            source_hash=analysed_file.file_hash, flags_hash=flags_hash,
-            module_deps_hashes=module_deps_hashes
-        )
+    def _get_obj_combo_hash(self, analysed_file, flags):
+        # get a combo hash of things which matter to the object file we define
+        mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
+        try:
+            obj_combo_hash = sum([
+                analysed_file.file_hash,
+                flags_checksum(flags),
+                sum(mod_deps_hashes.values()),
+                zlib.crc32(self.exe.encode())
+            ])
+        except TypeError:
+            raise ValueError("could not generate combo hash for object file")
+        return obj_combo_hash
 
-    def recompile_check(self, analysed_file: AnalysedFile, flags_hash: int, last_compile: Optional[CompiledFile]):
+    def _get_mod_combo_hash(self, analysed_file):
+        # get a combo hash of things which matter to the mod files we define
+        try:
+            mod_combo_hash = sum([
+                analysed_file.file_hash,
+                zlib.crc32(self.exe.encode())
+            ])
+        except TypeError:
+            raise ValueError("could not generate combo hash for mod files")
+        return mod_combo_hash
 
-        # todo: other environmental considerations for the future:
-        #   - env vars, e.g OMPI_FC
-        #   - compiler version
+    def compile_file(self, analysed_file, flags, output_fpath):
+        """
+        Call the compiler.
 
-        recompile_reasons = []
-        # first encounter?
-        if not last_compile:
-            recompile_reasons.append(NO_PREVIOUS_RESULT)
+        The current working folder for the command is set to the folder where the source file lives.
+        This is done to stop the compiler inserting folder information into the mod files,
+        which would cause them to have different checksums depending on where they live.
 
-        else:
-            # source changed?
-            if analysed_file.file_hash != last_compile.source_hash:
-                recompile_reasons.append(SOURCE_CHANGED)
-
-            # flags changed?
-            if flags_hash != last_compile.flags_hash:
-                recompile_reasons.append(FLAGS_CHANGED)
-
-            # have any of the modules on which we depend changed?
-            module_deps_hashes = {mod_dep: self._mod_hashes[mod_dep] for mod_dep in analysed_file.module_deps}
-            if module_deps_hashes != last_compile.module_deps_hashes:
-                recompile_reasons.append(MODULE_DEPENDENCIES_CHANGED)
-
-            # is the object file still there?
-            if not analysed_file.compiled_path.exists():
-                recompile_reasons.append(OBJECT_FILE_NOT_PRESENT)
-
-            # are the module files we define still there?
-            mod_def_files = [self._config.build_output / mod for mod in analysed_file.mod_filenames]
-            if not all([mod.exists() for mod in mod_def_files]):
-                recompile_reasons.append(MODULE_FILE_NOT_PRESENT)
-
-        return ", ".join(recompile_reasons)
-
-    def compile_file(self, analysed_file, flags):
+        """
         with Timer() as timer:
-            output_fpath = analysed_file.compiled_path
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
@@ -285,16 +286,18 @@ class CompileFortran(Step):
 
             # flags
             command.extend(flags)
-            command.extend(os.getenv('FFLAGS', '').split())
             if self.two_stage_flag and self._stage == 1:
                 command.append(self.two_stage_flag)
+            # todo: Fab should be compiler aware. Some compilers might not use -J for this.
+            command.extend(['-J', str(self._config.build_output)])
 
             # files
-            command.append(str(analysed_file.fpath))
+            command.append(analysed_file.fpath.name)
             command.extend(['-o', str(output_fpath)])
 
             log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
-            run_command(command)
+
+            run_command(command, cwd=analysed_file.fpath.parent)
 
         # todo: probably better to record both mod and obj metrics
         metric_name = self.name + (f' stage {self._stage}' if self._stage else '')
@@ -302,34 +305,3 @@ class CompileFortran(Step):
             group=metric_name,
             name=str(analysed_file.fpath),
             value={'time_taken': timer.taken, 'start': timer.start})
-
-    def write_compile_result(self, compiled: Dict[Path, CompiledFile], config):
-        """
-        Write the compilation results to csv.
-
-        """
-        compilation_progress_file = open(config.build_output / FORTRAN_COMPILED_CSV, "wt")
-        dict_writer = csv.DictWriter(compilation_progress_file, fieldnames=CompiledFile.field_names())
-        dict_writer.writeheader()
-
-        for cf in compiled.values():
-            dict_writer.writerow(cf.to_str_dict())
-
-    def read_compile_result(self, config) -> Dict[Path, CompiledFile]:
-        """
-        Read the results of the last compile run.
-
-        """
-        with TimerLogger('loading compile results'):
-            prev_results: Dict[Path, CompiledFile] = dict()
-            try:
-                with open(config.build_output / FORTRAN_COMPILED_CSV, "rt") as csv_file:
-                    dict_reader = csv.DictReader(csv_file)
-                    for row in dict_reader:
-                        compiled_file = CompiledFile.from_str_dict(row)
-                        prev_results[compiled_file.input_fpath] = compiled_file
-            except FileNotFoundError:
-                pass
-            logger.info(f"loaded {len(prev_results)} compile results")
-
-        return prev_results

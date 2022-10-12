@@ -77,7 +77,7 @@ def gungho_config(two_stage=False, opt='Og'):
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=[
-                '-c', '-J', '$output',
+                '-c',
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
                 # '-Og',

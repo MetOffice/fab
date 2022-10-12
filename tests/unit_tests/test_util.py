@@ -5,7 +5,7 @@ import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
 from fab.build_config import BuildConfig
-from fab.util import run_command, get_mod_hashes
+from fab.util import run_command, get_mod_hashes, flags_checksum, string_checksum
 from fab.util import suffix_filter
 
 
@@ -88,3 +88,10 @@ class Test_get_mod_hashes(object):
                 result = get_mod_hashes(analysed_files=analysed_files, config=config)
 
         assert result == {'foo': 123, 'bar': 456}
+
+
+class Test_flags_checksum(object):
+
+    def test_vanilla(self):
+        flags = ['one', 'two', '-J', 'foo', 'three', 'four']
+        assert flags_checksum(flags) == string_checksum(str(['one', 'two', 'three', 'four']))

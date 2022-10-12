@@ -23,9 +23,9 @@ echo "building jules variants"
 echo
 cd jules
   ./build_jules.py
-  ./build_jules.py --two-stage
-  ./build_jules.py -opt=O2
-  ./build_jules.py -opt=O2 --two-stage
+#  ./build_jules.py --two-stage
+#  ./build_jules.py -opt=O2
+#  ./build_jules.py -opt=O2 --two-stage
 cd ..
 
 echo
