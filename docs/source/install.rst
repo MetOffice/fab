@@ -56,7 +56,7 @@ Install fab::
 .. note::
     *Internal Met Office Users*
 
-    *After* you've created your Conda environment with Fab installed,
+    **After** you've created your Conda environment with Fab installed,
     you may need to activate modules in a new terminal to gain access to command line tools. E.g::
 
         module use /data/users/lfric/modules/modulefiles.rhel7
@@ -64,11 +64,6 @@ Install fab::
         conda activate sci-fab
 
 
-Containers
-----------
-You can create a development environment for running Fab using the docker file in Fab's github repo.
-For example, PyCharm can use the interpreter inside the container and will automatically volume mount and PYTHONPATH
-your source code.
 
 
 Developers
@@ -85,3 +80,9 @@ will allow you to change the code without reinstalling Fab every time::
 Please be aware of some considerations when
 `using pip and conda <https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#using-pip-in-an-environment>`_
 together.
+
+Containers
+----------
+You can create a development environment for running Fab using the docker file in Fab's github repo.
+For example, PyCharm can use the interpreter inside the container and will automatically volume mount and PYTHONPATH
+Fab.

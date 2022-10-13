@@ -183,7 +183,7 @@ class AddFlags(object):
 
         - `$source` for *<project workspace>/source*
         - `$output` for *<project workspace>/build_output*
-        - `$relative` for *<target file's folder>*
+        - `$relative` for *<the source file's folder>*
 
         For example::
 
@@ -232,9 +232,9 @@ class FlagsConfig(object):
     def __init__(self, common_flags: Optional[List[str]] = None, path_flags: Optional[List[AddFlags]] = None):
         """
         :param common_flags:
-            Flags to apply to all files.
+            List of flags to apply to all files. E.g `['-O2']`.
         :param path_flags:
-            Flags to apply to selected files.
+            List of :class:`~fab.build_config.AddFlags` objects which apply flags to selected paths.
 
         """
         self.common_flags = common_flags or []

@@ -8,7 +8,7 @@ Not only is Fab written in Python, its build configs are too, using Fab as a lib
 Writing Fab config should feel as simple as writing traditional config.
 The user isn't exposed to underlying details unless they need more control.
 
-Here's a simple config without any build steps.
+Here's a simple config without any build steps. We'll start adding steps in the next section.
 
 .. code-block::
     :linenos:
@@ -39,19 +39,11 @@ Source Code
 Let's tell Fab where our source code is.
 
 We use the :class:`~fab.steps.find_source_files.FindSourceFiles` step for this.
-We can point this step to our local repo, which is a valid way to use this step.
+We can point this step to a source folder, which is a valid way to use this step.
 However, because Fab can sometimes create artefacts alongside the source :sup:`1`,
 we usually copy the source into the project workspace first using a :mod:`~fab.steps.grab` step.
 
-A grab step will copy files from a folder or repo into the project workspace (into a folder called "source").
-
-.. note::
-    *Sensible defaults*
-
-    Fab tries to minimise user input by providing *sensible defaults*.
-    In this case, the user doesn't have to specify where the code goes.
-    The grab and FindSourceFiles steps just work with a default location.
-    Sensible defaults can be overridden.
+A grab step will copy files from a folder or remote repo into the project workspace, into a folder called "source".
 
 .. code-block::
     :linenos:
@@ -74,11 +66,20 @@ A grab step will copy files from a folder or repo into the project workspace (in
 
     config.run()
 
-Please see the documentation for :class:`~fab.steps.find_source_files.FindSourceFiles` for more information,
-including how to exclude certain source code from the build.
+.. note::
+    *Sensible defaults*
 
-1) See :class:`~fab.steps.c_pragma_injector.CPragmaInjector` for an example of a step which creates
-   artefacts in the source folder.
+    Fab tries to minimise user input by providing *sensible defaults*.
+    In this case, the user doesn't have to specify where the code goes.
+    The grab and FindSourceFiles steps already know what to do by default.
+    Sensible defaults can be overridden.
+
+Please see the documentation for :class:`~fab.steps.find_source_files.FindSourceFiles` for more information,
+including how to exclude certain source code from the build. More grab steps can be found in the :mod:`~fab.steps.grab`
+module.
+
+:sup:`1` See :class:`~fab.steps.c_pragma_injector.CPragmaInjector` for an example of a step which creates
+artefacts in the source folder.
 
 
 
@@ -88,14 +89,14 @@ Next we want to preprocess our source code.
 Preprocessing resolves any `#include` and `#ifdef` directives in the code,
 which must happen before we analyse it.
 
-Thanks to Fab's sensible defaults, the Fortran preprocessor know where to find the Fortran source code.
-It was added to the :term:`Artefact Store` by the previous step.
+Thanks to Fab's sensible defaults, the Fortran preprocessor knows where to find the Fortran source code.
+It was added to the :term:`Artefact Store` by the preceding step.
 
 .. note::
     *Artefact Store*
 
-    Steps generally create and find artefacts in this in-memory dict, arranged into named collections.
-    In this case, the Fortran preprocessor automatically looks for source code in a collection named "all_source",
+    Steps generally create and find artefacts in this dictionary, arranged into named collections.
+    The Fortran preprocessor automatically looks for Fortran source code in a collection named `'all_source'`,
     which is the default output from the preceding FindSourceFiles step.
 
 
@@ -122,14 +123,13 @@ It was added to the :term:`Artefact Store` by the previous step.
 
     config.run()
 
-Preprocessed files are created in the "build_output" folder, inside the project workspace.
+Preprocessed files are created in the `'build_output'` folder, inside the project workspace.
 See the docs for :func:`~fab.steps.preprocess.fortran_preprocessor` for more,
-including how to pass arguments to the command.
+including how to pass flags to the command line tool.
 
 Analyse
 =======
-We need to know the order in which to compile our Fortran code, so we must first
-:class:`~fab.steps.analyse.Analyse` it.
+We must :class:`~fab.steps.analyse.Analyse` the source code to determine the Fortran compile order.
 
 .. code-block::
     :linenos:
@@ -161,8 +161,8 @@ This argument is omitted when building a shared or static library.
 
 Compile and Link
 ================
-The :class:`~fab.steps.compile_fortran.CompileFortran` step creates mod and object files
-in the build output folder. The :class:`~fab.steps.link.LineExe` step then creates the executable.
+The :class:`~fab.steps.compile_fortran.CompileFortran` step creates module and object files
+in the build output folder. The :class:`~fab.steps.link.LinkExe` step then creates the executable.
 
 .. code-block::
     :linenos:
@@ -195,7 +195,7 @@ in the build output folder. The :class:`~fab.steps.link.LineExe` step then creat
 
 The CompileFortran step uses *gfortran* by default,
 and the LinkExe step uses *gcc* by default.
-These can be configured to use other compilers.
+They can be configured to use other compilers.
 
 
 Flags
@@ -219,10 +219,10 @@ This will add `-O2` to every invocation of the tool, but only add the */gcom* in
 files in the *<project workspace>/build_output/um* folder.
 
 .. note::
-    This requires some understanding of where and when files are placed in the *build_output* folder:
+    This can require some understanding of where and when files are placed in the *build_output* folder:
     It will generally match the structure you've created in *<project workspace>/source*, with your grab steps.
     Early steps like preprocessors generally read files from *source* and write to *build_output*.
-    Later steps like compilers generally find their files are already in *build_output*.
+    Later steps like compilers generally read files which are already in *build_output*.
 
 Path matching is done using Python's `fnmatch <https://docs.python.org/3.10/library/fnmatch.html#fnmatch.fnmatch>`_.
 We can current only *add* flags for a path, using the :class:`~fab.build_config.AddFlags` class.
@@ -241,15 +241,15 @@ the :class:`~fab.steps.c_pragma_injector.CPragmaInjector`.
     are for user code, and which are for system code to be ignored.
 
 The C pragma injector creates new C files with ".prag" file extensions, in the same folder as the original source.
-We then need to override the default behaviour of the C preprocessor, telling it to process these new files
-instead of the ".c" files. This is done using the `source` argument::
+The C preprocessor looks for the output of this step by default.
+If not found, it will fall back to looking for .c files in the source listing.
 
-        from fab.constants import PRAGMAD_C
+.. code-block::
 
         steps = [
             ...
             CPragmaInjector(),
-            c_preprocessor(source=CollectionGetter(PRAGMAD_C)),
+            c_preprocessor(),
             ...
         ]
 
