@@ -170,6 +170,7 @@ class AnalysedFile(object):
         assert result.file_hash is not None
         return result
 
+
 # Possibly overkill to have a class for this, but it makes analysis code simpler via type filtering.
 class EmptySourceFile(object):
     """

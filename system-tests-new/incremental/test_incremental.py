@@ -1,7 +1,7 @@
 import logging
 import zlib
 from pathlib import Path
-from typing import Iterable, List, Dict, Set, Tuple
+from typing import List, Dict, Set, Tuple
 
 import pytest
 
