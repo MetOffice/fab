@@ -13,9 +13,9 @@ The :class:`~fab.steps.root_inc_files.RootIncFiles` step copies all `.inc` files
 into the root of the source tree, to make subsequent preprocessing flags easier to configure.
 
 That was a simple example that didn't need to interact with the :term:`Artefact Store`.
-If you need to insert a custom step between two Fab steps, you may need your custom step to create
-an :term:`Artefact Collection`, and to configure the subsequent step to use your new collection.
-Many Fab steps have an optional `source` argument which overrides the default :term:`Artefacts Getter`.
+Sometimes, inserting a custom step means inserting a new :term:`Artefact Collection` into the flow of data between
+steps. We can tell a subsequent step to read our new artefacts, instead of using it's default :term:`Artefacts Getter`.
+We do this using the `source` argument, which most Fab steps accept.
 
 .. code-block::
 

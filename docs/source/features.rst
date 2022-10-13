@@ -3,9 +3,9 @@ Features
 
 Dynamic Source Tree Detection
 =============================
-Fab analyses your source code to determine the Fortran compile order,
-which means you don't have to manually specify and maintain the compile order,
-which can become problematic in a large project.
+Fab identifies the dependencies in your C and Fortran source code.
+It will determine the Fortran compile order, which means you don't have to manually specify and maintain
+the compile order, which can become problematic in a large project.
 
 
 Incremental Build
@@ -55,6 +55,16 @@ single-line if statement: `IF (x .GT. 0) CALL foo()`.
 We can pass the analyser any symbol dependencies which Fab can't detect.
 The files which contain them, *and their dependencies*, will make their way through to the compile and link stages.
 This is done using the `unreferenced_deps` argument to the :class:`~fab.steps.analyse.Analyse` step.
+Here's how we do this for JULES.
+
+.. code-block::
+
+    steps = [
+        ...
+        Analyse(root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
+        ...
+    ]
+
 
 Name Clash
 ----------
@@ -70,4 +80,4 @@ Fab currently assumes there are no name clashes in your project by the time we r
 
 There may be duplicates earlier in the build process. For example, there may two versions of a module,
 each wrapped in a `#ifdef` so that one of them is empty after preprocessing (empty files are ignored during analysis).
-Another example is to use file filtering in the :class:`~fab.steps.find_source_files.FindSourceFiles` step.
+Another approach is to use file filtering in the :class:`~fab.steps.find_source_files.FindSourceFiles` step.

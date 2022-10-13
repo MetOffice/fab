@@ -95,7 +95,7 @@ It was added to the :term:`Artefact Store` by the preceding step.
 .. note::
     *Artefact Store*
 
-    Steps generally create and find artefacts in this dict, arranged into named collections.
+    Steps generally create and find artefacts in this dictionary, arranged into named collections.
     The Fortran preprocessor automatically looks for Fortran source code in a collection named `'all_source'`,
     which is the default output from the preceding FindSourceFiles step.
 
@@ -161,7 +161,7 @@ This argument is omitted when building a shared or static library.
 
 Compile and Link
 ================
-The :class:`~fab.steps.compile_fortran.CompileFortran` step creates mod and object files
+The :class:`~fab.steps.compile_fortran.CompileFortran` step creates module and object files
 in the build output folder. The :class:`~fab.steps.link.LinkExe` step then creates the executable.
 
 .. code-block::
