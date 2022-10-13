@@ -87,7 +87,6 @@ class FortranAnalyser(object):
         # runtime
         self._prebuild_folder = None
 
-    # def run(self, hashed_file: HashedFile):
     def run(self, fpath: Path):
         log_or_dot(logger, f"analysing {fpath}")
 

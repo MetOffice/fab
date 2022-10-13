@@ -53,7 +53,7 @@ class Test_Analyser(object):
         assert result == module_expected
 
     def test_program_file(self, fortran_analyser, module_fpath, module_expected):
-        # same as test_real_file() but replacing MODULE with PROGRAM
+        # same as test_module_file() but replacing MODULE with PROGRAM
         with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
             tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
             tmp_file.flush()

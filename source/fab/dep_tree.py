@@ -141,8 +141,6 @@ class AnalysedFile(object):
         d = json.load(open(fpath))
         return cls.from_dict(d)
 
-    # Json would be better because we wouldn't have to worry sorting collections.
-    # However, we're planning to revisit csv and possibly replace with a database soon.
     def to_dict(self) -> Dict[str, Any]:
         return {
             "fpath": str(self.fpath),
