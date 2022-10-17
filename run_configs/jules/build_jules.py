@@ -6,32 +6,34 @@
 ##############################################################################
 import logging
 import os
-import sys
-from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
-from fab.steps.compile_fortran import CompileFortran
+from fab.steps.compile_fortran import CompileFortran, get_compiler
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab import GrabFcm, GrabPreBuild
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
+from fab.util import common_arg_parser
 
 logger = logging.getLogger('fab')
 
 
-def jules_config(revision=None, two_stage=False, opt='Og'):
+def jules_config(revision=None, compiler=None, two_stage=False):
 
-    config = BuildConfig(project_label=f'jules {revision} {opt} {int(two_stage)+1}stage')
-    # aid for debugging - for some reason pycharm can't debug this with multiprocessing enabled
-    if 'pydevd' in str(sys.gettrace()):
-        logger.info('debugger detected, running without multiprocessing')
-        config.multiprocessing = False
+    # We want a separate project folder for each compiler. Find out which compiler we'll be using.
+    compiler, _ = get_compiler()
+    config = BuildConfig(project_label=f'jules {revision} {compiler} {int(two_stage)+1}stage')
 
-    logger.info(f'building jules revision {revision} {opt} {int(two_stage)+1}-stage')
+    logger.info(f'building jules {config.project_label}')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
+
+    two_stage_flag = None
+    if compiler == 'gfortran':
+        if two_stage:
+            two_stage_flag = '-fsyntax-only'
 
     # todo: there are likely to be config differences between revisions...
     # A big list of symbols which are used in jules without a use statement.
@@ -60,20 +62,17 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
         RootIncFiles(),
 
         fortran_preprocessor(
-            preprocessor='cpp',
-            common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
+            # preprocessor='cpp',
+            # common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
+            common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
         ),
 
         Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
 
         CompileFortran(
-            compiler='gfortran',
-            common_flags=[
-                '-c',
-                f'-{opt}',
-            ],
-            two_stage_flag='-fsyntax-only' if two_stage else None,
-            # required for newer compilers
+            compiler=compiler,
+            two_stage_flag=two_stage_flag,
+            # required for newer gfortran versions
             # path_flags=[
             #     AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
             # ]
@@ -90,12 +89,8 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser()
+    arg_parser = common_arg_parser()
     arg_parser.add_argument('--revision', default=os.getenv('JULES_REVISION', 'vn6.3'))
-    arg_parser.add_argument('--two-stage', action='store_true')
-    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
-    # logger.setLevel(logging.DEBUG)
-
-    jules_config(revision=args.revision, two_stage=args.two_stage, opt=args.opt).run()
+    jules_config(revision=args.revision, compiler=args.compiler, two_stage=args.two_stage).run()

@@ -35,7 +35,7 @@ class PreProcessor(Step):
 
     def __init__(self,
                  source: ArtefactsGetter = None, output_collection=None, output_suffix=None,
-                 preprocessor='cpp', common_flags: List[str] = None, path_flags: List = None,
+                 preprocessor: str = None, common_flags: List[str] = None, path_flags: List = None,
                  name=None):
         """
         :param source:
@@ -45,7 +45,7 @@ class PreProcessor(Step):
         :param output_suffix:
             Defaults to DEFAULT_OUTPUT_SUFFIX.
         :param preprocessor:
-            The name of the executable. Defaults to 'cpp'.
+            The preprocessor executable.
         :param common_flags:
             Used to construct a :class:`~fab.config.FlagsConfig` object.
         :param path_flags:
@@ -56,10 +56,20 @@ class PreProcessor(Step):
         """
         super().__init__(name=name or self.LABEL)
 
-        self.exe = preprocessor
-        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
-        self.source_getter = source or self.DEFAULT_SOURCE
+        # todo: test no pp specified
 
+        # Command line tools are sometimes specified with flags attached, e.g 'cpp -traditional-cpp'
+        preprocessor_split = (preprocessor or os.getenv('FPP', '')).split()  # type: ignore
+        if not preprocessor_split:
+            raise ValueError('Fortran preprocessor not specified. Cannot continue.')
+
+        self.preprocessor = preprocessor_split[0]
+        logger.info(f'fortran pp is {self.preprocessor}')
+
+        common_flags = preprocessor_split[1:] + (common_flags or [])
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+
+        self.source_getter = source or self.DEFAULT_SOURCE
         self.output_collection = output_collection or self.DEFAULT_OUTPUT_NAME
         self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
 
@@ -101,7 +111,7 @@ class PreProcessor(Step):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.exe.split()  # type: ignore
+                command = [self.preprocessor]
                 command.extend(self.flags.flags_for_path(path=fpath, config=self._config))
                 command.append(str(fpath))
                 command.append(str(output_fpath))
@@ -128,6 +138,7 @@ def fortran_preprocessor(preprocessor=None, source=None,
     """
     # todo: we want to add -P ... IF it's not already there
     return PreProcessor(
+        # todo: no defaults
         preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
         source=source or SuffixFilter('all_source', '.F90'),
         output_collection=output_collection,

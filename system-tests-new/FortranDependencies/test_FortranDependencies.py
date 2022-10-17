@@ -27,12 +27,13 @@ def test_FortranDependencies(tmp_path):
         multiprocessing=False,
         steps=[
             FindSourceFiles(),
-            fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
+            fortran_preprocessor(),  # nothing to preprocess, actually, it's all little f90 files
             Analyse(root_symbol=['first', 'second']),
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
             CompileFortran(compiler='gfortran', common_flags=['-c']),
-            LinkExe(flags=['-lgfortran']),
+            LinkExe(linker='gcc', flags=['-lgfortran']),
         ],
+        verbose=True,
     )
     config.run()
     assert len(config._artefact_store[EXECUTABLES]) == 2
@@ -40,6 +41,7 @@ def test_FortranDependencies(tmp_path):
     # run both exes
     output = set()
     for exe in config._artefact_store[EXECUTABLES]:
+        assert Path(exe).exists()
         res = subprocess.run(str(exe), capture_output=True)
         output.add(res.stdout.decode())
 

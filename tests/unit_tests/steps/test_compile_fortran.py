@@ -226,7 +226,7 @@ class Test_process_file(object):
     def test_compiler_hash(self):
         # changing the compiler must change the combo hash for the mods and obj
         compiler, flags, analysed_file, expect_object_fpath = self.content()
-        compiler.exe = 'bar_cc'
+        compiler.compiler = 'bar_cc'
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:

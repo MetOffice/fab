@@ -10,6 +10,7 @@ Contains the :class:`~fab.build_config.BuildConfig` and helper classes.
 import getpass
 import logging
 import os
+import sys
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -32,13 +33,15 @@ class BuildConfig(object):
 
     """
 
-    def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
-                 multiprocessing=True, n_procs: int = None, reuse_artefacts=False,
+    def __init__(self, project_label: str, clean: bool = False, source_root: Optional[Path] = None,
+                 steps: Optional[List[Step]] = None, multiprocessing=True, n_procs: int = None, reuse_artefacts=False,
                  fab_workspace: Optional[Path] = None, verbose=False, prebuild_folder: Optional[Path] = None):
         """
         :param str project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
+        :param clean:
+            Optionally clean the build output folder first.
         :param Path source_root:
             Optional argument to allow the config to find source code outside it's project workspace.
             This is useful, for example, when the :py:mod:`fab.steps.grab <grab>` is in a separate script to be run
@@ -61,6 +64,7 @@ class BuildConfig(object):
 
         """
         self.project_label: str = project_label.replace(' ', '_')
+        self.clean = clean
 
         # workspace folder
         if not fab_workspace:
@@ -69,20 +73,25 @@ class BuildConfig(object):
             else:
                 fab_workspace = Path(os.path.expanduser("~/fab-workspace"))
                 logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
-        logger.info(f"\nfab workspace is {fab_workspace}")
+        logger.info(f"\n\nfab workspace is {fab_workspace}")
 
         self.project_workspace = fab_workspace / self.project_label
         self.metrics_folder = self.project_workspace / 'metrics' / self.project_label
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
-        self.prebuild_folder: Path = Path(prebuild_folder or self.build_output / PREBUILD)
+        self.prebuild_folder: Path = Path(prebuild_folder or os.getenv("FAB_PREBUILD") or self.build_output / PREBUILD)
+        logger.info(f'prebuild folder is {self.prebuild_folder}')
 
         # build steps
         self.steps: List[Step] = steps or []
 
         # multiprocessing config
         self.multiprocessing = multiprocessing
+        if 'pydevd' in str(sys.gettrace()):
+            logger.info('debugger detected, running without multiprocessing')
+            self.multiprocessing = False
+
         self.n_procs = n_procs
         if self.multiprocessing and not self.n_procs:
             try:
@@ -112,7 +121,17 @@ class BuildConfig(object):
         The metrics can be found in the project workspace.
 
         """
+
+        logger.info('')
+        logger.info('------------------------------------------------------------')
+        logger.info(self.project_label)
+        logger.info('------------------------------------------------------------')
+        logger.info('')
+
         start_time = datetime.now().replace(microsecond=0)
+        if self.clean:
+            self.build_output.unlink(missing_ok=True)
+        self.build_output.mkdir(parents=True, exist_ok=True)
         self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
         self._init_logging()
