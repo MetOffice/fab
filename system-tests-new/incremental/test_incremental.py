@@ -168,7 +168,8 @@ class TestIncremental(object):
 
         # We've recompiled my_prog because a mod it depends on changed.
         # That means there'll be a different version of the artefact with a new hash of things it depends on.
-        # However, it's not *doing* anything different, so the object file should have the same contents.
+        # However, it's not *doing* anything different (it doesn't call the new subroutine),
+        # so the object file should have the same contents.
         self.assert_two_identical_artefacts(
             ['my_prog.*.o'],
             prebuild_groups, prebuild_folder, rebuild_hashes)

@@ -12,7 +12,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 import json
 import logging
 from pathlib import Path
-from typing import Set, Dict, Iterable, Union, Any
+from typing import Set, Dict, Iterable, Union, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,9 @@ class AnalysedFile(object):
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: int,
-                 module_defs: Iterable[str] = None, symbol_defs: Iterable[str] = None,
-                 module_deps: Iterable[str] = None, symbol_deps: Iterable[str] = None,
-                 file_deps: Iterable[Path] = None, mo_commented_file_deps: Iterable[str] = None):
+                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
             The source file that was analysed.

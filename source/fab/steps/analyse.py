@@ -216,7 +216,7 @@ class Analyse(Step):
 
         # warn about naughty fortran usage?
         if self.fortran_analyser.depends_on_comment_found:
-            warnings.warn("not recommended 'DEPENDS ON:' comment found in fortran code")
+            warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
         return set(by_type(results, AnalysedFile))
 
