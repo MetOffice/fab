@@ -17,8 +17,8 @@ Glossary
 
         See also :ref:`Artefacts Overview <artefacts_overview>`
 
-    Named Collection
-        *Named collection* is a term for a collection of :term:`Artefact` in the :term:`Artefact Store`.
+    Artefact Collection
+        A collection of :term:`Artefact` in the :term:`Artefact Store`.
 
         These entries are usually a list of file paths or objects, or a :term:`Source Tree`,
         but could be anything created by one step and consumed by another.
@@ -61,7 +61,8 @@ Glossary
 
     Fab Workspace
         The folder in which all Fab output is created. Defaults to *~/fab-workspace*, and can be overridden
-        by the *FAB_WORKSPACE* environment variable. See also :class:`~fab.build_config.BuildConfig`.
+        by the *FAB_WORKSPACE* environment variable or the `fab_workspace` argument to the
+        :class:`~fab.build_config.BuildConfig` constructor.
 
     Project Workspace
         A folder inside the fab workspace, containing all output from (typically) a single build config.

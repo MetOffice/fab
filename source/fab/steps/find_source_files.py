@@ -93,7 +93,7 @@ class FindSourceFiles(Step):
     In the above example, swapping the order would stop the file being included in the build.
 
     A path matches a filter string simply if it *contains* it,
-    so the path *my_folder/my_file.F90* would match filters "my_folder", "my_file" and "r/m".
+    so the path *my_folder/my_file.F90* would match filters "my_folder", "my_file" and "er/my".
 
     """
     def __init__(self, source_root=None, output_collection="all_source",

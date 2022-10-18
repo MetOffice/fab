@@ -136,7 +136,7 @@ if svn:
         def __init__(self, src, dst=None, revision=None, name=None):
             """
             :param src:
-                Such as `fcm:jules.xm_tr/src`.
+                Repo url.
             :param dst:
                 The name of a sub folder, in the project workspace, in which to put the source.
                 If not specified, the code is copied into the root of the source folder.
