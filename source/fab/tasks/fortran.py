@@ -95,7 +95,12 @@ class FortranAnalyser(object):
         file_hash = file_checksum(fpath).file_hash
         analysis_fpath = Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
         if analysis_fpath.exists():
-            return AnalysedFile.load(analysis_fpath)
+            loaded_result = AnalysedFile.load(analysis_fpath)
+            # Note: This result might have been created by another user, and the prebuild copied here.
+            # If so, the fpath in the result will *not* point to the file we eventually want to compile,
+            # it will point to the user's original file, somewhere else. So, replace it with our own path.
+            loaded_result.fpath = fpath
+            return loaded_result
 
         analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 

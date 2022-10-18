@@ -1,4 +1,5 @@
 import logging
+import os
 import zlib
 from pathlib import Path
 from unittest import mock
@@ -13,9 +14,10 @@ from fab.util import file_walk
 from fab.steps.find_source_files import FindSourceFiles
 
 
+@mock.patch.dict(os.environ, {'FFLAGS': ''})
 class TestFortranPrebuild(object):
 
-    def build_config(self, fab_workspace, prebuild_folder=None):
+    def build_config(self, fab_workspace, grab_prebuild_folder=None):
         logging.getLogger('fab').setLevel(logging.WARNING)
 
         build_config = BuildConfig(
@@ -24,7 +26,7 @@ class TestFortranPrebuild(object):
             steps=[
                 GrabFolder(Path(__file__).parent / 'project-source', dst='src'),
                 # insert a prebuild grab step or don't insert anything
-                *([GrabPreBuild(prebuild_folder)] if prebuild_folder else []),
+                *([GrabPreBuild(grab_prebuild_folder)] if grab_prebuild_folder else []),
                 FindSourceFiles(),
                 fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
                 Analyse(root_symbol='my_prog'),
@@ -73,26 +75,58 @@ class TestFortranPrebuild(object):
 
     def test_vanilla_prebuild(self, tmp_path):
         # share a prebuild from a different folder
-        compile_file = 'fab.steps.compile_fortran.CompileFortran.compile_file'
-        parse_fortran = 'fab.tasks.fortran.FortranAnalyser._parse_file'
 
         # build the project in "some other fab workspace", from where we'll share its prebuild
-        other_config = self.build_config(fab_workspace=tmp_path / 'other_workspace')
-        other_config.run()
+        first_project = self.build_config(fab_workspace=tmp_path / 'other_workspace')
+        first_project.run()
 
         # now build the project in our workspace.
-        my_config = self.build_config(fab_workspace=tmp_path / 'my_workspace',
-                                      prebuild_folder=other_config.prebuild_folder)
-        with mock.patch(parse_fortran) as mock_parse_fortran:
-            with mock.patch(compile_file) as mock_compile_file:
-                my_config.run()
+        second_project = self.build_config(fab_workspace=tmp_path / 'my_workspace',
+                                           grab_prebuild_folder=first_project.prebuild_folder)
+        with mock.patch('fab.tasks.fortran.FortranAnalyser._parse_file') as mock_parse_fortran:
+            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
+                second_project.run()
 
-        # make sure we didn't call the analyser
+        # make sure we didn't call the analyser or compiler
         mock_parse_fortran.assert_not_called()
-
-        # make sure we didn't call the compiler
         mock_compile_file.assert_not_called()
 
         # make sure the exe was built
-        exe = my_config.project_workspace / 'my_prog.exe'
+        exe = second_project.project_workspace / 'my_prog.exe'
         assert exe.exists()
+
+        # make sure the prebuild files are the same
+        for a in file_walk(first_project.prebuild_folder):
+            b = second_project.prebuild_folder / a.name
+            assert files_identical(a, b)
+
+    def test_deleted_original(self, tmp_path):
+        # Ensure we compile the files in our source folder and not those specified in analysis prebuilds.
+        # We do this by deleting the source folder from the first build.
+        # We also delete the compiler prebuilds to get the compiler to run a second time.
+        first_project = self.build_config(fab_workspace=tmp_path / 'first_workspace')
+        first_project.run()
+
+        # Delete the original source that was analysed and compiled.
+        # This is not the source folder, it's the preprocessing results in the build output.
+        (first_project.build_output / 'src/my_mod.f90').unlink()
+        (first_project.build_output / 'src/my_prog.f90').unlink()
+        (first_project.build_output / 'src').rmdir()
+
+        # Delete the compiler prebuilds to make the compiler run again.
+        for f in file_walk(first_project.prebuild_folder):
+            if f.suffix in ['.o', ',mod']:
+                f.unlink()
+
+        # This should now recompile but not reanalyse.
+        # If we're don't "fixup" the analysis results paths as we load them,
+        # then the compiler will try to compile the original, deleted source.
+        second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
+                                           grab_prebuild_folder=first_project.prebuild_folder)
+        second_project.run()
+
+
+def files_identical(a, b):
+    a_bytes = open(a, 'rb').read()
+    b_bytes = open(b, 'rb').read()
+    return a_bytes == b_bytes
