@@ -18,7 +18,7 @@ class Test_CompileC(object):
 
         # prepare a compiler step
         config = BuildConfig('proj', source_root=Path('foo/src'), multiprocessing=False)
-        analysed_file = AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=None)
+        analysed_file = AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=0)
         artefact_store = {BUILD_TREES: {None: {analysed_file.fpath: analysed_file}}}
         c_compiler = CompileC(path_flags=[
             AddFlags(match='foo/src/*', flags=['-I', 'foo/include', '-Dhello'])])
@@ -39,14 +39,14 @@ class Test_CompileC(object):
 
         # ensure it created the correct artefact collection
         assert artefact_store[OBJECT_FILES] == {
-            None: {analysed_file.compiled_path, }
+            None: {analysed_file.fpath.with_suffix('.o'), }
         }
 
     def test_exception_handling(self):
 
         # prepare a compiler step
         config = BuildConfig('proj', source_root=Path('foo/src'), multiprocessing=False)
-        analysed_file = AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=None)
+        analysed_file = AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=0)
         artefact_store = {BUILD_TREES: {None: {analysed_file.fpath: analysed_file}}}
         c_compiler = CompileC()
 

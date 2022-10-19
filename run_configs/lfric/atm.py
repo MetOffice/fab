@@ -3,18 +3,17 @@ import logging
 import os
 from argparse import ArgumentParser
 
-from fab.steps.compile_c import CompileC
-
 from fab.build_config import BuildConfig, AddFlags
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
+from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder, GrabFcm
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import FindSourceFiles, Exclude, Include
+from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 
@@ -119,8 +118,7 @@ def atm_config(two_stage=False, opt='Og'):
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=[
-                '-c', '-J', '$output',
-
+                '-c',
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',

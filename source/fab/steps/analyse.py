@@ -108,11 +108,10 @@ class Analyse(Step):
             we can manually provide the expected analysis results with this argument.
             Only the symbol definitions and dependencies need be provided.
         :param unreferenced_deps:
-            A list of symbols which are needed for the build, but which cannot be automatically
-            determined. For example, functions that are called without a module use statement,
-            or functions that are not called in a simple call statement. Assuming the files
-            containing these symbols are present and will be analysed, those files and all their dependencies
-            will be added to the build tree(s).
+            A list of symbols which are needed for the build, but which cannot be automatically determined by Fab.
+            For example, functions that are called in a one-line if statement.
+            Assuming the files containing these symbols are present and analysed,
+            those files and all their dependencies will be added to the build tree(s).
         :param ignore_mod_deps:
             Third party Fortran module names to be ignored.
         :param name:
