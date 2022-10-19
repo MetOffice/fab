@@ -324,6 +324,9 @@ class test_constructor(object):
             with pytest.raises(ValueError):
                 CompileFortran()
 
+    def test_unknown_compiler(self):
+        assert False
+
 
 class test_get_compiler(object):
 
@@ -332,3 +335,4 @@ class test_get_compiler(object):
 
     def test_with_flag(self):
         assert get_compiler('gfortran -c') == ('gfortran', ['-c'])
+
