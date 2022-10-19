@@ -1,7 +1,6 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest import mock
-from unittest.mock import Mock
 
 import pytest
 from fparser.common.readfortran import FortranFileReader  # type: ignore
@@ -10,7 +9,6 @@ from fparser.two.parser import ParserFactory  # type: ignore
 
 from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.tasks.fortran import FortranAnalyser, iter_content
-from fab.util import HashedFile
 
 
 # todo: test function binding
@@ -25,7 +23,7 @@ def module_fpath():
 def module_expected(module_fpath):
     return AnalysedFile(
         fpath=module_fpath,
-        file_hash=0,
+        file_hash=4039845747,
         module_defs={'foo_mod'},
         symbol_defs={'external_sub', 'external_func', 'foo_mod'},
         module_deps={'bar_mod'},
@@ -37,25 +35,33 @@ def module_expected(module_fpath):
 
 class Test_Analyser(object):
 
-    def test_empty_file(self):
-        mock_tree = Mock(content=[None])
-        with mock.patch('fab.tasks.fortran.FortranAnalyser._parse_file', return_value=mock_tree):
-            result = FortranAnalyser().run(HashedFile(fpath=None, file_hash=0))
+    @pytest.fixture
+    def fortran_analyser(self):
+        fortran_analyser = FortranAnalyser()
+        fortran_analyser._prebuild_folder = Path('/prebuild')
+        return fortran_analyser
 
+    def test_empty_file(self, fortran_analyser):
+        # make sure we get back an EmptySourceFile, not an AnalysedFile
+        with mock.patch('fab.dep_tree.AnalysedFile.save'):
+            result = fortran_analyser.run(fpath=Path(Path(__file__).parent / "empty.f90"))
         assert type(result) is EmptySourceFile
 
-    def test_module_file(self, module_fpath, module_expected):
-        result = FortranAnalyser().run(HashedFile(fpath=module_fpath, file_hash=0))
+    def test_module_file(self, fortran_analyser, module_fpath, module_expected):
+        with mock.patch('fab.dep_tree.AnalysedFile.save'):
+            result = fortran_analyser.run(fpath=module_fpath)
         assert result == module_expected
 
-    def test_program_file(self, module_fpath, module_expected):
-        # same as test_real_file() but replacing MODULE with PROGRAM
+    def test_program_file(self, fortran_analyser, module_fpath, module_expected):
+        # same as test_module_file() but replacing MODULE with PROGRAM
         with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
             tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
             tmp_file.flush()
-            result = FortranAnalyser().run(HashedFile(fpath=Path(tmp_file.name), file_hash=0))
+            with mock.patch('fab.dep_tree.AnalysedFile.save'):
+                result = fortran_analyser.run(fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)
+            module_expected.file_hash = 768896775
             module_expected.module_defs = set()
             module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
 

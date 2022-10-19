@@ -7,12 +7,13 @@ C language handling classes.
 """
 import logging
 from collections import deque
+from pathlib import Path
 from typing import List, Optional
 
 import clang.cindex  # type: ignore
 
 from fab.dep_tree import AnalysedFile
-from fab.util import log_or_dot, HashedFile
+from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,11 @@ class CAnalyser(object):
     Identify symbol definitions and dependencies in a C file.
 
     """
+
+    def __init__(self):
+
+        # runtime
+        self._prebuild_folder = None
 
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
@@ -76,18 +82,25 @@ class CAnalyser(object):
         else:
             return None
 
-    def run(self, hashed_file: HashedFile):
-        fpath, file_hash = hashed_file
+    def run(self, fpath: Path):
         log_or_dot(logger, f"analysing {fpath}")
 
+        # do we already have analysis results for this file?
+        # todo: dupe - probably best in a parser base class
+        file_hash = file_checksum(fpath).file_hash
+        analysis_fpath = Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        if analysis_fpath.exists():
+            return AnalysedFile.load(analysis_fpath)
+
+        analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
+
+        # parse the file
         try:
             index = clang.cindex.Index.create()
             translation_unit = index.parse(fpath, args=["-xc"])
         except Exception as err:
             logger.exception(f'error parsing {fpath}')
             return err
-
-        analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
         # Create include region line mappings
         try:
@@ -115,6 +128,7 @@ class CAnalyser(object):
             logger.exception(f'error walking parsed nodes {fpath}')
             return err
 
+        analysed_file.save(analysis_fpath)
         return analysed_file
 
     def _process_symbol_declaration(self, analysed_file, node, usr_symbols):
