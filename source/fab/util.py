@@ -65,7 +65,7 @@ def file_checksum(fpath):
         return HashedFile(fpath, zlib.crc32(infile.read()))
 
 
-# todo: we're not sure we actually want to do modify user config at all...
+# todo: We're not sure we actually want to do modify incoming flags. Discuss...
 # todo: this is compiler specific, rename - and do we want similar functions for other steps?
 def remove_managed_flags(compiler, flags_in):
     """
@@ -338,12 +338,12 @@ def common_arg_parser():
     """
     arg_parser = ArgumentParser()
 
-    # arg_parser.add_argument('--preprocessor', default=None)
-    arg_parser.add_argument('--compiler', default=None)
-    # arg_parser.add_argument('--linker', default=None)
+    # Note: consider adding
+    #   --preprocessor
+    #   --linker
+    #   --optimisation
 
-    arg_parser.add_argument('--clean', action='store_true')
+    arg_parser.add_argument('--compiler', default=None)
     arg_parser.add_argument('--two-stage', action='store_true')
-    # arg_parser.add_argument('--opt-level', default=None)
 
     return arg_parser

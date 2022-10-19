@@ -56,13 +56,10 @@ class PreProcessor(Step):
         """
         super().__init__(name=name or self.LABEL)
 
-        # todo: test no pp specified
+        # todo: should we manage known preprocessors like we do compilers, so we can ensure the -P flag is added?
 
         # Command line tools are sometimes specified with flags attached, e.g 'cpp -traditional-cpp'
-        preprocessor_split = (preprocessor or os.getenv('FPP', '')).split()  # type: ignore
-        if not preprocessor_split:
-            raise ValueError('Fortran preprocessor not specified. Cannot continue.')
-
+        preprocessor_split = (preprocessor or os.getenv('FPP', 'fpp -P')).split()  # type: ignore
         self.preprocessor = preprocessor_split[0]
         logger.info(f'fortran pp is {self.preprocessor}')
 
@@ -138,7 +135,6 @@ def fortran_preprocessor(preprocessor=None, source=None,
     """
     # todo: we want to add -P ... IF it's not already there
     return PreProcessor(
-        # todo: no defaults
         preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
         source=source or SuffixFilter('all_source', '.F90'),
         output_collection=output_collection,
@@ -173,7 +169,7 @@ def c_preprocessor(preprocessor=None, source=None,
 
     """
     return PreProcessor(
-        preprocessor=preprocessor or os.getenv('CPP', 'cpp -P'),
+        preprocessor=preprocessor or os.getenv('CPP', 'fpp -P'),
         source=source or DEFAULT_C_SOURCE_GETTER,
         output_collection=output_collection,
         output_suffix=output_suffix,

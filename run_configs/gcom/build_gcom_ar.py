@@ -11,7 +11,7 @@ from gcom_build_steps import common_build_steps, parse_args
 from grab_gcom import gcom_grab_config
 
 
-def gcom_ar_config(revision=None, compiler=None, clean=False):
+def gcom_ar_config(revision=None, compiler=None):
     """
     Create an object archive for linking.
 
@@ -22,7 +22,6 @@ def gcom_ar_config(revision=None, compiler=None, clean=False):
     config = BuildConfig(
         project_label=f'gcom object archive {revision} {compiler}',
         source_root=gcom_grab_config(revision=revision).source_root,
-        clean=clean,
         steps=[
             *common_build_steps(fortran_compiler=compiler),
             ArchiveObjects(output_fpath='$output/libgcom.a'),
@@ -37,5 +36,4 @@ if __name__ == '__main__':
     gcom_ar_config(
         revision=args.revision,
         compiler=args.compiler,
-        clean=args.clean
     ).run()

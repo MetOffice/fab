@@ -61,8 +61,6 @@ class LinkerBase(Step, ABC):
         super().__init__(name)
 
         self.linker = linker or os.getenv('LD', 'ld')
-        if not self.linker:
-            raise ValueError('Linker not specified and LD environment variable not set. Cannot continue.')
         logger.info(f'linker is {self.linker}')
 
         self.flags: List[str] = flags or []

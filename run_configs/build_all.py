@@ -16,7 +16,9 @@ def build_all():
 
     os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), 'fab_build_all')
 
-    # We can greatly speed up our builds by putting all projects' reusable artefacts in one big folder.
+    # We can speed up our builds by putting all projects' reusable artefacts in one big folder.
+    # Note: Doesn't give benefit for analysis results across preprocessors
+    #       because the two different preprocessors add blank lines differently.
     os.environ['FAB_PREBUILD'] = os.path.join(os.getcwd(), 'fab_prebuild')
 
     scripts = [

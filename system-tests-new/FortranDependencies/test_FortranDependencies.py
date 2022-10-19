@@ -41,7 +41,6 @@ def test_FortranDependencies(tmp_path):
     # run both exes
     output = set()
     for exe in config._artefact_store[EXECUTABLES]:
-        assert Path(exe).exists()
         res = subprocess.run(str(exe), capture_output=True)
         output.add(res.stdout.decode())
 

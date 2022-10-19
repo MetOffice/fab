@@ -62,15 +62,6 @@ class CompileFortran(Step):
         """
         super().__init__(name=name)
 
-        # todo: test different invocations end up with the right flags configured
-
-        # todo: test cases:
-        #       FC='gfortran -c', FFLAGS=''
-        #       FC='gfortran', FFLAGS='-c'
-        #       FC='gfortran', FFLAGS=''
-
-        # todo: test no fc specified
-
         # Command line tools are sometimes specified with flags attached.
         self.compiler, compiler_flags = get_compiler(compiler)
         logger.info(f'fortran compiler is {self.compiler}')
@@ -338,6 +329,7 @@ class CompileFortran(Step):
             value={'time_taken': timer.taken, 'start': timer.start})
 
 
+# todo: generalise this for the preprocessor, we see flags in FPP
 def get_compiler(compiler: str = None) -> Tuple[str, List[str]]:
     """
     Separate the compiler and flags from the given string (or `FC` environment variable), like `gfortran -c`.

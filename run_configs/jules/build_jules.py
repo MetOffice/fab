@@ -62,8 +62,6 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         RootIncFiles(),
 
         fortran_preprocessor(
-            # preprocessor='cpp',
-            # common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
             common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
         ),
 
