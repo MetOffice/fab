@@ -47,7 +47,7 @@ class PreProcessor(Step):
         :param preprocessor:
             The name of the executable. Defaults to 'cpp'.
         :param common_flags:
-            Used to construct a :class:`~fab.build_config.FlagsConfig` object.
+            Used to construct a :class:`~fab.config.FlagsConfig` object.
         :param path_flags:
             Used to construct a :class:`~fab.build_config.FlagsConfig` object.
         :param name:

@@ -35,6 +35,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.autosectionlabel',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -71,3 +72,6 @@ autoclass_content = 'both'
 
 #
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+
+# create linkable targets from section headings
+autosectionlabel_prefix_document = True
