@@ -86,6 +86,9 @@ class CompileFortran(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.two_stage_flag = two_stage_flag
 
+        # not ideal to do work in a constructor...
+        self.compiler_version = _get_compiler_version(self.exe.split()[0])
+
         # runtime
         self._stage = None
         self._mod_hashes: Dict[str, int] = {}
@@ -265,7 +268,8 @@ class CompileFortran(Step):
                 analysed_file.file_hash,
                 flags_checksum(flags),
                 sum(mod_deps_hashes.values()),
-                zlib.crc32(self.compiler.encode())
+                zlib.crc32(self.compiler.encode()),
+                zlib.crc32(self.compiler_version.encode()),
             ])
         except TypeError:
             raise ValueError("could not generate combo hash for object file")
@@ -276,7 +280,8 @@ class CompileFortran(Step):
         try:
             mod_combo_hash = sum([
                 analysed_file.file_hash,
-                zlib.crc32(self.compiler.encode())
+                zlib.crc32(self.compiler.encode()),
+                zlib.crc32(self.compiler_version.encode()),
             ])
         except TypeError:
             raise ValueError("could not generate combo hash for mod files")
@@ -343,3 +348,44 @@ def get_compiler(compiler: str = None) -> Tuple[str, List[str]]:
 
     compiler = compiler_split[0]
     return compiler, compiler_split[1:]
+
+
+# todo: add more compilers and test with more versions of compilers
+def _get_compiler_version(compiler: str) -> str:
+    """
+    Try to get the version of the given compiler.
+
+    Expects a version in a certain part of the --version output,
+    which must adhere to the n.n.n format, with at least 2 parts.
+
+    Returns a version string, e.g '6.10.1', or empty string.
+
+    """
+    try:
+        res = run_command([compiler, '--version'])
+    except FileNotFoundError:
+        raise ValueError(f'Compiler not found: {compiler}')
+    except RuntimeError as err:
+        logger.warning(f"Error asking for version of compiler '{compiler}': {err}")
+        return ''
+
+    # Pull the version string from the command output.
+    # All the versions of gfortran and ifort we've tried follow the same pattern, it's after a ")".
+    try:
+        version = res.split(')')[1].split()[0]
+    except IndexError:
+        logger.warning(f"Unexpected version response from compiler '{compiler}': {res}")
+        return ''
+
+    # expect major.minor[.patch, ...]
+    # validate - this may be overkill
+    split = version.split('.')
+    if len(split) < 2:
+        logger.warning(f"unhandled compiler version format for compiler '{compiler}' is not <n.n[.n, ...]>: {version}")
+        return ''
+
+    # todo: do we care if the parts are integers? Not all will be, but perhaps major and minor?
+
+    logger.info(f'Found compiler version for {compiler} = {version}')
+
+    return version
