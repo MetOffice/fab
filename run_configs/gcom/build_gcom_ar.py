@@ -33,7 +33,4 @@ def gcom_ar_config(revision=None, compiler=None):
 
 if __name__ == '__main__':
     args = parse_args()
-    gcom_ar_config(
-        revision=args.revision,
-        compiler=args.compiler,
-    ).run()
+    gcom_ar_config(revision=args.revision, compiler=args.compiler).run()

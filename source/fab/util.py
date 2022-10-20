@@ -336,13 +336,8 @@ def common_arg_parser():
     More arguments can be added as needed by the calling code.
 
     """
+    # consider adding preprocessor, linker, optimisation, two-stage
     arg_parser = ArgumentParser()
-
-    # Note: consider adding
-    #   --preprocessor
-    #   --linker
-    #   --optimisation
-
     arg_parser.add_argument('--compiler', default=None)
     arg_parser.add_argument('--two-stage', action='store_true')
 

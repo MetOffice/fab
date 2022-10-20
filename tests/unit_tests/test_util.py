@@ -105,7 +105,12 @@ class Test_remove_managed_flags(object):
         result = remove_managed_flags('gfortran', flags)
         assert result == ['--foo', '--bar']
 
-    def test_iforft(self):
+    def test_ifort(self):
         flags = ['--foo', '-module', 'nope', '--bar']
         result = remove_managed_flags('ifort', flags)
         assert result == ['--foo', '--bar']
+
+    def test_unknown_compiler(self):
+        flags = ['--foo', '-J', 'nope', '--bar']
+        result = remove_managed_flags('foofc', flags)
+        assert result == ['--foo', '-J', 'nope', '--bar']

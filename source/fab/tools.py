@@ -19,9 +19,9 @@ class Compiler(object):
         self.exe = exe
         self.compile_flag = compile_flag
         self.module_folder_flag = module_folder_flag
+        # We should probably extend this for fPIC, two-stage and optimisation levels.
 
 
-# we could extend this for pic_flag='-fPIC'
 COMPILERS: Dict[str, Compiler] = {
     'gfortran': Compiler(exe='gfortran', compile_flag='-c', module_folder_flag='-J'),
     'ifort': Compiler(exe='ifort', compile_flag='-c', module_folder_flag='-module'),

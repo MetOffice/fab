@@ -35,7 +35,4 @@ def gcom_so_config(revision=None, compiler=None):
 
 if __name__ == '__main__':
     args = parse_args()
-    gcom_so_config(
-        compiler=args.compiler,
-        revision=args.revision,
-    ).run()
+    gcom_so_config(compiler=args.compiler, revision=args.revision).run()

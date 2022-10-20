@@ -31,13 +31,14 @@ def jules_config(revision=None, compiler=None, two_stage=False):
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
 
     two_stage_flag = None
+    # todo: move this to the known compiler flags?
     if compiler == 'gfortran':
         if two_stage:
             two_stage_flag = '-fsyntax-only'
 
-    # todo: there are likely to be config differences between revisions...
     # A big list of symbols which are used in jules without a use statement.
     # Fab doesn't automatically identify such dependencies, and so they must be specified here by the user.
+    # Note: there are likely to be differences between revisions here...
     unreferenced_dependencies = [
         # this is on a one-line if statement, which fab doesn't currently identify
         'imogen_update_carb',
