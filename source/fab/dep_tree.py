@@ -9,10 +9,10 @@ Classes and helper functions related to the dependency tree, as created by the a
 """
 
 # todo: we've since adopted the term "source tree", so we should probably rename this module to match.
-
+import json
 import logging
 from pathlib import Path
-from typing import Set, Dict, Iterable, Union
+from typing import Set, Dict, Iterable, Union, Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -28,9 +28,9 @@ class AnalysedFile(object):
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: int,
-                 module_defs=None, symbol_defs=None,
-                 module_deps=None, symbol_deps=None,
-                 file_deps=None, mo_commented_file_deps=None):
+                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
             The source file that was analysed.
@@ -51,6 +51,8 @@ class AnalysedFile(object):
             Comes from "DEPENDS ON:" comments which end in ".o".
 
         """
+        assert file_hash is not None
+
         self.fpath = Path(fpath)
         self.file_hash = file_hash
         self.module_defs: Set[str] = set(module_defs or {})
@@ -60,7 +62,7 @@ class AnalysedFile(object):
         self.file_deps: Set[Path] = set(file_deps or {})
 
         # dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file
-        self.mo_commented_file_deps: Set[str] = mo_commented_file_deps or set()
+        self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
 
         assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
@@ -91,13 +93,6 @@ class AnalysedFile(object):
     def add_file_dep(self, name):
         assert name and len(name)
         self.file_deps.add(name)
-
-    @property
-    def compiled_path(self):
-        """The compiled_path property defines where the compiler is expected to put the object file."""
-        # This might not seem relevant to the concept of an AnalysedFile. However, it is required in several places
-        # throughout the codebase, so we've DRY'd it here.
-        return self.fpath.with_suffix('.o')
 
     @property
     def mod_filenames(self):
@@ -137,40 +132,41 @@ class AnalysedFile(object):
             tuple(sorted(self.mo_commented_file_deps)),
         ))
 
-    # Json would be better because we wouldn't have to worry sorting collections.
-    # However, we're planning to revisit csv and possibly replace with a database soon.
-    def to_str_dict(self) -> Dict[str, str]:
-        """
-        Convert to a dict of strings. For example, when writing to a CsvWriter.
+    def save(self, fpath: Union[str, Path]):
+        d = self.to_dict()
+        json.dump(d, open(fpath, 'wt'), indent=4)
 
-        Collections are sorted into a single, semicolon separated string, for repeatable results.
+    @classmethod
+    def load(cls, fpath: Union[str, Path]):
+        d = json.load(open(fpath))
+        return cls.from_dict(d)
 
-        """
-        # note: our sets currently become strings with undefined order
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "fpath": str(self.fpath),
-            "file_hash": str(self.file_hash),
-            "module_defs": ';'.join(sorted(self.module_defs)),
-            "symbol_defs": ';'.join(sorted(self.symbol_defs)),
-            "module_deps": ';'.join(sorted(self.module_deps)),
-            "symbol_deps": ';'.join(sorted(self.symbol_deps)),
-            "file_deps": ';'.join(sorted(map(str, self.file_deps))),
-            "mo_commented_file_deps": ';'.join(sorted(self.mo_commented_file_deps)),
+            "file_hash": self.file_hash,
+            "module_defs": list(self.module_defs),
+            "symbol_defs": list(self.symbol_defs),
+            "module_deps": list(self.module_deps),
+            "symbol_deps": list(self.symbol_deps),
+            "file_deps": list(map(str, self.file_deps)),
+            "mo_commented_file_deps": list(self.mo_commented_file_deps),
         }
 
     @classmethod
-    def from_str_dict(cls, d):
-        """Convert from a dict of strings. For example, when reading from a CsvWriter."""
-        return cls(
+    def from_dict(cls, d):
+        result = cls(
             fpath=Path(d["fpath"]),
-            file_hash=int(d["file_hash"]),
-            module_defs=set(d["module_defs"].split(';')) if d["module_defs"] else set(),
-            symbol_defs=set(d["symbol_defs"].split(';')) if d["symbol_defs"] else set(),
-            module_deps=set(d["module_deps"].split(';')) if d["module_deps"] else set(),
-            symbol_deps=set(d["symbol_deps"].split(';')) if d["symbol_deps"] else set(),
-            file_deps=set(map(Path, d["file_deps"].split(';'))) if d["file_deps"] else set(),
-            mo_commented_file_deps=set(d["mo_commented_file_deps"].split(';')) if d["mo_commented_file_deps"] else set()
+            file_hash=d["file_hash"],
+            module_defs=set(d["module_defs"]),
+            symbol_defs=set(d["symbol_defs"]),
+            module_deps=set(d["module_deps"]),
+            symbol_deps=set(d["symbol_deps"]),
+            file_deps=set(map(Path, d["file_deps"])),
+            mo_commented_file_deps=set(d["mo_commented_file_deps"]),
         )
+        assert result.file_hash is not None
+        return result
 
 
 # Possibly overkill to have a class for this, but it makes analysis code simpler via type filtering.

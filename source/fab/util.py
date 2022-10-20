@@ -13,10 +13,10 @@ import logging
 import subprocess
 import sys
 import zlib
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Set, Dict
+from typing import Iterator, Iterable, Optional, Set, Dict, List
 
 from fab.dep_tree import AnalysedFile
 
@@ -60,6 +60,33 @@ def file_checksum(fpath):
     """
     with open(fpath, "rb") as infile:
         return HashedFile(fpath, zlib.crc32(infile.read()))
+
+
+def remove_minus_J(flags, verbose=False):
+    """
+    Remove the -J <folder> from the given flags.
+
+    """
+    # todo: Fab should be compiler aware, with the possibly of different flags to ignore per compiler
+    in_minus_J = False
+    ret = []
+    for flag in flags:
+        if in_minus_J:
+            in_minus_J = False
+            continue
+        if flag == '-J':
+            in_minus_J = True
+        else:
+            ret.append(flag)
+    return ret
+
+
+def flags_checksum(flags: List[str]):
+    """
+    Return a checksum of the flags, ignoring anything which should not cause a rebuild.
+
+    """
+    return string_checksum(str(remove_minus_J(flags)))
 
 
 def string_checksum(s: str):
@@ -145,73 +172,23 @@ class CompiledFile(object):
     A Fortran or C file which has been compiled.
 
     """
-    def __init__(self, input_fpath, output_fpath,
-                 source_hash=None, flags_hash=None, module_deps_hashes: Dict[str, int] = None):
+    def __init__(self, input_fpath, output_fpath):
         """
         :param input_fpath:
             The file that was compiled.
         :param output_fpath:
             The object file that was created.
-        :param source_hash:
-            Hash of the compiled source.
-        :param flags_hash:
-            Hash of the compiler flags.
-        :param module_deps_hashes:
-            Hash of each module on which we depend.
 
         """
         # todo: Should just be the input_fpath, not the whole analysed file
         self.input_fpath = Path(input_fpath)
         self.output_fpath = Path(output_fpath)
 
-        self.source_hash = source_hash or 0
-        self.flags_hash = flags_hash or 0
-        self.module_deps_hashes = module_deps_hashes or {}
-
-    #
-    # persistence
-    #
-    @classmethod
-    def field_names(cls):
-        return [
-            'input_fpath', 'output_fpath',
-            'source_hash', 'flags_hash', 'module_deps_hashes',
-        ]
-
-    def to_str_dict(self):
-        """
-        Convert to a dict of strings. For example, when writing to a CsvWriter.
-
-        """
-        return {
-            "input_fpath": str(self.input_fpath),
-            "output_fpath": str(self.output_fpath),
-            "source_hash": str(self.source_hash),
-            "flags_hash": str(self.flags_hash),
-            "module_deps_hashes": ';'.join([f'{k}={v}' for k, v in self.module_deps_hashes.items()]),
-        }
-
-    @classmethod
-    def from_str_dict(cls, d):
-        """Convert from a dict of strings. For example, when reading from a CsvWriter."""
-
-        if d["module_deps_hashes"]:
-            # json would be easier now we're also serialising dicts
-            module_deps_hashes = [i.split('=') for i in d["module_deps_hashes"].split(';')]
-            module_deps_hashes = {i[0]: int(i[1]) for i in module_deps_hashes}
-        else:
-            module_deps_hashes = {}
-
-        return cls(
-            input_fpath=Path(d["input_fpath"]),
-            output_fpath=Path(d["output_fpath"]),
-            source_hash=int(d["source_hash"]),
-            flags_hash=int(d["flags_hash"]),
-            module_deps_hashes=module_deps_hashes,
-        )
-
     def __eq__(self, other):
         return vars(self) == vars(other)
+
+    def __repr__(self):
+        return f'CompiledFile({self.input_fpath}, {self.output_fpath})'
 
 
 # todo: we should probably pass in the output folder, not the project workspace
@@ -239,7 +216,7 @@ def input_to_output_fpath(config, input_path: Path):
     return build_output / rel_path
 
 
-def run_command(command, env=None):
+def run_command(command, env=None, cwd=None):
     """
     Run a CLI command.
 
@@ -250,9 +227,11 @@ def run_command(command, env=None):
 
     """
     logger.debug(f'run_command: {command}')
-    res = subprocess.run(command, capture_output=True, env=env)
+    res = subprocess.run(command, capture_output=True, env=env, cwd=cwd)
     if res.returncode != 0:
-        raise RuntimeError(f"Command failed:\n{command}\n{res.stderr.decode()}")
+        raise RuntimeError(f"Command failed:\n{command}\n{res.stdout.decode()}\n{res.stderr.decode()}")
+
+    return res.stdout.decode()
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
@@ -294,3 +273,27 @@ def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
             mod_hashes[mod_def] = file_checksum(fpath).file_hash
 
     return mod_hashes
+
+
+def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
+    """
+    Group prebuild filenames by originating artefact.
+
+    Prebuild filenames have the form `<stem>.<hash>.<suffix>`.
+    This function creates a dict with wildcard key `<stem>.*.<suffix>`
+    with each entry mapping to a set of all matching prebuild files.
+
+    Given the input files *my_mod.123.o* and *my_mod.456.o*,
+    returns a dict {'my_mod.*.o': {'my_mod.123.o', 'my_mod.456.o'}}
+
+    Assumes all prebuild files are in a flat folder, so folders are removed from the result to aid inspection.
+
+    """
+    pbf_groups = defaultdict(set)
+
+    for pbf in prebuild_files:
+        stem_stem = pbf.stem.split('.')[0]
+        wildcard_key = f'{stem_stem}.*{pbf.suffix}'
+        pbf_groups[wildcard_key].add(pbf.name)
+
+    return pbf_groups
