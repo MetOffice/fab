@@ -14,13 +14,11 @@ from fab.util import run_command
 def build_all():
 
     configs_folder = Path(__file__).parent
+    compiler, _ = get_compiler()
 
-    os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), 'fab_build_all')
-
-    # We can speed up our builds by putting all projects' reusable artefacts in one big folder.
-    # Note: Doesn't give benefit for analysis results across preprocessors
-    #       because the two different preprocessors add blank lines differently.
-    os.environ['FAB_PREBUILD'] = os.path.join(os.getcwd(), 'fab_prebuild')
+    os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler}')
+    # save a bit of time if we're processing the same code in different projects
+    os.environ['FAB_PREBUILD'] = os.path.join(os.environ['FAB_WORKSPACE'], '_prebuild')
 
     scripts = [
         configs_folder / 'gcom/grab_gcom.py',
@@ -37,17 +35,19 @@ def build_all():
         configs_folder / 'lfric/atm.py',
     ]
 
-    # skip these for now, until we configure them correctly
-    compiler_skip = {'ifort': ['build_um.py']}
-    compiler, _ = get_compiler()
+    # skip these for now, until we configure them to build again
+    compiler_skip = {'gfortran': ['atm.py'], 'ifort': ['build_um.py', 'atm.py']}
+    skip = compiler_skip[compiler]
 
     for script in scripts:
 
-        # do we skip this script for the current compiler?
-        for c, skip in compiler_skip.items():
-            if compiler == c and script.name in scripts:
-                print(f'skipping {script.name} for compiler {compiler} - get this compiling again!')
-                continue
+        # skip this build script for the current compiler?
+        if script.name in skip:
+            print(f''
+                  f'-----'
+                  f'SKIPPING {script.name} FOR COMPILER {compiler} - GET THIS COMPILING AGAIN'
+                  f'-----')
+            continue
 
         run_command([script], capture_output=False)
 
