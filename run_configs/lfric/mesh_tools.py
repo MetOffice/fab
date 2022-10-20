@@ -8,9 +8,9 @@ from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.walk_source import FindSourceFiles, Exclude
+from fab.steps.find_source_files import FindSourceFiles, Exclude
 from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
@@ -59,7 +59,7 @@ def mesh_tools_config(two_stage=False, opt='Og'):
         CompileFortran(
             compiler=os.getenv('FC', 'gfortran'),
             common_flags=[
-                '-c', '-J', '$output',
+                '-c',
                 f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,

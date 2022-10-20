@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-This module contains :term:`Artefact Getter` classes which return :term:`Named Collections <Named Collection>`
+This module contains :term:`Artefacts Getter` classes which return :term:`Artefact Collections <Artefact Collection>`
 from the :term:`Artefact Store`.
 
 These classes are used by the `run` method of :class:`~fab.steps.Step` classes to retrieve the artefacts
@@ -38,7 +38,7 @@ class ArtefactsGetter(ABC):
 
 class CollectionGetter(ArtefactsGetter):
     """
-    A simple artefact getter which returns one :term:`Named Collection` from the artefact_store.
+    A simple artefact getter which returns one :term:`Artefact Collection` from the artefact_store.
 
     Example::
 
@@ -60,7 +60,7 @@ class CollectionGetter(ArtefactsGetter):
 
 class CollectionConcat(ArtefactsGetter):
     """
-    Returns a concatenated list from multiple :term:`Named Collections <Named Collection>`
+    Returns a concatenated list from multiple :term:`Artefact Collections <Artefact Collection>`
     (each expected to be an iterable).
 
     An :class:`~fab.artefacts.ArtefactsGetter` can be provided instead of a collection_name.
@@ -97,7 +97,7 @@ class CollectionConcat(ArtefactsGetter):
 
 class SuffixFilter(ArtefactsGetter):
     """
-    Returns the file paths in a :term:`Named Collection` (expected to be an iterable),
+    Returns the file paths in a :term:`Artefact Collection` (expected to be an iterable),
     filtered by suffix.
 
     Example::

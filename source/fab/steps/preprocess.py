@@ -47,9 +47,9 @@ class PreProcessor(Step):
         :param preprocessor:
             The name of the executable. Defaults to 'cpp'.
         :param common_flags:
-            Used to construct a :class:`~fab.config.FlagsConfig' object.
+            Used to construct a :class:`~fab.config.FlagsConfig` object.
         :param path_flags:
-            Used to construct a :class:`~fab.config.FlagsConfig' object.
+            Used to construct a :class:`~fab.build_config.FlagsConfig` object.
         :param name:
             Human friendly name for logger output, with sensible default.
 
@@ -149,7 +149,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
                or SuffixFilter('all_source', '.c')(artefact_store)
 
 
-DEFAULT_SOURCE_GETTER = DefaultCPreprocessorSource()
+DEFAULT_C_SOURCE_GETTER = DefaultCPreprocessorSource()
 
 
 def c_preprocessor(preprocessor=None, source=None,
@@ -163,7 +163,7 @@ def c_preprocessor(preprocessor=None, source=None,
     """
     return PreProcessor(
         preprocessor=preprocessor or os.getenv('CPP', 'cpp -P'),
-        source=source or DEFAULT_SOURCE_GETTER,
+        source=source or DEFAULT_C_SOURCE_GETTER,
         output_collection=output_collection,
         output_suffix=output_suffix,
         name=name,

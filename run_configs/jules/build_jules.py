@@ -6,19 +6,18 @@
 ##############################################################################
 import logging
 import os
+import sys
 from argparse import ArgumentParser
-
-from fab.steps.archive_objects import ArchiveObjects
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
-from fab.steps.compile_c import CompileC
+from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab import GrabFcm
-from fab.steps.link_exe import LinkExe
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
+from fab.steps.find_source_files import FindSourceFiles, Exclude
+from fab.steps.grab import GrabFcm, GrabPreBuild
+from fab.steps.link import LinkExe
+from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import FindSourceFiles, Exclude
 
 logger = logging.getLogger('fab')
 
@@ -26,8 +25,10 @@ logger = logging.getLogger('fab')
 def jules_config(revision=None, two_stage=False, opt='Og'):
 
     config = BuildConfig(project_label=f'jules {revision} {opt} {int(two_stage)+1}stage')
-    # config.multiprocessing = False
-    # config.reuse_artefacts = True
+    # aid for debugging - for some reason pycharm can't debug this with multiprocessing enabled
+    if 'pydevd' in str(sys.gettrace()):
+        logger.info('debugger detected, running without multiprocessing')
+        config.multiprocessing = False
 
     logger.info(f'building jules revision {revision} {opt} {int(two_stage)+1}-stage')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
@@ -45,6 +46,9 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
         GrabFcm(src='fcm:jules.xm_tr/src', revision=revision, dst='src'),
         GrabFcm(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
 
+        # Copy another pre-build folder into our own.
+        GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
+
         FindSourceFiles(path_filters=[
             Exclude('src/control/um/'),
             Exclude('src/initialisation/um/'),
@@ -55,8 +59,6 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
 
         RootIncFiles(),
 
-        c_preprocessor(),
-
         fortran_preprocessor(
             preprocessor='cpp',
             common_flags=['-traditional-cpp', '-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
@@ -64,13 +66,10 @@ def jules_config(revision=None, two_stage=False, opt='Og'):
 
         Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
 
-        CompileC(),
-
         CompileFortran(
             compiler='gfortran',
             common_flags=[
                 '-c',
-                '-J', '$output',
                 f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
