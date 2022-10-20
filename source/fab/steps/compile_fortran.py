@@ -261,22 +261,6 @@ class CompileFortran(Step):
         except TypeError:
             raise ValueError("could not generate combo hash for object file")
 
-        # # remote debugging aid - remove!
-        # print(
-        #     '-----------------\n'
-        #     f'{analysed_file.fpath}\n'
-        #     f'analysed_file.file_hash {analysed_file.file_hash}\n'
-        #     f'flags {flags}\n'
-        #     f'flags_checksum(flags) {flags_checksum(flags)}\n'
-        #     f'mod_deps_hashes {mod_deps_hashes}\n'
-        #     f'sum(mod_deps_hashes.values()) {sum(mod_deps_hashes.values())}\n'
-        #     f'self.compiler {self.compiler}\n'
-        #     f'zlib.crc32(self.compiler.encode()) {zlib.crc32(self.compiler.encode())}\n'
-        #     '-----------------\n'
-        #     f'obj_combo_hash {obj_combo_hash}\n'
-        #     '-----------------\n'
-        # )
-
         return obj_combo_hash
 
     def _get_mod_combo_hash(self, analysed_file):
