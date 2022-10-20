@@ -87,7 +87,7 @@ class CompileFortran(Step):
         self.two_stage_flag = two_stage_flag
 
         # not ideal to do work in a constructor...
-        self.compiler_version = _get_compiler_version(self.exe.split()[0])
+        self.compiler_version = _get_compiler_version(self.compiler.split()[0])
 
         # runtime
         self._stage = None

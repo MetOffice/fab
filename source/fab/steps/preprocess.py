@@ -169,7 +169,7 @@ def c_preprocessor(preprocessor=None, source=None,
 
     """
     return PreProcessor(
-        preprocessor=preprocessor or os.getenv('CPP', 'fpp -P'),
+        preprocessor=preprocessor or os.getenv('CPP', 'cpp'),
         source=source or DEFAULT_C_SOURCE_GETTER,
         output_collection=output_collection,
         output_suffix=output_suffix,
