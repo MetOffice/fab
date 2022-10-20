@@ -248,7 +248,7 @@ class Test_process_file(object):
         # changing the compiler must change the combo hash for the mods and obj
         compiler, flags, analysed_file, _, _ = self.content()
 
-        compiler.exe = 'bar_cc'
+        compiler.compiler = 'bar_cc'
         obj_combo_hash = '16c5a5a06'
         mods_combo_hash = 'f5c8c6fc'
 
