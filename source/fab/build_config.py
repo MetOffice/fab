@@ -18,7 +18,7 @@ from pathlib import Path
 from string import Template
 from typing import List, Optional, Dict, Any
 
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, START_TIME
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps import Step
 from fab.util import TimerLogger, by_type, get_fab_workspace
@@ -116,7 +116,8 @@ class BuildConfig(object):
 
         self._artefact_store = dict()
 
-        self._artefact_store[START_TIME] = start_time
+        # this artefact collection is written to by multiple steps so initialise it here
+        self._artefact_store[CURRENT_PREBUILDS] = set()
 
         # run all the steps
         try:

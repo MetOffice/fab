@@ -150,8 +150,8 @@ class Analyse(Step):
         super().run(artefact_store, config)
 
         # todo: code smell - refactor (in another PR to keep things small)
-        self.fortran_analyser._prebuild_folder = self._config.prebuild_folder
-        self.c_analyser._prebuild_folder = self._config.prebuild_folder
+        self.fortran_analyser._config = self._config
+        self.c_analyser._config = self._config
 
         files: List[Path] = self.source_getter(artefact_store)
         analysed_files = self._parse_files(files=files)

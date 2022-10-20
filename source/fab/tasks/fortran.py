@@ -19,6 +19,7 @@ from fparser.two.Fortran2008 import (  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
+from fab.constants import CURRENT_PREBUILDS
 from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.tasks import TaskException
 from fab.util import log_or_dot, file_checksum
@@ -85,15 +86,18 @@ class FortranAnalyser(object):
         self.depends_on_comment_found = False
 
         # runtime
-        self._prebuild_folder = None
+        self._config = None
 
     def run(self, fpath: Path):
         log_or_dot(logger, f"analysing {fpath}")
 
-        # do we already have analysis results for this file?
-        # todo: dupe - probably best in a parser base class
+        # calculate the prebuild filename
         file_hash = file_checksum(fpath).file_hash
-        analysis_fpath = Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        # record it for the housekeeping step
+        self._config.artefact_store[CURRENT_PREBUILDS].add(analysis_fpath)
+
+        # do we already have analysis results for this file?
         if analysis_fpath.exists():
             return AnalysedFile.load(analysis_fpath)
 

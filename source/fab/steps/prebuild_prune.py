@@ -27,7 +27,7 @@ class PrebuildPrune(Step):
     """
     Deletes files from the prebuild folder which meet certain conditions.
 
-    Assumes prebuild filenames follow the pattern: <stem>.<hash>.<suffix>
+    Assumes prebuild filenames follow the pattern: `<stem>.<hash>.<suffix>`.
 
     """
     # todo: add filename pattern to docs, probably refer to it in several places
@@ -35,9 +35,9 @@ class PrebuildPrune(Step):
     def __init__(self, n_versions=10, older_than=timedelta(days=30), all_unused=False):
         """
         :param n_versions:
-            Only keep the most recent n prebuild versions of each file.
+            Only keep the most recent n versions of each prebuild file `<stem>.*.<suffix>`
         :param older_than:
-            Delete prebuild artefacts which are a given amount older *than the last access time* in the prebuild folder.
+            Delete prebuild artefacts which are a given number of seconds older than the *last prebuild access time*.
         :param all_unused:
             Delete everything which was not part of the current build.
 
@@ -57,10 +57,10 @@ class PrebuildPrune(Step):
             logger.info('no prebuild files found')
 
         elif self.all_unused:
-            num_removed = self.remove_all_unused(prebuild_files, current_prebuilds=artefact_store[CURRENT_PREBUILDS])
+            num_removed = remove_all_unused(found_files=prebuild_files, current_files=artefact_store[CURRENT_PREBUILDS])
 
         else:
-            # Make sure the prebuild folder file system can give us access times
+            # Make sure the file system can give us access times
             assert check_fs_access_time(config.prebuild_folder), "file access time not available on this fs"
 
             # get the file access time for every prebuild file
@@ -81,7 +81,7 @@ class PrebuildPrune(Step):
             # identify old versions
             if self.n_versions:
 
-                # group prebuild files by originating artefact - each group contains all versions of an artefact
+                # group prebuild files by originating artefact, <stem>.*.<suffix>
                 pb_file_groups = get_prebuild_file_groups(prebuild_files)
 
                 # delete the n oldest in each group
@@ -97,17 +97,16 @@ class PrebuildPrune(Step):
 
         logger.info(f'removed {num_removed} prebuild files')
 
-    def remove_all_unused(self, prebuild_files, current_prebuilds):
-        num_removed = 0
 
-        # todo: We can't populate this until the prebuild prs are merged.
-        #       Then we can make their prebuild code record the used prebuild files.
-        for pbf in prebuild_files:
-            if pbf not in current_prebuilds:
-                pbf.unlink()
-                num_removed += 1
+def remove_all_unused(found_files, current_files):
+    num_removed = 0
 
-        return num_removed
+    for pbf in found_files:
+        if pbf not in current_files:
+            pbf.unlink()
+            num_removed += 1
+
+    return num_removed
 
 
 # this whole function might be overkill...how likely is this, and do we care?
@@ -131,7 +130,7 @@ def check_fs_access_time(folder=None) -> bool:
         logger.warning('file system does not report file access time')
         return False
 
-    # read the file and get the latest access time - this is not so important, should we bother?
+    # read the file and get the updated access time - this is not so important, should we bother?
     sleep(0.1)
     open(fpath, "rt").readlines()
     read_time = fpath.stat().st_atime_ns
@@ -150,7 +149,7 @@ def get_access_time(fpath: Path):
     return fpath.stat().st_atime_ns
 
 
-def get_prebuild_file_groups(prebuild_files):
+def get_prebuild_file_groups(prebuild_files) -> Dict[str, set]:
     """
     Group prebuild filenames by originating artefact.
 

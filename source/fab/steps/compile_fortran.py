@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import List, Set, Dict
 
 from fab.build_config import FlagsConfig
-from fab.constants import OBJECT_FILES
+from fab.constants import OBJECT_FILES, CURRENT_PREBUILDS
 
 from fab.metrics import send_metric
 
@@ -210,14 +210,18 @@ class CompileFortran(Step):
         mod_combo_hash = self._get_mod_combo_hash(analysed_file)
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
 
+        # calculate the prebuild filenames
         obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
-        mod_files_prebuild = [
+        mod_file_prebuilds = [
             self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
             for mod_def in analysed_file.module_defs
         ]
+        # record them for the housekeeping step
+        self._config.artefact_store[CURRENT_PREBUILDS].add(obj_file_prebuild)
+        self._config.artefact_store[CURRENT_PREBUILDS].update(mod_file_prebuilds)
 
         # have we got the object and all the mod files we need to avoid a recompile?
-        prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_files_prebuild))
+        prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds))
         if not all(prebuilds_exist):
 
             # compile
