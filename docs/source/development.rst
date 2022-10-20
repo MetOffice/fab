@@ -1,10 +1,10 @@
 
 Development
-===========
+***********
 Information for developers.
 
 Version numbering
------------------
+=================
 We use a `PEP 440 compliant <https://peps.python.org/pep-0440/#examples-of-compliant-version-schemes>`_
 semantic versioning, of the form ``{major}.{minor}.{patch}[{a|b|rc}N]``
 
@@ -18,10 +18,51 @@ semantic versioning, of the form ``{major}.{minor}.{patch}[{a|b|rc}N]``
 * 1.1.0a1
 
 Version bumping
----------------
+===============
 The version number needs to be updated in two places
 
 * source/fab/__init_.py
 * docs/source/conf.py
 
 Consider adding a developers' tool like `BumpVer <https://pypi.org/project/bumpver>`_.
+
+Source code Analysis
+====================
+See :mod:`~fab.steps.analyse` for a description of the analysis process.
+
+Incremental & Prebuilds
+=======================
+See :term:`Incremental Build` and :term:`Prebuild` for definitions.
+
+Prebuild artefacts are stored in a flat *_prebuild* folder underneath the *build_output* folder.
+They include a checksum in their filename to distinguish between different builds of the same artefact.
+
+Checksums
+---------
+Fab inserts a checksum in the filenames of prebuild artefacts. This checksum is derived from
+everything which should trigger a rebuild if changed. Before an artefact is created, Fab will
+calculate the checksum and search for an existing artefact so it can avoid reprocessing the inputs.
+
+Analysis results
+----------------
+Analysis results are stored in files with a *.an* suffix.
+The checksum in the filename is solely the hash of the analysed source file.
+Note: this can change with different preprocessor flags.
+
+Fortran module files
+--------------------
+When creating an module file from a Fortran source file, the prebuild checksum is created from hashes of:
+
+ - source file
+ - compiler
+ - compiler version
+
+Fortran object files
+--------------------
+When creating a object file from a Fortran source file, the prebuild checksum is created from hashes of:
+
+ - source file
+ - compiler
+ - compiler version
+ - compiler flags
+ - modules on which the source depends

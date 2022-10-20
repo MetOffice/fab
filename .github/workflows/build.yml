@@ -34,7 +34,7 @@ jobs:
       run: |
         pip install -e .[dev]
         pip install pytest
-        python -m mypy setup.py source tests/unit_tests tests/integration_tests
+        python -m mypy setup.py source tests/unit_tests
     - name: Code style check with flake8
       run: |
         pip install -e .[dev]

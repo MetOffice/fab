@@ -12,9 +12,9 @@ from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
-from fab.steps.walk_source import FindSourceFiles
+from fab.steps.find_source_files import FindSourceFiles
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
@@ -38,7 +38,7 @@ def test_CFortranInterop(tmp_path):
             Analyse(root_symbol='main'),
 
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
-            CompileFortran(compiler='gfortran', common_flags=['-c', '-J', '$output']),
+            CompileFortran(compiler='gfortran', common_flags=['-c']),
             LinkExe(flags=['-lgfortran']),
             # todo: on an ubuntu vm, we needed these before the object files - investigate further
             # [

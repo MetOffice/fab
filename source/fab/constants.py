@@ -16,6 +16,9 @@ Some constants to help keep things tidy and manageable.
 SOURCE_ROOT = "source"
 BUILD_OUTPUT = "build_output"
 
+# prebuild folder name
+PREBUILD = '_prebuild'
+
 # names of artefact collections
 PROJECT_SOURCE_TREE = 'project source tree'
 PRAGMAD_C = 'pragmad_c'

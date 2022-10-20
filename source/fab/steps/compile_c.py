@@ -96,7 +96,7 @@ class CompileC(Step):
     # todo: identical to the fortran version - make a super class
     def _compile_file(self, analysed_file: AnalysedFile):
         # todo: should really use input_to_output_fpath() here
-        output_fpath = analysed_file.compiled_path
+        output_fpath = analysed_file.fpath.with_suffix('.o')
 
         # already compiled?
         if self._config.reuse_artefacts and output_fpath.exists():

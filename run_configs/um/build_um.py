@@ -15,6 +15,8 @@ import warnings
 from argparse import ArgumentParser
 from pathlib import Path
 
+from fab.constants import PRAGMAD_C
+
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.dep_tree import AnalysedFile
@@ -25,10 +27,10 @@ from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFcm
-from fab.steps.link_exe import LinkExe
+from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.walk_source import FindSourceFiles, Exclude, Include
+from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 
 logger = logging.getLogger('fab')
 
@@ -47,7 +49,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
     gcom_build = os.getenv('GCOM_BUILD') or \
-        os.path.normpath(os.path.expanduser(config.project_workspace / "../gcom-object-archive-vn7.6/build_output"))
+        os.path.normpath(os.path.expanduser(config.project_workspace / "../gcom_object_archive_vn7.6/build_output"))
     if not os.path.exists(gcom_build):
         raise RuntimeError(f'gcom not found at {gcom_build}')
 
@@ -80,7 +82,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
         CPragmaInjector(),
 
         c_preprocessor(
-            source=CollectionGetter('pragmad_c'),
+            source=CollectionGetter(PRAGMAD_C),
             path_flags=[
                 # todo: this is a bit "codey" - can we safely give longer strings and split later?
                 AddFlags(match="$source/um/*", flags=[
@@ -118,7 +120,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
                 AnalysedFile(
                     fpath=Path(
                         config.build_output / "casim/lookup.f90"),
-                    file_hash=None,
+                    file_hash=0,
                     symbol_defs={'lookup'},
                     symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
                                  'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
@@ -135,7 +137,6 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
             common_flags=[
                 '-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8',
                 '-c',
-                '-J', '$output',  # .mod file output and include folder
                 f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
