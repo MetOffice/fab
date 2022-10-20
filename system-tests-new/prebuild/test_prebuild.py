@@ -96,9 +96,12 @@ class TestFortranPrebuild(object):
         assert exe.exists()
 
         # make sure the prebuild files are the same
-        for a in file_walk(first_project.prebuild_folder):
-            b = second_project.prebuild_folder / a.name
-            assert files_identical(a, b)
+        first_prebuilds = {p.name for p in (file_walk(first_project.prebuild_folder))}
+        second_prebuilds = {p.name for p in (file_walk(second_project.prebuild_folder))}
+        assert first_prebuilds == second_prebuilds
+        for fname in first_prebuilds | second_prebuilds:
+            assert files_identical(first_project.prebuild_folder / fname,
+                                   second_project.prebuild_folder / fname)
 
     def test_deleted_original(self, tmp_path):
         # Ensure we compile the files in our source folder and not those specified in analysis prebuilds.
