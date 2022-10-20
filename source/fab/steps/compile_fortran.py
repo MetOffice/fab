@@ -255,7 +255,7 @@ class CompileFortran(Step):
                 analysed_file.file_hash,
                 flags_checksum(flags),
                 sum(mod_deps_hashes.values()),
-                zlib.crc32(self.exe.encode()),
+                zlib.crc32(self.compiler.encode()),
                 zlib.crc32(self.compiler_version.encode()),
             ])
         except TypeError:
@@ -267,7 +267,7 @@ class CompileFortran(Step):
         try:
             mod_combo_hash = sum([
                 analysed_file.file_hash,
-                zlib.crc32(self.exe.encode()),
+                zlib.crc32(self.compiler.encode()),
                 zlib.crc32(self.compiler_version.encode()),
             ])
         except TypeError:
