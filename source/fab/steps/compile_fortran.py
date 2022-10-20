@@ -62,10 +62,9 @@ class CompileFortran(Step):
         super().__init__(name=name)
 
         # todo: Fab should be compiler-aware
-        compiler = compiler or os.getenv('FC', 'gfortran -c')
+        self.compiler: str = compiler or os.getenv('FC', 'gfortran -c')  # type: ignore
         common_flags = common_flags or []
         env_flags = os.getenv('FFLAGS', '').split()
-        self.compiler: str = compiler or os.getenv('FC', 'gfortran -c')  # type: ignore
         self.flags = FlagsConfig(
             common_flags=remove_minus_J(common_flags + env_flags, verbose=True),
             path_flags=path_flags)
