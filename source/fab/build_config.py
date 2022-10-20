@@ -69,7 +69,6 @@ class BuildConfig(object):
         logger.info('------------------------------------------------------------')
         logger.info('')
 
-
         # workspace folder
         if not fab_workspace:
             if os.getenv("FAB_WORKSPACE"):

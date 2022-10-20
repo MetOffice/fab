@@ -310,42 +310,31 @@ class Test_process_file(object):
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
 
-
-        # todo: test different invocations end up with the right flags configured
-
-        # todo: test cases:
-        #       FC='gfortran -c', FFLAGS=''
-        #       FC='gfortran', FFLAGS='-c'
-        #       FC='gfortran', FFLAGS=''
-
-        # todo: test no fc specified
-
-
 class test_constructor(object):
 
     def test_bare(self):
         with mock.patch.dict(os.environ, FC='foofc', FFLAGS=''):
             cf = CompileFortran()
-            assert cf.compiler == 'foofc'
-            assert cf.flags.common_flags == []
+        assert cf.compiler == 'foofc'
+        assert cf.flags.common_flags == []
 
     def test_with_flags(self):
         with mock.patch.dict(os.environ, FC='foofc -monty', FFLAGS='--foo --bar'):
             cf = CompileFortran()
-            assert cf.compiler == 'foofc'
-            assert cf.flags.common_flags == ['-monty', '--foo', '--bar']
+        assert cf.compiler == 'foofc'
+        assert cf.flags.common_flags == ['-monty', '--foo', '--bar']
 
     def test_gfortran_managed_flags(self):
         with mock.patch.dict(os.environ, FC='gfortran -c', FFLAGS='-J /mods'):
             cf = CompileFortran()
-            assert cf.compiler == 'gfortran'
-            assert cf.flags.common_flags == []
+        assert cf.compiler == 'gfortran'
+        assert cf.flags.common_flags == []
 
     def test_ifort_managed_flags(self):
         with mock.patch.dict(os.environ, FC='gfortran -c', FFLAGS='-module /mods'):
             cf = CompileFortran()
-            assert cf.compiler == 'ifort'
-            assert cf.flags.common_flags == []
+        assert cf.compiler == 'ifort'
+        assert cf.flags.common_flags == []
 
     def test_as_argument(self):
         cf = CompileFortran(compiler='foofc -c')
@@ -363,7 +352,10 @@ class test_constructor(object):
                 CompileFortran()
 
     def test_unknown_compiler(self):
-        assert False
+        with mock.patch.dict(os.environ, FC='foofc -c', FFLAGS='-J /mods'):
+            cf = CompileFortran()
+        assert cf.compiler == 'foofc'
+        assert cf.flags.common_flags == ['-c', '-J', '/mods']
 
 
 class test_get_compiler(object):
@@ -373,7 +365,6 @@ class test_get_compiler(object):
 
     def test_with_flag(self):
         assert get_compiler('gfortran -c') == ('gfortran', ['-c'])
-
 
 
 class Test_get_compiler_version(object):
