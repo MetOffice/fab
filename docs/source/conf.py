@@ -36,6 +36,7 @@ extensions = [
     'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -75,3 +76,7 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # create linkable targets from section headings
 autosectionlabel_prefix_document = True
+
+
+# include default values in argument descriptions
+typehints_defaults = 'braces-after'

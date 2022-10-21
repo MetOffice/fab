@@ -57,7 +57,7 @@ class TestIncremental(object):
                 fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
                 Analyse(root_symbol='my_prog'),
                 CompileFortran(compiler='gfortran -c'),
-                LinkExe(flags=['-lgfortran']),
+                LinkExe(linker='gcc', flags=['-lgfortran']),
             ],
             multiprocessing=False,
         )

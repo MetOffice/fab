@@ -19,12 +19,12 @@ jobs:
     - name: install sphinx
       run: pip install sphinx sphinx-rtd-theme
     - name: install fab
-      run: pip install .
+      run: pip install .[docs]
     - name: build docs
       run: |
         cd docs
         rm -rf build
-        sphinx-apidoc -f -o source/apidoc ../source/fab
+        sphinx-apidoc --separate --module-first -d 3 -f -o source/apidoc ../source/fab
         make html
     - name: move built docs to docs root
       run: |

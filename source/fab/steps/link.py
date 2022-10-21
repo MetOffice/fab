@@ -59,9 +59,12 @@ class LinkerBase(Step, ABC):
 
         """
         super().__init__(name)
-        self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.linker = linker or os.getenv('LD', 'gcc')
+
+        self.linker = linker or os.getenv('LD', 'ld')
+        logger.info(f'linker is {self.linker}')
+
         self.flags: List[str] = flags or []
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
 
     def _call_linker(self, filename, objects):
         command = self.linker.split()
@@ -104,7 +107,7 @@ class LinkSharedObject(LinkExe):
     We can assume the list of object files is the entire project source, compiled.
 
     """
-    def __init__(self, linker: str, output_fpath: str, flags=None, source: ArtefactsGetter = None,
+    def __init__(self, output_fpath: str, linker: str = None, flags=None, source: ArtefactsGetter = None,
                  name='link shared object'):
         """
         Params are as for :class:`~fab.steps.link_exe.LinkerBase`, with the addition of:
