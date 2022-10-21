@@ -19,7 +19,7 @@ jobs:
     - name: install sphinx
       run: pip install sphinx sphinx-rtd-theme
     - name: install fab
-      run: pip install .
+      run: pip install .[docs]
     - name: build docs
       run: |
         cd docs
