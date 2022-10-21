@@ -25,12 +25,12 @@ logger = logging.getLogger(__name__)
 
 class PrebuildPrune(Step):
     """
-    Deletes files from the prebuild folder which meet certain conditions.
+    Delete old files from the local prebuild folder.
 
     Assumes prebuild filenames follow the pattern: `<stem>.<hash>.<suffix>`.
 
     """
-    # todo: add filename pattern to docs, probably refer to it in several places
+    # todo: add <stem>.<hash>.<suffix> pattern to docs, probably refer to it in several places
 
     def __init__(self, n_versions=10, older_than=timedelta(days=30), all_unused=False):
         """
@@ -60,8 +60,9 @@ class PrebuildPrune(Step):
             num_removed = remove_all_unused(found_files=prebuild_files, current_files=artefact_store[CURRENT_PREBUILDS])
 
         else:
-            # Make sure the file system can give us access times
-            assert check_fs_access_time(config.prebuild_folder), "file access time not available on this fs"
+            # Make sure the file system can give us access times - overkill?
+            if not check_fs_access_time(config.prebuild_folder):
+                logger.error("file access time not available, aborting housekeeping")
 
             # get the file access time for every prebuild file
             prebuilds_ts = dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time), strict=True))
