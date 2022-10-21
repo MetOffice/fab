@@ -39,7 +39,7 @@ def test_CFortranInterop(tmp_path):
 
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
             CompileFortran(compiler='gfortran', common_flags=['-c']),
-            LinkExe(flags=['-lgfortran']),
+            LinkExe(linker='gcc', flags=['-lgfortran']),
             # todo: on an ubuntu vm, we needed these before the object files - investigate further
             # [
             #     '/lib/x86_64-linux-gnu/libc.so.6',

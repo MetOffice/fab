@@ -12,13 +12,16 @@ import datetime
 import logging
 import subprocess
 import sys
+import warnings
 import zlib
+from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
 from typing import Iterator, Iterable, Optional, Set, Dict, List
 
 from fab.dep_tree import AnalysedFile
+from fab.tools import COMPILERS
 
 logger = logging.getLogger(__name__)
 
@@ -62,31 +65,50 @@ def file_checksum(fpath):
         return HashedFile(fpath, zlib.crc32(infile.read()))
 
 
-def remove_minus_J(flags, verbose=False):
+# todo: We're not sure we actually want to do modify incoming flags. Discuss...
+# todo: this is compiler specific, rename - and do we want similar functions for other steps?
+def remove_managed_flags(compiler, flags_in):
     """
-    Remove the -J <folder> from the given flags.
+    Remove flags which Fab manages.
+
+    Fab prefers to specify a few compiler flags itself.
+    For example, Fab wants to place module files in the `build_output` folder.
+    The flag to do this differs with compiler.
+
+    We don't want duplicate, possibly conflicting flags in our tool invocation so this function is used
+    to remove any flags which Fab wants to manage.
+
+    If the compiler is not known to Fab, we rely on the user to specify these flags in their config.
+
+    .. note::
+
+        This approach is due for discussion. It might not be desirable to modify user flags at all.
 
     """
-    # todo: Fab should be compiler aware, with the possibly of different flags to ignore per compiler
-    in_minus_J = False
-    ret = []
-    for flag in flags:
-        if in_minus_J:
-            in_minus_J = False
-            continue
-        if flag == '-J':
-            in_minus_J = True
-        else:
-            ret.append(flag)
-    return ret
+    def remove_flag(flags: List[str], flag: str, len):
+        while flag in flags:
+            warnings.warn(f'removing managed flag {flag} for compiler {compiler}')
+            flag_index = flags.index(flag)
+            for _ in range(len):
+                flags.pop(flag_index)
+
+    known_compiler = COMPILERS.get(compiler)
+    if not known_compiler:
+        logger.warning('Unable to remove managed flags for unknown compiler. User config must specify managed flags.')
+        return flags_in
+
+    flags_out = [*flags_in]
+    remove_flag(flags_out, known_compiler.compile_flag, 1)
+    remove_flag(flags_out, known_compiler.module_folder_flag, 2)
+    return flags_out
 
 
 def flags_checksum(flags: List[str]):
     """
-    Return a checksum of the flags, ignoring anything which should not cause a rebuild.
+    Return a checksum of the flags.
 
     """
-    return string_checksum(str(remove_minus_J(flags)))
+    return string_checksum(str(flags))
 
 
 def string_checksum(s: str):
@@ -216,7 +238,7 @@ def input_to_output_fpath(config, input_path: Path):
     return build_output / rel_path
 
 
-def run_command(command, env=None, cwd=None):
+def run_command(command, env=None, cwd=None, capture_output=True):
     """
     Run a CLI command.
 
@@ -224,14 +246,22 @@ def run_command(command, env=None, cwd=None):
         List of strings to be sent to :func:`subprocess.run` as the command.
     :param env:
         Optional env for the command. By default it will use the current session's environment.
+    :param capture_output:
+        If True, capture and return stdout. If False, the command will print its output directly to the console.
 
     """
     logger.debug(f'run_command: {command}')
-    res = subprocess.run(command, capture_output=True, env=env, cwd=cwd)
+    res = subprocess.run(command, capture_output=capture_output, env=env, cwd=cwd)
     if res.returncode != 0:
-        raise RuntimeError(f"Command failed:\n{command}\n{res.stdout.decode()}\n{res.stderr.decode()}")
+        msg = f'Command failed:\n{command}'
+        if res.stdout:
+            msg += f'\n{res.stdout.decode()}'
+        if res.stderr:
+            msg += f'\n{res.stderr.decode()}'
+        raise RuntimeError(msg)
 
-    return res.stdout.decode()
+    if capture_output:
+        return res.stdout.decode()
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
@@ -297,3 +327,18 @@ def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
         pbf_groups[wildcard_key].add(pbf.name)
 
     return pbf_groups
+
+
+def common_arg_parser():
+    """
+    A helper function returning an argument parser with common, useful arguments controlling command line tools.
+
+    More arguments can be added as needed by the calling code.
+
+    """
+    # consider adding preprocessor, linker, optimisation, two-stage
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--compiler', default=None)
+    arg_parser.add_argument('--two-stage', action='store_true')
+
+    return arg_parser
