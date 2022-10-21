@@ -9,7 +9,7 @@ Glossary
 
     Artefact Store
         At the start of a build run, Fab creates an empty ``artefact_store``.
-        An entry in this store is called a :term:`Artefact Collection`, which is a mapping from a name string
+        An entry in this store is called an :term:`Artefact Collection`, which is a mapping from a name string
         to, usually, a collection of :term:`Artefact` - but can be anything.
 
         Fab passes the growing artefact store to each step in turn,
