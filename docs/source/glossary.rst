@@ -9,11 +9,11 @@ Glossary
 
     Artefact Store
         At the start of a build run, Fab creates an empty ``artefact_store``.
-        An entry in this store is called a :term:`Named Collection`, which is a mapping from a name string
+        An entry in this store is called a :term:`Artefact Collection`, which is a mapping from a name string
         to, usually, a collection of :term:`Artefact` - but can be anything.
 
         Fab passes the growing artefact store to each step in turn,
-        where they typically read a :term:`Named Collection` and create a new one for subsequent steps to read.
+        where they typically read a :term:`Artefact Collection` and create a new one for subsequent steps to read.
 
         See also :ref:`Artefacts Overview <artefacts_overview>`
 
@@ -43,7 +43,7 @@ Glossary
         Fab's built-in steps come with sensible defaults so the user doesn't have to write unnecessary config.
 
         As an example, the Fortran preprocessor has a default artefact getter which reads *".F90"* files
-        from the :term:`Named Collection` called _"all_source"_.
+        from the :term:`Artefact Collection` called _"all_source"_.
 
         Artefact getters are derived from :class:`~fab.artefacts.ArtefactsGetter`.
 

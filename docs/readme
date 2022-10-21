@@ -9,3 +9,4 @@ make html
 
 # all in one
 rm -rf build && rm -rf source/apidoc && sphinx-apidoc --separate --module-first -d 3 -f -o source/apidoc ../source/fab && make html
+firefox build/html/index.html

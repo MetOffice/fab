@@ -105,3 +105,6 @@ venv.bak/
 
 # Profiler stats
 .pstats
+
+# apidoc generated output
+docs/source/apidoc
