@@ -5,7 +5,7 @@ import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
 from fab.build_config import BuildConfig
-from fab.util import run_command, get_mod_hashes, flags_checksum, string_checksum
+from fab.util import run_command, get_mod_hashes, flags_checksum, remove_managed_flags
 from fab.util import suffix_filter
 
 
@@ -93,5 +93,24 @@ class Test_get_mod_hashes(object):
 class Test_flags_checksum(object):
 
     def test_vanilla(self):
-        flags = ['one', 'two', '-J', 'foo', 'three', 'four']
-        assert flags_checksum(flags) == string_checksum(str(['one', 'two', 'three', 'four']))
+        # I think this is a poor testing pattern.
+        flags = ['one', 'two', 'three', 'four']
+        assert flags_checksum(flags) == 3011366051
+
+
+class Test_remove_managed_flags(object):
+
+    def test_gfortran(self):
+        flags = ['--foo', '-J', 'nope', '--bar']
+        result = remove_managed_flags('gfortran', flags)
+        assert result == ['--foo', '--bar']
+
+    def test_ifort(self):
+        flags = ['--foo', '-module', 'nope', '--bar']
+        result = remove_managed_flags('ifort', flags)
+        assert result == ['--foo', '--bar']
+
+    def test_unknown_compiler(self):
+        flags = ['--foo', '-J', 'nope', '--bar']
+        result = remove_managed_flags('foofc', flags)
+        assert result == ['--foo', '-J', 'nope', '--bar']

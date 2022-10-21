@@ -10,6 +10,7 @@ Contains the :class:`~fab.build_config.BuildConfig` and helper classes.
 import getpass
 import logging
 import os
+import sys
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -62,6 +63,12 @@ class BuildConfig(object):
         """
         self.project_label: str = project_label.replace(' ', '_')
 
+        logger.info('')
+        logger.info('------------------------------------------------------------')
+        logger.info(f'initialising {self.project_label}')
+        logger.info('------------------------------------------------------------')
+        logger.info('')
+
         # workspace folder
         if not fab_workspace:
             if os.getenv("FAB_WORKSPACE"):
@@ -69,20 +76,25 @@ class BuildConfig(object):
             else:
                 fab_workspace = Path(os.path.expanduser("~/fab-workspace"))
                 logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
-        logger.info(f"\nfab workspace is {fab_workspace}")
+        logger.info(f"fab workspace is {fab_workspace}")
 
         self.project_workspace = fab_workspace / self.project_label
         self.metrics_folder = self.project_workspace / 'metrics' / self.project_label
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
-        self.prebuild_folder: Path = Path(prebuild_folder or self.build_output / PREBUILD)
+        self.prebuild_folder: Path = Path(prebuild_folder or os.getenv("FAB_PREBUILD") or self.build_output / PREBUILD)
+        logger.info(f'prebuild folder is {self.prebuild_folder}')
 
         # build steps
         self.steps: List[Step] = steps or []
 
         # multiprocessing config
         self.multiprocessing = multiprocessing
+        if 'pydevd' in str(sys.gettrace()):
+            logger.info('debugger detected, running without multiprocessing')
+            self.multiprocessing = False
+
         self.n_procs = n_procs
         if self.multiprocessing and not self.n_procs:
             try:
@@ -112,7 +124,15 @@ class BuildConfig(object):
         The metrics can be found in the project workspace.
 
         """
+
+        logger.info('')
+        logger.info('------------------------------------------------------------')
+        logger.info(f'running {self.project_label}')
+        logger.info('------------------------------------------------------------')
+        logger.info('')
+
         start_time = datetime.now().replace(microsecond=0)
+        self.build_output.mkdir(parents=True, exist_ok=True)
         self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
         self._init_logging()
