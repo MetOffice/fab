@@ -26,7 +26,8 @@ class Test_CompileC(object):
         # run the step
         with mock.patch('fab.steps.compile_c.run_command') as mock_run_command:
             with mock.patch('fab.steps.compile_c.send_metric') as mock_send_metric:
-                c_compiler.run(artefact_store=artefact_store, config=config)
+                with mock.patch('pathlib.Path.mkdir'):
+                    c_compiler.run(artefact_store=artefact_store, config=config)
 
         # ensure it made the correct command-line call from the child process
         mock_run_command.assert_called_with([
@@ -54,7 +55,8 @@ class Test_CompileC(object):
         with pytest.raises(RuntimeError):
             with mock.patch('fab.steps.compile_c.run_command', side_effect=Exception):
                 with mock.patch('fab.steps.compile_c.send_metric') as mock_send_metric:
-                    c_compiler.run(artefact_store=artefact_store, config=config)
+                    with mock.patch('pathlib.Path.mkdir'):
+                        c_compiler.run(artefact_store=artefact_store, config=config)
 
         # ensure no metric was sent from the child process
         mock_send_metric.assert_not_called()
