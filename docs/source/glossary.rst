@@ -13,7 +13,7 @@ Glossary
         to, usually, a collection of :term:`Artefact` - but can be anything.
 
         Fab passes the growing artefact store to each step in turn,
-        where they typically read a :term:`Artefact Collection` and create a new one for subsequent steps to read.
+        where they typically read an :term:`Artefact Collection` and create a new one for subsequent steps to read.
 
         See also :ref:`Artefacts Overview <artefacts_overview>`
 
