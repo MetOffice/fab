@@ -35,7 +35,7 @@ class PreProcessor(Step):
 
     def __init__(self,
                  source: ArtefactsGetter = None, output_collection=None, output_suffix=None,
-                 preprocessor='cpp', common_flags: List[str] = None, path_flags: List = None,
+                 preprocessor: str = None, common_flags: List[str] = None, path_flags: List = None,
                  name=None):
         """
         :param source:
@@ -45,7 +45,7 @@ class PreProcessor(Step):
         :param output_suffix:
             Defaults to DEFAULT_OUTPUT_SUFFIX.
         :param preprocessor:
-            The name of the executable. Defaults to 'cpp'.
+            The preprocessor executable.
         :param common_flags:
             Used to construct a :class:`~fab.config.FlagsConfig` object.
         :param path_flags:
@@ -56,10 +56,17 @@ class PreProcessor(Step):
         """
         super().__init__(name=name or self.LABEL)
 
-        self.preprocessor = preprocessor
-        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
-        self.source_getter = source or self.DEFAULT_SOURCE
+        # todo: should we manage known preprocessors like we do compilers, so we can ensure the -P flag is added?
 
+        # Command line tools are sometimes specified with flags attached, e.g 'cpp -traditional-cpp'
+        preprocessor_split = (preprocessor or os.getenv('FPP', 'fpp -P')).split()  # type: ignore
+        self.preprocessor = preprocessor_split[0]
+        logger.info(f'preprocessor for {self.name} is {self.preprocessor}')
+
+        common_flags = preprocessor_split[1:] + (common_flags or [])
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+
+        self.source_getter = source or self.DEFAULT_SOURCE
         self.output_collection = output_collection or self.DEFAULT_OUTPUT_NAME
         self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
 
@@ -101,7 +108,7 @@ class PreProcessor(Step):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.preprocessor.split()  # type: ignore
+                command = [self.preprocessor]
                 command.extend(self.flags.flags_for_path(path=fpath, config=self._config))
                 command.append(str(fpath))
                 command.append(str(output_fpath))
@@ -162,7 +169,7 @@ def c_preprocessor(preprocessor=None, source=None,
 
     """
     return PreProcessor(
-        preprocessor=preprocessor or os.getenv('CPP', 'cpp -P'),
+        preprocessor=preprocessor or os.getenv('CPP', 'cpp'),
         source=source or DEFAULT_C_SOURCE_GETTER,
         output_collection=output_collection,
         output_suffix=output_suffix,

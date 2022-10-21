@@ -25,7 +25,7 @@ from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran
+from fab.steps.compile_fortran import CompileFortran, get_compiler
 from fab.steps.grab import GrabFcm
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
@@ -41,15 +41,22 @@ logger = logging.getLogger('fab')
 def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
     um_revision = revision.replace('vn', 'um')
 
+    # We want a separate project folder for each compiler. Find out which compiler we'll be using.
+    compiler, _ = get_compiler()
+    if compiler == 'gfortran':
+        compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
+    else:
+        compiler_specific_flags = []
+
     config = BuildConfig(
-        project_label=f'um atmos safe {revision} {opt} {int(two_stage)+1}stage',
+        project_label=f'um atmos safe {revision} {compiler} {opt} {int(two_stage)+1}stage',
         # multiprocessing=False,
         # reuse_artefacts=True,
     )
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
     gcom_build = os.getenv('GCOM_BUILD') or \
-        os.path.expanduser(config.project_workspace / "../gcom_object_archive_vn7.6/build_output")
+        os.path.expanduser(config.project_workspace / f"../gcom_object_archive_vn7.6_{compiler}/build_output")
     logger.info(f"expecting gcom at {gcom_build}")
 
     config.steps = [
@@ -131,12 +138,9 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
 
         CompileFortran(
-            # compiler='mpifort',
-            compiler='gfortran',
             common_flags=[
-                '-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8',
-                '-c',
                 f'-{opt}',
+                *compiler_specific_flags,
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
             path_flags=[
@@ -161,7 +165,6 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
             ],
         )
     ]
-
     return config
 
 

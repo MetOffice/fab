@@ -13,7 +13,7 @@ import shutil
 import zlib
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict
+from typing import List, Set, Dict, Tuple
 
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
@@ -21,8 +21,9 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 
 from fab.dep_tree import AnalysedFile
+from fab.tools import COMPILERS
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    get_mod_hashes, flags_checksum, remove_minus_J
+    get_mod_hashes, flags_checksum, remove_managed_flags
 from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
@@ -61,15 +62,28 @@ class CompileFortran(Step):
         """
         super().__init__(name=name)
 
-        # todo: Fab should be compiler-aware
-        self.compiler: str = compiler or os.getenv('FC', 'gfortran -c')  # type: ignore
-        common_flags = common_flags or []
-        env_flags = os.getenv('FFLAGS', '').split()
-        self.flags = FlagsConfig(
-            common_flags=remove_minus_J(common_flags + env_flags, verbose=True),
-            path_flags=path_flags)
-        self.source_getter = source or DEFAULT_SOURCE_GETTER
+        # Command line tools are sometimes specified with flags attached.
+        self.compiler, compiler_flags = get_compiler(compiler)
+        logger.info(f'fortran compiler is {self.compiler}')
 
+        # collate the flags
+        env_flags = os.getenv('FFLAGS', '').split()
+        common_flags = compiler_flags + env_flags + (common_flags or [])
+
+        # Do we know this compiler? If so we can manage the flags a little, to avoid duplication or misconfiguration.
+        # todo: This has been raised for discussion - we might never want to modify incoming flags...
+        known_compiler = COMPILERS.get(self.compiler)
+        if known_compiler:
+            common_flags = remove_managed_flags(self.compiler, common_flags)
+        else:
+            logger.warning(f"Unknown compiler {self.compiler}. Fab cannot control certain flags."
+                           "Please ensure you specify the flag `-c` equivalent flag to only compile."
+                           "Please ensure the module output folder is set to your config's build_output folder."
+                           "or please extend fab.tools.COMPILERS in your build script.")
+
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+
+        self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.two_stage_flag = two_stage_flag
 
         # not ideal to do work in a constructor...
@@ -286,14 +300,23 @@ class CompileFortran(Step):
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             # tool
-            command = self.compiler.split()  # type: ignore
+            command = [self.compiler]
+            known_compiler = COMPILERS.get(self.compiler)
+
+            # Compile flag.
+            # If it's an unknown compiler, we rely on the user config to specify this.
+            if known_compiler:
+                command.append(known_compiler.compile_flag)
 
             # flags
             command.extend(flags)
             if self.two_stage_flag and self._stage == 1:
                 command.append(self.two_stage_flag)
-            # todo: Fab should be compiler aware. Some compilers might not use -J for this.
-            command.extend(['-J', str(self._config.build_output)])
+
+            # Module folder.
+            # If it's an unknown compiler, we rely on the user config to specify this.
+            if known_compiler:
+                command.extend([known_compiler.module_folder_flag, str(self._config.build_output)])
 
             # files
             command.append(analysed_file.fpath.name)
@@ -309,6 +332,22 @@ class CompileFortran(Step):
             group=metric_name,
             name=str(analysed_file.fpath),
             value={'time_taken': timer.taken, 'start': timer.start})
+
+
+# todo: generalise this for the preprocessor, we see flags in FPP
+def get_compiler(compiler: str = None) -> Tuple[str, List[str]]:
+    """
+    Separate the compiler and flags from the given string (or `FC` environment variable), like `gfortran -c`.
+
+    Returns the compiler and a list of flags.
+
+    """
+    compiler_split = (compiler or os.getenv('FC', '')).split()  # type: ignore
+    if not compiler_split:
+        raise ValueError('Fortran compiler not specified. Cannot continue.')
+
+    compiler = compiler_split[0]
+    return compiler, compiler_split[1:]
 
 
 # todo: add more compilers and test with more versions of compilers
