@@ -17,8 +17,9 @@ def build_all():
     compiler, _ = get_compiler()
 
     os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler}')
-    # save a bit of time if we're processing the same code in different projects
-    os.environ['FAB_PREBUILD'] = os.path.join(os.environ['FAB_WORKSPACE'], '_prebuild')
+
+    # CAUTION: This flag breaks jules rebuild. We haven't investigated this yet in depth. It's concerning.
+    # os.environ['FAB_PREBUILD'] = os.path.join(os.environ['FAB_WORKSPACE'], '_prebuild')
 
     scripts = [
         configs_folder / 'gcom/grab_gcom.py',
@@ -36,7 +37,7 @@ def build_all():
     ]
 
     # skip these for now, until we configure them to build again
-    compiler_skip = {'gfortran': ['atm.py'], 'ifort': ['build_um.py', 'atm.py']}
+    compiler_skip = {'gfortran': [], 'ifort': ['build_um.py', 'atm.py']}
     skip = compiler_skip[compiler]
 
     for script in scripts:
