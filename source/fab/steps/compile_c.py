@@ -56,7 +56,7 @@ class CompileC(Step):
         """
         super().__init__(name=name)
 
-        self.exe = compiler or os.getenv('CC', 'gcc -c')
+        self.compiler = compiler or os.getenv('CC', 'gcc -c')
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -105,7 +105,7 @@ class CompileC(Step):
             with Timer() as timer:
                 output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.exe.split()  # type: ignore
+                command = self.compiler.split()  # type: ignore
                 command.extend(self.flags.flags_for_path(path=analysed_file.fpath, config=self._config))
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(output_fpath)])

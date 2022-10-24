@@ -273,7 +273,6 @@ class CompileFortran(Step):
             ])
         except TypeError:
             raise ValueError("could not generate combo hash for object file")
-
         return obj_combo_hash
 
     def _get_mod_combo_hash(self, analysed_file):
