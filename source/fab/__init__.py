@@ -10,7 +10,7 @@ Flexible build system for scientific software.
 import logging
 import sys
 
-__version__ = '0.10.0'
+__version__ = '1.0.0.dev'
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
