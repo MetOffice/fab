@@ -35,7 +35,7 @@ class BuildConfig(object):
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
                  multiprocessing: bool = True, n_procs: int = None, reuse_artefacts: bool = False,
-                 fab_workspace: Optional[Path] = None, verbose: bool = False, prebuild_folder: Optional[Path] = None):
+                 fab_workspace: Optional[Path] = None, verbose: bool = False):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
@@ -57,8 +57,6 @@ class BuildConfig(object):
         :param fab_workspace:
             Overrides the FAB_WORKSPACE environment variable.
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
-        :param prebuild_folder:
-            Optionally specify the pre-build folder. Defaults to <project workspace>/build_output/_prebuild.
 
         """
         self.project_label: str = project_label.replace(' ', '_')
@@ -83,8 +81,7 @@ class BuildConfig(object):
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
-        self.prebuild_folder: Path = Path(prebuild_folder or self.build_output / PREBUILD)
-        logger.info(f'prebuild folder is {self.prebuild_folder}')
+        self.prebuild_folder: Path = self.build_output / PREBUILD
 
         # build steps
         self.steps: List[Step] = steps or []
