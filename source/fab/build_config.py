@@ -83,7 +83,7 @@ class BuildConfig(object):
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
-        self.prebuild_folder: Path = Path(prebuild_folder or os.getenv("FAB_PREBUILD") or self.build_output / PREBUILD)
+        self.prebuild_folder: Path = Path(prebuild_folder or self.build_output / PREBUILD)
         logger.info(f'prebuild folder is {self.prebuild_folder}')
 
         # build steps
