@@ -18,7 +18,7 @@ def build_all():
 
     os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler}')
     # save a bit of time if we're processing the same code in different projects
-    os.environ['FAB_PREBUILD'] = os.path.join(os.environ['FAB_WORKSPACE'], '_prebuild')
+    # os.environ['FAB_PREBUILD'] = os.path.join(os.environ['FAB_WORKSPACE'], '_prebuild')
 
     scripts = [
         configs_folder / 'gcom/grab_gcom.py',
