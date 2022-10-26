@@ -16,14 +16,14 @@ cd /tmp/persistent/cron_system_tests
 #git clone --branch master --depth 1 https://github.com/metomi/fab.git
 git clone --branch cron_local_tests --depth 1 file:///home/h02/bblay/git/fab/ 2>&1 >/dev/null
 
-1>&2 echo "build all gfortran"
+1>&2 echo "\nbuild all gfortran"
 time ./fab/run_configs/_cron/build_all_gfortran.sh
-1>&2 echo "rebuild all gfortran"
+1>&2 echo "\nrebuild all gfortran"
 time ./fab/run_configs/_cron/build_all_gfortran.sh
 
-1>&2 echo "build all ifort"
+1>&2 echo "\nbuild all ifort"
 time ./fab/run_configs/_cron/build_all_ifort.sh
-1>&2 echo "rebuild all ifort"
+1>&2 echo "\nrebuild all ifort"
 time ./fab/run_configs/_cron/build_all_ifort.sh
 
 1>&2 echo "builds completed"
