@@ -8,22 +8,33 @@
 
 set -e
 
+# remove last builds
 rm -rf /tmp/persistent/cron_system_tests
 mkdir /tmp/persistent/cron_system_tests
 cd /tmp/persistent/cron_system_tests
 
-# todo: we want to clone the main repo but it's blocked in the cron
-#git clone --branch master --depth 1 https://github.com/metomi/fab.git
+# clone fab
+#git clone --branch master --depth 1 https://github.com/metomi/fab.git 2>&1 >/dev/null
 git clone --branch cron_local_tests --depth 1 file:///home/h02/bblay/git/fab/ 2>&1 >/dev/null
 
-1>&2 echo "\nbuild all gfortran"
-time ./fab/run_configs/_cron/build_all_gfortran.sh
-1>&2 echo "\nrebuild all gfortran"
+# gfortran
+1>&2 echo ""
+1>&2 echo "build all gfortran"
 time ./fab/run_configs/_cron/build_all_gfortran.sh
 
-1>&2 echo "\nbuild all ifort"
-time ./fab/run_configs/_cron/build_all_ifort.sh
-1>&2 echo "\nrebuild all ifort"
+1>&2 echo ""
+1>&2 echo "rebuild all gfortran"
+time ./fab/run_configs/_cron/build_all_gfortran.sh
+
+# ifort
+1>&2 echo ""
+1>&2 echo "build all ifort"
 time ./fab/run_configs/_cron/build_all_ifort.sh
 
-1>&2 echo "builds completed"
+1>&2 echo ""
+1>&2 echo "rebuild all ifort"
+time ./fab/run_configs/_cron/build_all_ifort.sh
+
+# all done
+1>&2 echo ""
+1>&2 echo "all builds complete"
