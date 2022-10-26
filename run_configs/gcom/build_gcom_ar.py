@@ -19,6 +19,9 @@ def gcom_ar_config(revision=None, compiler=None):
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
     compiler, _ = get_compiler(compiler)
 
+    if compiler == 'ifort':
+        raise RuntimeError("Testing error reporting")
+
     config = BuildConfig(
         project_label=f'gcom object archive {revision} {compiler}',
         source_root=gcom_grab_config(revision=revision).source_root,

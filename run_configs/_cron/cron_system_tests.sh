@@ -19,10 +19,14 @@ cd /tmp/persistent/cron_system_tests
 #git clone --branch cron_local_tests --depth 1 file:///home/h02/bblay/git/fab/
 git clone --branch cron_local_tests --depth 1 file:///home/h02/bblay/git/fab/ 2>&1 >/dev/null
 
+1>&2 echo "build all gfortran"
 ./fab/run_configs/_cron/build_all_gfortran.sh
+1>&2 echo "re build all gfortran"
 ./fab/run_configs/_cron/build_all_gfortran.sh
 
+1>&2 echo "build all ifort"
 ./fab/run_configs/_cron/build_all_ifort.sh
+1>&2 echo "rebuild all ifort"
 ./fab/run_configs/_cron/build_all_ifort.sh
 
 1>&2 echo "builds completed"
