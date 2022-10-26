@@ -21,8 +21,15 @@ def lfric_source_config(revision=LFRIC_REVISION):
 def gpl_utils_source_config(revision=LFRIC_REVISION):
     return BuildConfig(
         project_label=f'lfric source {revision}',
-        steps=[GrabSvn(src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
-                       revision=revision, dst='gpl_utils')]
+        steps=[
+            # SVN commands are failing from cron, there's probably a workaround somewhere.
+            # GrabSvn(
+            #     src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
+            #     revision=revision, dst='gpl_utils'),
+            GrabFcm(
+                src='fcm:lfric_gpl_utils.xm-tr',
+                revision=revision, dst='gpl_utils'),
+        ]
     )
 
 
