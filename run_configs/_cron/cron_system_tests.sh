@@ -8,41 +8,50 @@
 
 set -e
 
+clear_term () {
+    # Clears the terminal if there is one.
+    # There isn't one when running from cron.
+    if [ -n "${TERM}" ]
+    then
+        clear
+    fi
+}
+
 rm -rf /tmp/persistent/cron_system_tests
 mkdir /tmp/persistent/cron_system_tests
 cd /tmp/persistent/cron_system_tests
 
-clear
+clear_term
 echo ""
 echo "Cloning Fab"
 echo ""
-#git clone https://github.com/metomi/fab.git
-# until this is merged, we need something with this file in!
+#git clone --branch master --depth 1 https://github.com/metomi/fab.git
+git clone --branch cron_local_tests --depth 1 https://github.com/bblay/fab.git
 
-clear
+clear_term
 echo ""
 echo "Build everything with gfortran, clean build"
 echo ""
 echo $PWD
 ./fab/run_configs/_cron/build_all_gfortran.sh
 
-clear
+clear_term
 echo ""
 echo "Build everything again with gfortran, incremental build"
 echo ""
 ./fab/run_configs/_cron/build_all_gfortran.sh
 
-clear
+clear_term
 echo ""
 echo "Build everything with ifort, clean build"
 echo ""
 ./fab/run_configs/_cron/build_all_ifort.sh
 
-clear
+clear_term
 echo ""
 echo "Build everything again with ifort, incremental build"
 echo ""
 ./fab/run_configs/_cron/build_all_ifort.sh
 
-clear
+clear_term
 echo "Built and rebuilt everything with both compilers"
