@@ -25,4 +25,4 @@ git clone --branch cron_local_tests --depth 1 file:///home/h02/bblay/git/fab/
 ./fab/run_configs/_cron/build_all_ifort.sh
 ./fab/run_configs/_cron/build_all_ifort.sh
 
-echo "builds completed" | cat
+cat <<< "builds completed"
