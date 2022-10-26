@@ -22,16 +22,16 @@ def build_all():
     scripts = [
         configs_folder / 'gcom/grab_gcom.py',
         configs_folder / 'gcom/build_gcom_ar.py',
-        # configs_folder / 'gcom/build_gcom_so.py',
-        #
-        # configs_folder / 'jules/build_jules.py',
-        #
-        # configs_folder / 'um/build_um.py',
-        #
-        # configs_folder / 'lfric/grab_lfric.py',
-        # configs_folder / 'lfric/mesh_tools.py',
-        # configs_folder / 'lfric/gungho.py',
-        # configs_folder / 'lfric/atm.py',
+        configs_folder / 'gcom/build_gcom_so.py',
+
+        configs_folder / 'jules/build_jules.py',
+
+        configs_folder / 'um/build_um.py',
+
+        configs_folder / 'lfric/grab_lfric.py',
+        configs_folder / 'lfric/mesh_tools.py',
+        configs_folder / 'lfric/gungho.py',
+        configs_folder / 'lfric/atm.py',
     ]
 
     # skip these for now, until we configure them to build again
