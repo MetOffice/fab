@@ -26,3 +26,4 @@ git clone --branch cron_local_tests --depth 1 file:///home/h02/bblay/git/fab/
 ./fab/run_configs/_cron/build_all_ifort.sh
 
 cat <<< "builds completed"
+1>&2 echo "msg to STDERR"
