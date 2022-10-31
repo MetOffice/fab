@@ -4,26 +4,27 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-import os
-from argparse import ArgumentParser
-
 from fab.build_config import BuildConfig
 from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.compile_fortran import get_compiler
 from fab.steps.prebuild_prune import PrebuildPrune
-from gcom_build_steps import common_build_steps
+from gcom_build_steps import common_build_steps, parse_args
 from grab_gcom import gcom_grab_config
 
 
-def gcom_ar_config(revision=None):
+def gcom_ar_config(revision=None, compiler=None):
     """
     Create an object archive for linking.
 
     """
+    # We want a separate project folder for each compiler. Find out which compiler we'll be using.
+    compiler, _ = get_compiler(compiler)
+
     config = BuildConfig(
-        project_label=f'gcom object archive {revision}',
+        project_label=f'gcom object archive {revision} {compiler}',
         source_root=gcom_grab_config(revision=revision).source_root,
         steps=[
-            *common_build_steps(),
+            *common_build_steps(fortran_compiler=compiler),
             ArchiveObjects(output_fpath='$output/libgcom.a'),
 
             PrebuildPrune(all_unused=True),
@@ -34,8 +35,5 @@ def gcom_ar_config(revision=None):
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
-    args = arg_parser.parse_args()
-
-    gcom_ar_config(revision=args.revision).run()
+    args = parse_args()
+    gcom_ar_config(revision=args.revision, compiler=args.compiler).run()

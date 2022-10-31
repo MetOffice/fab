@@ -42,7 +42,7 @@ Example Config
 ==============
 
 Build configs are written in Python. Fab is designed to minimise user input by
-by providing sensible defaults::
+by providing sensible defaults.
 
 .. code-block::
 

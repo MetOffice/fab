@@ -1,4 +1,3 @@
-# Please keep in sync with /environment.yml
 name: Build
 
 on: [push, pull_request]
@@ -51,4 +50,4 @@ jobs:
     - name: System tests with Pytest
       run: |
         pip install .[tests]
-        python -m pytest --cov=fab --ignore=run-configs system-tests-new
+        python -m pytest --cov=fab system-tests-new

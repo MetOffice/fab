@@ -27,3 +27,5 @@ Indices and tables
    Api Reference <apidoc/modules>
    development
    glossary
+   genindex
+   modindex

@@ -17,6 +17,15 @@ semantic versioning, of the form ``{major}.{minor}.{patch}[{a|b|rc}N]``
 * 1.0.1
 * 1.1.0a1
 
+Dev versions are not for release and cover multiple commits.
+* 1.0.dev0
+* ...
+* 1.0.0
+* 1.0.dev1
+* ...
+* 1.0.1
+
+
 Version bumping
 ===============
 The version number needs to be updated in two places
