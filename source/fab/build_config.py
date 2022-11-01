@@ -19,9 +19,10 @@ from pathlib import Path
 from string import Template
 from typing import List, Optional, Dict, Any
 
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
+
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.steps.prebuild_prune import PrebuildPrune
 from fab.steps import Step
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
@@ -85,6 +86,8 @@ class BuildConfig(object):
 
         # multiprocessing config
         self.multiprocessing = multiprocessing
+        # turn off multiprocessing when debugging
+        # todo: turn off multiprocessing when running tests, as a good test runner will run use mp
         if 'pydevd' in str(sys.gettrace()):
             logger.info('debugger detected, running without multiprocessing')
             self.multiprocessing = False
@@ -151,11 +154,13 @@ class BuildConfig(object):
 
         self._artefact_store = {CURRENT_PREBUILDS: set()}
 
+        # todo: this seems contentious - we're adding work the user might not need or want
+        #       we could just print a warning at the end of the run instead
         # if the user hasn't specified any cleanup of the incremental/prebuild folder,
-        # then we add the default, hard cleanup leaving only current artefacts.
-        if not by_type(self.steps, PrebuildPrune):
-            logger.info("no housekeeping specified, using default")
-            self.steps.append(PrebuildPrune(all_unused=True))
+        # then we add a default, hard cleanup leaving only cutting-edge artefacts.
+        if not by_type(self.steps, CleanupPrebuilds):
+            logger.info("no housekeeping specified, adding a default hard cleanup")
+            self.steps.append(CleanupPrebuilds(all_unused=True))
 
     def _init_logging(self):
         # add a file logger for our run

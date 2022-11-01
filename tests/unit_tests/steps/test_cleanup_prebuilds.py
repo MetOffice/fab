@@ -4,7 +4,10 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-class TestNothingLol(object):
+class TestCleanupPrebuilds(object):
 
-    def test_nothing(self):
-        assert 'We still need this folder in this pr, until the mypy config change is merged. How silly :)'
+    def test_no_args(self):
+        pass
+
+    def test_bad_args(self):
+        pass

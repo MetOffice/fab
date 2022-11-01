@@ -1,14 +1,16 @@
 import logging
+import os
 import zlib
+from datetime import timedelta, datetime
 from pathlib import Path
 from typing import List, Dict, Set, Tuple
-from unittest import mock
 
 import pytest
 
 from fab.build_config import BuildConfig
 from fab.constants import PREBUILD
 from fab.steps.analyse import Analyse
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
 from fab.steps.link import LinkExe
@@ -24,36 +26,6 @@ def suffix_filter(data: Dict, suffixes: List[str]) -> Set[Tuple]:
     return filtered
 
 
-@pytest.fixture
-def config(tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
-    logging.getLogger('fab').setLevel(logging.WARNING)
-
-    grab_config = BuildConfig(
-        project_label=PROJECT_LABEL,
-        fab_workspace=tmp_path,
-        steps=[
-            GrabFolder(Path(__file__).parent / 'project-source', dst='src'),
-        ],
-        multiprocessing=False,
-    )
-    grab_config.run()
-
-    build_config = BuildConfig(
-        project_label=PROJECT_LABEL,
-        fab_workspace=tmp_path,
-        steps=[
-            FindSourceFiles(),
-            fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
-            Analyse(root_symbol='my_prog'),
-            CompileFortran(compiler='gfortran -c'),
-            LinkExe(linker='gcc', flags=['-lgfortran']),
-        ],
-        multiprocessing=False,
-    )
-
-    return build_config
-
-
 class TestIncremental(object):
     """
     Checks:
@@ -65,6 +37,35 @@ class TestIncremental(object):
     """
 
     # todo: check incremental build of other file types as Fab is upgraded
+
+    @pytest.fixture
+    def config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
+        logging.getLogger('fab').setLevel(logging.WARNING)
+
+        grab_config = BuildConfig(
+            project_label=PROJECT_LABEL,
+            fab_workspace=tmp_path,
+            steps=[
+                GrabFolder(Path(__file__).parent / 'project-source', dst='src'),
+            ],
+            multiprocessing=False,
+        )
+        grab_config.run()
+
+        build_config = BuildConfig(
+            project_label=PROJECT_LABEL,
+            fab_workspace=tmp_path,
+            steps=[
+                FindSourceFiles(),
+                fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
+                Analyse(root_symbol='my_prog'),
+                CompileFortran(compiler='gfortran -c'),
+                LinkExe(linker='gcc', flags=['-lgfortran']),
+            ],
+            multiprocessing=False,
+        )
+
+        return build_config
 
     def test_clean_build(self, config):
         # just make sure an exe appears
@@ -228,15 +229,49 @@ class TestIncremental(object):
             assert clean_hashes[prebuild_folder / pb_fpath] == rebuild_hashes[prebuild_folder / pb_fpath]
 
 
-class TestHousekeeping(object):
-    def test_prune_oldest(self, config):
+class TestCleanupPrebuilds(object):
+    # Test cleanup of the incremental build artefacts
+
+    def touch_artefacts(self, folder):
+
+        folder.mkdir(parents=True)
+
+        artefacts = [
+            # several version of the same artefact
+            ('a.123.foo', datetime(2022, 10, 31)),
+            ('a.234.foo', datetime(2022, 10, 21)),
+            ('a.345.foo', datetime(2022, 10, 11)),
+            ('a.456.foo', datetime(2022, 10, 1)),
+        ]
+
+        for a, t in artefacts:
+            path = folder / a
+            path.touch(exist_ok=False)
+            os.utime(path, (t.timestamp(), t.timestamp()))
+
+    # def test_prune_oldest(self, tmp_path, artefacts):
+    def test_prune_oldest(self, tmp_path):
         # test pruning by age
 
-        # make one artefact look old
-        with mock.patch():
-            config.run()
+        config = BuildConfig(
+            project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False,
+            steps=[
+                CleanupPrebuilds(older_than=timedelta(days=15))
+            ],
+        )
 
-        assert False
+        # make the prebuild artefacts
+        self.touch_artefacts(config.prebuild_folder)
+
+        # run the cleanup
+        config.run()
+
+        # make sure the expected files remain
+        expected = [
+            config.prebuild_folder / 'a.123.foo',
+            config.prebuild_folder / 'a.234.foo',
+        ]
+        assert sorted(file_walk(config.prebuild_folder)) == sorted(expected)
 
     def test_prune_oldest_versions(self, config):
         # pruning individual artefact versions by age

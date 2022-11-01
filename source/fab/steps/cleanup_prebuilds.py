@@ -11,10 +11,10 @@ import logging
 import os
 import time
 from collections import defaultdict
-from datetime import timedelta
+from datetime import timedelta, datetime
 from pathlib import Path
 from time import sleep
-from typing import Dict
+from typing import Dict, Optional
 
 from fab.constants import CURRENT_PREBUILDS
 from fab.steps import Step
@@ -23,31 +23,42 @@ from fab.util import file_walk, get_fab_workspace
 logger = logging.getLogger(__name__)
 
 
-class PrebuildPrune(Step):
+# todo: poor name? Perhaps PrebuildCleanup, CleanupPrebuilds, or just Cleanup or Housekeeping?
+class CleanupPrebuilds(Step):
     """
-    Delete old files from the local prebuild folder.
+    A step to delete old files from the local prebuild folder.
 
     Assumes prebuild filenames follow the pattern: `<stem>.<hash>.<suffix>`.
 
     """
     # todo: add <stem>.<hash>.<suffix> pattern to docs, probably refer to it in several places
 
-    def __init__(self, n_versions=10, older_than=timedelta(days=30), all_unused=False):
+    def __init__(self, n_versions: int = 0, older_than: timedelta = 0, all_unused: Optional[bool] = None):
         """
         :param n_versions:
             Only keep the most recent n versions of each prebuild file `<stem>.*.<suffix>`
         :param older_than:
-            Delete prebuild artefacts which are a given number of seconds older than the *last prebuild access time*.
+            Delete prebuild artefacts which are *n seconds* older than the *last prebuild access time*.
         :param all_unused:
             Delete everything which was not part of the current build.
 
+        If no parameters are specified then `all_unused` will default to `True`.
+
         """
-        super().__init__(name='prebuild prune')
+        super().__init__(name='cleanup prebuilds')
+
         self.n_versions = n_versions
         self.older_than = older_than
         self.all_unused = all_unused
 
+        # If the user has not specified any cleanup parameters, we default to a hard cleanup.
+        if not n_versions and not older_than:
+            if all_unused not in [None, True]:
+                raise ValueError(f"unexpected value for all_unused: '{all_unused}'")
+            self.all_unused = True
+
     def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
 
         num_removed = 0
 
@@ -146,8 +157,9 @@ def check_fs_access_time(folder=None) -> bool:
     return True
 
 
-def get_access_time(fpath: Path):
-    return fpath.stat().st_atime_ns
+def get_access_time(fpath: Path) -> datetime:
+    ts = fpath.stat().st_atime
+    return datetime.fromtimestamp(ts)
 
 
 def get_prebuild_file_groups(prebuild_files) -> Dict[str, set]:
