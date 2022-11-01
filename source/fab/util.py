@@ -306,7 +306,7 @@ def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
     return mod_hashes
 
 
-def get_fab_workspace():
+def get_fab_workspace() -> Path:
     if os.getenv("FAB_WORKSPACE"):
         fab_workspace = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
     else:

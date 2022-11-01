@@ -48,13 +48,13 @@ class TestFortranPrebuild(object):
         # This test also checks that the object files are identical,
         # and that the prebuild filenames are the same.
 
-        config1 = self.build_config(fab_workspace=tmp_path / 'workspace_one')
+        config1 = self.build_config(fab_workspace=tmp_path / 'first_workspace')
         config1.run()
 
         pb_files1 = set(file_walk(config1.prebuild_folder))
         pb_hashes1 = {f.relative_to(config1.build_output): zlib.crc32(open(f, 'rb').read()) for f in pb_files1}
 
-        config2 = self.build_config(fab_workspace=tmp_path / 'workspace_two')
+        config2 = self.build_config(fab_workspace=tmp_path / 'second_workspace')
         config2.run()
 
         pb_files2 = set(file_walk(config2.prebuild_folder))
@@ -77,11 +77,11 @@ class TestFortranPrebuild(object):
         # share a prebuild from a different folder
 
         # build the project in "some other fab workspace", from where we'll share its prebuild
-        first_project = self.build_config(fab_workspace=tmp_path / 'other_workspace')
+        first_project = self.build_config(fab_workspace=tmp_path / 'first_workspace')
         first_project.run()
 
         # now build the project in our workspace.
-        second_project = self.build_config(fab_workspace=tmp_path / 'my_workspace',
+        second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
                                            grab_prebuild_folder=first_project.prebuild_folder)
         with mock.patch('fab.tasks.fortran.FortranAnalyser._parse_file') as mock_parse_fortran:
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:

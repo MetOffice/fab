@@ -21,6 +21,7 @@ from typing import List, Optional, Dict, Any
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
+from fab.steps.prebuild_prune import PrebuildPrune
 from fab.steps import Step
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
@@ -117,24 +118,9 @@ class BuildConfig(object):
         The metrics can be found in the project workspace.
 
         """
-
-        logger.info('')
-        logger.info('------------------------------------------------------------')
-        logger.info(f'running {self.project_label}')
-        logger.info('------------------------------------------------------------')
-        logger.info('')
-
         start_time = datetime.now().replace(microsecond=0)
-        self.build_output.mkdir(parents=True, exist_ok=True)
-        self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
-        self._init_logging()
-        init_metrics(metrics_folder=self.metrics_folder)
-
-        self._artefact_store = dict()
-
-        # this artefact collection is written to by multiple steps so initialise it here
-        self._artefact_store[CURRENT_PREBUILDS] = set()
+        self._run_prep()
 
         # run all the steps
         try:
@@ -149,6 +135,27 @@ class BuildConfig(object):
         finally:
             self._finalise_metrics(start_time, steps_timer)
             self._finalise_logging()
+
+    def _run_prep(self):
+        logger.info('')
+        logger.info('------------------------------------------------------------')
+        logger.info(f'running {self.project_label}')
+        logger.info('------------------------------------------------------------')
+        logger.info('')
+
+        self.build_output.mkdir(parents=True, exist_ok=True)
+        self.prebuild_folder.mkdir(parents=True, exist_ok=True)
+
+        self._init_logging()
+        init_metrics(metrics_folder=self.metrics_folder)
+
+        self._artefact_store = {CURRENT_PREBUILDS: set()}
+
+        # if the user hasn't specified any cleanup of the incremental/prebuild folder,
+        # then we add the default, hard cleanup leaving only current artefacts.
+        if not by_type(self.steps, PrebuildPrune):
+            logger.info("no housekeeping specified, using default")
+            self.steps.append(PrebuildPrune(all_unused=True))
 
     def _init_logging(self):
         # add a file logger for our run

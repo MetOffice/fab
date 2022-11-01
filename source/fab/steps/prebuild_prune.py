@@ -74,7 +74,7 @@ class PrebuildPrune(Step):
             # identify old files
             if self.older_than:
                 oldest_ts_allowed = most_recent_ts - self.older_than
-                for pbf, ts in prebuilds_ts:
+                for pbf, ts in prebuilds_ts.items():
                     if ts < oldest_ts_allowed:
                         logger.info(f"old age {pbf}")
                         to_delete.add(pbf)

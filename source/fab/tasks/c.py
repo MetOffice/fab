@@ -27,7 +27,7 @@ class CAnalyser(object):
     def __init__(self):
 
         # runtime
-        self._prebuild_folder = None
+        self._config = None
 
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
@@ -88,7 +88,7 @@ class CAnalyser(object):
         # do we already have analysis results for this file?
         # todo: dupe - probably best in a parser base class
         file_hash = file_checksum(fpath).file_hash
-        analysis_fpath = Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
         if analysis_fpath.exists():
             return AnalysedFile.load(analysis_fpath)
 
