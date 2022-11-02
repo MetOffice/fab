@@ -77,37 +77,70 @@ class CleanupPrebuilds(Step):
 
             # get the file access time for every prebuild file
             prebuilds_ts = dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time), strict=True))
-            most_recent_ts = max(prebuilds_ts.values())
+            # most_recent_ts = max(prebuilds_ts.values())
 
             # build a set of all old files to delete
-            to_delete = set()
+            # to_delete = set()
 
-            # identify old files
-            if self.older_than:
-                oldest_ts_allowed = most_recent_ts - self.older_than
-                for pbf, ts in prebuilds_ts.items():
-                    if ts < oldest_ts_allowed:
-                        logger.info(f"old age {pbf}")
-                        to_delete.add(pbf)
+            # # identify old files
+            # if self.older_than:
+            #     oldest_ts_allowed = most_recent_ts - self.older_than
+            #     for pbf, ts in prebuilds_ts.items():
+            #         if ts < oldest_ts_allowed:
+            #             logger.info(f"old age {pbf}")
+            #             to_delete.add(pbf)
+            to_delete = self.by_age(prebuilds_ts)
 
-            # identify old versions
-            if self.n_versions:
+            # # identify old versions
+            # if self.n_versions:
+            #
+            #     # group prebuild files by originating artefact, <stem>.*.<suffix>
+            #     pb_file_groups = get_prebuild_file_groups(prebuild_files)
+            #
+            #     # delete the n oldest in each group
+            #     for pb_group in pb_file_groups.values():
+            #         by_age = sorted(pb_group, key=lambda pbf: prebuilds_ts[pbf], reverse=True)
+            #         for pbf in by_age[self.n_versions:]:
+            #             logger.info(f"old version {pbf}")
+            #             to_delete.add(pbf)
 
-                # group prebuild files by originating artefact, <stem>.*.<suffix>
-                pb_file_groups = get_prebuild_file_groups(prebuild_files)
-
-                # delete the n oldest in each group
-                for pb_group in pb_file_groups.values():
-                    by_age = sorted(pb_group, key=lambda pbf: prebuilds_ts[pbf], reverse=True)
-                    for pbf in by_age[self.n_versions:]:
-                        logger.info(f"old version {pbf}")
-                        to_delete.add(pbf)
+            to_delete |= self.by_version_age(prebuilds_ts, prebuild_files)
 
             # delete them all
-            num_removed = len(to_delete)
             self.run_mp(to_delete, os.remove)
+            num_removed = len(to_delete)
 
         logger.info(f'removed {num_removed} prebuild files')
+
+    def by_age(self, prebuilds_ts):
+        to_delete = set()
+
+        if self.older_than:
+            most_recent_ts = max(prebuilds_ts.values())
+            oldest_ts_allowed = most_recent_ts - self.older_than
+
+            for pbf, ts in prebuilds_ts.items():
+                if ts < oldest_ts_allowed:
+                    logger.info(f"old age {pbf}")
+                    to_delete.add(pbf)
+
+        return to_delete
+
+    def by_version_age(self, prebuilds_ts, prebuild_files):
+        to_delete = set()
+
+        if self.n_versions:
+            # group prebuild files by originating artefact, <stem>.*.<suffix>
+            pb_file_groups = get_prebuild_file_groups(prebuild_files)
+
+            # delete the n oldest in each group
+            for pb_group in pb_file_groups.values():
+                by_age = sorted(pb_group, key=lambda pbf: prebuilds_ts[pbf], reverse=True)
+                for pbf in by_age[self.n_versions:]:
+                    logger.info(f"old version {pbf}")
+                    to_delete.add(pbf)
+
+        return to_delete
 
 
 def remove_all_unused(found_files, current_files):
