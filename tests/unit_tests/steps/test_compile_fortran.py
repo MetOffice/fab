@@ -508,7 +508,9 @@ class Test_get_mod_hashes(object):
         config = BuildConfig('proj', fab_workspace=Path('/fab_workspace'))
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
-            with mock.patch('fab.steps.compile_fortran.file_checksum', side_effect=[mock.Mock(file_hash=123), mock.Mock(file_hash=456)]):
+            with mock.patch(
+                    'fab.steps.compile_fortran.file_checksum',
+                    side_effect=[mock.Mock(file_hash=123), mock.Mock(file_hash=456)]):
                 result = get_mod_hashes(analysed_files=analysed_files, config=config)
 
         assert result == {'foo': 123, 'bar': 456}
