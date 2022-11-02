@@ -10,7 +10,7 @@ from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.compile_fortran import CompileFortran, get_compiler, _get_compiler_version
+from fab.steps.compile_fortran import CompileFortran, get_compiler, _get_compiler_version, get_mod_hashes
 from fab.util import CompiledFile
 
 
@@ -495,3 +495,20 @@ class Test_get_compiler_version(object):
         """)
 
         self._check(full_version_string=full_version_string, expect='19.0.0.117')
+
+
+class Test_get_mod_hashes(object):
+
+    def test_vanilla(self):
+        # get a hash value for every module in the analysed file
+        analysed_files = {
+            mock.Mock(module_defs=['foo', 'bar']),
+        }
+
+        config = BuildConfig('proj', fab_workspace=Path('/fab_workspace'))
+
+        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
+            with mock.patch('fab.steps.compile_fortran.file_checksum', side_effect=[mock.Mock(file_hash=123), mock.Mock(file_hash=456)]):
+                result = get_mod_hashes(analysed_files=analysed_files, config=config)
+
+        assert result == {'foo': 123, 'bar': 456}

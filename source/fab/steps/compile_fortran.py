@@ -23,7 +23,7 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.tools import COMPILERS
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    get_mod_hashes, flags_checksum, remove_managed_flags
+    flags_checksum, remove_managed_flags, file_checksum
 from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
@@ -389,3 +389,17 @@ def _get_compiler_version(compiler: str) -> str:
     logger.info(f'Found compiler version for {compiler} = {version}')
 
     return version
+
+
+def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
+    """
+    Get the hash of every module file defined in the list of analysed files.
+
+    """
+    mod_hashes = {}
+    for af in analysed_files:
+        for mod_def in af.module_defs:
+            fpath: Path = config.build_output / f'{mod_def}.mod'
+            mod_hashes[mod_def] = file_checksum(fpath).file_hash
+
+    return mod_hashes

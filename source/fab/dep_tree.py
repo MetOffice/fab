@@ -54,7 +54,7 @@ class AnalysedFile(object):
 
         """
         self.fpath = Path(fpath)
-        self.file_hash: int = file_hash or file_checksum(fpath).file_hash
+        self.file_hash: int = file_hash if file_hash is not None else file_checksum(fpath).file_hash
         self.module_defs: Set[str] = set(module_defs or {})
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.module_deps: Set[str] = set(module_deps or {})

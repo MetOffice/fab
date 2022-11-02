@@ -4,8 +4,7 @@ from unittest import mock
 import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
-from fab.build_config import BuildConfig
-from fab.util import run_command, get_mod_hashes, flags_checksum, remove_managed_flags
+from fab.util import run_command, flags_checksum, remove_managed_flags
 from fab.util import suffix_filter
 
 
@@ -71,23 +70,6 @@ class TestSuffixFilter(object):
         getter = SuffixFilter('barz', ['.b', '.c'])
         result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
         assert result == [Path('bar.b'), Path('bar.c')]
-
-
-class Test_get_mod_hashes(object):
-
-    def test_vanilla(self):
-        # get a hash value for every module in the analysed file
-        analysed_files = {
-            mock.Mock(module_defs=['foo', 'bar']),
-        }
-
-        config = BuildConfig('proj', fab_workspace=Path('/fab_workspace'))
-
-        with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
-            with mock.patch('fab.util.file_checksum', side_effect=[mock.Mock(file_hash=123), mock.Mock(file_hash=456)]):
-                result = get_mod_hashes(analysed_files=analysed_files, config=config)
-
-        assert result == {'foo': 123, 'bar': 456}
 
 
 class Test_flags_checksum(object):
