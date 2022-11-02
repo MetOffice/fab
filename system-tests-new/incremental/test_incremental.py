@@ -292,6 +292,29 @@ class TestCleanupPrebuilds(object):
             config.prebuild_folder / 'a.456.foo',
         ]
 
+    # pruning a file which is covered by both the age and the version pruning code.
+    # this is to protect against trying to delete a non-existent file.
+    def test_prune_overlap(self, tmp_path):
+        config = BuildConfig(
+            project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False,
+            steps=[
+                CleanupPrebuilds(older_than=timedelta(days=15), n_versions=2)
+            ],
+        )
+
+        # create artefacts
+        self.create_artefacts(config.prebuild_folder)
+
+        # run the cleanup
+        config.run()
+
+        # return the remaining files
+        remaining_artefacts = file_walk(config.prebuild_folder)
+        assert sorted(remaining_artefacts) == [
+            config.prebuild_folder / 'a.123.foo',
+            config.prebuild_folder / 'a.234.foo',
+        ]
+
     # helpers
 
     def _prune_oldest(self, tmp_path, age):
@@ -314,7 +337,7 @@ class TestCleanupPrebuilds(object):
         return config, remaining_artefacts
 
     def _prune_versions(self, tmp_path, n_versions):
-        # common code to test pruning by age
+        # common code to test pruning by version age
         config = BuildConfig(
             project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False,
             steps=[

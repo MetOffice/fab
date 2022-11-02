@@ -4,21 +4,20 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 """
-Pruning of old files from the prebuild folder.
+Pruning of old files from the incremental/prebuild folder.
 
 """
 import logging
 import os
 import time
-from collections import defaultdict
 from datetime import timedelta, datetime
 from pathlib import Path
 from time import sleep
-from typing import Dict, Optional
+from typing import Dict, Optional, Iterable, Set
 
 from fab.constants import CURRENT_PREBUILDS
 from fab.steps import Step
-from fab.util import file_walk, get_fab_workspace
+from fab.util import file_walk, get_fab_workspace, get_prebuild_file_groups
 
 logger = logging.getLogger(__name__)
 
@@ -26,19 +25,19 @@ logger = logging.getLogger(__name__)
 # todo: poor name? Perhaps PrebuildCleanup, CleanupPrebuilds, or just Cleanup or Housekeeping?
 class CleanupPrebuilds(Step):
     """
-    A step to delete old files from the local prebuild folder.
+    A step to delete old files from the local incremental/prebuild folder.
 
     Assumes prebuild filenames follow the pattern: `<stem>.<hash>.<suffix>`.
 
     """
     # todo: add <stem>.<hash>.<suffix> pattern to docs, probably refer to it in several places
 
-    def __init__(self, n_versions: int = 0, older_than: Optional[timedelta] = None, all_unused: Optional[bool] = None):
+    def __init__(self, older_than: Optional[timedelta] = None, n_versions: int = 0, all_unused: Optional[bool] = None):
         """
-        :param n_versions:
-            Only keep the most recent n versions of each prebuild file `<stem>.*.<suffix>`
         :param older_than:
             Delete prebuild artefacts which are *n seconds* older than the *last prebuild access time*.
+        :param n_versions:
+            Only keep the most recent n versions of each artefact `<stem>.*.<suffix>`
         :param all_unused:
             Delete everything which was not part of the current build.
 
@@ -74,36 +73,13 @@ class CleanupPrebuilds(Step):
             # Make sure the file system can give us access times - overkill?
             if not check_fs_access_time(config.prebuild_folder):
                 logger.error("file access time not available, aborting housekeeping")
+                return
 
-            # get the file access time for every prebuild file
+            # get the file access time for every artefact
             prebuilds_ts = dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time), strict=True))
-            # most_recent_ts = max(prebuilds_ts.values())
 
-            # build a set of all old files to delete
-            # to_delete = set()
-
-            # # identify old files
-            # if self.older_than:
-            #     oldest_ts_allowed = most_recent_ts - self.older_than
-            #     for pbf, ts in prebuilds_ts.items():
-            #         if ts < oldest_ts_allowed:
-            #             logger.info(f"old age {pbf}")
-            #             to_delete.add(pbf)
+            # work out what to delete
             to_delete = self.by_age(prebuilds_ts)
-
-            # # identify old versions
-            # if self.n_versions:
-            #
-            #     # group prebuild files by originating artefact, <stem>.*.<suffix>
-            #     pb_file_groups = get_prebuild_file_groups(prebuild_files)
-            #
-            #     # delete the n oldest in each group
-            #     for pb_group in pb_file_groups.values():
-            #         by_age = sorted(pb_group, key=lambda pbf: prebuilds_ts[pbf], reverse=True)
-            #         for pbf in by_age[self.n_versions:]:
-            #             logger.info(f"old version {pbf}")
-            #             to_delete.add(pbf)
-
             to_delete |= self.by_version_age(prebuilds_ts, prebuild_files)
 
             # delete them all
@@ -112,7 +88,7 @@ class CleanupPrebuilds(Step):
 
         logger.info(f'removed {num_removed} prebuild files')
 
-    def by_age(self, prebuilds_ts):
+    def by_age(self, prebuilds_ts: Dict[Path, datetime]) -> Set[Path]:
         to_delete = set()
 
         if self.older_than:
@@ -126,12 +102,12 @@ class CleanupPrebuilds(Step):
 
         return to_delete
 
-    def by_version_age(self, prebuilds_ts, prebuild_files):
+    def by_version_age(self, prebuilds_ts: Dict[Path, datetime]) -> Set[Path]:
         to_delete = set()
 
         if self.n_versions:
             # group prebuild files by originating artefact, <stem>.*.<suffix>
-            pb_file_groups = get_prebuild_file_groups(prebuild_files)
+            pb_file_groups = get_prebuild_file_groups(prebuilds_ts.keys())
 
             # delete the n oldest in each group
             for pb_group in pb_file_groups.values():
@@ -143,12 +119,12 @@ class CleanupPrebuilds(Step):
         return to_delete
 
 
-def remove_all_unused(found_files, current_files):
+def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]):
     num_removed = 0
 
-    for pbf in found_files:
-        if pbf not in current_files:
-            pbf.unlink()
+    for f in found_files:
+        if f not in current_files:
+            f.unlink()
             num_removed += 1
 
     return num_removed
@@ -193,25 +169,3 @@ def check_fs_access_time(folder=None) -> bool:
 def get_access_time(fpath: Path) -> datetime:
     ts = fpath.stat().st_atime
     return datetime.fromtimestamp(ts)
-
-
-def get_prebuild_file_groups(prebuild_files) -> Dict[str, set]:
-    """
-    Group prebuild filenames by originating artefact.
-
-    Prebuild filenames have the form `<stem>.<hash>.<suffix>`.
-    This function creates a dict with wildcard key `<stem>.*.<suffix>`
-    with each entry mapping to a set of all matching prebuild files.
-
-    Given the input files *my_mod.123.o* and *my_mod.456.o*,
-    returns a dict {'my_mod.*.o': {'my_mod.123.o', 'my_mod.456.o}}
-
-    """
-    pbf_groups = defaultdict(set)
-
-    for pbf in prebuild_files:
-        stem_stem = pbf.stem.split('.')[0]  # stem returns <stem>.<hash>
-        wildcard_key = pbf.parent / f'{stem_stem}.*{pbf.suffix}'
-        pbf_groups[wildcard_key].add(pbf)
-
-    return pbf_groups

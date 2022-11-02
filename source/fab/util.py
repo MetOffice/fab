@@ -315,7 +315,7 @@ def get_fab_workspace() -> Path:
     return fab_workspace
 
 
-def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
+def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set]:
     """
     Group prebuild filenames by originating artefact.
 
@@ -326,15 +326,18 @@ def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
     Given the input files *my_mod.123.o* and *my_mod.456.o*,
     returns a dict {'my_mod.*.o': {'my_mod.123.o', 'my_mod.456.o'}}
 
-    Assumes all prebuild files are in a flat folder, so folders are removed from the result to aid inspection.
+    :param prebuild_files:
+        Collection of Paths to group.
 
     """
+    # Note: each path's folder is ignored, the prebuild folder is assumed to be flat.
+
     pbf_groups = defaultdict(set)
 
-    for pbf in prebuild_files:
-        stem_stem = pbf.stem.split('.')[0]
-        wildcard_key = f'{stem_stem}.*{pbf.suffix}'
-        pbf_groups[wildcard_key].add(pbf.name)
+    for f in prebuild_files:
+        stem_stem = f.stem.split('.')[0]
+        wildcard_key = f'{stem_stem}.*{f.suffix}'
+        pbf_groups[wildcard_key].add(f.name)
 
     return pbf_groups
 
