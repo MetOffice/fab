@@ -14,6 +14,8 @@ import logging
 from pathlib import Path
 from typing import Set, Dict, Iterable, Union, Any, Optional
 
+from fab.util import file_checksum
+
 logger = logging.getLogger(__name__)
 
 
@@ -27,7 +29,7 @@ class AnalysedFile(object):
     The object can represent itself as a dict for use with a csv.DictWriter.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: int,
+    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
                  module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
                  module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
                  file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
@@ -35,7 +37,7 @@ class AnalysedFile(object):
         :param fpath:
             The source file that was analysed.
         :param file_hash:
-            The hash of the source.
+            The hash of the source. The user is encouraged not to provide this, as Fab can do it for them.
         :param module_defs:
             Set of module names defined by this source file.
             A subset of symbol_defs
@@ -51,10 +53,8 @@ class AnalysedFile(object):
             Comes from "DEPENDS ON:" comments which end in ".o".
 
         """
-        assert file_hash is not None
-
         self.fpath = Path(fpath)
-        self.file_hash = file_hash
+        self.file_hash: int = file_hash or file_checksum(fpath).file_hash
         self.module_defs: Set[str] = set(module_defs or {})
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.module_deps: Set[str] = set(module_deps or {})
