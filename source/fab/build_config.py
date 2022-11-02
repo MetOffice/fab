@@ -152,6 +152,7 @@ class BuildConfig(object):
         self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
 
+        # note: initialising here gives a new set of artefacts each run
         self._artefact_store = {CURRENT_PREBUILDS: set()}
 
         # todo: this seems contentious - we're adding work the user might not need or want

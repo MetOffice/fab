@@ -33,7 +33,7 @@ class CleanupPrebuilds(Step):
     """
     # todo: add <stem>.<hash>.<suffix> pattern to docs, probably refer to it in several places
 
-    def __init__(self, n_versions: int = 0, older_than: timedelta = 0, all_unused: Optional[bool] = None):
+    def __init__(self, n_versions: int = 0, older_than: Optional[timedelta] = None, all_unused: Optional[bool] = None):
         """
         :param n_versions:
             Only keep the most recent n versions of each prebuild file `<stem>.*.<suffix>`
