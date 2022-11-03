@@ -22,11 +22,12 @@ logger = logging.getLogger(__name__)
 # todo: this might be better placed in the analyse step
 class AnalysedFile(object):
     """
-    An analysis result for a single file, containing symbol definitions and dependencies.
+    An analysis result for a single file, containing module and symbol definitions and dependencies.
 
-    File dependencies are set after construction.
-
-    The object can represent itself as a dict for use with a csv.DictWriter.
+    The user unlikely to encounter this class unless they need to provide a workaround for an fparser issue.
+    In this case they can omit the file hash and Fab will lazily evaluate it.
+    However, with this lazy evaluation, the object cannot be put into a set or otherwise hashed
+    until the target file exists, which might not happen until later in the build.
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
@@ -54,7 +55,8 @@ class AnalysedFile(object):
 
         """
         self.fpath = Path(fpath)
-        self._file_hash: Optional[int] = file_hash  # self.file_hash is a lazy property; the file might not exist yet.
+        # the self.file_hash property (no underscore) has lazy evaluation; the file might not exist yet.
+        self._file_hash: Optional[int] = file_hash
         self.module_defs: Set[str] = set(module_defs or {})
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.module_deps: Set[str] = set(module_deps or {})
@@ -76,8 +78,8 @@ class AnalysedFile(object):
 
     @property
     def file_hash(self):
-        # We need to be careful about what we want here. Using this pattern means we can't put these objects
-        # into a set, for example, until the target file exists. That seems contentious.
+        # If we haven't provided a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
+        # This only affects user workarounds of fparser issues when the user has not provided a file hash.
         if not self._file_hash:
             if not self.fpath.exists():
                 raise ValueError(f"analysed file '{self.fpath}' does not exist")
