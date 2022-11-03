@@ -80,7 +80,7 @@ class AnalysedFile(object):
     def file_hash(self):
         # If we haven't provided a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
         # This only affects user workarounds of fparser issues when the user has not provided a file hash.
-        if not self._file_hash:
+        if self._file_hash is None:
             if not self.fpath.exists():
                 raise ValueError(f"analysed file '{self.fpath}' does not exist")
             self._file_hash: int = file_checksum(self.fpath).file_hash

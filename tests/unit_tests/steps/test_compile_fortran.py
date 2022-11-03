@@ -197,7 +197,7 @@ class Test_process_file(object):
         #       the resulting object file and mod file combo hashes can be expected to increase by 1 too.
         compiler, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
 
-        analysed_file.file_hash += 1
+        analysed_file._file_hash += 1
         obj_combo_hash = f'{int(obj_combo_hash, 16) + 1:x}'
         mods_combo_hash = f'{int(mods_combo_hash, 16) + 1:x}'
 
