@@ -77,7 +77,7 @@ class Analyse(Step):
     def __init__(self,
                  source: ArtefactsGetter = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
-                 std: str ="f2008",
+                 std: str = "f2008",
                  special_measure_analysis_results: Optional[List[AnalysedFile]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None,
@@ -124,7 +124,7 @@ class Analyse(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[AnalysedFile] = list(special_measure_analysis_results or [])
-        self.unreferenced_deps: List[str] = unreferenced_deps or []
+        self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
         self.fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
