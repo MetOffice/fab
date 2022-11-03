@@ -72,7 +72,7 @@ class BuildConfig(object):
         # workspace folder
         if not fab_workspace:
             fab_workspace = get_fab_workspace()
-        logger.info(f"\nfab workspace is {fab_workspace}")
+        logger.info(f"fab workspace is {fab_workspace}")
 
         self.project_workspace = fab_workspace / self.project_label
         self.metrics_folder = self.project_workspace / 'metrics' / self.project_label
@@ -107,11 +107,16 @@ class BuildConfig(object):
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
         # runtime
-        self._artefact_store: Optional[Dict[str, Any]] = None
+        self._artefact_store: Dict[str, Any] = {}
+        self.init_artefact_store()  # useful to initialise here for testing steps, but it's reset with every run
 
     @property
     def build_output(self):
         return self.project_workspace / BUILD_OUTPUT
+
+    def init_artefact_store(self):
+        # there's no point writing to this from a child process of Step.run_mp() because you'll be modifying a copy.
+        self._artefact_store = {CURRENT_PREBUILDS: set()}
 
     def run(self):
         """
@@ -132,6 +137,7 @@ class BuildConfig(object):
                     with TimerLogger(step.name) as step_timer:
                         step.run(artefact_store=self._artefact_store, config=self)
                     send_metric('steps', step.name, step_timer.taken)
+                logger.info('\nall steps complete')
         except Exception as err:
             logger.error(f'\n\nError running build steps:\n{err}')
             raise Exception(f'\n\nError running build steps:\n{err}')
@@ -153,7 +159,7 @@ class BuildConfig(object):
         init_metrics(metrics_folder=self.metrics_folder)
 
         # note: initialising here gives a new set of artefacts each run
-        self._artefact_store = {CURRENT_PREBUILDS: set()}
+        self.init_artefact_store()
 
         # todo: this seems contentious - we're adding work the user might not need or want
         #       we could just print a warning at the end of the run instead

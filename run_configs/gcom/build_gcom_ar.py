@@ -6,8 +6,8 @@
 ##############################################################################
 from fab.build_config import BuildConfig
 from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import get_compiler
-from fab.steps.prebuild_prune import CleanupPrebuilds
 from gcom_build_steps import common_build_steps, parse_args
 from grab_gcom import gcom_grab_config
 
@@ -28,7 +28,8 @@ def gcom_ar_config(revision=None, compiler=None):
             ArchiveObjects(output_fpath='$output/libgcom.a'),
 
             CleanupPrebuilds(all_unused=True),
-        ]
+        ],
+        multiprocessing=False,
     )
 
     return config

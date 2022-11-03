@@ -369,6 +369,7 @@ class TestCleanupPrebuilds(object):
 
         # wrap _run_prep to register current artefacts
         actual_run_prep = config._run_prep
+
         def mock_run_prep():
             actual_run_prep()
             config._artefact_store = {CURRENT_PREBUILDS: {

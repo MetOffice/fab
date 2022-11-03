@@ -12,8 +12,9 @@ import os
 import shutil
 import zlib
 from collections import defaultdict
+from itertools import chain
 from pathlib import Path
-from typing import List, Set, Dict, Tuple
+from typing import List, Set, Dict, Tuple, Union
 
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES, CURRENT_PREBUILDS
@@ -147,9 +148,15 @@ class CompileFortran(Step):
         # compile
         logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
         results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
-        check_for_errors(results_this_pass, caller_label=self.name)
-        compiled_this_pass = list(by_type(results_this_pass, CompiledFile))
+
+        # there's a result and a list of artefacts per file
+        compilation_results, artefact_lists = zip(*results_this_pass)
+        check_for_errors(compilation_results, caller_label=self.name)
+        compiled_this_pass = list(by_type(compilation_results, CompiledFile))
         logger.debug(f"compiled {len(compiled_this_pass)} files")
+
+        # record the artefacts as being current
+        config._artefact_store[CURRENT_PREBUILDS].update(chain(*artefact_lists))  # slightly naughty access.
 
         # hash the modules we just created
         new_mod_hashes = get_mod_hashes(compile_next, config)
@@ -199,22 +206,24 @@ class CompileFortran(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    def process_file(self, analysed_file: AnalysedFile):
+    def process_file(self, analysed_file: AnalysedFile) \
+            -> Union[Tuple[CompiledFile, List[Path]], Tuple[Exception, None]]:
         """
         Prepare to compile a fortran file, and compile it if anything has changed since it was last compiled.
 
-        Returns a compilation result, regardless of whether it was compiled or prebuilt.
+        Object files are created directly as artefacts in the prebuild folder.
+        Mod files are created in the module folder and copied as artefacts into the prebuild folder.
+        If nothing has changed, prebuilt mod files are copied *from* the prebuild folder into the module folder.
 
         .. note::
 
-            When compiling, any newly built object and mod files go *into* the prebuild folder.
-            If nothing has changed, prebuilt mod files are copied *from* the prebuild folder.
-
             Prebuild filenames include a "combo-hash" of everything that, if changed, must trigger a recompile.
-            For mod and object files, this includes a checksum of: source code, compiler.
-            For object files, this also includes a checksum of: compiler flags, modules on which we depend.
+            For mod and object files, this includes a checksum of: *source code, compiler*.
+            For object files, this also includes a checksum of: *compiler flags, modules on which we depend*.
 
             Before compiling a file, we calculate the combo hashes and see if the output files already exists.
+
+        Returns a compilation result, regardless of whether it was compiled or prebuilt.
 
         """
         # todo: include compiler version in hashes
@@ -223,29 +232,25 @@ class CompileFortran(Step):
         mod_combo_hash = self._get_mod_combo_hash(analysed_file)
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
 
-        # calculate the prebuild filenames
+        # calculate the incremental/prebuild artefact filenames
         obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
         mod_file_prebuilds = [
             self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
             for mod_def in analysed_file.module_defs
         ]
-        # record them for the housekeeping step
-        self._config.artefact_store[CURRENT_PREBUILDS].add(obj_file_prebuild)
-        self._config.artefact_store[CURRENT_PREBUILDS].update(mod_file_prebuilds)
 
-        # have we got the object and all the mod files we need to avoid a recompile?
+        # have we got all the prebuilt artefacts we need to avoid a recompile?
         prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds))
         if not all(prebuilds_exist):
-
             # compile
             try:
                 logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
                 self.compile_file(analysed_file, flags, output_fpath=obj_file_prebuild)
             except Exception as err:
-                return Exception(f"Error compiling {analysed_file.fpath}: {err}")
+                return Exception(f"Error compiling {analysed_file.fpath}: {err}"), None
 
-            # Store the mod files for reuse.
-            # todo: we could sometimes avoid these copies because mods can change less frequently than obj
+            # copy the mod files to the prebuild folder as artefacts for reuse
+            # note: perhaps we could sometimes avoid these copies because mods can change less frequently than obj
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
                     self._config.build_output / f'{mod_def}.mod',
@@ -253,7 +258,7 @@ class CompileFortran(Step):
                 )
 
         else:
-            # restore the mod files we would have created
+            # copy the prebuilt mod files from the prebuild folder
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
                     self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
@@ -262,7 +267,11 @@ class CompileFortran(Step):
 
             log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
-        return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
+        # return the results
+        compiled_file = CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
+        artefacts = [obj_file_prebuild] + mod_file_prebuilds
+
+        return compiled_file, artefacts
 
     def _get_obj_combo_hash(self, analysed_file, flags):
         # get a combo hash of things which matter to the object file we define

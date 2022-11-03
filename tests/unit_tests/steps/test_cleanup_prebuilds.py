@@ -24,7 +24,7 @@ class TestCleanupPrebuilds(object):
 
     def test_init_bad_args(self):
         with pytest.raises(ValueError):
-            c = CleanupPrebuilds(all_unused=False)
+            CleanupPrebuilds(all_unused=False)
 
     def test_by_age(self):
         c = CleanupPrebuilds(older_than=timedelta(days=15))
@@ -73,6 +73,17 @@ def test_remove_all_unused():
     ])
 
 
-def Test_get_prebuild_file_groups(object):
-    prebuild_files = [Path()]
+def test_get_prebuild_file_groups():
+    prebuild_files = [
+        Path('foo.123.an'), Path('foo.234.an'), Path('foo.345.an'),
+        Path('foo.123.o'), Path('foo.234.o'), Path('foo.345.o'),
+        Path('foo.123.mod'), Path('foo.234.mod'), Path('foo.345.mod'),
+    ]
+
     result = get_prebuild_file_groups(prebuild_files)
+
+    assert result == {
+        'foo.*.an': set(prebuild_files[0:3]),
+        'foo.*.o': set(prebuild_files[3:6]),
+        'foo.*.mod': set(prebuild_files[6:9]),
+    }

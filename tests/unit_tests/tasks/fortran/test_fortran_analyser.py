@@ -7,6 +7,7 @@ from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 
+from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.tasks.fortran import FortranAnalyser, iter_content
 
@@ -36,9 +37,9 @@ def module_expected(module_fpath):
 class Test_Analyser(object):
 
     @pytest.fixture
-    def fortran_analyser(self):
+    def fortran_analyser(self, tmp_path):
         fortran_analyser = FortranAnalyser()
-        fortran_analyser._prebuild_folder = Path('/prebuild')
+        fortran_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
         return fortran_analyser
 
     def test_empty_file(self, fortran_analyser):

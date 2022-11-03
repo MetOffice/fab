@@ -9,13 +9,14 @@ from unittest.mock import Mock
 
 import clang  # type: ignore
 
+from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
 from fab.tasks.c import CAnalyser
 
 
 def test_simple_result(tmp_path):
     c_analyser = CAnalyser()
-    c_analyser._prebuild_folder = Path('/prebuild')
+    c_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
 
     with mock.patch('fab.dep_tree.AnalysedFile.save'):
         fpath = Path(__file__).parent / "test_c_analyser.c"

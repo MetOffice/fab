@@ -7,6 +7,8 @@
 import logging
 import os
 
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
+
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
@@ -82,6 +84,8 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         LinkExe(
             linker='mpifort',
             flags=['-lm', '-lnetcdff', '-lnetcdf']),
+
+        CleanupPrebuilds(n_versions=1)
     ]
 
     return config
