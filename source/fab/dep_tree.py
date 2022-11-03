@@ -54,7 +54,7 @@ class AnalysedFile(object):
 
         """
         self.fpath = Path(fpath)
-        self.file_hash: int = file_hash if file_hash is not None else file_checksum(fpath).file_hash
+        self._file_hash: Optional[int] = file_hash  # self.file_hash is a lazy property; the file might not exist yet.
         self.module_defs: Set[str] = set(module_defs or {})
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.module_deps: Set[str] = set(module_deps or {})
@@ -73,6 +73,16 @@ class AnalysedFile(object):
         #   but that feels more clanky.
         assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
         assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
+
+    @property
+    def file_hash(self):
+        # We need to be careful about what we want here. Using this pattern means we can't put these objects
+        # into a set, for example, until the target file exists. That seems contentious.
+        if not self._file_hash:
+            if not self.fpath.exists():
+                raise ValueError(f"analysed file '{self.fpath}' does not exist")
+            self._file_hash: int = file_checksum(self.fpath).file_hash
+        return self._file_hash
 
     def add_module_def(self, name):
         self.module_defs.add(name.lower())
