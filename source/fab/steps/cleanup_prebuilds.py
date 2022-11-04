@@ -76,7 +76,8 @@ class CleanupPrebuilds(Step):
                 return
 
             # get the file access time for every artefact
-            prebuilds_ts = dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time), strict=True))
+            prebuilds_ts = \
+                dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time), strict=True))  # type: ignore
 
             # work out what to delete
             to_delete = self.by_age(prebuilds_ts, current_files=artefact_store[CURRENT_PREBUILDS])
