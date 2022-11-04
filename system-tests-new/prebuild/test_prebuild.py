@@ -128,12 +128,6 @@ class TestFortranPrebuild(object):
                                            grab_prebuild_folder=first_project.prebuild_folder)
         second_project.run()
 
-    def test_current_artefacts(self):
-        # There was a bug during development where child processes tried to record their artefacts as being current,
-        # but of course they just were modifying a copy of the artefact store.
-        # This test ensures artefact_store[CURRENT_PREBUILDS] is correct after a build.
-        assert False
-
 
 def files_identical(a, b):
     a_bytes = open(a, 'rb').read()

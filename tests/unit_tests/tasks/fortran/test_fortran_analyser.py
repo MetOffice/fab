@@ -45,13 +45,15 @@ class Test_Analyser(object):
     def test_empty_file(self, fortran_analyser):
         # make sure we get back an EmptySourceFile, not an AnalysedFile
         with mock.patch('fab.dep_tree.AnalysedFile.save'):
-            result = fortran_analyser.run(fpath=Path(Path(__file__).parent / "empty.f90"))
-        assert type(result) is EmptySourceFile
+            analysis, artefact = fortran_analyser.run(fpath=Path(Path(__file__).parent / "empty.f90"))
+        assert type(analysis) is EmptySourceFile
+        assert artefact is None
 
     def test_module_file(self, fortran_analyser, module_fpath, module_expected):
         with mock.patch('fab.dep_tree.AnalysedFile.save'):
-            result = fortran_analyser.run(fpath=module_fpath)
-        assert result == module_expected
+            analysis, artefact = fortran_analyser.run(fpath=module_fpath)
+        assert analysis == module_expected
+        assert artefact == fortran_analyser._config.prebuild_folder / f'test_fortran_analyser.{analysis.file_hash}.an'
 
     def test_program_file(self, fortran_analyser, module_fpath, module_expected):
         # same as test_module_file() but replacing MODULE with PROGRAM
@@ -59,14 +61,16 @@ class Test_Analyser(object):
             tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
             tmp_file.flush()
             with mock.patch('fab.dep_tree.AnalysedFile.save'):
-                result = fortran_analyser.run(fpath=Path(tmp_file.name))
+                analysis, artefact = fortran_analyser.run(fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)
             module_expected.file_hash = 768896775
             module_expected.module_defs = set()
             module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
 
-            assert result == module_expected
+            assert analysis == module_expected
+            assert artefact == fortran_analyser._config.prebuild_folder \
+                   / f'{Path(tmp_file.name).stem}.{analysis.file_hash}.an'
 
 
 # todo: test more methods!

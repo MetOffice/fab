@@ -20,7 +20,6 @@ from fparser.two.Fortran2008 import (  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
-from fab.constants import CURRENT_PREBUILDS
 from fab.dep_tree import AnalysedFile, EmptySourceFile
 from fab.tasks import TaskException
 from fab.util import log_or_dot, file_checksum

@@ -150,7 +150,7 @@ class CompileFortran(Step):
         results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
 
         # there's a result and a list of artefacts per file
-        compilation_results, artefact_lists = zip(*results_this_pass)
+        compilation_results, artefact_lists = zip(*results_this_pass) if results_this_pass else (tuple(), tuple())
         check_for_errors(compilation_results, caller_label=self.name)
         compiled_this_pass = list(by_type(compilation_results, CompiledFile))
         logger.debug(f"compiled {len(compiled_this_pass)} files")

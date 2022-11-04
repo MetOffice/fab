@@ -20,7 +20,7 @@ def test_simple_result(tmp_path):
 
     with mock.patch('fab.dep_tree.AnalysedFile.save'):
         fpath = Path(__file__).parent / "test_c_analyser.c"
-        result = c_analyser.run(fpath)
+        analysis, artefact = c_analyser.run(fpath)
 
     expected = AnalysedFile(
         fpath=fpath,
@@ -30,7 +30,8 @@ def test_simple_result(tmp_path):
         file_deps=set(),
         mo_commented_file_deps=set(),
     )
-    assert result == expected
+    assert analysis == expected
+    assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
 
 
 class Test__locate_include_regions(object):

@@ -91,25 +91,23 @@ class CleanupPrebuilds(Step):
     def by_age(self, prebuilds_ts: Dict[Path, datetime], current_files: Iterable[Path]) -> Set[Path]:
         to_delete = set()
 
-        # todo: don't delete current artefacts, no matter how old they are
-        xxx
-
         if self.older_than:
             most_recent_ts = max(prebuilds_ts.values())
             oldest_ts_allowed = most_recent_ts - self.older_than
 
-            for pbf, ts in prebuilds_ts.items():
+            for f, ts in prebuilds_ts.items():
                 if ts < oldest_ts_allowed:
-                    logger.info(f"old file {pbf}")
-                    to_delete.add(pbf)
+                    # don't delete if it's still current
+                    if f in current_files:
+                        logger.debug(f"old file is still current {f}")
+                        continue
+                    logger.info(f"old file {f}")
+                    to_delete.add(f)
 
         return to_delete
 
     def by_version_age(self, prebuilds_ts: Dict[Path, datetime], current_files: Iterable[Path]) -> Set[Path]:
         to_delete = set()
-
-        # todo: don't delete current artefacts, no matter how old they are
-        xxx
 
         if self.n_versions:
             # group prebuild files by originating artefact, <stem>.*.<suffix>
@@ -119,7 +117,11 @@ class CleanupPrebuilds(Step):
             for pb_group in pb_file_groups.values():
                 by_age = sorted(pb_group, key=lambda f: prebuilds_ts[f], reverse=True)
                 for f in by_age[self.n_versions:]:
-                    logger.info(f"old version {f}")
+                    # don't delete if it's still current
+                    if f in current_files:
+                        logger.debug(f"old version is still current {f}")
+                        continue
+                    logger.debug(f"old version {f}")
                     to_delete.add(f)
 
         return to_delete

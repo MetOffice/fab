@@ -33,8 +33,19 @@ class TestCleanupPrebuilds(object):
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = c.by_age(prebuilds_ts)
+        result = c.by_age(prebuilds_ts=prebuilds_ts, current_files=[])
         assert result == {Path('foo.234.o'), }
+
+    def test_by_age_current(self):
+        # same as test_by_age except all files are current so won't be deleted
+        c = CleanupPrebuilds(older_than=timedelta(days=15))
+        prebuilds_ts = {
+            Path('foo.123.o'): datetime(2022, 10, 31),
+            Path('foo.234.o'): datetime(2022, 10, 1),
+        }
+
+        result = c.by_age(prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
+        assert result == set()
 
     def test_by_version_age(self):
         c = CleanupPrebuilds(n_versions=1)
@@ -43,8 +54,19 @@ class TestCleanupPrebuilds(object):
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = c.by_version_age(prebuilds_ts)
+        result = c.by_version_age(prebuilds_ts, current_files=[])
         assert result == {Path('foo.234.o'), }
+
+    def test_by_version_age_current(self):
+        # same as test_by_age except all files are current so won't be deleted
+        c = CleanupPrebuilds(n_versions=1)
+        prebuilds_ts = {
+            Path('foo.123.o'): datetime(2022, 10, 31),
+            Path('foo.234.o'): datetime(2022, 10, 1),
+        }
+
+        result = c.by_version_age(prebuilds_ts, current_files=prebuilds_ts.keys())
+        assert result == set()
 
 
 def test_remove_all_unused():
