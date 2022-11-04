@@ -39,7 +39,7 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
-from fab.constants import BUILD_TREES
+from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, \
     validate_dependencies
 from fab.steps import Step
@@ -227,23 +227,29 @@ class Analyse(Step):
         fortran_files = set(filter(lambda f: f.suffix == '.f90', files))
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             fortran_results = self.run_mp(items=fortran_files, func=self.fortran_analyser.run)
+        fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
 
         # c
         c_files = set(filter(lambda f: f.suffix == '.c', files))
         with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
             c_results = self.run_mp(items=c_files, func=self.c_analyser.run)
+        c_analyses, c_artefacts = zip(*c_results) if c_results else (tuple(), tuple())
 
         # Check for parse errors but don't fail. The failed files might not be required.
-        results = fortran_results + c_results
-        exceptions = list(by_type(results, Exception))
+        analyses = fortran_analyses + c_analyses
+        exceptions = list(by_type(analyses, Exception))
         if exceptions:
             logger.error(f"{len(exceptions)} analysis errors")
 
-        # warn about naughty fortran usage?
+        # record the artefacts as being current
+        artefacts = by_type(fortran_artefacts + c_artefacts, Path)
+        self._config._artefact_store[CURRENT_PREBUILDS].update(artefacts)  # slightly naughty access.
+
+        # warn about naughty fortran usage
         if self.fortran_analyser.depends_on_comment_found:
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
-        return set(by_type(results, AnalysedFile))
+        return set(by_type(analyses, AnalysedFile))
 
     def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
         """
