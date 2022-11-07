@@ -77,10 +77,10 @@ class Analyse(Step):
     def __init__(self,
                  source: ArtefactsGetter = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
-                 std="f2008",
-                 special_measure_analysis_results=None,
-                 unreferenced_deps=None,
-                 ignore_mod_deps=None,
+                 std: str = "f2008",
+                 special_measure_analysis_results: Optional[List[AnalysedFile]] = None,
+                 unreferenced_deps: Optional[Iterable[str]] = None,
+                 ignore_mod_deps: Optional[Iterable[str]] = None,
                  name='analyser'):
         """
         If no artefact getter is specified in *source*, a default is used which provides input files
@@ -114,11 +114,17 @@ class Analyse(Step):
             Human friendly name for logger output, with sensible default.
 
         """
+
+        # Note: a code smell?: we insist on the manual analysis results, special_measure_analysis_results,
+        # arriving as a list not a set because we don't want to hash them yet,
+        # because the files they refer to probably don't exist yet,
+        # because we're just creating steps at this point, so there's been no grab...
+
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[AnalysedFile] = special_measure_analysis_results or []
-        self.unreferenced_deps: List[str] = unreferenced_deps or []
+        self.special_measure_analysis_results: List[AnalysedFile] = list(special_measure_analysis_results or [])
+        self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
         self.fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
