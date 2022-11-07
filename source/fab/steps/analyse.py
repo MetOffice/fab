@@ -100,9 +100,10 @@ class Analyse(Step):
         :param std:
             The fortran standard, passed through to fparser2. Defaults to 'f2008'.
         :param special_measure_analysis_results:
-            When fparser2 cannot parse a "valid" Fortran file,
+            When a language parser cannot parse a "valid" source file,
             we can manually provide the expected analysis results with this argument.
-            Only the symbol definitions and dependencies need be provided.
+            Only the symbol definitions and dependencies need be provided
+            and, for Fortran, the module definitions and dependencies.
         :param unreferenced_deps:
             A list of symbols which are needed for the build, but which cannot be automatically determined by Fab.
             For example, functions that are called in a one-line if statement.
@@ -165,8 +166,15 @@ class Analyse(Step):
         # add special measure symbols for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
-            results = {r.as_analysed_file() for r in self.special_measure_analysis_results}
-            analysed_files.update(results)
+            manual_results = set()
+            for r in self.special_measure_analysis_results:
+                if isinstance(r, ParserWorkaround):
+                    manual_results.add(r.as_analysed_file())
+                elif isinstance(r, AnalysedFile):
+                    warnings.warn('Specifying an AnalysedFile as a parser workaround is deprecated,'
+                                  'please use ParserWorkaround instead', DeprecationWarning)
+                    manual_results.add(r)
+            analysed_files.update(manual_results)
 
         project_source_tree, symbols = self._analyse_dependencies(analysed_files)
 

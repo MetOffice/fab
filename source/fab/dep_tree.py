@@ -11,6 +11,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 # todo: we've since adopted the term "source tree", so we should probably rename this module to match.
 import json
 import logging
+from abc import ABC
 from pathlib import Path
 from typing import Set, Dict, Iterable, Union, Any, Optional
 
@@ -19,25 +20,14 @@ from fab.util import file_checksum
 logger = logging.getLogger(__name__)
 
 
-# todo: this might be better placed in the analyse step
-class AnalysedFile(object):
-    """
-    An analysis result for a single file, containing module and symbol definitions and dependencies.
-
-    The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
-    a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
-    which will be evaluated at runtime into an `AnalysedFile` object, including a lazy source hash calculation.
-
-    """
-    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
+class _ParserResult(ABC):
+    def __init__(self, fpath: Union[str, Path],
                  module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
                  module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
                  file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
             The source file that was analysed.
-        :param file_hash:
-            The hash of the source. The user is encouraged not to provide this, as Fab can do it for them.
         :param module_defs:
             Set of module names defined by this source file.
             A subset of symbol_defs
@@ -54,16 +44,67 @@ class AnalysedFile(object):
 
         """
         self.fpath = Path(fpath)
-        # the self.file_hash property (no underscore) has lazy evaluation; the file might not exist yet.
-        self._file_hash: Optional[int] = file_hash
         self.module_defs: Set[str] = set(module_defs or {})
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.module_deps: Set[str] = set(module_deps or {})
         self.symbol_deps: Set[str] = set(symbol_deps or {})
         self.file_deps: Set[Path] = set(file_deps or {})
-
-        # dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
+
+
+class ParserWorkaround(_ParserResult):
+    """
+    Use this function to create a workaround when a language parser is unable to parse a valid source file.
+
+    You must manually examine the source file and list any symbol definitions and dependencies.
+    For Fortran source, you must also list any module definitions and dependencies.
+
+    Params are as for :class:`~fab.dep_tree.AnalysedFile`, with the file_hash argument being omitted and automated.
+
+    """
+
+    def as_analysed_file(self):
+
+        # To be as helpful as possible, we allow the user to omit module defs/deps from the symbol defs/deps.
+        # However, they need to be there so do this now.
+        self.symbol_defs = self.symbol_defs | self.module_defs
+        self.symbol_deps = self.symbol_deps | self.module_deps
+
+        return AnalysedFile(
+            fpath=self.fpath, file_hash=file_checksum(self.fpath).file_hash,
+            module_defs=self.module_defs, symbol_defs=self.symbol_defs,
+            module_deps=self.module_deps, symbol_deps=self.symbol_deps,
+            file_deps=self.file_deps, mo_commented_file_deps=self.mo_commented_file_deps,
+        )
+
+
+# todo: this might be better placed in the analyse step
+class AnalysedFile(_ParserResult):
+    """
+    An analysis result for a single file, containing module and symbol definitions and dependencies.
+
+    The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
+    a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
+    which will be evaluated at runtime into an `AnalysedFile` object, including a lazy source hash calculation.
+
+    """
+    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
+                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
+        """
+        Params as per :class:`~fab.dep_tree._ParserResult`, plus:
+        :param file_hash:
+            The hash of the source. The user is encouraged not to provide this, as Fab can do it for them.
+
+        """
+        super().__init__(fpath=fpath,
+                         module_defs=module_defs, symbol_defs=symbol_defs,
+                         module_deps=module_deps, symbol_deps=symbol_deps,
+                         file_deps=file_deps, mo_commented_file_deps=mo_commented_file_deps)
+
+        # the self.file_hash property (no underscore) is lazily evaluated in case the file does not yet exist.
+        self._file_hash: Optional[int] = file_hash
 
         assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
@@ -293,35 +334,3 @@ def validate_dependencies(source_tree):
 
     if missing:
         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
-
-
-class ParserWorkaround(object):
-
-    def __init__(self, fpath: Union[str, Path],
-                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
-                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
-        """
-        Use this function to create a workaround when a language parser is unable to parse a valid source file.
-
-        You must manually examine the source file and list any symbol definitions and dependencies.
-        For Fortran source, you must also list any module definitions and dependencies.
-
-        Params are as for :class:`~fab.dep_tree.AnalysedFile`, with the file_hash argument being omitted and automated.
-
-        """
-        self.fpath = fpath
-        self.module_defs = module_defs
-        self.symbol_defs = symbol_defs
-        self.module_deps = module_deps
-        self.symbol_deps = symbol_deps
-        self.file_deps = file_deps
-        self.mo_commented_file_deps = mo_commented_file_deps
-
-    def as_analysed_file(self):
-        return AnalysedFile(
-            fpath=self.fpath, file_hash=file_checksum(self.fpath).file_hash,
-            module_defs=self.module_defs, symbol_defs=self.symbol_defs,
-            module_deps=self.module_deps, symbol_deps=self.symbol_deps,
-            file_deps=self.file_deps, mo_commented_file_deps=self.mo_commented_file_deps,
-        )
