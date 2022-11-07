@@ -160,22 +160,12 @@ class Analyse(Step):
         self.fortran_analyser._prebuild_folder = self._config.prebuild_folder
         self.c_analyser._prebuild_folder = self._config.prebuild_folder
 
+        # parse
         files: List[Path] = self.source_getter(artefact_store)
         analysed_files = self._parse_files(files=files)
+        self._add_manual_results(analysed_files)
 
-        # add special measure symbols for files which could not be parsed
-        if self.special_measure_analysis_results:
-            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
-            manual_results = set()
-            for r in self.special_measure_analysis_results:
-                if isinstance(r, ParserWorkaround):
-                    manual_results.add(r.as_analysed_file())
-                elif isinstance(r, AnalysedFile):
-                    warnings.warn('Specifying an AnalysedFile as a parser workaround is deprecated,'
-                                  'please use ParserWorkaround instead', DeprecationWarning)
-                    manual_results.add(r)
-            analysed_files.update(manual_results)
-
+        # analyse
         project_source_tree, symbols = self._analyse_dependencies(analysed_files)
 
         # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
@@ -184,7 +174,7 @@ class Analyse(Step):
 
         logger.info(f"source tree size {len(project_source_tree)}")
 
-        # build tree extraction for executables.
+        # extract "build trees" for executables.
         if self.root_symbols:
             build_trees = self._extract_build_trees(project_source_tree, symbols)
         else:
@@ -259,6 +249,21 @@ class Analyse(Step):
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
         return set(by_type(results, AnalysedFile))
+
+    def _add_manual_results(self, analysed_files):
+        # add manual analysis results for files which could not be parsed
+        if self.special_measure_analysis_results:
+            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
+            manual_results = set()
+            for r in self.special_measure_analysis_results:
+                if isinstance(r, ParserWorkaround):
+                    manual_results.add(r.as_analysed_file())
+                elif isinstance(r, AnalysedFile):
+                    warnings.warn('Specifying an AnalysedFile as a parser workaround is deprecated,'
+                                  'please use ParserWorkaround instead', DeprecationWarning)
+                    manual_results.add(r)
+            analysed_files.update(manual_results)
+            logger.info(f'added {len(manual_results)} manual analysis results')
 
     def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
         """
