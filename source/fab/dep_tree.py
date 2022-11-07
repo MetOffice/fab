@@ -54,12 +54,14 @@ class _ParserResult(ABC):
 
 class ParserWorkaround(_ParserResult):
     """
-    Use this function to create a workaround when a language parser is unable to parse a valid source file.
+    Use this class to create a workaround when a language parser is unable to process a valid source file.
 
     You must manually examine the source file and list any symbol definitions and dependencies.
     For Fortran source, you must also list any module definitions and dependencies.
 
     Params are as for :class:`~fab.dep_tree.AnalysedFile`, with the file_hash argument being omitted and automated.
+
+    This class is intended to be passed to the :class:`~fab.steps.analyse.Analyse` step.
 
     """
 
@@ -95,7 +97,7 @@ class AnalysedFile(_ParserResult):
         """
         Params as per :class:`~fab.dep_tree._ParserResult`, plus:
         :param file_hash:
-            The hash of the source. The user is encouraged not to provide this, as Fab can do it for them.
+            The hash of the source. If omitted, Fab will evaluate lazily.
 
         """
         super().__init__(fpath=fpath,
