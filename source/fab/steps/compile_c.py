@@ -114,7 +114,7 @@ class CompileC(Step):
                 try:
                     run_command(command)
                 except Exception as err:
-                    return TaskException(f"error compiling {analysed_file.fpath}: {err}")
+                    return TaskException(f"error compiling {analysed_file.fpath}:\n{err}")
 
             send_metric(self.name, str(analysed_file.fpath), timer.taken)
 
