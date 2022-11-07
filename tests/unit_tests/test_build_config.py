@@ -14,7 +14,8 @@ from fab.steps.compile_fortran import CompileFortran
 class TestBuildConfig(object):
 
     def test_error_newlines(self, tmp_path):
-        # Check cli tool errors have newlines displayed correctly (#164).
+        # Check cli tool errors have newlines displayed correctly.
+        # v0.9.0a1 displayed then as `\\n` (see #164).
         # It's up to the various steps to insert newlines *between* their message and the tool error.
         # We're testing the general reporting mechanism here, once they get back to the top,
         # that the newlines *within* the tool error are displayed correctly.
