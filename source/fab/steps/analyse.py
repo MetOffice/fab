@@ -41,7 +41,7 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.constants import BUILD_TREES
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, \
-    validate_dependencies
+    validate_dependencies, ParserWorkaround
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
@@ -78,7 +78,7 @@ class Analyse(Step):
                  source: ArtefactsGetter = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
                  std: str = "f2008",
-                 special_measure_analysis_results: Optional[List[AnalysedFile]] = None,
+                 special_measure_analysis_results: Optional[List[ParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None,
                  name='analyser'):
@@ -123,7 +123,7 @@ class Analyse(Step):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[AnalysedFile] = list(special_measure_analysis_results or [])
+        self.special_measure_analysis_results: List[ParserWorkaround] = list(special_measure_analysis_results or [])
         self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
@@ -165,7 +165,8 @@ class Analyse(Step):
         # add special measure symbols for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
-            analysed_files.update(set(self.special_measure_analysis_results))
+            results = {r.as_analysed_file() for r in self.special_measure_analysis_results}
+            analysed_files.update(results)
 
         project_source_tree, symbols = self._analyse_dependencies(analysed_files)
 

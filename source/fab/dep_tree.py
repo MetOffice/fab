@@ -24,10 +24,9 @@ class AnalysedFile(object):
     """
     An analysis result for a single file, containing module and symbol definitions and dependencies.
 
-    The user unlikely to encounter this class unless they need to provide a workaround for an fparser issue.
-    In this case they can omit the file hash and Fab will lazily evaluate it.
-    However, with this lazy evaluation, the object cannot be put into a set or otherwise hashed
-    until the target file exists, which might not happen until later in the build.
+    The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
+    a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
+    which will be evaluated at runtime into an `AnalysedFile` object, including a lazy source hash calculation.
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
@@ -294,3 +293,35 @@ def validate_dependencies(source_tree):
 
     if missing:
         logger.error(f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}")
+
+
+class ParserWorkaround(object):
+
+    def __init__(self, fpath: Union[str, Path],
+                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
+        """
+        Use this function to create a workaround when a language parser is unable to parse a valid source file.
+
+        You must manually examine the source file and list any symbol definitions and dependencies.
+        For Fortran source, you must also list any module definitions and dependencies.
+
+        Params are as for :class:`~fab.dep_tree.AnalysedFile`, with the file_hash argument being omitted and automated.
+
+        """
+        self.fpath = fpath
+        self.module_defs = module_defs
+        self.symbol_defs = symbol_defs
+        self.module_deps = module_deps
+        self.symbol_deps = symbol_deps
+        self.file_deps = file_deps
+        self.mo_commented_file_deps = mo_commented_file_deps
+
+    def as_analysed_file(self):
+        return AnalysedFile(
+            fpath=self.fpath, file_hash=file_checksum(self.fpath).file_hash,
+            module_defs=self.module_defs, symbol_defs=self.symbol_defs,
+            module_deps=self.module_deps, symbol_deps=self.symbol_deps,
+            file_deps=self.file_deps, mo_commented_file_deps=self.mo_commented_file_deps,
+        )

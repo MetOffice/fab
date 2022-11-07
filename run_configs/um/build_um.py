@@ -124,14 +124,21 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
 
             # fparser2 fails to parse this file, but it does compile.
             special_measure_analysis_results=[
-                AnalysedFile(
-                    fpath=Path(
-                        config.build_output / "casim/lookup.f90"),
+                # AnalysedFile(
+                #     fpath=Path(
+                #         config.build_output / "casim/lookup.f90"),
+                #     symbol_defs={'lookup'},
+                #     symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
+                #                  'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
+                #     file_deps={},
+                #     mo_commented_file_deps={}),
+
+                FparserWorkaround(
+                    fpath=Path(config.build_output / "casim/lookup.f90"),
                     symbol_defs={'lookup'},
                     symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
                                  'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
-                    file_deps={},
-                    mo_commented_file_deps={}),
+                )
             ]
         ),
 
