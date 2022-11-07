@@ -26,11 +26,11 @@ class TestBuildConfig(object):
                 config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False, steps=[
                     CompileFortran(compiler='foofc')])
 
-        run_mp = 'fab.steps.compile_fortran.run_command'
+        run_command = 'fab.steps.compile_fortran.run_command'
         err = dedent("foo error\n1\n2\n3")
 
         try:
-            with mock.patch(run_mp, side_effect=RuntimeError(err)):
+            with mock.patch(run_command, side_effect=RuntimeError(err)):
                 config.run()
         except Exception as err:
             assert '1\n2\n3' in str(err)
