@@ -13,7 +13,7 @@ import shutil
 import zlib
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict, Tuple
+from typing import List, Set, Dict, Tuple, Optional
 
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
@@ -40,8 +40,9 @@ class CompileFortran(Step):
     The files are compiled in multiple passes, with each pass enabling further files to be compiled in the next pass.
 
     """
-    def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
-                 source: ArtefactsGetter = None, two_stage_flag=None, name='compile fortran'):
+    def __init__(self, compiler: Optional[str] = None, common_flags: Optional[List[str]] = None,
+                 path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None,
+                 two_stage_flag=None, name='compile fortran'):
         """
         :param compiler:
             The command line compiler to call. Defaults to `gfortran -c`.
@@ -335,7 +336,7 @@ class CompileFortran(Step):
 
 
 # todo: generalise this for the preprocessor, we see flags in FPP
-def get_compiler(compiler: str = None) -> Tuple[str, List[str]]:
+def get_compiler(compiler: Optional[str] = None) -> Tuple[str, List[str]]:
     """
     Separate the compiler and flags from the given string (or `FC` environment variable), like `gfortran -c`.
 

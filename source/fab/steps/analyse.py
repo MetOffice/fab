@@ -75,7 +75,7 @@ class Analyse(Step):
     """
     # todo: allow the user to specify a different output artefact collection name?
     def __init__(self,
-                 source: ArtefactsGetter = None,
+                 source: Optional[ArtefactsGetter] = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
                  std: str = "f2008",
                  special_measure_analysis_results: Optional[List[AnalysedFile]] = None,

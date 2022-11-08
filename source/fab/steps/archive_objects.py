@@ -10,7 +10,7 @@ Object archive creation from a list of object files for use in static linking.
 
 import logging
 from string import Template
-from typing import Dict
+from typing import Dict, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import Step
@@ -67,7 +67,7 @@ class ArchiveObjects(Step):
 
     """
     # todo: the output path should not be an abs fpath, it should be relative to the proj folder
-    def __init__(self, source: ArtefactsGetter = None, archiver='ar',
+    def __init__(self, source: Optional[ArtefactsGetter] = None, archiver='ar',
                  output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
         """
         :param source:
