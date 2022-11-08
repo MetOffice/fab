@@ -249,7 +249,7 @@ class Analyse(Step):
 
         return set(by_type(results, AnalysedFile))
 
-    def _add_manual_results(self, analysed_files: set[AnalysedFile]):
+    def _add_manual_results(self, analysed_files: Set[AnalysedFile]):
         # add manual analysis results for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
