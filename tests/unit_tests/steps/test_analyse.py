@@ -2,9 +2,10 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from fab.util import HashedFile
 
 from fab.build_config import BuildConfig
-from fab.dep_tree import AnalysedFile
+from fab.dep_tree import AnalysedFile, ParserWorkaround
 from fab.steps.analyse import Analyse
 
 
@@ -123,3 +124,30 @@ class Test_parse_files(object):
         # make sure parse exceptions do not stop the build
         with mock.patch('fab.steps.Step.run_mp', return_value=[Exception('foo')]):
             Analyse(root_symbol=None)._parse_files(files=[])
+
+
+class Test_add_manual_results(object):
+
+    def test_parser_workaraound(self):
+        # test normal usage of manual analysis results
+        input = ParserWorkaround(fpath=Path('foo.f'), symbol_defs={'foo', })
+        expect = AnalysedFile(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })
+
+        analyser = Analyse(special_measure_analysis_results=[input])
+        analysed_files = set()
+
+        with mock.patch('fab.dep_tree.file_checksum', return_value=HashedFile(None, 123)):
+            analyser._add_manual_results(analysed_files=analysed_files)
+
+        assert analysed_files == {expect}
+
+    def test_analysed_file(self):
+        # check we can still pass in an AnalysedFile object.
+        input = AnalysedFile(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })
+
+        analyser = Analyse(special_measure_analysis_results=[input])
+        analysed_files = set()
+
+        analyser._add_manual_results(analysed_files=analysed_files)
+
+        assert analysed_files == {input}

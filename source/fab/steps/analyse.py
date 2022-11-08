@@ -41,7 +41,7 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.constants import BUILD_TREES
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, \
-    validate_dependencies, ParserWorkaround
+    validate_dependencies, ParserWorkaround, ParserResult
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
@@ -78,7 +78,7 @@ class Analyse(Step):
                  source: ArtefactsGetter = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
                  std: str = "f2008",
-                 special_measure_analysis_results: Optional[List[ParserWorkaround]] = None,
+                 special_measure_analysis_results: Optional[Iterable[ParserResult]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None,
                  name='analyser'):
@@ -100,10 +100,11 @@ class Analyse(Step):
         :param std:
             The fortran standard, passed through to fparser2. Defaults to 'f2008'.
         :param special_measure_analysis_results:
-            When a language parser cannot parse a "valid" source file,
-            we can manually provide the expected analysis results with this argument.
-            Only the symbol definitions and dependencies need be provided
-            and, for Fortran, the module definitions and dependencies.
+            When a language parser cannot parse a "valid" source file, we can manually provide the expected analysis
+            results with this argument. It accepts a collection of :class:`~fab.dep_tree.ParserWorkaround` or,
+            for backwards compatibility, :class:`~fab.dep_tree.AnalysisResult` (deprecated).
+            Only the symbol definitions and dependencies need be provided plus, for Fortran,
+            the module definitions and dependencies.
         :param unreferenced_deps:
             A list of symbols which are needed for the build, but which cannot be automatically determined by Fab.
             For example, functions that are called in a one-line if statement.
@@ -124,7 +125,7 @@ class Analyse(Step):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[ParserWorkaround] = list(special_measure_analysis_results or [])
+        self.special_measure_analysis_results: List[ParserResult] = list(special_measure_analysis_results or [])
         self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
@@ -250,7 +251,7 @@ class Analyse(Step):
 
         return set(by_type(results, AnalysedFile))
 
-    def _add_manual_results(self, analysed_files):
+    def _add_manual_results(self, analysed_files: set[AnalysedFile]):
         # add manual analysis results for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")

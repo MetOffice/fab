@@ -20,7 +20,7 @@ from fab.util import file_checksum
 logger = logging.getLogger(__name__)
 
 
-class _ParserResult(ABC):
+class ParserResult(ABC):
     def __init__(self, fpath: Union[str, Path],
                  module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
                  module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
@@ -52,7 +52,7 @@ class _ParserResult(ABC):
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
 
 
-class ParserWorkaround(_ParserResult):
+class ParserWorkaround(ParserResult):
     """
     Use this class to create a workaround when a language parser is unable to process a valid source file.
 
@@ -81,7 +81,7 @@ class ParserWorkaround(_ParserResult):
 
 
 # todo: this might be better placed in the analyse step
-class AnalysedFile(_ParserResult):
+class AnalysedFile(ParserResult):
     """
     An analysis result for a single file, containing module and symbol definitions and dependencies.
 
@@ -95,7 +95,7 @@ class AnalysedFile(_ParserResult):
                  module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
                  file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
         """
-        Params as per :class:`~fab.dep_tree._ParserResult`, plus:
+        Params as per :class:`~fab.dep_tree.ParserResult`, plus:
         :param file_hash:
             The hash of the source. If omitted, Fab will evaluate lazily.
 
