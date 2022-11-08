@@ -100,11 +100,9 @@ class Analyse(Step):
         :param std:
             The fortran standard, passed through to fparser2. Defaults to 'f2008'.
         :param special_measure_analysis_results:
-            When a language parser cannot parse a "valid" source file, we can manually provide the expected analysis
+            When a language parser cannot parse a valid source file, we can manually provide the expected analysis
             results with this argument. It accepts a collection of :class:`~fab.dep_tree.ParserWorkaround` or,
             for backwards compatibility, :class:`~fab.dep_tree.AnalysisResult` (deprecated).
-            Only the symbol definitions and dependencies need be provided plus, for Fortran,
-            the module definitions and dependencies.
         :param unreferenced_deps:
             A list of symbols which are needed for the build, but which cannot be automatically determined by Fab.
             For example, functions that are called in a one-line if statement.

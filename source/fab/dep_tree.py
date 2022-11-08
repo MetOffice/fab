@@ -21,10 +21,16 @@ logger = logging.getLogger(__name__)
 
 
 class ParserResult(ABC):
+    """
+    Abstract base class for automatic and manual source file parse results.
+
+    This base class contains symbol definitions and dependencies found in a source file.
+
+    """
     def __init__(self, fpath: Union[str, Path],
                  module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
                  module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
+                 mo_commented_file_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
             The source file that was analysed.
@@ -36,8 +42,6 @@ class ParserResult(ABC):
         :param symbol_deps:
             Set of symbol names used by this source file.
             Can include symbols in the same file.
-        :param file_deps:
-            Other files on which this source depends. Must not include itself.
         :param mo_commented_file_deps:
             A set of C file names, without paths, on which this file depends.
             Comes from "DEPENDS ON:" comments which end in ".o".
@@ -48,7 +52,6 @@ class ParserResult(ABC):
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.module_deps: Set[str] = set(module_deps or {})
         self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.file_deps: Set[Path] = set(file_deps or {})
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
 
 
@@ -59,7 +62,7 @@ class ParserWorkaround(ParserResult):
     You must manually examine the source file and list any symbol definitions and dependencies.
     For Fortran source, you must also list any module definitions and dependencies.
 
-    Params are as for :class:`~fab.dep_tree.AnalysedFile`, with the file_hash argument being omitted and automated.
+    Params are as for :class:`~fab.dep_tree.ParserResult`.
 
     This class is intended to be passed to the :class:`~fab.steps.analyse.Analyse` step.
 
@@ -76,7 +79,7 @@ class ParserWorkaround(ParserResult):
             fpath=self.fpath, file_hash=file_checksum(self.fpath).file_hash,
             module_defs=self.module_defs, symbol_defs=self.symbol_defs,
             module_deps=self.module_deps, symbol_deps=self.symbol_deps,
-            file_deps=self.file_deps, mo_commented_file_deps=self.mo_commented_file_deps,
+            mo_commented_file_deps=self.mo_commented_file_deps,
         )
 
 
@@ -87,7 +90,7 @@ class AnalysedFile(ParserResult):
 
     The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
     a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
-    which will be evaluated at runtime into an `AnalysedFile` object, including a lazy source hash calculation.
+    which will be converted at runtime into an `AnalysedFile` object.
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
@@ -98,15 +101,19 @@ class AnalysedFile(ParserResult):
         Params as per :class:`~fab.dep_tree.ParserResult`, plus:
         :param file_hash:
             The hash of the source. If omitted, Fab will evaluate lazily.
+        :param file_deps:
+            Other files on which this source depends. Must not include itself.
+            This attribute is calculated during symbol analysis, after everything has been parsed.
 
         """
         super().__init__(fpath=fpath,
                          module_defs=module_defs, symbol_defs=symbol_defs,
                          module_deps=module_deps, symbol_deps=symbol_deps,
-                         file_deps=file_deps, mo_commented_file_deps=mo_commented_file_deps)
+                         mo_commented_file_deps=mo_commented_file_deps)
 
         # the self.file_hash property (no underscore) is lazily evaluated in case the file does not yet exist.
         self._file_hash: Optional[int] = file_hash
+        self.file_deps: Set[Path] = set(file_deps or {})
 
         assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
