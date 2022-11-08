@@ -11,7 +11,7 @@ import logging
 import os
 from abc import ABC
 from string import Template
-from typing import List
+from typing import List, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
 from fab.steps import Step
@@ -45,7 +45,7 @@ class LinkerBase(Step, ABC):
     compiler steps.
 
     """
-    def __init__(self, linker: str = None, flags=None, source: ArtefactsGetter = None, name='link'):
+    def __init__(self, linker: Optional[str] = None, flags=None, source: Optional[ArtefactsGetter] = None, name='link'):
         """
         :param linker:
             E.g 'gcc' or 'ld'.
@@ -107,8 +107,8 @@ class LinkSharedObject(LinkExe):
     We can assume the list of object files is the entire project source, compiled.
 
     """
-    def __init__(self, output_fpath: str, linker: str = None, flags=None, source: ArtefactsGetter = None,
-                 name='link shared object'):
+    def __init__(self, output_fpath: str, linker: Optional[str] = None, flags=None,
+                 source: Optional[ArtefactsGetter] = None, name='link shared object'):
         """
         Params are as for :class:`~fab.steps.link_exe.LinkerBase`, with the addition of:
 

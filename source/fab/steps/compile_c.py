@@ -10,7 +10,7 @@ C file compilation.
 import logging
 import os
 from collections import defaultdict
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
@@ -38,8 +38,8 @@ class CompileC(Step):
 
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
-    def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
-                 source: ArtefactsGetter = None, name="compile c"):
+    def __init__(self, compiler: Optional[str] = None, common_flags: Optional[List[str]] = None,
+                 path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None, name="compile c"):
         """
         :param compiler:
             The command line compiler to call. Defaults to `gcc -c`.
