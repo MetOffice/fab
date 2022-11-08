@@ -10,7 +10,7 @@ Fortran and C Preprocessing.
 import logging
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fab.build_config import FlagsConfig
 from fab.constants import PRAGMAD_C
@@ -34,9 +34,9 @@ class PreProcessor(Step):
     LABEL: str
 
     def __init__(self,
-                 source: ArtefactsGetter = None, output_collection=None, output_suffix=None,
-                 preprocessor: str = None, common_flags: List[str] = None, path_flags: List = None,
-                 name=None):
+                 source: Optional[ArtefactsGetter] = None, output_collection=None, output_suffix=None,
+                 preprocessor: Optional[str] = None, common_flags: Optional[List[str]] = None,
+                 path_flags: Optional[List] = None, name=None):
         """
         :param source:
             Defines the files to preprocess. Defaults to DEFAULT_SOURCE.

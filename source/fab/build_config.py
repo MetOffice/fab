@@ -34,7 +34,7 @@ class BuildConfig(object):
     """
 
     def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
-                 multiprocessing: bool = True, n_procs: int = None, reuse_artefacts: bool = False,
+                 multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
                  fab_workspace: Optional[Path] = None, verbose: bool = False, prebuild_folder: Optional[Path] = None):
         """
         :param project_label:
