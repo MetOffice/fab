@@ -112,14 +112,14 @@ class TestFortranPrebuild(object):
 
         # Delete the original source that was analysed and compiled.
         # This is not the source folder, it's the preprocessing results in the build output.
-        (first_project.build_output / 'src/my_mod.f90').unlink()
-        (first_project.build_output / 'src/my_prog.f90').unlink()
+        os.remove(first_project.build_output / 'src/my_mod.f90')
+        os.remove(first_project.build_output / 'src/my_prog.f90')
         (first_project.build_output / 'src').rmdir()
 
         # Delete the compiler prebuilds to make the compiler run again.
         for f in file_walk(first_project.prebuild_folder):
             if f.suffix in ['.o', ',mod']:
-                f.unlink()
+                os.remove(f)
 
         # This should now recompile but not reanalyse.
         # If we're don't "fixup" the analysis results paths as we load them,

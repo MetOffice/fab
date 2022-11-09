@@ -84,11 +84,11 @@ def test_remove_all_unused():
     ]
 
     # using autospec makes our mock receive the self param, which we want to check
-    with mock.patch('pathlib.Path.unlink', autospec=True) as mock_unlink:
+    with mock.patch('os.remove', autospec=True) as mock_remove:
         num_removed = remove_all_unused(found_files, current_files)
 
     assert num_removed == 3
-    mock_unlink.assert_has_calls([
+    mock_remove.assert_has_calls([
         call(Path('terry.o')),
         call(Path('graham.o')),
         call(Path('john.o')),

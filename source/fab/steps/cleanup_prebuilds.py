@@ -77,7 +77,7 @@ class CleanupPrebuilds(Step):
 
             # get the file access time for every artefact
             prebuilds_ts = \
-                dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time), strict=True))  # type: ignore
+                dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time)))  # type: ignore
 
             # work out what to delete
             to_delete = self.by_age(prebuilds_ts, current_files=artefact_store[CURRENT_PREBUILDS])
@@ -136,7 +136,7 @@ def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]
     for f in found_files:
         if f not in current_files:
             logger.info(f"unused {f}")
-            f.unlink()
+            os.remove(f)
             num_removed += 1
 
     return num_removed
@@ -155,7 +155,8 @@ def check_fs_access_time(folder=None) -> bool:
     fpath.parent.mkdir(parents=True, exist_ok=True)
 
     # create a file and get its access time
-    fpath.unlink(missing_ok=True)
+    if fpath.exists():
+        os.remove(fpath)
     open(fpath, 'wt').write("hello\n")
     write_time = fpath.stat().st_atime_ns
     try:
