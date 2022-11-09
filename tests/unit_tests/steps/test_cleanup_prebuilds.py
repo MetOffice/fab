@@ -72,15 +72,15 @@ class TestCleanupPrebuilds(object):
 def test_remove_all_unused():
 
     found_files = [
-        Path('michael.o'),
-        Path('eric.o'),
-        Path('terry.o'),
-        Path('graham.o'),
-        Path('john.o'),
+        Path('michael.1943.o'),
+        Path('eric.1943.o'),
+        Path('terry.1942.o'),
+        Path('graham.1941.o'),
+        Path('john.1939.o'),
     ]
     current_files = [
-        Path('michael.o'),
-        Path('eric.o'),
+        Path('michael.1943.o'),
+        Path('eric.1943.o'),
     ]
 
     # using autospec makes our mock receive the self param, which we want to check
@@ -89,9 +89,9 @@ def test_remove_all_unused():
 
     assert num_removed == 3
     mock_remove.assert_has_calls([
-        call(Path('terry.o')),
-        call(Path('graham.o')),
-        call(Path('john.o')),
+        call(Path('terry.1942.o')),
+        call(Path('graham.1941.o')),
+        call(Path('john.1939.o')),
     ])
 
 
