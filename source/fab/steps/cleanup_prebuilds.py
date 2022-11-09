@@ -22,7 +22,6 @@ from fab.util import file_walk, get_fab_workspace, get_prebuild_file_groups
 logger = logging.getLogger(__name__)
 
 
-# todo: poor name? Perhaps PrebuildCleanup, CleanupPrebuilds, or just Cleanup or Housekeeping?
 class CleanupPrebuilds(Step):
     """
     A step to delete old files from the local incremental/prebuild folder.
@@ -30,8 +29,6 @@ class CleanupPrebuilds(Step):
     Assumes prebuild filenames follow the pattern: `<stem>.<hash>.<suffix>`.
 
     """
-    # todo: add <stem>.<hash>.<suffix> pattern to docs, probably refer to it in several places
-
     def __init__(self, older_than: Optional[timedelta] = None, n_versions: int = 0, all_unused: Optional[bool] = None):
         """
         :param older_than:
@@ -130,8 +127,6 @@ class CleanupPrebuilds(Step):
 
 def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]):
     num_removed = 0
-
-    # logger.info(f'current artefacts:\n{current_files}\n')
 
     for f in found_files:
         if f not in current_files:

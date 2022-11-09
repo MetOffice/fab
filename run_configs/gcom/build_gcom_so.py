@@ -6,12 +6,11 @@
 ##############################################################################
 from datetime import timedelta
 
+from fab.build_config import BuildConfig
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
-
 from fab.steps.compile_fortran import get_compiler
 from fab.steps.link import LinkSharedObject
 
-from fab.build_config import BuildConfig
 from gcom_build_steps import common_build_steps, parse_args
 from grab_gcom import gcom_grab_config
 

@@ -29,7 +29,6 @@ def gcom_ar_config(revision=None, compiler=None):
 
             CleanupPrebuilds(all_unused=True),
         ],
-        multiprocessing=False,
     )
 
     return config

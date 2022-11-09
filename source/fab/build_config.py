@@ -19,11 +19,10 @@ from pathlib import Path
 from string import Template
 from typing import List, Optional, Dict, Any
 
-from fab.steps.cleanup_prebuilds import CleanupPrebuilds
-
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps import Step
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
@@ -108,7 +107,7 @@ class BuildConfig(object):
 
         # runtime
         self._artefact_store: Dict[str, Any] = {}
-        self.init_artefact_store()  # useful to initialise here for testing steps, but it's reset with every run
+        self.init_artefact_store()  # note: the artefact store is reset with every call to run()
 
     @property
     def build_output(self):
@@ -161,8 +160,6 @@ class BuildConfig(object):
         # note: initialising here gives a new set of artefacts each run
         self.init_artefact_store()
 
-        # todo: this seems contentious - we're adding work the user might not need or want
-        #       we could just print a warning at the end of the run instead
         # if the user hasn't specified any cleanup of the incremental/prebuild folder,
         # then we add a default, hard cleanup leaving only cutting-edge artefacts.
         if not by_type(self.steps, CleanupPrebuilds):

@@ -7,11 +7,10 @@
 import logging
 import os
 
-from fab.steps.cleanup_prebuilds import CleanupPrebuilds
-
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran, get_compiler
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab import GrabFcm, GrabPreBuild
