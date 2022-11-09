@@ -21,7 +21,6 @@ from pathlib import Path
 from time import perf_counter
 from typing import Iterator, Iterable, Optional, Set, Dict, List
 
-from fab.dep_tree import AnalysedFile
 from fab.tools import COMPILERS
 
 logger = logging.getLogger(__name__)
@@ -290,20 +289,6 @@ def by_type(iterable, cls):
 
     """
     return filter(lambda i: isinstance(i, cls), iterable)
-
-
-def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
-    """
-    Get the hash of every module file defined in the list of analysed files.
-
-    """
-    mod_hashes = {}
-    for af in analysed_files:
-        for mod_def in af.module_defs:
-            fpath: Path = config.build_output / f'{mod_def}.mod'
-            mod_hashes[mod_def] = file_checksum(fpath).file_hash
-
-    return mod_hashes
 
 
 def get_fab_workspace() -> Path:

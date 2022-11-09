@@ -11,6 +11,7 @@ from fab.steps.compile_fortran import get_compiler
 from fab.util import run_command
 
 
+# todo: run the exes, check the output
 def build_all():
 
     configs_folder = Path(__file__).parent
@@ -34,7 +35,7 @@ def build_all():
     ]
 
     # skip these for now, until we configure them to build again
-    compiler_skip = {'gfortran': ['atm.py'], 'ifort': ['build_um.py', 'atm.py']}
+    compiler_skip = {'gfortran': [], 'ifort': ['build_um.py', 'atm.py']}
     skip = compiler_skip[compiler]
 
     for script in scripts:

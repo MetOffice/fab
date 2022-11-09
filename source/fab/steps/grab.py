@@ -11,7 +11,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 try:
     import svn  # type: ignore
@@ -33,7 +33,7 @@ class GrabSourceBase(Step, ABC):
     Unlike most steps, grab steps don't need to read or create artefact collections.
 
     """
-    def __init__(self, src: str, dst: str = None, name=None):
+    def __init__(self, src: str, dst: Optional[str] = None, name=None):
         """
         :param src:
             The source location to grab. The nature of this parameter is depends on the subclass.
@@ -72,7 +72,7 @@ class GrabFolder(GrabSourceBase):
 
     """
 
-    def __init__(self, src: Union[Path, str], dst: str = None, name=None):
+    def __init__(self, src: Union[Path, str], dst: Optional[str] = None, name=None):
         """
         :param src:
             The source location to grab. The nature of this parameter is depends on the subclass.
@@ -100,7 +100,7 @@ class GrabFcm(GrabSourceBase):
     Grab an FCM repo folder to the project workspace.
 
     """
-    def __init__(self, src: str, dst: str = None, revision=None, name=None):
+    def __init__(self, src: str, dst: Optional[str] = None, revision=None, name=None):
         """
         :param src:
             Such as `fcm:jules.xm_tr/src`.

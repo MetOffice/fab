@@ -31,7 +31,7 @@ class CPragmaInjector(Step):
     including in paths relative to the c file.
 
     """
-    def __init__(self, source: ArtefactsGetter = None, output_name=None, name="c pragmas"):
+    def __init__(self, source: Optional[ArtefactsGetter] = None, output_name=None, name="c pragmas"):
         """
         :param source:
             An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.

@@ -64,7 +64,7 @@ class Test_Analyser(object):
                 analysis, artefact = fortran_analyser.run(fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)
-            module_expected.file_hash = 768896775
+            module_expected._file_hash = 768896775
             module_expected.module_defs = set()
             module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
 

@@ -14,7 +14,7 @@ import zlib
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
-from typing import List, Set, Dict, Tuple, Union
+from typing import List, Set, Dict, Tuple, Optional, Union
 
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES, CURRENT_PREBUILDS
@@ -24,7 +24,7 @@ from fab.metrics import send_metric
 from fab.dep_tree import AnalysedFile
 from fab.tools import COMPILERS
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    get_mod_hashes, flags_checksum, remove_managed_flags
+    flags_checksum, remove_managed_flags, file_checksum
 from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
@@ -41,8 +41,9 @@ class CompileFortran(Step):
     The files are compiled in multiple passes, with each pass enabling further files to be compiled in the next pass.
 
     """
-    def __init__(self, compiler: str = None, common_flags: List[str] = None, path_flags: List = None,
-                 source: ArtefactsGetter = None, two_stage_flag=None, name='compile fortran'):
+    def __init__(self, compiler: Optional[str] = None, common_flags: Optional[List[str]] = None,
+                 path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None,
+                 two_stage_flag=None, name='compile fortran'):
         """
         :param compiler:
             The command line compiler to call. Defaults to `gfortran -c`.
@@ -348,7 +349,7 @@ class CompileFortran(Step):
 
 
 # todo: generalise this for the preprocessor, we see flags in FPP
-def get_compiler(compiler: str = None) -> Tuple[str, List[str]]:
+def get_compiler(compiler: Optional[str] = None) -> Tuple[str, List[str]]:
     """
     Separate the compiler and flags from the given string (or `FC` environment variable), like `gfortran -c`.
 
@@ -402,3 +403,17 @@ def _get_compiler_version(compiler: str) -> str:
     logger.info(f'Found compiler version for {compiler} = {version}')
 
     return version
+
+
+def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
+    """
+    Get the hash of every module file defined in the list of analysed files.
+
+    """
+    mod_hashes = {}
+    for af in analysed_files:
+        for mod_def in af.module_defs:
+            fpath: Path = config.build_output / f'{mod_def}.mod'
+            mod_hashes[mod_def] = file_checksum(fpath).file_hash
+
+    return mod_hashes
