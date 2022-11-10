@@ -41,7 +41,7 @@ Conda
 You can create a conda environment for running fab from a yaml file in the repo::
 
     git clone https://github.com/metomi/fab.git
-    conda env create -f fab/dev_env.yml
+    conda env create -f fab/dev_envs/dev_env.yml
 
 Activate the new environment::
 
@@ -83,6 +83,6 @@ together.
 
 Containers
 ----------
-You can create a development environment for running Fab using the docker file in Fab's github repo.
+You can create a development environment for running Fab using *dev_envs/Dockerfile*.
 For example, PyCharm can use the interpreter inside the container and will automatically volume mount and PYTHONPATH
 Fab.
