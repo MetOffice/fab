@@ -1,8 +1,8 @@
 # Dev env for running the example run_configs. This is Met Office oriented.
-name: sci-fab
+name: sci-fab-3.7
 dependencies:
   - libclang>=8.0.1
-  - python>=3.8
+  - python==3.7
   - pip>=21.2.4
   - python-clang>=8.0.1
   - pip:
