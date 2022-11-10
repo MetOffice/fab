@@ -138,7 +138,7 @@ class BuildConfig(object):
                     send_metric('steps', step.name, step_timer.taken)
                 logger.info('\nall steps complete')
         except Exception as err:
-            logger.error(f'\n\nError running build steps:\n{err}')
+            logger.exception('\n\nError running build steps')
             raise Exception(f'\n\nError running build steps:\n{err}')
         finally:
             self._finalise_metrics(start_time, steps_timer)

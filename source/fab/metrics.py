@@ -242,14 +242,18 @@ def metrics_summary(metrics_folder: Path):
     run = metrics['run']
     time_taken = datetime.timedelta(seconds=int(run['time taken']))
     min_label_thresh = time_taken.seconds * 0.01
-    step_metrics = metrics['steps'].items()
-    step_times = [kv[1] for kv in step_metrics]
-    step_labels = [kv[0] if kv[1] > min_label_thresh else "" for kv in step_metrics]
+    step_totals = metrics.get('steps')
+    if step_totals:
+        step_metrics = step_totals.items()
+        step_times = [kv[1] for kv in step_metrics]
+        step_labels = [kv[0] if kv[1] > min_label_thresh else "" for kv in step_metrics]
 
-    plt.pie(step_times, labels=step_labels, normalize=True,
-            wedgeprops={"linewidth": 1, "edgecolor": "white"})
-    plt.suptitle(f"{run['label']} took {time_taken}\n"
-                 f"on {run['sysname']}, {run['nodename']}, {run['machine']}")
-    plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
-    plt.savefig(metrics_folder / "pie.png")
-    plt.close()
+        plt.pie(step_times, labels=step_labels, normalize=True,
+                wedgeprops={"linewidth": 1, "edgecolor": "white"})
+        plt.suptitle(f"{run['label']} took {time_taken}\n"
+                     f"on {run['sysname']}, {run['nodename']}, {run['machine']}")
+        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
+        plt.savefig(metrics_folder / "pie.png")
+        plt.close()
+    else:
+        logger.info("no metrics data 'steps' for step totals pie chart")

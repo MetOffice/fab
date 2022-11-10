@@ -182,7 +182,7 @@ class GrabPreBuild(Step):
             logger.info('\n'.join(to_print))
 
         except RuntimeError as err:
-            msg = f"could not grab pre-build '{self.src}': {err}"
+            msg = f"could not grab pre-build '{self.src}':\n{err}"
             logger.warning(msg)
             if not self.allow_fail:
                 raise RuntimeError(msg)
