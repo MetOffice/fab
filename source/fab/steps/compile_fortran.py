@@ -15,17 +15,15 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Set, Dict, Tuple, Optional
 
+from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
-
-from fab.metrics import send_metric
-
 from fab.dep_tree import AnalysedFile
+from fab.metrics import send_metric
+from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
     flags_checksum, remove_managed_flags, file_checksum
-from fab.steps import check_for_errors, Step
-from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
 
@@ -218,8 +216,6 @@ class CompileFortran(Step):
             Before compiling a file, we calculate the combo hashes and see if the output files already exists.
 
         """
-        # todo: include compiler version in hashes
-
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         mod_combo_hash = self._get_mod_combo_hash(analysed_file)
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
@@ -250,14 +246,14 @@ class CompileFortran(Step):
                 )
 
         else:
+            log_or_dot(logger, f'CompileFortran using prebuild: {analysed_file.fpath}')
+
             # restore the mod files we would have created
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
                     self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
                     self._config.build_output / f'{mod_def}.mod',
                 )
-
-            log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
         return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
