@@ -117,7 +117,7 @@ class PreProcessor(Step):
                 try:
                     run_command(command)
                 except Exception as err:
-                    raise Exception(f"error preprocessing {fpath}: {err}")
+                    raise Exception(f"error preprocessing {fpath}:\n{err}")
 
             send_metric(self.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
 
