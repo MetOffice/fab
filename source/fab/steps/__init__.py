@@ -9,7 +9,7 @@ Predefined build steps with sensible defaults.
 """
 import multiprocessing
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict
 
 from fab.util import by_type
 
@@ -51,7 +51,7 @@ class Step(ABC):
         """
         self._config = config
 
-    def run_mp(self, items, func, no_multiprocessing: Optional[bool] = False):
+    def run_mp(self, items, func, no_multiprocessing: bool = False):
         """
         Called from Step.run() to process multiple items in parallel.
 
