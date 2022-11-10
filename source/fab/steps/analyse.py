@@ -35,6 +35,7 @@ You'll have to manually read the file to determine which symbol definitions and 
 """
 
 import logging
+import sys
 import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
@@ -235,7 +236,13 @@ class Analyse(Step):
         # c
         c_files = set(filter(lambda f: f.suffix == '.c', files))
         with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
-            c_results = self.run_mp(items=c_files, func=self.c_analyser.run)
+            # The C analyser hangs with multiprocessing in Python 3.7!
+            # Override the multiprocessing flag.
+            no_multiprocessing = False
+            if sys.version.startswith('3.7'):
+                warnings.warn('Python 3.7 detected. Disabling multiprocessing for C analysis.')
+                no_multiprocessing = True
+            c_results = self.run_mp(items=c_files, func=self.c_analyser.run, no_multiprocessing=no_multiprocessing)
 
         # Check for parse errors but don't fail. The failed files might not be required.
         results = fortran_results + c_results
