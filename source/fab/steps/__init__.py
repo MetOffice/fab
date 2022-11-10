@@ -9,7 +9,7 @@ Predefined build steps with sensible defaults.
 """
 import multiprocessing
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Optional
 
 from fab.util import by_type
 
@@ -51,7 +51,7 @@ class Step(ABC):
         """
         self._config = config
 
-    def run_mp(self, items, func):
+    def run_mp(self, items, func, no_multiprocessing: Optional[bool] = False):
         """
         Called from Step.run() to process multiple items in parallel.
 
@@ -63,9 +63,11 @@ class Step(ABC):
             An iterable of items to process in parallel.
         :param func:
             A function to process a single item. Must accept a single argument.
+        :param no_multiprocessing:
+            Overrides the config's multiprocessing flag, disabling multiprocessing for this call.
 
         """
-        if self._config.multiprocessing:
+        if self._config.multiprocessing and not no_multiprocessing:
             with multiprocessing.Pool(self._config.n_procs) as p:
                 results = p.map(func, items)
         else:
