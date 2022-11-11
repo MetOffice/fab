@@ -1,3 +1,4 @@
+import os
 from os.path import normpath
 from pathlib import Path
 from unittest import mock
@@ -13,15 +14,16 @@ from fab.steps.compile_c import CompileC
 # This is more of an integration test than a unit test
 class Test_CompileC(object):
 
-    def test_vanilla(self):
+    def test_vanilla(self, tmp_path):
         # ensure the command is formed correctly
 
         # prepare a compiler step
-        config = BuildConfig('proj', source_root=Path('foo/src'), multiprocessing=False)
+        config = BuildConfig('proj', source_root=Path('foo/src'), multiprocessing=False, fab_workspace=tmp_path)
         analysed_file = AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=0)
         artefact_store = {BUILD_TREES: {None: {analysed_file.fpath: analysed_file}}}
-        c_compiler = CompileC(path_flags=[
-            AddFlags(match='foo/src/*', flags=['-I', 'foo/include', '-Dhello'])])
+        with mock.patch.dict(os.environ, {'CFLAGS': ''}):
+            c_compiler = CompileC(path_flags=[
+                AddFlags(match='foo/src/*', flags=['-I', 'foo/include', '-Dhello'])])
 
         # run the step
         with mock.patch('fab.steps.compile_c.run_command') as mock_run_command:
@@ -32,7 +34,7 @@ class Test_CompileC(object):
         # ensure it made the correct command-line call from the child process
         mock_run_command.assert_called_with([
             'gcc', '-c', '-I', 'foo/include', '-Dhello',
-            normpath('foo/src/foo.c'), '-o', normpath('foo/src/foo.o'),
+            normpath('foo/src/foo.c'), '-o', str(config.prebuild_folder / 'foo.101ea42db.o'),
         ])
 
         # ensure it sent a metric from the child process
@@ -40,7 +42,7 @@ class Test_CompileC(object):
 
         # ensure it created the correct artefact collection
         assert artefact_store[OBJECT_FILES] == {
-            None: {analysed_file.fpath.with_suffix('.o'), }
+            None: {config.prebuild_folder / 'foo.101ea42db.o', }
         }
 
     def test_exception_handling(self):

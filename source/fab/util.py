@@ -357,6 +357,9 @@ def get_compiler_version(compiler: str) -> str:
 
     Returns a version string, e.g '6.10.1', or empty string.
 
+    :param compiler:
+        The command line tool for which we want a version.
+
     """
     try:
         res = run_command([compiler, '--version'])

@@ -56,7 +56,7 @@ class CompileC(Step):
         """
         super().__init__(name=name)
 
-        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC'))
+        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC', 'gcc -c'))
         self.compiler_version = get_compiler_version(self.compiler)
         logger.info(f'c compiler is {self.compiler} {self.compiler_version}')
 
@@ -80,6 +80,8 @@ class CompileC(Step):
         """
         super().run(artefact_store, config)
 
+        logger.setLevel(logging.DEBUG)
+
         # gather all the source to compile, for all build trees, into one big lump
         build_lists: Dict = self.source_getter(artefact_store)
         to_compile = sum(build_lists.values(), [])
@@ -98,6 +100,8 @@ class CompileC(Step):
         for root, source_files in build_lists.items():
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
+
+        logger.setLevel(logging.INFO)
 
     def _compile_file(self, analysed_file: AnalysedFile):
 

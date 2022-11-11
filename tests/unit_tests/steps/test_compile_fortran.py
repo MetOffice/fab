@@ -10,13 +10,13 @@ from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 
 from fab.dep_tree import AnalysedFile
-from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler, get_compiler_version, get_mod_hashes
+from fab.steps.compile_fortran import CompileFortran, get_compiler_version, get_mod_hashes
 from fab.util import CompiledFile
 
 
 @pytest.fixture()
 def compiler():
-    with mock.patch('fab.steps.compile_fortran._get_compiler_version', return_value='1.2.3'):
+    with mock.patch('fab.steps.compile_fortran.get_compiler_version', return_value='1.2.3'):
         compiler = CompileFortran(compiler="foo_cc")
     return compiler
 
@@ -115,7 +115,7 @@ class Test_process_file(object):
 
     def content(self, flags=None):
 
-        with mock.patch('fab.steps.compile_fortran._get_compiler_version', return_value='1.2.3'):
+        with mock.patch('fab.steps.compile_fortran.get_compiler_version', return_value='1.2.3'):
             compiler = CompileFortran(compiler="foo_cc")
 
         flags = flags or ['flag1', 'flag2']
@@ -358,25 +358,16 @@ class test_constructor(object):
         assert cf.flags.common_flags == ['-c', '-J', '/mods']
 
 
-class test_get_compiler(object):
-
-    def test_without_flag(self):
-        assert get_fortran_compiler('gfortran') == ('gfortran', [])
-
-    def test_with_flag(self):
-        assert get_fortran_compiler('gfortran -c') == ('gfortran', ['-c'])
-
-
 class Test_get_compiler_version(object):
 
     def _check(self, full_version_string, expect):
-        with mock.patch('fab.steps.compile_fortran.run_command', return_value=full_version_string):
+        with mock.patch('fab.util.run_command', return_value=full_version_string):
             result = get_compiler_version(None)
         assert result == expect
 
     def test_command_failure(self):
         # if the command fails, we must return an empty string, not None, so it can still be hashed
-        with mock.patch('fab.steps.compile_fortran.run_command', side_effect=RuntimeError()):
+        with mock.patch('fab.util.run_command', side_effect=RuntimeError()):
             assert get_compiler_version(None) == '', 'expected empty string'
 
     def test_unknown_command_response(self):

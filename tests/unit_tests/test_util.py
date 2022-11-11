@@ -96,3 +96,12 @@ class Test_remove_managed_flags(object):
         flags = ['--foo', '-J', 'nope', '--bar']
         result = remove_managed_flags('foofc', flags)
         assert result == ['--foo', '-J', 'nope', '--bar']
+
+
+class test_get_tool(object):
+
+    def test_without_flag(self):
+        assert get_tool('gfortran') == ('gfortran', [])
+
+    def test_with_flag(self):
+        assert get_tool('gfortran -c') == ('gfortran', ['-c'])
