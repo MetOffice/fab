@@ -25,12 +25,13 @@ from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran, get_compiler
+from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFcm
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
+from fab.util import get_tool
 
 logger = logging.getLogger('fab')
 
@@ -42,7 +43,7 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
     um_revision = revision.replace('vn', 'um')
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_compiler()
+    compiler, _ = get_tool(os.getenv('FC'))
     if compiler == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
     else:

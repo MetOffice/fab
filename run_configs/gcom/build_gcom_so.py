@@ -4,7 +4,7 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-from fab.steps.compile_fortran import get_compiler
+from fab.steps.compile_fortran import get_fortran_compiler
 from fab.steps.link import LinkSharedObject
 
 from fab.build_config import BuildConfig
@@ -18,7 +18,7 @@ def gcom_so_config(revision=None, compiler=None):
 
     """
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_compiler(compiler)
+    compiler, _ = get_fortran_compiler(compiler)
 
     config = BuildConfig(
         project_label=f'gcom shared library {revision} {compiler}',

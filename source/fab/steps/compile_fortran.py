@@ -23,7 +23,7 @@ from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    flags_checksum, remove_managed_flags, file_checksum
+    flags_checksum, remove_managed_flags, file_checksum, get_compiler_version, get_tool
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +62,9 @@ class CompileFortran(Step):
         super().__init__(name=name)
 
         # Command line tools are sometimes specified with flags attached.
-        self.compiler, compiler_flags = get_compiler(compiler)
-        logger.info(f'fortran compiler is {self.compiler}')
+        self.compiler, compiler_flags = get_tool(compiler or os.getenv('FC'))
+        self.compiler_version = get_compiler_version(self.compiler)
+        logger.info(f'fortran compiler is {self.compiler} {self.compiler_version}')
 
         # collate the flags
         env_flags = os.getenv('FFLAGS', '').split()
@@ -84,9 +85,6 @@ class CompileFortran(Step):
 
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.two_stage_flag = two_stage_flag
-
-        # not ideal to do work in a constructor...
-        self.compiler_version = _get_compiler_version(self.compiler.split()[0])
 
         # runtime
         self._stage = None
@@ -329,63 +327,6 @@ class CompileFortran(Step):
             group=metric_name,
             name=str(analysed_file.fpath),
             value={'time_taken': timer.taken, 'start': timer.start})
-
-
-# todo: generalise this for the preprocessor, we see flags in FPP
-def get_compiler(compiler: Optional[str] = None) -> Tuple[str, List[str]]:
-    """
-    Separate the compiler and flags from the given string (or `FC` environment variable), like `gfortran -c`.
-
-    Returns the compiler and a list of flags.
-
-    """
-    compiler_split = (compiler or os.getenv('FC', '')).split()  # type: ignore
-    if not compiler_split:
-        raise ValueError('Fortran compiler not specified. Cannot continue.')
-
-    compiler = compiler_split[0]
-    return compiler, compiler_split[1:]
-
-
-# todo: add more compilers and test with more versions of compilers
-def _get_compiler_version(compiler: str) -> str:
-    """
-    Try to get the version of the given compiler.
-
-    Expects a version in a certain part of the --version output,
-    which must adhere to the n.n.n format, with at least 2 parts.
-
-    Returns a version string, e.g '6.10.1', or empty string.
-
-    """
-    try:
-        res = run_command([compiler, '--version'])
-    except FileNotFoundError:
-        raise ValueError(f'Compiler not found: {compiler}')
-    except RuntimeError as err:
-        logger.warning(f"Error asking for version of compiler '{compiler}':\n{err}")
-        return ''
-
-    # Pull the version string from the command output.
-    # All the versions of gfortran and ifort we've tried follow the same pattern, it's after a ")".
-    try:
-        version = res.split(')')[1].split()[0]
-    except IndexError:
-        logger.warning(f"Unexpected version response from compiler '{compiler}': {res}")
-        return ''
-
-    # expect major.minor[.patch, ...]
-    # validate - this may be overkill
-    split = version.split('.')
-    if len(split) < 2:
-        logger.warning(f"unhandled compiler version format for compiler '{compiler}' is not <n.n[.n, ...]>: {version}")
-        return ''
-
-    # todo: do we care if the parts are integers? Not all will be, but perhaps major and minor?
-
-    logger.info(f'Found compiler version for {compiler} = {version}')
-
-    return version
 
 
 def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:

@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
-from fab.steps.compile_fortran import CompileFortran, get_compiler
+from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
@@ -29,7 +29,7 @@ def gungho_config(two_stage=False, opt='Og'):
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_compiler()
+    compiler, _ = get_fortran_compiler()
 
     config = BuildConfig(
         project_label=f'gungho {compiler} {opt} {int(two_stage)+1}stage',

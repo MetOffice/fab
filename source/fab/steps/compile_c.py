@@ -20,7 +20,8 @@ from fab.dep_tree import AnalysedFile
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
 from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type, flags_checksum
+from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type, flags_checksum, get_compiler_version, \
+    get_tool
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,13 @@ class CompileC(Step):
         """
         super().__init__(name=name)
 
-        self.compiler = compiler or os.getenv('CC', 'gcc -c')
+        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC'))
+        self.compiler_version = get_compiler_version(self.compiler)
+        logger.info(f'c compiler is {self.compiler} {self.compiler_version}')
+
+        env_flags = os.getenv('CFLAGS', '').split()
+        common_flags = compiler_flags + env_flags + (common_flags or [])
+
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -107,7 +114,7 @@ class CompileC(Step):
                 obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
 
                 command = self.compiler.split()  # type: ignore
-                command.extend(self.flags.flags_for_path(path=analysed_file.fpath, config=self._config))
+                command.extend(flags)
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(obj_file_prebuild)])
 
@@ -123,12 +130,10 @@ class CompileC(Step):
 
     def _get_obj_combo_hash(self, analysed_file, flags):
         # get a combo hash of things which matter to the object file we define
-        mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
         try:
             obj_combo_hash = sum([
                 analysed_file.file_hash,
                 flags_checksum(flags),
-                sum(mod_deps_hashes.values()),
                 zlib.crc32(self.compiler.encode()),
                 zlib.crc32(self.compiler_version.encode()),
             ])
