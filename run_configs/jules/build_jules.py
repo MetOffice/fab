@@ -10,13 +10,13 @@ import os
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
-from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
+from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab import GrabFcm, GrabPreBuild
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
-from fab.util import common_arg_parser
+from fab.util import common_arg_parser, get_tool
 
 logger = logging.getLogger('fab')
 
@@ -24,7 +24,7 @@ logger = logging.getLogger('fab')
 def jules_config(revision=None, compiler=None, two_stage=False):
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_fortran_compiler()
+    compiler, _ = get_tool(os.getenv('FC'))
     config = BuildConfig(project_label=f'jules {revision} {compiler} {int(two_stage)+1}stage')
 
     logger.info(f'building jules {config.project_label}')

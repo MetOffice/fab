@@ -13,7 +13,7 @@ import shutil
 import zlib
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Set, Dict, Tuple, Optional
+from typing import List, Set, Dict, Optional
 
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig

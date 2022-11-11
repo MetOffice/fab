@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
-from fab.util import run_command, flags_checksum, remove_managed_flags
+from fab.util import run_command, flags_checksum, remove_managed_flags, get_tool
 from fab.util import suffix_filter
 
 
