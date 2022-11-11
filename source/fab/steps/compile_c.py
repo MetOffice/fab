@@ -56,7 +56,7 @@ class CompileC(Step):
         """
         super().__init__(name=name)
 
-        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC', 'gcc -c'))
+        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC', 'gcc -c'))  # type: ignore
         self.compiler_version = get_compiler_version(self.compiler)
         logger.info(f'c compiler is {self.compiler} {self.compiler_version}')
 

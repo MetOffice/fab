@@ -62,7 +62,7 @@ class CompileFortran(Step):
         super().__init__(name=name)
 
         # Command line tools are sometimes specified with flags attached.
-        self.compiler, compiler_flags = get_tool(compiler or os.getenv('FC'))
+        self.compiler, compiler_flags = get_tool(compiler or os.getenv('FC', ''))  # type: ignore
         self.compiler_version = get_compiler_version(self.compiler)
         logger.info(f'fortran compiler is {self.compiler} {self.compiler_version}')
 
