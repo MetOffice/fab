@@ -62,7 +62,7 @@ class CompileFortran(Step):
         super().__init__(name=name)
 
         # Command line tools are sometimes specified with flags attached.
-        self.compiler, compiler_flags = get_tool(compiler or os.getenv('FC', ''))  # type: ignore
+        self.compiler, compiler_flags = get_fortran_compiler(compiler)
         self.compiler_version = get_compiler_version(self.compiler)
         logger.info(f'fortran compiler is {self.compiler} {self.compiler_version}')
 
@@ -327,6 +327,20 @@ class CompileFortran(Step):
             group=metric_name,
             name=str(analysed_file.fpath),
             value={'time_taken': timer.taken, 'start': timer.start})
+
+
+def get_fortran_compiler(compiler: Optional[str] = None):
+    """
+    Get the fortran compiler specified by the `$FC` environment variable,
+    or overridden by the optional `compiler` argument.
+
+    Separates the tool and flags for the sort of value we see in environment variables, e.g. `gfortran -c`.
+
+    :param compiler:
+        Use this string instead of the $FC environment variable.
+
+    """
+    return get_tool(compiler or os.getenv('FC', ''))
 
 
 def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:

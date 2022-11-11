@@ -7,14 +7,15 @@
 import os
 from pathlib import Path
 
-from fab.util import run_command, get_tool
+from fab.steps.compile_fortran import get_fortran_compiler
+from fab.util import run_command
 
 
 # todo: run the exes, check the output
 def build_all():
 
     configs_folder = Path(__file__).parent
-    compiler, _ = get_tool(os.getenv('FC'))
+    compiler, _ = get_fortran_compiler()
 
     os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler}')
 

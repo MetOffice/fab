@@ -5,19 +5,16 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 import logging
-import os
 from argparse import ArgumentParser
-
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
-from fab.steps.compile_fortran import CompileFortran
+from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
-from fab.util import get_tool
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
@@ -33,7 +30,7 @@ def gungho_config(two_stage=False, opt='Og'):
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_tool(os.getenv('FC'))
+    compiler, _ = get_fortran_compiler()
 
     config = BuildConfig(
         project_label=f'gungho {compiler} {opt} {int(two_stage)+1}stage',
