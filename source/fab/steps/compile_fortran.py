@@ -340,7 +340,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
         Use this string instead of the $FC environment variable.
 
     """
-    return get_tool(compiler or os.getenv('FC', ''))
+    return get_tool(compiler or os.getenv('FC', ''))  # type: ignore
 
 
 def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
