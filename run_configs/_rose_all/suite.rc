@@ -5,6 +5,11 @@
                 graph = """
                     grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_gcom_ar_py{{ PYTHON_VERSION }}_{{ COMPILER }}
                     grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_gcom_so_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                    build_jules_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                    build_gcom_ar_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_um_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                    grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }} => mesh_tools_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                    grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }} => gungho_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                    grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }} => atm_py{{ PYTHON_VERSION }}_{{ COMPILER }}
                    """
             {% endfor %}
         {% endfor %}
@@ -27,7 +32,7 @@
                     batch system = slurm
                     execution time limit = PT10M
                 [[[directives]]]
-                    --mem=500
+                    --mem=512
                     --cpus-per-task=4
                     --export=NONE
                 [[[environment]]]
@@ -45,6 +50,40 @@
             [[build_gcom_so_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
                 inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
                 script = build_gcom_so.py
+
+            [[build_jules_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = build_jules.py
+                [[[directives]]]
+                    --mem=1024
+
+            [[build_um_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = build_jules.py
+                [[[directives]]]
+                    --mem=2048
+
+            [[grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = grab_lfric.py
+
+            [[mesh_tools_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = mesh_tools.py
+                [[[directives]]]
+                    --mem=1024
+
+            [[gungho_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = gungho.py
+                [[[directives]]]
+                    --mem=2048
+
+            [[atm_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = atm.py
+                [[[directives]]]
+                    --mem=2048
 
         {% endfor %}
     {% endfor %}
