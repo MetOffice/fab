@@ -1,0 +1,50 @@
+[scheduling]
+    [[dependencies]]
+        {% for PYTHON_VERSION in PYTHON_VERSIONS %}
+            {% for COMPILER in COMPILERS %}
+                graph = """
+                    grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_gcom_ar_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                    grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_gcom_so_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                   """
+            {% endfor %}
+        {% endfor %}
+
+[runtime]
+
+    {% for PYTHON_VERSION in PYTHON_VERSIONS %}
+        {% for COMPILER in COMPILERS %}
+
+            [[common_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+
+                env-script = """
+                    module use /data/users/lfric/modules/modulefiles.rhel7
+                    module load environment/lfric/{{ COMPILER }}
+                    conda init bash
+                    conda activate sci-fab-3.{{ PYTHON_VERSION }}
+                """
+
+                [[[job]]]
+                    batch system = slurm
+                    execution time limit = PT10M
+                [[[directives]]]
+                    --mem=500
+                    --cpus-per-task=4
+                    --export=NONE
+                [[[environment]]]
+                    FAB_WORKSPACE=$SCRATCH/fab_workspace_py3.{{ PYTHON_VERSION }}_{{ COMPILER }}
+                    GCOM_REVISION={{ GCOM_REVISION }}
+
+            [[grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = grab_gcom.py
+
+            [[build_gcom_ar_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = build_gcom_ar.py
+
+            [[build_gcom_so_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
+                script = build_gcom_so.py
+
+        {% endfor %}
+    {% endfor %}
