@@ -48,7 +48,7 @@ class Test_CompileC(object):
 
         # ensure it created the correct artefact collection
         assert artefact_store[OBJECT_FILES] == {
-            None: {config.prebuild_folder / 'foo.21fa291e4.o', }
+            None: {config.prebuild_folder / f'foo.{expect_hash:x}.o', }
         }
 
     def test_exception_handling(self, content):
