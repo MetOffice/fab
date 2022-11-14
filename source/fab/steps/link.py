@@ -78,7 +78,7 @@ class LinkerBase(Step, ABC):
         try:
             run_command(command)
         except Exception as err:
-            raise Exception(f"error linking: {err}")
+            raise Exception(f"error linking:\n{err}")
 
 
 class LinkExe(LinkerBase):
