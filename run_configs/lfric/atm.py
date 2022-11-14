@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import logging
-import os
 from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig, AddFlags
