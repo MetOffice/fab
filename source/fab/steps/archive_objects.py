@@ -132,6 +132,6 @@ class ArchiveObjects(Step):
             try:
                 run_command(command)
             except Exception as err:
-                raise Exception(f"error creating object archive: {err}")
+                raise Exception(f"error creating object archive:\n{err}")
 
             output_archives[root] = [output_fpath]

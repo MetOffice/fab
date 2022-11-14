@@ -239,7 +239,7 @@ class CompileFortran(Step):
                 logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
                 self.compile_file(analysed_file, flags, output_fpath=obj_file_prebuild)
             except Exception as err:
-                return Exception(f"Error compiling {analysed_file.fpath}: {err}")
+                return Exception(f"Error compiling {analysed_file.fpath}:\n{err}")
 
             # Store the mod files for reuse.
             # todo: we could sometimes avoid these copies because mods can change less frequently than obj
@@ -367,7 +367,7 @@ def _get_compiler_version(compiler: str) -> str:
     except FileNotFoundError:
         raise ValueError(f'Compiler not found: {compiler}')
     except RuntimeError as err:
-        logger.warning(f"Error asking for version of compiler '{compiler}': {err}")
+        logger.warning(f"Error asking for version of compiler '{compiler}':\n{err}")
         return ''
 
     # Pull the version string from the command output.
