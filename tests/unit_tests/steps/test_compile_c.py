@@ -12,18 +12,13 @@ from fab.steps.compile_c import CompileC
 
 
 @pytest.fixture
-def compiler():
-    with mock.patch.dict(os.environ, {'CC': 'foo_cc', 'CFLAGS': '-Denv_flag'}):
-        with mock.patch('fab.steps.compile_c.get_compiler_version', return_value='1.2.3'):
-            compiler = CompileC(
-                path_flags=[AddFlags(match='foo/src/*', flags=['-I', 'foo/include', '-Dhello'])])
-    return compiler
-
-
-@pytest.fixture
-def content(tmp_path, compiler):
+def content(tmp_path):
     config = BuildConfig('proj', source_root=Path('foo/src'), multiprocessing=False, fab_workspace=tmp_path)
     analysed_file = AnalysedFile(fpath=Path('foo/src/foo.c'), file_hash=0)
+    with mock.patch.dict(os.environ, {'CC': 'foo_cc', 'CFLAGS': '-Denv_flag'}):
+        with mock.patch('fab.steps.compile_c.get_compiler_version', return_value='1.2.3'):
+            compiler = CompileC(path_flags=[
+                AddFlags(match='foo/src/*', flags=['-I', 'foo/include', '-Dhello'])])
     artefact_store = {BUILD_TREES: {None: {analysed_file.fpath: analysed_file}}}
     expect_hash = 9120682468
     return config, artefact_store, compiler, analysed_file, expect_hash
