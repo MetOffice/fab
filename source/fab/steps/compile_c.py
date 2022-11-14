@@ -9,6 +9,7 @@ C file compilation.
 """
 import logging
 import os
+import warnings
 import zlib
 from collections import defaultdict
 from typing import List, Dict, Optional
@@ -62,6 +63,12 @@ class CompileC(Step):
 
         env_flags = os.getenv('CFLAGS', '').split()
         common_flags = compiler_flags + env_flags + (common_flags or [])
+
+        # make sure we have a -c
+        # todo: c compiler awareness, like we have with fortran?
+        if '-c' not in common_flags:
+            warnings.warn("Adding '-c' to C compiler flags")
+            common_flags = ['-c'] + common_flags
 
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
