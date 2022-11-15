@@ -29,11 +29,9 @@ def test_MinimalFortran(tmp_path):
 
         steps=[
             FindSourceFiles(),
-
             fortran_preprocessor(),
             Analyse(root_symbol='test'),
-            CompileFortran(),
-
+            CompileFortran(compiler='gfortran', common_flags=['-c']),
             LinkExe(linker='gcc', flags=['-lgfortran']),
         ],
     )
