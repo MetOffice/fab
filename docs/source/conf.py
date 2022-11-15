@@ -22,8 +22,8 @@ copyright = '2022'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.dev0'
-
+import fab
+release = fab.__version__
 
 # -- General configuration ---------------------------------------------------
 
