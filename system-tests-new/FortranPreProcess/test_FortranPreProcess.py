@@ -23,7 +23,7 @@ def make_config(fab_workspace, fpp_flags=None):
         multiprocessing=False,
         steps=[
             FindSourceFiles(),
-            fortran_preprocessor(common_flags=fpp_flags),
+            fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=fpp_flags),
             Analyse(root_symbol=['stay_or_go_now']),
             CompileFortran(compiler='gfortran', common_flags=['-c']),
             LinkExe(linker='gcc', flags=['-lgfortran']),
