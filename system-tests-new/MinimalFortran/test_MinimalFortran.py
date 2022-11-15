@@ -6,6 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from fab.steps.compile_fortran import CompileFortran
+
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.steps.analyse import Analyse
@@ -13,12 +15,12 @@ from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import c_preprocessor
+from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
 
-def test_MinimalC(tmp_path):
+def test_MinimalFortran(tmp_path):
 
     # build
     config = BuildConfig(
@@ -30,12 +32,11 @@ def test_MinimalC(tmp_path):
         steps=[
             FindSourceFiles(),
 
-            CPragmaInjector(),
-            c_preprocessor(),
-            Analyse(root_symbol='main'),
-            CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
+            fortran_preprocessor(),
+            Analyse(root_symbol='test'),
+            CompileFortran(),
 
-            LinkExe(linker='gcc'),
+            LinkExe(linker='gcc', flags=['-lgfortran']),
         ],
     )
     config.run()
@@ -45,4 +46,4 @@ def test_MinimalC(tmp_path):
     command = [str(config._artefact_store[EXECUTABLES][0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output == 'Hello world!'
+    assert output.strip() == 'Hello world!'

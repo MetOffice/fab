@@ -31,7 +31,7 @@ def make_config(fab_workspace, fpp_flags=None):
     )
 
 
-def test_FortranDependencies(tmp_path):
+def test_FortranPreProcess(tmp_path):
 
     # stay
     stay_config = make_config(fab_workspace=tmp_path, fpp_flags=['-P', '-DSHOULD_I_STAY=yes'])
