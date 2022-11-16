@@ -25,6 +25,9 @@ author = 'Fab Team'
 import fab
 release = fab.__version__
 
+# The version up to the minor patch, for distinguishing multi-version docs
+version = '.'.join(release.split('.')[:2])
+
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
