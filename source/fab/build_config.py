@@ -76,8 +76,8 @@ class BuildConfig(object):
                 logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
         logger.info(f"fab workspace is {fab_workspace}")
 
-        self.project_workspace = fab_workspace / self.project_label
-        self.metrics_folder = self.project_workspace / 'metrics' / self.project_label
+        self.project_workspace: Path = fab_workspace / self.project_label
+        self.metrics_folder: Path = self.project_workspace / 'metrics' / self.project_label
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
@@ -106,6 +106,8 @@ class BuildConfig(object):
         if verbose:
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
+        self._init_logging()
+
         # runtime
         self._artefact_store: Optional[Dict[str, Any]] = None
 
@@ -132,7 +134,7 @@ class BuildConfig(object):
         self.build_output.mkdir(parents=True, exist_ok=True)
         self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
-        self._init_logging()
+        # self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
 
         self._artefact_store = dict()
@@ -152,6 +154,7 @@ class BuildConfig(object):
 
     def _init_logging(self):
         # add a file logger for our run
+        self.project_workspace.mkdir(parents=True, exist_ok=True)
         log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
         log_file_handler.doRollover()
         logging.getLogger('fab').addHandler(log_file_handler)
