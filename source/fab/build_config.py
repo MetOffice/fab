@@ -11,6 +11,7 @@ import getpass
 import logging
 import os
 import sys
+import warnings
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -106,8 +107,6 @@ class BuildConfig(object):
         if verbose:
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
-        self._init_logging()
-
         # runtime
         self._artefact_store: Optional[Dict[str, Any]] = None
 
@@ -134,7 +133,7 @@ class BuildConfig(object):
         self.build_output.mkdir(parents=True, exist_ok=True)
         self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
-        # self._init_logging()
+        self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
 
         self._artefact_store = dict()
@@ -170,7 +169,8 @@ class BuildConfig(object):
         # remove our file logger
         fab_logger = logging.getLogger('fab')
         log_file_handlers = list(by_type(fab_logger.handlers, RotatingFileHandler))
-        assert len(log_file_handlers) == 1
+        if len(log_file_handlers) != 1:
+            warnings.warn(f'expected to find 1 RotatingFileHandler for removal, found {len(log_file_handlers)}')
         fab_logger.removeHandler(log_file_handlers[0])
 
     def _finalise_metrics(self, start_time, steps_timer):
