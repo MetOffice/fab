@@ -81,3 +81,14 @@ Fab currently assumes there are no name clashes in your project by the time we r
 There may be duplicates earlier in the build process. For example, there may two versions of a module,
 each wrapped in a `#ifdef` so that one of them is empty after preprocessing (empty files are ignored during analysis).
 Another approach is to use file filtering in the :class:`~fab.steps.find_source_files.FindSourceFiles` step.
+
+
+Fortran Include Folders and Incremental Build
+--------------------------------------------
+Fab generates a hash of mod file dependencies, and notices if a dependency changes, triggering a recompile.
+However, it can only currently do this for mods in the project workspace (or source_root override).
+It will *not* notice if a mod changes in an include folder.
+
+An example is the UM build which uses GCom's mpl.mod.
+Fab should also generate a hash for any included mod file outside the project source, i.e mod files in include folders.
+This is recorded in `#192 <https://github.com/metomi/fab/issues/192>`_.
