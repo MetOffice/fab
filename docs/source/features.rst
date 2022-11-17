@@ -90,5 +90,4 @@ However, it can only currently do this for mods in the project workspace (or sou
 It will *not* notice if a mod changes in an include folder.
 
 An example is the UM build which uses GCom's mpl.mod.
-Fab should also generate a hash for any included mod file outside the project source, i.e mod files in include folders.
 This is recorded in `#192 <https://github.com/metomi/fab/issues/192>`_.
