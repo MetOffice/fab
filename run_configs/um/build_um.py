@@ -45,7 +45,7 @@ def um_atmos_safe_config(revision, two_stage=False):
     compiler, _ = get_compiler()
     if compiler == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
-    else:
+    elif compiler == 'ifort':
         # compiler_specific_flags = ['-r8']
         compiler_specific_flags = [
             '-i8', '-r8', '-mcmodel=medium',
@@ -57,6 +57,8 @@ def um_atmos_safe_config(revision, two_stage=False):
             '-fpic',
             '-assume nosource_include,protect_parens',
         ]
+    else:
+        compiler_specific_flags = []
 
     config = BuildConfig(
         project_label=f'um atmos safe {revision} {compiler} {int(two_stage)+1}stage',
