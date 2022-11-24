@@ -61,7 +61,6 @@ class PreProcessor(Step):
         # Command line tools are sometimes specified with flags attached, e.g 'cpp -traditional-cpp'
         preprocessor_split = (preprocessor or os.getenv('FPP', 'fpp -P')).split()  # type: ignore
         self.preprocessor = preprocessor_split[0]
-        logger.info(f'preprocessor for {self.name} is {self.preprocessor}')
 
         common_flags = preprocessor_split[1:] + (common_flags or [])
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
@@ -83,6 +82,7 @@ class PreProcessor(Step):
 
         """
         super().run(artefact_store, config)
+        logger.info(f'preprocessor for {self.name} is {self.preprocessor}')
 
         files = list(self.source_getter(artefact_store))
         logger.info(f'preprocessing {len(files)} files')
