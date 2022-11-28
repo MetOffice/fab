@@ -36,7 +36,7 @@ class GrabSourceBase(Step, ABC):
     At runtime, when the build config is available, the destination folder is stored into `self._dst`.
 
     """
-    def __init__(self, src: str, dst: Optional[str] = None, revision=None, shallow: bool = True, name=None):
+    def __init__(self, src: str, dst: Optional[str] = None, revision=None, name=None):
         """
         :param src:
             The source url to grab.
@@ -45,11 +45,6 @@ class GrabSourceBase(Step, ABC):
             If not specified, the code is copied into the root of the source folder.
         :param revision:
             E.g 'vn6.3' or 36615
-        :param shallow:
-            This flag causes the grab to be quick and shallow.
-            This can be faster for builds which start with an empty project folder.
-            If you project folder is persistent, it can be faster to turn this flag off,
-            allowing the source control software to only fetch changes since the last run.
         :param name:
             Human friendly name for logger output, with a sensible default.
 
@@ -58,7 +53,6 @@ class GrabSourceBase(Step, ABC):
         self.src: str = src
         self.dst_label: str = dst or ''
         self.revision = revision
-        self.shallow = shallow
 
         # runtime
         self._dst: Optional[Path] = None
@@ -125,43 +119,47 @@ class GrabGit(GrabSourceBase):
     """
     Grab a Git repo into the project workspace.
 
-    If no revision is specified we'll get the default branch *if there is one*.
+    A destination name must be specified because each git repo needs to be in a separate folder.
 
     .. note::
 
-        Some git servers do not have a default branch.
+        Currently, a revision must be specified. If `shallow` is set, the revision should only be a branch or tag
+        because not all git servers allow fetch or clone of a commit hash.
+        If `shallow` is not set, the revision can also be a commit hash.
 
-        Omitting the revision is **potentially unsafe** when rebuilding with a persistent workspace
-        because Fab will have to discover the current branch and update it.
-        It's possible for someone to change the branch between builds.
-
-
-    * It is considered unsafe to omit the revision because the checked out branch could change outside Fab.
-    * If no revision is specified, there *may* be a default branch which will be grabbed, e.g for GithHub repos.
-    * If a revision is specified, it should be a branch or tag.
-      * If `shallow` is not set the revision can also be a commit hash.
-    * If `shallow` is set (the default), only the given branch or tag is fetched, with no history.
-      Otherwise, the full repo is cloned, which may be slower.
+    A `shallow` grab clones/fetches the given revision with no history.
+    Otherwise, the full repo is cloned, which may be slower.
 
     Example:
 
         GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='v0.1b')
+        GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='abc123', shallow=False)
 
     """
-    def __init__(self, src: str, dst: Optional[str] = None, revision=None, shallow: bool = True, name=None):
-        """
-        Params as for
-        """
-        super().__init__(src=src, dst=dst, revision=revision, shallow=shallow, name=name)
-        if not self.revision:
-            raise ValueError("GrabGit (currently) requires a revision to be specifed.")
 
     # Developers' note:
     # GitHub doesn't have uploadpack.allowReachableSHA1InWant set so we can't clone or fetch a commit.
+    # Otherwise, we could probably do without deep grabs altogether.
 
-    # hence the restriction on the revision not being a commit, with the command we use for a shallow grab.
-    # When shallow is not set, we use different commands which can accept a commit.
-    # Without this restriction there might not be much benefit to non-shallow checkouts at all.
+    def __init__(self, src: Union[Path, str], dst: Optional[str] = None, revision=None, shallow: bool = True, name=None):
+        """
+        Params as for :class:`~fab.steps.grab.GrabSourceBase`, plus the following.
+
+        :param shallow:
+            This flag causes the grab to be quick and shallow, fetching just the branch and no history.
+            You may need to turn this off when fetching a commit hash (as opposed to a branch or tag),
+            depending on the git server.
+
+        """
+        if not revision:
+            raise ValueError("GrabGit (currently) requires a revision to be specifed.")
+
+        if not dst:
+            raise ValueError("A destination name must be specified to GrabGit.")
+
+        super().__init__(src=str(src), dst=dst, revision=revision, name=name)
+
+        self.shallow = shallow
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
