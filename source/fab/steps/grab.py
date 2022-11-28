@@ -9,7 +9,6 @@ Build steps for pulling source code from remote repos and local folders.
 """
 import logging
 import os
-import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Union, Optional
@@ -141,7 +140,8 @@ class GrabGit(GrabSourceBase):
     # GitHub doesn't have uploadpack.allowReachableSHA1InWant set so we can't clone or fetch a commit.
     # Otherwise, we could probably do without deep grabs altogether.
 
-    def __init__(self, src: Union[Path, str], dst: Optional[str] = None, revision=None, shallow: bool = True, name=None):
+    def __init__(self, src: Union[Path, str], dst: str = None,  # type: ignore
+                 revision=None, shallow: bool = True, name=None):
         """
         Params as for :class:`~fab.steps.grab.GrabSourceBase`, plus the following.
 
@@ -165,13 +165,13 @@ class GrabGit(GrabSourceBase):
         super().run(artefact_store, config)
 
         if self.shallow:
-            if not self._dst.exists():
+            if not self._dst.exists():  # type: ignore
                 run_command(['git', 'clone', '--branch', self.revision, '--depth', '1', self.src, str(self._dst)])
             else:
                 run_command(['git', 'fetch', 'origin', self.revision, '--depth', '1'], cwd=str(self._dst))
                 run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=str(self._dst))
         else:
-            if not self._dst.exists():
+            if not self._dst.exists():  # type: ignore
                 run_command(['git', 'clone', self.src, str(self._dst)])
             else:
                 run_command(['git', 'fetch', 'origin'], cwd=str(self._dst))
@@ -204,8 +204,8 @@ class GrabFolder(GrabSourceBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        self._dst.mkdir(parents=True, exist_ok=True)
-        call_rsync(src=self.src, dst=self._dst)
+        self._dst.mkdir(parents=True, exist_ok=True)  # type: ignore
+        call_rsync(src=self.src, dst=self._dst)  # type: ignore
 
 
 class GrabPreBuild(Step):
