@@ -11,6 +11,7 @@ import getpass
 import logging
 import os
 import sys
+import warnings
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -78,8 +79,8 @@ class BuildConfig(object):
                 logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
         logger.info(f"fab workspace is {fab_workspace}")
 
-        self.project_workspace = fab_workspace / self.project_label
-        self.metrics_folder = self.project_workspace / 'metrics' / self.project_label
+        self.project_workspace: Path = fab_workspace / self.project_label
+        self.metrics_folder: Path = self.project_workspace / 'metrics' / self.project_label
 
         # source config
         self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
@@ -154,6 +155,7 @@ class BuildConfig(object):
 
     def _init_logging(self):
         # add a file logger for our run
+        self.project_workspace.mkdir(parents=True, exist_ok=True)
         log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
         log_file_handler.doRollover()
         logging.getLogger('fab').addHandler(log_file_handler)
@@ -169,7 +171,8 @@ class BuildConfig(object):
         # remove our file logger
         fab_logger = logging.getLogger('fab')
         log_file_handlers = list(by_type(fab_logger.handlers, RotatingFileHandler))
-        assert len(log_file_handlers) == 1
+        if len(log_file_handlers) != 1:
+            warnings.warn(f'expected to find 1 RotatingFileHandler for removal, found {len(log_file_handlers)}')
         fab_logger.removeHandler(log_file_handlers[0])
 
     def _finalise_metrics(self, start_time, steps_timer):
