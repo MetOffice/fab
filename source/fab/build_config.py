@@ -43,10 +43,15 @@ class BuildConfig(object):
             by underscores.
         :param source_root:
             Optional argument to allow the config to find source code outside it's project workspace.
-            This is useful, for example, when the :py:mod:`fab.steps.grab <grab>` is in a separate script to be run
+            This is useful, for example, when the :py:mod:`~fab.steps.grab` is in a separate script to be run
             less frequently. In this scenario, the source code will be found in a different project workspace folder.
-            Note: **Take care if using this argument with grab steps**
-            because you could write to a source folder *outside* your project workspace.
+            This argument is intended to be used *instead* of grab steps.
+
+            .. note::
+
+                **Take care if using this argument with grab steps**
+                because you could write to a source folder *outside* your project workspace.
+
         :param steps:
             The list of build steps to run.
         :param multiprocessing:

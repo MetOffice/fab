@@ -84,7 +84,7 @@ Another approach is to use file filtering in the :class:`~fab.steps.find_source_
 
 
 Fortran Include Folders and Incremental Build
---------------------------------------------
+---------------------------------------------
 Fab generates a hash of Fortran `*.mod` file dependencies, and notices if a dependency changes, triggering a recompile.
 However, it can only currently do this for Fortran `*.mod` files inside the project workspace (or source_root override).
 It will *not* notice if a Fortran `*.mod` changes in an include folder elsewhere.
