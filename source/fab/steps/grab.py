@@ -140,6 +140,9 @@ class GrabSvn(GrabSourceBase):
         r.export(str(self._dst), revision=self.revision, force=True)
 
 
+# todo: It might be best to have both a git cli and a git library version of this class, under the hood...
+#       Presumably the library does not rely on the user having git installed.
+#       On the other hand, using the cli minimises Python dependencies.
 class GrabGit(GrabSourceBase):
     """
     Grab a Git repo into the project workspace.
