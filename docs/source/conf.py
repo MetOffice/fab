@@ -22,8 +22,11 @@ copyright = '2022'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0.dev0'
+import fab
+release = fab.__version__
 
+# The version up to the minor patch, for distinguishing multi-version docs
+version = '.'.join(release.split('.')[:2])
 
 # -- General configuration ---------------------------------------------------
 
