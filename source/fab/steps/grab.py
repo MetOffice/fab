@@ -158,10 +158,10 @@ class GrabGit(GrabSourceBase):
     A `shallow` grab clones/fetches the given revision with no history.
     Otherwise, the full repo is cloned, including all branches and history.
 
-    Example:
+    Example::
 
-        GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='v0.1b')
-        GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='a1b2c3', shallow=False)
+        GrabGit(src='~/git/my_project', revision='v0.1b')
+        GrabGit(src='https://github.com/me/my_project.git', revision='a1b2c3', shallow=False)
 
     """
 
@@ -172,8 +172,7 @@ class GrabGit(GrabSourceBase):
 
         :param shallow:
             This flag causes the grab to be quick and shallow, fetching just the branch and no history.
-            You may need to turn this off when fetching a commit hash (as opposed to a branch or tag),
-            depending on the git server.
+            You may need to turn this off when fetching a commit hash.
 
         """
         if not revision:
