@@ -50,6 +50,6 @@ setuptools.setup(
         'dev': ['pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy', 'matplotlib',
                 'sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints'],
         'tests': ['pytest', 'pytest-cov', 'pytest-mock'],
-        'docs': ['sphinx-autodoc-typehints'],
+        'docs': ['sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints'],
     }
 )

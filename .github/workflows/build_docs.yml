@@ -16,8 +16,6 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-    - name: install sphinx
-      run: pip install sphinx sphinx-rtd-theme
     - name: install fab
       run: pip install .[docs]
     - name: build docs
