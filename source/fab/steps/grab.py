@@ -122,23 +122,19 @@ class GrabGit(GrabSourceBase):
 
     .. note::
 
-        Currently, a revision must be specified. If `shallow` is set, the revision should only be a branch or tag
-        because not all git servers allow fetch or clone of a commit hash.
+        Currently, a revision must be specified.
+        If `shallow` is set (the default), then the revision should only be a branch or tag.
         If `shallow` is not set, the revision can also be a commit hash.
 
     A `shallow` grab clones/fetches the given revision with no history.
-    Otherwise, the full repo is cloned, which may be slower.
+    Otherwise, the full repo is cloned, including all branches and history.
 
     Example:
 
         GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='v0.1b')
-        GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='abc123', shallow=False)
+        GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='a1b2c3', shallow=False)
 
     """
-
-    # Developers' note:
-    # GitHub doesn't have uploadpack.allowReachableSHA1InWant set so we can't clone or fetch a commit.
-    # Otherwise, we could probably do without deep grabs altogether.
 
     def __init__(self, src: Union[Path, str], dst: str = None,  # type: ignore
                  revision=None, shallow: bool = True, name=None):

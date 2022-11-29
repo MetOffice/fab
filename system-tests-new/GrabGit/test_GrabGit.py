@@ -28,7 +28,6 @@ from fab.util import run_command
 from fab.steps.grab import GrabGit
 
 
-TINY_FORTRAN_GITHUB = 'https://github.com/bblay/tiny_fortran.git'
 MY_MOD = 'src/my_mod.F90'
 
 
@@ -199,9 +198,14 @@ class TestGrabGit_Local(object):
 
 
 class TestGrabGitGithub(object):
+    # Check we can grab from github.
+    # There's no need to hit their servers lots of times just for our tests,
+    # so we just have one small grab here. We could even remove this altogether.
 
     def test_vanilla(self, tmp_path):
-        grab = GrabGit(src=TINY_FORTRAN_GITHUB, dst='tiny_fortran', revision='foo2', shallow=True)
+        # todo: put this somewhere better, under MO control.
+        tiny_fortran_github = 'https://github.com/bblay/tiny_fortran.git'
+        grab = GrabGit(src=tiny_fortran_github, dst='tiny_fortran', revision='foo2', shallow=True)
         grab.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
 
         my_mod = open(grab._dst / 'src/my_mod.F90').read()
