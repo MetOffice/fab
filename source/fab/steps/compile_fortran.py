@@ -24,7 +24,7 @@ from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    flags_checksum, remove_managed_flags, file_checksum
+    flags_checksum, remove_managed_flags, file_checksum, get_tool, get_compiler_version
 
 logger = logging.getLogger(__name__)
 
