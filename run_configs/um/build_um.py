@@ -15,17 +15,16 @@ import warnings
 from argparse import ArgumentParser
 from pathlib import Path
 
-from fab.constants import PRAGMAD_C
-
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
+from fab.constants import PRAGMAD_C
 from fab.dep_tree import AnalysedFile
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran, get_compiler
+from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab import GrabFcm
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
@@ -42,7 +41,7 @@ def um_atmos_safe_config(revision, two_stage=False):
     um_revision = revision.replace('vn', 'um')
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_compiler()
+    compiler, _ = get_fortran_compiler()
     if compiler == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
     elif compiler == 'ifort':
