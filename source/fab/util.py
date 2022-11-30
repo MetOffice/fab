@@ -19,7 +19,7 @@ from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Set, Dict, List
+from typing import Iterator, Iterable, Optional, Set, Dict, List, Tuple
 
 from fab.tools import COMPILERS
 
@@ -343,3 +343,65 @@ def common_arg_parser():
     arg_parser.add_argument('--two-stage', action='store_true')
 
     return arg_parser
+
+
+def get_tool(tool_str: str = '') -> Tuple[str, List[str]]:
+    """
+    Get the compiler, preprocessor, etc, from the given string.
+
+    Separate the tool and flags for the sort of value we see in environment variables, e.g. `gfortran -c`.
+
+    Returns the tool and a list of flags.
+
+    :param env_var:
+        The environment variable from which to find the tool.
+
+    """
+    tool_split = tool_str.split()
+    if not tool_split:
+        raise ValueError(f"Tool not specified in '{tool_str}'. Cannot continue.")
+    return tool_split[0], tool_split[1:]
+
+
+# todo: add more compilers and test with more versions of compilers
+def get_compiler_version(compiler: str) -> str:
+    """
+    Try to get the version of the given compiler.
+
+    Expects a version in a certain part of the --version output,
+    which must adhere to the n.n.n format, with at least 2 parts.
+
+    Returns a version string, e.g '6.10.1', or empty string.
+
+    :param compiler:
+        The command line tool for which we want a version.
+
+    """
+    try:
+        res = run_command([compiler, '--version'])
+    except FileNotFoundError:
+        raise ValueError(f'Compiler not found: {compiler}')
+    except RuntimeError as err:
+        logger.warning(f"Error asking for version of compiler '{compiler}': {err}")
+        return ''
+
+    # Pull the version string from the command output.
+    # All the versions of gfortran and ifort we've tried follow the same pattern, it's after a ")".
+    try:
+        version = res.split(')')[1].split()[0]
+    except IndexError:
+        logger.warning(f"Unexpected version response from compiler '{compiler}': {res}")
+        return ''
+
+    # expect major.minor[.patch, ...]
+    # validate - this may be overkill
+    split = version.split('.')
+    if len(split) < 2:
+        logger.warning(f"unhandled compiler version format for compiler '{compiler}' is not <n.n[.n, ...]>: {version}")
+        return ''
+
+    # todo: do we care if the parts are integers? Not all will be, but perhaps major and minor?
+
+    logger.info(f'Found compiler version for {compiler} = {version}')
+
+    return version

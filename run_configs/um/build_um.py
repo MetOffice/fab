@@ -15,17 +15,16 @@ import warnings
 from argparse import ArgumentParser
 from pathlib import Path
 
-from fab.constants import PRAGMAD_C
-
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
+from fab.constants import PRAGMAD_C
 from fab.dep_tree import AnalysedFile
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran, get_compiler
+from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab import GrabFcm
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
@@ -38,18 +37,30 @@ logger = logging.getLogger('fab')
 # todo: fail fast, check gcom exists
 
 
-def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
+def um_atmos_safe_config(revision, two_stage=False):
     um_revision = revision.replace('vn', 'um')
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_compiler()
+    compiler, _ = get_fortran_compiler()
     if compiler == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
+    elif compiler == 'ifort':
+        # compiler_specific_flags = ['-r8']
+        compiler_specific_flags = [
+            '-i8', '-r8', '-mcmodel=medium',
+            '-no-vec', '-fp-model precise',
+            '-std08',
+            '-fpscomp logicals',
+            '-g',
+            '-diag-disable 6477',
+            '-fpic',
+            '-assume nosource_include,protect_parens',
+        ]
     else:
         compiler_specific_flags = []
 
     config = BuildConfig(
-        project_label=f'um atmos safe {revision} {compiler} {opt} {int(two_stage)+1}stage',
+        project_label=f'um atmos safe {revision} {compiler} {int(two_stage)+1}stage',
         # multiprocessing=False,
         # reuse_artefacts=True,
     )
@@ -139,7 +150,6 @@ def um_atmos_safe_config(revision, two_stage=False, opt='Og'):
 
         CompileFortran(
             common_flags=[
-                f'-{opt}',
                 *compiler_specific_flags,
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
@@ -303,8 +313,7 @@ if __name__ == '__main__':
     arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('UM_REVISION', 'vn12.1'))
     arg_parser.add_argument('--two-stage', action='store_true')
-    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
     # logging.getLogger('fab').setLevel(logging.DEBUG)
-    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage, opt=args.opt).run()
+    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage).run()

@@ -16,17 +16,15 @@ from itertools import chain
 from pathlib import Path
 from typing import List, Set, Dict, Tuple, Optional, Union
 
+from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES, CURRENT_PREBUILDS
-
-from fab.metrics import send_metric
-
 from fab.dep_tree import AnalysedFile
+from fab.metrics import send_metric
+from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
     flags_checksum, remove_managed_flags, file_checksum
-from fab.steps import check_for_errors, Step
-from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +63,9 @@ class CompileFortran(Step):
         super().__init__(name=name)
 
         # Command line tools are sometimes specified with flags attached.
-        self.compiler, compiler_flags = get_compiler(compiler)
-        logger.info(f'fortran compiler is {self.compiler}')
+        self.compiler, compiler_flags = get_fortran_compiler(compiler)
+        self.compiler_version = get_compiler_version(self.compiler)
+        logger.info(f'fortran compiler is {self.compiler} {self.compiler_version}')
 
         # collate the flags
         env_flags = os.getenv('FFLAGS', '').split()
@@ -88,9 +87,6 @@ class CompileFortran(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.two_stage_flag = two_stage_flag
 
-        # not ideal to do work in a constructor...
-        self.compiler_version = _get_compiler_version(self.compiler.split()[0])
-
         # runtime
         self._stage = None
         self._mod_hashes: Dict[str, int] = {}
@@ -110,6 +106,7 @@ class CompileFortran(Step):
 
         """
         super().run(artefact_store, config)
+        logger.info(f'fortran compiler is {self.compiler} {self.compiler_version}')
 
         # get all the source to compile, for all build trees, into one big lump
         build_lists: Dict[str, List] = self.source_getter(artefact_store)
@@ -227,8 +224,6 @@ class CompileFortran(Step):
         Returns a compilation result, regardless of whether it was compiled or prebuilt.
 
         """
-        # todo: include compiler version in hashes
-
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         mod_combo_hash = self._get_mod_combo_hash(analysed_file)
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
@@ -259,14 +254,14 @@ class CompileFortran(Step):
                 )
 
         else:
+            log_or_dot(logger, f'CompileFortran using prebuild: {analysed_file.fpath}')
+
             # copy the prebuilt mod files from the prebuild folder
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
                     self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
                     self._config.build_output / f'{mod_def}.mod',
                 )
-
-            log_or_dot(logger, f'CompileFortran skipping: {analysed_file.fpath}')
 
         # return the results
         compiled_file = CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
@@ -348,61 +343,18 @@ class CompileFortran(Step):
             value={'time_taken': timer.taken, 'start': timer.start})
 
 
-# todo: generalise this for the preprocessor, we see flags in FPP
-def get_compiler(compiler: Optional[str] = None) -> Tuple[str, List[str]]:
+def get_fortran_compiler(compiler: Optional[str] = None):
     """
-    Separate the compiler and flags from the given string (or `FC` environment variable), like `gfortran -c`.
+    Get the fortran compiler specified by the `$FC` environment variable,
+    or overridden by the optional `compiler` argument.
 
-    Returns the compiler and a list of flags.
+    Separates the tool and flags for the sort of value we see in environment variables, e.g. `gfortran -c`.
 
-    """
-    compiler_split = (compiler or os.getenv('FC', '')).split()  # type: ignore
-    if not compiler_split:
-        raise ValueError('Fortran compiler not specified. Cannot continue.')
-
-    compiler = compiler_split[0]
-    return compiler, compiler_split[1:]
-
-
-# todo: add more compilers and test with more versions of compilers
-def _get_compiler_version(compiler: str) -> str:
-    """
-    Try to get the version of the given compiler.
-
-    Expects a version in a certain part of the --version output,
-    which must adhere to the n.n.n format, with at least 2 parts.
-
-    Returns a version string, e.g '6.10.1', or empty string.
+    :param compiler:
+        Use this string instead of the $FC environment variable.
 
     """
-    try:
-        res = run_command([compiler, '--version'])
-    except FileNotFoundError:
-        raise ValueError(f'Compiler not found: {compiler}')
-    except RuntimeError as err:
-        logger.warning(f"Error asking for version of compiler '{compiler}':\n{err}")
-        return ''
-
-    # Pull the version string from the command output.
-    # All the versions of gfortran and ifort we've tried follow the same pattern, it's after a ")".
-    try:
-        version = res.split(')')[1].split()[0]
-    except IndexError:
-        logger.warning(f"Unexpected version response from compiler '{compiler}': {res}")
-        return ''
-
-    # expect major.minor[.patch, ...]
-    # validate - this may be overkill
-    split = version.split('.')
-    if len(split) < 2:
-        logger.warning(f"unhandled compiler version format for compiler '{compiler}' is not <n.n[.n, ...]>: {version}")
-        return ''
-
-    # todo: do we care if the parts are integers? Not all will be, but perhaps major and minor?
-
-    logger.info(f'Found compiler version for {compiler} = {version}')
-
-    return version
+    return get_tool(compiler or os.getenv('FC', ''))  # type: ignore
 
 
 def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:

@@ -6,11 +6,16 @@ C language handling classes.
 
 """
 import logging
+import warnings
 from collections import deque
 from pathlib import Path
 from typing import List, Optional, Union, Tuple
 
-import clang.cindex  # type: ignore
+try:
+    import clang  # type: ignore
+    import clang.cindex  # type: ignore
+except ImportError:
+    clang = None
 
 from fab.dep_tree import AnalysedFile
 from fab.util import log_or_dot, file_checksum
@@ -84,6 +89,11 @@ class CAnalyser(object):
 
     def run(self, fpath: Path) \
             -> Union[Tuple[AnalysedFile, Path], Tuple[Exception, None]]:
+
+        if not clang:
+            msg = 'clang not available, C analysis disabled'
+            warnings.warn(msg, ImportWarning)
+            return ImportWarning(msg)
         log_or_dot(logger, f"analysing {fpath}")
 
         # do we already have analysis results for this file?
