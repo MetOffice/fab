@@ -105,6 +105,7 @@ class CompileFortran(Step):
 
         """
         super().run(artefact_store, config)
+        logger.info(f'fortran compiler is {self.compiler} {self.compiler_version}')
 
         # get all the source to compile, for all build trees, into one big lump
         build_lists: Dict[str, List] = self.source_getter(artefact_store)

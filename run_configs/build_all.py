@@ -35,7 +35,7 @@ def build_all():
     ]
 
     # skip these for now, until we configure them to build again
-    compiler_skip = {'gfortran': [], 'ifort': ['build_um.py', 'atm.py']}
+    compiler_skip = {'gfortran': [], 'ifort': ['atm.py']}
     skip = compiler_skip[compiler]
 
     for script in scripts:
