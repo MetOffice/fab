@@ -1,89 +1,84 @@
+[cylc]
+    [[parameters]]
+        pyver = "7", "11"  # we can't put a full stop in params, like "3.7", because it causes invalid job names
+        compiler = gnu, ifort
+
 [scheduling]
     [[dependencies]]
-        {% for PYTHON_VERSION in PYTHON_VERSIONS %}
-            {% for COMPILER in COMPILERS %}
-                graph = """
-                    grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_gcom_ar_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                    grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_gcom_so_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                    build_jules_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                    build_gcom_ar_py{{ PYTHON_VERSION }}_{{ COMPILER }} => build_um_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                    grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }} => mesh_tools_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                    grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }} => gungho_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                    grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }} => atm_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                   """
-            {% endfor %}
-        {% endfor %}
+        graph = """
+            grab_gcom<pyver,compiler> => build_gcom_ar<pyver,compiler>
+            grab_gcom<pyver,compiler> => build_gcom_so<pyver,compiler>
+            build_jules<pyver,compiler>
+            build_gcom_ar<pyver,compiler> => build_um<pyver,compiler>
+            grab_lfric<pyver,compiler> => mesh_tools<pyver,compiler>
+            grab_lfric<pyver,compiler> => gungho<pyver,compiler>
+            grab_lfric<pyver,compiler> => atm<pyver,compiler>
+        """
 
 [runtime]
 
-    {% for PYTHON_VERSION in PYTHON_VERSIONS %}
-        {% for COMPILER in COMPILERS %}
+    [[common<pyver,compiler>]]
 
-            [[common_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
+        env-script = """
+            module use /data/users/lfric/modules/modulefiles.rhel7
+            module load environment/lfric/$CYLC_TASK_PARAM_compiler
+            conda init bash
+            conda activate sci-fab-3.$CYLC_TASK_PARAM_pyver
+        """
 
-                env-script = """
-                    module use /data/users/lfric/modules/modulefiles.rhel7
-                    module load environment/lfric/{{ COMPILER }}
-                    conda init bash
-                    conda activate sci-fab-3.{{ PYTHON_VERSION }}
-                """
+        [[[job]]]
+            batch system = slurm
+            execution time limit = PT30M
+        [[[directives]]]
+            --mem=512
+            --cpus-per-task=4
+            --export=NONE
+        [[[environment]]]
+            FAB_WORKSPACE=$SCRATCH/fab_workspace_py3.${CYLC_TASK_PARAM_pyver}_$CYLC_TASK_PARAM_compiler
+            GCOM_REVISION={{ GCOM_REVISION }}
 
-                [[[job]]]
-                    batch system = slurm
-                    execution time limit = PT30M
-                [[[directives]]]
-                    --mem=512
-                    --cpus-per-task=4
-                    --export=NONE
-                [[[environment]]]
-                    FAB_WORKSPACE=$SCRATCH/fab_workspace_py3.{{ PYTHON_VERSION }}_{{ COMPILER }}
-                    GCOM_REVISION={{ GCOM_REVISION }}
+    [[grab_gcom<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = grab_gcom.py
 
-            [[grab_gcom_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = grab_gcom.py
+    [[build_gcom_ar<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_gcom_ar.py
 
-            [[build_gcom_ar_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = build_gcom_ar.py
+    [[build_gcom_so<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_gcom_so.py
 
-            [[build_gcom_so_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = build_gcom_so.py
+    [[build_jules<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_jules.py
+        [[[directives]]]
+            --mem=1024
 
-            [[build_jules_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = build_jules.py
-                [[[directives]]]
-                    --mem=1024
+    [[build_um<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_jules.py
+        [[[directives]]]
+            --mem=2048
 
-            [[build_um_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = build_jules.py
-                [[[directives]]]
-                    --mem=2048
+    [[grab_lfric<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = grab_lfric.py
 
-            [[grab_lfric_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = grab_lfric.py
+    [[mesh_tools<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = mesh_tools.py
+        [[[directives]]]
+            --mem=1024
 
-            [[mesh_tools_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = mesh_tools.py
-                [[[directives]]]
-                    --mem=1024
+    [[gungho<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = gungho.py
+        [[[directives]]]
+            --mem=2048
 
-            [[gungho_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = gungho.py
-                [[[directives]]]
-                    --mem=2048
-
-            [[atm_py{{ PYTHON_VERSION }}_{{ COMPILER }}]]
-                inherit = common_py{{ PYTHON_VERSION }}_{{ COMPILER }}
-                script = atm.py
-                [[[directives]]]
-                    --mem=2048
-
-        {% endfor %}
-    {% endfor %}
+    [[atm<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = atm.py
+        [[[directives]]]
+            --mem=2048
