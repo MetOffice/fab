@@ -5,7 +5,7 @@
 
 Welcome to Fab's documentation!
 *******************************
-
+Version |version| (release |release|).
 
 Indices and tables
 ==================
