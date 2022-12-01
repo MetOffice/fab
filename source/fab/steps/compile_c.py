@@ -21,8 +21,8 @@ from fab.dep_tree import AnalysedFile
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
 from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type, flags_checksum, get_compiler_version, \
-    get_tool
+from fab.util import CompiledFile, log_or_dot, Timer, by_type
+from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
 
 logger = logging.getLogger(__name__)
 

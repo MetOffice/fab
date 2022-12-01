@@ -1,5 +1,6 @@
 import logging
 import zlib
+from collections import defaultdict
 from pathlib import Path
 from typing import List, Dict, Set, Tuple
 
@@ -13,7 +14,7 @@ from fab.steps.grab import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles
-from fab.util import file_walk, get_prebuild_file_groups
+from fab.util import file_walk
 
 PROJECT_LABEL = 'tiny project'
 
@@ -224,3 +225,27 @@ class TestIncremental(object):
             pb_fpath = next(iter(pb_group))
             assert clean_timestamps[prebuild_folder / pb_fpath] == rebuild_timestamps[prebuild_folder / pb_fpath]
             assert clean_hashes[prebuild_folder / pb_fpath] == rebuild_hashes[prebuild_folder / pb_fpath]
+
+
+def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
+    """
+    Group prebuild filenames by originating artefact.
+
+    Prebuild filenames have the form `<stem>.<hash>.<suffix>`.
+    This function creates a dict with wildcard key `<stem>.*.<suffix>`
+    with each entry mapping to a set of all matching prebuild files.
+
+    Given the input files *my_mod.123.o* and *my_mod.456.o*,
+    returns a dict {'my_mod.*.o': {'my_mod.123.o', 'my_mod.456.o'}}
+
+    Assumes all prebuild files are in a flat folder, so folders are removed from the result to aid inspection.
+
+    """
+    pbf_groups = defaultdict(set)
+
+    for pbf in prebuild_files:
+        stem_stem = pbf.stem.split('.')[0]
+        wildcard_key = f'{stem_stem}.*{pbf.suffix}'
+        pbf_groups[wildcard_key].add(pbf.name)
+
+    return pbf_groups
