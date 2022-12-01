@@ -12,7 +12,6 @@ import os
 import warnings
 import zlib
 from collections import defaultdict
-from pathlib import Path
 from typing import List, Dict, Optional
 
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
