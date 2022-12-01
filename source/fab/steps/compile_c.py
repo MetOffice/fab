@@ -96,7 +96,7 @@ class CompileC(Step):
         # compile everything in one go
         compilation_results = self.run_mp(items=to_compile, func=self._compile_file)
         check_for_errors(compilation_results, caller_label=self.name)
-        compiled_c = by_type(compilation_results, CompiledFile)
+        compiled_c = list(by_type(compilation_results, CompiledFile))
         logger.info(f"compiled {len(compiled_c)} c files")
 
         # record the prebuild files as being current, so the cleanup knows not to delete them
@@ -106,14 +106,14 @@ class CompileC(Step):
         # record the compilation results for the next step
         self.store_artefacts(compiled_c, build_lists, artefact_store)
 
-    # todo: common code with fortran compiler - make a base class?
-    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile], build_lists: Dict[str, List], artefact_store):
+    # todo: very similar code in fortran compiler
+    def store_artefacts(self, compiled_files: List[CompiledFile], build_lists: Dict[str, List], artefact_store):
         """
         Create our artefact collection; object files for each compiled file, per root symbol.
 
         """
         # add the new object files to the artefact store, by target
-        lookup = {c.input_fpath: c for c in compiled_files.values()}
+        lookup = {c.input_fpath: c for c in compiled_files}
         object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
         for root, source_files in build_lists.items():
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]

@@ -169,5 +169,5 @@ def test_clang_disable():
         with mock.patch('fab.tasks.c.file_checksum') as mock_file_checksum:
             result = CAnalyser().run(Path(__file__).parent / "test_c_analyser.c")
 
-    assert type(result) == ImportWarning
+    assert type(result[0]) == ImportWarning
     mock_file_checksum.assert_not_called()

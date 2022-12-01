@@ -85,7 +85,7 @@ class Test_store_artefacts(object):
     def test_vanilla(self, compiler):
 
         # what we wanted to compile
-        build_trees = {
+        build_lists = {
             'root1': [
                 mock.Mock(fpath=Path('root1.f90')),
                 mock.Mock(fpath=Path('dep1.f90')),
@@ -107,7 +107,7 @@ class Test_store_artefacts(object):
         # where it stores the results
         artefact_store = {}
 
-        compiler.store_artefacts(compiled_files=compiled_files, build_trees=build_trees, artefact_store=artefact_store)
+        compiler.store_artefacts(compiled_files=compiled_files, build_lists=build_lists, artefact_store=artefact_store)
 
         assert artefact_store == {
             OBJECT_FILES: {
