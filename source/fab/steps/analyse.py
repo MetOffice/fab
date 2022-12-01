@@ -42,7 +42,7 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, \
-    validate_dependencies
+    validate_dependencies, ParserWorkaround
 from fab.steps import Step
 from fab.tasks.c import CAnalyser
 from fab.tasks.fortran import FortranAnalyser
@@ -79,7 +79,7 @@ class Analyse(Step):
                  source: Optional[ArtefactsGetter] = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
                  std: str = "f2008",
-                 special_measure_analysis_results: Optional[List[AnalysedFile]] = None,
+                 special_measure_analysis_results: Optional[Iterable[ParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None,
                  name='analyser'):
@@ -101,9 +101,8 @@ class Analyse(Step):
         :param std:
             The fortran standard, passed through to fparser2. Defaults to 'f2008'.
         :param special_measure_analysis_results:
-            When fparser2 cannot parse a "valid" Fortran file,
-            we can manually provide the expected analysis results with this argument.
-            Only the symbol definitions and dependencies need be provided.
+            When a language parser cannot parse a valid source file, we can manually provide the expected analysis
+            results with this argument.
         :param unreferenced_deps:
             A list of symbols which are needed for the build, but which cannot be automatically determined by Fab.
             For example, functions that are called in a one-line if statement.
@@ -124,7 +123,7 @@ class Analyse(Step):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[AnalysedFile] = list(special_measure_analysis_results or [])
+        self.special_measure_analysis_results: List[ParserWorkaround] = list(special_measure_analysis_results or [])
         self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
@@ -160,14 +159,12 @@ class Analyse(Step):
         self.fortran_analyser._config = self._config
         self.c_analyser._config = self._config
 
+        # parse
         files: List[Path] = self.source_getter(artefact_store)
         analysed_files = self._parse_files(files=files)
+        self._add_manual_results(analysed_files)
 
-        # add special measure symbols for files which could not be parsed
-        if self.special_measure_analysis_results:
-            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
-            analysed_files.update(set(self.special_measure_analysis_results))
-
+        # analyse
         project_source_tree, symbols = self._analyse_dependencies(analysed_files)
 
         # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
@@ -176,7 +173,7 @@ class Analyse(Step):
 
         logger.info(f"source tree size {len(project_source_tree)}")
 
-        # build tree extraction for executables.
+        # extract "build trees" for executables.
         if self.root_symbols:
             build_trees = self._extract_build_trees(project_source_tree, symbols)
         else:
@@ -263,6 +260,22 @@ class Analyse(Step):
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
         return set(by_type(analyses, AnalysedFile))
+
+    def _add_manual_results(self, analysed_files: Set[AnalysedFile]):
+        # add manual analysis results for files which could not be parsed
+        if self.special_measure_analysis_results:
+            warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
+            already_present = {af.fpath for af in analysed_files}
+
+            for r in self.special_measure_analysis_results:
+                if r.fpath in already_present:
+                    # Note: This exception stops the user from being able to override results for files
+                    # which don't *crash* the parser. We don't have a use case to do this, but it's worth noting.
+                    # If we want to allow this we can raise a warning instead of an exception.
+                    raise ValueError(f'Unnecessary ParserWorkaround for {r.fpath}')
+                analysed_files.add(r.as_analysed_file())
+
+            logger.info(f'added {len(self.special_measure_analysis_results)} manual analysis results')
 
     def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
         """
