@@ -52,4 +52,3 @@ class TestSuffixFilter(object):
         result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
         assert result == [Path('bar.b'), Path('bar.c')]
 
-
