@@ -22,7 +22,7 @@ class TestBuildConfig(object):
 
         mock_source = {None: [AnalysedFile('foo.f', file_hash=0)]}
 
-        with mock.patch('fab.steps.compile_fortran._get_compiler_version', return_value='1.2.3'):
+        with mock.patch('fab.steps.compile_fortran.get_compiler_version', return_value='1.2.3'):
             with mock.patch('fab.steps.compile_fortran.DEFAULT_SOURCE_GETTER', return_value=mock_source):
                 config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False, steps=[
                     CompileFortran(compiler='foofc')])
