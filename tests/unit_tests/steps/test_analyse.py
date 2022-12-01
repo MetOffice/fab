@@ -128,7 +128,7 @@ class Test_parse_files(object):
 
 class Test_add_manual_results(object):
 
-    def test_parser_workaraound(self):
+    def test_vanilla(self):
         # test normal usage of manual analysis results
         input = ParserWorkaround(fpath=Path('foo.f'), symbol_defs={'foo', })
         expect = AnalysedFile(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })
@@ -140,14 +140,3 @@ class Test_add_manual_results(object):
             analyser._add_manual_results(analysed_files=analysed_files)
 
         assert analysed_files == {expect}
-
-    def test_analysed_file(self):
-        # check we can still pass in an AnalysedFile object.
-        input = AnalysedFile(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })
-
-        analyser = Analyse(special_measure_analysis_results=[input])
-        analysed_files = set()
-
-        analyser._add_manual_results(analysed_files=analysed_files)
-
-        assert analysed_files == {input}
