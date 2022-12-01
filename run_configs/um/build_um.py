@@ -18,7 +18,7 @@ from pathlib import Path
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import PRAGMAD_C
-from fab.dep_tree import AnalysedFile
+from fab.dep_tree import ParserWorkaround
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
@@ -135,14 +135,12 @@ def um_atmos_safe_config(revision, two_stage=False):
 
             # fparser2 fails to parse this file, but it does compile.
             special_measure_analysis_results=[
-                AnalysedFile(
-                    fpath=Path(
-                        config.build_output / "casim/lookup.f90"),
+                ParserWorkaround(
+                    fpath=Path(config.build_output / "casim/lookup.f90"),
                     symbol_defs={'lookup'},
                     symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
                                  'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
-                    file_deps={},
-                    mo_commented_file_deps={}),
+                )
             ]
         ),
 
