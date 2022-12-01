@@ -51,4 +51,3 @@ class TestSuffixFilter(object):
         getter = SuffixFilter('barz', ['.b', '.c'])
         result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
         assert result == [Path('bar.b'), Path('bar.c')]
-
