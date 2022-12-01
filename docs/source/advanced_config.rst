@@ -59,11 +59,13 @@ Unparsable Files
 ----------------
 If a language parser is not able to process a file at all,
 then Fab won't know about any of its symbols and dependencies.
-This can sometimes happen to files which *compilers are* able to process.
+This can sometimes happen to *correct code* which compilers *are* able to process,
+for example if the language parser is still maturing and can't yet handle an unusual syntax.
 In this case we can manually give Fab the analysis results it should have got from the parser
 using the `special_measure_analysis_results` argument to :class:`~fab.steps.analyse.Analyse`.
 
-Pass in a :class:`~fab.dep_tree.ParserWorkaround` object containing the symbol definitions and dependencies of the file.
+Pass in a list of :class:`~fab.dep_tree.ParserWorkaround` objects, one for every file that can't be parsed.
+Each object contains the symbol definitions and dependencies found in one source file.
 
 .. code-block::
     :linenos:
@@ -85,10 +87,25 @@ Pass in a :class:`~fab.dep_tree.ParserWorkaround` object containing the symbol d
 Custom Step
 ^^^^^^^^^^^
 An alternative approach for some problems is to write a custom step to modify the source so that the language
-parser can process it. Our example build UM config contains such a step to workaround an issue where fparser
-misunderstands a variable called `NameListFile`, which you can see
-`here <https://github.com/metomi/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L268-L290>`_.
-Fab usually copies source into it's project folder so this step doesn't modify the developer's working code.
+parser can process it. Here's a simple example, based on a
+`real workaround <https://github.com/metomi/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L268-L290>`_
+we use to build the UM. The parser gets confused by a variable called `NameListFile`. Our config copies the source
+into it's project folder first, so this step doesn't modify the developer's working code.
+
+.. code-block::
+
+    class MyCustomCodeFixes(Step):
+        def run(self, artefact_store, config):
+            fpath = config.source_root / 'um/control/top_level/um_config.F90'
+            in = open(fpath, "rt").read()
+            out = in.replace("NameListFile", "MyRenamedVariable")
+            open(fpath, "wt").write(out)
+
+    config = BuildConfig(steps=[
+        # grab steps first
+        MyCustomCodeFixes()
+        # FindSourceFiles, preprocess, etc, afterwards
+    ])
 
 
 Two-Stage Compilation
