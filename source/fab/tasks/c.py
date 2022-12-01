@@ -93,7 +93,7 @@ class CAnalyser(object):
         if not clang:
             msg = 'clang not available, C analysis disabled'
             warnings.warn(msg, ImportWarning)
-            return ImportWarning(msg)
+            return ImportWarning(msg), None
         log_or_dot(logger, f"analysing {fpath}")
 
         # do we already have analysis results for this file?

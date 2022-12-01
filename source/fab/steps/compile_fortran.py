@@ -18,7 +18,7 @@ from typing import List, Set, Dict, Tuple, Optional, Union
 
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
-from fab.constants import OBJECT_FILES, CURRENT_PREBUILDS
+from fab.constants import OBJECT_FILES
 from fab.dep_tree import AnalysedFile
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
@@ -136,6 +136,7 @@ class CompileFortran(Step):
             compiled_this_pass = list(by_type(results_this_pass, CompiledFile))
             logger.info(f"stage 2 compiled {len(compiled_this_pass)} files")
 
+        # record the compilation results for the next step
         self.store_artefacts(compiled, build_lists, artefact_store)
 
     def compile_pass(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFile], config):
@@ -147,14 +148,14 @@ class CompileFortran(Step):
         logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
         results_this_pass = self.run_mp(items=compile_next, func=self.process_file)
 
-        # there's a result and a list of artefacts per file
-        compilation_results, artefact_lists = zip(*results_this_pass) if results_this_pass else (tuple(), tuple())
+        # there's a compilation result and a list of prebuild files for each compiled file
+        compilation_results, prebuild_files = zip(*results_this_pass) if results_this_pass else (tuple(), tuple())
         check_for_errors(compilation_results, caller_label=self.name)
         compiled_this_pass = list(by_type(compilation_results, CompiledFile))
         logger.debug(f"compiled {len(compiled_this_pass)} files")
 
-        # record the artefacts as being current
-        config._artefact_store[CURRENT_PREBUILDS].update(chain(*artefact_lists))  # slightly naughty access.
+        # record the prebuild files as being current, so the cleanup knows not to delete them
+        config.add_current_prebuilds(chain(*prebuild_files))
 
         # hash the modules we just created
         new_mod_hashes = get_mod_hashes(compile_next, config)
@@ -192,15 +193,15 @@ class CompileFortran(Step):
 
         return compile_next
 
-    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile], build_trees: Dict[str, List], artefact_store):
+    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile], build_lists: Dict[str, List], artefact_store):
         """
         Create our artefact collection; object files for each compiled file, per root symbol.
 
         """
-        # add the targets' new object files to the artefact store
-        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled_files.values()}
+        # add the new object files to the artefact store, by target
+        lookup = {c.input_fpath: c for c in compiled_files.values()}
         object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
-        for root, source_files in build_trees.items():
+        for root, source_files in build_lists.items():
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 

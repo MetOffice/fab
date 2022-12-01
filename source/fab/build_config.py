@@ -18,7 +18,7 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
@@ -117,6 +117,15 @@ class BuildConfig(object):
     def init_artefact_store(self):
         # there's no point writing to this from a child process of Step.run_mp() because you'll be modifying a copy.
         self._artefact_store = {CURRENT_PREBUILDS: set()}
+
+    def add_current_prebuilds(self, artefacts: Iterable[Path]):
+        """
+        Mark the given file paths as being current prebuilds, not to be cleaned during housekeeping.
+
+        """
+        if not self._artefact_store.get(CURRENT_PREBUILDS):
+            self.init_artefact_store()
+        self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
 
     def run(self):
         """
