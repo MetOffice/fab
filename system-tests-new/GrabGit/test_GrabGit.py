@@ -19,11 +19,10 @@ With this we can test grabbing a branch, tag and commit.
 """
 from pathlib import Path
 from unittest import mock
-from unittest.mock import call
 
+import git
 import pytest
 
-import fab.util
 from fab.util import run_command
 from fab.steps.grab import GrabGit
 
@@ -46,155 +45,101 @@ class TestGrabGit_Local(object):
     # shallow clone (new folder) tests
     def test_shallow_clone_branch(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='foo2', shallow=True)
-
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_called_once_with(
-            ['git', 'clone', '--branch', 'foo2', '--depth', '1', grab.src, str(grab._dst)])
+        # check it's shallow
+        our_repo = git.Repo(grab._dst)
+        assert len(our_repo.branches) == 1
 
     def test_shallow_clone_tag(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='my_tag', shallow=True)
-
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
-
+        grab.run(artefact_store=None, config=config)
         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_called_once_with(
-            ['git', 'clone', '--branch', 'my_tag', '--depth', '1', grab.src, str(grab._dst)])
 
-    @pytest.mark.skip(reason="we don't currently support shallow clone of a commit")
     def test_shallow_clone_commit(self, tmp_path):
-        pass
+        # We can't shallow grab a commit. Git won't let us.
+        grab, config = self.prep(tmp_path, revision='15c0d5', shallow=True)
+        with pytest.raises(git.GitCommandError):
+            grab.run(artefact_store=None, config=config)
 
     # shallow update (existing folder) tests
     def test_shallow_update_branch(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='foo2', shallow=True)
 
         # first grab creates folder
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         # grab again, folder already exists
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=mock.Mock(source_root=tmp_path / 'source'))
+        grab.run(artefact_store=None, config=mock.Mock(source_root=tmp_path / 'source'))
 
         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'fetch', 'origin', 'foo2', '--depth', '1'], cwd=str(grab._dst)),
-            call(['git', 'checkout', 'FETCH_HEAD'], cwd=str(grab._dst)),
-        ])
 
     def test_shallow_update_tag(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='my_tag', shallow=True)
 
         # first grab creates folder
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         # grab again, folder already exists
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'fetch', 'origin', 'my_tag', '--depth', '1'], cwd=str(grab._dst)),
-            call(['git', 'checkout', 'FETCH_HEAD'], cwd=str(grab._dst)),
-        ])
-
-    @pytest.mark.skip(reason="we don't currently support shallow update of a commit")
-    def test_shallow_update_commit(self, tmp_path):
-        pass
 
     # deep clone (new folder) tests
     def test_deep_clone_branch(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='foo2', shallow=False)
-
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'clone', grab.src, str(grab._dst)]),
-            call(['git', 'checkout', 'foo2'], cwd=str(grab._dst)),
-        ])
+
+        # check it's deep
+        our_repo = git.Repo(grab._dst)
+        assert len(our_repo.branches) > 1
 
     def test_deep_clone_tag(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='my_tag', shallow=False)
-
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
-
+        grab.run(artefact_store=None, config=config)
         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'clone', grab.src, str(grab._dst)]),
-            call(['git', 'checkout', 'my_tag'], cwd=str(grab._dst)),
-        ])
 
     def test_deep_clone_commit(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='15c0d5', shallow=False)
-
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
-
+        grab.run(artefact_store=None, config=config)
         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'clone', grab.src, str(grab._dst)]),
-            call(['git', 'checkout', '15c0d5'], cwd=str(grab._dst)),
-        ])
 
     # deep update (existing folder) tests
     def test_deep_update_branch(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='foo2', shallow=False)
 
         # first grab creates folder
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         # grab again, folder already exists
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'fetch', 'origin'], cwd=str(grab._dst)),
-            call(['git', 'checkout', 'foo2'], cwd=str(grab._dst)),
-        ])
 
     def test_deep_update_tag(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='my_tag', shallow=False)
 
         # first grab creates folder
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         # grab again, folder already exists
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'fetch', 'origin'], cwd=str(grab._dst)),
-            call(['git', 'checkout', 'my_tag'], cwd=str(grab._dst)),
-        ])
 
     def test_deep_update_commit(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='15c0d5', shallow=False)
 
         # first grab creates folder
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         # grab again, folder already exists
-        with mock.patch('fab.steps.grab.run_command', wraps=fab.util.run_command) as wrapped_run:
-            grab.run(artefact_store=None, config=config)
+        grab.run(artefact_store=None, config=config)
 
         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-        wrapped_run.assert_has_calls([
-            call(['git', 'fetch', 'origin'], cwd=str(grab._dst)),
-            call(['git', 'checkout', '15c0d5'], cwd=str(grab._dst)),
-        ])
 
 
 class TestGrabGitGithub(object):

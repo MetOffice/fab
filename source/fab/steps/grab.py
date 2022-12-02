@@ -15,9 +15,13 @@ from typing import Dict, Union, Optional
 
 try:
     import svn  # type: ignore
-    from svn import remote  # type: ignore
 except ImportError:
     svn = None
+
+try:
+    import git
+except ImportError:
+    git = None
 
 from fab.steps import Step
 from fab.util import run_command
@@ -136,13 +140,10 @@ class GrabSvn(GrabSourceBase):
         if not svn:
             raise ImportError('svn not installed, unable to continue')
 
-        r = remote.RemoteClient(self.src)
+        r = svn.remote.RemoteClient(self.src)
         r.export(str(self._dst), revision=self.revision, force=True)
 
 
-# todo: It might be best to have both a git cli and a git library version of this class, under the hood...
-#       Presumably the library does not rely on the user having git installed.
-#       On the other hand, using the cli minimises Python dependencies.
 class GrabGit(GrabSourceBase):
     """
     Grab a Git repo into the project workspace.
@@ -188,19 +189,57 @@ class GrabGit(GrabSourceBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
+        # fetch
+        origin = git.Repo(self.src)
         if self.shallow:
             if not self._dst.exists():  # type: ignore
-                run_command(['git', 'clone', '--branch', self.revision, '--depth', '1', self.src, str(self._dst)])
+                origin.clone(self._dst, branch=self.revision, depth=1)
+                our_repo = git.Repo(self._dst)
             else:
-                run_command(['git', 'fetch', 'origin', self.revision, '--depth', '1'], cwd=str(self._dst))
-                run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=str(self._dst))
+                our_repo = git.Repo(self._dst)
+                our_repo.remote('origin').fetch(self.revision, depth=1)
         else:
             if not self._dst.exists():  # type: ignore
-                run_command(['git', 'clone', self.src, str(self._dst)])
+                origin.clone(self._dst)
+                our_repo = git.Repo(self._dst)
             else:
-                run_command(['git', 'fetch', 'origin'], cwd=str(self._dst))
+                our_repo = git.Repo(self._dst)
+                our_repo.remote('origin').fetch()
 
-            run_command(['git', 'checkout', self.revision], cwd=str(self._dst))
+        # find the revision
+        ref = None
+
+        # look in branches and tags
+        try:
+            # ours
+            ref = our_repo.refs[self.revision]
+        except IndexError:
+            pass
+
+        if not ref:
+            # origin
+            try:
+                origin_ref = origin.refs[self.revision]
+                our_repo.create_head(self.revision, origin_ref.commit)
+                ref = our_repo.refs[self.revision]
+            except IndexError:
+                pass
+
+        # look in commits
+        if not ref:
+            # ours
+            ref = our_repo.commit(self.revision)
+
+        if not ref:
+            # origin
+            ref = origin.commit(self.revision)
+
+        if not ref:
+            raise ValueError(f"can't find branch/tag/commit {self.revision}")
+
+        # point head to the revision reference and "checkout"
+        our_repo.head.reference = ref
+        our_repo.head.reset(index=True, working_tree=True)
 
 
 class GrabPreBuild(Step):
