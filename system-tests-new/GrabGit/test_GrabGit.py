@@ -96,7 +96,7 @@ class TestGrabGit_Local(object):
 
         # check it's deep
         our_repo = git.Repo(grab._dst)
-        assert len(our_repo.remotes['origin'].refs) ==2
+        assert len(our_repo.remotes['origin'].refs) == 2
         assert len(list(our_repo.iter_commits())) == 4
 
     def test_deep_clone_tag(self, tmp_path):

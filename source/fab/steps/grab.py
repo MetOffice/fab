@@ -21,7 +21,7 @@ except ImportError:
 try:
     import git
 except ImportError:
-    git = None
+    git = None  # type: ignore
 
 from fab.steps import Step
 from fab.util import run_command
