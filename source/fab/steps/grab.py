@@ -152,12 +152,12 @@ class GrabGit(GrabSourceBase):
 
     .. note::
 
-        Currently, a revision must be specified.
-        If `shallow` is set (the default), then the revision should only be a branch or tag.
+        A revision must be specified.
+        If `shallow` is set (the default), then the revision should be a branch or tag.
         If `shallow` is not set, the revision can also be a commit hash.
 
-    A `shallow` grab clones/fetches the given revision with no history.
-    Otherwise, the full repo is cloned, including all branches and history.
+    A `shallow` grab clones/fetches only the given revision, with no history.
+    Otherwise, the full repo is cloned including all branches and history.
 
     Example::
 
