@@ -51,6 +51,7 @@ class TestGrabGit_Local(object):
         # check it's shallow
         our_repo = git.Repo(grab._dst)
         assert len(our_repo.branches) == 1
+        assert len(list(our_repo.iter_commits())) == 1
 
     def test_shallow_clone_tag(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='my_tag', shallow=True)
@@ -95,7 +96,8 @@ class TestGrabGit_Local(object):
 
         # check it's deep
         our_repo = git.Repo(grab._dst)
-        assert len(our_repo.branches) > 1
+        assert len(our_repo.remotes['origin'].refs) ==2
+        assert len(list(our_repo.iter_commits())) == 4
 
     def test_deep_clone_tag(self, tmp_path):
         grab, config = self.prep(tmp_path, revision='my_tag', shallow=False)

@@ -189,57 +189,57 @@ class GrabGit(GrabSourceBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        # fetch
-        origin = git.Repo(self.src)
-        if self.shallow:
-            if not self._dst.exists():  # type: ignore
-                origin.clone(self._dst, branch=self.revision, depth=1)
-                our_repo = git.Repo(self._dst)
-            else:
-                our_repo = git.Repo(self._dst)
-                our_repo.remote('origin').fetch(self.revision, depth=1)
-        else:
-            if not self._dst.exists():  # type: ignore
-                origin.clone(self._dst)
-                our_repo = git.Repo(self._dst)
-            else:
-                our_repo = git.Repo(self._dst)
-                our_repo.remote('origin').fetch()
+        our_repo = self._fetch()
+        ref = self._find_ref(our_repo)
 
+        # point head to the revision reference and "checkout"
+        our_repo.head.reference = ref
+        our_repo.head.reset(index=True, working_tree=True)
+
+    def _fetch(self):
+        # fetch the branch/tag/commit
+        fetch_args = [self.revision] if self.shallow else []
+        fetch_kwargs = {'depth': 1, 'tags': True} if self.shallow else {'tags': True}
+
+        # if self.shallow:
+        if not self._dst.exists():  # type: ignore
+            our_repo = git.Repo.init(self._dst, mkdir=True)
+            our_repo.create_remote('origin', self.src)
+            our_repo.remotes['origin'].fetch(*fetch_args, **fetch_kwargs)
+        else:
+            our_repo = git.Repo(self._dst)
+
+        return our_repo
+
+    def _find_ref(self, our_repo):
         # find the revision
         ref = None
 
-        # look in branches and tags
+        # try our branches & tags
         try:
-            # ours
             ref = our_repo.refs[self.revision]
         except IndexError:
             pass
 
+        # try our commits
         if not ref:
-            # origin
             try:
-                origin_ref = origin.refs[self.revision]
+                ref = our_repo.commit(self.revision)
+            except git.BadName:
+                pass
+
+        # try the origin repo
+        if not ref:
+            try:
+                origin_ref = our_repo.remotes['origin'].refs[self.revision]
                 our_repo.create_head(self.revision, origin_ref.commit)
                 ref = our_repo.refs[self.revision]
             except IndexError:
                 pass
 
-        # look in commits
-        if not ref:
-            # ours
-            ref = our_repo.commit(self.revision)
-
-        if not ref:
-            # origin
-            ref = origin.commit(self.revision)
-
         if not ref:
             raise ValueError(f"can't find branch/tag/commit {self.revision}")
-
-        # point head to the revision reference and "checkout"
-        our_repo.head.reference = ref
-        our_repo.head.reset(index=True, working_tree=True)
+        return ref
 
 
 class GrabPreBuild(Step):
