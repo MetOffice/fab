@@ -20,6 +20,8 @@ def build_all():
     os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler}')
 
     scripts = [
+        configs_folder / 'tiny_fortran/build_tiny_fortran.py',
+
         configs_folder / 'gcom/grab_gcom.py',
         configs_folder / 'gcom/build_gcom_ar.py',
         configs_folder / 'gcom/build_gcom_so.py',
