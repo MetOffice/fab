@@ -205,9 +205,10 @@ class GrabGit(GrabSourceBase):
         if not self._dst.exists():  # type: ignore
             our_repo = git.Repo.init(self._dst, mkdir=True)
             our_repo.create_remote('origin', self.src)
-            our_repo.remotes['origin'].fetch(*fetch_args, **fetch_kwargs)
         else:
             our_repo = git.Repo(self._dst)
+
+        our_repo.remotes['origin'].fetch(*fetch_args, **fetch_kwargs)
 
         return our_repo
 
