@@ -14,9 +14,9 @@ mkdir /tmp/persistent/cron_system_tests
 cd /tmp/persistent/cron_system_tests
 
 # clone fab
-git clone --branch master --depth 1 https://github.com/metomi/fab.git 2>&1 >/dev/null
+#git clone --branch master --depth 1 https://github.com/metomi/fab.git 2>&1 >/dev/null
 # ...or if you're working on the system tests cron you can clone from your local repo like this
-#git clone --branch cron_local_tests --depth 1 file:///home/h02/bblay/git/fab/ 2>&1 >/dev/null
+git clone --branch 195_grab_git --depth 1 file:///home/h02/bblay/git/fab/ 2>&1 >/dev/null
 
 # create a conda environment containing the head of trunk
 1>&2 echo "removing old conda"

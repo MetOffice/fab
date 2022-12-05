@@ -13,7 +13,6 @@ from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab import GrabGit
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.root_inc_files import RootIncFiles
 from fab.util import common_arg_parser
 
 logger = logging.getLogger('fab')
@@ -32,8 +31,6 @@ def config(compiler=None):
         GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='main', dst='src'),
 
         FindSourceFiles(),
-
-        RootIncFiles(),
 
         fortran_preprocessor(preprocessor='fpp -P'),
 
