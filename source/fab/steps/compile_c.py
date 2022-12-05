@@ -9,19 +9,20 @@ C file compilation.
 """
 import logging
 import os
+import warnings
+import zlib
 from collections import defaultdict
 from typing import List, Dict, Optional
 
+from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
-
-from fab.metrics import send_metric
-
 from fab.dep_tree import AnalysedFile
-from fab.tasks import TaskException
-from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type
+from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
-from fab.artefacts import ArtefactsGetter, FilterBuildTrees
+from fab.tasks import TaskException
+from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type, flags_checksum, get_compiler_version, \
+    get_tool
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,19 @@ class CompileC(Step):
         """
         super().__init__(name=name)
 
-        self.compiler = compiler or os.getenv('CC', 'gcc -c')
+        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC', 'gcc -c'))  # type: ignore
+        self.compiler_version = get_compiler_version(self.compiler)
+        logger.info(f'c compiler is {self.compiler} {self.compiler_version}')
+
+        env_flags = os.getenv('CFLAGS', '').split()
+        common_flags = compiler_flags + env_flags + (common_flags or [])
+
+        # make sure we have a -c
+        # todo: c compiler awareness, like we have with fortran?
+        if '-c' not in common_flags:
+            warnings.warn("Adding '-c' to C compiler flags")
+            common_flags = ['-c'] + common_flags
+
         self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -93,22 +106,24 @@ class CompileC(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             target_object_files[root].update(new_objects)
 
-    # todo: identical to the fortran version - make a super class
     def _compile_file(self, analysed_file: AnalysedFile):
-        # todo: should really use input_to_output_fpath() here
-        output_fpath = analysed_file.fpath.with_suffix('.o')
 
-        # already compiled?
-        if self._config.reuse_artefacts and output_fpath.exists():
-            log_or_dot(logger, f'CompileC skipping: {analysed_file.fpath}')
+        flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
+        obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
+
+        obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+
+        # prebuild available?
+        if obj_file_prebuild.exists():
+            log_or_dot(logger, f'CompileC using prebuild: {analysed_file.fpath}')
         else:
             with Timer() as timer:
-                output_fpath.parent.mkdir(parents=True, exist_ok=True)
+                obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
 
                 command = self.compiler.split()  # type: ignore
-                command.extend(self.flags.flags_for_path(path=analysed_file.fpath, config=self._config))
+                command.extend(flags)
                 command.append(str(analysed_file.fpath))
-                command.extend(['-o', str(output_fpath)])
+                command.extend(['-o', str(obj_file_prebuild)])
 
                 log_or_dot(logger, 'CompileC running command: ' + ' '.join(command))
                 try:
@@ -118,4 +133,17 @@ class CompileC(Step):
 
             send_metric(self.name, str(analysed_file.fpath), timer.taken)
 
-        return CompiledFile(analysed_file.fpath, output_fpath)
+        return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
+
+    def _get_obj_combo_hash(self, analysed_file, flags):
+        # get a combo hash of things which matter to the object file we define
+        try:
+            obj_combo_hash = sum([
+                analysed_file.file_hash,
+                flags_checksum(flags),
+                zlib.crc32(self.compiler.encode()),
+                zlib.crc32(self.compiler_version.encode()),
+            ])
+        except TypeError:
+            raise ValueError("could not generate combo hash for object file")
+        return obj_combo_hash

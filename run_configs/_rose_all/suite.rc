@@ -1,0 +1,84 @@
+[cylc]
+    [[parameters]]
+        pyver = "7", "11"  # we can't put a full stop in params, like "3.7", because it causes invalid job names
+        compiler = gnu, ifort
+
+[scheduling]
+    [[dependencies]]
+        graph = """
+            grab_gcom<pyver,compiler> => build_gcom_ar<pyver,compiler>
+            grab_gcom<pyver,compiler> => build_gcom_so<pyver,compiler>
+            build_jules<pyver,compiler>
+            build_gcom_ar<pyver,compiler> => build_um<pyver,compiler>
+            grab_lfric<pyver,compiler> => mesh_tools<pyver,compiler>
+            grab_lfric<pyver,compiler> => gungho<pyver,compiler>
+            grab_lfric<pyver,compiler> => atm<pyver,compiler>
+        """
+
+[runtime]
+
+    [[common<pyver,compiler>]]
+
+        env-script = """
+            module use /data/users/lfric/modules/modulefiles.rhel7
+            module load environment/lfric/$CYLC_TASK_PARAM_compiler
+            conda init bash
+            conda activate sci-fab-3.$CYLC_TASK_PARAM_pyver
+        """
+
+        [[[job]]]
+            batch system = slurm
+            execution time limit = PT30M
+        [[[directives]]]
+            --mem=512
+            --cpus-per-task=4
+            --export=NONE
+        [[[environment]]]
+            FAB_WORKSPACE=$SCRATCH/fab_workspace_py3.${CYLC_TASK_PARAM_pyver}_$CYLC_TASK_PARAM_compiler
+            GCOM_REVISION={{ GCOM_REVISION }}
+
+    [[grab_gcom<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = grab_gcom.py
+
+    [[build_gcom_ar<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_gcom_ar.py
+
+    [[build_gcom_so<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_gcom_so.py
+
+    [[build_jules<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_jules.py
+        [[[directives]]]
+            --mem=1024
+
+    [[build_um<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_jules.py
+        [[[directives]]]
+            --mem=2048
+
+    [[grab_lfric<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = grab_lfric.py
+
+    [[mesh_tools<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = mesh_tools.py
+        [[[directives]]]
+            --mem=1024
+
+    [[gungho<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = gungho.py
+        [[[directives]]]
+            --mem=2048
+
+    [[atm<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = atm.py
+        [[[directives]]]
+            --mem=2048
