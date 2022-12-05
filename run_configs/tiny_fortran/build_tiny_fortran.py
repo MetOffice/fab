@@ -37,7 +37,7 @@ def config(compiler=None):
         Analyse(root_symbol='my_prog'),
 
         CompileFortran(compiler=compiler),
-        LinkExe(linker='gcc', flags=['-lgfortran']),
+        LinkExe(linker='mpifort'),
     ]
 
     return config
