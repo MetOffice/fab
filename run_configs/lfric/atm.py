@@ -15,7 +15,8 @@ from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
+from fab.steps.psyclone import psyclone_preprocessor, Psyclone
 
 logger = logging.getLogger('fab')
 

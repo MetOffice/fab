@@ -10,7 +10,8 @@ from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 
-from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
+from fab.steps.psyclone import psyclone_preprocessor, Psyclone
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 

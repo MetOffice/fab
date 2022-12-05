@@ -17,7 +17,8 @@ from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
+from fab.steps.psyclone import psyclone_preprocessor, Psyclone
 
 logger = logging.getLogger('fab')
 
