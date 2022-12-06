@@ -25,6 +25,7 @@ def psyclone_preprocessor(set_um_physics=False):
         # todo: use env vars and param
         preprocessor='cpp -traditional-cpp',
 
+        # todo: the input files changed to upper X90 at some point - handle both
         source=SuffixFilter('all_source', '.x90'),
         output_collection='preprocessed_x90',
 
@@ -47,6 +48,21 @@ class Psyclone(Step):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
 
+
+        # convert all the x90s to compliant fortran so they can be analysed
+        # kernels are not x90
+
+        # analyse all the x90s and the kernels they use to get dependency trees
+
+        # hash the trees
+
+        # what's the transformation script? we need to hash that.
+        # todo: what about anything the transformation script might import?
+        transformation_script = xxx
+        transformation_script_hash = something(transformation_script)
+
+
+
         results = self.run_mp(artefact_store['preprocessed_x90'], self.do_one_file)
         check_for_errors(results, caller_label=self.name)
 
@@ -58,6 +74,21 @@ class Psyclone(Step):
 
     def do_one_file(self, x90_file):
         log_or_dot(logger=logger, msg=str(x90_file))
+
+
+        # can we reuse previous build artefacts?
+        analysis_result = self.analysed_x90[x90_file]
+        mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysis_result.module_deps}
+
+
+
+        prebuild_hash = sum([
+            analysis_result.file_hash,
+            sum(mod_deps_hashes.values()),
+            transformation_script_hash
+        ])
+
+
 
         generated = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
         modified_alg = x90_file.with_suffix('.f90')
@@ -76,6 +107,7 @@ class Psyclone(Step):
             *kernel_options,
             '-opsy', generated,  # filename of generated PSy code
             '-oalg', modified_alg,  # filename of transformed algorithm code
+            '-s', transformation_script,  # transformation python script
             x90_file,
         ]
 
