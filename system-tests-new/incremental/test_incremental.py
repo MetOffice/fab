@@ -233,46 +233,24 @@ class TestIncremental(object):
 class TestCleanupPrebuilds(object):
     # Test cleanup of the incremental build artefacts
 
-    # prune artefacts by age
-    def test_prune_oldest_15(self, tmp_path):
-        config, remaining = self._prune(tmp_path, kwargs={'older_than': timedelta(days=15)})
-        assert sorted(remaining) == [
-            config.prebuild_folder / 'a.123.foo',
-            config.prebuild_folder / 'a.234.foo',
-        ]
+    in_out = [
+        # prune artefacts by age
+        ({'older_than': timedelta(days=15)}, ['a.123.foo', 'a.234.foo']),
+        ({'older_than': timedelta(days=25)}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
 
-    def test_prune_oldest_25(self, tmp_path):
-        config, remaining = self._prune(tmp_path, kwargs={'older_than': timedelta(days=25)})
-        assert sorted(remaining) == [
-            config.prebuild_folder / 'a.123.foo',
-            config.prebuild_folder / 'a.234.foo',
-            config.prebuild_folder / 'a.345.foo',
-        ]
+        # prune individual artefact versions (hashes) by age
+        ({'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
+        ({'n_versions': 3}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
 
-    # prune individual artefact versions (hashes) by age
-    def test_prune_versions_2(self, tmp_path):
-        config, remaining = self._prune(tmp_path, kwargs={'n_versions': 2})
-        assert sorted(remaining) == [
-            config.prebuild_folder / 'a.123.foo',
-            config.prebuild_folder / 'a.234.foo',
-        ]
+        # pruning a file which is covered by both the age and the version pruning code.
+        # this is to protect against trying to delete a non-existent file.
+        ({'older_than': timedelta(days=15), 'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
+    ]
 
-    def test_prune_versions_3(self, tmp_path):
-        config, remaining = self._prune(tmp_path, kwargs={'n_versions': 3})
-        assert sorted(remaining) == [
-            config.prebuild_folder / 'a.123.foo',
-            config.prebuild_folder / 'a.234.foo',
-            config.prebuild_folder / 'a.345.foo',
-        ]
-
-    # pruning a file which is covered by both the age and the version pruning code.
-    # this is to protect against trying to delete a non-existent file.
-    def test_prune_overlap(self, tmp_path):
-        config, remaining = self._prune(tmp_path, kwargs={'older_than': timedelta(days=15), 'n_versions': 2})
-        assert sorted(remaining) == [
-            config.prebuild_folder / 'a.123.foo',
-            config.prebuild_folder / 'a.234.foo',
-        ]
+    @pytest.mark.parametrize("kwargs,expect", in_out)
+    def test_clean(self, tmp_path, kwargs, expect):
+        config, remaining = self._prune(tmp_path, kwargs=kwargs)
+        assert sorted(remaining) == expect
 
     # pruning everything not current
     def test_prune_unused(self, tmp_path):
@@ -286,11 +264,10 @@ class TestCleanupPrebuilds(object):
         with mock.patch('fab.build_config.BuildConfig.init_artefact_store', mock_init_artefact_store):
             config, remaining = self._prune(tmp_path, kwargs={'all_unused': True})
         assert sorted(remaining) == [
-            config.prebuild_folder / 'a.123.foo',
-            config.prebuild_folder / 'a.456.foo',
+            'a.123.foo',
+            'a.456.foo',
         ]
 
-    # helpers
     def _prune(self, tmp_path, kwargs):
 
         config = BuildConfig(
@@ -315,4 +292,6 @@ class TestCleanupPrebuilds(object):
 
         config.run()
         remaining_artefacts = file_walk(config.prebuild_folder)
+        # pull out just the filenames so we can parameterise the tests without knowing tmp_path
+        remaining_artefacts = [str(f.name) for f in remaining_artefacts]
         return config, remaining_artefacts

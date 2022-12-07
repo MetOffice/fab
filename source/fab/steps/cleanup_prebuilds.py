@@ -9,15 +9,13 @@ Pruning of old files from the incremental/prebuild folder.
 """
 import logging
 import os
-import time
 from datetime import timedelta, datetime
 from pathlib import Path
-from time import sleep
 from typing import Dict, Optional, Iterable, Set
 
 from fab.constants import CURRENT_PREBUILDS
 from fab.steps import Step
-from fab.util import file_walk, get_fab_workspace, get_prebuild_file_groups
+from fab.util import file_walk, get_prebuild_file_groups
 
 logger = logging.getLogger(__name__)
 
