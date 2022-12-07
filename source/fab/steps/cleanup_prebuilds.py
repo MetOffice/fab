@@ -53,6 +53,10 @@ class CleanupPrebuilds(Step):
                 raise ValueError(f"unexpected value for all_unused: '{all_unused}'")
             self.all_unused = True
 
+        # if we're doing a hard cleanup, there's no point providing the softer options
+        if self.all_unused and (n_versions or older_than):
+            raise ValueError("n_versions or older_than should not be specified with all_unused")
+
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
@@ -67,11 +71,6 @@ class CleanupPrebuilds(Step):
             num_removed = remove_all_unused(found_files=prebuild_files, current_files=artefact_store[CURRENT_PREBUILDS])
 
         else:
-            # Make sure the file system can give us access times - overkill?
-            if not check_fs_access_time(config.prebuild_folder):
-                logger.error("file access time not available, aborting housekeeping")
-                return
-
             # get the file access time for every artefact
             prebuilds_ts = \
                 dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time)))  # type: ignore
@@ -137,43 +136,13 @@ def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]
     return num_removed
 
 
-# this whole function might be overkill...how likely is this, and do we care?
-def check_fs_access_time(folder=None) -> bool:
-    """
-    Check if the file access time is recorded on this file system.
-
-    Warn if it's low resolution, e.g. 1 day on FAT32.
-
-    """
-    folder = folder or get_fab_workspace()
-    fpath = Path(folder) / f"_access_time_test{time.time_ns():x}.txt"
-    fpath.parent.mkdir(parents=True, exist_ok=True)
-
-    # create a file and get its access time
-    if fpath.exists():
-        os.remove(fpath)
-    open(fpath, 'wt').write("hello\n")
-    write_time = fpath.stat().st_atime_ns
-    try:
-        int(write_time)
-    except (ValueError, TypeError):
-        logger.warning('file system does not report file access time')
-        return False
-
-    # read the file and get the updated access time - this is not so important, should we bother?
-    sleep(0.1)
-    open(fpath, "rt").readlines()
-    read_time = fpath.stat().st_atime_ns
-
-    # FAT32 has a 1 day resolution - not that we necessarily care...?
-    delta = int(read_time) - int(write_time)
-    if delta == 0:
-        logger.info('file system reporting access time with low resolution')
-
-    fpath.unlink()
-    return True
-
-
 def get_access_time(fpath: Path) -> datetime:
+    """
+    Return the access time of the given file.
+
+    Depends on the file system's ability to report a file's last access time
+    via the `os.stat_result.st_atime` returned by `Path.stat`.
+
+    """
     ts = fpath.stat().st_atime
     return datetime.fromtimestamp(ts)
