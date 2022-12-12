@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from fab.steps.compile_fortran import get_fortran_compiler
-from fab.util import run_command
+from fab.tools import run_command
 
 
 # todo: run the exes, check the output

@@ -24,8 +24,7 @@ except ImportError:
     git = None  # type: ignore
 
 from fab.steps import Step
-from fab.util import run_command
-
+from fab.tools import run_command
 
 logger = logging.getLogger(__name__)
 
