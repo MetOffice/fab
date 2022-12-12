@@ -68,7 +68,6 @@ Pass in a list of :class:`~fab.dep_tree.ParserWorkaround` objects, one for every
 Each object contains the symbol definitions and dependencies found in one source file.
 
 .. code-block::
-    :linenos:
     :emphasize-lines: 3-10
 
     config.steps = [
@@ -144,3 +143,65 @@ and used them in
 `build_gcom_ar.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/build_gcom_ar.py>`_
 and
 `build_gcom_so.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/build_gcom_so.py>`_.
+
+
+Separate Grabs
+==============
+If you are building many versions of a project from the same source,
+you may wish to grab from your repo in a separate script.
+In this case your grab script might only contain a single step.
+You could import your grab config to find out where it put the source.
+
+.. code-block::
+    :caption: my_grab.py
+
+    #!/usr/bin/env python3
+
+    from fab.build_config import BuildConfig
+    from fab.steps.grab import GrabFcm
+
+    def my_grab_config(revision):
+        return BuildConfig(
+            project_label=f'my source {revision}',
+            steps=[GrabFcm(src=my_repo, revision=revision)],
+        )
+
+
+    if __name__ == '__main__':
+        my_grab_config(revision='v1.0').run()
+
+
+.. code-block::
+    :caption: my_build.py
+    :emphasize-lines: 18
+
+    #!/usr/bin/env python3
+
+    from fab.steps.analyse import Analyse
+    from fab.steps.compile_fortran import CompileFortran
+    from fab.steps.find_source_files import FindSourceFiles
+    from fab.steps.grab import GrabFolder
+    from fab.steps.link import LinkExe
+    from fab.steps.preprocess import fortran_preprocessor
+
+    from my_grab import my_grab_config
+
+    def my_ar_config(revision, compiler=None):
+        compiler, _ = get_fortran_compiler(compiler)
+
+        config = BuildConfig(
+            project_label=f'my build {revision} {compiler}',
+            steps=[
+                GrabFolder(src=my_grab_config(revision=revision).source_root),
+                FindSourceFiles(),
+                fortran_preprocessor(),
+                Analyse(),
+                CompileFortran(),
+                LinkExe(),
+            ],
+        )
+
+        return config
+
+    if __name__ == '__main__':
+        my_build_config(revision='v1.0').run()
