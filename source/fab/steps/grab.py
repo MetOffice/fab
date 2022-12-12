@@ -201,7 +201,6 @@ class GrabGit(GrabSourceBase):
         fetch_args = [self.revision] if self.shallow else []
         fetch_kwargs = {'depth': 1, 'tags': True} if self.shallow else {'tags': True}
 
-        # if self.shallow:
         if not self._dst.exists():  # type: ignore
             our_repo = git.Repo.init(self._dst, mkdir=True)
             our_repo.create_remote('origin', self.src)
