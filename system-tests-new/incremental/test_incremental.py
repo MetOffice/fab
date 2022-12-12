@@ -1,14 +1,18 @@
 import logging
+import os
 import zlib
 from collections import defaultdict
+from datetime import timedelta, datetime
 from pathlib import Path
 from typing import List, Dict, Set, Tuple
+from unittest import mock
 
 import pytest
 
 from fab.build_config import BuildConfig
-from fab.constants import PREBUILD
+from fab.constants import PREBUILD, CURRENT_PREBUILDS, BUILD_OUTPUT
 from fab.steps.analyse import Analyse
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab import GrabFolder
 from fab.steps.link import LinkExe
@@ -16,7 +20,7 @@ from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles
 from fab.util import file_walk
 
-PROJECT_LABEL = 'tiny project'
+PROJECT_LABEL = 'tiny_project'
 
 
 def suffix_filter(data: Dict, suffixes: List[str]) -> Set[Tuple]:
@@ -37,7 +41,7 @@ class TestIncremental(object):
     # todo: check incremental build of other file types as Fab is upgraded
 
     @pytest.fixture
-    def build_config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
+    def config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
         logging.getLogger('fab').setLevel(logging.WARNING)
 
         grab_config = BuildConfig(
@@ -65,41 +69,41 @@ class TestIncremental(object):
 
         return build_config
 
-    def test_clean_build(self, build_config):
+    def test_clean_build(self, config):
         # just make sure an exe appears
-        assert not (build_config.project_workspace / 'my_prog.exe').exists()
+        assert not (config.project_workspace / 'my_prog.exe').exists()
 
-        build_config.run()
+        config.run()
 
         # check it built ok
-        assert (build_config.project_workspace / 'my_prog.exe').exists()
+        assert (config.project_workspace / 'my_prog.exe').exists()
 
-    def test_no_change_rebuild(self, build_config):
+    def test_no_change_rebuild(self, config):
         # ensure a rebuild with no change does not recreate our prebuild artefacts
 
         # clean build
-        clean_files, clean_timestamps, clean_hashes = self.build(build_config)
+        clean_files, clean_timestamps, clean_hashes = self.build(config)
 
         # rebuild
-        rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(build_config)
+        rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(config)
 
         # Ensure analysis and Fortran output is unchanged.
         prebuild_files = filter(lambda p: PREBUILD in str(p), rebuild_files)
         prebuild_groups = get_prebuild_file_groups(prebuild_files)
-        prebuild_folder = build_config.prebuild_folder
+        prebuild_folder = config.prebuild_folder
 
         self.assert_one_artefact(
             ['my_mod.*.an', 'my_mod.*.o', 'my_mod.*.mod', 'my_prog.*.an', 'my_prog.*.o'],
             prebuild_groups, prebuild_folder, clean_timestamps, clean_hashes, rebuild_timestamps, rebuild_hashes)
 
-    def test_fortran_implementation_change(self, build_config):
+    def test_fortran_implementation_change(self, config):
         # test a code change without a module interface change
 
         # clean build
-        clean_files, clean_timestamps, clean_hashes = self.build(build_config)
+        clean_files, clean_timestamps, clean_hashes = self.build(config)
 
         # modify the fortran module source without changing the module interface
-        mod_source = build_config.source_root / 'src/my_mod.F90'
+        mod_source = config.source_root / 'src/my_mod.F90'
         lines = open(mod_source, 'rt').readlines()
         with open(mod_source, 'wt') as out:
             for line in lines:
@@ -109,12 +113,12 @@ class TestIncremental(object):
                     out.write(line)
 
         # rebuild
-        rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(build_config)
+        rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(config)
 
         # ensure the analysis and object files change but the mod file does not
         prebuild_files = filter(lambda p: PREBUILD in str(p), rebuild_files)
         prebuild_groups = get_prebuild_file_groups(prebuild_files)
-        prebuild_folder = build_config.prebuild_folder
+        prebuild_folder = config.prebuild_folder
 
         # my_prog should be completely unaffected
         self.assert_one_artefact(
@@ -131,14 +135,14 @@ class TestIncremental(object):
             ['my_mod.*.an', 'my_mod.*.o'],
             prebuild_groups, prebuild_folder, rebuild_hashes)
 
-    def test_mod_interface_change(self, build_config):
+    def test_mod_interface_change(self, config):
         # test a module interface change
 
         # clean build
-        clean_files, clean_timestamps, clean_hashes = self.build(build_config)
+        clean_files, clean_timestamps, clean_hashes = self.build(config)
 
         # modify the fortran module source, changing the module interface
-        mod_source = build_config.source_root / 'src/my_mod.F90'
+        mod_source = config.source_root / 'src/my_mod.F90'
         lines = open(mod_source, 'rt').readlines()
         with open(mod_source, 'wt') as out:
             for line in lines:
@@ -155,12 +159,12 @@ class TestIncremental(object):
                     """)
 
         # rebuild
-        rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(build_config)
+        rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(config)
 
         # ensure the analysis and object files change but the mod file does not
         prebuild_files = filter(lambda p: PREBUILD in str(p), rebuild_files)
         prebuild_groups = get_prebuild_file_groups(prebuild_files)
-        prebuild_folder = build_config.prebuild_folder
+        prebuild_folder = config.prebuild_folder
 
         # my_prog analysis should be unaffected
         self.assert_one_artefact(
@@ -225,6 +229,73 @@ class TestIncremental(object):
             pb_fpath = next(iter(pb_group))
             assert clean_timestamps[prebuild_folder / pb_fpath] == rebuild_timestamps[prebuild_folder / pb_fpath]
             assert clean_hashes[prebuild_folder / pb_fpath] == rebuild_hashes[prebuild_folder / pb_fpath]
+
+
+class TestCleanupPrebuilds(object):
+    # Test cleanup of the incremental build artefacts
+
+    in_out = [
+        # prune artefacts by age
+        ({'older_than': timedelta(days=15)}, ['a.123.foo', 'a.234.foo']),
+        ({'older_than': timedelta(days=25)}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
+
+        # prune individual artefact versions (hashes) by age
+        ({'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
+        ({'n_versions': 3}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
+
+        # pruning a file which is covered by both the age and the version pruning code.
+        # this is to protect against trying to delete a non-existent file.
+        ({'older_than': timedelta(days=15), 'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
+    ]
+
+    @pytest.mark.parametrize("kwargs,expect", in_out)
+    def test_clean(self, tmp_path, kwargs, expect):
+        config, remaining = self._prune(tmp_path, kwargs=kwargs)
+        assert sorted(remaining) == expect
+
+    # pruning everything not current
+    def test_prune_unused(self, tmp_path):
+
+        def mock_init_artefact_store(self):
+            self._artefact_store = {CURRENT_PREBUILDS: {
+                tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.123.foo',
+                tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.456.foo',
+            }}
+
+        with mock.patch('fab.build_config.BuildConfig.init_artefact_store', mock_init_artefact_store):
+            config, remaining = self._prune(tmp_path, kwargs={'all_unused': True})
+        assert sorted(remaining) == [
+            'a.123.foo',
+            'a.456.foo',
+        ]
+
+    def _prune(self, tmp_path, kwargs):
+
+        config = BuildConfig(
+            project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False,
+            steps=[
+                CleanupPrebuilds(**kwargs)
+            ],
+        )
+        config.prebuild_folder.mkdir(parents=True)
+
+        # create several versions of the same artefact
+        artefacts = [
+            ('a.123.foo', datetime(2022, 10, 31)),
+            ('a.234.foo', datetime(2022, 10, 21)),
+            ('a.345.foo', datetime(2022, 10, 11)),
+            ('a.456.foo', datetime(2022, 10, 1)),
+        ]
+        for a, t in artefacts:
+            path = config.prebuild_folder / a
+            path.touch(exist_ok=False)
+            os.utime(path, (t.timestamp(), t.timestamp()))
+
+        config.run()
+        remaining_artefacts = file_walk(config.prebuild_folder)
+        # pull out just the filenames so we can parameterise the tests without knowing tmp_path
+        remaining_artefacts = [str(f.name) for f in remaining_artefacts]
+        return config, remaining_artefacts
 
 
 def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
