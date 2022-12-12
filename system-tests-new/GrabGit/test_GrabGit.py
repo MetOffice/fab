@@ -22,9 +22,9 @@ from unittest import mock
 
 import git
 import pytest
-from fab.tools import run_command
 
 from fab.steps.grab import GrabGit
+from fab.tools import run_command
 
 
 MY_MOD = 'src/my_mod.F90'

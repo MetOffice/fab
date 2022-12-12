@@ -6,14 +6,16 @@
 import os
 from typing import List
 
-
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
+from fab.steps.grab import GrabFolder
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.util import common_arg_parser
+
+from grab_gcom import gcom_grab_config
 
 
 def parse_args():
@@ -23,7 +25,7 @@ def parse_args():
     return args
 
 
-def common_build_steps(fortran_compiler, fpic=False) -> List[Step]:
+def common_build_steps(revision, fortran_compiler, fpic=False) -> List[Step]:
 
     fpp_flags = [
         '-P',
@@ -37,6 +39,7 @@ def common_build_steps(fortran_compiler, fpic=False) -> List[Step]:
     fpic = ['-fPIC'] if fpic else []
 
     steps = [
+        GrabFolder(src=gcom_grab_config(revision=revision).source_root),
         FindSourceFiles(),
         c_preprocessor(),
         fortran_preprocessor(common_flags=fpp_flags),
