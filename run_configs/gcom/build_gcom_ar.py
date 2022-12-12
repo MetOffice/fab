@@ -4,11 +4,10 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-
 from fab.build_config import BuildConfig
 from fab.steps.archive_objects import ArchiveObjects
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import get_fortran_compiler
-
 from gcom_build_steps import common_build_steps, parse_args
 from grab_gcom import gcom_grab_config
 
@@ -27,7 +26,9 @@ def gcom_ar_config(revision=None, compiler=None):
         steps=[
             *common_build_steps(fortran_compiler=compiler),
             ArchiveObjects(output_fpath='$output/libgcom.a'),
-        ]
+
+            CleanupPrebuilds(all_unused=True),
+        ],
     )
 
     return config
