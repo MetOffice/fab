@@ -9,17 +9,18 @@ from unittest.mock import Mock
 
 import clang  # type: ignore
 
+from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
 from fab.tasks.c import CAnalyser
 
 
 def test_simple_result(tmp_path):
     c_analyser = CAnalyser()
-    c_analyser._prebuild_folder = Path('/prebuild')
+    c_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
 
     with mock.patch('fab.dep_tree.AnalysedFile.save'):
         fpath = Path(__file__).parent / "test_c_analyser.c"
-        result = c_analyser.run(fpath)
+        analysis, artefact = c_analyser.run(fpath)
 
     expected = AnalysedFile(
         fpath=fpath,
@@ -29,7 +30,8 @@ def test_simple_result(tmp_path):
         file_deps=set(),
         mo_commented_file_deps=set(),
     )
-    assert result == expected
+    assert analysis == expected
+    assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
 
 
 class Test__locate_include_regions(object):
@@ -167,5 +169,5 @@ def test_clang_disable():
         with mock.patch('fab.tasks.c.file_checksum') as mock_file_checksum:
             result = CAnalyser().run(Path(__file__).parent / "test_c_analyser.c")
 
-    assert type(result) == ImportWarning
+    assert type(result[0]) == ImportWarning
     mock_file_checksum.assert_not_called()

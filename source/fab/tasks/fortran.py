@@ -6,6 +6,7 @@ Fortran language handling classes.
 """
 import logging
 from pathlib import Path
+from typing import Tuple, Union
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
@@ -85,33 +86,39 @@ class FortranAnalyser(object):
         self.depends_on_comment_found = False
 
         # runtime
-        self._prebuild_folder = None
+        self._config = None
 
-    def run(self, fpath: Path):
+    def run(self, fpath: Path) \
+            -> Union[Tuple[AnalysedFile, Path], Tuple[EmptySourceFile, None], Tuple[Exception, None]]:
+        """
+        Returns the analysis result and the artefact (file) in which it has been saved.
+
+        """
         log_or_dot(logger, f"analysing {fpath}")
 
-        # do we already have analysis results for this file?
-        # todo: dupe - probably best in a parser base class
+        # calculate the prebuild filename
         file_hash = file_checksum(fpath).file_hash
-        analysis_fpath = Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+
+        # do we already have analysis results for this file?
         if analysis_fpath.exists():
             loaded_result = AnalysedFile.load(analysis_fpath)
             # Note: This result might have been created by another user, and the prebuild copied here.
             # If so, the fpath in the result will *not* point to the file we eventually want to compile,
             # it will point to the user's original file, somewhere else. So, replace it with our own path.
             loaded_result.fpath = fpath
-            return loaded_result
+            return loaded_result, analysis_fpath
 
         analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
         # parse the file
         parse_result = self._parse_file(fpath=fpath)
         if isinstance(parse_result, Exception):
-            return parse_result
+            return parse_result, None
 
         if parse_result.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
-            return EmptySourceFile(fpath)
+            return EmptySourceFile(fpath), None
 
         # see what's in the tree
         for obj in iter_content(parse_result):
@@ -155,7 +162,7 @@ class FortranAnalyser(object):
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
 
         analysed_file.save(analysis_fpath)
-        return analysed_file
+        return analysed_file, analysis_fpath
 
     def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""
