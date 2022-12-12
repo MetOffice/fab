@@ -10,6 +10,7 @@ Various utility functions live here - until we give them a proper place to live!
 
 import datetime
 import logging
+import os
 import subprocess
 import sys
 import warnings
@@ -290,7 +291,21 @@ def by_type(iterable, cls):
     return filter(lambda i: isinstance(i, cls), iterable)
 
 
-def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
+def get_fab_workspace() -> Path:
+    """
+    Read the Fab workspace from the `FAB_WORKSPACE` environment variable,
+    defaulting to *~/fab-workspace*.
+
+    """
+    if os.getenv("FAB_WORKSPACE"):
+        fab_workspace = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
+    else:
+        fab_workspace = Path(os.path.expanduser("~/fab-workspace"))
+        logger.info(f"FAB_WORKSPACE not set, defaulting to {fab_workspace}")
+    return fab_workspace
+
+
+def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set[Path]]:
     """
     Group prebuild filenames by originating artefact.
 
@@ -301,15 +316,16 @@ def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
     Given the input files *my_mod.123.o* and *my_mod.456.o*,
     returns a dict {'my_mod.*.o': {'my_mod.123.o', 'my_mod.456.o'}}
 
-    Assumes all prebuild files are in a flat folder, so folders are removed from the result to aid inspection.
+    :param prebuild_files:
+        Collection of Paths to group.
 
     """
     pbf_groups = defaultdict(set)
 
-    for pbf in prebuild_files:
-        stem_stem = pbf.stem.split('.')[0]
-        wildcard_key = f'{stem_stem}.*{pbf.suffix}'
-        pbf_groups[wildcard_key].add(pbf.name)
+    for f in prebuild_files:
+        stem_stem = f.stem.split('.')[0]
+        wildcard_key = f'{stem_stem}.*{f.suffix}'
+        pbf_groups[wildcard_key].add(f)
 
     return pbf_groups
 

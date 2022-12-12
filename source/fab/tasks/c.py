@@ -9,7 +9,7 @@ import logging
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union, Tuple
 
 try:
     import clang  # type: ignore
@@ -32,7 +32,7 @@ class CAnalyser(object):
     def __init__(self):
 
         # runtime
-        self._prebuild_folder = None
+        self._config = None
 
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
@@ -87,21 +87,21 @@ class CAnalyser(object):
         else:
             return None
 
-    def run(self, fpath: Path):
+    def run(self, fpath: Path) \
+            -> Union[Tuple[AnalysedFile, Path], Tuple[Exception, None]]:
 
         if not clang:
             msg = 'clang not available, C analysis disabled'
             warnings.warn(msg, ImportWarning)
-            return ImportWarning(msg)
-
+            return ImportWarning(msg), None
         log_or_dot(logger, f"analysing {fpath}")
 
         # do we already have analysis results for this file?
         # todo: dupe - probably best in a parser base class
         file_hash = file_checksum(fpath).file_hash
-        analysis_fpath = Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
         if analysis_fpath.exists():
-            return AnalysedFile.load(analysis_fpath)
+            return AnalysedFile.load(analysis_fpath), analysis_fpath
 
         analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
 
@@ -111,14 +111,14 @@ class CAnalyser(object):
             translation_unit = index.parse(fpath, args=["-xc"])
         except Exception as err:
             logger.exception(f'error parsing {fpath}')
-            return err
+            return err, None
 
         # Create include region line mappings
         try:
             self._locate_include_regions(translation_unit)
         except Exception as err:
             logger.exception(f'error locating include regions {fpath}')
-            return err
+            return err, None
 
         # Now walk the actual nodes and find all relevant external symbols
         try:
@@ -137,10 +137,10 @@ class CAnalyser(object):
                     self._process_symbol_dependency(analysed_file, node, usr_symbols)
         except Exception as err:
             logger.exception(f'error walking parsed nodes {fpath}')
-            return err
+            return err, None
 
         analysed_file.save(analysis_fpath)
-        return analysed_file
+        return analysed_file, analysis_fpath
 
     def _process_symbol_declaration(self, analysed_file, node, usr_symbols):
         # Identify symbol declarations which are definitions or user includes
