@@ -15,7 +15,8 @@ from typing import List, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
 from fab.steps import Step
-from fab.util import log_or_dot, run_command
+from fab.util import log_or_dot
+from fab.tools import run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
