@@ -22,8 +22,8 @@ from unittest import mock
 
 import git
 import pytest
+from fab.tools import run_command
 
-from fab.util import run_command
 from fab.steps.grab import GrabGit
 
 
