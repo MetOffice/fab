@@ -31,6 +31,83 @@ We do this using the `source` argument, which most Fab steps accept.
     ])
 
 
+Parser Workarounds
+==================
+
+Unrecognised Dependencies
+-------------------------
+If a language parser is not able to recognise a dependency within a file,
+then Fab won't know the dependency needs to be compiled.
+For example, some versions of fparser don't recognise a call on a one-line if statement.
+In this case we can manually add the dependency using the `unreferenced_deps` argument to
+:class:`~fab.steps.analyse.Analyse`.
+
+Pass in the name of the called function.
+Fab will find the file containing this symbol and add it to the build.
+
+.. code-block::
+    :linenos:
+    :emphasize-lines: 3
+
+    config.steps = [
+        ...
+        Analyse(root_symbol='my_prog', unreferenced_deps=['my_func'])
+        ...
+    ]
+
+Unparsable Files
+----------------
+If a language parser is not able to process a file at all,
+then Fab won't know about any of its symbols and dependencies.
+This can sometimes happen to *correct code* which compilers *are* able to process,
+for example if the language parser is still maturing and can't yet handle an unusual syntax.
+In this case we can manually give Fab the analysis results it should have got from the parser
+using the `special_measure_analysis_results` argument to :class:`~fab.steps.analyse.Analyse`.
+
+Pass in a list of :class:`~fab.dep_tree.ParserWorkaround` objects, one for every file that can't be parsed.
+Each object contains the symbol definitions and dependencies found in one source file.
+
+.. code-block::
+    :linenos:
+    :emphasize-lines: 3-10
+
+    config.steps = [
+        ...
+        Analyse(
+            root_symbol='my_prog',
+            special_measure_analysis_results=[
+                ParserWorkaround(
+                    fpath=Path(config.build_output / "casim/lookup.f90"),
+                    module_defs={'my_mod'}, symbol_defs={'my_func'},
+                    module_deps={'other_mod'}, symbol_deps={'other_func'}),
+            ])
+        ...
+    ]
+
+Custom Step
+^^^^^^^^^^^
+An alternative approach for some problems is to write a custom step to modify the source so that the language
+parser can process it. Here's a simple example, based on a
+`real workaround <https://github.com/metomi/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L268-L290>`_
+we use to build the UM. The parser gets confused by a variable called `NameListFile`. Our config copies the source
+into it's project folder first, so this step doesn't modify the developer's working code.
+
+.. code-block::
+
+    class MyCustomCodeFixes(Step):
+        def run(self, artefact_store, config):
+            fpath = config.source_root / 'um/control/top_level/um_config.F90'
+            in = open(fpath, "rt").read()
+            out = in.replace("NameListFile", "MyRenamedVariable")
+            open(fpath, "wt").write(out)
+
+    config = BuildConfig(steps=[
+        # grab steps first
+        MyCustomCodeFixes()
+        # FindSourceFiles, preprocess, etc, afterwards
+    ])
+
+
 Two-Stage Compilation
 =====================
 The :class:`~fab.steps.compile_fortran.CompileFortran` step compiles files in passes,

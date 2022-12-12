@@ -91,3 +91,10 @@ It will *not* notice if a Fortran `*.mod` changes in an include folder elsewhere
 
 An example is the UM build which uses GCom's mpl.mod.
 This issue is raised in `#192 <https://github.com/metomi/fab/issues/192>`_.
+
+
+File Access Times
+-----------------
+Fab's housekeeping code depends on the file system's ability to report a file's last access time
+via the `os.stat_result.st_atime <https://docs.python.org/3/library/os.html#os.stat_result.st_atime>`_
+returned by `Path.stat <https://docs.python.org/3/library/pathlib.html#pathlib.Path.stat>`_.

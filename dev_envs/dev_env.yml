@@ -2,7 +2,7 @@
 name: sci-fab
 dependencies:
   - libclang>=8.0.1
-  - python>=3.8
+  - python==3.7
   - pip>=21.2.4
   - python-clang>=8.0.1
   - pip:

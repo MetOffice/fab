@@ -245,7 +245,7 @@ class GrabGit(GrabSourceBase):
 
 class GrabPreBuild(Step):
     """
-    Copy the contents of another pre-build folder into our own.
+    Copy the contents of another project's prebuild folder into our local prebuild folder.
 
     """
     def __init__(self, path, objects=True, allow_fail=False):
