@@ -16,7 +16,8 @@ from fab.build_config import FlagsConfig
 from fab.constants import PRAGMAD_C
 from fab.metrics import send_metric
 
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, run_command, Timer, by_type
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, Timer, by_type
+from fab.tools import run_command
 from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
