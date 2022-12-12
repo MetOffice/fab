@@ -22,9 +22,9 @@ from fab.constants import OBJECT_FILES
 from fab.dep_tree import AnalysedFile
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
-from fab.tools import COMPILERS
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, run_command, Timer, by_type, \
-    flags_checksum, remove_managed_flags, file_checksum, get_tool, get_compiler_version
+from fab.tools import COMPILERS, remove_managed_flags, flags_checksum, run_command, get_tool, get_compiler_version
+from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \
+    file_checksum
 
 logger = logging.getLogger(__name__)
 
