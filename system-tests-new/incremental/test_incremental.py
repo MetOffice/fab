@@ -1,7 +1,6 @@
 import logging
 import os
 import zlib
-from collections import defaultdict
 from datetime import timedelta, datetime
 from pathlib import Path
 from typing import List, Dict, Set, Tuple
@@ -18,7 +17,7 @@ from fab.steps.grab import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles
-from fab.util import file_walk
+from fab.util import file_walk, get_prebuild_file_groups
 
 PROJECT_LABEL = 'tiny_project'
 
@@ -296,27 +295,3 @@ class TestCleanupPrebuilds(object):
         # pull out just the filenames so we can parameterise the tests without knowing tmp_path
         remaining_artefacts = [str(f.name) for f in remaining_artefacts]
         return config, remaining_artefacts
-
-
-def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
-    """
-    Group prebuild filenames by originating artefact.
-
-    Prebuild filenames have the form `<stem>.<hash>.<suffix>`.
-    This function creates a dict with wildcard key `<stem>.*.<suffix>`
-    with each entry mapping to a set of all matching prebuild files.
-
-    Given the input files *my_mod.123.o* and *my_mod.456.o*,
-    returns a dict {'my_mod.*.o': {'my_mod.123.o', 'my_mod.456.o'}}
-
-    Assumes all prebuild files are in a flat folder, so folders are removed from the result to aid inspection.
-
-    """
-    pbf_groups = defaultdict(set)
-
-    for pbf in prebuild_files:
-        stem_stem = pbf.stem.split('.')[0]
-        wildcard_key = f'{stem_stem}.*{pbf.suffix}'
-        pbf_groups[wildcard_key].add(pbf.name)
-
-    return pbf_groups

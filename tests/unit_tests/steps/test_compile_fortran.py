@@ -9,7 +9,7 @@ from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran, get_mod_hashes
-from fab.util import CompiledFile, get_compiler_version
+from fab.util import CompiledFile
 
 
 @pytest.fixture()
