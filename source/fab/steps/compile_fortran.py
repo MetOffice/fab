@@ -258,6 +258,7 @@ class CompileFortran(Step):
 
     def _get_obj_combo_hash(self, analysed_file, flags):
         # get a combo hash of things which matter to the object file we define
+        # todo: don't just silently use 0 for a missing dep hash
         mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
         try:
             obj_combo_hash = sum([
