@@ -273,8 +273,8 @@ SQ_STRING = "'[^']*'"
 DQ_STRING = '"[^"]*"'
 STRING = f'({SQ_STRING}|{DQ_STRING})'
 
-OPTIONAL_NAME = 'name' + OPT_WHITE + '=' + OPT_WHITE + STRING + OPT_WHITE + ',' + OPT_WHITE
-CALL_INVOKE = 'call' + WHITE + 'invoke' + OPT_WHITE + r'\(' + OPT_WHITE + OPTIONAL_NAME
+NAME_KEYWORD = 'name' + OPT_WHITE + '=' + OPT_WHITE + STRING + OPT_WHITE + ',' + OPT_WHITE
+NAMED_INVOKE = 'call' + WHITE + 'invoke' + OPT_WHITE + r'\(' + OPT_WHITE + NAME_KEYWORD
 
 _x90_compliance_pattern = None
 
@@ -290,16 +290,16 @@ def make_compliant_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     Returns the path of the Fortran compliant file, plus any invoke() names which were removed.
 
     """
-
-    # todo: compile the re
     global _x90_compliance_pattern
     if not _x90_compliance_pattern:
-        _x90_compliance_pattern = re.compile(pattern=CALL_INVOKE)
+        _x90_compliance_pattern = re.compile(pattern=NAMED_INVOKE)
 
     src = open(x90_path, 'rt').read()
     replaced = []
 
     def repl(matchobj):
+        # matchobj[0] contains the entire matching string, from "call" to the "," after the name keyword.
+        # matchobj[1] contains the single group in the search pattern, which is defined in STRING.
         name = matchobj[1].replace('"', '').replace("'", "")
         replaced.append(name)
         return 'call invoke('
@@ -308,10 +308,5 @@ def make_compliant_x90(x90_path: Path) -> Tuple[Path, List[str]]:
 
     out_path = x90_path.with_suffix('.compliant_x90')
     open(out_path, 'wt').write(out)
-
-    # # tidy up the returned names - remove the "call invoke(name=" and trailing comma.
-    # for i, s in enumerate(replaced):
-    #
-    #     # replaced[i] =
 
     return out_path, replaced
