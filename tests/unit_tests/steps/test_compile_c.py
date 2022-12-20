@@ -7,7 +7,7 @@ import pytest
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
-from fab.dep_tree import AnalysedFile
+from fab.parse import AnalysedFile
 from fab.steps.compile_c import CompileC
 
 

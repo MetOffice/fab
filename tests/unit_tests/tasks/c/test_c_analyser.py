@@ -9,8 +9,8 @@ from unittest.mock import Mock
 
 import clang  # type: ignore
 
-from fab.dep_tree import AnalysedFile
-from fab.tasks.c import CAnalyser
+from fab.parse import AnalysedFile
+from fab.parse.c import CAnalyser
 
 
 def test_simple_result(tmp_path):

@@ -1,4 +1,4 @@
-from fab.tasks.fortran import _has_ancestor_type
+from fab.parse.fortran import _has_ancestor_type
 
 
 class Thing1(object):

@@ -1,6 +1,8 @@
-# (c) Crown copyright Met Office. All rights reserved.
-# For further details please refer to the file COPYRIGHT
-# which you should have received as part of this distribution
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
 """
 C language handling classes.
 
@@ -17,7 +19,7 @@ try:
 except ImportError:
     clang = None
 
-from fab.dep_tree import AnalysedFile
+from fab.parse import AnalysedFile
 from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)

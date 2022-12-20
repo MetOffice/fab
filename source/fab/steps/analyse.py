@@ -41,11 +41,12 @@ from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.constants import BUILD_TREES
-from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, \
-    validate_dependencies, ParserWorkaround
+from fab.dep_tree import add_mo_commented_file_deps, extract_sub_tree, \
+    validate_dependencies
+from fab.parse import AnalysedFile, ParserWorkaround
 from fab.steps import Step
-from fab.tasks.c import CAnalyser
-from fab.tasks.fortran import FortranAnalyser
+from fab.parse.c import CAnalyser
+from fab.parse.fortran import FortranAnalyser
 from fab.util import TimerLogger, by_type
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
@@ -165,7 +166,7 @@ class Analyse(Step):
         self._add_manual_results(analysed_files)
 
         # analyse
-        project_source_tree, symbols = _analyse_dependencies(analysed_files)
+        project_source_tree, symbol_table = analyse_source_tree(analysed_files)
 
         # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
         with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
@@ -175,13 +176,13 @@ class Analyse(Step):
 
         # extract "build trees" for executables.
         if self.root_symbols:
-            build_trees = self._extract_build_trees(project_source_tree, symbols)
+            build_trees = self._extract_build_trees(project_source_tree, symbol_table)
         else:
             build_trees = {None: project_source_tree}
 
         # throw in any extra source we need, which Fab can't automatically detect
         for build_tree in build_trees.values():
-            self._add_unreferenced_deps(symbols, project_source_tree, build_tree)
+            self._add_unreferenced_deps(symbol_table, project_source_tree, build_tree)
             validate_dependencies(build_tree)
 
         artefact_store[BUILD_TREES] = build_trees
@@ -201,7 +202,7 @@ class Analyse(Step):
     #     source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
     #     return source_tree, symbols
 
-    def _extract_build_trees(self, project_source_tree, symbols):
+    def _extract_build_trees(self, project_source_tree, symbol_table):
         """
         Find the subset of files needed to build each root symbol (executable).
 
@@ -212,9 +213,9 @@ class Analyse(Step):
         build_trees = {}
         for root in self.root_symbols:
             with TimerLogger(f"extracting build tree for root '{root}'"):
-                build_tree = extract_sub_tree(project_source_tree, symbols[root], verbose=False)
+                build_tree = extract_sub_tree(project_source_tree, symbol_table[root], verbose=False)
 
-            logger.info(f"target source tree size {len(build_tree)} (target '{symbols[root]}')")
+            logger.info(f"target source tree size {len(build_tree)} (target '{symbol_table[root]}')")
             build_trees[root] = build_tree
 
         return build_trees
@@ -318,7 +319,7 @@ class Analyse(Step):
     #     if deps_not_found:
     #         logger.info(f"{len(deps_not_found)} deps not found")
 
-    def _add_unreferenced_deps(self, symbols: Dict[str, Path],
+    def _add_unreferenced_deps(self, symbol_table: Dict[str, Path],
                                all_analysed_files: Dict[Path, AnalysedFile], build_tree: Dict[Path, AnalysedFile]):
         """
         Add files to the build tree.
@@ -333,7 +334,7 @@ class Analyse(Step):
         for symbol_dep in self.unreferenced_deps:
 
             # what file is the symbol in?
-            analysed_fpath = symbols.get(symbol_dep)
+            analysed_fpath = symbol_table.get(symbol_dep)
             if not analysed_fpath:
                 warnings.warn(f"no file found for unreferenced dependency {symbol_dep}")
                 continue
@@ -355,20 +356,35 @@ class Analyse(Step):
             build_tree.update(sub_tree)
 
 
-def _analyse_dependencies(analysed_files: Iterable[AnalysedFile]):
+def analyse_source_tree(analysed_files: Iterable[AnalysedFile]):
     """
-    Turn symbol deps into file deps and build a source dependency tree for the entire source.
+    Build a source dependency tree for the entire source.
+
+    """
+    # find file dependencies
+    symbol_table = analyse_file_dependencies(analysed_files)
+
+    # build the tree
+    # the nodes refer to other nodes via the file dependencies we just made, which are keys into this dict
+    source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
+
+    return source_tree, symbol_table
+
+
+def analyse_file_dependencies(analysed_files):
+    """
+    Turn symbol deps into file deps, returning the symbol table mapping symbols to files.
 
     """
     with TimerLogger("converting symbol dependencies to file dependencies"):
+
         # map symbols to the files they're in
-        symbols: Dict[str, Path] = _gen_symbol_table(analysed_files)
+        symbol_table: Dict[str, Path] = _gen_symbol_table(analysed_files)
 
         # fill in the file deps attribute in the analysed file objects
-        _gen_file_deps(analysed_files, symbols)
+        _gen_file_deps(analysed_files, symbol_table)
 
-    source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
-    return source_tree, symbols
+    return symbol_table
 
 
 def _gen_symbol_table(analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:

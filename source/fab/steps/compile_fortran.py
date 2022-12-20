@@ -18,7 +18,7 @@ from typing import List, Set, Dict, Optional
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
-from fab.dep_tree import AnalysedFile
+from fab.parse import AnalysedFile
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS

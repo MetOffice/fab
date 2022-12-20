@@ -15,9 +15,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
+from fab.parse import AnalysedFortran
+
 from fab.constants import BUILD_TREES
 
-from fab.dep_tree import AnalysedFile, filter_source_tree
+from fab.dep_tree import filter_source_tree
 from fab.util import suffix_filter
 
 
@@ -153,7 +155,7 @@ class FilterBuildTrees(ArtefactsGetter):
 
         build_trees = artefact_store[self.collection_name]
 
-        build_lists: Dict[str, List[AnalysedFile]] = {}
+        build_lists: Dict[str, List[AnalysedFortran]] = {}
         for root, tree in build_trees.items():
             build_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
 

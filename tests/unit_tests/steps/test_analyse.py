@@ -5,7 +5,7 @@ import pytest
 from fab.util import HashedFile
 
 from fab.build_config import BuildConfig
-from fab.dep_tree import AnalysedFile, ParserWorkaround
+from fab.parse import AnalysedFile, ParserWorkaround
 from fab.steps.analyse import Analyse
 
 

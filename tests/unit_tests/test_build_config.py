@@ -7,7 +7,7 @@ from textwrap import dedent
 from unittest import mock
 
 from fab.build_config import BuildConfig
-from fab.dep_tree import AnalysedFile
+from fab.parse import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
 
 

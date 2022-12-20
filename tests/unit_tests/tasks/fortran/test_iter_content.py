@@ -1,4 +1,4 @@
-from fab.tasks.fortran import iter_content
+from fab.parse.fortran import iter_content
 
 
 class Node(object):

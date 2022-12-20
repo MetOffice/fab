@@ -1,4 +1,4 @@
-from fab.tasks.fortran import _typed_child
+from fab.parse.fortran import _typed_child
 
 
 class Parent(object):

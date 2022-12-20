@@ -105,7 +105,10 @@ def atm_config(two_stage=False, opt='Og'):
 
         psyclone_preprocessor(set_um_physics=True),
 
-        Psyclone(kernel_roots=[config.build_output]),
+        Psyclone(
+            kernel_roots=[config.build_output],
+            transformation_script=,
+        ),
 
         # todo: do we need this one in here?
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),

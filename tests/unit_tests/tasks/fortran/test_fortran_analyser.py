@@ -7,8 +7,8 @@ from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 
-from fab.dep_tree import AnalysedFile, EmptySourceFile
-from fab.tasks.fortran import FortranAnalyser, iter_content
+from fab.parse import AnalysedFile, EmptySourceFile
+from fab.parse.fortran import FortranAnalyser, iter_content
 
 
 # todo: test function binding

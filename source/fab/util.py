@@ -18,7 +18,7 @@ from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Set, Dict, List, Tuple
+from typing import Iterator, Iterable, Optional, Set, Dict, List, Tuple, Union
 
 from fab.tools import COMPILERS
 
@@ -123,7 +123,7 @@ def string_checksum(s: str):
     return zlib.crc32(s.encode())
 
 
-def file_walk(path: Path) -> Iterator[Path]:
+def file_walk(path: Union[str, Path]) -> Iterator[Path]:
     """
     Return every file in *path* and its sub-folders.
 
@@ -131,7 +131,9 @@ def file_walk(path: Path) -> Iterator[Path]:
         Folder to iterate.
 
     """
+    path = Path(path)
     assert path.is_dir(), f"not dir: '{path}'"
+
     for i in path.iterdir():
         if i.is_dir():
             yield from file_walk(i)

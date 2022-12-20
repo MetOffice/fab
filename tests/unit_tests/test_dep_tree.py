@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from fab.dep_tree import AnalysedFile, extract_sub_tree
+from fab.dep_tree import extract_sub_tree
+from fab.parse import AnalysedFile
 
 
 @pytest.fixture

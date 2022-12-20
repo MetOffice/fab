@@ -14,13 +14,13 @@ import zlib
 from collections import defaultdict
 from typing import List, Dict, Optional
 
+from fab import FabException
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
-from fab.dep_tree import AnalysedFile
+from fab.parse import AnalysedFile
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
-from fab.tasks import TaskException
 from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type, flags_checksum, get_compiler_version, \
     get_tool
 
@@ -129,7 +129,7 @@ class CompileC(Step):
                 try:
                     run_command(command)
                 except Exception as err:
-                    return TaskException(f"error compiling {analysed_file.fpath}:\n{err}")
+                    return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
 
             send_metric(self.name, str(analysed_file.fpath), timer.taken)
 

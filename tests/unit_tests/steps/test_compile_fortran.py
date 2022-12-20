@@ -8,7 +8,7 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
-from fab.dep_tree import AnalysedFile
+from fab.parse import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran, get_compiler_version, get_mod_hashes
 from fab.util import CompiledFile
 

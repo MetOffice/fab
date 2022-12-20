@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
-from fab.dep_tree import AnalysedFile
+from fab.parse import AnalysedFile
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
