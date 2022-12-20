@@ -264,6 +264,21 @@ class Psyclone(Step):
         return result
 
 
+# regex to convert an x90 into a fortran-compliant file, so it can be parsed with a third party tool
+
+WHITE = r'[\s&]+'
+OPT_WHITE = r'[\s&]*'
+
+SQ_STRING = "'[^']*'"
+DQ_STRING = '"[^"]*"'
+STRING = f'({SQ_STRING}|{DQ_STRING})'
+
+OPTIONAL_NAME = 'name' + OPT_WHITE + '=' + OPT_WHITE + STRING + OPT_WHITE + ',' + OPT_WHITE
+CALL_INVOKE = 'call' + WHITE + 'invoke' + OPT_WHITE + r'\(' + OPT_WHITE + OPTIONAL_NAME
+
+_x90_compliance_pattern = None
+
+
 def make_compliant_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     """
     Take out the leading name keyword in calls to invoke(), making temporary, parsable fortran from x90s.
@@ -277,31 +292,26 @@ def make_compliant_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     """
 
     # todo: compile the re
-    white = r'[\s&]+'
-    opt_white = r'[\s&]*'
+    global _x90_compliance_pattern
+    if not _x90_compliance_pattern:
+        _x90_compliance_pattern = re.compile(pattern=CALL_INVOKE)
 
-    sq_string = "'[^']*'"
-    dq_string = '"[^"]*"'
-    string = f'({sq_string}|{dq_string})'
-
-    optional_name = 'name' + opt_white + '=' + opt_white + string + opt_white + ',' + opt_white
-
-    # calls to invoke with an initial name keyword
-    call_invoke = 'call' + white + 'invoke' + opt_white + r'\(' + opt_white + optional_name
-
-    #
     src = open(x90_path, 'rt').read()
-    removed_names = []
+    replaced = []
 
     def repl(matchobj):
-        print('match')
-        removed_names.append(matchobj[0])
+        name = matchobj[1].replace('"', '').replace("'", "")
+        replaced.append(name)
         return 'call invoke('
 
-    # out = re.findall(pattern=call_invoke, string=src)
-    out = re.sub(pattern=call_invoke, repl=repl, string=src)
+    out = _x90_compliance_pattern.sub(repl=repl, string=src)
 
     out_path = x90_path.with_suffix('.compliant_x90')
     open(out_path, 'wt').write(out)
 
-    return out_path, removed_names
+    # # tidy up the returned names - remove the "call invoke(name=" and trailing comma.
+    # for i, s in enumerate(replaced):
+    #
+    #     # replaced[i] =
+
+    return out_path, replaced

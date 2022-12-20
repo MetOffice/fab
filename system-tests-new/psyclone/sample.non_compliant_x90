@@ -22,26 +22,32 @@ contains
         integer :: b
 
         ! one line
-        call invoke(kernel_type_one( a, b ), kernel_type_two( a, b ), kernel_type_three( a, b ) )
+        call invoke( name = "name a", kernel_type_one( a, b ), kernel_type_two( a, b ), kernel_type_three( a, b ) )
         ! no spaces
-        call invoke(kernel_type_one(a,b),kernel_type_two(a,b),kernel_type_three(a,b))
+        call invoke(name="name b",kernel_type_one(a,b),kernel_type_two(a,b),kernel_type_three(a,b))
 
         ! arg lines
-        call invoke(kernel_type_one( a, b ), &
+        call invoke( name = "name c", &
+                     kernel_type_one( a, b ), &
                      kernel_type_two( a, b ), &
                      kernel_type_one( a, b ) )
-        call invoke(kernel_type_one(a,b),&
+        call invoke(name="name d",&
+                    kernel_type_one(a,b),&
                     kernel_type_two(a,b),&
                     kernel_type_three(a,b))
 
         ! arg arg lines
-        call invoke(kernel_type_one( a, &
+        call invoke( &
+                     name = "name e", &
+                     kernel_type_one( a, &
                                       b ), &
                      kernel_type_two( a, &
                                       b ), &
                      kernel_type_three( a, &
                                         b ) )
-        call invoke(kernel_type_one(a,&
+        call invoke(&
+                    name="name f",&
+                    kernel_type_one(a,&
                                     b),&
                     kernel_type_two(a,&
                                     b),&
