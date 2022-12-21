@@ -1,0 +1,385 @@
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+"""
+Fortran language handling classes.
+
+"""
+import logging
+from pathlib import Path
+from typing import Union, Optional, Iterable, Dict, Any, Set
+
+from fparser.common.readfortran import FortranFileReader  # type: ignore
+from fparser.two.Fortran2003 import (  # type: ignore
+    Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
+    Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt)
+
+# todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
+from fparser.two.Fortran2008 import (  # type: ignore
+    Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
+
+from fparser.two.parser import ParserFactory  # type: ignore
+from fparser.two.utils import FortranSyntaxError  # type: ignore
+
+from fab.parse import AnalysedFile
+from fab.parse.fortran import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
+from fab.util import file_checksum
+
+logger = logging.getLogger(__name__)
+
+
+# todo: a nicer recursion pattern?
+
+
+class AnalysedFortran(AnalysedFile):
+    """
+    An analysis result for a single file, containing module and symbol definitions and dependencies.
+
+    The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
+    a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
+    which will be converted at runtime into an `AnalysedFile` object.
+
+    """
+    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
+                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None):
+        """
+        :param fpath:
+            The source file that was analysed.
+        :param file_hash:
+            The hash of the source. If omitted, Fab will evaluate lazily.
+        :param module_defs:
+            Set of module names defined by this source file.
+            A subset of symbol_defs
+        :param symbol_defs:
+            Set of symbol names defined by this source file.
+        :param module_deps:
+            Set of module names used by this source file.
+        :param symbol_deps:
+            Set of symbol names used by this source file.
+            Can include symbols in the same file.
+        :param mo_commented_file_deps:
+            A set of C file names, without paths, on which this file depends.
+            Comes from "DEPENDS ON:" comments which end in ".o".
+        :param file_deps:
+            Other files on which this source depends. Must not include itself.
+            This attribute is calculated during symbol analysis, after everything has been parsed.
+
+        """
+        super().__init__(fpath=fpath, file_hash=file_hash)
+
+        self.module_defs: Set[str] = set(module_defs or {})
+        self.symbol_defs: Set[str] = set(symbol_defs or {})
+        self.module_deps: Set[str] = set(module_deps or {})
+        self.symbol_deps: Set[str] = set(symbol_deps or {})
+        self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
+        self.file_deps: Set[Path] = set(file_deps or {})
+
+        assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
+        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
+        assert all([d and len(d) for d in self.module_deps]), "bad module dependencies"
+        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
+
+        # todo: this feels a little clanky.
+        assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
+        assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
+
+    def add_module_def(self, name):
+        self.module_defs.add(name.lower())
+        self.add_symbol_def(name)
+
+    def add_symbol_def(self, name):
+        assert name and len(name)
+        self.symbol_defs.add(name.lower())
+
+    def add_module_dep(self, name):
+        self.module_deps.add(name.lower())
+        self.add_symbol_dep(name)
+
+    def add_symbol_dep(self, name):
+        assert name and len(name)
+        self.symbol_deps.add(name.lower())
+
+    def add_file_dep(self, name):
+        assert name and len(name)
+        self.file_deps.add(name)
+
+    @property
+    def mod_filenames(self):
+        """The mod_filenames property defines which module files are expected to be created (but not where)."""
+        return {f'{mod}.mod' for mod in self.module_defs}
+
+    @classmethod
+    def field_names(cls):
+        """Defines the order in which we want fields to appear if a human is reading them"""
+        return [
+            'fpath', 'file_hash',
+            'module_defs', 'symbol_defs',
+            'module_deps', 'symbol_deps',
+            'file_deps', 'mo_commented_file_deps',
+        ]
+
+    def __str__(self):
+        values = [getattr(self, field_name) for field_name in self.field_names()]
+        return 'AnalysedFile ' + ' '.join(map(str, values))
+
+    def __repr__(self):
+        params = ', '.join([f'{f}={getattr(self, f)}' for f in self.field_names()])
+        return f'AnalysedFile({params})'
+
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+
+    def __hash__(self):
+        # If we haven't been given a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
+        # This only affects user workarounds of fparser issues when the user has not provided a file hash.
+        return hash((
+            self.fpath,
+            self.file_hash,  # this is a lazily evaluated property
+            tuple(sorted(self.module_defs)),
+            tuple(sorted(self.symbol_defs)),
+            tuple(sorted(self.module_deps)),
+            tuple(sorted(self.symbol_deps)),
+            tuple(sorted(self.file_deps)),
+            tuple(sorted(self.mo_commented_file_deps)),
+        ))
+
+    # def save(self, fpath: Union[str, Path]):
+    #     d = self.to_dict()
+    #     d["cls"] = self.__class__.__name__
+    #     json.dump(d, open(fpath, 'wt'), indent=4)
+    #
+    # @classmethod
+    # def load(cls, fpath: Union[str, Path]):
+    #     d = json.load(open(fpath))
+    #     found_class = d["cls"]
+    #     if found_class != cls.__name__:
+    #         logger.error(f"Expected class name '{cls.__name__}', got '{found_class}'")
+    #         return None
+    #     return cls.from_dict(d)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "fpath": str(self.fpath),
+            "file_hash": self.file_hash,
+            "module_defs": list(self.module_defs),
+            "symbol_defs": list(self.symbol_defs),
+            "module_deps": list(self.module_deps),
+            "symbol_deps": list(self.symbol_deps),
+            "file_deps": list(map(str, self.file_deps)),
+            "mo_commented_file_deps": list(self.mo_commented_file_deps),
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        result = cls(
+            fpath=Path(d["fpath"]),
+            file_hash=d["file_hash"],
+            module_defs=set(d["module_defs"]),
+            symbol_defs=set(d["symbol_defs"]),
+            module_deps=set(d["module_deps"]),
+            symbol_deps=set(d["symbol_deps"]),
+            file_deps=set(map(Path, d["file_deps"])),
+            mo_commented_file_deps=set(d["mo_commented_file_deps"]),
+        )
+        assert result.file_hash is not None
+        return result
+
+
+class FortranAnalyser(FortranAnalyserBase):
+    """
+    A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFile`.
+
+    """
+
+    # RESULT_CLASS = AnalysedFortran
+
+    def __init__(self, std=None, ignore_mod_deps=None):
+        super().__init__(result_class=AnalysedFortran, std=std)
+        self.ignore_mod_deps = ignore_mod_deps or []
+        self.depends_on_comment_found = False
+        # self.result_class = AnalysedFortran
+
+    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFortran:
+
+        # see what's in the tree
+        analysed_file = AnalysedFortran(fpath=fpath, file_hash=file_hash)
+        for obj in iter_content(node_tree):
+            obj_type = type(obj)
+            try:
+
+                # todo: ?replace these with function lookup dict[type, func]? - Or the new match statement, Python 3.10
+                if obj_type == Use_Stmt:
+                    self._process_use_statement(analysed_file, obj)  # raises
+
+                elif obj_type == Call_Stmt:
+                    called_name = _typed_child(obj, Name)
+                    # called_name will be None for calls like thing%method(),
+                    # which is fine as it doesn't reveal a dependency on an external function.
+                    if called_name:
+                        analysed_file.add_symbol_dep(called_name.string)
+
+                elif obj_type == Program_Stmt:
+                    analysed_file.add_symbol_def(str(obj.get_name()))
+
+                elif obj_type == Module_Stmt:
+                    analysed_file.add_module_def(str(obj.get_name()))
+
+                elif obj_type in (Subroutine_Stmt, Function_Stmt):
+                    self._process_subroutine_or_function(analysed_file, fpath, obj)
+
+                # variables with c binding are found inside a Type_Declaration_Stmt.
+                # todo: This was used for exporting a Fortran variable for use in C.
+                #       Variable bindings are bidirectional - does this work the other way round, too?
+                #       Make sure we have a test for it.
+                elif obj_type == Type_Declaration_Stmt:
+                    # bound?
+                    specs = _typed_child(obj, Attr_Spec_List)
+                    if specs and _typed_child(specs, Language_Binding_Spec):
+                        self._process_variable_binding(analysed_file, obj)
+
+                elif obj_type == Comment:
+                    self._process_comment(analysed_file, obj)
+
+            except Exception:
+                logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
+
+        # analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
+        # analysed_file.save(analysis_fpath)
+        return analysed_file
+
+    def _process_use_statement(self, analysed_file, obj):
+        use_name = _typed_child(obj, Name, must_exist=True)
+        use_name = use_name.string
+
+        if use_name in self.ignore_mod_deps:
+            logger.debug(f"ignoring use of {use_name}")
+        elif use_name.lower() not in self._intrinsic_modules:
+            # found a dependency on fortran
+            analysed_file.add_module_dep(use_name)
+
+    def _process_variable_binding(self, analysed_file, obj: Type_Declaration_Stmt):
+        # The name keyword on the bind statement is optional.
+        # If it doesn't exist, the Fortran variable name is used
+
+        # todo: write and test named variable binding.
+        # specs = _typed_child(obj, Attr_Spec_List)
+        # bind = _typed_child(specs, Language_Binding_Spec)
+        # name = _typed_child(bind, Char_Literal_Constant)
+        # if not name:
+        #     name = _typed_child(obj, Name)
+        #     logger.debug(f"unnamed variable binding, using fortran name '{name}' in {fpath}")
+        # else:
+        #     logger.debug(f"variable binding called '{name}' in {fpath}")
+
+        entities = _typed_child(obj, Entity_Decl_List)
+        for entity in entities.items:
+            name = _typed_child(entity, Name)
+            analysed_file.add_symbol_def(name.string)
+
+    def _process_comment(self, analysed_file, obj):
+        # Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
+        # Be sure to alert the user that this practice is deprecated.
+        # TODO: error handling in case we catch a genuine comment
+        # TODO: separate this project-specific code from the generic f analyser?
+        depends_str = "DEPENDS ON:"
+        if depends_str in obj.items[0]:
+            self.depends_on_comment_found = True
+            dep = obj.items[0].split(depends_str)[-1].strip()
+            # with .o means a c file
+            if dep.endswith(".o"):
+                analysed_file.mo_commented_file_deps.add(dep.replace(".o", ".c"))
+            # without .o means a fortran symbol
+            else:
+                analysed_file.add_symbol_dep(dep)
+
+    def _process_subroutine_or_function(self, analysed_file, fpath, obj):
+        # binding?
+        bind = _typed_child(obj, Language_Binding_Spec)
+        if bind:
+            name = _typed_child(bind, Char_Literal_Constant)
+            if not name:
+                name = _typed_child(obj, Name)
+                logger.debug(f"unnamed binding, using fortran name '{name}' in {fpath}")
+            bind_name = name.string.replace('"', '')
+
+            # importing a c function into fortran, i.e binding within an interface block
+            if _has_ancestor_type(obj, Interface_Block):
+                # found a dependency on C
+                logger.debug(f"found function binding import '{bind_name}'")
+                analysed_file.add_symbol_dep(bind_name)
+
+            # exporting from fortran to c, i.e binding without an interface block
+            else:
+                analysed_file.add_symbol_def(bind_name)
+
+        # not bound, just record the presence of the fortran symbol
+        # we don't need to record stuff in modules (we think!)
+        elif not _has_ancestor_type(obj, Module) and not _has_ancestor_type(obj, Interface_Block):
+            if type(obj) == Subroutine_Stmt:
+                analysed_file.add_symbol_def(str(obj.get_name()))
+            if type(obj) == Function_Stmt:
+                _, name, _, _ = obj.items
+                analysed_file.add_symbol_def(name.string)
+
+
+class FortranParserWorkaround(object):
+    """
+    Use this class to create a workaround when the Fortran parser is unable to process a valid source file.
+
+    You must manually examine the source file and list:
+     - module definitions
+     - module dependencies
+     - symbols defined outside a module
+     - symbols used without a use statement
+
+    Params are as for :class:`~fab.dep_tree.AnalysedFortranBase`.
+
+    This class is intended to be passed to the :class:`~fab.steps.analyse.Analyse` step.
+
+    """
+    def __init__(self, fpath: Union[str, Path],
+                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 mo_commented_file_deps: Optional[Iterable[str]] = None):
+        """
+        :param fpath:
+            The source file that was analysed.
+        :param module_defs:
+            Set of module names defined by this source file.
+            A subset of symbol_defs
+        :param symbol_defs:
+            Set of symbol names defined by this source file.
+        :param module_deps:
+            Set of module names used by this source file.
+        :param symbol_deps:
+            Set of symbol names used by this source file.
+            Can include symbols in the same file.
+        :param mo_commented_file_deps:
+            A set of C file names, without paths, on which this file depends.
+            Comes from "DEPENDS ON:" comments which end in ".o".
+
+        """
+        self.fpath = fpath
+        self.module_defs: Set[str] = set(module_defs or {})
+        self.symbol_defs: Set[str] = set(symbol_defs or {})
+        self.module_deps: Set[str] = set(module_deps or {})
+        self.symbol_deps: Set[str] = set(symbol_deps or {})
+        self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
+
+    def as_analysed_file(self):
+
+        # To be as helpful as possible, we allow the user to omit module defs/deps from the symbol defs/deps.
+        # However, they need to be there so do this now.
+        self.symbol_defs = self.symbol_defs | self.module_defs
+        self.symbol_deps = self.symbol_deps | self.module_deps
+
+        return AnalysedFortran(
+            fpath=self.fpath, file_hash=file_checksum(self.fpath).file_hash,
+            module_defs=self.module_defs, symbol_defs=self.symbol_defs,
+            module_deps=self.module_deps, symbol_deps=self.symbol_deps,
+            mo_commented_file_deps=self.mo_commented_file_deps,
+        )

@@ -6,8 +6,9 @@
 import filecmp
 import shutil
 from pathlib import Path
+from unittest import mock
 
-from fab.parse.fortran import X90Analyser
+from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
 from fab.steps.psyclone import make_compliant_x90
 
 
@@ -25,11 +26,33 @@ def test_make_compliant_x90(tmp_path):
 
 class TestX90Analyser(object):
 
-    def test_vanilla(self, tmp_path):
-        compliant_x90_path = Path(__file__).parent / 'sample.compliant_x90'
+    expected_analysis_result = AnalysedX90(
+        fpath=Path(__file__).parent / 'sample.compliant_x90',
+        file_hash=3739281332,
+        kernel_deps={
+            'kernel_type_one': 'imaginary_mod_one',
+            'kernel_type_two': 'imaginary_mod_one',
+            'kernel_type_three': 'imaginary_mod_one',
+            'kernel_type_four': 'imaginary_mod_two',
+            'kernel_type_five': 'imaginary_mod_two',
+            'kernel_type_six': 'imaginary_mod_two',
+        })
+
+    def run(self, tmp_path) -> AnalysedX90:
+        compliant_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
         x90_analyser._prebuild_folder = tmp_path
+        return x90_analyser.run(compliant_x90_path)
 
-        x90_analyser.run(compliant_x90_path)
+    def test_vanilla(self, tmp_path):
+        analysed_x90 = self.run(tmp_path)
+        assert analysed_x90 == self.expected_analysis_result
 
+    def test_prebuild(self, tmp_path):
+        self.run(tmp_path)
 
+        # Run it a second time, ensure it's not re-processed and still gives the correct result
+        with mock.patch('fab.parse.fortran.x90.X90Analyser.walk_nodes') as mock_walk:
+            analysed_x90 = self.run(tmp_path)
+        mock_walk.assert_not_called()
+        assert analysed_x90 == self.expected_analysis_result

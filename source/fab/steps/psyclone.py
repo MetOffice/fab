@@ -8,6 +8,7 @@ A preprocessor and code generation step for PSyclone.
 https://github.com/stfc/PSyclone
 
 """
+import logging
 import re
 import warnings
 from itertools import chain
@@ -15,11 +16,13 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 from fab.artefacts import SuffixFilter
-from fab.parse.fortran import X90Analyser
+from fab.parse.fortran.x90 import X90Analyser
 from fab.steps import Step, check_for_errors
 from fab.steps.preprocess import PreProcessor
 from fab.util import log_or_dot, input_to_output_fpath, run_command, file_checksum, file_walk
-from run_configs.lfric.lfric_common import logger
+
+
+logger = logging.getLogger(__name__)
 
 
 # todo: should this be part of the psyclone step?
