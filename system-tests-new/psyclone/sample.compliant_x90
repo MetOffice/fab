@@ -1,10 +1,10 @@
 
 module physics_mappings_alg_mod
 
-    use imaginary_mod_one, only : kernel_one, kernel_two, kernel_three
-    use imaginary_mod_two, only : kernel_four, &
-                                  kernel_five, &
-                                  kernel_six
+    use imaginary_mod_one, only : kernel_type_one, kernel_type_two, kernel_type_three
+    use imaginary_mod_two, only : kernel_type_four, &
+                                  kernel_type_five, &
+                                  kernel_type_six
 
     implicit none
 

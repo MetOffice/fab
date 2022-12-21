@@ -46,13 +46,11 @@ def psyclone_preprocessor(set_um_physics=False):
 
 class Psyclone(Step):
 
-    def __init__(self, name=None, kernel_roots=None, transformation_script=None):
+    def __init__(self, name=None, kernel_roots=None, transformation_script=None, cli_args=None):
         super().__init__(name=name or 'psyclone')
         self.kernel_roots = kernel_roots or []
         self.transformation_script = transformation_script
-
-        assert False
-        self.cli_args = None
+        self.cli_args = cli_args or []
 
         # runtime
         self._transformation_script_hash = None

@@ -69,7 +69,7 @@ class AnalysedX90(AnalysedFileBase):
     Analysis results for an x90 file.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: int, kernel_deps: Iterable[str]):
+    def __init__(self, fpath: Union[str, Path], file_hash: int, kernel_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
             The path of the x90 file.
@@ -80,7 +80,7 @@ class AnalysedX90(AnalysedFileBase):
 
         """
         super().__init__(fpath=fpath, file_hash=file_hash)
-        self.kernel_deps: Set[str] = set(kernel_deps)
+        self.kernel_deps: Set[str] = set(kernel_deps or {})
 
 
 class AnalysedFortran(AnalysedFileBase):

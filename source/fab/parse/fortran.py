@@ -11,10 +11,11 @@ from abc import abstractmethod, ABC
 from pathlib import Path
 from typing import Union
 
+from fab import FabException
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
-    Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt)
+    Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Only_List, Actual_Arg_Spec_List, Part_Ref)
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
 from fparser.two.Fortran2008 import (  # type: ignore
@@ -24,7 +25,7 @@ from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab.parse import ParseException, EmptySourceFile, AnalysedFileBase, AnalysedFortran, AnalysedX90
-from fab.util import log_or_dot, file_checksum
+from fab.util import log_or_dot, file_checksum, by_type
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def _has_ancestor_type(obj, obj_type):
     return _has_ancestor_type(obj.parent, obj_type)
 
 
-def _typed_child(parent, child_type):
+def _typed_child(parent, child_type, must_exist=False):
     # Look for a child of a certain type.
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
@@ -70,6 +71,9 @@ def _typed_child(parent, child_type):
 
     if children:
         return children[0]
+
+    if must_exist:
+        raise FabException(f'Could not find child of type {child_type} in {parent}')
     return None
 
 
@@ -79,8 +83,9 @@ class FortranAnalyserBase(ABC):
 
     """
     _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
+    RESULT_CLASS = None
 
-    def __init__(self, result_class, std="f2008"):
+    def __init__(self, std="f2008"):
         """
         :param result_class:
             The type (class) of the analysis result. Defined by the subclass.
@@ -88,7 +93,6 @@ class FortranAnalyserBase(ABC):
             The Fortran standard.
 
         """
-        self.result_class = result_class
         self.f2008_parser = ParserFactory().create(std=std)
 
         # runtime
@@ -167,6 +171,7 @@ class FortranAnalyser(FortranAnalyserBase):
         super().__init__(std=std)
         self.ignore_mod_deps = ignore_mod_deps or []
         self.depends_on_comment_found = False
+        self.result_class = AnalysedFortran
 
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFortran:
 
@@ -217,10 +222,7 @@ class FortranAnalyser(FortranAnalyserBase):
         return analysed_file
 
     def _process_use_statement(self, analysed_file, obj):
-        use_name = _typed_child(obj, Name)
-        if not use_name:
-            raise ParseException("ERROR finding name in use statement:", obj.string)
-
+        use_name = _typed_child(obj, Name, must_exist=True)
         use_name = use_name.string
 
         if use_name in self.ignore_mod_deps:
@@ -299,27 +301,63 @@ class X90Analyser(FortranAnalyserBase):
     # Make a fortran compliant version so we can use fortran parsers on it.
     # Use hashing to reuse previous analysis results.
 
+    def __init__(self):
+        super().__init__()
+        self.result_class = AnalysedX90
+
+        # runtime
+
+        # Maps "only" symbols to the modules they're in.
+        self._symbol_deps = {}
+
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:
-        # see what's in the tree
-        analysed_file = AnalysedFortran(fpath=fpath, file_hash=file_hash)
+        analysed_file = AnalysedX90(fpath=fpath, file_hash=file_hash)
+
         for obj in iter_content(node_tree):
             obj_type = type(obj)
             try:
-
-                # todo: ?replace these with function lookup dict[type, func]? - Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
                     self._process_use_statement(analysed_file, obj)  # raises
 
                 elif obj_type == Call_Stmt:
-                    called_name = _typed_child(obj, Name)
-                    # called_name will be None for calls like thing%method(),
-                    # which is fine as it doesn't reveal a dependency on an external function.
-                    if called_name == "invoke":
-                        xxx
+                    self._process_call_statement(analysed_file, obj)
 
             except Exception:
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
 
-        analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
-        analysed_file.save(analysis_fpath)
+        # analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
+        # analysed_file.save(analysis_fpath)
+
         return analysed_file
+
+    def _process_use_statement(self, analysed_file, obj):
+        # Record the modules in which potential kernels live.
+        # We'll find out if they're kernels later.
+        module_dep = _typed_child(obj, Name, must_exist=True)
+        only_list = _typed_child(obj, Only_List)
+        if not only_list:
+            return
+
+        name_nodes = by_type(only_list.children, Name)
+        for name in name_nodes:
+            self._symbol_deps[name.string] = module_dep.string
+
+    def _process_call_statement(self, analysed_file, obj):
+        # if we're calling invoke, record the names of the args.
+        # sanity check they end with "_type".
+        called_name = _typed_child(obj, Name)
+        if called_name.string == "invoke":
+            arg_list = _typed_child(obj, Actual_Arg_Spec_List)
+            if not arg_list:
+                logger.info(f'No arg list passed to invoke: {obj.string}')
+                return
+            args = by_type(arg_list.children, Part_Ref)
+            for arg in args:
+                arg_name = _typed_child(arg, Name)
+                arg_name = arg_name.string
+                if arg_name in self._symbol_deps:
+                    in_mod = self._symbol_deps[arg_name]
+                    print(f'found kernel dependency {arg_name} in module {in_mod}')
+                    # analysed_file.add_kernel_dep(arg)
+                else:
+                    print(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")
