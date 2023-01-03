@@ -15,12 +15,14 @@ from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+from fparser.two.Fortran2003 import Use_Stmt
+
 from fab.artefacts import SuffixFilter
+from fab.parse.fortran.fortran import FortranAnalyser
 from fab.parse.fortran.x90 import X90Analyser
 from fab.steps import Step, check_for_errors
 from fab.steps.preprocess import PreProcessor
-from fab.util import log_or_dot, input_to_output_fpath, run_command, file_checksum, file_walk
-
+from fab.util import log_or_dot, input_to_output_fpath, run_command, file_checksum, file_walk, TimerLogger
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,16 @@ def psyclone_preprocessor(set_um_physics=False):
 
 
 class Psyclone(Step):
+    """
 
+    .. note::
+
+        This step must run before the Analyse step because it performs extra processing on kernel files.
+        Fab's Fortran analysis uses prebuilds if available, so
+        xxx
+
+
+    """
     def __init__(self, name=None, kernel_roots=None, transformation_script=None, cli_args=None):
         super().__init__(name=name or 'psyclone')
         self.kernel_roots = kernel_roots or []
@@ -58,6 +69,7 @@ class Psyclone(Step):
         # runtime
         self._transformation_script_hash = None
         self._file_hashes = None
+        self._used_kernel_hashes = None
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
@@ -159,22 +171,18 @@ class Psyclone(Step):
         # For each file, we get back the fpath of the temporary, compliant file plus any removed invoke() names.
         # These names are part of our change detection.
         # Note: we could use the hash of the pre-compliant x90 instead of capturing the removed names...
-        results = self.run_mp(items=artefact_store['preprocessed_x90'], func=make_compliant_x90)
-        compliant_x90: Dict[Path, List[str]] = dict(results)
+        mp_results = self.run_mp(items=artefact_store['preprocessed_x90'], func=make_compliant_x90)
+        compliant_x90: Dict[Path, List[str]] = dict(mp_results)
 
         # Analyse the compliant x90s to see which kernels they use.
-        self._analyse_x90s(compliant_x90)
-        assert False
-        self._analysed_x90 = None
-        assert False
-        x90_kernels: Dict[str, List[str]] = None
-        all_used_kernels = set(chain(x90_kernels.values()))
+        analysed_x90 = self._analyse_x90s(compliant_x90)
+        used_kernels = set(chain(a.kernel_deps for a in analysed_x90))
 
-        # Get a list of all kernel files. Analyse them all because we want their hashes and they need analysing anyway.
-        # (They might have already been analysed if the Analyse step has already been run, or when rebuilding.)
-        # todo: we'll want special parsing here eventually, to only get the hash of the used kernel metadata types.
+        # Hash every used kernel (metadata, a type definition).
+        # Analyse *all* kernel files to find them.
+        # We only need their hashes right now, but they all need analysing anyway.
         all_kernel_files = set(chain(file_walk(root) for root in self.kernel_roots))
-        kernel_hashes = self._analyse_kernels(kernel_files, all_kernel_files)
+        self._kernel_hashes = self._analyse_kernels(all_kernel_files, used_kernels)
 
         # {x90: <list of kernels>}
         x90_kernels: Dict[str, List[str]] = self._analyse_x90s(compliant_x90)
@@ -186,13 +194,40 @@ class Psyclone(Step):
         # kernel_hashes = self._analyse_kernels(kernel_files, all_used_kernels)
 
     def _analyse_x90s(self, compliant_x90):
-        # Parse fortran compliant x90, recording symbols in use statements and args to invoke().
-        # Anything in both is a kernel dependency.
+        # Parse fortran compliant x90, finding kernel dependencies.
         x90_analyser = X90Analyser()
-        assert False
+        x90_analyser._prebuild_folder = self._config.prebuild_folder
+        with TimerLogger(f"analysing {len(compliant_x90)} fortran compliant x90 files"):
+            analysed_x90 = self.run_mp(items=compliant_x90, func=x90_analyser.run)
+        return analysed_x90
 
-    def _analyse_kernels(kernel_files, all_used_kernels):
-        pass
+    def _analyse_kernels(self, kernel_files, used_kernels):
+        # We want to hash the kernel metadata, which are type defs.
+        # We use the normal Fortran analyser and inject our own kernel handler.
+        # The Analyse step also uses the fortran analyser. It stores its results so they won't be analysed twice.
+        # todo: What if the analyser ran first? We won't walk the nodes!
+        # todo: what if the analyser ran last time...we need to store the kernel hashs like prebuilds...?...
+
+        # we need to be able to get kernel hashes even if the file has been analysed.
+        # so there's no point injecting our kernel handler into the normal analyser.
+        #
+        # might be best to just re-parse, or save the parse tree?
+        #
+        # or just have the foretran analyser *always* record kernel defs?
+        #
+        # that's it.
+        #
+        #
+        #
+
+        # used_kernel_hashes = {}
+
+        fortran_analyser = FortranAnalyser()
+        fortran_analyser._prebuild_folder = self._config.prebuild_folder
+        with TimerLogger(f"analysing {len(kernel_files)} kernel files"):
+            fortran_results = self.run_mp(items=kernel_files, func=fortran_analyser.run)
+
+        return used_kernel_hashes
 
     def do_one_file(self, x90_file):
         log_or_dot(logger=logger, msg=str(x90_file))

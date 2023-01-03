@@ -9,7 +9,7 @@ Fortran language handling classes.
 """
 import logging
 from pathlib import Path
-from typing import Union, Optional, Iterable, Dict, Any, Set
+from typing import Union, Optional, Iterable, Dict, Any, Set, Callable
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
@@ -21,7 +21,7 @@ from fparser.two.Fortran2008 import (  # type: ignore
     Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
 
 from fparser.two.parser import ParserFactory  # type: ignore
-from fparser.two.utils import FortranSyntaxError  # type: ignore
+from fparser.two.utils import FortranSyntaxError, StmtBase  # type: ignore
 
 from fab.parse import AnalysedFile
 from fab.parse.fortran import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
@@ -147,20 +147,6 @@ class AnalysedFortran(AnalysedFile):
             tuple(sorted(self.mo_commented_file_deps)),
         ))
 
-    # def save(self, fpath: Union[str, Path]):
-    #     d = self.to_dict()
-    #     d["cls"] = self.__class__.__name__
-    #     json.dump(d, open(fpath, 'wt'), indent=4)
-    #
-    # @classmethod
-    # def load(cls, fpath: Union[str, Path]):
-    #     d = json.load(open(fpath))
-    #     found_class = d["cls"]
-    #     if found_class != cls.__name__:
-    #         logger.error(f"Expected class name '{cls.__name__}', got '{found_class}'")
-    #         return None
-    #     return cls.from_dict(d)
-
     def to_dict(self) -> Dict[str, Any]:
         return {
             "fpath": str(self.fpath),
@@ -197,11 +183,17 @@ class FortranAnalyser(FortranAnalyserBase):
 
     # RESULT_CLASS = AnalysedFortran
 
-    def __init__(self, std=None, ignore_mod_deps=None):
+    def __init__(self, std=None, ignore_mod_deps: Iterable[str] = None):
+        """
+        :param std:
+            The Fortran standard.
+        :param ignore_mod_deps:
+            Module names to ignore in use statements.
+
+        """
         super().__init__(result_class=AnalysedFortran, std=std)
-        self.ignore_mod_deps = ignore_mod_deps or []
+        self.ignore_mod_deps = list(ignore_mod_deps or [])
         self.depends_on_comment_found = False
-        # self.result_class = AnalysedFortran
 
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFortran:
 
@@ -243,6 +235,11 @@ class FortranAnalyser(FortranAnalyserBase):
 
                 elif obj_type == Comment:
                     self._process_comment(analysed_file, obj)
+                    
+                # Hash any data types we find. These are used by the psyclone step.
+                # todo: how can we split this out elegantly?
+                # elif obj_type == TYPE_DEF:
+                #     pass
 
             except Exception:
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')

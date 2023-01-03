@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
-from fab.steps.psyclone import make_compliant_x90
+from fab.steps.psyclone import make_compliant_x90, Psyclone
 
 
 def test_make_compliant_x90(tmp_path):
@@ -56,3 +56,20 @@ class TestX90Analyser(object):
             analysed_x90 = self.run(tmp_path)
         mock_walk.assert_not_called()
         assert analysed_x90 == self.expected_analysis_result
+
+
+class TestKernelAnalysis(object):
+    # The psyclone step runs the normal fortran analyser on all kernel files,
+    # with an extra node handler injected, for detecting and hashing kernel metadata.
+    # The standard fortran analysis should be unaffected, including identical prebuilds,
+    # plus we should get back a hash of all the *used* kernels.
+
+    def test_vanilla(self):
+        used_kernels = ['kernel_two_type']
+        kernel_files = [Path(__file__).parent / 'sample_kernel.f90']
+        psyclone_step = Psyclone()
+
+        kernel_hashes = psyclone_step._analyse_kernels(kernel_files=kernel_files, used_kernels=used_kernels)
+
+
+

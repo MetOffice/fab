@@ -84,6 +84,8 @@ class FortranAnalyserBase(ABC):
         self.result_class = result_class
         self.f2008_parser = ParserFactory().create(std=std)
 
+        # todo: this, and perhaps other runtime variables like it, might be better passed in at construction
+        #       if we can just construct these objects at runtime instead...
         # runtime
         self._prebuild_folder = None
 
