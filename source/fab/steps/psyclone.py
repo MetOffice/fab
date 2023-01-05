@@ -25,7 +25,7 @@ from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
 from fab.steps import Step, check_for_errors
 from fab.steps.preprocess import PreProcessor
 from fab.util import log_or_dot, input_to_output_fpath, run_command, file_checksum, file_walk, TimerLogger, \
-    string_checksum
+    string_checksum, suffix_filter
 
 logger = logging.getLogger(__name__)
 
@@ -177,20 +177,30 @@ class Psyclone(Step):
         compliant_x90: Set[Path] = set(self._removed_invoke_names.keys())
 
         # Analyse the compliant x90s to see which kernels they use.
-        self._analyse_x90s(compliant_x90)
-        used_kernels = set(chain(a.kernel_deps for a in self._analysed_x90.values()))
+        self._analysed_x90 = self._analyse_x90s(compliant_x90)
+        # each x90 analysis result contains the kernels they depend on, and the names of the modules they're in
+        # todo: we'd simplify this code if the x90 analyser didn't record the modules they're in
+        kernel_sets = [set(a.kernel_deps.keys()) for a in self._analysed_x90.values()]
+        used_kernels = set.union(*kernel_sets)
 
         # Analyse *all* the kernel files, hashing the psyclone kernel metadata.
         # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice,
         # so we pass them through the general fortran analyser, which currently recognises kernel metadata.
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
-        all_kernel_files = set(chain(file_walk(root) for root in self.kernel_roots))
-        all_kernel_hashes = self._analyse_kernels(all_kernel_files)
+        all_kernel_files = set(*chain(file_walk(root) for root in self.kernel_roots))
+        all_kernel_f90 = suffix_filter(all_kernel_files, ['.f90'])
+        all_kernel_hashes = self._analyse_kernels(all_kernel_f90)
 
         # we only need to remember the hashes of kernels which are used by our x90s
-        self._used_kernel_hashes = {k: h for k, h in all_kernel_hashes if k in used_kernels}
+        self._used_kernel_hashes = {}
+        for kernel in used_kernels:
+            self._used_kernel_hashes[kernel] = all_kernel_hashes.get(kernel)
+            if not self._used_kernel_hashes[kernel]:
+                # If we can't get a hash for this kernel, we can't tell if it's changed.
+                # We *could* continue, without prebuilds, but psyclone would presumably fail with a missing kernel.
+                raise FabException(f"could not find hash for used kernel '{kernel}'")
 
-    def _analyse_x90s(self, compliant_x90: Set[Path]) -> List[AnalysedX90]:
+    def _analyse_x90s(self, compliant_x90: Set[Path]) -> Dict[Path, AnalysedX90]:
         # Parse fortran compliant x90, finding kernel dependencies.
         x90_analyser = X90Analyser()
         x90_analyser._prebuild_folder = self._config.prebuild_folder
@@ -198,7 +208,7 @@ class Psyclone(Step):
             results = self.run_mp(items=compliant_x90, func=x90_analyser.run)
 
         # record the analysis result against the original x90 filename
-        self._analysed_x90 = {result.fpath.with_suffix('.x90'): result for result in results}
+        return {result.fpath.with_suffix('.x90'): result for result in results}
 
         # todo: error handling
 
@@ -266,6 +276,8 @@ class Psyclone(Step):
         generated = input_to_output_fpath(config=self._config, input_path=generated)
         modified_alg = input_to_output_fpath(config=self._config, input_path=modified_alg)
         generated.parent.mkdir(parents=True, exist_ok=True)
+
+        # todo: do we have handwritten overrides
 
         # do we already have prebuilt results for this x90 file?
         prebuilt_alg, prebuilt_gen = self._get_prebuild_paths(modified_alg, generated, prebuild_hash)

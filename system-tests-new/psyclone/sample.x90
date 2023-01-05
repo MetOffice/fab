@@ -22,23 +22,27 @@ contains
         integer :: b
 
         ! one line
-        call invoke(kernel_one_type( a, b ), kernel_two_type( a, b ), kernel_three_type( a, b ), built_in() )
+        call invoke( name = "name a", kernel_one_type( a, b ), kernel_two_type( a, b ), kernel_three_type( a, b ), built_in() )
         ! no spaces
-        call invoke(kernel_one_type(a,b),kernel_two_type(a,b),kernel_three_type(a,b),built_in())
+        call invoke(name="name b",kernel_one_type(a,b),kernel_two_type(a,b),kernel_three_type(a,b),built_in())
 
         ! arg lines
-        call invoke(kernel_one_type( a, b ), &
+        call invoke( name = "name c", &
+                     kernel_one_type( a, b ), &
                      kernel_two_type( a, b ), &
                      kernel_three_type( a, b ), &
                      built_in() )
         ! no spaces
-        call invoke(kernel_one_type(a,b),&
+        call invoke(name="name d",&
+                    kernel_one_type(a,b),&
                     kernel_two_type(a,b),&
                     kernel_three_type(a,b),&
                     built_in())
 
         ! arg arg lines
-        call invoke(kernel_one_type( a, &
+        call invoke( &
+                     name = "name e", &
+                     kernel_one_type( a, &
                                       b ), &
                      kernel_two_type( a, &
                                       b ), &
@@ -46,7 +50,9 @@ contains
                                         b ), &
                      built_in() )
         ! no spaces
-        call invoke(kernel_one_type(a,&
+        call invoke(&
+                    name="name f",&
+                    kernel_one_type(a,&
                                     b),&
                     kernel_two_type(a,&
                                     b),&
