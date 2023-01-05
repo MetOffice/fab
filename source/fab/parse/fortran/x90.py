@@ -18,12 +18,17 @@ class AnalysedX90(AnalysedFile):
     Analysis results for an x90 file.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: int, kernel_deps: Optional[Iterable[str]] = None):
+    def __init__(self, fpath: Union[str, Path], file_hash: int,
+                 # todo: the fortran version doesn't include the remaining args - update this too, for simplicity.
+                 kernel_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
             The path of the x90 file.
         :param file_hash:
             The checksum of the x90 file.
+
+        todo: not as param
+
         :param kernel_deps:
             Kernel symbols used by the x90 file.
 

@@ -32,6 +32,7 @@ class AnalysedC(AnalysedFile):
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
+                 # todo: the fortran version doesn't include the remaining args - update this too, for simplicity.
                  symbol_defs: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
                  file_deps: Optional[Iterable[Path]] = None):
         """
@@ -39,6 +40,9 @@ class AnalysedC(AnalysedFile):
             The source file that was analysed.
         :param file_hash:
             The hash of the source. If omitted, Fab will evaluate lazily.
+
+        todo: not as params
+
         :param symbol_defs:
             Set of symbol names defined by this source file.
         :param symbol_deps:

@@ -103,11 +103,13 @@ def atm_config(two_stage=False, opt='Og'):
             ],
         ),
 
+        # todo: put this inside the psyclone step, no need for it to be separate as there's nothing required between them
         psyclone_preprocessor(set_um_physics=True),
 
         Psyclone(
             kernel_roots=[config.build_output],
-            transformation_script=,
+            transformation_script=xxx,
+            cli_args=[],
         ),
 
         # todo: do we need this one in here?
@@ -116,6 +118,9 @@ def atm_config(two_stage=False, opt='Og'):
         Analyse(
             root_symbol='lfric_atm',
             ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
+            # extra_node_processing = (
+            #   kernel_roots: something_kernel_types,
+            # ),
         ),
 
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),

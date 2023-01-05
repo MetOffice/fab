@@ -14,7 +14,8 @@ from typing import Union, Optional, Iterable, Dict, Any, Set, Callable
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
-    Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt)
+    Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
+    Type_Attr_Spec_List, Type_Attr_Spec, Type_Name)
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
 from fparser.two.Fortran2008 import (  # type: ignore
@@ -25,7 +26,7 @@ from fparser.two.utils import FortranSyntaxError, StmtBase  # type: ignore
 
 from fab.parse import AnalysedFile
 from fab.parse.fortran import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
-from fab.util import file_checksum
+from fab.util import file_checksum, string_checksum
 
 logger = logging.getLogger(__name__)
 
@@ -42,50 +43,52 @@ class AnalysedFortran(AnalysedFile):
     which will be converted at runtime into an `AnalysedFile` object.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
-                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
-                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None):
+    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None): #,
+                 # module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 # module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 # mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None):
         """
         :param fpath:
             The source file that was analysed.
         :param file_hash:
             The hash of the source. If omitted, Fab will evaluate lazily.
-        :param module_defs:
+
+        Contains the following attributes.
+
+        :ivar Iterable[str] module_defs:
             Set of module names defined by this source file.
             A subset of symbol_defs
-        :param symbol_defs:
+        :ivar Iterable[str] symbol_defs:
             Set of symbol names defined by this source file.
-        :param module_deps:
+        :ivar Iterable[str] module_deps:
             Set of module names used by this source file.
-        :param symbol_deps:
+        :ivar Iterable[str] symbol_deps:
             Set of symbol names used by this source file.
             Can include symbols in the same file.
-        :param mo_commented_file_deps:
+        :ivar Iterable[str] mo_commented_file_deps:
             A set of C file names, without paths, on which this file depends.
             Comes from "DEPENDS ON:" comments which end in ".o".
-        :param file_deps:
+        :ivar Iterable[Path] file_deps:
             Other files on which this source depends. Must not include itself.
             This attribute is calculated during symbol analysis, after everything has been parsed.
+        :ivar Dict[str, int] psyclone_kernels:
+            The hash of any PSyclone kernel metadata found in this source file, by name.
 
         """
         super().__init__(fpath=fpath, file_hash=file_hash)
 
-        self.module_defs: Set[str] = set(module_defs or {})
-        self.symbol_defs: Set[str] = set(symbol_defs or {})
-        self.module_deps: Set[str] = set(module_deps or {})
-        self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
-        self.file_deps: Set[Path] = set(file_deps or {})
+        self.module_defs: Set[str] = set()
+        self.symbol_defs: Set[str] = set()
+        self.module_deps: Set[str] = set()
+        self.symbol_deps: Set[str] = set()
+        self.mo_commented_file_deps: Set[str] = set()
+        self.file_deps: Set[Path] = set()
 
-        assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
-        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
-        assert all([d and len(d) for d in self.module_deps]), "bad module dependencies"
-        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
+        # Todo: Ideally Psyclone stuff would not be part of this general fortran analysis code.
+        #       Instead, perhaps we could inject bespoke node handling into the fortran analyser.
+        self.psyclone_kernels: Dict[str, int] = {}
 
-        # todo: this feels a little clanky.
-        assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
-        assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
+        self.validate()
 
     def add_module_def(self, name):
         self.module_defs.add(name.lower())
@@ -120,6 +123,7 @@ class AnalysedFortran(AnalysedFile):
             'module_defs', 'symbol_defs',
             'module_deps', 'symbol_deps',
             'file_deps', 'mo_commented_file_deps',
+            'psyclone_kernels',
         ]
 
     def __str__(self):
@@ -145,6 +149,7 @@ class AnalysedFortran(AnalysedFile):
             tuple(sorted(self.symbol_deps)),
             tuple(sorted(self.file_deps)),
             tuple(sorted(self.mo_commented_file_deps)),
+            tuple(sorted(self.psyclone_kernels.items())),
         ))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -157,6 +162,7 @@ class AnalysedFortran(AnalysedFile):
             "symbol_deps": list(self.symbol_deps),
             "file_deps": list(map(str, self.file_deps)),
             "mo_commented_file_deps": list(self.mo_commented_file_deps),
+            "psyclone_kernels": self.psyclone_kernels,
         }
 
     @classmethod
@@ -164,17 +170,40 @@ class AnalysedFortran(AnalysedFile):
         result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
-            module_defs=set(d["module_defs"]),
-            symbol_defs=set(d["symbol_defs"]),
-            module_deps=set(d["module_deps"]),
-            symbol_deps=set(d["symbol_deps"]),
-            file_deps=set(map(Path, d["file_deps"])),
-            mo_commented_file_deps=set(d["mo_commented_file_deps"]),
         )
-        assert result.file_hash is not None
+        # module_defs=set(d["module_defs"]),
+        # symbol_defs=set(d["symbol_defs"]),
+        # module_deps=set(d["module_deps"]),
+        # symbol_deps=set(d["symbol_deps"]),
+        # file_deps=set(map(Path, d["file_deps"])),
+        # mo_commented_file_deps=set(d["mo_commented_file_deps"]),
+        # )
+
+        result.module_defs = set(d["module_defs"])
+        result.symbol_defs = set(d["symbol_defs"])
+        result.module_deps = set(d["module_deps"])
+        result.symbol_deps = set(d["symbol_deps"])
+        result.file_deps = set(map(Path, d["file_deps"]))
+        result.mo_commented_file_deps = set(d["mo_commented_file_deps"])
+        result.psyclone_kernels = d["psyclone_kernels"]
+
+        result.validate()
         return result
 
+    def validate(self):
+        assert self.file_hash is not None
 
+        assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
+        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
+        assert all([d and len(d) for d in self.module_deps]), "bad module dependencies"
+        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
+
+        # todo: this feels a little clanky.
+        assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
+        assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
+
+
+# todo: consider, this doesn't really need to be a class at all...it could just be a function...
 class FortranAnalyser(FortranAnalyserBase):
     """
     A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFile`.
@@ -198,30 +227,30 @@ class FortranAnalyser(FortranAnalyserBase):
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFortran:
 
         # see what's in the tree
-        analysed_file = AnalysedFortran(fpath=fpath, file_hash=file_hash)
+        analysed_fortran = AnalysedFortran(fpath=fpath, file_hash=file_hash)
         for obj in iter_content(node_tree):
             obj_type = type(obj)
             try:
 
                 # todo: ?replace these with function lookup dict[type, func]? - Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
-                    self._process_use_statement(analysed_file, obj)  # raises
+                    self._process_use_statement(analysed_fortran, obj)  # raises
 
                 elif obj_type == Call_Stmt:
                     called_name = _typed_child(obj, Name)
                     # called_name will be None for calls like thing%method(),
                     # which is fine as it doesn't reveal a dependency on an external function.
                     if called_name:
-                        analysed_file.add_symbol_dep(called_name.string)
+                        analysed_fortran.add_symbol_dep(called_name.string)
 
                 elif obj_type == Program_Stmt:
-                    analysed_file.add_symbol_def(str(obj.get_name()))
+                    analysed_fortran.add_symbol_def(str(obj.get_name()))
 
                 elif obj_type == Module_Stmt:
-                    analysed_file.add_module_def(str(obj.get_name()))
+                    analysed_fortran.add_module_def(str(obj.get_name()))
 
                 elif obj_type in (Subroutine_Stmt, Function_Stmt):
-                    self._process_subroutine_or_function(analysed_file, fpath, obj)
+                    self._process_subroutine_or_function(analysed_fortran, fpath, obj)
 
                 # variables with c binding are found inside a Type_Declaration_Stmt.
                 # todo: This was used for exporting a Fortran variable for use in C.
@@ -231,22 +260,39 @@ class FortranAnalyser(FortranAnalyserBase):
                     # bound?
                     specs = _typed_child(obj, Attr_Spec_List)
                     if specs and _typed_child(specs, Language_Binding_Spec):
-                        self._process_variable_binding(analysed_file, obj)
+                        self._process_variable_binding(analysed_fortran, obj)
 
                 elif obj_type == Comment:
-                    self._process_comment(analysed_file, obj)
+                    self._process_comment(analysed_fortran, obj)
                     
-                # Hash any data types we find. These are used by the psyclone step.
-                # todo: how can we split this out elegantly?
-                # elif obj_type == TYPE_DEF:
-                #     pass
+                # Record any psyclone kernel metadata (type definitions) we find.
+                # todo: how can we separate this psyclone concern out elegantly, for loose coupling?
+                elif obj_type == Derived_Type_Def:
+                    # todo: error handling / robustness
+                    stmt = _typed_child(obj, Derived_Type_Stmt)
+                    spec_list = _typed_child(stmt, Type_Attr_Spec_List)
+                    type_spec = _typed_child(spec_list, Type_Attr_Spec)
+                    if type_spec.children[0] == 'EXTENDS':
+                        if type(type_spec.children[1]) == Name and type_spec.children[1].string == 'kernel_type':
+                            logger.info('found a kernel_type')
+
+                            # We've found a psyclone kernel metadata. What's it called?
+                            kernel_name = _typed_child(stmt, Type_Name).string
+
+                            # Hash this kernel metadata. If it changes, Psyclone will reprocess any x90 which uses it.
+                            kernel_hash = string_checksum(str(obj))
+
+                            assert kernel_name not in analysed_fortran.psyclone_kernels
+                            analysed_fortran.psyclone_kernels[kernel_name] = kernel_hash
+                    else:
+                        logger.info('not an extend spec')
 
             except Exception:
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
 
         # analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
         # analysed_file.save(analysis_fpath)
-        return analysed_file
+        return analysed_fortran
 
     def _process_use_statement(self, analysed_file, obj):
         use_name = _typed_child(obj, Name, must_exist=True)

@@ -86,7 +86,7 @@ class CompileFortran(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.two_stage_flag = two_stage_flag
 
-        # runtime
+        # runtime, for child processes to read
         self._stage = None
         self._mod_hashes: Dict[str, int] = {}
 

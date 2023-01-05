@@ -8,6 +8,9 @@ import shutil
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
+from fab.build_config import BuildConfig
 from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
 from fab.steps.psyclone import make_compliant_x90, Psyclone
 
@@ -58,18 +61,45 @@ class TestX90Analyser(object):
         assert analysed_x90 == self.expected_analysis_result
 
 
-class TestKernelAnalysis(object):
+@pytest.fixture
+def common(tmp_path):
+    config = BuildConfig('proj', fab_workspace=tmp_path)
+    config.prebuild_folder.mkdir(parents=True, exist_ok=False)
+
+    psyclone_step = Psyclone()
+    psyclone_step._config = config
+
+    return config, psyclone_step
+
+
+class Test_analyse_kernels(object):
     # The psyclone step runs the normal fortran analyser on all kernel files,
     # with an extra node handler injected, for detecting and hashing kernel metadata.
     # The standard fortran analysis should be unaffected, including identical prebuilds,
     # plus we should get back a hash of all the *used* kernels.
 
-    def test_vanilla(self):
-        used_kernels = ['kernel_two_type']
+    def test_vanilla(self, common):
+        config, psyclone_step = common
         kernel_files = [Path(__file__).parent / 'sample_kernel.f90']
-        psyclone_step = Psyclone()
 
-        kernel_hashes = psyclone_step._analyse_kernels(kernel_files=kernel_files, used_kernels=used_kernels)
+        all_kernels = psyclone_step._analyse_kernels(kernel_files=kernel_files)
+
+        assert all_kernels == {'kernel_one_type': 2915127408, 'kernel_two_type': 3793991362}
 
 
+class Test_analyse(object):
 
+    def test_analyse(self, common):
+        config, psyclone_step = common
+
+        # artefact_store = {'preprocessed_x90': []}
+        mp_results = [
+            (Path('foo'), [''])
+        ]
+        with mock.patch('fab.steps.psyclone.Psyclone.run_mp', return_value=mp_results)
+            psyclone_step.analyse(artefact_store=None)
+
+        used_kernels = ['kernel_two_type']
+
+
+        assert psyclone_step._used_kernel_hashes == {}
