@@ -22,13 +22,13 @@ class Step(ABC):
 
     """
 
-    def __init__(self, name):
+    def __init__(self, name=None):
         """
         :param name:
             Human friendly name for logger output. Steps generally provide a sensible default.
 
         """
-        self.name = name
+        self.name = name or self.__class__.__name__
 
         # runtime
         self._config = None

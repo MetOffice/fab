@@ -275,13 +275,14 @@ class FortranAnalyser(FortranAnalyserBase):
                         if spec_list:
                             type_spec = _typed_child(spec_list, Type_Attr_Spec)
                             if type_spec and type_spec.children[0] == 'EXTENDS':
-                                if type(type_spec.children[1]) == Name and type_spec.children[1].string == 'kernel_type':
-                                    logger.info('found a kernel_type')
+                                if type(type_spec.children[1]) == Name \
+                                        and type_spec.children[1].string == 'kernel_type':
 
                                     # We've found a psyclone kernel metadata. What's it called?
                                     kernel_name = _typed_child(stmt, Type_Name).string
 
-                                    # Hash this kernel metadata. If it changes, Psyclone will reprocess any x90 which uses it.
+                                    # Hash this kernel metadata.
+                                    # If it changes, Psyclone will reprocess any x90 which uses it.
                                     kernel_hash = string_checksum(str(obj))
 
                                     assert kernel_name not in analysed_fortran.psyclone_kernels

@@ -7,6 +7,10 @@
 import logging
 from argparse import ArgumentParser
 
+import fparser
+
+from fab.steps import Step
+
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
@@ -23,6 +27,17 @@ from fab.steps.psyclone import psyclone_preprocessor, Psyclone
 logger = logging.getLogger('fab')
 
 
+
+# class TryFix(Step):
+#     def run(self, artefact_store, config):
+#         logger.info('trying !! fix')
+#         fpath = config.build_output / 'solver/iterative_solver_mod.f90'
+#         src = open(fpath).read()
+#         src = src.replace("!!", "!")
+#         open(fpath, 'wt').write(src)
+
+
+
 # todo: optimisation path stuff
 
 
@@ -35,7 +50,6 @@ def gungho_config(two_stage=False, opt='Og'):
 
     config = BuildConfig(
         project_label=f'gungho {compiler} {opt} {int(two_stage)+1}stage',
-        verbose=True
     )
 
     config.steps = [
@@ -65,6 +79,8 @@ def gungho_config(two_stage=False, opt='Og'):
                 '-P',
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
             ]),
+
+        # TryFix(),
 
         psyclone_preprocessor(),
 
@@ -122,5 +138,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('--two-stage', action='store_true')
     arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
+
+    logger.info(f'fparser at {fparser}')
 
     gungho_config(two_stage=args.two_stage, opt=args.opt).run()
