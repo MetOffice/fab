@@ -35,8 +35,7 @@ def gungho_config(two_stage=False, opt='Og'):
 
     config = BuildConfig(
         project_label=f'gungho {compiler} {opt} {int(two_stage)+1}stage',
-        # multiprocessing=False,
-        # reuse_artefacts=True,
+        verbose=True
     )
 
     config.steps = [
@@ -69,7 +68,11 @@ def gungho_config(two_stage=False, opt='Og'):
 
         psyclone_preprocessor(),
 
-        Psyclone(kernel_roots=[config.build_output]),
+        Psyclone(
+            kernel_roots=[config.build_output],
+            transformation_script=lfric_source / 'gungho/optimisation/meto-spice/global.py',
+            cli_args=[],
+        ),
 
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 

@@ -12,37 +12,43 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
-from fab.steps.psyclone import make_compliant_x90, Psyclone
+from fab.steps.psyclone import make_parsable_x90, Psyclone
 
 
 SAMPLE_KERNEL = Path(__file__).parent / 'sample_kernel.f90'
 
-# this x90 has "name=" keywords and is not fortran compliant
+# this x90 has "name=" keywords and is not parsable fortran
 SAMPLE_X90 = Path(__file__).parent / 'sample.x90'
 
-# this is the sanitised version, with the name keywords removed, so it is fortran compliant
-COMPLIANT_X90 = Path(__file__).parent / 'sample.compliant_x90'
+# this is the sanitised version, with the name keywords removed, so it is parsable fortran
+PARSABLE_X90 = Path(__file__).parent / 'sample.parsable_x90'
 
 # the name keywords which are removed from the x90
 NAME_KEYWORDS = ['name a', 'name b', 'name c', 'name d', 'name e', 'name f']
 
 
-def test_make_compliant_x90(tmp_path):
-    # make non-compliant x90 parsable by removing the name keyword from calls to invoke
+def test_make_parsable_x90(tmp_path):
+    # turn x90 into parsable fortran by removing the name keyword from calls to invoke
     grab_x90_path = SAMPLE_X90
     input_x90_path = tmp_path / grab_x90_path.name
     shutil.copy(grab_x90_path, input_x90_path)
 
-    compliant_x90_path, removed_names = make_compliant_x90(input_x90_path)
+    parsable_x90_path, removed_names = make_parsable_x90(input_x90_path)
 
+    # the point of this function is to make the file parsable by fparser
+    x90_analyser = X90Analyser()
+    x90_analyser._prebuild_folder = tmp_path
+    x90_analyser.run(parsable_x90_path)
+
+    # ensure the files are as expected
     assert removed_names == NAME_KEYWORDS
-    assert filecmp.cmp(compliant_x90_path, COMPLIANT_X90)
+    assert filecmp.cmp(parsable_x90_path, PARSABLE_X90)
 
 
 class TestX90Analyser(object):
 
     expected_analysis_result = AnalysedX90(
-        fpath=COMPLIANT_X90,
+        fpath=PARSABLE_X90,
         file_hash=3739281332,
         kernel_deps={
             'kernel_type_one': 'imaginary_mod_one',
@@ -54,10 +60,10 @@ class TestX90Analyser(object):
         })
 
     def run(self, tmp_path) -> AnalysedX90:
-        compliant_x90_path = self.expected_analysis_result.fpath
+        parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
         x90_analyser._prebuild_folder = tmp_path
-        return x90_analyser.run(compliant_x90_path)
+        return x90_analyser.run(parsable_x90_path)
 
     def test_vanilla(self, tmp_path):
         analysed_x90 = self.run(tmp_path)
@@ -73,33 +79,17 @@ class TestX90Analyser(object):
         assert analysed_x90 == self.expected_analysis_result
 
 
-@pytest.fixture
-def common(tmp_path):
-    config = BuildConfig('proj', fab_workspace=tmp_path)
-    config.prebuild_folder.mkdir(parents=True, exist_ok=False)
+class TestPsyclone(object):
 
-    psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
-    psyclone_step._config = config
+    @pytest.fixture
+    def common(self, tmp_path):
+        config = BuildConfig('proj', fab_workspace=tmp_path)
+        config.prebuild_folder.mkdir(parents=True, exist_ok=False)
 
-    return config, psyclone_step
+        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
+        psyclone_step._config = config
 
-
-class Test_analyse_kernels(object):
-    # The psyclone step runs the normal fortran analyser on all kernel files,
-    # with an extra node handler injected, for detecting and hashing kernel metadata.
-    # The standard fortran analysis should be unaffected, including identical prebuilds,
-    # plus we should get back a hash of all the *used* kernels.
-
-    def test_vanilla(self, common):
-        config, psyclone_step = common
-        kernel_files = [SAMPLE_KERNEL]
-
-        all_kernels = psyclone_step._analyse_kernels(kernel_files=kernel_files)
-
-        assert all_kernels == {'kernel_one_type': 2915127408, 'kernel_two_type': 3793991362}
-
-
-class Test_analyse(object):
+        return config, psyclone_step
 
     def test_analyse(self, common):
         config, psyclone_step = common
@@ -116,4 +106,16 @@ class Test_analyse(object):
             'kernel_six_type': 1691832228,
         }
 
-    # todo: test the logic which joins the kernel names into used_kernels
+        # todo: better testing of the logic which joins the kernel names into used_kernels
+
+    def test_analyse_kernels(self, common):
+        config, psyclone_step = common
+        kernel_files = [SAMPLE_KERNEL]
+
+        all_kernels = psyclone_step._analyse_kernels(kernel_files=kernel_files)
+
+        assert all_kernels == {'kernel_one_type': 2915127408, 'kernel_two_type': 3793991362}
+
+    def test_gen_prebuild_hash(self):
+        pass
+

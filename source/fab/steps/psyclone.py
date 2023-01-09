@@ -25,7 +25,7 @@ from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
 from fab.steps import Step, check_for_errors
 from fab.steps.preprocess import PreProcessor
 from fab.util import log_or_dot, input_to_output_fpath, run_command, file_checksum, file_walk, TimerLogger, \
-    string_checksum, suffix_filter
+    string_checksum, suffix_filter, by_type
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class Psyclone(Step):
         # runtime, for child processes to read
         self._transformation_script_hash = None
         self._file_hashes = None
-        self._analysed_x90: Dict[Path, AnalysedX90] = {}  # analysis of fortran-compliant versions of the x90s
+        self._analysed_x90: Dict[Path, AnalysedX90] = {}  # analysis of parsable versions of the x90s
         self._used_kernel_hashes: Dict[str: int] = {}  # hash of every kernel used by the x90
         self._removed_invoke_names: Dict[Path, List[str]] = {}  # name keywords passed to invoke, removed for parsing
 
@@ -114,12 +114,14 @@ class Psyclone(Step):
             warnings.warn('no transformation script specified')
             self._transformation_script_hash = 0
 
-        results = self.run_mp(artefact_store['preprocessed_x90'], self.do_one_file)
+        x90s = artefact_store['preprocessed_x90']
+        with TimerLogger(f"running psyclone on {len(x90s)} x90 files"):
+            results = self.run_mp(x90s, self.do_one_file)
         check_for_errors(results, caller_label=self.name)
 
-        # delete any psy layer files which have hand-written overrides
+        # todo: delete any psy layer files which have hand-written overrides
         # is this called psykal?
-        assert False
+        # assert False
 
         successes = list(filter(lambda r: not isinstance(r, Exception), results))
         logger.info(f"success with {len(successes)} files")
@@ -134,8 +136,8 @@ class Psyclone(Step):
 
         Changes which trigger reprocessing of an x90 file:
          - x90 source, comprising:
-           - the parsable, fortran-compliant source with any invoke names removed
-           - any removed invoke names
+           - the parsable version of the source, with any invoke name keywords removed
+           - any removed invoke name keywords
          - kernel metadata used by the x90
          - transformation script
          - cli args
@@ -168,16 +170,24 @@ class Psyclone(Step):
 
         """
 
-        # Convert all the x90s to compliant fortran so they can be analysed.
-        # For each file, we get back the fpath of the temporary, compliant file plus any removed invoke() names.
+        # Convert all the x90s to parsable fortran so they can be analysed.
+        # For each file, we get back the fpath of the temporary, parsable file plus any removed invoke() names.
         # These names are part of our change detection.
-        # Note: We could use the hash of the pre-compliant x90 instead of capturing the removed names...
-        mp_results = self.run_mp(items=artefact_store['preprocessed_x90'], func=make_compliant_x90)
-        self._removed_invoke_names: Dict[Path, List[str]] = dict(mp_results)
-        compliant_x90: Set[Path] = set(self._removed_invoke_names.keys())
+        # Note: We could use the hash of the original x90 instead of capturing the removed names...
+        x90s = artefact_store['preprocessed_x90']
+        with TimerLogger(f"converting {len(x90s)} x90s into parsable fortran"):
+            mp_results = self.run_mp(items=x90s, func=make_parsable_x90)
 
-        # Analyse the compliant x90s to see which kernels they use.
-        self._analysed_x90 = self._analyse_x90s(compliant_x90)
+        # todo: any mp errors?
+
+        # the parsable versions of the x90s
+        parsable_x90: Set[Path] = {p for p, _ in mp_results}
+
+        # the name keywords which were removed from the x90s
+        self._removed_invoke_names = {path.with_suffix('.x90'): names for path, names in mp_results}
+
+        # Analyse the parsable x90s to see which kernels they use.
+        self._analysed_x90 = self._analyse_x90s(parsable_x90)
         # each x90 analysis result contains the kernels they depend on, and the names of the modules they're in
         # todo: we'd simplify this code if the x90 analyser didn't record the modules they're in
         kernel_sets = [set(a.kernel_deps.keys()) for a in self._analysed_x90.values()]
@@ -200,17 +210,18 @@ class Psyclone(Step):
                 # We *could* continue, without prebuilds, but psyclone would presumably fail with a missing kernel.
                 raise FabException(f"could not find hash for used kernel '{kernel}'")
 
-    def _analyse_x90s(self, compliant_x90: Set[Path]) -> Dict[Path, AnalysedX90]:
-        # Parse fortran compliant x90, finding kernel dependencies.
+    def _analyse_x90s(self, parsable_x90: Set[Path]) -> Dict[Path, AnalysedX90]:
+        # Analyse the parsable version of the x90, finding kernel dependencies.
         x90_analyser = X90Analyser()
         x90_analyser._prebuild_folder = self._config.prebuild_folder
-        with TimerLogger(f"analysing {len(compliant_x90)} fortran compliant x90 files"):
-            results = self.run_mp(items=compliant_x90, func=x90_analyser.run)
 
-        # record the analysis result against the original x90 filename
-        return {result.fpath.with_suffix('.x90'): result for result in results}
+        with TimerLogger(f"analysing {len(parsable_x90)} parsable x90 files"):
+            results = self.run_mp(items=parsable_x90, func=x90_analyser.run)
+        check_for_errors(results=results)
 
-        # todo: error handling
+        # record the analysis result against the original x90 filename (not the parsable version we analysed)
+        analysed_x90 = by_type(results, AnalysedX90)
+        return {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
 
     def _analyse_kernels(self, kernel_files) -> Dict[str, int]:
         # We want to hash the kernel metadata (type defs).
@@ -219,8 +230,15 @@ class Psyclone(Step):
         # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
         fortran_analyser = FortranAnalyser()
         fortran_analyser._prebuild_folder = self._config.prebuild_folder
-        with TimerLogger(f"analysing {len(kernel_files)} psyclone kernel files"):
-            analysed_fortran: List[AnalysedFortran] = self.run_mp(items=kernel_files, func=fortran_analyser.run)
+        with TimerLogger(f"analysing {len(kernel_files)} (potential) psyclone kernel files"):
+            mp_results = self.run_mp(items=kernel_files, func=fortran_analyser.run)
+        # check_for_errors(mp_results)
+        errors: List[Exception] = list(by_type(mp_results, Exception))
+        if errors:
+            errs_str = '\n\n'.join(map(str, errors))
+            logger.error(f"There were {len(errors)} errors while parsing kernels:\n\n{errs_str}")
+
+        analysed_fortran: List[AnalysedFortran] = by_type(mp_results, AnalysedFortran)
 
         # gather all kernel hashes into one big lump
         all_kernel_hashes: Dict[str, int] = {}
@@ -234,27 +252,71 @@ class Psyclone(Step):
     def do_one_file(self, x90_file):
         log_or_dot(logger=logger, msg=str(x90_file))
 
-        # We've analysed this x90.
-        # Note: This analysis result is for a fortran-compliant version of the original x90.
-        #       We gave it a different suffix, '.compliant_x90'.
+        prebuild_hash = self._gen_prebuild_hash(x90_file)
+
+        # These are the filenames we expect to be output for this x90 input file.
+        # There will always be one modified_alg, and 0+ generated.
+        modified_alg = x90_file.with_suffix('.f90')
+        generated = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
+        # generate into the build output, not the source
+        generated = input_to_output_fpath(config=self._config, input_path=generated)
+        modified_alg = input_to_output_fpath(config=self._config, input_path=modified_alg)
+        generated.parent.mkdir(parents=True, exist_ok=True)
+
+        # todo: do we have handwritten overrides?
+
+        # do we already have prebuilt results for this x90 file?
+        prebuilt_alg, prebuilt_gen = self._get_prebuild_paths(modified_alg, generated, prebuild_hash)
+        if prebuilt_alg.exists():
+            msg = f'found prebuilds for {x90_file}:\n    {prebuilt_alg}'
+            shutil.copy2(prebuilt_alg, modified_alg)
+            if prebuilt_gen.exists():
+                msg += f'\n    {prebuilt_gen}'
+                shutil.copy2(prebuilt_gen, generated)
+            logger.debug(msg)
+
+        else:
+            try:
+                # logger.info(f'running psyclone on {x90_file}')
+                self.run_psyclone(generated, modified_alg, x90_file)
+
+                shutil.copy2(modified_alg, prebuilt_alg)
+                msg = f'created prebuilds for {x90_file}:\n    {prebuilt_alg}'
+                if Path(generated).exists():
+                    msg += f'\n    {prebuilt_gen}'
+                    shutil.copy2(generated, prebuilt_gen)
+                logger.debug(msg)
+
+            except Exception as err:
+                logger.error(err)
+                return err
+
+        result = [modified_alg]
+        if Path(generated).exists():
+            result.append(generated)
+        return result
+
+    def _gen_prebuild_hash(self, x90_file):
+        # We've analysed (a parsable version of) this x90.
         analysis_result = self._analysed_x90[x90_file]
 
         # we'll hash the list of invoke names that were removed before fortran analysis
+        # (alternatively, we could use the hash of the non-parsable x90 and not record removed names...)
         removed_inkove_names = self._removed_invoke_names.get(x90_file)
         if removed_inkove_names is None:
-            raise FabException(f"Path not found in 'removed invoke names': '{x90_file}'")
+            raise FabException(f"No removed name data for path '{x90_file}'")
 
-        # we'll include the hashes of kernel dependencies
+        # include the hashes of kernels used by this x90
         kernel_deps_hashes = {self._used_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}
 
         # hash everything which should trigger re-processing
         # todo: hash the psyclone version in case the built-in kernels change?
         prebuild_hash = sum([
 
-            # the fortran compliant version of the x90
+            # the parsable version of the x90
             analysis_result.file_hash,
 
-            # the 'name=' keywords passed to invoke(), which were removed from the x90 to make it compliant
+            # the 'name=' keywords passed to invoke(), which were removed from the x90 to make it parsable
             string_checksum(str(removed_inkove_names)),
 
             # the hashes of the kernels used by this x90
@@ -267,37 +329,12 @@ class Psyclone(Step):
             string_checksum(str(self.cli_args)),
         ])
 
-        # These are the filenames we expect to be output for this x90 input file.
-        # There will always be one modified_alg, and 0+ generated.
-        modified_alg = x90_file.with_suffix('.f90')
-        generated = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
+        return prebuild_hash
 
-        # generate into the build output, not the source
-        generated = input_to_output_fpath(config=self._config, input_path=generated)
-        modified_alg = input_to_output_fpath(config=self._config, input_path=modified_alg)
-        generated.parent.mkdir(parents=True, exist_ok=True)
-
-        # todo: do we have handwritten overrides
-
-        # do we already have prebuilt results for this x90 file?
-        prebuilt_alg, prebuilt_gen = self._get_prebuild_paths(modified_alg, generated, prebuild_hash)
-        if prebuilt_alg.exists():
-            logger.info(f'prebuild(s) found for {x90_file}')
-            shutil.copy2(prebuilt_alg, modified_alg)
-            if prebuilt_gen.exists():
-                shutil.copy2(prebuilt_gen, generated)
-
-        else:
-            try:
-                self.run_psyclone(generated, modified_alg, x90_file)
-            except Exception as err:
-                logger.error(err)
-                return err
-
-        result = [modified_alg]
-        if Path(generated).exists():
-            result.append(generated)
-        return result
+    def _get_prebuild_paths(self, modified_alg, generated, prebuild_hash):
+        prebuilt_alg = Path(self._config.prebuild_folder / f'{modified_alg.stem}.{prebuild_hash}.{modified_alg.suffix}')
+        prebuilt_gen = Path(self._config.prebuild_folder / f'{generated.stem}.{prebuild_hash}.{generated.suffix}')
+        return prebuilt_alg, prebuilt_gen
 
     def run_psyclone(self, generated, modified_alg, x90_file):
 
@@ -320,13 +357,8 @@ class Psyclone(Step):
 
         run_command(command)
 
-    def _get_prebuild_paths(self, modified_alg, generated, prebuild_hash):
-        prebuilt_alg = Path(self._config.prebuild_folder / f'{modified_alg.stem}.{prebuild_hash}.{modified_alg.suffix}')
-        prebuilt_gen = Path(self._config.prebuild_folder / f'{generated.stem}.{prebuild_hash}.{prebuild_hash.suffix}')
-        return prebuilt_alg, prebuilt_gen
 
-
-# regex to convert an x90 into a fortran-compliant file, so it can be parsed with a third party tool
+# regex to convert an x90 into parsable fortran, so it can be analysed using a third party tool
 
 WHITE = r'[\s&]+'
 OPT_WHITE = r'[\s&]*'
@@ -341,7 +373,7 @@ NAMED_INVOKE = 'call' + WHITE + 'invoke' + OPT_WHITE + r'\(' + OPT_WHITE + NAME_
 _x90_compliance_pattern = None
 
 
-def make_compliant_x90(x90_path: Path) -> Tuple[Path, List[str]]:
+def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     """
     Take out the leading name keyword in calls to invoke(), making temporary, parsable fortran from x90s.
 
@@ -349,14 +381,22 @@ def make_compliant_x90(x90_path: Path) -> Tuple[Path, List[str]]:
 
         call invoke( name = "compute_dry_mass", ...
 
-    Returns the path of the Fortran compliant file, plus any invoke() names which were removed.
+    Returns the path of the parsable file, plus any invoke() names which were removed.
 
     """
     global _x90_compliance_pattern
     if not _x90_compliance_pattern:
         _x90_compliance_pattern = re.compile(pattern=NAMED_INVOKE)
 
-    src = open(x90_path, 'rt').read()
+    # src = open(x90_path, 'rt').read()
+
+    # Before we remove the name keywords to invoke, we must remove any comment lines.
+    # This is the simplest way to avoid producing bad fortran when the name keyword is followed by a comment line.
+    # I.e. The comment line doesn't have an "&", so we get "call invoke(!" with no "&", which is a syntax error.
+    src_lines = open(x90_path, 'rt').readlines()
+    no_comment_lines = [line for line in src_lines if not line.lstrip().startswith('!')]
+    src = ''.join(no_comment_lines)
+
     replaced = []
 
     def repl(matchobj):
@@ -368,7 +408,7 @@ def make_compliant_x90(x90_path: Path) -> Tuple[Path, List[str]]:
 
     out = _x90_compliance_pattern.sub(repl=repl, string=src)
 
-    out_path = x90_path.with_suffix('.compliant_x90')
+    out_path = x90_path.with_suffix('.parsable_x90')
     open(out_path, 'wt').write(out)
 
     return out_path, replaced

@@ -3,6 +3,7 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+import warnings
 from pathlib import Path
 from typing import Union, Optional, Iterable, Dict, Any
 
@@ -61,8 +62,8 @@ class AnalysedX90(AnalysedFile):
 
 class X90Analyser(FortranAnalyserBase):
 
-    # Make a fortran compliant version so we can use fortran parsers on it.
-    # Use hashing to reuse previous analysis results.
+    # Makes a parsable fortran version of x90.
+    # todo: Use hashing to reuse previous analysis results.
 
     def __init__(self):
         super().__init__(result_class=AnalysedX90)
@@ -107,6 +108,9 @@ class X90Analyser(FortranAnalyserBase):
         # if we're calling invoke, record the names of the args.
         # sanity check they end with "_type".
         called_name = _typed_child(obj, Name)
+        if not called_name:
+            # we see this for member calls, like "thing%func()", which we're not interested in
+            return
         if called_name.string == "invoke":
             arg_list = _typed_child(obj, Actual_Arg_Spec_List)
             if not arg_list:
@@ -120,4 +124,4 @@ class X90Analyser(FortranAnalyserBase):
                     in_mod = symbol_deps[arg_name]
                     analysed_file.kernel_deps[arg_name] = in_mod
                 else:
-                    print(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")
+                    warnings.warn(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")

@@ -43,10 +43,10 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 from fab.constants import BUILD_TREES
 from fab.dep_tree import add_mo_commented_file_deps, extract_sub_tree, \
     validate_dependencies
-from fab.parse import AnalysedFile, ParserWorkaround
+from fab.parse import AnalysedFile, EmptySourceFile
+from fab.parse.fortran.fortran import FortranParserWorkaround, FortranAnalyser
 from fab.steps import Step
 from fab.parse.c import CAnalyser
-from fab.parse.fortran import FortranAnalyser
 from fab.util import TimerLogger, by_type
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
@@ -80,7 +80,7 @@ class Analyse(Step):
                  source: Optional[ArtefactsGetter] = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
                  std: str = "f2008",
-                 special_measure_analysis_results: Optional[Iterable[ParserWorkaround]] = None,
+                 special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None,
                  name='analyser'):
@@ -124,7 +124,7 @@ class Analyse(Step):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[ParserWorkaround] = list(special_measure_analysis_results or [])
+        self.special_measure_analysis_results: List[FortranParserWorkaround] = list(special_measure_analysis_results or [])
         self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
@@ -233,6 +233,10 @@ class Analyse(Step):
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             fortran_results = self.run_mp(items=fortran_files, func=self.fortran_analyser.run)
 
+        # warn about naughty fortran usage
+        if self.fortran_analyser.depends_on_comment_found:
+            warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
+
         # c
         c_files = set(filter(lambda f: f.suffix == '.c', files))
         with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
@@ -250,11 +254,10 @@ class Analyse(Step):
         if exceptions:
             logger.error(f"{len(exceptions)} analysis errors")
 
-        # warn about naughty fortran usage?
-        if self.fortran_analyser.depends_on_comment_found:
-            warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
-
-        return set(by_type(results, AnalysedFile))
+        # ignore empty files
+        analysed_files = by_type(results, AnalysedFile)
+        non_empty = {af for af in analysed_files if not isinstance(af, EmptySourceFile)}
+        return non_empty
 
     def _add_manual_results(self, analysed_files: Set[AnalysedFile]):
         # add manual analysis results for files which could not be parsed
