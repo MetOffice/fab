@@ -9,33 +9,21 @@ from argparse import ArgumentParser
 
 import fparser
 
-from fab.steps import Step
-
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
+from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.find_source_files import FindSourceFiles, Exclude
+from fab.steps.psyclone import psyclone_preprocessor, Psyclone
+from fab.util import run_command
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import Configurator, FparserWorkaround_StopConcatenation
-from fab.steps.psyclone import psyclone_preprocessor, Psyclone
 
 logger = logging.getLogger('fab')
-
-
-
-# class TryFix(Step):
-#     def run(self, artefact_store, config):
-#         logger.info('trying !! fix')
-#         fpath = config.build_output / 'solver/iterative_solver_mod.f90'
-#         src = open(fpath).read()
-#         src = src.replace("!!", "!")
-#         open(fpath, 'wt').write(src)
-
 
 
 # todo: optimisation path stuff
@@ -48,8 +36,18 @@ def gungho_config(two_stage=False, opt='Og'):
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
     compiler, _ = get_fortran_compiler()
 
+    # fab development: try to use separate branches for different fab branches
+    git_branch = ''
+    try:
+        git_branch = run_command(['git', 'branch', '--show-current'], capture_output=True).strip()
+        git_branch += ' '
+        logger.info(f"git branch is '{git_branch}'")
+    except Exception:
+        pass
+
     config = BuildConfig(
-        project_label=f'gungho {compiler} {opt} {int(two_stage)+1}stage',
+        project_label=f'{git_branch}gungho {compiler} {opt} {int(two_stage)+1}stage',
+        verbose=True
     )
 
     config.steps = [
@@ -79,8 +77,6 @@ def gungho_config(two_stage=False, opt='Og'):
                 '-P',
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
             ]),
-
-        # TryFix(),
 
         psyclone_preprocessor(),
 

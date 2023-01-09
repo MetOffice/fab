@@ -268,25 +268,24 @@ class FortranAnalyser(FortranAnalyserBase):
                 # Record any psyclone kernel metadata (type definitions) we find.
                 # todo: how can we separate this psyclone concern out elegantly, for loose coupling?
                 elif obj_type == Derived_Type_Def:
-                    # todo: error handling / robustness
-                    stmt = _typed_child(obj, Derived_Type_Stmt)
-                    if stmt:
+                    try:
+                        stmt = _typed_child(obj, Derived_Type_Stmt)
                         spec_list = _typed_child(stmt, Type_Attr_Spec_List)
-                        if spec_list:
-                            type_spec = _typed_child(spec_list, Type_Attr_Spec)
-                            if type_spec and type_spec.children[0] == 'EXTENDS':
-                                if type(type_spec.children[1]) == Name \
-                                        and type_spec.children[1].string == 'kernel_type':
+                        type_spec = _typed_child(spec_list, Type_Attr_Spec)
+                        if type_spec.children[0] == 'EXTENDS':
+                            if type(type_spec.children[1]) == Name and type_spec.children[1].string == 'kernel_type':
 
-                                    # We've found a psyclone kernel metadata. What's it called?
-                                    kernel_name = _typed_child(stmt, Type_Name).string
+                                # We've found a psyclone kernel metadata. What's it called?
+                                kernel_name = _typed_child(stmt, Type_Name).string
 
-                                    # Hash this kernel metadata.
-                                    # If it changes, Psyclone will reprocess any x90 which uses it.
-                                    kernel_hash = string_checksum(str(obj))
+                                # Hash this kernel metadata.
+                                # If it changes, Psyclone will reprocess any x90 which uses it.
+                                kernel_hash = string_checksum(str(obj))
 
-                                    assert kernel_name not in analysed_fortran.psyclone_kernels
-                                    analysed_fortran.psyclone_kernels[kernel_name] = kernel_hash
+                                assert kernel_name not in analysed_fortran.psyclone_kernels
+                                analysed_fortran.psyclone_kernels[kernel_name] = kernel_hash
+                    except Exception:
+                        pass
 
             except Exception:
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')

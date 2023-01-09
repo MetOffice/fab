@@ -140,7 +140,7 @@ class FortranAnalyserBase(ABC):
             return tree
         except FortranSyntaxError as err:
             # we can't return the FortranSyntaxError, it breaks multiprocessing!
-            logger.error(f"\nsyntax error in {fpath}\n{err}")
+            logger.error(f"\nfparser raised a syntax error in {fpath}\n{err}")
             return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
             logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")

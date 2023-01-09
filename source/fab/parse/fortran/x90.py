@@ -124,4 +124,4 @@ class X90Analyser(FortranAnalyserBase):
                     in_mod = symbol_deps[arg_name]
                     analysed_file.kernel_deps[arg_name] = in_mod
                 else:
-                    warnings.warn(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")
+                    logger.debug(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")
