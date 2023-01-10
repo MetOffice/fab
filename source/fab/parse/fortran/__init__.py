@@ -73,7 +73,7 @@ class FortranAnalyserBase(ABC):
     """
     _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
 
-    def __init__(self, result_class, std="f2008"):
+    def __init__(self, result_class, std=None):
         """
         :param result_class:
             The type (class) of the analysis result. Defined by the subclass.
@@ -82,7 +82,7 @@ class FortranAnalyserBase(ABC):
 
         """
         self.result_class = result_class
-        self.f2008_parser = ParserFactory().create(std=std)
+        self.f2008_parser = ParserFactory().create(std=std or "f2008")
 
         # todo: this, and perhaps other runtime variables like it, might be better passed in at construction
         #       if we can just construct these objects at runtime instead...
@@ -135,6 +135,7 @@ class FortranAnalyserBase(ABC):
         """Get a node tree from a fortran file."""
         reader = FortranFileReader(str(fpath), ignore_comments=False)
         reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
+
         try:
             tree = self.f2008_parser(reader)
             return tree

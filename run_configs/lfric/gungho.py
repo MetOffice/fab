@@ -38,16 +38,15 @@ def gungho_config(two_stage=False, opt='Og'):
 
     # fab development: try to use separate branches for different fab branches
     git_branch = ''
-    try:
-        git_branch = run_command(['git', 'branch', '--show-current'], capture_output=True).strip()
-        git_branch += ' '
-        logger.info(f"git branch is '{git_branch}'")
-    except Exception:
-        pass
+    # try:
+    #     git_branch = run_command(['git', 'branch', '--show-current'], capture_output=True).strip()
+    #     git_branch += ' '
+    #     logger.info(f"git branch is '{git_branch}'")
+    # except Exception:
+    #     pass
 
     config = BuildConfig(
         project_label=f'{git_branch}gungho {compiler} {opt} {int(two_stage)+1}stage',
-        verbose=True
     )
 
     config.steps = [

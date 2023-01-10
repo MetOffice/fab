@@ -25,7 +25,7 @@ from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
 from fab.steps import Step, check_for_errors
 from fab.steps.preprocess import PreProcessor
 from fab.util import log_or_dot, input_to_output_fpath, run_command, file_checksum, file_walk, TimerLogger, \
-    string_checksum, suffix_filter, by_type
+    string_checksum, suffix_filter, by_type, log_or_dot_finish
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +117,7 @@ class Psyclone(Step):
         x90s = artefact_store['preprocessed_x90']
         with TimerLogger(f"running psyclone on {len(x90s)} x90 files"):
             results = self.run_mp(x90s, self.do_one_file)
+        log_or_dot_finish(logger)
         check_for_errors(results, caller_label=self.name)
 
         # todo: delete any psy layer files which have hand-written overrides
@@ -192,6 +193,7 @@ class Psyclone(Step):
         # todo: we'd simplify this code if the x90 analyser didn't record the modules they're in
         kernel_sets = [set(a.kernel_deps.keys()) for a in self._analysed_x90.values()]
         used_kernels = set.union(*kernel_sets)
+        logger.info(f'found {len(used_kernels)} kernels used')
 
         # Analyse *all* the kernel files, hashing the psyclone kernel metadata.
         # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice,
@@ -217,6 +219,7 @@ class Psyclone(Step):
 
         with TimerLogger(f"analysing {len(parsable_x90)} parsable x90 files"):
             results = self.run_mp(items=parsable_x90, func=x90_analyser.run)
+        log_or_dot_finish(logger)
         check_for_errors(results=results)
 
         # record the analysis result against the original x90 filename (not the parsable version we analysed)
@@ -230,9 +233,9 @@ class Psyclone(Step):
         # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
         fortran_analyser = FortranAnalyser()
         fortran_analyser._prebuild_folder = self._config.prebuild_folder
-        with TimerLogger(f"analysing {len(kernel_files)} (potential) psyclone kernel files"):
+        with TimerLogger(f"analysing {len(kernel_files)} potential psyclone kernel files"):
             mp_results = self.run_mp(items=kernel_files, func=fortran_analyser.run)
-        # check_for_errors(mp_results)
+        log_or_dot_finish(logger)
         errors: List[Exception] = list(by_type(mp_results, Exception))
         if errors:
             errs_str = '\n\n'.join(map(str, errors))

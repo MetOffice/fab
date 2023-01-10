@@ -34,8 +34,7 @@ def atm_config(two_stage=False, opt='Og'):
 
     config = BuildConfig(
         project_label=f'atm {compiler} {opt} {int(two_stage)+1}stage',
-        # multiprocessing=False,
-        # reuse_artefacts=True,
+        # verbose=True,
     )
 
     config.steps = [
@@ -71,12 +70,11 @@ def atm_config(two_stage=False, opt='Og'):
         # lfric_atm
         GrabFolder(src=lfric_source / 'lfric_atm/source/', dst='lfric', name='lfric_atm/source'),
 
-        # todo: UNCOMMENT THIS
-        # # generate more source files in source and source/configuration
-        # Configurator(lfric_source=lfric_source,
-        #              gpl_utils_source=gpl_utils_source,
-        #              rose_meta_conf=lfric_source / 'lfric_atm/rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf',
-        #              config_dir=config.source_root / 'lfric/configuration'),
+        # generate more source files in source and source/configuration
+        Configurator(lfric_source=lfric_source,
+                     gpl_utils_source=gpl_utils_source,
+                     rose_meta_conf=lfric_source / 'lfric_atm/rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf',
+                     config_dir=config.source_root / 'lfric/configuration'),
 
         FindSourceFiles(path_filters=file_filtering(config)),
 
@@ -95,16 +93,15 @@ def atm_config(two_stage=False, opt='Og'):
             ],
         ),
 
-        # todo: UNCOMMENT THIS
-        # fortran_preprocessor(
-        #     preprocessor='cpp -traditional-cpp -P',
-        #     common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED', '-DUSE_MPI=YES'],
-        #     path_flags=[
-        #         AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
-        #         AddFlags(match="$source/science/jules/*", flags=['-DUM_JULES', '-I$output']),
-        #         AddFlags(match="$source/science/*", flags=['-DLFRIC']),
-        #     ],
-        # ),
+        fortran_preprocessor(
+            preprocessor='cpp -traditional-cpp -P',
+            common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED', '-DUSE_MPI=YES'],
+            path_flags=[
+                AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
+                AddFlags(match="$source/science/jules/*", flags=['-DUM_JULES', '-I$output']),
+                AddFlags(match="$source/science/*", flags=['-DLFRIC']),
+            ],
+        ),
 
         # todo: put this inside the psyclone step, no need for it to be separate as there's nothing required between them
         psyclone_preprocessor(set_um_physics=True),

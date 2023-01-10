@@ -119,3 +119,5 @@ class TestPsyclone(object):
     def test_gen_prebuild_hash(self):
         pass
 
+
+# todo: test putting the analysis step before and after psyclone
