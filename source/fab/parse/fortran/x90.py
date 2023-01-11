@@ -59,6 +59,12 @@ class AnalysedX90(AnalysedFile):
     def __eq__(self, other):
         return vars(self) == vars(other)
 
+    def __str__(self):
+        return f'AnalysedX90({self.fpath}, {self.file_hash}, {self.kernel_deps})'
+
+    def __repr__(self):
+        return f'AnalysedX90({self.fpath}, {self.file_hash}, {self.kernel_deps})'
+
 
 class X90Analyser(FortranAnalyserBase):
 

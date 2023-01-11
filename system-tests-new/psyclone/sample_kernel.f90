@@ -1,4 +1,4 @@
-! six kernels, as used by the x90
+! four kernels, only two of which are used by the x90
 
 module my_kernel_mod
 
@@ -43,28 +43,6 @@ contains
 end type
 
 type, public, extends(kernel_type) :: kernel_four_type
-  private
-  type(arg_type) :: meta_args(2) = (/                 &
-       arg_type(GH_FIELD, GH_REAL, GH_WRITE, Wtheta), &
-       arg_type(GH_FIELD, GH_REAL, GH_READ,  W2)      &
-       /)
-  integer :: operates_on = CELL_COLUMN
-contains
-  procedure, nopass :: kernel_two_code
-end type
-
-type, public, extends(kernel_type) :: kernel_five_type
-  private
-  type(arg_type) :: meta_args(2) = (/                 &
-       arg_type(GH_FIELD, GH_REAL, GH_WRITE, Wtheta), &
-       arg_type(GH_FIELD, GH_REAL, GH_READ,  W2)      &
-       /)
-  integer :: operates_on = CELL_COLUMN
-contains
-  procedure, nopass :: kernel_two_code
-end type
-
-type, public, extends(kernel_type) :: kernel_six_type
   private
   type(arg_type) :: meta_args(2) = (/                 &
        arg_type(GH_FIELD, GH_REAL, GH_WRITE, Wtheta), &

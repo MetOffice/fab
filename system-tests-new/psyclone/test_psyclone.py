@@ -5,6 +5,7 @@
 # ##############################################################################
 import filecmp
 import shutil
+from os import unlink
 from pathlib import Path
 from unittest import mock
 
@@ -21,7 +22,7 @@ SAMPLE_KERNEL = Path(__file__).parent / 'sample_kernel.f90'
 SAMPLE_X90 = Path(__file__).parent / 'sample.x90'
 
 # this is the sanitised version, with the name keywords removed, so it is parsable fortran
-PARSABLE_X90 = Path(__file__).parent / 'sample.parsable_x90'
+EXPECT_PARSABLE_X90 = Path(__file__).parent / 'expect.parsable_x90'
 
 # the name keywords which are removed from the x90
 NAME_KEYWORDS = ['name a', 'name b', 'name c', 'name d', 'name e', 'name f']
@@ -42,21 +43,20 @@ def test_make_parsable_x90(tmp_path):
 
     # ensure the files are as expected
     assert removed_names == NAME_KEYWORDS
-    assert filecmp.cmp(parsable_x90_path, PARSABLE_X90)
+    assert filecmp.cmp(parsable_x90_path, EXPECT_PARSABLE_X90)
+
+    # don't leave this in my git repo
+    unlink(parsable_x90_path)
 
 
 class TestX90Analyser(object):
 
     expected_analysis_result = AnalysedX90(
-        fpath=PARSABLE_X90,
-        file_hash=3739281332,
+        fpath=EXPECT_PARSABLE_X90,
+        file_hash=3649068569,
         kernel_deps={
-            'kernel_type_one': 'imaginary_mod_one',
-            'kernel_type_two': 'imaginary_mod_one',
-            'kernel_type_three': 'imaginary_mod_one',
-            'kernel_type_four': 'imaginary_mod_two',
-            'kernel_type_five': 'imaginary_mod_two',
-            'kernel_type_six': 'imaginary_mod_two',
+            'kernel_one_type': 'imaginary_mod_one',
+            'kernel_two_type': 'imaginary_mod_one',
         })
 
     def run(self, tmp_path) -> AnalysedX90:
@@ -100,10 +100,6 @@ class TestPsyclone(object):
         assert psyclone_step._used_kernel_hashes == {
             'kernel_one_type': 2915127408,
             'kernel_two_type': 3793991362,
-            'kernel_three_type': 319981435,
-            'kernel_four_type': 1427207736,
-            'kernel_five_type': 3893954241,
-            'kernel_six_type': 1691832228,
         }
 
         # todo: better testing of the logic which joins the kernel names into used_kernels
@@ -114,7 +110,12 @@ class TestPsyclone(object):
 
         all_kernels = psyclone_step._analyse_kernels(kernel_files=kernel_files)
 
-        assert all_kernels == {'kernel_one_type': 2915127408, 'kernel_two_type': 3793991362}
+        assert all_kernels == {
+            'kernel_one_type': 2915127408,
+            'kernel_two_type': 3793991362,
+            'kernel_three_type': 319981435,
+            'kernel_four_type': 1427207736,
+        }
 
     def test_gen_prebuild_hash(self):
         pass
