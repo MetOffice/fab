@@ -18,7 +18,7 @@ from typing import List, Set, Dict, Optional
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
-from fab.parse import AnalysedFile
+from fab.parse.fortran.fortran import AnalysedFortran
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS
@@ -112,7 +112,7 @@ class CompileFortran(Step):
 
         # compile everything in multiple passes
         compiled: Dict[Path, CompiledFile] = {}
-        uncompiled: Set[AnalysedFile] = set(sum(build_lists.values(), []))
+        uncompiled: Set[AnalysedFortran] = set(sum(build_lists.values(), []))
         logger.info(f"compiling {len(uncompiled)} fortran files")
 
         if self.two_stage_flag:
@@ -137,7 +137,7 @@ class CompileFortran(Step):
 
         self.store_artefacts(compiled, build_lists, artefact_store)
 
-    def compile_pass(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFile], config):
+    def compile_pass(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran], config):
 
         # what can we compile next?
         compile_next = self.get_compile_next(compiled, uncompiled)
@@ -160,7 +160,8 @@ class CompileFortran(Step):
         uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
         return uncompiled
 
-    def get_compile_next(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFile]) -> Set[AnalysedFile]:
+    def get_compile_next(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran])\
+            -> Set[AnalysedFortran]:
 
         # find what to compile next
         compile_next = set()
@@ -197,7 +198,7 @@ class CompileFortran(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    def process_file(self, analysed_file: AnalysedFile):
+    def process_file(self, analysed_file: AnalysedFortran):
         """
         Prepare to compile a fortran file, and compile it if anything has changed since it was last compiled.
 
@@ -345,7 +346,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
     return get_tool(compiler or os.getenv('FC', ''))  # type: ignore
 
 
-def get_mod_hashes(analysed_files: Set[AnalysedFile], config) -> Dict[str, int]:
+def get_mod_hashes(analysed_files: Set[AnalysedFortran], config) -> Dict[str, int]:
     """
     Get the hash of every module file defined in the list of analysed files.
 

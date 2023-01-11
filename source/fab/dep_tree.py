@@ -13,14 +13,15 @@ import logging
 from pathlib import Path
 from typing import Set, Dict, Iterable, List
 
-from fab.parse import AnalysedFile
+from fab.parse import AnalysedDependent
 from fab.parse.c import AnalysedC
 from fab.parse.fortran.fortran import AnalysedFortran
 
 logger = logging.getLogger(__name__)
 
 
-def extract_sub_tree(source_tree: Dict[Path, AnalysedFortran], root: Path, verbose=False) -> Dict[Path, AnalysedFortran]:
+def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, verbose=False)\
+        -> Dict[Path, AnalysedDependent]:
     """
     Extract the subtree required to build the target, from the full source tree of all analysed source files.
 
@@ -32,7 +33,7 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedFortran], root: Path, verbo
         Log missing dependencies.
 
     """
-    result: Dict[Path, AnalysedFortran] = dict()
+    result: Dict[Path, AnalysedDependent] = dict()
     missing: Set[Path] = set()
 
     _extract_sub_tree(src_tree=source_tree, key=root, dst_tree=result, missing=missing, verbose=verbose)
@@ -43,8 +44,8 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedFortran], root: Path, verbo
     return result
 
 
-def _extract_sub_tree(src_tree: Dict[Path, AnalysedFortran], key: Path,
-                      dst_tree: Dict[Path, AnalysedFortran], missing: Set[Path], verbose: bool, indent: int = 0):
+def _extract_sub_tree(src_tree: Dict[Path, AnalysedDependent], key: Path,
+                      dst_tree: Dict[Path, AnalysedDependent], missing: Set[Path], verbose: bool, indent: int = 0):
     # is this node already in the sub tree?
     if key in dst_tree:
         return
@@ -72,7 +73,7 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFortran], key: Path,
             src_tree=src_tree, key=file_dep, dst_tree=dst_tree, missing=missing, verbose=verbose, indent=indent + 1)
 
 
-def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
+def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedDependent]):
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
     These are the comments which refer to a .o file and not those which just refer to symbols.
@@ -81,8 +82,9 @@ def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
         The source tree of analysed files.
 
     """
-    analysed_fortran: List[AnalysedFortran] = filter_source_tree(source_tree, '.f90')
-    analysed_c: List[AnalysedC] = filter_source_tree(source_tree, '.c')
+    # todo: might be better to filter by type here, i.e. AnalysedFortran
+    analysed_fortran: List[AnalysedFortran] = filter_source_tree(source_tree, ['.f90'])  # type: ignore
+    analysed_c: List[AnalysedC] = filter_source_tree(source_tree, ['.c'])  # type: ignore
 
     lookup = {c.fpath.name: c for c in analysed_c}
     num_found = 0
@@ -93,11 +95,10 @@ def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
     logger.info(f"processed {num_found} DEPENDS ON file dependencies")
 
 
-def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable[str]):
+def filter_source_tree(source_tree: Dict[Path, AnalysedDependent], suffixes: Iterable[str])\
+        -> List[AnalysedDependent]:
     """
     Pull out files with the given extensions from a source tree.
-
-    Returns a list of :class:`~fab.parse.AnalysedFortran`.
 
     :param source_tree:
         The source tree of analysed files.
@@ -105,7 +106,7 @@ def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable
         The suffixes we want, including the dot.
 
     """
-    all_files: Iterable[AnalysedFile] = source_tree.values()
+    all_files: Iterable[AnalysedDependent] = source_tree.values()
     return [af for af in all_files if af.fpath.suffix in suffixes]
 
 

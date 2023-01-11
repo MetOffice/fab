@@ -14,7 +14,6 @@ from unittest.mock import Mock
 
 import clang  # type: ignore
 
-from fab.parse import AnalysedFile
 from fab.parse.c import CAnalyser, AnalysedC
 
 
@@ -22,7 +21,7 @@ def test_simple_result(tmp_path):
     c_analyser = CAnalyser()
     c_analyser._prebuild_folder = Path('/prebuild')
 
-    with mock.patch('fab.dep_tree.AnalysedFile.save'):
+    with mock.patch('fab.parse.AnalysedFile.save'):
         fpath = Path(__file__).parent / "test_c_analyser.c"
         result = c_analyser.run(fpath)
 

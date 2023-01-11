@@ -107,5 +107,3 @@ class FparserWorkaround_StopConcatenation(Step):
 
         open(feign_config_mod_fpath, 'wt').write(
             open(broken_version, 'rt').read().replace(bad, good))
-
-

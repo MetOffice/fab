@@ -11,7 +11,7 @@ import logging
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import List, Optional, Union, Iterable, Set, Dict, Any
+from typing import List, Optional
 
 try:
     import clang  # type: ignore
@@ -19,113 +19,25 @@ try:
 except ImportError:
     clang = None
 
-from fab.parse import AnalysedFile
+from fab.parse import AnalysedDependent
 from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)
 
 
-# todo: all/most of this is duplicated in AnalysedFortran
-class AnalysedC(AnalysedFile):
+class AnalysedC(AnalysedDependent):
     """
     An analysis result for a single C file, containing symbol definitions and dependencies.
 
     Note: We don't need to worry about compile order with pure C projects; we can compile all in one go.
-          However, with a Fortran -> C -> Fortran dependency chain, we do need to ensure one Fortran file
-          is compiled before another, so this class contains a file_deps attribute and is part of
-          dependency tree analysis.
+          However, with a *Fortran -> C -> Fortran* dependency chain, we do need to ensure that one Fortran file
+          is compiled before another, so this class must be part of the dependency tree analysis.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
-                 symbol_defs: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 file_deps: Optional[Iterable[Path]] = None):
-        """
-        :param fpath:
-            The source file that was analysed.
-        :param file_hash:
-            The hash of the source. If omitted, Fab will evaluate lazily.
-        :param symbol_defs:
-            Set of symbol names defined by this source file.
-        :param symbol_deps:
-            Set of symbol names used by this source file.
-            Can include symbols in the same file.
-        :param file_deps:
-            Other files on which this source depends. Must not include itself.
-            This attribute is calculated during symbol analysis, after everything has been parsed.
-
-        """
-        super().__init__(fpath=fpath, file_hash=file_hash)
-
-        self.symbol_defs: Set[str] = set(symbol_defs or {})
-        self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.file_deps: Set[Path] = set(file_deps or {})
-
-        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
-        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
-
-    def add_symbol_def(self, name):
-        assert name and len(name)
-        self.symbol_defs.add(name.lower())
-
-    def add_symbol_dep(self, name):
-        assert name and len(name)
-        self.symbol_deps.add(name.lower())
-
-    def add_file_dep(self, name):
-        assert name and len(name)
-        self.file_deps.add(name)
-
-    @classmethod
-    def field_names(cls):
-        """Defines the order in which we want fields to appear if a human is reading them"""
-        return [
-            'fpath', 'file_hash',
-            'symbol_defs', 'symbol_deps',
-            'file_deps',
-        ]
-
-    def __str__(self):
-        values = [getattr(self, field_name) for field_name in self.field_names()]
-        return 'AnalysedC ' + ' '.join(map(str, values))
-
-    def __repr__(self):
-        params = ', '.join([f'{f}={getattr(self, f)}' for f in self.field_names()])
-        return f'AnalysedC({params})'
-
-    def __eq__(self, other):
-        return vars(self) == vars(other)
-
-    def __hash__(self):
-        # If we haven't been given a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
-        # This only affects user workarounds of fparser issues when the user has not provided a file hash.
-        return hash((
-            self.fpath,
-            self.file_hash,  # this is a lazily evaluated property
-            tuple(sorted(self.symbol_defs)),
-            tuple(sorted(self.symbol_deps)),
-            tuple(sorted(self.file_deps)),
-        ))
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "fpath": str(self.fpath),
-            "file_hash": self.file_hash,
-            "symbol_defs": list(self.symbol_defs),
-            "symbol_deps": list(self.symbol_deps),
-            "file_deps": list(map(str, self.file_deps)),
-        }
-
-    @classmethod
-    def from_dict(cls, d):
-        result = cls(
-            fpath=Path(d["fpath"]),
-            file_hash=d["file_hash"],
-            symbol_defs=set(d["symbol_defs"]),
-            symbol_deps=set(d["symbol_deps"]),
-            file_deps=set(map(Path, d["file_deps"])),
-        )
-        assert result.file_hash is not None
-        return result
+    # Note: This subclass adds nothing to it's parent, which provides everything it needs.
+    #       We'd normally get rid of such an "irrelevant class" with extreme prejudice.
+    #       However, we hope to keep the door open for filtering analysis results by type, rather than suffix.
+    pass
 
 
 class CAnalyser(object):

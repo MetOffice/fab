@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import logging
-import warnings
 from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig, AddFlags
@@ -103,7 +102,7 @@ def atm_config(two_stage=False, opt='Og'):
             ],
         ),
 
-        # todo: put this inside the psyclone step, no need for it to be separate as there's nothing required between them
+        # todo: put this inside the psyclone step, no need for it to be separate, there's nothing required between them
         psyclone_preprocessor(set_um_physics=True),
 
         Psyclone(

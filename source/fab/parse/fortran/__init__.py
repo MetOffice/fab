@@ -8,9 +8,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Union
 
-from fparser.common.readfortran import FortranFileReader
-from fparser.two.parser import ParserFactory
-from fparser.two.utils import FortranSyntaxError
+from fparser.common.readfortran import FortranFileReader  # type: ignore
+from fparser.two.parser import ParserFactory  # type: ignore
+from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab import FabException
 from fab.parse import AnalysedFile, EmptySourceFile

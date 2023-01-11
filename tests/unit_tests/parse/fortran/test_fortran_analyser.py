@@ -1,3 +1,8 @@
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest import mock
@@ -8,7 +13,7 @@ from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 
-from fab.parse import AnalysedFile, EmptySourceFile
+from fab.parse import EmptySourceFile
 from fab.parse.fortran import iter_content
 
 
@@ -42,12 +47,12 @@ class Test_Analyser(object):
 
     def test_empty_file(self, fortran_analyser):
         # make sure we get back an EmptySourceFile, not an AnalysedFile
-        with mock.patch('fab.dep_tree.AnalysedFile.save'):
+        with mock.patch('fab.parse.AnalysedFile.save'):
             result = fortran_analyser.run(fpath=Path(Path(__file__).parent / "empty.f90"))
         assert type(result) is EmptySourceFile
 
     def test_module_file(self, fortran_analyser, module_fpath, module_expected):
-        with mock.patch('fab.dep_tree.AnalysedFile.save'):
+        with mock.patch('fab.parse.AnalysedFile.save'):
             result = fortran_analyser.run(fpath=module_fpath)
         assert result == module_expected
 
@@ -56,7 +61,7 @@ class Test_Analyser(object):
         with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
             tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
             tmp_file.flush()
-            with mock.patch('fab.dep_tree.AnalysedFile.save'):
+            with mock.patch('fab.parse.AnalysedFile.save'):
                 result = fortran_analyser.run(fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)

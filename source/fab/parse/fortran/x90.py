@@ -3,11 +3,10 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-import warnings
 from pathlib import Path
-from typing import Union, Optional, Iterable, Dict, Any
+from typing import Union, Optional, Dict, Any
 
-from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref
+from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
 
 from fab.parse import AnalysedFile
 from fab.parse.fortran import FortranAnalyserBase, iter_content, logger, _typed_child
@@ -21,7 +20,7 @@ class AnalysedX90(AnalysedFile):
     """
     def __init__(self, fpath: Union[str, Path], file_hash: int,
                  # todo: the fortran version doesn't include the remaining args - update this too, for simplicity.
-                 kernel_deps: Optional[Iterable[str]] = None):
+                 kernel_deps: Optional[Dict[str, str]] = None):
         """
         :param fpath:
             The path of the x90 file.
@@ -36,7 +35,7 @@ class AnalysedX90(AnalysedFile):
         """
         super().__init__(fpath=fpath, file_hash=file_hash)
 
-        # Maps used kernel type symbols to the modules they're in
+        # Maps used kernel metadata (type def names) to the modules they're found in
         self.kernel_deps: Dict[str, str] = kernel_deps or {}
 
     def to_dict(self) -> Dict[str, Any]:
@@ -77,7 +76,7 @@ class X90Analyser(FortranAnalyserBase):
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:
 
         analysed_file = AnalysedX90(fpath=fpath, file_hash=file_hash)
-        symbol_deps = {}
+        symbol_deps: Dict[str, str] = {}
 
         for obj in iter_content(node_tree):
             obj_type = type(obj)
@@ -97,7 +96,7 @@ class X90Analyser(FortranAnalyserBase):
 
         return analysed_file
 
-    def _process_use_statement(self, symbol_deps, obj):
+    def _process_use_statement(self, symbol_deps: Dict[str, str], obj):
         # Record the modules in which potential kernels live.
         # We'll find out if they're kernels later.
         module_dep = _typed_child(obj, Name, must_exist=True)
@@ -107,10 +106,9 @@ class X90Analyser(FortranAnalyserBase):
 
         name_nodes = by_type(only_list.children, Name)
         for name in name_nodes:
-            # self._symbol_deps[name.string] = module_dep.string
             symbol_deps[name.string] = module_dep.string
 
-    def _process_call_statement(self, symbol_deps, analysed_file, obj):
+    def _process_call_statement(self, symbol_deps: Dict[str, str], analysed_file, obj):
         # if we're calling invoke, record the names of the args.
         # sanity check they end with "_type".
         called_name = _typed_child(obj, Name)

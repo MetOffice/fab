@@ -43,8 +43,6 @@ class Test_gen_symbol_table(object):
         # duplicate a symbol from the first file in the second file
         analysed_files[1].symbol_defs.add('foo_1')
 
-        analyser = Analyse(root_symbol=None)
-
         with pytest.warns(UserWarning):
             result = _gen_symbol_table(analysed_files=analysed_files)
 

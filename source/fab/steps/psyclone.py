@@ -14,10 +14,9 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Iterable, Set
+from typing import Dict, List, Tuple, Optional, Set
 
 from fab import FabException
-from fparser.two.Fortran2003 import Use_Stmt
 
 from fab.artefacts import SuffixFilter
 from fab.parse.fortran.fortran import FortranAnalyser, AnalysedFortran
@@ -74,10 +73,10 @@ class Psyclone(Step):
         self.cli_args: List[str] = cli_args or []
 
         # runtime, for child processes to read
-        self._transformation_script_hash = None
+        self._transformation_script_hash = 0
         self._file_hashes = None
         self._analysed_x90: Dict[Path, AnalysedX90] = {}  # analysis of parsable versions of the x90s
-        self._used_kernel_hashes: Dict[str: int] = {}  # hash of every kernel used by the x90
+        self._used_kernel_hashes: Dict[str, int] = {}  # hash of every kernel used by the x90
         self._removed_invoke_names: Dict[Path, List[str]] = {}  # name keywords passed to invoke, removed for parsing
 
     def run(self, artefact_store: Dict, config):
@@ -162,7 +161,8 @@ class Psyclone(Step):
             use compute_total_mass_kernel_mod,   only: compute_total_mass_kernel_type
 
         Some kernels, such as `setval_c`, are
-        `PSyclone built-ins <https://github.com/stfc/PSyclone/blob/ebb7f1aa32a9377da6ccc1ec04eec4adbc1e0a0a/src/psyclone/domain/lfric/lfric_builtins.py#L2136>`_.
+        `PSyclone built-ins <https://github.com/stfc/PSyclone/blob/ebb7f1aa32a9377da6ccc1ec04eec4adbc1e0a0a/src/
+        psyclone/domain/lfric/lfric_builtins.py#L2136>`_.
         They will not appear in use statements and can be ignored.
 
         The Psyclone step and the Analyse step:

@@ -1,10 +1,14 @@
 from pathlib import Path
+from typing import Dict
 
 import pytest
+from fab.parse.c import AnalysedC
+
+from fab.parse import AnalysedDependent
+
 from fab.parse.fortran.fortran import AnalysedFortran
 
-from fab.dep_tree import extract_sub_tree
-from fab.parse import AnalysedFile
+from fab.dep_tree import extract_sub_tree, add_mo_commented_file_deps
 
 
 @pytest.fixture
@@ -47,3 +51,18 @@ class Test_AnalysedFile(object):
         fpath = tmp_path / 'foo.an'
         af.save(fpath)
         assert AnalysedFortran.load(fpath) == af
+
+
+def test_add_mo_commented_file_deps():
+
+    f90 = Path('something/foo.f90')
+    c = Path('something/bar.c')
+
+    source_tree: Dict[Path, AnalysedDependent] = {
+        f90: AnalysedFortran(fpath=f90, file_hash=0, mo_commented_file_deps=['bar.c']),
+        c: AnalysedC(fpath=c, file_hash=0),
+    }
+
+    add_mo_commented_file_deps(source_tree=source_tree)
+
+    assert c in source_tree[f90].file_deps

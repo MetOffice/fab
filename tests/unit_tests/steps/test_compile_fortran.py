@@ -5,11 +5,10 @@ from unittest import mock
 from unittest.mock import call
 
 import pytest
-from fab.parse.fortran.fortran import AnalysedFortran
 
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
-from fab.parse import AnalysedFile
+from fab.parse.fortran.fortran import AnalysedFortran
 from fab.steps.compile_fortran import CompileFortran, get_compiler_version, get_mod_hashes
 from fab.util import CompiledFile
 

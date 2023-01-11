@@ -9,9 +9,8 @@ Fortran language handling classes.
 """
 import logging
 from pathlib import Path
-from typing import Union, Optional, Iterable, Dict, Any, Set, Callable
+from typing import Union, Optional, Iterable, Dict, Any, Set
 
-from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
@@ -21,10 +20,7 @@ from fparser.two.Fortran2003 import (  # type: ignore
 from fparser.two.Fortran2008 import (  # type: ignore
     Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
 
-from fparser.two.parser import ParserFactory  # type: ignore
-from fparser.two.utils import FortranSyntaxError, StmtBase  # type: ignore
-
-from fab.parse import AnalysedFile
+from fab.parse import AnalysedDependent
 from fab.parse.fortran import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
 from fab.util import file_checksum, string_checksum
 
@@ -34,7 +30,7 @@ logger = logging.getLogger(__name__)
 # todo: a nicer recursion pattern?
 
 
-class AnalysedFortran(AnalysedFile):
+class AnalysedFortran(AnalysedDependent):
     """
     An analysis result for a single file, containing module and symbol definitions and dependencies.
 
@@ -72,15 +68,13 @@ class AnalysedFortran(AnalysedFile):
             The hash of any PSyclone kernel metadata found in this source file, by name.
 
         """
-        super().__init__(fpath=fpath, file_hash=file_hash)
+        super().__init__(fpath=fpath, file_hash=file_hash, file_deps=file_deps)
 
         self.module_defs: Set[str] = set(module_defs or [])
         self.symbol_defs: Set[str] = set(symbol_defs or [])
         self.module_deps: Set[str] = set(module_deps or [])
         self.symbol_deps: Set[str] = set(symbol_deps or [])
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
-        self.file_deps: Set[Path] = set(file_deps or [])
-
 
         # Todo: Ideally Psyclone stuff would not be part of this general fortran analysis code.
         #       Instead, perhaps we could inject bespoke node handling into the fortran analyser.
@@ -103,10 +97,6 @@ class AnalysedFortran(AnalysedFile):
     def add_symbol_dep(self, name):
         assert name and len(name)
         self.symbol_deps.add(name.lower())
-
-    def add_file_dep(self, name):
-        assert name and len(name)
-        self.file_deps.add(name)
 
     @property
     def mod_filenames(self):
@@ -210,7 +200,7 @@ class FortranAnalyser(FortranAnalyserBase):
 
     # RESULT_CLASS = AnalysedFortran
 
-    def __init__(self, std=None, ignore_mod_deps: Iterable[str] = None):
+    def __init__(self, std=None, ignore_mod_deps: Optional[Iterable[str]] = None):
         """
         :param std:
             The Fortran standard.
@@ -219,7 +209,7 @@ class FortranAnalyser(FortranAnalyserBase):
 
         """
         super().__init__(result_class=AnalysedFortran, std=std)
-        self.ignore_mod_deps = list(ignore_mod_deps or [])
+        self.ignore_mod_deps: Iterable[str] = list(ignore_mod_deps or [])
         self.depends_on_comment_found = False
 
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFortran:
@@ -262,7 +252,7 @@ class FortranAnalyser(FortranAnalyserBase):
 
                 elif obj_type == Comment:
                     self._process_comment(analysed_fortran, obj)
-                    
+
                 # Record any psyclone kernel metadata (type definitions) we find.
                 # todo: how can we separate this psyclone concern out elegantly, for loose coupling?
                 elif obj_type == Derived_Type_Def:

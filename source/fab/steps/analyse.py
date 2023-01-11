@@ -43,7 +43,7 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 from fab.constants import BUILD_TREES
 from fab.dep_tree import add_mo_commented_file_deps, extract_sub_tree, \
     validate_dependencies
-from fab.parse import AnalysedFile, EmptySourceFile
+from fab.parse import AnalysedFile, EmptySourceFile, AnalysedDependent
 from fab.parse.fortran.fortran import FortranParserWorkaround, FortranAnalyser
 from fab.steps import Step
 from fab.parse.c import CAnalyser
@@ -124,7 +124,8 @@ class Analyse(Step):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[FortranParserWorkaround] = list(special_measure_analysis_results or [])
+        self.special_measure_analysis_results: List[FortranParserWorkaround] = \
+            list(special_measure_analysis_results or [])
         self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
@@ -220,7 +221,7 @@ class Analyse(Step):
 
         return build_trees
 
-    def _parse_files(self, files: List[Path]) -> Set[AnalysedFile]:
+    def _parse_files(self, files: List[Path]) -> Set[AnalysedDependent]:
         """
         Determine the symbols which are defined in, and used by, each file.
 
@@ -259,7 +260,7 @@ class Analyse(Step):
         non_empty = {af for af in analysed_files if not isinstance(af, EmptySourceFile)}
         return non_empty
 
-    def _add_manual_results(self, analysed_files: Set[AnalysedFile]):
+    def _add_manual_results(self, analysed_files: Set[AnalysedDependent]):
         # add manual analysis results for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
@@ -323,7 +324,8 @@ class Analyse(Step):
     #         logger.info(f"{len(deps_not_found)} deps not found")
 
     def _add_unreferenced_deps(self, symbol_table: Dict[str, Path],
-                               all_analysed_files: Dict[Path, AnalysedFile], build_tree: Dict[Path, AnalysedFile]):
+                               all_analysed_files: Dict[Path, AnalysedDependent],
+                               build_tree: Dict[Path, AnalysedDependent]):
         """
         Add files to the build tree.
 
@@ -359,7 +361,7 @@ class Analyse(Step):
             build_tree.update(sub_tree)
 
 
-def analyse_source_tree(analysed_files: Iterable[AnalysedFile]):
+def analyse_source_tree(analysed_files: Iterable[AnalysedDependent]):
     """
     Build a source dependency tree for the entire source.
 
@@ -369,7 +371,7 @@ def analyse_source_tree(analysed_files: Iterable[AnalysedFile]):
 
     # build the tree
     # the nodes refer to other nodes via the file dependencies we just made, which are keys into this dict
-    source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
+    source_tree: Dict[Path, AnalysedDependent] = {a.fpath: a for a in analysed_files}
 
     return source_tree, symbol_table
 
@@ -390,7 +392,7 @@ def analyse_file_dependencies(analysed_files):
     return symbol_table
 
 
-def _gen_symbol_table(analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
+def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> Dict[str, Path]:
     """
     Create a dictionary mapping symbol names to the files in which they appear.
 
@@ -416,7 +418,7 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]
     return symbols
 
 
-def _gen_file_deps(analysed_files: Iterable[AnalysedFile], symbols: Dict[str, Path]):
+def _gen_file_deps(analysed_files: Iterable[AnalysedDependent], symbols: Dict[str, Path]):
     """
     Use the symbol table to convert symbol dependencies into file dependencies.
 
