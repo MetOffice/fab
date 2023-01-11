@@ -2,11 +2,13 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+from fab.parse.fortran.fortran import FortranParserWorkaround, AnalysedFortran
+
 from fab.util import HashedFile
 
 from fab.build_config import BuildConfig
-from fab.parse import AnalysedFile, ParserWorkaround
-from fab.steps.analyse import Analyse
+from fab.parse import AnalysedFile
+from fab.steps.analyse import Analyse, _gen_file_deps, _gen_symbol_table
 
 
 @pytest.fixture
@@ -24,13 +26,11 @@ class Test_gen_symbol_table(object):
 
     @pytest.fixture
     def analysed_files(self):
-        return [AnalysedFile(fpath=Path('foo.c'), symbol_defs=['foo_1', 'foo_2'], file_hash=0),
-                AnalysedFile(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=0)]
+        return [AnalysedFortran(fpath=Path('foo.c'), symbol_defs=['foo_1', 'foo_2'], file_hash=0),
+                AnalysedFortran(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=0)]
 
     def test_vanilla(self, analysed_files):
-        analyser = Analyse(root_symbol=None)
-
-        result = analyser._gen_symbol_table(analysed_files=analysed_files)
+        result = _gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -46,7 +46,7 @@ class Test_gen_symbol_table(object):
         analyser = Analyse(root_symbol=None)
 
         with pytest.warns(UserWarning):
-            result = analyser._gen_symbol_table(analysed_files=analysed_files)
+            result = _gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -58,7 +58,7 @@ class Test_gen_symbol_table(object):
 
 class Test_gen_file_deps(object):
 
-    def test_vanilla(self, analyser):
+    def test_vanilla(self):
 
         my_file = Path('my_file.f90')
         symbols = {
@@ -73,18 +73,19 @@ class Test_gen_file_deps(object):
                 spec=AnalysedFile, fpath=my_file, symbol_deps={'my_func', 'dep1_mod', 'dep2'}, file_deps=set()),
         ]
 
-        analyser._gen_file_deps(analysed_files=analysed_files, symbols=symbols)
+        _gen_file_deps(analysed_files=analysed_files, symbols=symbols)
 
         assert analysed_files[0].file_deps == {symbols['dep1_mod'], symbols['dep2']}
 
 
+# todo: this is fortran-ey - look for other changes from analysedfile to ananlysedfortran too
 class Test_add_unreferenced_deps(object):
 
     def test_vanilla(self):
         analyser = Analyse(root_symbol=None)
 
         # we analysed the source folder and found these symbols
-        symbols = {
+        symbol_table = {
             "root": Path("root.f90"),
             "root_dep": Path("root_dep.f90"),
             "util": Path("util.f90"),
@@ -93,8 +94,8 @@ class Test_add_unreferenced_deps(object):
 
         # we extracted the build tree
         build_tree = {
-            Path('root.f90'): AnalysedFile(fpath=Path(), file_hash=0),
-            Path('root_dep.f90'): AnalysedFile(fpath=Path(), file_hash=0),
+            Path('root.f90'): AnalysedFortran(fpath=Path(), file_hash=0),
+            Path('root_dep.f90'): AnalysedFortran(fpath=Path(), file_hash=0),
         }
 
         # we want to force this symbol into the build [because it's not used via modules]
@@ -103,11 +104,12 @@ class Test_add_unreferenced_deps(object):
         # the stuff to add to the build tree will be found in here
         all_analysed_files = {
             # root.f90 and root_util.f90 would also be in here but the test doesn't need them
-            Path('util.f90'): AnalysedFile(fpath=Path('util.f90'), file_deps={Path('util_dep.f90')}, file_hash=0),
-            Path('util_dep.f90'): AnalysedFile(fpath=Path('util_dep.f90'), file_hash=0),
+            Path('util.f90'): AnalysedFortran(fpath=Path('util.f90'), file_deps={Path('util_dep.f90')}, file_hash=0),
+            Path('util_dep.f90'): AnalysedFortran(fpath=Path('util_dep.f90'), file_hash=0),
         }
 
-        analyser._add_unreferenced_deps(symbols=symbols, all_analysed_files=all_analysed_files, build_tree=build_tree)
+        analyser._add_unreferenced_deps(
+            symbol_table=symbol_table, all_analysed_files=all_analysed_files, build_tree=build_tree)
 
         assert Path('util.f90') in build_tree
         assert Path('util_dep.f90') in build_tree
@@ -127,16 +129,16 @@ class Test_parse_files(object):
 
 
 class Test_add_manual_results(object):
+    # test user-specified analysis results, for when fparser fails to parse a valid file.
 
     def test_vanilla(self):
-        # test normal usage of manual analysis results
-        input = ParserWorkaround(fpath=Path('foo.f'), symbol_defs={'foo', })
-        expect = AnalysedFile(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })
+        input = FortranParserWorkaround(fpath=Path('foo.f'), symbol_defs={'foo', })
+        expect = AnalysedFortran(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo'})
 
         analyser = Analyse(special_measure_analysis_results=[input])
         analysed_files = set()
 
-        with mock.patch('fab.dep_tree.file_checksum', return_value=HashedFile(None, 123)):
+        with mock.patch('fab.parse.fortran.fortran.file_checksum', return_value=HashedFile(None, 123)):
             analyser._add_manual_results(analysed_files=analysed_files)
 
         assert analysed_files == {expect}

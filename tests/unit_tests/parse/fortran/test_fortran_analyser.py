@@ -3,12 +3,13 @@ from tempfile import NamedTemporaryFile
 from unittest import mock
 
 import pytest
+from fab.parse.fortran.fortran import FortranAnalyser, AnalysedFortran
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 
 from fab.parse import AnalysedFile, EmptySourceFile
-from fab.parse.fortran import FortranAnalyser, iter_content
+from fab.parse.fortran import iter_content
 
 
 # todo: test function binding
@@ -21,16 +22,14 @@ def module_fpath():
 
 @pytest.fixture
 def module_expected(module_fpath):
-    return AnalysedFile(
-        fpath=module_fpath,
-        file_hash=4039845747,
-        module_defs={'foo_mod'},
-        symbol_defs={'external_sub', 'external_func', 'foo_mod'},
-        module_deps={'bar_mod'},
-        symbol_deps={'monty_func', 'bar_mod'},
-        file_deps=set(),
+    analysed_fortran = AnalysedFortran(
+        fpath=module_fpath, file_hash=4039845747,
+        module_defs={'foo_mod'}, symbol_defs={'external_sub', 'external_sub', 'external_func', 'foo_mod'},
+        module_deps={'bar_mod'}, symbol_deps={'monty_func', 'bar_mod'},
         mo_commented_file_deps={'some_file.c'},
     )
+
+    return analysed_fortran
 
 
 class Test_Analyser(object):
@@ -102,7 +101,7 @@ class Test_process_variable_binding(object):
 
         # run our handler
         fpath = Path('foo')
-        analysed_file = AnalysedFile(fpath=fpath, file_hash=0)
+        analysed_file = AnalysedFortran(fpath=fpath, file_hash=0)
         analyser = FortranAnalyser()
         analyser._process_variable_binding(analysed_file=analysed_file, obj=var_decl)
 

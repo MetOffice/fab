@@ -32,9 +32,9 @@ class AnalysedC(AnalysedFile):
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
-                 # todo: the fortran version doesn't include the remaining args - update this too, for simplicity.
                  symbol_defs: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 file_deps: Optional[Iterable[Path]] = None):
+                 # file_deps: Optional[Iterable[Path]] = None):
+                 ):
         """
         :param fpath:
             The source file that was analysed.
@@ -57,7 +57,7 @@ class AnalysedC(AnalysedFile):
 
         self.symbol_defs: Set[str] = set(symbol_defs or {})
         self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.file_deps: Set[Path] = set(file_deps or {})
+        # self.file_deps: Set[Path] = set(file_deps or {})
 
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
@@ -70,9 +70,9 @@ class AnalysedC(AnalysedFile):
         assert name and len(name)
         self.symbol_deps.add(name.lower())
 
-    def add_file_dep(self, name):
-        assert name and len(name)
-        self.file_deps.add(name)
+    # def add_file_dep(self, name):
+    #     assert name and len(name)
+    #     self.file_deps.add(name)
 
     @classmethod
     def field_names(cls):
@@ -80,7 +80,7 @@ class AnalysedC(AnalysedFile):
         return [
             'fpath', 'file_hash',
             'symbol_defs', 'symbol_deps',
-            'file_deps',
+            # 'file_deps',
         ]
 
     def __str__(self):
@@ -102,7 +102,7 @@ class AnalysedC(AnalysedFile):
             self.file_hash,  # this is a lazily evaluated property
             tuple(sorted(self.symbol_defs)),
             tuple(sorted(self.symbol_deps)),
-            tuple(sorted(self.file_deps)),
+            # tuple(sorted(self.file_deps)),
         ))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -111,7 +111,7 @@ class AnalysedC(AnalysedFile):
             "file_hash": self.file_hash,
             "symbol_defs": list(self.symbol_defs),
             "symbol_deps": list(self.symbol_deps),
-            "file_deps": list(map(str, self.file_deps)),
+            # "file_deps": list(map(str, self.file_deps)),
         }
 
     @classmethod
@@ -121,7 +121,7 @@ class AnalysedC(AnalysedFile):
             file_hash=d["file_hash"],
             symbol_defs=set(d["symbol_defs"]),
             symbol_deps=set(d["symbol_deps"]),
-            file_deps=set(map(Path, d["file_deps"])),
+            # file_deps=set(map(Path, d["file_deps"])),
         )
         assert result.file_hash is not None
         return result

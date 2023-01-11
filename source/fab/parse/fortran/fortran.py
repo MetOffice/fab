@@ -43,46 +43,44 @@ class AnalysedFortran(AnalysedFile):
     which will be converted at runtime into an `AnalysedFile` object.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None): #,
-                 # module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
-                 # module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 # mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None):
+    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
+                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
+                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None):
         """
         :param fpath:
             The source file that was analysed.
         :param file_hash:
             The hash of the source. If omitted, Fab will evaluate lazily.
-
-        Contains the following attributes.
-
-        :ivar Iterable[str] module_defs:
+        :param module_defs:
             Set of module names defined by this source file.
             A subset of symbol_defs
-        :ivar Iterable[str] symbol_defs:
+        :param symbol_defs:
             Set of symbol names defined by this source file.
-        :ivar Iterable[str] module_deps:
+        :param module_deps:
             Set of module names used by this source file.
-        :ivar Iterable[str] symbol_deps:
+        :param symbol_deps:
             Set of symbol names used by this source file.
             Can include symbols in the same file.
-        :ivar Iterable[str] mo_commented_file_deps:
+        :param mo_commented_file_deps:
             A set of C file names, without paths, on which this file depends.
             Comes from "DEPENDS ON:" comments which end in ".o".
-        :ivar Iterable[Path] file_deps:
+        :param file_deps:
             Other files on which this source depends. Must not include itself.
             This attribute is calculated during symbol analysis, after everything has been parsed.
-        :ivar Dict[str, int] psyclone_kernels:
+        :param psyclone_kernels:
             The hash of any PSyclone kernel metadata found in this source file, by name.
 
         """
         super().__init__(fpath=fpath, file_hash=file_hash)
 
-        self.module_defs: Set[str] = set()
-        self.symbol_defs: Set[str] = set()
-        self.module_deps: Set[str] = set()
-        self.symbol_deps: Set[str] = set()
-        self.mo_commented_file_deps: Set[str] = set()
-        self.file_deps: Set[Path] = set()
+        self.module_defs: Set[str] = set(module_defs or [])
+        self.symbol_defs: Set[str] = set(symbol_defs or [])
+        self.module_deps: Set[str] = set(module_deps or [])
+        self.symbol_deps: Set[str] = set(symbol_deps or [])
+        self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
+        self.file_deps: Set[Path] = set(file_deps or [])
+
 
         # Todo: Ideally Psyclone stuff would not be part of this general fortran analysis code.
         #       Instead, perhaps we could inject bespoke node handling into the fortran analyser.

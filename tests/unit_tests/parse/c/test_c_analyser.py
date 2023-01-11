@@ -2,6 +2,11 @@
 Test CAnalyser.
 
 """
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
 from pathlib import Path
 from typing import List, Tuple
 from unittest import mock
@@ -10,7 +15,7 @@ from unittest.mock import Mock
 import clang  # type: ignore
 
 from fab.parse import AnalysedFile
-from fab.parse.c import CAnalyser
+from fab.parse.c import CAnalyser, AnalysedC
 
 
 def test_simple_result(tmp_path):
@@ -21,13 +26,10 @@ def test_simple_result(tmp_path):
         fpath = Path(__file__).parent / "test_c_analyser.c"
         result = c_analyser.run(fpath)
 
-    expected = AnalysedFile(
-        fpath=fpath,
-        file_hash=1429445462,
+    expected = AnalysedC(
+        fpath=fpath, file_hash=1429445462,
         symbol_deps={'usr_var', 'usr_func'},
         symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
-        file_deps=set(),
-        mo_commented_file_deps=set(),
     )
     assert result == expected
 
@@ -163,8 +165,8 @@ class Test_process_symbol_dependency(object):
 
 def test_clang_disable():
 
-    with mock.patch('fab.tasks.c.clang', None):
-        with mock.patch('fab.tasks.c.file_checksum') as mock_file_checksum:
+    with mock.patch('fab.parse.c.clang', None):
+        with mock.patch('fab.util.file_checksum') as mock_file_checksum:
             result = CAnalyser().run(Path(__file__).parent / "test_c_analyser.c")
 
     assert type(result) == ImportWarning

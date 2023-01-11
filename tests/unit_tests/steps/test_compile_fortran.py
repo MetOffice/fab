@@ -5,6 +5,7 @@ from unittest import mock
 from unittest.mock import call
 
 import pytest
+from fab.parse.fortran.fortran import AnalysedFortran
 
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
@@ -22,9 +23,9 @@ def compiler():
 
 @pytest.fixture
 def analysed_files():
-    a = AnalysedFile(fpath=Path('a.f90'), file_deps={Path('b.f90')}, file_hash=0)
-    b = AnalysedFile(fpath=Path('b.f90'), file_deps={Path('c.f90')}, file_hash=0)
-    c = AnalysedFile(fpath=Path('c.f90'), file_hash=0)
+    a = AnalysedFortran(fpath=Path('a.f90'), file_deps={Path('b.f90')}, file_hash=0)
+    b = AnalysedFortran(fpath=Path('b.f90'), file_deps={Path('c.f90')}, file_hash=0)
+    c = AnalysedFortran(fpath=Path('c.f90'), file_hash=0)
     return a, b, c
 
 
@@ -124,7 +125,7 @@ class Test_process_file(object):
         compiler._mod_hashes = {'mod_dep_1': 12345, 'mod_dep_2': 23456}
         compiler._config = BuildConfig('proj', fab_workspace=Path('/fab'))
 
-        analysed_file = AnalysedFile(fpath=Path('foofile'), file_hash=34567)
+        analysed_file = AnalysedFortran(fpath=Path('foofile'), file_hash=34567)
         analysed_file.add_module_dep('mod_dep_1')
         analysed_file.add_module_dep('mod_dep_2')
         analysed_file.add_module_def('mod_def_1')
