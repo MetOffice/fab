@@ -120,10 +120,13 @@ class Test_add_unreferenced_deps(object):
 
 class Test_parse_files(object):
 
-    def test_exceptions(self):
+    def test_exceptions(self, tmp_path):
         # make sure parse exceptions do not stop the build
-        with mock.patch('fab.steps.Step.run_mp', return_value=[Exception('foo')]):
-            Analyse(root_symbol=None)._parse_files(files=[])
+        with mock.patch('fab.steps.Step.run_mp', return_value=[(Exception('foo'), None)]):
+            analyse_step = Analyse(root_symbol=None)
+            analyse_step._config = BuildConfig('proj', fab_workspace=tmp_path)
+
+            analyse_step._parse_files(files=[])
 
 
 class Test_add_manual_results(object):

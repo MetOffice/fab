@@ -4,8 +4,11 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-from fab.steps.compile_fortran import get_fortran_compiler
+from datetime import timedelta
+
 from fab.build_config import BuildConfig
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
+from fab.steps.compile_fortran import get_fortran_compiler
 from fab.steps.link import LinkSharedObject
 
 from gcom_build_steps import common_build_steps, parse_args
@@ -26,6 +29,8 @@ def gcom_so_config(revision=None, compiler=None):
         steps=[
             *common_build_steps(fortran_compiler=compiler, fpic=True),
             LinkSharedObject(output_fpath='$output/libgcom.so'),
+
+            CleanupPrebuilds(older_than=timedelta(minutes=5))
         ],
         # verbose=True,
     )

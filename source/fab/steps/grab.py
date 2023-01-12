@@ -20,8 +20,7 @@ except ImportError:
     svn = None
 
 from fab.steps import Step
-from fab.util import run_command
-
+from fab.tools import run_command
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +162,7 @@ if svn:
 
 class GrabPreBuild(Step):
     """
-    Copy the contents of another pre-build folder into our own.
+    Copy the contents of another project's prebuild folder into our local prebuild folder.
 
     """
     def __init__(self, path, objects=True, allow_fail=False):

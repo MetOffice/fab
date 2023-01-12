@@ -40,15 +40,15 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
-from fab.constants import BUILD_TREES
+from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
+from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 from fab.dep_tree import add_mo_commented_file_deps, extract_sub_tree, \
     validate_dependencies
 from fab.parse import AnalysedFile, EmptySourceFile, AnalysedDependent
+from fab.parse.c import CAnalyser
 from fab.parse.fortran.fortran import FortranParserWorkaround, FortranAnalyser
 from fab.steps import Step
-from fab.parse.c import CAnalyser
 from fab.util import TimerLogger, by_type
-from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
 
@@ -158,8 +158,8 @@ class Analyse(Step):
         super().run(artefact_store, config)
 
         # todo: code smell - refactor (in another PR to keep things small)
-        self.fortran_analyser._prebuild_folder = self._config.prebuild_folder
-        self.c_analyser._prebuild_folder = self._config.prebuild_folder
+        self.fortran_analyser._config = self._config
+        self.c_analyser._config = self._config
 
         # parse
         files: List[Path] = self.source_getter(artefact_store)
@@ -233,6 +233,7 @@ class Analyse(Step):
         fortran_files = set(filter(lambda f: f.suffix == '.f90', files))
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             fortran_results = self.run_mp(items=fortran_files, func=self.fortran_analyser.run)
+        fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
 
         # warn about naughty fortran usage
         if self.fortran_analyser.depends_on_comment_found:
@@ -248,15 +249,20 @@ class Analyse(Step):
                 warnings.warn('Python 3.7 detected. Disabling multiprocessing for C analysis.')
                 no_multiprocessing = True
             c_results = self.run_mp(items=c_files, func=self.c_analyser.run, no_multiprocessing=no_multiprocessing)
+        c_analyses, c_artefacts = zip(*c_results) if c_results else (tuple(), tuple())
 
         # Check for parse errors but don't fail. The failed files might not be required.
-        results = fortran_results + c_results
-        exceptions = list(by_type(results, Exception))
+        analyses = fortran_analyses + c_analyses
+        exceptions = list(by_type(analyses, Exception))
         if exceptions:
             logger.error(f"{len(exceptions)} analysis errors")
 
+        # record the artefacts as being current
+        artefacts = by_type(fortran_artefacts + c_artefacts, Path)
+        self._config._artefact_store[CURRENT_PREBUILDS].update(artefacts)  # slightly naughty access.
+
         # ignore empty files
-        analysed_files = by_type(results, AnalysedFile)
+        analysed_files = by_type(analyses, AnalysedFile)
         non_empty = {af for af in analysed_files if not isinstance(af, EmptySourceFile)}
         return non_empty
 

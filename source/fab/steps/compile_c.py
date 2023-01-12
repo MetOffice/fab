@@ -18,11 +18,12 @@ from fab import FabException
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
-from fab.parse import AnalysedFile
 from fab.metrics import send_metric
+from fab.parse import AnalysedFile
 from fab.steps import check_for_errors, Step
-from fab.util import CompiledFile, run_command, log_or_dot, Timer, by_type, flags_checksum, get_compiler_version, \
-    get_tool
+from fab.tasks import TaskException
+from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
+from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
 
@@ -93,18 +94,30 @@ class CompileC(Step):
         logger.info(f"compiling {len(to_compile)} c files")
 
         # compile everything in one go
-        results = self.run_mp(items=to_compile, func=self._compile_file)
-        check_for_errors(results, caller_label=self.name)
-        compiled_c = by_type(results, CompiledFile)
+        compilation_results = self.run_mp(items=to_compile, func=self._compile_file)
+        check_for_errors(compilation_results, caller_label=self.name)
+        compiled_c = list(by_type(compilation_results, CompiledFile))
+        logger.info(f"compiled {len(compiled_c)} c files")
 
-        lookup = {compiled_file.input_fpath: compiled_file for compiled_file in compiled_c}
-        logger.info(f"compiled {len(lookup)} c files")
+        # record the prebuild files as being current, so the cleanup knows not to delete them
+        prebuild_files = {r.output_fpath for r in compiled_c}
+        config.add_current_prebuilds(prebuild_files)
 
-        # add the targets' new object files to the artefact store
-        target_object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
+        # record the compilation results for the next step
+        self.store_artefacts(compiled_c, build_lists, artefact_store)
+
+    # todo: very similar code in fortran compiler
+    def store_artefacts(self, compiled_files: List[CompiledFile], build_lists: Dict[str, List], artefact_store):
+        """
+        Create our artefact collection; object files for each compiled file, per root symbol.
+
+        """
+        # add the new object files to the artefact store, by target
+        lookup = {c.input_fpath: c for c in compiled_files}
+        object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
         for root, source_files in build_lists.items():
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
-            target_object_files[root].update(new_objects)
+            object_files[root].update(new_objects)
 
     def _compile_file(self, analysed_file: AnalysedFile):
 

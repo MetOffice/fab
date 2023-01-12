@@ -45,6 +45,7 @@ See :term:`Incremental Build` and :term:`Prebuild` for definitions.
 
 Prebuild artefacts are stored in a flat *_prebuild* folder underneath the *build_output* folder.
 They include a checksum in their filename to distinguish between different builds of the same artefact.
+All prebuild files are named: `<stem>.<hash>.<suffix>`, e.g: *my_mod.123.o*.
 
 Checksums
 ---------
