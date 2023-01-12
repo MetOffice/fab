@@ -6,7 +6,7 @@
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union
+from typing import Union, Tuple
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
@@ -89,7 +89,8 @@ class FortranAnalyserBase(ABC):
         # runtime
         self._prebuild_folder = None
 
-    def run(self, fpath: Path) -> Union[AnalysedFile, Exception]:
+    def run(self, fpath: Path) \
+            -> Union[Tuple[AnalysedFile, Path], Tuple[EmptySourceFile, None], Tuple[Exception, None]]:
         """
         Parse the source file and record what we're interested in (subclass specific).
 
@@ -98,9 +99,11 @@ class FortranAnalyserBase(ABC):
         """
         log_or_dot(logger, f"analysing {fpath}")
 
-        # do we already have analysis results for this file?
+        # calculate the prebuild filename
         file_hash = file_checksum(fpath).file_hash
         analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
+
+        # do we already have analysis results for this file?
         if analysis_fpath.exists():
             # Load the result file into whatever result class we use.
             loaded_result = self.result_class.load(analysis_fpath)
@@ -109,16 +112,16 @@ class FortranAnalyserBase(ABC):
                 # If so, the fpath in the result will *not* point to the file we eventually want to compile,
                 # it will point to the user's original file, somewhere else. So replace it with our own path.
                 loaded_result.fpath = fpath
-                return loaded_result
+                return loaded_result, analysis_fpath
 
         # parse the file, get a node tree
         node_tree = self._parse_file(fpath=fpath)
         if isinstance(node_tree, Exception):
-            return Exception(f"error parsing file '{fpath}': {node_tree}")
+            return Exception(f"error parsing file '{fpath}': {node_tree}"), None
         if node_tree.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             # todo: If we don't save the empty result we'll keep analysing it every time!
-            return EmptySourceFile(fpath)
+            return EmptySourceFile(fpath), None
 
         # find things in the node tree
         analysed_file = self.walk_nodes(fpath=fpath, file_hash=file_hash, node_tree=node_tree)
@@ -126,7 +129,7 @@ class FortranAnalyserBase(ABC):
         analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
         analysed_file.save(analysis_fpath)
 
-        return analysed_file
+        return analysed_file, analysis_fpath
 
     def _get_analysis_fpath(self, fpath, file_hash) -> Path:
         return Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
