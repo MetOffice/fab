@@ -161,8 +161,7 @@ class BuildConfig(object):
         logger.info('------------------------------------------------------------')
         logger.info('')
 
-        self.build_output.mkdir(parents=True, exist_ok=True)
-        self.prebuild_folder.mkdir(parents=True, exist_ok=True)
+        self._prep_output_folders()
 
         self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
@@ -175,6 +174,10 @@ class BuildConfig(object):
         if not by_type(self.steps, CleanupPrebuilds):
             logger.info("no housekeeping specified, adding a default hard cleanup")
             self.steps.append(CleanupPrebuilds(all_unused=True))
+
+    def _prep_output_folders(self):
+        self.build_output.mkdir(parents=True, exist_ok=True)
+        self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
     def _init_logging(self):
         # add a file logger for our run

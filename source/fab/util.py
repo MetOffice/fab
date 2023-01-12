@@ -10,6 +10,7 @@ Various utility functions live here - until we give them a proper place to live!
 
 import datetime
 import logging
+import os
 import sys
 import zlib
 from argparse import ArgumentParser
@@ -18,7 +19,6 @@ from pathlib import Path
 from time import perf_counter
 from typing import Iterator, Iterable, Optional, Set, Dict, List, Tuple, Union
 
-from fab.tools import COMPILERS
 
 logger = logging.getLogger(__name__)
 

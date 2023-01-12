@@ -206,9 +206,8 @@ class CompileFortran(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    def process_file(self, analysed_file: AnalysedFile) \
+    def process_file(self, analysed_file: AnalysedFortran) \
             -> Union[Tuple[CompiledFile, List[Path]], Tuple[Exception, None]]:
-    def process_file(self, analysed_file: AnalysedFortran):
         """
         Prepare to compile a fortran file, and compile it if anything has changed since it was last compiled.
 

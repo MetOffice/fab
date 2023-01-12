@@ -7,6 +7,7 @@ import filecmp
 import shutil
 from os import unlink
 from pathlib import Path
+from typing import Tuple
 from unittest import mock
 
 import pytest
@@ -38,7 +39,8 @@ def test_make_parsable_x90(tmp_path):
 
     # the point of this function is to make the file parsable by fparser
     x90_analyser = X90Analyser()
-    x90_analyser._prebuild_folder = tmp_path
+    x90_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
+    x90_analyser._config._prep_output_folders()
     x90_analyser.run(parsable_x90_path)
 
     # ensure the files are as expected
@@ -59,14 +61,15 @@ class TestX90Analyser(object):
             'kernel_two_type': 'imaginary_mod_one',
         })
 
-    def run(self, tmp_path) -> AnalysedX90:
+    def run(self, tmp_path) -> Tuple[AnalysedX90, Path]:
         parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
-        x90_analyser._prebuild_folder = tmp_path
-        return x90_analyser.run(parsable_x90_path)
+        x90_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
+        x90_analyser._config._prep_output_folders()
+        return x90_analyser.run(parsable_x90_path)  # type: ignore
 
     def test_vanilla(self, tmp_path):
-        analysed_x90 = self.run(tmp_path)
+        analysed_x90, _ = self.run(tmp_path)
         assert analysed_x90 == self.expected_analysis_result
 
     def test_prebuild(self, tmp_path):
@@ -74,7 +77,7 @@ class TestX90Analyser(object):
 
         # Run it a second time, ensure it's not re-processed and still gives the correct result
         with mock.patch('fab.parse.fortran.x90.X90Analyser.walk_nodes') as mock_walk:
-            analysed_x90 = self.run(tmp_path)
+            analysed_x90, _ = self.run(tmp_path)
         mock_walk.assert_not_called()
         assert analysed_x90 == self.expected_analysis_result
 
@@ -82,17 +85,14 @@ class TestX90Analyser(object):
 class TestPsyclone(object):
 
     @pytest.fixture
-    def common(self, tmp_path):
-        config = BuildConfig('proj', fab_workspace=tmp_path)
-        config.prebuild_folder.mkdir(parents=True, exist_ok=False)
-
+    def psyclone_step(self, tmp_path):
         psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
-        psyclone_step._config = config
+        psyclone_step._config = BuildConfig('proj', fab_workspace=tmp_path)
+        psyclone_step._config._prep_output_folders()
 
-        return config, psyclone_step
+        return psyclone_step
 
-    def test_analyse(self, common):
-        config, psyclone_step = common
+    def test_analyse(self, psyclone_step):
 
         artefact_store = {'preprocessed_x90': [SAMPLE_X90]}
         psyclone_step.analyse(artefact_store=artefact_store)
@@ -104,8 +104,7 @@ class TestPsyclone(object):
 
         # todo: better testing of the logic which joins the kernel names into used_kernels
 
-    def test_analyse_kernels(self, common):
-        config, psyclone_step = common
+    def test_analyse_kernels(self, psyclone_step):
         kernel_files = [SAMPLE_KERNEL]
 
         all_kernels = psyclone_step._analyse_kernels(kernel_files=kernel_files)
@@ -118,6 +117,7 @@ class TestPsyclone(object):
         }
 
     def test_gen_prebuild_hash(self):
+        # todo
         pass
 
 

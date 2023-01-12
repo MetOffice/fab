@@ -103,7 +103,7 @@ class CAnalyser(object):
             return None
 
     def run(self, fpath: Path) \
-            -> Union[Tuple[AnalysedFile, Path], Tuple[Exception, None]]:
+            -> Union[Tuple[AnalysedC, Path], Tuple[Exception, None]]:
 
         if not clang:
             msg = 'clang not available, C analysis disabled'

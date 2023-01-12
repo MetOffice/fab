@@ -21,7 +21,6 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse import AnalysedFile
 from fab.steps import check_for_errors, Step
-from fab.tasks import TaskException
 from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 

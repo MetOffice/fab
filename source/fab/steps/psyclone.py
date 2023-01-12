@@ -16,6 +16,8 @@ from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Set
 
+from fab.tools import run_command
+
 from fab import FabException
 
 from fab.artefacts import SuffixFilter
@@ -23,7 +25,7 @@ from fab.parse.fortran.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
 from fab.steps import Step, check_for_errors
 from fab.steps.preprocess import PreProcessor
-from fab.util import log_or_dot, input_to_output_fpath, run_command, file_checksum, file_walk, TimerLogger, \
+from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \
     string_checksum, suffix_filter, by_type, log_or_dot_finish
 
 logger = logging.getLogger(__name__)
@@ -192,7 +194,7 @@ class Psyclone(Step):
         # each x90 analysis result contains the kernels they depend on, and the names of the modules they're in
         # todo: we'd simplify this code if the x90 analyser didn't record the modules they're in
         kernel_sets = [set(a.kernel_deps.keys()) for a in self._analysed_x90.values()]
-        used_kernels = set.union(*kernel_sets)
+        used_kernels = set.union(*kernel_sets) if kernel_sets else set()
         logger.info(f'found {len(used_kernels)} kernels used')
 
         # Analyse *all* the kernel files, hashing the psyclone kernel metadata.
@@ -215,15 +217,16 @@ class Psyclone(Step):
     def _analyse_x90s(self, parsable_x90: Set[Path]) -> Dict[Path, AnalysedX90]:
         # Analyse the parsable version of the x90, finding kernel dependencies.
         x90_analyser = X90Analyser()
-        x90_analyser._prebuild_folder = self._config.prebuild_folder
+        x90_analyser._config = self._config
 
         with TimerLogger(f"analysing {len(parsable_x90)} parsable x90 files"):
-            results = self.run_mp(items=parsable_x90, func=x90_analyser.run)
+            x90_results = self.run_mp(items=parsable_x90, func=x90_analyser.run)
         log_or_dot_finish(logger)
-        check_for_errors(results=results)
+        x90_analyses, x90_artefacts = zip(*x90_results) if x90_results else (tuple(), tuple())
+        check_for_errors(results=x90_analyses)
 
         # record the analysis result against the original x90 filename (not the parsable version we analysed)
-        analysed_x90 = by_type(results, AnalysedX90)
+        analysed_x90 = by_type(x90_analyses, AnalysedX90)
         return {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
 
     def _analyse_kernels(self, kernel_files) -> Dict[str, int]:
@@ -232,16 +235,20 @@ class Psyclone(Step):
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
         # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
         fortran_analyser = FortranAnalyser()
-        fortran_analyser._prebuild_folder = self._config.prebuild_folder
+        fortran_analyser._config = self._config
         with TimerLogger(f"analysing {len(kernel_files)} potential psyclone kernel files"):
-            mp_results = self.run_mp(items=kernel_files, func=fortran_analyser.run)
+            fortran_results = self.run_mp(items=kernel_files, func=fortran_analyser.run)
         log_or_dot_finish(logger)
-        errors: List[Exception] = list(by_type(mp_results, Exception))
+        fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
+
+        # todo: record fortran_artefacts as current
+
+        errors: List[Exception] = list(by_type(fortran_analyses, Exception))
         if errors:
             errs_str = '\n\n'.join(map(str, errors))
             logger.error(f"There were {len(errors)} errors while parsing kernels:\n\n{errs_str}")
 
-        analysed_fortran: List[AnalysedFortran] = by_type(mp_results, AnalysedFortran)
+        analysed_fortran: List[AnalysedFortran] = list(by_type(fortran_analyses, AnalysedFortran))
 
         # gather all kernel hashes into one big lump
         all_kernel_hashes: Dict[str, int] = {}

@@ -7,11 +7,14 @@
 Known command line tools whose flags we wish to manage.
 
 """
+import logging
 import subprocess
 import warnings
 from typing import Dict, List, Tuple
 
-from fab.util import logger, string_checksum
+from fab.util import string_checksum
+
+logger = logging.getLogger(__name__)
 
 
 class Compiler(object):

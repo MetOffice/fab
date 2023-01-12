@@ -114,16 +114,16 @@ class AnalysedFortran(AnalysedDependent):
             'psyclone_kernels',
         ]
 
-    def __str__(self):
-        values = [getattr(self, field_name) for field_name in self.field_names()]
-        return 'AnalysedFile ' + ' '.join(map(str, values))
-
-    def __repr__(self):
-        params = ', '.join([f'{f}={getattr(self, f)}' for f in self.field_names()])
-        return f'AnalysedFile({params})'
-
-    def __eq__(self, other):
-        return vars(self) == vars(other)
+    # def __str__(self):
+    #     values = [getattr(self, field_name) for field_name in self.field_names()]
+    #     return 'AnalysedFile ' + ' '.join(map(str, values))
+    #
+    # def __repr__(self):
+    #     params = ', '.join([f'{f}={getattr(self, f)}' for f in self.field_names()])
+    #     return f'AnalysedFile({params})'
+    #
+    # def __eq__(self, other):
+    #     return vars(self) == vars(other)
 
     def __hash__(self):
         # If we haven't been given a file hash, we can't be hashed (i.e. put into a set) until the target file exists.

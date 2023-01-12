@@ -84,10 +84,10 @@ class FortranAnalyserBase(ABC):
         self.result_class = result_class
         self.f2008_parser = ParserFactory().create(std=std or "f2008")
 
-        # todo: this, and perhaps other runtime variables like it, might be better passed in at construction
-        #       if we can just construct these objects at runtime instead...
-        # runtime
-        self._prebuild_folder = None
+        # todo: this, and perhaps other runtime variables like it, might be better set at construction
+        #       if we construct these objects at runtime instead...
+        # runtime, for child processes to read
+        self._config = None
 
     def run(self, fpath: Path) \
             -> Union[Tuple[AnalysedFile, Path], Tuple[EmptySourceFile, None], Tuple[Exception, None]]:
@@ -95,6 +95,8 @@ class FortranAnalyserBase(ABC):
         Parse the source file and record what we're interested in (subclass specific).
 
         Reloads previous analysis results if available.
+
+        Returns the analysis data and the result file where it was stored/loaded.
 
         """
         log_or_dot(logger, f"analysing {fpath}")
@@ -132,7 +134,7 @@ class FortranAnalyserBase(ABC):
         return analysed_file, analysis_fpath
 
     def _get_analysis_fpath(self, fpath, file_hash) -> Path:
-        return Path(self._prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        return Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
 
     def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""
