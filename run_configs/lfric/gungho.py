@@ -5,9 +5,8 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 import logging
-from argparse import ArgumentParser
 
-import fparser
+from fab.util import common_arg_parser
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
@@ -28,7 +27,7 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def gungho_config(two_stage=False, opt='Og'):
+def gungho_config(two_stage=False, verbose=False):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
@@ -45,7 +44,8 @@ def gungho_config(two_stage=False, opt='Og'):
     #     pass
 
     config = BuildConfig(
-        project_label=f'{git_branch}gungho {compiler} {opt} {int(two_stage)+1}stage',
+        project_label=f'{git_branch}gungho {compiler} {int(two_stage)+1}stage',
+        verbose=verbose,
     )
 
     config.steps = [
@@ -96,8 +96,6 @@ def gungho_config(two_stage=False, opt='Og'):
                 '-c',
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
-                # '-Og',
-                f'-{opt}',
                 '-std=f2008',
 
                 '-Wall', '-Werror=conversion', '-Werror=unused-variable', '-Werror=character-truncation',
@@ -128,11 +126,7 @@ def gungho_config(two_stage=False, opt='Og'):
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument('--two-stage', action='store_true')
-    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
+    arg_parser = common_arg_parser()
     args = arg_parser.parse_args()
 
-    logger.info(f'fparser at {fparser}')
-
-    gungho_config(two_stage=args.two_stage, opt=args.opt).run()
+    gungho_config(two_stage=args.two_stage, verbose=args.verbose).run()

@@ -255,7 +255,7 @@ class Psyclone(Step):
         for af in analysed_fortran:
             assert set(af.psyclone_kernels).isdisjoint(all_kernel_hashes), \
                 f"duplicate kernel name(s): {set(af.psyclone_kernels) & set(all_kernel_hashes)}"
-            all_kernel_hashes |= af.psyclone_kernels
+            all_kernel_hashes.update(af.psyclone_kernels)
 
         return all_kernel_hashes
 

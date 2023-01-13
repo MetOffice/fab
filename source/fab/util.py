@@ -254,16 +254,16 @@ def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
     return pbf_groups
 
 
-def common_arg_parser():
+def common_arg_parser() -> ArgumentParser:
     """
     A helper function returning an argument parser with common, useful arguments controlling command line tools.
 
-    More arguments can be added as needed by the calling code.
+    More arguments can be added. The caller must call `parse_args` on the returned parser.
 
     """
     # consider adding preprocessor, linker, optimisation, two-stage
     arg_parser = ArgumentParser()
-    arg_parser.add_argument('--compiler', default=None)
     arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('--verbose', action='store_true')
 
     return arg_parser

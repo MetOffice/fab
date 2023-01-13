@@ -12,10 +12,9 @@ import logging
 import os
 import re
 import warnings
-from argparse import ArgumentParser
-from pathlib import Path
 
-from fab.parse.fortran.fortran import FortranParserWorkaround
+from fab.util import common_arg_parser
+
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
@@ -38,11 +37,13 @@ logger = logging.getLogger('fab')
 # todo: fail fast, check gcom exists
 
 
-def um_atmos_safe_config(revision, two_stage=False):
+def um_atmos_safe_config(revision, two_stage=False, verbose=False):
     um_revision = revision.replace('vn', 'um')
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
     compiler, _ = get_fortran_compiler()
+
+    # compiler-specific flags
     if compiler == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
     elif compiler == 'ifort':
@@ -62,8 +63,7 @@ def um_atmos_safe_config(revision, two_stage=False):
 
     config = BuildConfig(
         project_label=f'um atmos safe {revision} {compiler} {int(two_stage)+1}stage',
-        # multiprocessing=False,
-        # reuse_artefacts=True,
+        verbose=verbose,
     )
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
@@ -309,10 +309,8 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser()
+    arg_parser = common_arg_parser()
     arg_parser.add_argument('--revision', default=os.getenv('UM_REVISION', 'vn12.1'))
-    arg_parser.add_argument('--two-stage', action='store_true')
     args = arg_parser.parse_args()
 
-    # logging.getLogger('fab').setLevel(logging.DEBUG)
-    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage).run()
+    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage, verbose=args.verbose).run()

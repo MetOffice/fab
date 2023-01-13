@@ -16,13 +16,6 @@ from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.util import common_arg_parser
 
 
-def parse_args():
-    arg_parser = common_arg_parser()
-    arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
-    args = arg_parser.parse_args()
-    return args
-
-
 def common_build_steps(fortran_compiler, fpic=False) -> List[Step]:
 
     fpp_flags = [

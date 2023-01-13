@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
-from argparse import ArgumentParser
+
+from fab.util import common_arg_parser
 
 from fab.build_config import BuildConfig, AddFlags
 from fab.steps.analyse import Analyse
@@ -24,7 +25,7 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def atm_config(two_stage=False, opt='Og'):
+def atm_config(two_stage=False, verbose=False):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
@@ -32,8 +33,8 @@ def atm_config(two_stage=False, opt='Og'):
     compiler, _ = get_fortran_compiler()
 
     config = BuildConfig(
-        project_label=f'atm {compiler} {opt} {int(two_stage)+1}stage',
-        # verbose=True,
+        project_label=f'atm {compiler} {int(two_stage)+1}stage',
+        verbose=verbose,
     )
 
     config.steps = [
@@ -131,9 +132,6 @@ def atm_config(two_stage=False, opt='Og'):
                 '-g',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
                 '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
-
-                # '-Og',
-                f'-{opt}',
 
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
@@ -560,12 +558,7 @@ def file_filtering(config):
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument('--two-stage', action='store_true')
-    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
+    arg_parser = common_arg_parser()
     args = arg_parser.parse_args()
 
-    # logger.setLevel(logging.DEBUG)
-
-    atm_config(two_stage=args.two_stage, opt=args.opt).run()
-    # metrics_summary(metrics_folder=atm_config().metrics_folder)
+    atm_config(two_stage=args.two_stage, verbose=args.verbose).run()
