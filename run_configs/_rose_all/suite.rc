@@ -57,7 +57,7 @@
 
     [[build_um<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = build_jules.py
+        script = build_um.py
         [[[directives]]]
             --mem=2048
 
