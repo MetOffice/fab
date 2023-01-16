@@ -5,7 +5,7 @@
 # ##############################################################################
 import json
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from pathlib import Path
 from typing import Union, Optional, Dict, Any, Set, Iterable
 

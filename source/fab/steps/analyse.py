@@ -126,7 +126,8 @@ class Analyse(Step):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[FortranParserWorkaround] = list(special_measure_analysis_results or [])
+        self.special_measure_analysis_results: List[FortranParserWorkaround] = \
+            list(special_measure_analysis_results or [])
         self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions

@@ -13,12 +13,10 @@ import os
 import re
 import warnings
 from argparse import ArgumentParser
-from pathlib import Path
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import PRAGMAD_C
-from fab.parse.fortran import FortranParserWorkaround
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
