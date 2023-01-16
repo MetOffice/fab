@@ -44,7 +44,7 @@ Classes which are involved in source tree analysis contain symbol definitions an
 and the file dependencies into which they are converted.
 
 .. image:: img/analysis_results_hierarchy.svg
-    :width: 75%
+    :width: 95%
     :align: center
     :alt: Analysis results class hierarchy
 
