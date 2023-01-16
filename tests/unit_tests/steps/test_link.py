@@ -1,14 +1,13 @@
-"""
-Test test_common.py.
-
-"""
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
 from pathlib import Path
 from unittest import mock
 
-from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES
 
-from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.link import LinkExe
 
 
@@ -29,17 +28,3 @@ class TestLinkExe(object):
             '-L/foo1/lib', '-L/foo2/lib',
             '-fooflag', '-barflag',
         ])
-
-
-class TestArchiveObjects(object):
-    def test_run(self):
-        # ensure the command is formed correctly, with the output filename before the contents
-        archiver = ArchiveObjects(archiver='fooarc', output_fpath='$output/foo.a')
-        config = BuildConfig('proj', fab_workspace=Path('/fab_workspace'))
-
-        with mock.patch('fab.steps.archive_objects.run_command') as mock_run:
-            artefact_store = {OBJECT_FILES: {None: {'foo.o', 'bar.o'}}}
-            archiver.run(artefact_store=artefact_store, config=config)
-
-        mock_run.assert_called_with(
-            ['fooarc', 'cr', '/fab_workspace/proj/build_output/foo.a', *sorted(['foo.o', 'bar.o'])])

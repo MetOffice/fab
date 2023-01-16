@@ -6,8 +6,9 @@
 from textwrap import dedent
 from unittest import mock
 
+from fab.parse.fortran import AnalysedFortran
+
 from fab.build_config import BuildConfig
-from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
 
 
@@ -20,7 +21,7 @@ class TestBuildConfig(object):
         # We're testing the general reporting mechanism here, once they get back to the top,
         # that the newlines *within* the tool error are displayed correctly.
 
-        mock_source = {None: [AnalysedFile('foo.f', file_hash=0)]}
+        mock_source = {None: [AnalysedFortran('foo.f', file_hash=0)]}
 
         with mock.patch('fab.steps.compile_fortran.get_compiler_version', return_value='1.2.3'):
             with mock.patch('fab.steps.compile_fortran.DEFAULT_SOURCE_GETTER', return_value=mock_source):

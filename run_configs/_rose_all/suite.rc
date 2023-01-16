@@ -1,6 +1,6 @@
 [cylc]
     [[parameters]]
-        pyver = "7", "11"  # we can't put a full stop in params, like "3.7", because it causes invalid job names
+        pyver = "7", "11"
         compiler = gnu, ifort
 
 [scheduling]

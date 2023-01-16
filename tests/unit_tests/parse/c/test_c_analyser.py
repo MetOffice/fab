@@ -8,27 +8,25 @@ from unittest import mock
 from unittest.mock import Mock
 
 import clang  # type: ignore
+from fab.parse.c import CAnalyser, AnalysedC
 
 from fab.build_config import BuildConfig
-from fab.dep_tree import AnalysedFile
-from fab.tasks.c import CAnalyser
 
 
 def test_simple_result(tmp_path):
     c_analyser = CAnalyser()
     c_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
 
-    with mock.patch('fab.dep_tree.AnalysedFile.save'):
+    with mock.patch('fab.parse.AnalysedFile.save'):
         fpath = Path(__file__).parent / "test_c_analyser.c"
         analysis, artefact = c_analyser.run(fpath)
 
-    expected = AnalysedFile(
+    expected = AnalysedC(
         fpath=fpath,
         file_hash=1429445462,
         symbol_deps={'usr_var', 'usr_func'},
         symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
         file_deps=set(),
-        mo_commented_file_deps=set(),
     )
     assert analysis == expected
     assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
@@ -165,8 +163,8 @@ class Test_process_symbol_dependency(object):
 
 def test_clang_disable():
 
-    with mock.patch('fab.tasks.c.clang', None):
-        with mock.patch('fab.tasks.c.file_checksum') as mock_file_checksum:
+    with mock.patch('fab.parse.c.clang', None):
+        with mock.patch('fab.parse.c.file_checksum') as mock_file_checksum:
             result = CAnalyser().run(Path(__file__).parent / "test_c_analyser.c")
 
     assert type(result[0]) == ImportWarning

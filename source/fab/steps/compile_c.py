@@ -14,13 +14,15 @@ import zlib
 from collections import defaultdict
 from typing import List, Dict, Optional
 
+from fab import FabException
+
+from fab.parse.c import AnalysedC
+
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
-from fab.dep_tree import AnalysedFile
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, Step
-from fab.tasks import TaskException
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
 
@@ -118,7 +120,7 @@ class CompileC(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    def _compile_file(self, analysed_file: AnalysedFile):
+    def _compile_file(self, analysed_file: AnalysedC):
 
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
@@ -141,7 +143,7 @@ class CompileC(Step):
                 try:
                     run_command(command)
                 except Exception as err:
-                    return TaskException(f"error compiling {analysed_file.fpath}:\n{err}")
+                    return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
 
             send_metric(self.name, str(analysed_file.fpath), timer.taken)
 

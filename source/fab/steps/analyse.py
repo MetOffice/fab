@@ -4,12 +4,12 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-Fab parses each C and Fortran file into an :class:`~fab.steps.dep_tree.AnalysedFile` object
+Fab parses each C and Fortran file into an :class:`~fab.steps.dep_tree.AnalysedDependent` object
 which contains the symbol definitions and dependencies for that file.
 
 From this set of analysed files, Fab builds a symbol table mapping symbols to their containing files.
 
-Fab uses the symbol table to turn symbol dependencies into file dependencies (stored in the AnalysedFile objects).
+Fab uses the symbol table to turn symbol dependencies into file dependencies (stored in the AnalysedDependent objects).
 This gives us a file dependency tree for the entire project source. The data structure is simple,
 just a dict of *<source path>: <analysed file>*, where the analysed files' dependencies are other dict keys.
 
@@ -29,7 +29,7 @@ For every symbol we provide, its source file *and dependencies* will be added to
 
 Sometimes a language parser will crash while parsing a *valid* source file, even though the compiler
 can compile the file perfectly well. In this case we can give Fab the analysis results it should have made
-by passing AnalysedFile objects into the `special_measure_analysis_results` argument.
+by passing FortranParserWorkaround objects into the `special_measure_analysis_results` argument.
 You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
 
 """
@@ -40,12 +40,15 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
+from fab.parse.c import CAnalyser
+
+from fab.parse import AnalysedDependent
+
+from fab.parse.fortran import FortranParserWorkaround, FortranAnalyser
+
 from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
-from fab.dep_tree import AnalysedFile, add_mo_commented_file_deps, extract_sub_tree, \
-    validate_dependencies, ParserWorkaround
+from fab.dep_tree import add_mo_commented_file_deps, extract_sub_tree, validate_dependencies
 from fab.steps import Step
-from fab.tasks.c import CAnalyser
-from fab.tasks.fortran import FortranAnalyser
 from fab.util import TimerLogger, by_type
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
@@ -79,7 +82,7 @@ class Analyse(Step):
                  source: Optional[ArtefactsGetter] = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
                  std: str = "f2008",
-                 special_measure_analysis_results: Optional[Iterable[ParserWorkaround]] = None,
+                 special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None,
                  name='analyser'):
@@ -123,7 +126,7 @@ class Analyse(Step):
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-        self.special_measure_analysis_results: List[ParserWorkaround] = list(special_measure_analysis_results or [])
+        self.special_measure_analysis_results: List[FortranParserWorkaround] = list(special_measure_analysis_results or [])
         self.unreferenced_deps: List[str] = list(unreferenced_deps or [])
 
         # todo: these seem more like functions
@@ -186,7 +189,7 @@ class Analyse(Step):
 
         artefact_store[BUILD_TREES] = build_trees
 
-    def _analyse_dependencies(self, analysed_files: Iterable[AnalysedFile]):
+    def _analyse_dependencies(self, analysed_files: Iterable[AnalysedDependent]):
         """
         Turn symbol deps into file deps and build a source dependency tree for the entire source.
 
@@ -198,7 +201,7 @@ class Analyse(Step):
             # fill in the file deps attribute in the analysed file objects
             self._gen_file_deps(analysed_files, symbols)
 
-        source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
+        source_tree: Dict[Path, AnalysedDependent] = {a.fpath: a for a in analysed_files}
         return source_tree, symbols
 
     def _extract_build_trees(self, project_source_tree, symbols):
@@ -219,11 +222,11 @@ class Analyse(Step):
 
         return build_trees
 
-    def _parse_files(self, files: List[Path]) -> Set[AnalysedFile]:
+    def _parse_files(self, files: List[Path]) -> Set[AnalysedDependent]:
         """
         Determine the symbols which are defined in, and used by, each file.
 
-        Returns the analysed_fortran and analysed_c as lists of :class:`~fab.dep_tree.AnalysedFile`
+        Returns the analysed_fortran and analysed_c as lists of :class:`~fab.dep_tree.AnalysedDependent`
         with no file dependencies, to be filled in later.
 
         """
@@ -259,9 +262,9 @@ class Analyse(Step):
         if self.fortran_analyser.depends_on_comment_found:
             warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
-        return set(by_type(analyses, AnalysedFile))
+        return set(by_type(analyses, AnalysedDependent))
 
-    def _add_manual_results(self, analysed_files: Set[AnalysedFile]):
+    def _add_manual_results(self, analysed_files: Set[AnalysedDependent]):
         # add manual analysis results for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
@@ -273,11 +276,11 @@ class Analyse(Step):
                     # which don't *crash* the parser. We don't have a use case to do this, but it's worth noting.
                     # If we want to allow this we can raise a warning instead of an exception.
                     raise ValueError(f'Unnecessary ParserWorkaround for {r.fpath}')
-                analysed_files.add(r.as_analysed_file())
+                analysed_files.add(r.as_analysed_fortran())
 
             logger.info(f'added {len(self.special_measure_analysis_results)} manual analysis results')
 
-    def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
+    def _gen_symbol_table(self, analysed_files: Iterable[AnalysedDependent]) -> Dict[str, Path]:
         """
         Create a dictionary mapping symbol names to the files in which they appear.
 
@@ -302,7 +305,7 @@ class Analyse(Step):
 
         return symbols
 
-    def _gen_file_deps(self, analysed_files: Iterable[AnalysedFile], symbols: Dict[str, Path]):
+    def _gen_file_deps(self, analysed_files: Iterable[AnalysedDependent], symbols: Dict[str, Path]):
         """
         Use the symbol table to convert symbol dependencies into file dependencies.
 
@@ -324,8 +327,10 @@ class Analyse(Step):
         if deps_not_found:
             logger.info(f"{len(deps_not_found)} deps not found")
 
-    def _add_unreferenced_deps(self, symbols: Dict[str, Path],
-                               all_analysed_files: Dict[Path, AnalysedFile], build_tree: Dict[Path, AnalysedFile]):
+    def _add_unreferenced_deps(self,
+                               symbols: Dict[str, Path],
+                               all_analysed_files: Dict[Path, AnalysedDependent],
+                               build_tree: Dict[Path, AnalysedDependent]):
         """
         Add files to the build tree.
 
