@@ -20,23 +20,20 @@ from fparser.two.Fortran2003 import (  # type: ignore
 from fparser.two.Fortran2008 import (  # type: ignore
     Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
 
-from fab.parse import AnalysedDependent
+from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran_common import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
 from fab.util import file_checksum, string_checksum
 
 logger = logging.getLogger(__name__)
 
 
-# todo: a nicer recursion pattern?
-
-
 class AnalysedFortran(AnalysedDependent):
     """
     An analysis result for a single file, containing module and symbol definitions and dependencies.
 
-    The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
-    a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
-    which will be converted at runtime into an instance of this class.
+    The user should be unlikely to encounter this class. If the third-party fortran parser is unable to process
+    a source file, a :class:`~fab.dep_tree.FortranParserWorkaround` object can be provided to the
+    :class:`~fab.steps.analyse.Analyse` step, which will be converted at runtime into an instance of this class.
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
@@ -234,8 +231,6 @@ class FortranAnalyser(FortranAnalyserBase):
             except Exception:
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
 
-        # analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
-        # analysed_file.save(analysis_fpath)
         return analysed_fortran
 
     def _process_use_statement(self, analysed_file, obj):
@@ -315,7 +310,7 @@ class FortranAnalyser(FortranAnalyserBase):
 
 class FortranParserWorkaround(object):
     """
-    Use this class to create a workaround when the Fortran parser is unable to process a valid source file.
+    Use this class to create a workaround when the third-party Fortran parser is unable to process a valid source file.
 
     You must manually examine the source file and list:
      - module definitions

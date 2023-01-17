@@ -17,13 +17,15 @@ from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab import FabException
-from fab.parse import EmptySourceFile, AnalysedDependent
+from fab.parse import EmptySourceFile
+from fab.dep_tree import AnalysedDependent
 from fab.util import log_or_dot, file_checksum
 
 
 logger = logging.getLogger(__name__)
 
 
+# todo: a nicer recursion pattern?
 def iter_content(obj):
     """
     Return a generator which yields every node in the tree.

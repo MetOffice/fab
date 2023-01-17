@@ -5,7 +5,7 @@ import pytest
 from fab.parse.fortran import FortranParserWorkaround, AnalysedFortran
 
 from fab.build_config import BuildConfig
-from fab.parse import AnalysedDependent
+from fab.dep_tree import AnalysedDependent
 from fab.steps.analyse import Analyse
 from fab.util import HashedFile
 

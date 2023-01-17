@@ -42,12 +42,11 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.parse.c import CAnalyser
 
-from fab.parse import AnalysedDependent
-
 from fab.parse.fortran import FortranParserWorkaround, FortranAnalyser
 
 from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
-from fab.dep_tree import add_mo_commented_file_deps, extract_sub_tree, validate_dependencies
+from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
+from fab.mo import add_mo_commented_file_deps
 from fab.steps import Step
 from fab.util import TimerLogger, by_type
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter

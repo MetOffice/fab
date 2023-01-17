@@ -11,7 +11,8 @@ import copy
 from pathlib import Path
 
 import pytest
-from fab.parse import AnalysedFile, AnalysedDependent
+from fab.parse import AnalysedFile
+from fab.dep_tree import AnalysedDependent
 
 
 class TestAnalysedFile(object):

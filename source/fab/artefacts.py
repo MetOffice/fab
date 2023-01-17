@@ -15,11 +15,9 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
-from fab.parse import AnalysedDependent
-
 from fab.constants import BUILD_TREES
 
-from fab.dep_tree import filter_source_tree
+from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
 
 

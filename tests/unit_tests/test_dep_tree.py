@@ -2,8 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from fab.dep_tree import extract_sub_tree
-from fab.parse import AnalysedDependent
+from fab.dep_tree import extract_sub_tree, AnalysedDependent
 
 
 @pytest.fixture
