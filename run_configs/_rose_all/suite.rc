@@ -24,6 +24,8 @@
             module load environment/lfric/$CYLC_TASK_PARAM_compiler
             conda init bash
             conda activate sci-fab-3.$CYLC_TASK_PARAM_pyver
+            PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.$CYLC_TASK_PARAM_pyver/site-packages:$PYTHONPATH
+            echo "PYTHONPATH IS " $PYTHONPATH
         """
 
         [[[job]]]

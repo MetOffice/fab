@@ -252,7 +252,8 @@ class Analyse(Step):
         analyses = fortran_analyses + c_analyses
         exceptions = list(by_type(analyses, Exception))
         if exceptions:
-            logger.error(f"{len(exceptions)} analysis errors")
+            err_str = '\n\n'.join(map(str, exceptions))
+            print(f"\nThere were {len(exceptions)} analysis errors:\n\n{err_str}\n\n", file=sys.stderr)
 
         # record the artefacts as being current
         artefacts = by_type(fortran_artefacts + c_artefacts, Path)

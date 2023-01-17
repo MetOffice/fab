@@ -125,7 +125,7 @@ class FortranAnalyserBase(ABC):
         # parse the file, get a node tree
         node_tree = self._parse_file(fpath=fpath)
         if isinstance(node_tree, Exception):
-            return Exception(f"error parsing file '{fpath}': {node_tree}"), None
+            return Exception(f"error parsing file '{fpath}':\n{node_tree}"), None
         if node_tree.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             # todo: If we don't save the empty result we'll keep analysing it every time!
