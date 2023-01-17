@@ -28,7 +28,7 @@ def config(compiler=None):
 
     config.steps = [
 
-        GrabGit(src='https://github.com/bblay/tiny_fortran.git', revision='main', dst='src'),
+        GrabGit(src='https://github.com/metomi/fab-test-data.git', revision='main', dst='src'),
 
         FindSourceFiles(),
 
