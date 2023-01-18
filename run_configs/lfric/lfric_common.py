@@ -13,6 +13,7 @@ from fab.util import log_or_dot, input_to_output_fpath
 logger = logging.getLogger('fab')
 
 
+# todo: is this part of psyclone? if so, put  it in the psyclone step module?
 class Configurator(Step):
 
     def __init__(self, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):
@@ -84,6 +85,8 @@ class Configurator(Step):
         )
 
         # put the generated source into an artefact
+        # todo: we shouldn't need to do this, should we?
+        #       it's just going to be found in the source folder with everything else.
         artefact_store['configurator_output'] = [
             configuration_mod_fpath,
             feign_config_mod_fpath

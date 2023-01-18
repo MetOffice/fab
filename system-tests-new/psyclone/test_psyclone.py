@@ -122,3 +122,9 @@ class TestPsyclone(object):
 
 
 # todo: test putting the analysis step before and after psyclone
+
+# todo: test cleanup of prebuild files for:
+#       - analysed x90
+#       - analysed kernels (should work with no code, it's the same analyser)
+#       - psyclone output
+#       - general analysis both before and afterwards

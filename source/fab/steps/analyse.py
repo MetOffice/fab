@@ -257,9 +257,9 @@ class Analyse(Step):
         if exceptions:
             logger.error(f"{len(exceptions)} analysis errors")
 
-        # record the artefacts as being current
+        # mark the artefacts as being current
         artefacts = by_type(fortran_artefacts + c_artefacts, Path)
-        self._config._artefact_store[CURRENT_PREBUILDS].update(artefacts)  # slightly naughty access.
+        self._config.add_current_prebuilds(artefacts)
 
         # ignore empty files
         analysed_files = by_type(analyses, AnalysedFile)

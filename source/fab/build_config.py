@@ -116,7 +116,10 @@ class BuildConfig(object):
 
     def init_artefact_store(self):
         # there's no point writing to this from a child process of Step.run_mp() because you'll be modifying a copy.
-        self._artefact_store = {CURRENT_PREBUILDS: set()}
+        if not self._artefact_store:
+            self._artefact_store = {}
+        if CURRENT_PREBUILDS not in self._artefact_store:
+            self._artefact_store[CURRENT_PREBUILDS] = set()
 
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """
@@ -155,6 +158,8 @@ class BuildConfig(object):
             self._finalise_logging()
 
     def _run_prep(self):
+        self._init_logging()
+
         logger.info('')
         logger.info('------------------------------------------------------------')
         logger.info(f'running {self.project_label}')
@@ -163,7 +168,6 @@ class BuildConfig(object):
 
         self._prep_output_folders()
 
-        self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
 
         # note: initialising here gives a new set of artefacts each run
@@ -171,7 +175,7 @@ class BuildConfig(object):
 
         # if the user hasn't specified any cleanup of the incremental/prebuild folder,
         # then we add a default, hard cleanup leaving only cutting-edge artefacts.
-        if not by_type(self.steps, CleanupPrebuilds):
+        if not list(by_type(self.steps, CleanupPrebuilds)):
             logger.info("no housekeeping specified, adding a default hard cleanup")
             self.steps.append(CleanupPrebuilds(all_unused=True))
 

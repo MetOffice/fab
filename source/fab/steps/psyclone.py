@@ -106,9 +106,8 @@ class Psyclone(Step):
         # in the fortran compiler we hash the module files themselves
         # but they're not built yet in this step so we'll hash the fortran files which define the module dependencies.
 
-        # what's the transformation script? we need to hash that.
-        # (can be omitted, but warn)
-        # todo: what about anything the transformation script might import?
+        # hash the transformation script (can be omitted, but warn)
+        # todo: we should hash anything the transformation script might import, too
         if self.transformation_script:
             self._transformation_script_hash = file_checksum(self.transformation_script).file_hash
         else:
@@ -121,15 +120,21 @@ class Psyclone(Step):
         log_or_dot_finish(logger)
         check_for_errors(results, caller_label=self.name)
 
-        # todo: delete any psy layer files which have hand-written overrides
+        # flatten the list of lists we got back
+        successes: List[List[Path]] = list(filter(lambda r: not isinstance(r, Exception), results))
+        psyclone_output = []
+        for files in successes:
+            psyclone_output.extend(files)
+
+        # record the output files in the artefact store for further processing
+        artefact_store['psyclone_output'] = psyclone_output
+
+        # mark the output files as being current, so the cleanup step doesn't delete them
+        self._config.add_current_prebuilds(psyclone_output)
+
+        # todo: delete any psy layer files which have hand-written overrides, in a given overrides folder
         # is this called psykal?
         # assert False
-
-        successes = list(filter(lambda r: not isinstance(r, Exception), results))
-        logger.info(f"success with {len(successes)} files")
-        artefact_store['psyclone_output'] = []
-        for files in successes:
-            artefact_store['psyclone_output'].extend(files)
 
     # todo: test that we can run this step before or after the analysis step
     def analyse(self, artefact_store):
@@ -192,7 +197,7 @@ class Psyclone(Step):
         # Analyse the parsable x90s to see which kernels they use.
         self._analysed_x90 = self._analyse_x90s(parsable_x90)
         # each x90 analysis result contains the kernels they depend on, and the names of the modules they're in
-        # todo: we'd simplify this code if the x90 analyser didn't record the modules they're in
+        # todo: we'd simplify this block of code if the x90 analyser didn't record the modules they're in
         kernel_sets = [set(a.kernel_deps.keys()) for a in self._analysed_x90.values()]
         used_kernels = set.union(*kernel_sets) if kernel_sets else set()
         logger.info(f'found {len(used_kernels)} kernels used')
@@ -225,6 +230,10 @@ class Psyclone(Step):
         x90_analyses, x90_artefacts = zip(*x90_results) if x90_results else (tuple(), tuple())
         check_for_errors(results=x90_analyses)
 
+        # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
+        prebuild_files = list(by_type(x90_artefacts, Path))
+        self._config.add_current_prebuilds(prebuild_files)
+
         # record the analysis result against the original x90 filename (not the parsable version we analysed)
         analysed_x90 = by_type(x90_analyses, AnalysedX90)
         return {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
@@ -241,7 +250,9 @@ class Psyclone(Step):
         log_or_dot_finish(logger)
         fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
 
-        # todo: record fortran_artefacts as current
+        # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
+        prebuild_files = list(by_type(fortran_artefacts, Path))
+        self._config.add_current_prebuilds(prebuild_files)
 
         errors: List[Exception] = list(by_type(fortran_analyses, Exception))
         if errors:
@@ -260,8 +271,6 @@ class Psyclone(Step):
         return all_kernel_hashes
 
     def do_one_file(self, x90_file):
-        log_or_dot(logger=logger, msg=str(x90_file))
-
         prebuild_hash = self._gen_prebuild_hash(x90_file)
 
         # These are the filenames we expect to be output for this x90 input file.
@@ -283,7 +292,7 @@ class Psyclone(Step):
             if prebuilt_gen.exists():
                 msg += f'\n    {prebuilt_gen}'
                 shutil.copy2(prebuilt_gen, generated)
-            logger.debug(msg)
+            log_or_dot(logger=logger, msg=msg)
 
         else:
             try:
@@ -295,13 +304,13 @@ class Psyclone(Step):
                 if Path(generated).exists():
                     msg += f'\n    {prebuilt_gen}'
                     shutil.copy2(generated, prebuilt_gen)
-                logger.debug(msg)
+                log_or_dot(logger=logger, msg=msg)
 
             except Exception as err:
                 logger.error(err)
                 return err
 
-        result = [modified_alg]
+        result: List[Path] = [modified_alg]
         if Path(generated).exists():
             result.append(generated)
         return result
@@ -342,8 +351,8 @@ class Psyclone(Step):
         return prebuild_hash
 
     def _get_prebuild_paths(self, modified_alg, generated, prebuild_hash):
-        prebuilt_alg = Path(self._config.prebuild_folder / f'{modified_alg.stem}.{prebuild_hash}.{modified_alg.suffix}')
-        prebuilt_gen = Path(self._config.prebuild_folder / f'{generated.stem}.{prebuild_hash}.{generated.suffix}')
+        prebuilt_alg = Path(self._config.prebuild_folder / f'{modified_alg.stem}.{prebuild_hash}{modified_alg.suffix}')
+        prebuilt_gen = Path(self._config.prebuild_folder / f'{generated.stem}.{prebuild_hash}{generated.suffix}')
         return prebuilt_alg, prebuilt_gen
 
     def run_psyclone(self, generated, modified_alg, x90_file):

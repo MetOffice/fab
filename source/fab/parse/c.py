@@ -109,14 +109,16 @@ class CAnalyser(object):
             msg = 'clang not available, C analysis disabled'
             warnings.warn(msg, ImportWarning)
             return ImportWarning(msg), None
-        log_or_dot(logger, f"analysing {fpath}")
 
         # do we already have analysis results for this file?
         # todo: dupe - probably best in a parser base class
         file_hash = file_checksum(fpath).file_hash
         analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
         if analysis_fpath.exists():
+            log_or_dot(logger, f"found analysis prebuild for {fpath}")
             return AnalysedC.load(analysis_fpath), analysis_fpath
+
+        log_or_dot(logger, f"analysing {fpath}")
 
         analysed_file = AnalysedC(fpath=fpath, file_hash=file_hash)
 

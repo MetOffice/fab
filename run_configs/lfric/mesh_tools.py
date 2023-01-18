@@ -26,7 +26,7 @@ def mesh_tools_config(two_stage=False, verbose=False):
 
     config = BuildConfig(
         project_label=f'mesh tools {compiler} {int(two_stage)+1}stage',
-        verbose=verbose
+        verbose=verbose,
     )
 
     config.steps = [
@@ -61,9 +61,6 @@ def mesh_tools_config(two_stage=False, verbose=False):
             root_symbol=['cubedsphere_mesh_generator', 'planar_mesh_generator', 'summarise_ugrid'],
             # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         ),
-
-        # todo:
-        # compile one big lump
 
         CompileFortran(
             common_flags=[

@@ -36,3 +36,6 @@ class TestBuildConfig(object):
                 config.run()
         except Exception as err:
             assert '1\n2\n3' in str(err)
+
+
+# todo: test the cleanup step is added - that code had become broken!

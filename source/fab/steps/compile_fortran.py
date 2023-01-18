@@ -154,7 +154,7 @@ class CompileFortran(Step):
         compiled_this_pass = list(by_type(compilation_results, CompiledFile))
         logger.debug(f"compiled {len(compiled_this_pass)} files")
 
-        # record the prebuild files as being current, so the cleanup knows not to delete them
+        # mark the prebuild files as being current, so the cleanup knows not to delete them
         config.add_current_prebuilds(chain(*prebuild_files))
 
         # hash the modules we just created
@@ -242,7 +242,7 @@ class CompileFortran(Step):
         if not all(prebuilds_exist):
             # compile
             try:
-                logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
+                log_or_dot(logger, f'compiling {analysed_file.fpath}')
                 self.compile_file(analysed_file, flags, output_fpath=obj_file_prebuild)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
@@ -256,7 +256,7 @@ class CompileFortran(Step):
                 )
 
         else:
-            log_or_dot(logger, f'CompileFortran using prebuild: {analysed_file.fpath}')
+            log_or_dot(logger, f'found fortran compilation prebuild for {analysed_file.fpath}')
 
             # copy the prebuilt mod files from the prebuild folder
             for mod_def in analysed_file.module_defs:
@@ -333,8 +333,6 @@ class CompileFortran(Step):
             # files
             command.append(analysed_file.fpath.name)
             command.extend(['-o', str(output_fpath)])
-
-            log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
 
             run_command(command, cwd=analysed_file.fpath.parent)
 

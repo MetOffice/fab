@@ -98,7 +98,7 @@ class CompileC(Step):
         compiled_c = list(by_type(compilation_results, CompiledFile))
         logger.info(f"compiled {len(compiled_c)} c files")
 
-        # record the prebuild files as being current, so the cleanup knows not to delete them
+        # mark the prebuild files as being current, so the cleanup knows not to delete them
         prebuild_files = {r.output_fpath for r in compiled_c}
         config.add_current_prebuilds(prebuild_files)
 
@@ -127,7 +127,7 @@ class CompileC(Step):
 
         # prebuild available?
         if obj_file_prebuild.exists():
-            log_or_dot(logger, f'CompileC using prebuild: {analysed_file.fpath}')
+            log_or_dot(logger, f'found c compilation prebuild for {analysed_file.fpath}')
         else:
             with Timer() as timer:
                 obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
@@ -137,7 +137,7 @@ class CompileC(Step):
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(obj_file_prebuild)])
 
-                log_or_dot(logger, 'CompileC running command: ' + ' '.join(command))
+                log_or_dot(logger, f'compiling {analysed_file.fpath}')
                 try:
                     run_command(command)
                 except Exception as err:

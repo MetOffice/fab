@@ -120,6 +120,8 @@ class Test_add_unreferenced_deps(object):
 
 class Test_parse_files(object):
 
+    # todo: test the correct artefacts are marked as current for the cleanup step
+
     def test_exceptions(self, tmp_path):
         # make sure parse exceptions do not stop the build
         with mock.patch('fab.steps.Step.run_mp', return_value=[(Exception('foo'), None)]):
