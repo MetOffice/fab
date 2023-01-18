@@ -116,7 +116,10 @@ class BuildConfig(object):
 
     def init_artefact_store(self):
         # there's no point writing to this from a child process of Step.run_mp() because you'll be modifying a copy.
-        self._artefact_store = {CURRENT_PREBUILDS: set()}
+        if not self._artefact_store:
+            self._artefact_store = {}
+        if CURRENT_PREBUILDS not in self._artefact_store:
+            self._artefact_store[CURRENT_PREBUILDS] = set()
 
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """
