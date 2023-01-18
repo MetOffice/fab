@@ -6,6 +6,8 @@
 from textwrap import dedent
 from unittest import mock
 
+from fab.steps.cleanup_prebuilds import CleanupPrebuilds
+
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
@@ -35,3 +37,10 @@ class TestBuildConfig(object):
                 config.run()
         except Exception as err:
             assert '1\n2\n3' in str(err)
+
+    def test_run_prep(self):
+        # ensure the cleanup step is added
+        config = BuildConfig('proj')
+        config._run_prep()
+        assert isinstance(config.steps[0], CleanupPrebuilds)
+
