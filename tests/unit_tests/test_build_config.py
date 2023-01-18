@@ -6,6 +6,8 @@
 from textwrap import dedent
 from unittest import mock
 
+from fab.constants import CURRENT_PREBUILDS
+
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedFile
 from fab.steps.compile_fortran import CompileFortran
@@ -35,3 +37,10 @@ class TestBuildConfig(object):
                 config.run()
         except Exception as err:
             assert '1\n2\n3' in str(err)
+
+    def test_init_artefact_store(self):
+        # make sure it doesn't wipe existing artefacts
+        config = BuildConfig('proj')
+        config._artefact_store['foo'] = ['bar']
+        config.init_artefact_store()
+        assert set(config._artefact_store.keys()) == {'foo', CURRENT_PREBUILDS}
