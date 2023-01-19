@@ -66,18 +66,8 @@ class Test_file_walk(object):
 
         return f, pbf
 
-    def test_into_prebuild(self, files, tmp_path):
-        # Don't walk into the prebuild folder.
-        # Why? Because we don't want to analyse things in the prebuild folder.
-        # Why? Because they contain analysis results - no this is wrong.
+    def test_ignore(self, files, tmp_path):
         f, pbf = files
 
-        result = list(file_walk(tmp_path / 'foo'))
+        result = list(file_walk(tmp_path / 'foo', ignore_folders=[pbf.parent]))
         assert result == [f]
-
-    def test_from_prebuild(self, files, tmp_path):
-        # allow *starting from* the prebuild folder
-        f, pbf = files
-
-        result = list(file_walk(tmp_path / 'foo/bar/_prebuild'))
-        assert result == [pbf]

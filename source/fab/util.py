@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Dict, Set, Union
+from typing import Iterator, Iterable, Optional, Dict, Set, Union, List
 
 logger = logging.getLogger(__name__)
 
@@ -74,34 +74,37 @@ def string_checksum(s: str):
     return zlib.crc32(s.encode())
 
 
-def file_walk(path: Union[str, Path]) -> Iterator[Path]:
+def file_walk(path: Union[str, Path], ignore_folders: Optional[List[Path]] = None) -> Iterator[Path]:
     """
     Return every file in *path* and its sub-folders.
 
     :param path:
         Folder to iterate.
+    :param ignore_folders:
+        Pass in any folder if you don't want to traverse into. Please see explanation and intended use, below.
 
     .. note::
 
-        This is not a generic file walk function, it is tailored to Fab's needs.
-        Specifically, it is intended to find:
-           * source files for analysis
-           * prebuild files for cleanup
+        The prebuild folder can contain multiple versions of a single, generated fortran file,
+        created by multiple runs of the build config. The prebuild folder stores these copies for when they're next
+        needed, when they are copied out and reused. We often don't want to include this folder when
+        searching for source code to analyse.
 
-        To meet these needs, this function will not traverse *into* the prebuild folder.
-        However, you can pass in the prebuild folder and get its contents.
+        To meet these needs, this function will not traverse *into* the given folders, if provided.
 
     """
     path = Path(path)
     assert path.is_dir(), f"not dir: '{path}'"
+    ignore_folders = ignore_folders or []
 
     # Note: path here *can* be the prebuild folder
     for i in path.iterdir():
         if i.is_dir():
-            # Never recurse *into* the prebuild folder.
-            if i.name == '_prebuild':
+            # Don't recurse into the given folders.
+            if i in ignore_folders:
+                logger.debug(f'file_walk ignoring {i}')
                 continue
-            yield from file_walk(i)
+            yield from file_walk(path=i, ignore_folders=ignore_folders)
         else:
             yield i
 

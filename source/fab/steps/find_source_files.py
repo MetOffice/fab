@@ -132,7 +132,7 @@ class FindSourceFiles(Step):
 
         # file filtering
         filtered_fpaths = []
-        for fpath in file_walk(source_root):
+        for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
 
             wanted = True
             for path_filter in self.path_filters:
