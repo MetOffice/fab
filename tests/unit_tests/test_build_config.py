@@ -43,4 +43,3 @@ class TestBuildConfig(object):
         config = BuildConfig('proj')
         config._run_prep()
         assert isinstance(config.steps[0], CleanupPrebuilds)
-
