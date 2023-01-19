@@ -62,6 +62,9 @@ class TestIncremental(object):
                 Analyse(root_symbol='my_prog'),
                 CompileFortran(compiler='gfortran -c'),
                 LinkExe(linker='gcc', flags=['-lgfortran']),
+                # Add a permissive cleanup step because we want to know about every file which is created,
+                # across multiple runs of the build. Otherwise, an aggressive cleanup will be automatically added.
+                CleanupPrebuilds(older_than=timedelta(weeks=1))
             ],
             multiprocessing=False,
         )
