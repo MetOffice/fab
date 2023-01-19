@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
-from fab.util import suffix_filter
+from fab.util import suffix_filter, file_walk
 
 
 @pytest.fixture
@@ -51,3 +51,33 @@ class TestSuffixFilter(object):
         getter = SuffixFilter('barz', ['.b', '.c'])
         result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
         assert result == [Path('bar.b'), Path('bar.c')]
+
+
+class Test_file_walk(object):
+
+    @pytest.fixture
+    def files(self, tmp_path):
+        f = tmp_path / 'foo/bar/foo.txt'
+        pbf = tmp_path / 'foo/bar/_prebuild/foo.txt'
+
+        pbf.parent.mkdir(parents=True)
+        f.touch()
+        pbf.touch()
+
+        return f, pbf
+
+    def test_into_prebuild(self, files, tmp_path):
+        # Don't walk into the prebuild folder.
+        # Why? Because we don't want to analyse things in the prebuild folder.
+        # Why? Because they contain analysis results - no this is wrong.
+        f, pbf = files
+
+        result = list(file_walk(tmp_path / 'foo'))
+        assert result == [f]
+
+    def test_from_prebuild(self, files, tmp_path):
+        # allow *starting from* the prebuild folder
+        f, pbf = files
+
+        result = list(file_walk(tmp_path / 'foo/bar/_prebuild'))
+        assert result == [pbf]

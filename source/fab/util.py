@@ -85,6 +85,9 @@ def file_walk(path: Path) -> Iterator[Path]:
     assert path.is_dir(), f"not dir: '{path}'"
     for i in path.iterdir():
         if i.is_dir():
+            # Never recurse into the prebuild folder.
+            if i.name == '_prebuild':
+                continue
             yield from file_walk(i)
         else:
             yield i
