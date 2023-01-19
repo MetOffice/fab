@@ -6,7 +6,7 @@
 from textwrap import dedent
 from unittest import mock
 
-from fab.parse.fortran.fortran import AnalysedFortran
+from fab.parse.fortran import AnalysedFortran
 
 from fab.build_config import BuildConfig
 from fab.steps.compile_fortran import CompileFortran
@@ -36,6 +36,5 @@ class TestBuildConfig(object):
                 config.run()
         except Exception as err:
             assert '1\n2\n3' in str(err)
-
 
 # todo: test the cleanup step is added - that code had become broken!

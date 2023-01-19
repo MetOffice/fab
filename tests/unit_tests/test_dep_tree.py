@@ -6,7 +6,7 @@ from fab.parse.c import AnalysedC
 
 from fab.parse import AnalysedDependent
 
-from fab.parse.fortran.fortran import AnalysedFortran
+from fab.parse.fortran import AnalysedFortran
 
 from fab.dep_tree import extract_sub_tree, add_mo_commented_file_deps
 

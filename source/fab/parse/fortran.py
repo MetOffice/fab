@@ -21,7 +21,7 @@ from fparser.two.Fortran2008 import (  # type: ignore
     Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
 
 from fab.parse import AnalysedDependent
-from fab.parse.fortran import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
+from fab.parse.fortran_common import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
 from fab.util import file_checksum, string_checksum
 
 logger = logging.getLogger(__name__)

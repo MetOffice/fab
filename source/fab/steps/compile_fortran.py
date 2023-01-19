@@ -20,7 +20,7 @@ from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
-from fab.parse.fortran.fortran import AnalysedFortran
+from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS, remove_managed_flags, flags_checksum, run_command, get_tool, get_compiler_version
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \

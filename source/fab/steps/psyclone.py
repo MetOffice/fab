@@ -21,8 +21,8 @@ from fab.tools import run_command
 from fab import FabException
 
 from fab.artefacts import SuffixFilter
-from fab.parse.fortran.fortran import FortranAnalyser, AnalysedFortran
-from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
+from fab.parse.fortran import FortranAnalyser, AnalysedFortran
+from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import Step, check_for_errors
 from fab.steps.preprocess import PreProcessor
 from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \

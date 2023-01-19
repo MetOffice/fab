@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Set, Dict, List, Tuple, Union
+from typing import Iterator, Iterable, Optional, Set, Dict, Union
 
 
 logger = logging.getLogger(__name__)
@@ -82,13 +82,24 @@ def file_walk(path: Union[str, Path]) -> Iterator[Path]:
     :param path:
         Folder to iterate.
 
+    .. note::
+
+        This is not a generic file walk function, it is tailored to Fab's needs.
+        Specifically, it is intended to find:
+           * source files for analysis
+           * prebuild files for cleanup
+
+        To meet these needs, this function will not traverse *into* the prebuild folder.
+        However, you can pass in the prebuild folder and get its contents.
+
     """
     path = Path(path)
     assert path.is_dir(), f"not dir: '{path}'"
 
+    # Note: path here *can* be the prebuild folder
     for i in path.iterdir():
         if i.is_dir():
-            # Never recurse into the prebuild folder.
+            # Never recurse *into* the prebuild folder.
             if i.name == '_prebuild':
                 continue
             yield from file_walk(i)
@@ -235,7 +246,7 @@ def get_fab_workspace() -> Path:
     return fab_workspace
 
 
-def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
+def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set]:
     """
     Group prebuild filenames by originating artefact.
 

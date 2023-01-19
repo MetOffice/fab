@@ -3,9 +3,7 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-import os
 from typing import List
-
 
 from fab.steps import Step
 from fab.steps.analyse import Analyse
@@ -13,7 +11,6 @@ from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
-from fab.util import common_arg_parser
 
 
 def common_build_steps(fortran_compiler, fpic=False) -> List[Step]:

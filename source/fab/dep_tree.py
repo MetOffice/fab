@@ -15,7 +15,7 @@ from typing import Set, Dict, Iterable, List
 
 from fab.parse import AnalysedDependent
 from fab.parse.c import AnalysedC
-from fab.parse.fortran.fortran import AnalysedFortran
+from fab.parse.fortran import AnalysedFortran
 
 logger = logging.getLogger(__name__)
 

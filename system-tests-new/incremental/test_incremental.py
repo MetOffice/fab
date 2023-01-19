@@ -1,3 +1,4 @@
+# todo: rename to test_increment_fortran
 import logging
 import os
 import zlib
@@ -62,6 +63,9 @@ class TestIncremental(object):
                 Analyse(root_symbol='my_prog'),
                 CompileFortran(compiler='gfortran -c'),
                 LinkExe(linker='gcc', flags=['-lgfortran']),
+                # Add a permissive cleanup step because we want to know about every file which is created,
+                # across multiple runs of the build. Otherwise, an aggressive cleanup will be automatically added.
+                CleanupPrebuilds(older_than=timedelta(weeks=1))
             ],
             multiprocessing=False,
         )
@@ -187,7 +191,13 @@ class TestIncremental(object):
     def build(self, build_config):
         # build the project and return the timestamps and hashes
         build_config.run()
+
+        # Make a set of all files in the project.
+        # This call excludes the prebuild folder because file_walk() doesn't traverse *into* it.
         all_files = set(file_walk(build_config.build_output))
+
+        # add prebuild files
+        all_files.update(set(file_walk(build_config.prebuild_folder)))
 
         timestamps = {f: f.stat().st_mtime_ns for f in all_files}
         hashes = {f: zlib.crc32(open(f, 'rb').read()) for f in all_files}

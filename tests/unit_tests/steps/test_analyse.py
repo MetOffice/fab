@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from fab.parse.fortran.fortran import FortranParserWorkaround, AnalysedFortran
+from fab.parse.fortran import FortranParserWorkaround, AnalysedFortran
 
 from fab.util import HashedFile
 
@@ -141,7 +141,7 @@ class Test_add_manual_results(object):
         analyser = Analyse(special_measure_analysis_results=[input])
         analysed_files = set()
 
-        with mock.patch('fab.parse.fortran.fortran.file_checksum', return_value=HashedFile(None, 123)):
+        with mock.patch('fab.parse.fortran.file_checksum', return_value=HashedFile(None, 123)):
             analyser._add_manual_results(analysed_files=analysed_files)
 
         assert analysed_files == {expect}

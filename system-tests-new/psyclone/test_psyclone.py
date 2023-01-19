@@ -13,7 +13,7 @@ from unittest import mock
 import pytest
 
 from fab.build_config import BuildConfig
-from fab.parse.fortran.x90 import X90Analyser, AnalysedX90
+from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps.psyclone import make_parsable_x90, Psyclone
 
 
@@ -76,7 +76,7 @@ class TestX90Analyser(object):
         self.run(tmp_path)
 
         # Run it a second time, ensure it's not re-processed and still gives the correct result
-        with mock.patch('fab.parse.fortran.x90.X90Analyser.walk_nodes') as mock_walk:
+        with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_walk:
             analysed_x90, _ = self.run(tmp_path)
         mock_walk.assert_not_called()
         assert analysed_x90 == self.expected_analysis_result

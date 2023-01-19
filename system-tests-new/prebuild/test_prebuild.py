@@ -83,7 +83,7 @@ class TestFortranPrebuild(object):
         # now build the project in our workspace.
         second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
                                            grab_prebuild_folder=first_project.prebuild_folder)
-        with mock.patch('fab.parse.fortran.fortran.FortranAnalyser._parse_file') as mock_parse_fortran:
+        with mock.patch('fab.parse.fortran.FortranAnalyser._parse_file') as mock_parse_fortran:
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 second_project.run()
 

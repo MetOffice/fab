@@ -6,7 +6,7 @@
 import subprocess
 from pathlib import Path
 
-from fab.parse.fortran.fortran import AnalysedFortran
+from fab.parse.fortran import AnalysedFortran
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES

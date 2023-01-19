@@ -12,7 +12,7 @@ from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 import pytest
 
-from fab.parse.fortran.fortran import FortranAnalyser, AnalysedFortran
+from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.build_config import BuildConfig
 from fab.parse import EmptySourceFile
 from fab.parse.fortran import iter_content

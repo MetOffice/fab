@@ -5,7 +5,6 @@
 # which you should have received as part of this distribution
 ##############################################################################
 import os
-from argparse import ArgumentParser
 
 from fab.util import common_arg_parser
 
