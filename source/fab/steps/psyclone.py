@@ -56,13 +56,6 @@ def psyclone_preprocessor(set_um_physics=False):
 class Psyclone(Step):
     """
 
-    .. note::
-
-        This step must run before the Analyse step because it performs extra processing on kernel files.
-        Fab's Fortran analysis uses prebuilds if available, so
-        xxx
-
-
     """
     def __init__(self, name=None, kernel_roots=None,
                  transformation_script: Optional[Path] = None,
@@ -114,23 +107,29 @@ class Psyclone(Step):
             warnings.warn('no transformation script specified')
             self._transformation_script_hash = 0
 
+        # run psyclone.
+        # for every file, we get back a list of the output files, plus a list of the prebuild copies.
         x90s = artefact_store['preprocessed_x90']
         with TimerLogger(f"running psyclone on {len(x90s)} x90 files"):
             results = self.run_mp(x90s, self.do_one_file)
         log_or_dot_finish(logger)
-        check_for_errors(results, caller_label=self.name)
+        outputs, prebuilds = zip(*results)
+        check_for_errors(outputs, caller_label=self.name)
 
-        # flatten the list of lists we got back
-        successes: List[List[Path]] = list(filter(lambda r: not isinstance(r, Exception), results))
-        psyclone_output = []
-        for files in successes:
-            psyclone_output.extend(files)
+        # flatten the list of lists we got back from run_mp
+        # output_files: List[List[Path]] = list(filter(lambda r: not isinstance(r, Exception), outputs))
+        output_files: List[Path] = list(chain(*by_type(outputs, List)))
+        prebuild_files: List[Path] = list(chain(*by_type(prebuilds, List)))
 
         # record the output files in the artefact store for further processing
-        artefact_store['psyclone_output'] = psyclone_output
+        artefact_store['psyclone_output'] = output_files
+        outputs_str = "\n".join(map(str, output_files))
+        logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 
-        # mark the output files as being current, so the cleanup step doesn't delete them
-        self._config.add_current_prebuilds(psyclone_output)
+        # mark the prebuild files as being current, so the cleanup step doesn't delete them
+        config.add_current_prebuilds(prebuild_files)
+        prebuilds_str = "\n".join(map(str, prebuild_files))
+        logger.debug(f'psyclone prebuilds:\n{prebuilds_str}\n')
 
         # todo: delete any psy layer files which have hand-written overrides, in a given overrides folder
         # is this called psykal?
@@ -276,10 +275,10 @@ class Psyclone(Step):
         # These are the filenames we expect to be output for this x90 input file.
         # There will always be one modified_alg, and 0+ generated.
         modified_alg = x90_file.with_suffix('.f90')
-        generated = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
-        # generate into the build output, not the source
-        generated = input_to_output_fpath(config=self._config, input_path=generated)
         modified_alg = input_to_output_fpath(config=self._config, input_path=modified_alg)
+        generated = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
+        generated = input_to_output_fpath(config=self._config, input_path=generated)
+
         generated.parent.mkdir(parents=True, exist_ok=True)
 
         # todo: do we have handwritten overrides?
@@ -287,6 +286,7 @@ class Psyclone(Step):
         # do we already have prebuilt results for this x90 file?
         prebuilt_alg, prebuilt_gen = self._get_prebuild_paths(modified_alg, generated, prebuild_hash)
         if prebuilt_alg.exists():
+            # todo: error handling in here
             msg = f'found prebuilds for {x90_file}:\n    {prebuilt_alg}'
             shutil.copy2(prebuilt_alg, modified_alg)
             if prebuilt_gen.exists():
@@ -308,12 +308,18 @@ class Psyclone(Step):
 
             except Exception as err:
                 logger.error(err)
-                return err
+                return err, None
 
+        # return the output files from psyclone
         result: List[Path] = [modified_alg]
         if Path(generated).exists():
             result.append(generated)
-        return result
+
+        # we also want to return the prebuild artefact files we created,
+        # which are just copies, in the prebuild folder, with hashes in the filenames.
+        prebuild_result: List[Path] = [prebuilt_alg, prebuilt_gen]
+
+        return result, prebuild_result
 
     def _gen_prebuild_hash(self, x90_file):
         # We've analysed (a parsable version of) this x90.
