@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from argparse import ArgumentParser
-
 from fab.util import common_arg_parser
 
 from fab.build_config import BuildConfig
