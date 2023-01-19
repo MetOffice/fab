@@ -191,13 +191,7 @@ class TestIncremental(object):
     def build(self, build_config):
         # build the project and return the timestamps and hashes
         build_config.run()
-
-        # Make a set of all files in the project.
-        # This call excludes the prebuild folder because file_walk() doesn't traverse *into* it.
         all_files = set(file_walk(build_config.build_output))
-
-        # add prebuild files
-        all_files.update(set(file_walk(build_config.prebuild_folder)))
 
         timestamps = {f: f.stat().st_mtime_ns for f in all_files}
         hashes = {f: zlib.crc32(open(f, 'rb').read()) for f in all_files}
