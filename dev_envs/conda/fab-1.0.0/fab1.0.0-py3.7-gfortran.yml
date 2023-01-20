@@ -1,0 +1,13 @@
+# Fab 1.0.0 environment with python 3.7 and gfortran.
+# todo: actual 1.0.0!
+name: fab1.0.0-py3.7-gfortran
+dependencies:
+  - libclang>=8.0.1
+  - python==3.7
+  - pip>=21.2.4
+  - python-clang>=8.0.1
+  - gfortran
+  - pip:
+      - jinja2
+      - psyclone==2.1.0
+      - svn
