@@ -1,6 +1,6 @@
-# Fab 1.0.0 environment with python 3.7 and gfortran.
-# todo: actual 1.0.0!
-name: fab1.0.0-py3.7-gfortran
+# Environment containing Fab 0.10.1 with python 3.7 and gfortran.
+# This yaml is used with conda env create.
+name: fab0.10.1-py3.7-gfortran
 channels:
   - conda-forge
 dependencies:
@@ -13,3 +13,4 @@ dependencies:
       - jinja2
       - psyclone==2.1.0
       - svn
+      - fab==0.10.1

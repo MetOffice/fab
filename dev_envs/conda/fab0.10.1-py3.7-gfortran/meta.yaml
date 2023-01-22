@@ -1,0 +1,40 @@
+# see https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html
+{% set version = "0.10.1_py3.7_gfortran" %}
+
+package:
+  name: fab
+  version: {{ version }}
+
+source:
+  url: https://files.pythonhosted.org/packages/b1/3b/ad3c6963523a89202c4155487cfee19cd30d8b6b21ab718bc915e2ef3bf3/sci-fab-0.10.1.linux-x86_64.tar.gz
+  sha256: 0744312cca0b9fc52248af4cf9443c846210b09f57164360e17b1792b7302423
+
+build:
+  script: python -m pip install .
+
+requirements:
+  host:
+#    - python
+#    - pip
+    - conda-forge::gfortran
+    - libclang>=8.0.1
+    - python==3.7
+    - pip>=21.2.4
+    - python-clang>=8.0.1
+#  run:
+#    - python
+
+test:
+  imports:
+    - imagesize
+
+about:
+  home: https://github.com/shibukawa/imagesize_py
+  license: MIT
+  summary: 'Getting image size from png/jpeg/jpeg2000/gif file'
+  description: |
+    This module analyzes jpeg/jpeg2000/png/gif image header and
+    return image size.
+  dev_url: https://github.com/shibukawa/imagesize_py
+  doc_url: https://pypi.python.org/pypi/imagesize
+  doc_source_url: https://github.com/shibukawa/imagesize_py/blob/master/README.rst
