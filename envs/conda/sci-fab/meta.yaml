@@ -1,0 +1,46 @@
+# see https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html
+
+# conda build fab
+# conda build -c conda-forge sci-fab
+# conda build -c defaults -c conda-forge sci-fab
+# conda build -c conda-forge --python 3.7 sci-fab
+# conda build -c conda-forge --python 3.8 sci-fab
+# conda build -c conda-forge --python 3.9 sci-fab
+# conda build -c conda-forge --python 3.10 sci-fab
+
+# conda build -c defaults -c conda-forge sci-fab
+# conda build -c defaults -c conda-forge --python 3.9 sci-fab
+
+# conda build -c conda-forge sci-fab
+
+package:
+  name: sci-fab
+  version: "0.10.1"
+
+source:
+  git_url: https://github.com/metomi/fab.git
+  git_rev: 0.10.1
+
+requirements:
+  build:
+    - python
+#    - libclang
+#    - fparser
+#    - python-clang
+#  host:
+#    - python
+#    - libclang
+#    - fparser
+#    - python-clang
+  run:
+    - python
+#    - libclang
+#    - conda-forge::fparser
+#    - python-clang
+
+test:
+  imports:
+    - fab
+
+about:
+  home: https://github.com/metomi/fab
