@@ -1,6 +1,6 @@
 # see https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html
 
-# conda build -c conda-forge fab
+# conda build -c conda-forge --python 3.10 fab
 
 package:
   name: fab
