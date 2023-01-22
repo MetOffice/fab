@@ -1,5 +1,0 @@
-# Environment for running Fab (installed separately) with python 3.7 and gfortran.
-name: py3.7
-dependencies:
-  - python==3.7
-  - pip
