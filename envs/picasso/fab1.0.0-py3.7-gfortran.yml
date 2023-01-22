@@ -1,0 +1,8 @@
+
+conda:
+  channels:
+    - conda-mo-internal
+  packages:
+    - fab-py3.7-gfortran
+commands:
+  - python setup.py install
