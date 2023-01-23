@@ -1,0 +1,14 @@
+
+#packages:
+#  - libclang
+#  - python
+#  - pip
+#  - python-clang
+
+conda:
+  channels:
+    - conda-forge
+  spec-file: envs/conda/spec-file.txt
+
+commands:
+  - python setup.py install
