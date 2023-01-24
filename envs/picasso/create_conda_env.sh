@@ -8,5 +8,7 @@ conda install python-clang
 conda install -c conda-forge fparser
 conda install -c conda-forge gfortran
 
+# todo: 'pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy', 'matplotlib'
+
 # Export the environment as a spec file.
 conda list --explicit > spec-file.txt
