@@ -1,0 +1,14 @@
+
+name: Picasso Build
+
+on: workflow_dispatch
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build my image
+        uses: rhattersley/picasso-build-images-action@v1
+        with:
+          images: '[{"name": "MyImage", "path": "envs/picasso/image.yml", "tag": "latest"}]'

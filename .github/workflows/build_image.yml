@@ -1,7 +1,0 @@
-name: Build Fab Image
-uses: MetOffice/picasso-build-images-action@v1
-with:
-  images:
-    - name: "FabImage"
-    - path: "envs/picasso/FabImage.yml"
-    - tag: "latest"

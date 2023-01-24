@@ -1,6 +1,4 @@
-
 conda:
-  spec-file: envs/conda/spec-file.txt
-
+  spec-file: envs/picasso/spec-file.txt
 commands:
   - python setup.py install
