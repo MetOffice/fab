@@ -1,4 +1,16 @@
 conda:
-  spec-file: envs/picasso/spec-file.txt
+  packages:
+    - python==3.9
+    - libclang
+    - python-clang
+    - fparser
+    - gfortran
+    - pytest
+    - pytest-cov
+    - pytest-mock
+    - flake8
+    - mypy
+    - matplotlib
+
 commands:
   - python setup.py install

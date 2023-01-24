@@ -1,8 +1,10 @@
 
 name: Picasso Build
 
-#on: workflow_dispatch
-on: [push, pull_request]
+on: workflow_dispatch
+# It's undesirable to trigger from PRs because it needs permissions for the forked repo,
+# which have possible security implications.
+#on: [push, pull_request]
 
 jobs:
   build-images:
