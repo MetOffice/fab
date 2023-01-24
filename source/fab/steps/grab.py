@@ -74,7 +74,35 @@ class GrabFolder(GrabSourceBase):
     def __init__(self, src: Union[Path, str], dst: Optional[str] = None, name=None):
         """
         :param src:
-            The source location to grab. The nature of this parameter is depends on the subclass.
+            The source folder to grab from.
+        :param dst:
+            The name of a sub folder, in the project workspace, in which to put the source.
+            If not specified, the code is copied into the root of the source folder.
+        :param name:
+            Human friendly name for logger output, with sensible default.
+
+        """
+        super().__init__(src=str(src), dst=dst, name=name)
+
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
+
+        dst: Path = config.source_root / self.dst_label
+        dst.mkdir(parents=True, exist_ok=True)
+
+        call_rsync(src=self.src, dst=dst)
+
+
+class GrabArchive(GrabSourceBase):
+    """
+    Copy a source folder to the project workspace.
+
+    """
+
+    def __init__(self, src: Union[Path, str], dst: Optional[str] = None, name=None):
+        """
+        :param src:
+            The source archive to grab from.
         :param dst:
             The name of a sub folder, in the project workspace, in which to put the source.
             If not specified, the code is copied into the root of the source folder.
