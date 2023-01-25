@@ -9,6 +9,7 @@ Build steps for pulling source code from remote repos and local folders.
 """
 import logging
 import os
+import shutil
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Union, Optional
@@ -95,10 +96,9 @@ class GrabFolder(GrabSourceBase):
 
 class GrabArchive(GrabSourceBase):
     """
-    Copy a source folder to the project workspace.
+    Copy source from an archive into the project folder.
 
     """
-
     def __init__(self, src: Union[Path, str], dst: Optional[str] = None, name=None):
         """
         :param src:
@@ -118,7 +118,7 @@ class GrabArchive(GrabSourceBase):
         dst: Path = config.source_root / self.dst_label
         dst.mkdir(parents=True, exist_ok=True)
 
-        call_rsync(src=self.src, dst=dst)
+        shutil.unpack_archive(self.src, dst)
 
 
 # todo: checkout operation might be quicker for some use cases, add an option for this?
