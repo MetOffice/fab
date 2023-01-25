@@ -13,7 +13,7 @@ from fab.constants import PREBUILD, CURRENT_PREBUILDS, BUILD_OUTPUT
 from fab.steps.analyse import Analyse
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab import GrabFolder
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles

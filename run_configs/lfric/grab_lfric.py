@@ -5,8 +5,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from fab.build_config import BuildConfig
-from fab.steps.grab import GrabFcm
-
+from fab.steps.grab.fcm import GrabFcm
 
 LFRIC_REVISION = 36615
 
