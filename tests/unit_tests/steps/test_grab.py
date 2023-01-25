@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from fab.steps.grab.fcm import GrabFcm
+from fab.steps.grab.fcm.export import FcmExport
 from fab.steps.grab.folder import GrabFolder
 
 
@@ -39,7 +39,7 @@ class TestGrabFcm(object):
         source_root = Path('/workspace/source')
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
-        grabber = GrabFcm(src=source_url, dst=dst_label)
+        grabber = FcmExport(src=source_url, dst=dst_label)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
@@ -53,7 +53,7 @@ class TestGrabFcm(object):
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
         revision = '42'
-        grabber = GrabFcm(src=source_url, dst=dst_label, revision=revision)
+        grabber = FcmExport(src=source_url, dst=dst_label, revision=revision)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
