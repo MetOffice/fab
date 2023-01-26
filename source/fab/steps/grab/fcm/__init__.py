@@ -21,10 +21,12 @@ def is_working_copy(dst: Union[str, Path]) -> bool:
     return True
 
 
-def _get_revision(src, revision) -> Tuple[str, str]:
+def _get_revision(src, revision=None) -> Tuple[str, str]:
     """
     Pull out the revision if it's part of the url.
-    Some operations need it separated from the url, e.g. when calling fcm update, which accepts no url.
+
+    Some operations need it separated from the url,
+    e.g. when calling fcm update, which accepts revision but no url.
 
     """
     url_revision = None
