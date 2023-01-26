@@ -23,4 +23,11 @@ class FcmMerge(GrabFcmBase):
         if not dst.exists() or not is_working_copy(dst):
             raise ValueError(f"destination is not a working copy: '{dst}'")
         else:
-            run_command(['fcm', 'update', '--revision', self.revision], cwd=dst)
+            # run_command(['fcm', 'merge', *self._cli_revision_parts(), self.src, str(dst)])
+
+            # we seem to need the url and version combined for this operation
+            rev_url = f'{self.src}'
+            if self.revision is not None:
+                rev_url += f'@{self.revision}'
+
+            run_command(['fcm', 'merge', self.src, str(dst)])

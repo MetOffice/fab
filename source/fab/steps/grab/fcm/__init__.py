@@ -69,3 +69,7 @@ class GrabFcmBase(GrabSourceBase, ABC):
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
+
+    def _cli_revision_parts(self):
+        # return the command line argument to specif the revision, if there is one
+        return ['--revision', str(self.revision)] if self.revision is not None else []

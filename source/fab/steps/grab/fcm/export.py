@@ -4,7 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict
 
 from fab.steps.grab.fcm import GrabFcmBase
 from fab.tools import run_command
@@ -20,7 +20,9 @@ class FcmExport(GrabFcmBase):
 
         dst: Path = config.source_root / self.dst_label
 
-        # todo: should we wipe the destination first, like FcmCheckout?
-
-        # src = f'{self.src}@{self.revision}' if self.revision else self.src
-        run_command(['fcm', 'export', '--force', '--revision', self.revision, self.src, str(dst)])
+        run_command([
+            'fcm', 'export', '--force',
+            *self._cli_revision_parts(),
+            self.src,
+            str(dst)
+        ])
