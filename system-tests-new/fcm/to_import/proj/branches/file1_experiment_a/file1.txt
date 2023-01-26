@@ -1,3 +1,0 @@
-This is sentence one, with Experiment A modification.
-
-This is sentence two in file one.

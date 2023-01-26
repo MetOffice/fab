@@ -1,3 +1,0 @@
-This is sentence one in file two.
-
-This is sentence two in file two.
