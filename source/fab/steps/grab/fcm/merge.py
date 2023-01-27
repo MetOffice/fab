@@ -18,7 +18,7 @@ class FcmMerge(GrabFcmBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        dst: Path = config.source_root / self.dst_label
+        dst: Path = self._dst(config)
 
         if not dst.exists() or not is_working_copy(dst):
             raise ValueError(f"destination is not a working copy: '{dst}'")
@@ -30,4 +30,6 @@ class FcmMerge(GrabFcmBase):
             if self.revision is not None:
                 rev_url += f'@{self.revision}'
 
-            run_command(['fcm', 'merge', self.src, str(dst)])
+            # run_command(['fcm', 'merge', self.src, str(dst)])
+            res = run_command(['fcm', 'merge', '--non-interactive', self.src], cwd=dst)
+            print(res)

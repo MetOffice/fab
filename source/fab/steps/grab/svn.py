@@ -3,6 +3,7 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+from pathlib import Path
 from typing import Dict
 
 try:
@@ -43,5 +44,7 @@ if svn:
         def run(self, artefact_store: Dict, config):
             super().run(artefact_store, config)
 
+            dst: Path = self._dst(config)
+
             r = remote.RemoteClient(self.src)
-            r.export(str(config.source_root / self.dst_label), revision=self.revision, force=True)
+            r.export(str(dst), revision=self.revision, force=True)

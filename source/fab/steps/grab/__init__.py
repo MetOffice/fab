@@ -58,6 +58,9 @@ class GrabSourceBase(Step, ABC):
         if not config.source_root.exists():
             config.source_root.mkdir(parents=True, exist_ok=True)
 
+    def _dst(self, config) -> Path:
+        return config.source_root / self.dst_label
+
 
 def call_rsync(src: Union[str, Path], dst: Union[str, Path]):
     # we want the source folder to end with a / for rsync because we don't want it to create a sub folder

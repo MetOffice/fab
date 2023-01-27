@@ -22,7 +22,7 @@ class FcmCheckout(GrabFcmBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        dst: Path = config.source_root / self.dst_label
+        dst: Path = self._dst(config)
 
         # new folder?
         if not dst.exists():

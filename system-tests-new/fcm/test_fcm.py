@@ -80,17 +80,22 @@ class TestFcmCheckout(object):
 class TestFcmMerge(object):
 
     def test_working_copy(self, repo_url, config):
+
+        print(config.source_root)
+
         # something to merge into; checkout trunk
-        step = FcmCheckout(src=f'{repo_url}/proj/main/trunk', dst='proj')
-        step.run(artefact_store=None, config=config)
+        checkout_step = FcmCheckout(src=f'{repo_url}/proj/main/trunk', dst='proj')
+        checkout_step.run(artefact_store=None, config=config)
 
         # merge another branch in
-        step = FcmMerge(src=f'{repo_url}/proj/main/branches/dev/personb/file2_experiment', dst='proj')
-        step.run(artefact_store=None, config=config)
+        # step = FcmMerge(src=f'{repo_url}/proj/main/branches/dev/personb/file2_experiment', dst='proj')
+        # merge_step = FcmMerge(src=f'{repo_url}/proj/main/branches/dev/persona/file1_experiment_a', dst='proj')
+        merge_step = FcmMerge(src=f'{repo_url}/proj/main/branches/dev/personb/file2_experiment', dst='proj')
+        merge_step.run(artefact_store=None, config=config)
 
         # check we've got the revision 1 text from the other branch
         file2_txt = open(config.source_root / 'proj/file2.txt').read()
-        assert "This is sentence two, with further experimental change." in file2_txt
+        assert "This is sentence two, with further experimental modification." in file2_txt
 
     def test_not_working_copy(self, repo_url, config):
         pass
