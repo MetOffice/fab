@@ -40,7 +40,7 @@ def config(tmp_path):
     return mock.Mock(source_root=tmp_path / 'fab_proj/source')
 
 
-@pytest.mark.skipif(not fcm_available, "fcm command not available")
+@pytest.mark.skipif(not fcm_available, reason="fcm command not available")
 class TestFcmExport(object):
 
     def test_export(self, repo_url, config):
@@ -52,7 +52,7 @@ class TestFcmExport(object):
         export.run(artefact_store=None, config=config)
 
 
-@pytest.mark.skipif(not fcm_available, "fcm command not available")
+@pytest.mark.skipif(not fcm_available, reason="fcm command not available")
 class TestFcmCheckout(object):
 
     def test_new_folder(self, repo_url, config):
@@ -111,7 +111,7 @@ class TestFcmCheckout(object):
         f1xa.run(artefact_store=None, config=config)
 
 
-@pytest.mark.skipif(not fcm_available, "fcm command not available")
+@pytest.mark.skipif(not fcm_available, reason="fcm command not available")
 class TestFcmMerge(object):
 
     def test_vanilla(self, repo_url, config):
