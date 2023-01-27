@@ -159,9 +159,9 @@ class TestGrabGitGithub(object):
 
     def test_vanilla(self, tmp_path):
         # todo: put this somewhere better, under MO control.
-        tiny_fortran_github = 'https://github.com/bblay/tiny_fortran.git'
-        grab = GrabGit(src=tiny_fortran_github, dst='tiny_fortran', revision='foo2', shallow=True)
+        tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
+        grab = GrabGit(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
         grab.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
 
-        my_mod = open(grab._dst / 'src/my_mod.F90').read()
-        assert "foo = 22" in my_mod
+        my_mod = open(grab._dst / 'tiny_fortran/src/my_mod.F90').read()
+        assert "foo = 1" in my_mod
