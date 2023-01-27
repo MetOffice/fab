@@ -6,6 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from fab.steps.grab import GrabFolder
+
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.steps.analyse import Analyse
@@ -19,9 +21,9 @@ def make_config(fab_workspace, fpp_flags=None):
     return BuildConfig(
         fab_workspace=fab_workspace,
         project_label='foo',
-        source_root=Path(__file__).parent / 'project-source',
         multiprocessing=False,
         steps=[
+            GrabFolder(Path(__file__).parent / 'project-source'),
             FindSourceFiles(),
             fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=fpp_flags),
             Analyse(root_symbol=['stay_or_go_now']),
