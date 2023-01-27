@@ -8,12 +8,23 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from fab.steps.grab.fcm.merge import FcmMerge
 
 from fab.steps.grab.fcm.checkout import FcmCheckout
-
 from fab.steps.grab.fcm.export import FcmExport
+from fab.steps.grab.fcm.merge import FcmMerge
+from fab.tools import run_command
 
+
+# TODO: We can't call fcm from the github test images.
+#       Possible solution: If fcm and svn can be interchanged,
+#       then we should just have one class which can be configured for either,
+#       and test both variants - skipping fcm if not available.
+#       Another possible solution: can we install it? :)
+fcm_available = True
+try:
+    run_command(['ffm'])
+except FileNotFoundError:
+    fcm_available = False
 
 @pytest.fixture
 def repo_url(tmp_path):
@@ -28,6 +39,7 @@ def config(tmp_path):
     return mock.Mock(source_root=tmp_path / 'fab_proj/source')
 
 
+@pytest.mark.skipif(not fcm_available, "fcm command not available")
 class TestFcmExport(object):
 
     def test_export(self, repo_url, config):
@@ -39,6 +51,7 @@ class TestFcmExport(object):
         export.run(artefact_store=None, config=config)
 
 
+@pytest.mark.skipif(not fcm_available, "fcm command not available")
 class TestFcmCheckout(object):
 
     def test_new_folder(self, repo_url, config):
@@ -97,6 +110,7 @@ class TestFcmCheckout(object):
         f1xa.run(artefact_store=None, config=config)
 
 
+@pytest.mark.skipif(not fcm_available, "fcm command not available")
 class TestFcmMerge(object):
 
     def test_vanilla(self, repo_url, config):
