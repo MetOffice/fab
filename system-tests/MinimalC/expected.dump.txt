@@ -1,7 +1,0 @@
-File View
-  File   : system-tests/MinimalC/main.c
-    Hash : 2749977587
-C View
-  Symbol          : main
-    Found in      : system-tests/MinimalC/working/main.c
-    Prerequisites : 
