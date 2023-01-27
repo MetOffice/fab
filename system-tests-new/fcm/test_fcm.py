@@ -22,7 +22,7 @@ from fab.tools import run_command
 #       Another possible solution: can we install it? :)
 fcm_available = True
 try:
-    run_command(['ffm'])
+    run_command(['fcm'])
 except FileNotFoundError:
     fcm_available = False
 
