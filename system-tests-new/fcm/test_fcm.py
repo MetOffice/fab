@@ -26,6 +26,7 @@ try:
 except FileNotFoundError:
     fcm_available = False
 
+
 @pytest.fixture
 def repo_url(tmp_path):
     shutil.unpack_archive(
