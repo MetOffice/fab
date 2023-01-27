@@ -8,8 +8,6 @@ from pathlib import Path
 from typing import Union, Dict, Tuple
 
 from fab.steps.grab import GrabSourceBase
-
-from fab.steps import Step
 from fab.tools import run_command
 
 
@@ -21,12 +19,18 @@ def is_working_copy(dst: Union[str, Path]) -> bool:
     return True
 
 
-def _get_revision(src, revision=None) -> Tuple[str, str]:
+def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
     """
     Pull out the revision if it's part of the url.
 
     Some operations need it separated from the url,
     e.g. when calling fcm update, which accepts revision but no url.
+
+    :param src:
+        Repo url.
+    :param revision:
+        Optional revision.
+    Returns (src, revision)
 
     """
     url_revision = None

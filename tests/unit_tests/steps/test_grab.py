@@ -43,7 +43,7 @@ class TestGrabFcm(object):
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.fcm.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.fcm.export.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
         mock_run.assert_called_once_with(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
@@ -57,11 +57,15 @@ class TestGrabFcm(object):
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.fcm.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.fcm.export.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
-        mock_run.assert_called_once_with(
-            ['fcm', 'export', '--force', f'{source_url}@{revision}', str(source_root / dst_label)])
+        mock_run.assert_called_once_with([
+            'fcm', 'export', '--force',
+            '--revision', '42',
+            f'{source_url}',
+            str(source_root / dst_label)
+        ])
 
     # todo: test missing repo
     # def test_missing(self):
