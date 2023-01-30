@@ -3,7 +3,7 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from typing import Optional, Dict
+from typing import Dict
 
 from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command

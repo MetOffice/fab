@@ -10,7 +10,7 @@ from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab import GrabGit
+from fab.steps.grab.git import GrabGit
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.util import common_arg_parser

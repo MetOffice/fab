@@ -11,7 +11,7 @@ from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab import GrabFolder
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.util import common_arg_parser
 

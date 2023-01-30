@@ -31,5 +31,5 @@ class GrabFolder(GrabSourceBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        self._dst.mkdir(parents=True, exist_ok=True)
-        call_rsync(src=self.src, dst=self._dst)
+        self._dst.mkdir(parents=True, exist_ok=True)  # type: ignore
+        call_rsync(src=self.src, dst=self._dst)  # type: ignore
