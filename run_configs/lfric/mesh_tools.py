@@ -5,7 +5,7 @@ from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.grab import GrabFolder
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
