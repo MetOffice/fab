@@ -35,17 +35,13 @@ class BuildConfig(object):
 
     """
 
-    def __init__(self, project_label: str, source_root: Optional[Path] = None, steps: Optional[List[Step]] = None,
+    def __init__(self, project_label: str, steps: Optional[List[Step]] = None,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
                  fab_workspace: Optional[Path] = None, verbose: bool = False):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
-        :param source_root:
-            Optional argument to allow the config to find source code outside it's project workspace.
-            This is useful, for example, when the :py:mod:`fab.steps.grab <grab>` is in a separate script to be run
-            less frequently. In this scenario, the source code will be found in a different project workspace folder.
         :param steps:
             The list of build steps to run.
         :param multiprocessing:
@@ -78,7 +74,7 @@ class BuildConfig(object):
         self.metrics_folder: Path = self.project_workspace / 'metrics' / self.project_label
 
         # source config
-        self.source_root: Path = source_root or self.project_workspace / SOURCE_ROOT
+        self.source_root: Path = self.project_workspace / SOURCE_ROOT
         self.prebuild_folder: Path = self.build_output / PREBUILD
 
         # build steps
@@ -172,7 +168,7 @@ class BuildConfig(object):
 
         # if the user hasn't specified any cleanup of the incremental/prebuild folder,
         # then we add a default, hard cleanup leaving only cutting-edge artefacts.
-        if not by_type(self.steps, CleanupPrebuilds):
+        if not list(by_type(self.steps, CleanupPrebuilds)):
             logger.info("no housekeeping specified, adding a default hard cleanup")
             self.steps.append(CleanupPrebuilds(all_unused=True))
 

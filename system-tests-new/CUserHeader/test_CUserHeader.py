@@ -11,17 +11,15 @@ from fab.constants import EXECUTABLES
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
-
+from fab.steps.preprocess import c_preprocessor
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
 
-def test_CFortranInterop(tmp_path):
+def test_CUseHeader(tmp_path):
 
     # build
     config = BuildConfig(
@@ -30,23 +28,16 @@ def test_CFortranInterop(tmp_path):
         multiprocessing=False,
 
         steps=[
-            GrabFolder(src=PROJECT_SOURCE),
+            GrabFolder(PROJECT_SOURCE),
+
             FindSourceFiles(),
 
             CPragmaInjector(),
             c_preprocessor(),
-            fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
-
             Analyse(root_symbol='main'),
-
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
-            CompileFortran(compiler='gfortran', common_flags=['-c']),
+
             LinkExe(linker='gcc', flags=['-lgfortran']),
-            # todo: on an ubuntu vm, we needed these before the object files - investigate further
-            # [
-            #     '/lib/x86_64-linux-gnu/libc.so.6',
-            #     '/lib/x86_64-linux-gnu/libgfortran.so.5',
-            # ]
         ],
     )
     config.run()

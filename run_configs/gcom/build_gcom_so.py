@@ -12,7 +12,6 @@ from fab.steps.compile_fortran import get_fortran_compiler
 from fab.steps.link import LinkSharedObject
 
 from gcom_build_steps import common_build_steps, parse_args
-from grab_gcom import gcom_grab_config
 
 
 def gcom_so_config(revision=None, compiler=None):
@@ -25,9 +24,8 @@ def gcom_so_config(revision=None, compiler=None):
 
     config = BuildConfig(
         project_label=f'gcom shared library {revision} {compiler}',
-        source_root=gcom_grab_config(revision=revision).source_root,
         steps=[
-            *common_build_steps(fortran_compiler=compiler, fpic=True),
+            *common_build_steps(revision=revision, fortran_compiler=compiler, fpic=True),
             LinkSharedObject(output_fpath='$output/libgcom.so'),
 
             CleanupPrebuilds(older_than=timedelta(minutes=5))
