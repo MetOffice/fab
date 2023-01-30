@@ -9,7 +9,9 @@ from unittest import mock
 
 import pytest
 
-from fab.steps.grab import GrabFolder, GrabFcm, GrabGit
+from fab.steps.grab.fcm import GrabFcm
+from fab.steps.grab.folder import GrabFolder
+from fab.steps.grab.git import GrabGit
 
 
 class TestGrabFolder(object):
@@ -44,7 +46,7 @@ class TestGrabFcm(object):
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.fcm.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
         mock_run.assert_called_once_with(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
@@ -58,7 +60,7 @@ class TestGrabFcm(object):
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.fcm.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
         mock_run.assert_called_once_with(

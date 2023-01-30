@@ -12,10 +12,10 @@ from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab import GrabFolder
+from fab.steps.find_source_files import FindSourceFiles
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.find_source_files import FindSourceFiles
 
 
 def test_FortranDependencies(tmp_path):

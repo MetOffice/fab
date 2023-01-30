@@ -6,14 +6,13 @@
 import subprocess
 from pathlib import Path
 
-from fab.steps.grab import GrabFolder
-
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.find_source_files import FindSourceFiles
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor
 
