@@ -132,7 +132,8 @@ class FindSourceFiles(Step):
 
         # file filtering
         filtered_fpaths = []
-        for fpath in file_walk(source_root):
+        # todo: we shouldn't need to ignore the prebuild folder here, it's not underneath the source root.
+        for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
 
             wanted = True
             for path_filter in self.path_filters:
