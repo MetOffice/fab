@@ -1,0 +1,16 @@
+conda:
+  packages:
+    - python==3.9
+    - libclang
+    - python-clang
+    - fparser
+    - gfortran
+    - pytest
+    - pytest-cov
+    - pytest-mock
+    - flake8
+    - mypy
+    - matplotlib
+
+commands:
+  - python3 setup.py install
