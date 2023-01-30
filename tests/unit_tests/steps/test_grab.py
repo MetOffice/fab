@@ -7,7 +7,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from fab.steps.grab import GrabFolder, GrabFcm
+import pytest
+
+from fab.steps.grab.fcm import GrabFcm
+from fab.steps.grab.folder import GrabFolder
+from fab.steps.grab.git import GrabGit
 
 
 class TestGrabFolder(object):
@@ -42,7 +46,7 @@ class TestGrabFcm(object):
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.fcm.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
         mock_run.assert_called_once_with(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
@@ -56,7 +60,7 @@ class TestGrabFcm(object):
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.fcm.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
         mock_run.assert_called_once_with(
@@ -71,3 +75,14 @@ class TestGrabFcm(object):
 # class TestGrabSvn(object):
 #     def test(self):
 #         assert False
+
+
+class TestGrabGit(object):
+
+    def test_no_revision(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst='foo', revision=None)
+
+    def test_no_dst(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst=None, revision='foo')

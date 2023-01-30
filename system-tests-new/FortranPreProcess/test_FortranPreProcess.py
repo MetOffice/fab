@@ -10,18 +10,19 @@ from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.steps.analyse import Analyse
 from fab.steps.compile_fortran import CompileFortran
+from fab.steps.find_source_files import FindSourceFiles
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.find_source_files import FindSourceFiles
 
 
 def make_config(fab_workspace, fpp_flags=None):
     return BuildConfig(
         fab_workspace=fab_workspace,
         project_label='foo',
-        source_root=Path(__file__).parent / 'project-source',
         multiprocessing=False,
         steps=[
+            GrabFolder(Path(__file__).parent / 'project-source'),
             FindSourceFiles(),
             fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=fpp_flags),
             Analyse(root_symbol=['stay_or_go_now']),

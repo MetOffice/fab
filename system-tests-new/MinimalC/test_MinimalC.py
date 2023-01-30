@@ -12,6 +12,7 @@ from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.find_source_files import FindSourceFiles
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor
 
@@ -24,10 +25,10 @@ def test_MinimalC(tmp_path):
     config = BuildConfig(
         fab_workspace=tmp_path,
         project_label='foo',
-        source_root=PROJECT_SOURCE,
         multiprocessing=False,
 
         steps=[
+            GrabFolder(PROJECT_SOURCE),
             FindSourceFiles(),
 
             CPragmaInjector(),

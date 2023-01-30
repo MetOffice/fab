@@ -6,12 +6,12 @@
 import subprocess
 from pathlib import Path
 
-from fab.steps.compile_fortran import CompileFortran
-
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.steps.analyse import Analyse
+from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 
@@ -24,10 +24,10 @@ def test_MinimalFortran(tmp_path):
     config = BuildConfig(
         fab_workspace=tmp_path,
         project_label='foo',
-        source_root=PROJECT_SOURCE,
         multiprocessing=False,
 
         steps=[
+            GrabFolder(PROJECT_SOURCE),
             FindSourceFiles(),
             fortran_preprocessor(),
             Analyse(root_symbol='test'),
