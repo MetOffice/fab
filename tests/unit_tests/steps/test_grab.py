@@ -7,7 +7,9 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from fab.steps.grab import GrabFolder, GrabFcm
+import pytest
+
+from fab.steps.grab import GrabFolder, GrabFcm, GrabGit
 
 
 class TestGrabFolder(object):
@@ -71,3 +73,14 @@ class TestGrabFcm(object):
 # class TestGrabSvn(object):
 #     def test(self):
 #         assert False
+
+
+class TestGrabGit(object):
+
+    def test_no_revision(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst='foo', revision=None)
+
+    def test_no_dst(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst=None, revision='foo')

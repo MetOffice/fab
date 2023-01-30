@@ -6,6 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from fab.steps.grab import GrabFolder
+
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.steps.analyse import Analyse
@@ -24,10 +26,10 @@ def test_MinimalC(tmp_path):
     config = BuildConfig(
         fab_workspace=tmp_path,
         project_label='foo',
-        source_root=PROJECT_SOURCE,
         multiprocessing=False,
 
         steps=[
+            GrabFolder(PROJECT_SOURCE),
             FindSourceFiles(),
 
             CPragmaInjector(),
