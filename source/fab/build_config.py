@@ -168,7 +168,7 @@ class BuildConfig(object):
 
         # if the user hasn't specified any cleanup of the incremental/prebuild folder,
         # then we add a default, hard cleanup leaving only cutting-edge artefacts.
-        if not by_type(self.steps, CleanupPrebuilds):
+        if not list(by_type(self.steps, CleanupPrebuilds)):
             logger.info("no housekeeping specified, adding a default hard cleanup")
             self.steps.append(CleanupPrebuilds(all_unused=True))
 
