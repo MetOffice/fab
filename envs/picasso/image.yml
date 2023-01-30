@@ -11,6 +11,7 @@ conda:
     - flake8
     - mypy
     - matplotlib
+    - rsync
 
 commands:
   - python3 setup.py install
