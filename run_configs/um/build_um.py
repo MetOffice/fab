@@ -13,19 +13,17 @@ import os
 import re
 import warnings
 from argparse import ArgumentParser
-from pathlib import Path
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import PRAGMAD_C
-from fab.dep_tree import ParserWorkaround
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.grab import GrabFcm
+from fab.steps.grab.fcm import GrabFcm
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
@@ -130,19 +128,7 @@ def um_atmos_safe_config(revision, two_stage=False):
             ],
         ),
 
-        Analyse(
-            root_symbol='um_main',
-
-            # fparser2 fails to parse this file, but it does compile.
-            special_measure_analysis_results=[
-                ParserWorkaround(
-                    fpath=Path(config.build_output / "casim/lookup.f90"),
-                    symbol_defs={'lookup'},
-                    symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-                                 'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
-                )
-            ]
-        ),
+        Analyse(root_symbol='um_main'),
 
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
 
