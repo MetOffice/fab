@@ -1,5 +1,0 @@
-system-tests/MinimalC/main.c
-    hash: 2749977587
-main
-    found_in: system-tests/MinimalC/working/main.c
-    depends on: []
