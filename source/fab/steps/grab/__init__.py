@@ -21,25 +21,33 @@ logger = logging.getLogger(__name__)
 
 class GrabSourceBase(Step, ABC):
     """
-    Base class for grab steps. All grab steps require a source and a folder in which to put it.
+    Base class for source grab steps.
 
     Unlike most steps, grab steps don't need to read or create artefact collections.
 
+    At runtime, when the build config is available, the destination folder is stored into `self._dst`.
+
     """
-    def __init__(self, src: str, dst: Optional[str] = None, name=None):
+    def __init__(self, src: str, dst: Optional[str] = None, revision=None, name=None):
         """
         :param src:
-            The source location to grab. The nature of this parameter is depends on the subclass.
+            The source url to grab.
         :param dst:
-            The name of a sub folder, in the project workspace, in which to put the source.
+            The name of a sub folder in the project workspace's source folder, in which to put this source.
             If not specified, the code is copied into the root of the source folder.
+        :param revision:
+            E.g 'vn6.3' or 36615
         :param name:
-            Human friendly name for logger output, with sensible default.
+            Human friendly name for logger output, with a sensible default.
 
         """
-        super().__init__(name=name or f'{self.__class__.__name__} {dst or src}'.strip())
+        super().__init__(name=name or f'{self.__class__.__name__} {src} {revision}'.strip())
         self.src: str = src
         self.dst_label: str = dst or ''
+        self.revision = revision
+
+        # runtime
+        self._dst: Optional[Path] = None
 
     @abstractmethod
     def run(self, artefact_store: Dict, config):
@@ -57,6 +65,8 @@ class GrabSourceBase(Step, ABC):
         super().run(artefact_store, config)
         if not config.source_root.exists():
             config.source_root.mkdir(parents=True, exist_ok=True)
+
+        self._dst = config.source_root / self.dst_label
 
 
 def call_rsync(src: Union[str, Path], dst: Union[str, Path]):
