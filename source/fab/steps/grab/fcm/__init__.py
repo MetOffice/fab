@@ -66,10 +66,10 @@ class GrabFcmBase(GrabSourceBase, ABC):
             Human friendly name for logger output, with sensible default.
 
         """
-        # get source without the url and revision from the url or param
-        src, self.revision = _get_revision(src, revision)
-        name = name or f'{self.__class__.__name__} {dst} {self.revision}'.strip()
-        super().__init__(src, dst, name=name)
+        # pull the revision out of the url, if it's in there
+        src, revision = _get_revision(src, revision)
+        name = name or f'{self.__class__.__name__} {dst} {revision}'.strip()
+        super().__init__(src, dst, name=name, revision=revision)
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)

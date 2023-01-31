@@ -18,11 +18,9 @@ class FcmExport(GrabFcmBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        dst: Path = self._dst(config)
-
         run_command([
             'fcm', 'export', '--force',
             *self._cli_revision_parts(),
             self.src,
-            str(dst)
+            str(self._dst)
         ])

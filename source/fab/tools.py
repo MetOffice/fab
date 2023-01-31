@@ -7,9 +7,10 @@
 Known command line tools whose flags we wish to manage.
 
 """
+from pathlib import Path
 import subprocess
 import warnings
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 from fab.util import logger, string_checksum
 
@@ -78,7 +79,7 @@ def flags_checksum(flags: List[str]):
     return string_checksum(str(flags))
 
 
-def run_command(command, env=None, cwd=None, capture_output=True):
+def run_command(command: List[str], env=None, cwd: Union[Path, str] = None, capture_output=True):
     """
     Run a CLI command.
 

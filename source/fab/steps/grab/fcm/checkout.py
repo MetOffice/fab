@@ -22,22 +22,20 @@ class FcmCheckout(GrabFcmBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        dst: Path = self._dst(config)
-
         # new folder?
-        if not dst.exists():
+        if not self._dst.exists():
             run_command([
                 'fcm', 'checkout',
                 *self._cli_revision_parts(),
-                self.src, str(dst)
+                self.src, str(self._dst)
             ])
 
         else:
             # working copy?
-            if is_working_copy(dst):
+            if is_working_copy(self._dst):
                 # update
                 # todo: ensure the existing checkout is from self.src?
-                run_command(['fcm', 'update', *self._cli_revision_parts()], cwd=dst)
+                run_command(['fcm', 'update', *self._cli_revision_parts()], cwd=self._dst)
             else:
                 # we can't deal with an existing folder that isn't a working copy
-                raise ValueError(f"destination exists but is not an fcm working copy: '{dst}'")
+                raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
