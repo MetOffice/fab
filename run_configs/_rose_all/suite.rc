@@ -1,11 +1,12 @@
 [cylc]
     [[parameters]]
-        pyver = "7", "11"  # we can't put a full stop in params, like "3.7", because it causes invalid job names
+        pyver = "7", "11"
         compiler = gnu, ifort
 
 [scheduling]
     [[dependencies]]
         graph = """
+            build_tiny_fortran<pyver,compiler>
             grab_gcom<pyver,compiler> => build_gcom_ar<pyver,compiler>
             grab_gcom<pyver,compiler> => build_gcom_so<pyver,compiler>
             build_jules<pyver,compiler>
@@ -36,6 +37,10 @@
         [[[environment]]]
             FAB_WORKSPACE=$SCRATCH/fab_workspace_py3.${CYLC_TASK_PARAM_pyver}_$CYLC_TASK_PARAM_compiler
             GCOM_REVISION={{ GCOM_REVISION }}
+
+    [[build_tiny_fortran<pyver,compiler>]]
+        inherit = 'common<pyver,compiler>'
+        script = build_tiny_fortran.py
 
     [[grab_gcom<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'

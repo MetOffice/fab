@@ -8,43 +8,28 @@ from typing import Dict
 
 try:
     import svn  # type: ignore
-    from svn import remote  # type: ignore
 except ImportError:
     svn = None
 
 from fab.steps.grab import GrabSourceBase
 
-if svn:
-    class GrabSvn(GrabSourceBase):
-        """
-        Grab an SVN repo folder to the project workspace.
 
-        """
-        def __init__(self, src, dst=None, revision=None, name=None):
-            """
-            :param src:
-                Repo url.
-            :param dst:
-                The name of a sub folder, in the project workspace, in which to put the source.
-                If not specified, the code is copied into the root of the source folder.
-            :param revision:
-                E.g 36615
-            :param name:
-                Human friendly name for logger output, with sensible default.
+class GrabSvn(GrabSourceBase):
+    """
+    Grab an SVN repo folder to the project workspace.
 
-            Example:
+    You can include a branch in the URL, for example:
 
-                GrabSvn(src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
-                           revision=36615, dst='gpl_utils')
+        GrabSvn(
+            src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
+            revision=36615, dst='gpl_utils')
 
-            """
-            super().__init__(src, dst, name)
-            self.revision = revision
+    """
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
 
-        def run(self, artefact_store: Dict, config):
-            super().run(artefact_store, config)
+        if not svn:
+            raise ImportError('svn not installed, unable to continue')
 
-            dst: Path = self._dst(config)
-
-            r = remote.RemoteClient(self.src)
-            r.export(str(dst), revision=self.revision, force=True)
+        r = svn.remote.RemoteClient(self.src)
+        r.export(str(self._dst), revision=self.revision, force=True)

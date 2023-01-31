@@ -7,8 +7,11 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
+import pytest
+
 from fab.steps.grab.fcm.export import FcmExport
 from fab.steps.grab.folder import GrabFolder
+from fab.steps.grab.git import GrabGit
 
 
 class TestGrabFolder(object):
@@ -76,3 +79,14 @@ class TestGrabFcm(object):
 # class TestGrabSvn(object):
 #     def test(self):
 #         assert False
+
+
+class TestGrabGit(object):
+
+    def test_no_revision(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst='foo', revision=None)
+
+    def test_no_dst(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst=None, revision='foo')

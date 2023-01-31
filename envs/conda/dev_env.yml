@@ -8,4 +8,3 @@ dependencies:
   - pip:
       - jinja2
       - psyclone==2.1.0
-      - svn
