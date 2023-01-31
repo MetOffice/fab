@@ -3,7 +3,6 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from pathlib import Path
 from typing import Dict
 
 from fab.steps.grab.fcm import is_working_copy, GrabFcmBase
@@ -23,7 +22,7 @@ class FcmCheckout(GrabFcmBase):
         super().run(artefact_store, config)
 
         # new folder?
-        if not self._dst.exists():
+        if not self._dst.exists():  # type: ignore
             run_command([
                 'fcm', 'checkout',
                 *self._cli_revision_parts(),
@@ -32,10 +31,10 @@ class FcmCheckout(GrabFcmBase):
 
         else:
             # working copy?
-            if is_working_copy(self._dst):
+            if is_working_copy(self._dst):  # type: ignore
                 # update
                 # todo: ensure the existing checkout is from self.src?
-                run_command(['fcm', 'update', *self._cli_revision_parts()], cwd=self._dst)
+                run_command(['fcm', 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
             else:
                 # we can't deal with an existing folder that isn't a working copy
                 raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
