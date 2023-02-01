@@ -3,11 +3,14 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+
+# Most of the testing of svn and fcm grab classes are in the system tests.
+
 from fab.steps.grab.svn import _get_revision
 import pytest
 
 
-class Test_get_revision(object):
+class TestRevision(object):
     # test the handling of the revision in the base class
 
     def test_no_revision(self):
