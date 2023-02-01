@@ -42,10 +42,7 @@ class GrabSvnBase(GrabSourceBase, ABC):
     """
     Base class for SVN or FCM operations.
 
-    Mainly deals with pulling out the revision number from url and/or param.
-
     """
-
     command = 'svn'
 
     def __init__(self, src: str, dst: str, revision=None, name=None):
@@ -91,3 +88,75 @@ class GrabSvnBase(GrabSourceBase, ABC):
         except RuntimeError:
             return False
         return True
+
+
+class SvnExport(GrabSvnBase):
+    """
+    Export an FCM repo folder to the project workspace.
+
+    """
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
+
+        run_command([
+            self.command, 'export', '--force',
+            *self._cli_revision_parts(),
+            self.src,
+            str(self._dst)
+        ])
+
+
+class SvnCheckout(GrabSvnBase):
+    """
+    Checkout or update an FCM repo.
+
+    .. note::
+        If the destination is a working copy, it will be updated to the given revision, **ignoring the source url**.
+        As such, the revision should be provided via the argument, not as part of the url.
+
+    """
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
+
+        # new folder?
+        if not self._dst.exists():  # type: ignore
+            run_command([
+                self.command, 'checkout',
+                *self._cli_revision_parts(),
+                self.src, str(self._dst)
+            ])
+
+        else:
+            # working copy?
+            if self._is_working_copy(self._dst):  # type: ignore
+                # update
+                # todo: ensure the existing checkout is from self.src?
+                run_command([self.command, 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
+            else:
+                # we can't deal with an existing folder that isn't a working copy
+                raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
+
+
+class SvnMerge(GrabSvnBase):
+    """
+    Merge an FCM repo into a local working copy.
+
+    """
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
+
+        if not self._dst or not self._is_working_copy(self._dst):
+            raise ValueError(f"destination is not a working copy: '{self._dst}'")
+        else:
+            # We seem to need the url and version combined for this operation.
+            # The help for fcm merge says it accepts the --revision param, like other commands,
+            # but it doesn't seem to be recognised.
+            rev_url = f'{self.src}'
+            if self.revision is not None:
+                rev_url += f'@{self.revision}'
+
+            res = run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
+
+            # Fcm doesn't return an error code when there's a conflict, so we have to scan the output.
+            if 'Summary of conflicts:' in res:
+                raise RuntimeError(f'fcm merge encountered a conflict(s):\n{res}')

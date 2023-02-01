@@ -17,9 +17,7 @@ import pytest
 from fab.steps.grab.fcm import FcmCheckout
 from fab.steps.grab.fcm import FcmExport
 from fab.steps.grab.fcm import FcmMerge
-from fab.steps.grab.svn.checkout import SvnCheckout
-from fab.steps.grab.svn.export import SvnExport
-from fab.steps.grab.svn.merge import SvnMerge
+from fab.steps.grab.svn import SvnCheckout, SvnExport, SvnMerge
 
 # Fcm isn't available in the github test images...unless we install it from github.
 

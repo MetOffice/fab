@@ -8,7 +8,7 @@ import os
 from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
-from fab.steps.grab.fcm.export import FcmExport
+from fab.steps.grab.fcm import FcmExport
 
 
 def gcom_grab_config(revision=None):
