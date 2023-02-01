@@ -6,6 +6,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
+from unittest.mock import call
 
 import pytest
 
@@ -49,7 +50,10 @@ class TestGrabFcm(object):
             with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
-        mock_run.assert_called_once_with(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
+        mock_run.assert_has_calls([
+            call(['fcm', 'help']),
+            call(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
+        ])
 
     def test_revision(self):
         source_root = Path('/workspace/source')
@@ -63,22 +67,14 @@ class TestGrabFcm(object):
             with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
-        mock_run.assert_called_once_with([
-            'fcm', 'export', '--force',
-            '--revision', '42',
-            f'{source_url}',
-            str(source_root / dst_label)
+        mock_run.assert_has_calls([
+            call(['fcm', 'help']),
+            call(['fcm', 'export', '--force', '--revision', '42', f'{source_url}', str(source_root / dst_label)])
         ])
 
     # todo: test missing repo
     # def test_missing(self):
     #     assert False
-
-
-# todo: test GrabSvn
-# class TestGrabSvn(object):
-#     def test(self):
-#         assert False
 
 
 class TestGrabGit(object):
