@@ -14,10 +14,8 @@ import warnings
 
 import pytest
 
-from fab.steps.grab.fcm import FcmCheckout
-from fab.steps.grab.fcm import FcmExport
-from fab.steps.grab.fcm import FcmMerge
-from fab.steps.grab.svn import SvnCheckout, SvnExport, SvnMerge
+from fab.steps.grab.fcm import FcmCheckout, FcmExport, FcmMerge
+from fab.steps.grab.svn import GrabSvnBase, SvnCheckout, SvnExport, SvnMerge
 
 # Fcm isn't available in the github test images...unless we install it from github.
 
@@ -111,10 +109,12 @@ class TestFcmCheckout(object):
     @pytest.mark.parametrize('checkout_class', checkout_classes)
     def test_update_revision(self, repo_url, config, checkout_class):
         # Following on from test_update(), since we CAN change the revision and expect it to work, let's test that.
-        f1xa = checkout_class(src=f'{repo_url}/proj/main/branches/dev/person_a/file1_experiment_a', dst='proj', revision=7)
+        f1xa = checkout_class(
+            src=f'{repo_url}/proj/main/branches/dev/person_a/file1_experiment_a', dst='proj', revision=7)
         f1xa.run(artefact_store=None, config=config)
 
-        f1xa = checkout_class(src=f'{repo_url}/proj/main/branches/dev/person_a/file1_experiment_a', dst='proj', revision=8)
+        f1xa = checkout_class(
+            src=f'{repo_url}/proj/main/branches/dev/person_a/file1_experiment_a', dst='proj', revision=8)
         f1xa.run(artefact_store=None, config=config)
 
 
@@ -178,3 +178,14 @@ class TestFcmMerge(object):
 
         fx2 = merge_class(src=f'{repo_url}/proj/main/branches/dev/person_b/file2_experiment', dst='proj', revision=7)
         fx2.run(artefact_store=None, config=config)
+
+
+class TestBase(object):
+    # test the base class
+    def test_tool_unavailable(self):
+        class Foo(GrabSvnBase):
+            command = 'unlikely_cli_tool_name'
+
+        assert not Foo.tool_available()
+        with pytest.raises(RuntimeError):
+            Foo('', '').run(None, config=mock.Mock(source_root=Path(__file__).parent))

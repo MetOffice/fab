@@ -64,7 +64,7 @@ class GrabSvnBase(GrabSourceBase, ABC):
         super().__init__(src, dst, name=name, revision=revision)
 
     def run(self, artefact_store: Dict, config):
-        if not self.tool_available:
+        if not self.tool_available():
             raise RuntimeError(f"command line tool not available: '{self.command}'")
         super().run(artefact_store, config)
 
