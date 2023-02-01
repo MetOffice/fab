@@ -5,11 +5,11 @@
 # ##############################################################################
 from typing import Dict
 
-from fab.steps.grab.fcm import is_working_copy, GrabFcmBase
+from fab.steps.grab.svn import GrabSvnBase
 from fab.tools import run_command
 
 
-class FcmMerge(GrabFcmBase):
+class SvnMerge(GrabSvnBase):
     """
     Merge an FCM repo into a local working copy.
 
@@ -17,7 +17,7 @@ class FcmMerge(GrabFcmBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        if not self._dst or not is_working_copy(self._dst):
+        if not self._dst or not self._is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
         else:
             # We seem to need the url and version combined for this operation.
@@ -27,7 +27,7 @@ class FcmMerge(GrabFcmBase):
             if self.revision is not None:
                 rev_url += f'@{self.revision}'
 
-            res = run_command(['fcm', 'merge', '--non-interactive', rev_url], cwd=self._dst)
+            res = run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
 
             # Fcm doesn't return an error code when there's a conflict, so we have to scan the output.
             if 'Summary of conflicts:' in res:

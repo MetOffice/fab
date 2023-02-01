@@ -5,11 +5,11 @@
 # ##############################################################################
 from typing import Dict
 
-from fab.steps.grab.fcm import GrabFcmBase
+from fab.steps.grab.svn import GrabSvnBase
 from fab.tools import run_command
 
 
-class FcmExport(GrabFcmBase):
+class SvnExport(GrabSvnBase):
     """
     Export an FCM repo folder to the project workspace.
 
@@ -18,7 +18,7 @@ class FcmExport(GrabFcmBase):
         super().run(artefact_store, config)
 
         run_command([
-            'fcm', 'export', '--force',
+            self.command, 'export', '--force',
             *self._cli_revision_parts(),
             self.src,
             str(self._dst)

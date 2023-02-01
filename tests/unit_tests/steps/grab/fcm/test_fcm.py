@@ -3,9 +3,8 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+from fab.steps.grab.svn import _get_revision
 import pytest
-
-from fab.steps.grab.fcm import _get_revision
 
 
 class Test_get_revision(object):

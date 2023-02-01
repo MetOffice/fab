@@ -3,23 +3,18 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from typing import Dict
+from fab.steps.grab.svn.checkout import SvnCheckout
+from fab.steps.grab.svn.export import SvnExport
+from fab.steps.grab.svn.merge import SvnMerge
 
-from fab.steps.grab import GrabSourceBase
-from fab.tools import run_command
+
+class FcmExport(SvnExport):
+    command = 'fcm'
 
 
-class GrabFcm(GrabSourceBase):
-    """
-    Grab an FCM repo folder to the project workspace.
+class FcmCheckout(SvnCheckout):
+    command = 'fcm'
 
-    Example:
 
-        GrabFcm(src='fcm:jules.xm_tr/src', revision=revision, dst='src')
-
-    """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
-
-        src = f'{self.src}@{self.revision}' if self.revision else self.src
-        run_command(['fcm', 'export', '--force', src, str(self._dst)])
+class FcmMerge(SvnMerge):
+    command = 'fcm'

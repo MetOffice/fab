@@ -11,14 +11,6 @@ from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
 
-def is_working_copy(dst: Union[str, Path]) -> bool:
-    try:
-        run_command(['svn', 'info'], cwd=dst)
-    except RuntimeError:
-        return False
-    return True
-
-
 def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
     """
     Pull out the revision if it's part of the url.
@@ -46,17 +38,20 @@ def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
     return src, revision or url_revision
 
 
-class GrabFcmBase(GrabSourceBase, ABC):
+class GrabSvnBase(GrabSourceBase, ABC):
     """
-    Base class for FCM operations.
+    Base class for SVN or FCM operations.
 
     Mainly deals with pulling out the revision number from url and/or param.
 
     """
+
+    command = 'svn'
+
     def __init__(self, src: str, dst: str, revision=None, name=None):
         """
         :param src:
-            Such as `fcm:jules.xm_tr/src`. Can include the revision.
+            Such as `fcm:jules.xm_tr/src`. Can end with "@rev".
         :param dst:
             The name of a sub folder, in the project workspace, in which to put the source.
             If not specified, the code is copied into the root of the source folder.
@@ -72,8 +67,27 @@ class GrabFcmBase(GrabSourceBase, ABC):
         super().__init__(src, dst, name=name, revision=revision)
 
     def run(self, artefact_store: Dict, config):
+        if not self.tool_available:
+            raise RuntimeError(f"command line tool not available: '{self.command}'")
         super().run(artefact_store, config)
+
+    @classmethod
+    def tool_available(cls) -> bool:
+        """Is the command line tool available?"""
+        try:
+            run_command([cls.command, 'help'])
+        except FileNotFoundError:
+            return False
+        return True
 
     def _cli_revision_parts(self):
         # return the command line argument to specif the revision, if there is one
         return ['--revision', str(self.revision)] if self.revision is not None else []
+
+    def _is_working_copy(self, dst: Union[str, Path]) -> bool:
+        # is the given path is a working copy?
+        try:
+            run_command([self.command, 'info'], cwd=dst)
+        except RuntimeError:
+            return False
+        return True

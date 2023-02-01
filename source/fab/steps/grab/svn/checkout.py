@@ -5,11 +5,11 @@
 # ##############################################################################
 from typing import Dict
 
-from fab.steps.grab.fcm import is_working_copy, GrabFcmBase
+from fab.steps.grab.svn import GrabSvnBase
 from fab.tools import run_command
 
 
-class FcmCheckout(GrabFcmBase):
+class SvnCheckout(GrabSvnBase):
     """
     Checkout or update an FCM repo.
 
@@ -24,17 +24,17 @@ class FcmCheckout(GrabFcmBase):
         # new folder?
         if not self._dst.exists():  # type: ignore
             run_command([
-                'fcm', 'checkout',
+                self.command, 'checkout',
                 *self._cli_revision_parts(),
                 self.src, str(self._dst)
             ])
 
         else:
             # working copy?
-            if is_working_copy(self._dst):  # type: ignore
+            if self._is_working_copy(self._dst):  # type: ignore
                 # update
                 # todo: ensure the existing checkout is from self.src?
-                run_command(['fcm', 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
+                run_command([self.command, 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
             else:
                 # we can't deal with an existing folder that isn't a working copy
                 raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
