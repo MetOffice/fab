@@ -9,238 +9,95 @@ Classes and helper functions related to the dependency tree, as created by the a
 """
 
 # todo: we've since adopted the term "source tree", so we should probably rename this module to match.
-import json
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Set, Dict, Iterable, Union, Any, Optional
+from typing import Set, Dict, Iterable, List, Union, Optional, Any
 
-from fab.util import file_checksum
+from fab.parse import AnalysedFile
 
 logger = logging.getLogger(__name__)
 
 
-class ParserResult(ABC):
+# Todo: Better name? It's an analysed file in a dependency tree
+#       (as opposed to an analysed x90 for example, which isn't part of this tree dependency analysis).
+class AnalysedDependent(AnalysedFile, ABC):
     """
-    Abstract base class for automatic and manual source file parse results.
+    An :class:`~fab.parse.AnalysedFile` which can depend on others, and be a dependency.
+    Instances of this class are nodes in a source dependency tree.
 
-    This base class contains symbol definitions and dependencies found in a source file.
+    During parsing, the symbol definitions and dependencies are filled in.
+    During dependency analysis, symbol dependencies are turned into file dependencies.
 
     """
-    def __init__(self, fpath: Union[str, Path],
-                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
-                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 mo_commented_file_deps: Optional[Iterable[str]] = None):
+    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
+                 symbol_defs: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
+                 file_deps: Optional[Iterable[Path]] = None):
         """
         :param fpath:
             The source file that was analysed.
-        :param module_defs:
-            Set of module names defined by this source file.
-            A subset of symbol_defs
+        :param file_hash:
+            The hash of the source. If omitted, Fab will evaluate lazily.
         :param symbol_defs:
             Set of symbol names defined by this source file.
         :param symbol_deps:
             Set of symbol names used by this source file.
             Can include symbols in the same file.
-        :param mo_commented_file_deps:
-            A set of C file names, without paths, on which this file depends.
-            Comes from "DEPENDS ON:" comments which end in ".o".
-
-        """
-        self.fpath = Path(fpath)
-        self.module_defs: Set[str] = set(module_defs or {})
-        self.symbol_defs: Set[str] = set(symbol_defs or {})
-        self.module_deps: Set[str] = set(module_deps or {})
-        self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
-
-
-class ParserWorkaround(ParserResult):
-    """
-    Use this class to create a workaround when a language parser is unable to process a valid source file.
-
-    You must manually examine the source file and list any symbol definitions and dependencies.
-    For Fortran source, you must also list any module definitions and dependencies.
-
-    Params are as for :class:`~fab.dep_tree.ParserResult`.
-
-    This class is intended to be passed to the :class:`~fab.steps.analyse.Analyse` step.
-
-    """
-
-    def as_analysed_file(self):
-
-        # To be as helpful as possible, we allow the user to omit module defs/deps from the symbol defs/deps.
-        # However, they need to be there so do this now.
-        self.symbol_defs = self.symbol_defs | self.module_defs
-        self.symbol_deps = self.symbol_deps | self.module_deps
-
-        return AnalysedFile(
-            fpath=self.fpath, file_hash=file_checksum(self.fpath).file_hash,
-            module_defs=self.module_defs, symbol_defs=self.symbol_defs,
-            module_deps=self.module_deps, symbol_deps=self.symbol_deps,
-            mo_commented_file_deps=self.mo_commented_file_deps,
-        )
-
-
-# todo: this might be better placed in the analyse step
-class AnalysedFile(ParserResult):
-    """
-    An analysis result for a single file, containing module and symbol definitions and dependencies.
-
-    The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
-    a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
-    which will be converted at runtime into an `AnalysedFile` object.
-
-    """
-    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
-                 module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
-                 module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 file_deps: Optional[Iterable[Path]] = None, mo_commented_file_deps: Optional[Iterable[str]] = None):
-        """
-        Params as per :class:`~fab.dep_tree.ParserResult`, plus:
-        :param file_hash:
-            The hash of the source. If omitted, Fab will evaluate lazily.
         :param file_deps:
             Other files on which this source depends. Must not include itself.
             This attribute is calculated during symbol analysis, after everything has been parsed.
 
         """
-        super().__init__(fpath=fpath,
-                         module_defs=module_defs, symbol_defs=symbol_defs,
-                         module_deps=module_deps, symbol_deps=symbol_deps,
-                         mo_commented_file_deps=mo_commented_file_deps)
+        super().__init__(fpath=fpath, file_hash=file_hash)
 
-        # the self.file_hash property (no underscore) is lazily evaluated in case the file does not yet exist.
-        self._file_hash: Optional[int] = file_hash
-        self.file_deps: Set[Path] = set(file_deps or {})
+        self.symbol_defs: Set[str] = set(symbol_defs or {})
+        self.symbol_deps: Set[str] = set(symbol_deps or {})
+        self.file_deps: Set[Path] = set(file_deps or [])
 
-        assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
-        assert all([d and len(d) for d in self.module_deps]), "bad module dependencies"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
-
-        # todo: this feels a little clanky. We could just maintain separate lists of modules and other symbols,
-        #   but that feels more clanky.
-        assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
-        assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
-
-    @property
-    def file_hash(self):
-        # If we haven't provided a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
-        # This only affects user workarounds of fparser issues when the user has not provided a file hash.
-        if self._file_hash is None:
-            if not self.fpath.exists():
-                raise ValueError(f"analysed file '{self.fpath}' does not exist")
-            self._file_hash: int = file_checksum(self.fpath).file_hash
-        return self._file_hash
-
-    def add_module_def(self, name):
-        self.module_defs.add(name.lower())
-        self.add_symbol_def(name)
 
     def add_symbol_def(self, name):
         assert name and len(name)
         self.symbol_defs.add(name.lower())
-
-    def add_module_dep(self, name):
-        self.module_deps.add(name.lower())
-        self.add_symbol_dep(name)
 
     def add_symbol_dep(self, name):
         assert name and len(name)
         self.symbol_deps.add(name.lower())
 
     def add_file_dep(self, name):
-        assert name and len(name)
-        self.file_deps.add(name)
-
-    @property
-    def mod_filenames(self):
-        """The mod_filenames property defines which module files are expected to be created (but not where)."""
-        return {f'{mod}.mod' for mod in self.module_defs}
+        self.file_deps.add(Path(name))
 
     @classmethod
     def field_names(cls):
-        """Defines the order in which we want fields to appear if a human is reading them"""
-        return [
-            'fpath', 'file_hash',
-            'module_defs', 'symbol_defs',
-            'module_deps', 'symbol_deps',
-            'file_deps', 'mo_commented_file_deps',
+        return super().field_names() + [
+            'symbol_defs',
+            'symbol_deps',
+            'file_deps',
         ]
 
-    def __str__(self):
-        values = [getattr(self, field_name) for field_name in self.field_names()]
-        return 'AnalysedFile ' + ' '.join(map(str, values))
-
-    def __repr__(self):
-        params = ', '.join([f'{f}={getattr(self, f)}' for f in self.field_names()])
-        return f'AnalysedFile({params})'
-
-    def __eq__(self, other):
-        return vars(self) == vars(other)
-
-    def __hash__(self):
-        return hash((
-            self.fpath,
-            self.file_hash,
-            tuple(sorted(self.module_defs)),
-            tuple(sorted(self.symbol_defs)),
-            tuple(sorted(self.module_deps)),
-            tuple(sorted(self.symbol_deps)),
-            tuple(sorted(self.file_deps)),
-            tuple(sorted(self.mo_commented_file_deps)),
-        ))
-
-    def save(self, fpath: Union[str, Path]):
-        d = self.to_dict()
-        json.dump(d, open(fpath, 'wt'), indent=4)
-
-    @classmethod
-    def load(cls, fpath: Union[str, Path]):
-        d = json.load(open(fpath))
-        return cls.from_dict(d)
-
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "fpath": str(self.fpath),
-            "file_hash": self.file_hash,
-            "module_defs": list(self.module_defs),
-            "symbol_defs": list(self.symbol_defs),
-            "module_deps": list(self.module_deps),
-            "symbol_deps": list(self.symbol_deps),
-            "file_deps": list(map(str, self.file_deps)),
-            "mo_commented_file_deps": list(self.mo_commented_file_deps),
-        }
+        result = super().to_dict()
+        result.update({
+            "symbol_defs": list(sorted(self.symbol_defs)),
+            "symbol_deps": list(sorted(self.symbol_deps)),
+            "file_deps": list(sorted(map(str, self.file_deps))),
+        })
+        return result
 
     @classmethod
     def from_dict(cls, d):
-        result = cls(
+        return cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
-            module_defs=set(d["module_defs"]),
             symbol_defs=set(d["symbol_defs"]),
-            module_deps=set(d["module_deps"]),
             symbol_deps=set(d["symbol_deps"]),
             file_deps=set(map(Path, d["file_deps"])),
-            mo_commented_file_deps=set(d["mo_commented_file_deps"]),
         )
-        assert result.file_hash is not None
-        return result
 
 
-# Possibly overkill to have a class for this, but it makes analysis code simpler via type filtering.
-class EmptySourceFile(object):
-    """
-    An analysis result for a file which resulted in an empty parse tree.
-
-    """
-    def __init__(self, fpath: Path):
-        self.fpath = fpath
-
-
-def extract_sub_tree(source_tree: Dict[Path, AnalysedFile], root: Path, verbose=False) -> Dict[Path, AnalysedFile]:
+def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, verbose=False)\
+        -> Dict[Path, AnalysedDependent]:
     """
     Extract the subtree required to build the target, from the full source tree of all analysed source files.
 
@@ -252,7 +109,7 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedFile], root: Path, verbose=
         Log missing dependencies.
 
     """
-    result: Dict[Path, AnalysedFile] = dict()
+    result: Dict[Path, AnalysedDependent] = dict()
     missing: Set[Path] = set()
 
     _extract_sub_tree(src_tree=source_tree, key=root, dst_tree=result, missing=missing, verbose=verbose)
@@ -263,8 +120,8 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedFile], root: Path, verbose=
     return result
 
 
-def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
-                      dst_tree: Dict[Path, AnalysedFile], missing: Set[Path], verbose: bool, indent: int = 0):
+def _extract_sub_tree(src_tree: Dict[Path, AnalysedDependent], key: Path,
+                      dst_tree: Dict[Path, AnalysedDependent], missing: Set[Path], verbose: bool, indent: int = 0):
     # is this node already in the sub tree?
     if key in dst_tree:
         return
@@ -292,32 +149,11 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedFile], key: Path,
             src_tree=src_tree, key=file_dep, dst_tree=dst_tree, missing=missing, verbose=verbose, indent=indent + 1)
 
 
-def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedFile]):
-    """
-    Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
-    These are the comments which refer to a .o file and not those which just refer to symbols.
-
-    :param source_tree:
-        The source tree of analysed files.
-
-    """
-    analysed_fortran = filter_source_tree(source_tree, '.f90')
-    analysed_c = filter_source_tree(source_tree, '.c')
-
-    lookup = {c.fpath.name: c for c in analysed_c}
-    num_found = 0
-    for f in analysed_fortran:
-        num_found += len(f.mo_commented_file_deps)
-        for dep in f.mo_commented_file_deps:
-            f.file_deps.add(lookup[dep].fpath)
-    logger.info(f"processed {num_found} DEPENDS ON file dependencies")
-
-
-def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable[str]):
+def filter_source_tree(source_tree: Dict[Path, AnalysedDependent], suffixes: Iterable[str]) -> List[AnalysedDependent]:
     """
     Pull out files with the given extensions from a source tree.
 
-    Returns a list of :class:`~fab.dep_tree.AnalysedFile`.
+    Returns a list of :class:`~fab.dep_tree.AnalysedDependent`.
 
     :param source_tree:
         The source tree of analysed files.
@@ -325,7 +161,7 @@ def filter_source_tree(source_tree: Dict[Path, AnalysedFile], suffixes: Iterable
         The suffixes we want, including the dot.
 
     """
-    all_files: Iterable[AnalysedFile] = source_tree.values()
+    all_files: Iterable[AnalysedDependent] = source_tree.values()
     return [af for af in all_files if af.fpath.suffix in suffixes]
 
 

@@ -1,4 +1,9 @@
-from fab.tasks.fortran import _has_ancestor_type
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+from fab.parse.fortran_common import _has_ancestor_type
 
 
 class Thing1(object):

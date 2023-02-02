@@ -8,11 +8,11 @@ from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
-from fab.dep_tree import AnalysedFile
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
+from fab.parse.fortran import AnalysedFortran
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
@@ -52,27 +52,27 @@ def test_FortranDependencies(tmp_path):
     }
 
     # check the analysis results
-    assert AnalysedFile.load(config.prebuild_folder / 'first.193489053.an') == AnalysedFile(
+    assert AnalysedFortran.load(config.prebuild_folder / 'first.193489053.an') == AnalysedFortran(
         fpath=config.source_root / 'first.f90', file_hash=193489053,
         module_defs=None, symbol_defs={'first'},
         module_deps={'greeting_mod', 'constants_mod'}, symbol_deps={'greeting_mod', 'constants_mod', 'greet'})
 
-    assert AnalysedFile.load(config.prebuild_folder / 'two.2557739057.an') == AnalysedFile(
+    assert AnalysedFortran.load(config.prebuild_folder / 'two.2557739057.an') == AnalysedFortran(
         fpath=config.source_root / 'two.f90', file_hash=2557739057,
         module_defs=None, symbol_defs={'second'},
         module_deps={'constants_mod', 'bye_mod'}, symbol_deps={'constants_mod', 'bye_mod', 'farewell'})
 
-    assert AnalysedFile.load(config.prebuild_folder / 'greeting_mod.62446538.an') == AnalysedFile(
+    assert AnalysedFortran.load(config.prebuild_folder / 'greeting_mod.62446538.an') == AnalysedFortran(
         fpath=config.source_root / 'greeting_mod.f90', file_hash=62446538,
         module_defs={'greeting_mod'}, symbol_defs={'greeting_mod'},
         module_deps={'constants_mod'}, symbol_deps={'constants_mod'})
 
-    assert AnalysedFile.load(config.prebuild_folder / 'bye_mod.3332267073.an') == AnalysedFile(
+    assert AnalysedFortran.load(config.prebuild_folder / 'bye_mod.3332267073.an') == AnalysedFortran(
         fpath=config.source_root / 'bye_mod.f90', file_hash=3332267073,
         module_defs={'bye_mod'}, symbol_defs={'bye_mod'},
         module_deps={'constants_mod'}, symbol_deps={'constants_mod'})
 
-    assert AnalysedFile.load(config.prebuild_folder / 'constants_mod.233796393.an') == AnalysedFile(
+    assert AnalysedFortran.load(config.prebuild_folder / 'constants_mod.233796393.an') == AnalysedFortran(
         fpath=config.source_root / 'constants_mod.f90', file_hash=233796393,
         module_defs={'constants_mod'}, symbol_defs={'constants_mod'},
         module_deps=None, symbol_deps=None)
