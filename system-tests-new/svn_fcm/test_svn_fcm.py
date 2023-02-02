@@ -69,8 +69,11 @@ def file2_experiment(repo_url):
 def confirm_trunk(config) -> bool:
     file1_txt = (config.source_root / 'proj/file1.txt').read_text()
     file2_txt = (config.source_root / 'proj/file2.txt').read_text()
-    return file1_txt.startswith("This is sentence one in file one.") and \
-           file2_txt.strip().endswith("This is sentence two in file two.")
+    if not file1_txt.startswith("This is sentence one in file one."):
+        return False
+    if not file2_txt.strip().endswith("This is sentence two in file two."):
+        return False
+    return True
 
 
 def confirm_file1_experiment_a(config) -> bool:
