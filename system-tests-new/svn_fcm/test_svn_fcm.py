@@ -50,7 +50,7 @@ def trunk(repo_url):
 @pytest.fixture
 def file1_experiment_a(repo_url):
     # A branch which modifies file 1.
-    return f'{repo_url}/proj/main/branches/dev/person_aK/file1_experiment_a'
+    return f'{repo_url}/proj/main/branches/dev/person_a/file1_experiment_a'
 
 
 @pytest.fixture
