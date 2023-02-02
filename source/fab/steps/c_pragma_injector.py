@@ -11,10 +11,11 @@ import re
 from pathlib import Path
 from typing import Dict, Pattern, Optional, Match
 
+from fab import FabException
+
 from fab.constants import PRAGMAD_C
 from fab.steps import Step
 from fab.artefacts import ArtefactsGetter, SuffixFilter
-from fab.tasks import TaskException
 
 DEFAULT_SOURCE_GETTER = SuffixFilter('all_source', '.c')
 
@@ -96,6 +97,6 @@ def inject_pragmas(fpath):
                 yield '#pragma FAB UsrIncludeEnd\n'
             else:
                 msg = 'Found badly formatted #include'
-                raise TaskException(msg)
+                raise FabException(msg)
         else:
             yield line

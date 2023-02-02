@@ -17,10 +17,25 @@ try:
 except ImportError:
     clang = None
 
-from fab.dep_tree import AnalysedFile
+from fab.dep_tree import AnalysedDependent
 from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)
+
+
+class AnalysedC(AnalysedDependent):
+    """
+    An analysis result for a single C file, containing symbol definitions and dependencies.
+
+    Note: We don't need to worry about compile order with pure C projects; we can compile all in one go.
+          However, with a *Fortran -> C -> Fortran* dependency chain, we do need to ensure that one Fortran file
+          is compiled before another, so this class must be part of the dependency tree analysis.
+
+    """
+    # Note: This subclass adds nothing to it's parent, which provides everything it needs.
+    #       We'd normally remove an irrelevant class like this but we want to keep the door open
+    #       for filtering analysis results by type, rather than suffix.
+    pass
 
 
 class CAnalyser(object):
@@ -88,7 +103,7 @@ class CAnalyser(object):
             return None
 
     def run(self, fpath: Path) \
-            -> Union[Tuple[AnalysedFile, Path], Tuple[Exception, None]]:
+            -> Union[Tuple[AnalysedC, Path], Tuple[Exception, None]]:
 
         if not clang:
             msg = 'clang not available, C analysis disabled'
@@ -101,9 +116,9 @@ class CAnalyser(object):
         file_hash = file_checksum(fpath).file_hash
         analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
         if analysis_fpath.exists():
-            return AnalysedFile.load(analysis_fpath), analysis_fpath
+            return AnalysedC.load(analysis_fpath), analysis_fpath
 
-        analysed_file = AnalysedFile(fpath=fpath, file_hash=file_hash)
+        analysed_file = AnalysedC(fpath=fpath, file_hash=file_hash)
 
         # parse the file
         try:

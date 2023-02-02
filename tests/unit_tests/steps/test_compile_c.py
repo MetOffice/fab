@@ -6,14 +6,14 @@ import pytest
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
-from fab.dep_tree import AnalysedFile
+from fab.parse.c import AnalysedC
 from fab.steps.compile_c import CompileC
 
 
 @pytest.fixture
 def content(tmp_path):
     config = BuildConfig('proj', multiprocessing=False, fab_workspace=tmp_path)
-    analysed_file = AnalysedFile(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
+    analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
     with mock.patch.dict(os.environ, {'CC': 'foo_cc', 'CFLAGS': '-Denv_flag'}):
         with mock.patch('fab.steps.compile_c.get_compiler_version', return_value='1.2.3'):
             compiler = CompileC(path_flags=[
