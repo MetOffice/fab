@@ -8,8 +8,8 @@ from fab.build_config import BuildConfig
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import get_fortran_compiler
+
 from gcom_build_steps import common_build_steps, parse_args
-from grab_gcom import gcom_grab_config
 
 
 def gcom_ar_config(revision=None, compiler=None):
@@ -22,9 +22,8 @@ def gcom_ar_config(revision=None, compiler=None):
 
     config = BuildConfig(
         project_label=f'gcom object archive {revision} {compiler}',
-        source_root=gcom_grab_config(revision=revision).source_root,
         steps=[
-            *common_build_steps(fortran_compiler=compiler),
+            *common_build_steps(revision=revision, fortran_compiler=compiler),
             ArchiveObjects(output_fpath='$output/libgcom.a'),
 
             CleanupPrebuilds(all_unused=True),

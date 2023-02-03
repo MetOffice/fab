@@ -7,7 +7,8 @@ from unittest import mock
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab import GrabFolder, GrabPreBuild
+from fab.steps.grab.prebuild import GrabPreBuild
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.util import file_walk
@@ -83,7 +84,7 @@ class TestFortranPrebuild(object):
         # now build the project in our workspace.
         second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
                                            grab_prebuild_folder=first_project.prebuild_folder)
-        with mock.patch('fab.tasks.fortran.FortranAnalyser._parse_file') as mock_parse_fortran:
+        with mock.patch('fab.parse.fortran.FortranAnalyser._parse_file') as mock_parse_fortran:
             with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
                 second_project.run()
 

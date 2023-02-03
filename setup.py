@@ -20,6 +20,10 @@ with open(os.path.join(_here, 'source', 'fab', '__init__.py'),
     else:
         raise RuntimeError('Cannot determine package version.')
 
+tests = ['pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy']
+docs = ['sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints']
+features = ['svn', 'GitPython', 'matplotlib']
+
 setuptools.setup(
     name='sci-fab',
     version=_version,
@@ -47,9 +51,8 @@ setuptools.setup(
     python_requires='>=3.7, <4',
     install_requires=['fparser'],  # you'll also need python-clang if your project includes c code
     extras_require={
-        'dev': ['pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy', 'matplotlib',
-                'sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints'],
-        'tests': ['pytest', 'pytest-cov', 'pytest-mock'],
-        'docs': ['sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints'],
+        'tests': tests,
+        'docs': docs,
+        'dev': [*tests, *docs, *features],
     }
 )

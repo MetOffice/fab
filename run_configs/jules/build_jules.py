@@ -13,7 +13,8 @@ from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.find_source_files import FindSourceFiles, Exclude
-from fab.steps.grab import GrabFcm, GrabPreBuild
+from fab.steps.grab.prebuild import GrabPreBuild
+from fab.steps.grab.fcm import GrabFcm
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
