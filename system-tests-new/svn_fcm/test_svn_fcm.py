@@ -94,7 +94,7 @@ def confirm_file2_experiment_r8(config) -> bool:
     return file2_txt.strip().endswith("This is sentence two, with further experimental modification.")
 
 
-class TestFcmExport(object):
+class TestExport(object):
 
     # Run the test twice, once with SvnExport and once with FcmExport - depending on which tools are available.
     @pytest.mark.parametrize('export_class', export_classes)
@@ -111,7 +111,7 @@ class TestFcmExport(object):
         assert confirm_file2_experiment_r8(config)
 
 
-class TestFcmCheckout(object):
+class TestCheckout(object):
 
     @pytest.mark.parametrize('checkout_class', checkout_classes)
     def test_new_folder(self, trunk, config, checkout_class):
@@ -155,7 +155,7 @@ class TestFcmCheckout(object):
             export.run(artefact_store={}, config=config)
 
 
-class TestFcmMerge(object):
+class TestMerge(object):
 
     @pytest.mark.parametrize('checkout_class,merge_class', zip(checkout_classes, merge_classes))
     def test_vanilla(self, trunk, file2_experiment, config, checkout_class, merge_class):

@@ -6,6 +6,7 @@
 from abc import ABC
 from pathlib import Path
 from typing import Union, Dict, Tuple
+import xml.etree.ElementTree as ET
 
 from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
@@ -155,8 +156,21 @@ class SvnMerge(GrabSvnBase):
             if self.revision is not None:
                 rev_url += f'@{self.revision}'
 
-            res = run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
+            run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
+            self.check_conflict()
 
-            # Fcm doesn't return an error code when there's a conflict, so we have to scan the output.
-            if 'Summary of conflicts:' in res:
-                raise RuntimeError(f'fcm merge encountered a conflict(s):\n{res}')
+    def check_conflict(self):
+        # check if there's a conflict
+        xml_str = run_command([self.command, 'status', '--xml'], cwd=self._dst)
+        root = ET.fromstring(xml_str)
+
+        for target in root:
+            if target.tag != 'target':
+                continue
+            for entry in target:
+                if entry.tag != 'entry':
+                    continue
+                for element in entry:
+                    if element.tag == 'wc-status' and element.attrib['item'] == 'conflicted':
+                        raise RuntimeError(f'{self.command} merge encountered a conflict:\n{xml_str}')
+        return False
