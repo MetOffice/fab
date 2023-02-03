@@ -26,9 +26,8 @@ def gcom_ar_config(revision=None, verbose=False):
 
     config = BuildConfig(
         project_label=f'gcom object archive {revision} {compiler}',
-        source_root=gcom_grab_config(revision=revision).source_root,
         steps=[
-            *common_build_steps(fortran_compiler=compiler),
+            *common_build_steps(revision=revision, fortran_compiler=compiler),
             ArchiveObjects(output_fpath='$output/libgcom.a'),
 
             CleanupPrebuilds(all_unused=True),

@@ -9,7 +9,8 @@ from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.grab import GrabFolder, GrabFcm
+from fab.steps.grab.fcm import GrabFcm
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
 from fab.steps.root_inc_files import RootIncFiles

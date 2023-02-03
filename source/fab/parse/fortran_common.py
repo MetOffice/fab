@@ -3,6 +3,10 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+"""
+Common functionality for both Fortran and (sanitised) X90 processing.
+
+"""
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -13,6 +17,7 @@ from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab import FabException
+from fab.dep_tree import AnalysedDependent
 from fab.parse import AnalysedFile, EmptySourceFile
 from fab.util import log_or_dot, file_checksum
 
@@ -68,7 +73,7 @@ def _typed_child(parent, child_type, must_exist=False):
 
 class FortranAnalyserBase(ABC):
     """
-    Base class for Fortran parse-tree analysers.
+    Base class for Fortran parse-tree analysers, e.g FortranAnalyser and X90Analyser.
 
     """
     _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
@@ -90,7 +95,7 @@ class FortranAnalyserBase(ABC):
         self._config = None
 
     def run(self, fpath: Path) \
-            -> Union[Tuple[AnalysedFile, Path], Tuple[EmptySourceFile, None], Tuple[Exception, None]]:
+            -> Union[Tuple[AnalysedDependent, Path], Tuple[EmptySourceFile, None], Tuple[Exception, None]]:
         """
         Parse the source file and record what we're interested in (subclass specific).
 
@@ -122,6 +127,10 @@ class FortranAnalyserBase(ABC):
         node_tree = self._parse_file(fpath=fpath)
         if isinstance(node_tree, Exception):
             return Exception(f"error parsing file '{fpath}': {node_tree}"), None
+        # parse the file, get a node tree
+        node_tree = self._parse_file(fpath=fpath)
+        if isinstance(node_tree, Exception):
+            return Exception(f"error parsing file '{fpath}':\n{node_tree}"), None
         if node_tree.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             # todo: If we don't save the empty result we'll keep analysing it every time!
@@ -155,11 +164,11 @@ class FortranAnalyserBase(ABC):
             return Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
 
     @abstractmethod
-    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFile:
+    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedDependent:
         """
         Examine the nodes in the parse tree, recording things we're interested in.
 
-        Return type depends on our subclass, and will be a subclass of AnalysedFile.
+        Return type depends on our subclass, and will be a subclass of AnalysedDependent.
 
         """
         raise NotImplementedError

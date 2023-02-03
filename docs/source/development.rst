@@ -39,6 +39,16 @@ Source code Analysis
 ====================
 See :mod:`~fab.steps.analyse` for a description of the analysis process.
 
+The class hierarchy for analysis results can be seen below.
+Classes which are involved in source tree analysis contain symbol definitions and dependencies,
+and the file dependencies into which they are converted.
+
+.. image:: img/analysis_results_hierarchy.svg
+    :width: 95%
+    :align: center
+    :alt: Analysis results class hierarchy
+
+
 Incremental & Prebuilds
 =======================
 See :term:`Incremental Build` and :term:`Prebuild` for definitions.

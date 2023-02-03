@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Set, Dict, Union, List
+from typing import Iterator, Iterable, Optional, Dict, Set, Union, List
 
 logger = logging.getLogger(__name__)
 

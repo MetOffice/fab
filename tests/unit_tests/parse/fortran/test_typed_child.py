@@ -1,4 +1,10 @@
-from fab.parse.fortran import _typed_child
+
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+from fab.parse.fortran_common import _typed_child
 
 
 class Parent(object):

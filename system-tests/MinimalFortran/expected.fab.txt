@@ -1,5 +1,0 @@
-system-tests/MinimalFortran/program.f90
-    hash: 779717536
-test
-    found in: system-tests/MinimalFortran/program.f90
-    depends on: []

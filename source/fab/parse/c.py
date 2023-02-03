@@ -33,8 +33,8 @@ class AnalysedC(AnalysedDependent):
 
     """
     # Note: This subclass adds nothing to it's parent, which provides everything it needs.
-    #       We'd normally get rid of such an "irrelevant class" with extreme prejudice.
-    #       However, we hope to keep the door open for filtering analysis results by type, rather than suffix.
+    #       We'd normally remove an irrelevant class like this but we want to keep the door open
+    #       for filtering analysis results by type, rather than suffix.
     pass
 
 

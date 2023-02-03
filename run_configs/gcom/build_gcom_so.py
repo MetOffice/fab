@@ -28,9 +28,8 @@ def gcom_so_config(revision=None, verbose=False):
 
     config = BuildConfig(
         project_label=f'gcom shared library {revision} {compiler}',
-        source_root=gcom_grab_config(revision=revision).source_root,
         steps=[
-            *common_build_steps(fortran_compiler=compiler, fpic=True),
+            *common_build_steps(revision=revision, fortran_compiler=compiler, fpic=True),
             LinkSharedObject(output_fpath='$output/libgcom.so'),
 
             CleanupPrebuilds(older_than=timedelta(minutes=5))

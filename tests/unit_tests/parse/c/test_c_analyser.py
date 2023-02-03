@@ -162,7 +162,7 @@ class Test_process_symbol_dependency(object):
 def test_clang_disable():
 
     with mock.patch('fab.parse.c.clang', None):
-        with mock.patch('fab.util.file_checksum') as mock_file_checksum:
+        with mock.patch('fab.parse.c.file_checksum') as mock_file_checksum:
             result = CAnalyser().run(Path(__file__).parent / "test_c_analyser.c")
 
     assert type(result[0]) == ImportWarning

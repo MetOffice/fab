@@ -4,12 +4,12 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-Fab parses each C and Fortran file into an :class:`~fab.steps.dep_tree.AnalysedFile` object
+Fab parses each C and Fortran file into an :class:`~fab.steps.dep_tree.AnalysedDependent` object
 which contains the symbol definitions and dependencies for that file.
 
 From this set of analysed files, Fab builds a symbol table mapping symbols to their containing files.
 
-Fab uses the symbol table to turn symbol dependencies into file dependencies (stored in the AnalysedFile objects).
+Fab uses the symbol table to turn symbol dependencies into file dependencies (stored in the AnalysedDependent objects).
 This gives us a file dependency tree for the entire project source. The data structure is simple,
 just a dict of *<source path>: <analysed file>*, where the analysed files' dependencies are other dict keys.
 
@@ -29,7 +29,7 @@ For every symbol we provide, its source file *and dependencies* will be added to
 
 Sometimes a language parser will crash while parsing a *valid* source file, even though the compiler
 can compile the file perfectly well. In this case we can give Fab the analysis results it should have made
-by passing AnalysedFile objects into the `special_measure_analysis_results` argument.
+by passing FortranParserWorkaround objects into the `special_measure_analysis_results` argument.
 You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
 
 """
@@ -42,8 +42,7 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.constants import BUILD_TREES
-from fab.dep_tree import add_mo_commented_file_deps, extract_sub_tree, \
-    validate_dependencies
+from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile, AnalysedDependent
 from fab.parse.c import CAnalyser
 from fab.parse.fortran import FortranParserWorkaround, FortranAnalyser
@@ -225,7 +224,7 @@ class Analyse(Step):
         """
         Determine the symbols which are defined in, and used by, each file.
 
-        Returns the analysed_fortran and analysed_c as lists of :class:`~fab.dep_tree.AnalysedFile`
+        Returns the analysed_fortran and analysed_c as lists of :class:`~fab.dep_tree.AnalysedDependent`
         with no file dependencies, to be filled in later.
 
         """
@@ -255,7 +254,8 @@ class Analyse(Step):
         analyses = fortran_analyses + c_analyses
         exceptions = list(by_type(analyses, Exception))
         if exceptions:
-            logger.error(f"{len(exceptions)} analysis errors")
+            err_str = '\n\n'.join(map(str, exceptions))
+            print(f"\nThere were {len(exceptions)} analysis errors:\n\n{err_str}\n\n", file=sys.stderr)
 
         # mark the artefacts as being current
         artefacts = by_type(fortran_artefacts + c_artefacts, Path)
@@ -278,7 +278,7 @@ class Analyse(Step):
                     # which don't *crash* the parser. We don't have a use case to do this, but it's worth noting.
                     # If we want to allow this we can raise a warning instead of an exception.
                     raise ValueError(f'Unnecessary ParserWorkaround for {r.fpath}')
-                analysed_files.add(r.as_analysed_file())
+                analysed_files.add(r.as_analysed_fortran())
 
             logger.info(f'added {len(self.special_measure_analysis_results)} manual analysis results')
 
@@ -329,42 +329,42 @@ class Analyse(Step):
     #     if deps_not_found:
     #         logger.info(f"{len(deps_not_found)} deps not found")
 
-    def _add_unreferenced_deps(self, symbol_table: Dict[str, Path],
-                               all_analysed_files: Dict[Path, AnalysedDependent],
-                               build_tree: Dict[Path, AnalysedDependent]):
-        """
-        Add files to the build tree.
-
-        This is used for building Fortran code which Fab doesn't know is a dependency.
-
-        """
-        if not self.unreferenced_deps:
-            return
-        logger.info(f"Adding {len(self.unreferenced_deps or [])} unreferenced dependencies")
-
-        for symbol_dep in self.unreferenced_deps:
-
-            # what file is the symbol in?
-            analysed_fpath = symbol_table.get(symbol_dep)
-            if not analysed_fpath:
-                warnings.warn(f"no file found for unreferenced dependency {symbol_dep}")
-                continue
-            analysed_file = all_analysed_files[analysed_fpath]
-
-            # was it found and analysed?
-            if not analysed_file:
-                warnings.warn(f"couldn't find file for symbol dep '{symbol_dep}'")
-                continue
-
-            # is it already in the build tree?
-            if analysed_file.fpath in build_tree:
-                logger.info(f"file {analysed_file.fpath} for unreferenced dependency {symbol_dep} "
-                            f"is already in the build tree")
-                continue
-
-            # add the file and it's file deps
-            sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
-            build_tree.update(sub_tree)
+    # def _add_unreferenced_deps(self, symbol_table: Dict[str, Path],
+    #                            all_analysed_files: Dict[Path, AnalysedDependent],
+    #                            build_tree: Dict[Path, AnalysedDependent]):
+    #     """
+    #     Add files to the build tree.
+    #
+    #     This is used for building Fortran code which Fab doesn't know is a dependency.
+    #
+    #     """
+    #     if not self.unreferenced_deps:
+    #         return
+    #     logger.info(f"Adding {len(self.unreferenced_deps or [])} unreferenced dependencies")
+    #
+    #     for symbol_dep in self.unreferenced_deps:
+    #
+    #         # what file is the symbol in?
+    #         analysed_fpath = symbol_table.get(symbol_dep)
+    #         if not analysed_fpath:
+    #             warnings.warn(f"no file found for unreferenced dependency {symbol_dep}")
+    #             continue
+    #         analysed_file = all_analysed_files[analysed_fpath]
+    #
+    #         # was it found and analysed?
+    #         if not analysed_file:
+    #             warnings.warn(f"couldn't find file for symbol dep '{symbol_dep}'")
+    #             continue
+    #
+    #         # is it already in the build tree?
+    #         if analysed_file.fpath in build_tree:
+    #             logger.info(f"file {analysed_file.fpath} for unreferenced dependency {symbol_dep} "
+    #                         f"is already in the build tree")
+    #             continue
+    #
+    #         # add the file and it's file deps
+    #         sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
+    #         build_tree.update(sub_tree)
 
 
 def analyse_source_tree(analysed_files: Iterable[AnalysedDependent]):
@@ -445,3 +445,41 @@ def _gen_file_deps(analysed_files: Iterable[AnalysedDependent], symbols: Dict[st
                 analysed_file.file_deps.add(file_dep)
     if deps_not_found:
         logger.info(f"{len(deps_not_found)} deps not found")
+
+    def _add_unreferenced_deps(self,
+                               symbols: Dict[str, Path],
+                               all_analysed_files: Dict[Path, AnalysedDependent],
+                               build_tree: Dict[Path, AnalysedDependent]):
+        """
+        Add files to the build tree.
+
+        This is used for building Fortran code which Fab doesn't know is a dependency.
+
+        """
+        if not self.unreferenced_deps:
+            return
+        logger.info(f"Adding {len(self.unreferenced_deps or [])} unreferenced dependencies")
+
+        for symbol_dep in self.unreferenced_deps:
+
+            # what file is the symbol in?
+            analysed_fpath = symbols.get(symbol_dep)
+            if not analysed_fpath:
+                warnings.warn(f"no file found for unreferenced dependency {symbol_dep}")
+                continue
+            analysed_file = all_analysed_files[analysed_fpath]
+
+            # was it found and analysed?
+            if not analysed_file:
+                warnings.warn(f"couldn't find file for symbol dep '{symbol_dep}'")
+                continue
+
+            # is it already in the build tree?
+            if analysed_file.fpath in build_tree:
+                logger.info(f"file {analysed_file.fpath} for unreferenced dependency {symbol_dep} "
+                            f"is already in the build tree")
+                continue
+
+            # add the file and it's file deps
+            sub_tree = extract_sub_tree(source_tree=all_analysed_files, root=analysed_fpath)
+            build_tree.update(sub_tree)

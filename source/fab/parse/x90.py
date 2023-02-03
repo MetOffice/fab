@@ -9,7 +9,7 @@ from typing import Union, Optional, Dict, Any
 from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
 
 from fab.parse import AnalysedFile
-from fab.parse.fortran import FortranAnalyserBase, iter_content, logger, _typed_child
+from fab.parse.fortran_common import FortranAnalyserBase, iter_content, logger, _typed_child
 from fab.util import by_type
 
 
@@ -39,11 +39,11 @@ class AnalysedX90(AnalysedFile):
         self.kernel_deps: Dict[str, str] = kernel_deps or {}
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "fpath": str(self.fpath),
-            "file_hash": self.file_hash,
+        result = super().to_dict()
+        result.update({
             "kernel_deps": self.kernel_deps,
-        }
+        })
+        return result
 
     @classmethod
     def from_dict(cls, d):
@@ -55,14 +55,11 @@ class AnalysedX90(AnalysedFile):
         assert result.file_hash is not None
         return result
 
-    def __eq__(self, other):
-        return vars(self) == vars(other)
-
-    def __str__(self):
-        return f'AnalysedX90({self.fpath}, {self.file_hash}, {self.kernel_deps})'
-
-    def __repr__(self):
-        return f'AnalysedX90({self.fpath}, {self.file_hash}, {self.kernel_deps})'
+    @classmethod
+    def field_names(cls):
+        return super().field_names() + [
+            'kernel_deps',
+        ]
 
 
 class X90Analyser(FortranAnalyserBase):

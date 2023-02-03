@@ -7,7 +7,7 @@ import json
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Union, Optional, Dict, Any, Set, Iterable
+from typing import Iterable, Union, Optional, Dict, Any, Set
 
 from fab.util import file_checksum
 
@@ -33,7 +33,6 @@ class AnalysedFile(ABC):
             If omitted, Fab will evaluate lazily.
 
         If not provided, the `self.file_hash` property is lazily evaluated in case the file does not yet exist.
-        This can happen when defining a parser workaround for a file which is created at runtime.
 
         """
         self.fpath = Path(fpath)
@@ -47,26 +46,83 @@ class AnalysedFile(ABC):
             self._file_hash: int = file_checksum(self.fpath).file_hash
         return self._file_hash
 
+    def __str__(self):
+        # We use self.field_names() instead of vars(self) in order to evaluate any lazy attributes.
+        values = [getattr(self, field_name) for field_name in self.field_names()]
+        return f'{self.__class__.__name__} ' + ' '.join(map(str, values))
+
+    def __repr__(self):
+        params = ', '.join([f'{f}={repr(getattr(self, f))}' for f in self.field_names()])
+        return f'{self.__class__.__name__}({params})'
+
+    def __eq__(self, other):
+        # todo: better to use self.field_names() instead of vars(self) in order to evaluate any lazy attributes?
+        return vars(self) == vars(other)
+
+    # persistence
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Create a dict representing the object.
+
+        The dict may be written to json, so can't contain sets.
+        Lists are sorted for reproducibility in testing.
+
+        """
+        return {
+            "fpath": str(self.fpath),
+            "file_hash": self.file_hash
+        }
+
+    @classmethod
+    def from_dict(cls, d):
+        raise NotImplementedError
+
     def save(self, fpath: Union[str, Path]):
+        # subclasses don't need to override this method
         d = self.to_dict()
         d["cls"] = self.__class__.__name__
         json.dump(d, open(fpath, 'wt'), indent=4)
 
     @classmethod
     def load(cls, fpath: Union[str, Path]):
+        # subclasses don't need to override this method
         d = json.load(open(fpath))
         found_class = d["cls"]
         if found_class != cls.__name__:
-            logger.error(f"Expected class name '{cls.__name__}', got '{found_class}'")
-            return None
+            raise ValueError(f"Expected class name '{cls.__name__}', found '{found_class}'")
         return cls.from_dict(d)
 
-    def to_dict(self) -> Dict[str, Any]:
-        raise NotImplementedError
-
+    # human readability
     @classmethod
-    def from_dict(cls, d):
-        raise NotImplementedError
+    def field_names(cls):
+        """
+        Defines the order in which we want fields to appear in str or repr strings.
+    
+        Calling this helps to ensure any lazy attributes are evaluated before use,
+        e.g when constructing a string representation of the instance, or generating a hash value.
+    
+        """
+        return ['fpath', 'file_hash']
+
+    # We need to be hashable before we can go into a set, which is useful for our subclasses.
+    # Note, the numerical result will change with each Python invocation.
+    def __hash__(self):
+        # Build up a list of things to hash, from our attributes.
+        # We use self.field_names() rather than vars(self) because we want to evaluate any lazy attributes.
+        # We turn dicts and sets into sorted tuples for hashing.
+        # todo: There's a good reason dicts and sets aren't hashable, so we should be sure we're happy doing this.
+        #       Discuss.
+        things = set()
+        for field_name in self.field_names():
+            thing = getattr(self, field_name)
+            if isinstance(thing, Dict):
+                things.add(tuple(sorted(thing.items())))
+            elif isinstance(thing, Set):
+                things.add(tuple(sorted(thing)))
+            else:
+                things.add(thing)
+
+        return hash(tuple(things))
 
 
 # Todo: Better name? It's an analysed file in a dependency tree (as opposed to an analysed x90, for example).
@@ -121,42 +177,19 @@ class AnalysedDependent(AnalysedFile, ABC):
     @classmethod
     def field_names(cls):
         """Defines the order in which we want fields to appear if a human is reading them"""
-        return [
-            'fpath', 'file_hash',
+        return super().field_names() + [
             'symbol_defs', 'symbol_deps',
             'file_deps',
         ]
 
-    def __str__(self):
-        values = [getattr(self, field_name) for field_name in self.field_names()]
-        return f'{self.__class__.__name__} ' + ' '.join(map(str, values))
-
-    def __repr__(self):
-        params = ', '.join([f'{f}={getattr(self, f)}' for f in self.field_names()])
-        return f'{self.__class__.__name__}({params})'
-
-    def __eq__(self, other):
-        return vars(self) == vars(other)
-
-    def __hash__(self):
-        # If we haven't been given a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
-        # This only affects user workarounds of fparser issues when the user has not provided a file hash.
-        return hash((
-            self.fpath,
-            self.file_hash,  # this is a lazily evaluated property
-            tuple(sorted(self.symbol_defs)),
-            tuple(sorted(self.symbol_deps)),
-            tuple(sorted(self.file_deps)),
-        ))
-
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "fpath": str(self.fpath),
-            "file_hash": self.file_hash,
+        result = super().to_dict()
+        result.update({
             "symbol_defs": list(self.symbol_defs),
             "symbol_deps": list(self.symbol_deps),
             "file_deps": list(map(str, self.file_deps)),
-        }
+        })
+        return result
 
     @classmethod
     def from_dict(cls, d):
@@ -171,8 +204,9 @@ class AnalysedDependent(AnalysedFile, ABC):
         return result
 
 
-# todo: there's a design weakness relating to this class:
-#       we don't save empty results which means we'll keep reanalysing them
+# todo: There's a design weakness relating to this class:
+#       we don't save empty results, which means we'll keep reanalysing them.
+#       We should save empty files and allow the loading to detect this, as it already reads the class name.
 class EmptySourceFile(AnalysedFile):
     """
     An analysis result for a file which resulted in an empty parse tree.
@@ -185,3 +219,8 @@ class EmptySourceFile(AnalysedFile):
 
         """
         super().__init__(fpath=fpath)
+
+    @classmethod
+    def from_dict(cls, d):
+        raise NotImplementedError
+

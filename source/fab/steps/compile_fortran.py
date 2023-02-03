@@ -168,7 +168,7 @@ class CompileFortran(Step):
         uncompiled = set(filter(lambda af: af.fpath not in compiled, uncompiled))
         return uncompiled
 
-    def get_compile_next(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran])\
+    def get_compile_next(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran]) \
             -> Set[AnalysedFortran]:
 
         # find what to compile next
@@ -242,7 +242,7 @@ class CompileFortran(Step):
         if not all(prebuilds_exist):
             # compile
             try:
-                log_or_dot(logger, f'compiling {analysed_file.fpath}')
+                logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
                 self.compile_file(analysed_file, flags, output_fpath=obj_file_prebuild)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
@@ -256,7 +256,7 @@ class CompileFortran(Step):
                 )
 
         else:
-            log_or_dot(logger, f'found fortran compilation prebuild for {analysed_file.fpath}')
+            log_or_dot(logger, f'CompileFortran using prebuild: {analysed_file.fpath}')
 
             # copy the prebuilt mod files from the prebuild folder
             for mod_def in analysed_file.module_defs:

@@ -7,7 +7,8 @@ from unittest import mock
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab import GrabFolder, GrabPreBuild
+from fab.steps.grab.prebuild import GrabPreBuild
+from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.util import file_walk

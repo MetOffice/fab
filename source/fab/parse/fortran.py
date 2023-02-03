@@ -27,22 +27,20 @@ from fab.util import file_checksum, string_checksum
 logger = logging.getLogger(__name__)
 
 
-# todo: a nicer recursion pattern?
-
-
 class AnalysedFortran(AnalysedDependent):
     """
     An analysis result for a single file, containing module and symbol definitions and dependencies.
 
-    The user should be unlikely to encounter this class. When a language parser is unable to process a source file,
-    a :class:`~fab.dep_tree.ParserWorkaround` object can be provided to the :class:`~fab.steps.analyse.Analyse` step,
-    which will be converted at runtime into an `AnalysedFile` object.
+    The user should be unlikely to encounter this class. If the third-party fortran parser is unable to process
+    a source file, a :class:`~fab.dep_tree.FortranParserWorkaround` object can be provided to the
+    :class:`~fab.steps.analyse.Analyse` step, which will be converted at runtime into an instance of this class.
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
                  module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
                  module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None):
+                 mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None,
+                 psyclone_kernels: Optional[Dict[str, int]] = None):
         """
         :param fpath:
             The source file that was analysed.
@@ -68,17 +66,16 @@ class AnalysedFortran(AnalysedDependent):
             The hash of any PSyclone kernel metadata found in this source file, by name.
 
         """
-        super().__init__(fpath=fpath, file_hash=file_hash, file_deps=file_deps)
+        super().__init__(fpath=fpath, file_hash=file_hash,
+                         symbol_defs=symbol_defs, symbol_deps=symbol_deps, file_deps=file_deps)
 
         self.module_defs: Set[str] = set(module_defs or [])
-        self.symbol_defs: Set[str] = set(symbol_defs or [])
         self.module_deps: Set[str] = set(module_deps or [])
-        self.symbol_deps: Set[str] = set(symbol_deps or [])
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
 
         # Todo: Ideally Psyclone stuff would not be part of this general fortran analysis code.
         #       Instead, perhaps we could inject bespoke node handling into the fortran analyser.
-        self.psyclone_kernels: Dict[str, int] = {}
+        self.psyclone_kernels: Dict[str, int] = psyclone_kernels or {}
 
         self.validate()
 
@@ -86,17 +83,9 @@ class AnalysedFortran(AnalysedDependent):
         self.module_defs.add(name.lower())
         self.add_symbol_def(name)
 
-    def add_symbol_def(self, name):
-        assert name and len(name)
-        self.symbol_defs.add(name.lower())
-
     def add_module_dep(self, name):
         self.module_deps.add(name.lower())
         self.add_symbol_dep(name)
-
-    def add_symbol_dep(self, name):
-        assert name and len(name)
-        self.symbol_deps.add(name.lower())
 
     @property
     def mod_filenames(self):
@@ -106,24 +95,15 @@ class AnalysedFortran(AnalysedDependent):
     @classmethod
     def field_names(cls):
         """Defines the order in which we want fields to appear if a human is reading them"""
+        # we're not using the super class because we want to insert, not append the order of our attributes
         return [
             'fpath', 'file_hash',
             'module_defs', 'symbol_defs',
             'module_deps', 'symbol_deps',
-            'file_deps', 'mo_commented_file_deps',
+            'mo_commented_file_deps',
+            'file_deps',
             'psyclone_kernels',
         ]
-
-    # def __str__(self):
-    #     values = [getattr(self, field_name) for field_name in self.field_names()]
-    #     return 'AnalysedFile ' + ' '.join(map(str, values))
-    #
-    # def __repr__(self):
-    #     params = ', '.join([f'{f}={getattr(self, f)}' for f in self.field_names()])
-    #     return f'AnalysedFile({params})'
-    #
-    # def __eq__(self, other):
-    #     return vars(self) == vars(other)
 
     def __hash__(self):
         # If we haven't been given a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
@@ -141,39 +121,31 @@ class AnalysedFortran(AnalysedDependent):
         ))
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "fpath": str(self.fpath),
-            "file_hash": self.file_hash,
-            "module_defs": list(self.module_defs),
-            "symbol_defs": list(self.symbol_defs),
-            "module_deps": list(self.module_deps),
-            "symbol_deps": list(self.symbol_deps),
-            "file_deps": list(map(str, self.file_deps)),
-            "mo_commented_file_deps": list(self.mo_commented_file_deps),
+        # These dicts will be written to json files, so can't contain sets.
+        # We sort the lists for reproducibility in testing.
+        result = super().to_dict()
+        result.update({
+            "module_defs": list(sorted(self.module_defs)),
+            "module_deps": list(sorted(self.module_deps)),
+            "mo_commented_file_deps": list(sorted(self.mo_commented_file_deps)),
             "psyclone_kernels": self.psyclone_kernels,
-        }
+        })
+
+        return result
 
     @classmethod
     def from_dict(cls, d):
         result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
+            module_defs=set(d["module_defs"]),
+            symbol_defs=set(d["symbol_defs"]),
+            module_deps=set(d["module_deps"]),
+            symbol_deps=set(d["symbol_deps"]),
+            file_deps=set(map(Path, d["file_deps"])),
+            mo_commented_file_deps=set(d["mo_commented_file_deps"]),
+            psyclone_kernels=d["psyclone_kernels"],
         )
-        # module_defs=set(d["module_defs"]),
-        # symbol_defs=set(d["symbol_defs"]),
-        # module_deps=set(d["module_deps"]),
-        # symbol_deps=set(d["symbol_deps"]),
-        # file_deps=set(map(Path, d["file_deps"])),
-        # mo_commented_file_deps=set(d["mo_commented_file_deps"]),
-        # )
-
-        result.module_defs = set(d["module_defs"])
-        result.symbol_defs = set(d["symbol_defs"])
-        result.module_deps = set(d["module_deps"])
-        result.symbol_deps = set(d["symbol_deps"])
-        result.file_deps = set(map(Path, d["file_deps"]))
-        result.mo_commented_file_deps = set(d["mo_commented_file_deps"])
-        result.psyclone_kernels = d["psyclone_kernels"]
 
         result.validate()
         return result
@@ -194,12 +166,9 @@ class AnalysedFortran(AnalysedDependent):
 # todo: consider, this doesn't really need to be a class at all...it could just be a function...
 class FortranAnalyser(FortranAnalyserBase):
     """
-    A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFile`.
+    A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFortran`.
 
     """
-
-    # RESULT_CLASS = AnalysedFortran
-
     def __init__(self, std=None, ignore_mod_deps: Optional[Iterable[str]] = None):
         """
         :param std:
@@ -278,8 +247,6 @@ class FortranAnalyser(FortranAnalyserBase):
             except Exception:
                 logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
 
-        # analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
-        # analysed_file.save(analysis_fpath)
         return analysed_fortran
 
     def _process_use_statement(self, analysed_file, obj):
@@ -359,7 +326,7 @@ class FortranAnalyser(FortranAnalyserBase):
 
 class FortranParserWorkaround(object):
     """
-    Use this class to create a workaround when the Fortran parser is unable to process a valid source file.
+    Use this class to create a workaround when the third-party Fortran parser is unable to process a valid source file.
 
     You must manually examine the source file and list:
      - module definitions
@@ -401,7 +368,7 @@ class FortranParserWorkaround(object):
         self.symbol_deps: Set[str] = set(symbol_deps or {})
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
 
-    def as_analysed_file(self):
+    def as_analysed_fortran(self):
 
         # To be as helpful as possible, we allow the user to omit module defs/deps from the symbol defs/deps.
         # However, they need to be there so do this now.

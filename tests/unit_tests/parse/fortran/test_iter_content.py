@@ -1,4 +1,9 @@
-from fab.parse.fortran import iter_content
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+from fab.parse.fortran_common import iter_content
 
 
 class Node(object):

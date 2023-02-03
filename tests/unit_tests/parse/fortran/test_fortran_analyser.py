@@ -12,10 +12,10 @@ from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 import pytest
 
-from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.build_config import BuildConfig
 from fab.parse import EmptySourceFile
-from fab.parse.fortran import iter_content
+from fab.parse.fortran import FortranAnalyser, AnalysedFortran, iter_content
+from fab.parse.fortran_common import iter_content
 
 
 # todo: test function binding
@@ -28,14 +28,16 @@ def module_fpath():
 
 @pytest.fixture
 def module_expected(module_fpath):
-    analysed_fortran = AnalysedFortran(
-        fpath=module_fpath, file_hash=4039845747,
-        module_defs={'foo_mod'}, symbol_defs={'external_sub', 'external_func', 'foo_mod'},
-        module_deps={'bar_mod'}, symbol_deps={'monty_func', 'bar_mod'},
+    return AnalysedFortran(
+        fpath=module_fpath,
+        file_hash=4039845747,
+        module_defs={'foo_mod'},
+        symbol_defs={'external_sub', 'external_func', 'foo_mod'},
+        module_deps={'bar_mod'},
+        symbol_deps={'monty_func', 'bar_mod'},
+        file_deps=set(),
         mo_commented_file_deps={'some_file.c'},
     )
-
-    return analysed_fortran
 
 
 class Test_Analyser(object):
@@ -47,7 +49,7 @@ class Test_Analyser(object):
         return fortran_analyser
 
     def test_empty_file(self, fortran_analyser):
-        # make sure we get back an EmptySourceFile, not an AnalysedFile
+        # make sure we get back an EmptySourceFile
         with mock.patch('fab.parse.AnalysedFile.save'):
             analysis, artefact = fortran_analyser.run(fpath=Path(Path(__file__).parent / "empty.f90"))
         assert type(analysis) is EmptySourceFile

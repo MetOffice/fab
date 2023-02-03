@@ -19,7 +19,7 @@ from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
-from fab.parse import AnalysedFile
+from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, Step
 from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
@@ -118,7 +118,7 @@ class CompileC(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    def _compile_file(self, analysed_file: AnalysedFile):
+    def _compile_file(self, analysed_file: AnalysedC):
 
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
