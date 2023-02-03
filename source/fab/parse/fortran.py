@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 from typing import Union, Optional, Iterable, Dict, Any, Set
 
+from fab.dep_tree import AnalysedDependent
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
@@ -20,7 +21,6 @@ from fparser.two.Fortran2003 import (  # type: ignore
 from fparser.two.Fortran2008 import (  # type: ignore
     Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
 
-from fab.parse import AnalysedDependent
 from fab.parse.fortran_common import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
 from fab.util import file_checksum, string_checksum
 

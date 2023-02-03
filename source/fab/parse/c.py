@@ -11,13 +11,14 @@ from collections import deque
 from pathlib import Path
 from typing import List, Optional, Union, Tuple
 
+from fab.dep_tree import AnalysedDependent
+
 try:
     import clang  # type: ignore
     import clang.cindex  # type: ignore
 except ImportError:
     clang = None
 
-from fab.parse import AnalysedDependent
 from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)

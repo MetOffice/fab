@@ -16,8 +16,7 @@ from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
 from fab.constants import BUILD_TREES
-from fab.dep_tree import filter_source_tree
-from fab.parse import AnalysedFile
+from fab.dep_tree import AnalysedDependent, filter_source_tree
 from fab.util import suffix_filter
 
 

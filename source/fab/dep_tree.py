@@ -9,6 +9,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 """
 
 # todo: we've since adopted the term "source tree", so we should probably rename this module to match.
+from abc import ABC
 import logging
 from pathlib import Path
 from typing import Set, Dict, Iterable, List, Union, Optional, Any
@@ -86,13 +87,15 @@ class AnalysedDependent(AnalysedFile, ABC):
 
     @classmethod
     def from_dict(cls, d):
-        return cls(
+        result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
             symbol_defs=set(d["symbol_defs"]),
             symbol_deps=set(d["symbol_deps"]),
             file_deps=set(map(Path, d["file_deps"])),
         )
+        assert result.file_hash is not None
+        return result
 
 
 def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, verbose=False)\

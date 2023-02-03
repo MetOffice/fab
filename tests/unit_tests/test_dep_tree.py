@@ -1,11 +1,8 @@
 from pathlib import Path
-from typing import Dict
 
 import pytest
 
 from fab.dep_tree import extract_sub_tree, AnalysedDependent
-from fab.parse.c import AnalysedC
-from fab.parse.fortran import AnalysedFortran
 
 
 @pytest.fixture

@@ -18,7 +18,7 @@ from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab import FabException
 from fab.dep_tree import AnalysedDependent
-from fab.parse import AnalysedFile, EmptySourceFile
+from fab.parse import EmptySourceFile
 from fab.util import log_or_dot, file_checksum
 
 

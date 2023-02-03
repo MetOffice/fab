@@ -13,7 +13,6 @@ from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import get_fortran_compiler
 from gcom_build_steps import common_build_steps
-from grab_gcom import gcom_grab_config
 
 
 def gcom_ar_config(revision=None, verbose=False):

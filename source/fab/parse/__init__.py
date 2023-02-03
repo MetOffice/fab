@@ -7,7 +7,7 @@ import json
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Iterable, Union, Optional, Dict, Any, Set
+from typing import Union, Optional, Dict, Any, Set
 
 from fab.util import file_checksum
 
@@ -97,10 +97,10 @@ class AnalysedFile(ABC):
     def field_names(cls):
         """
         Defines the order in which we want fields to appear in str or repr strings.
-    
+
         Calling this helps to ensure any lazy attributes are evaluated before use,
         e.g when constructing a string representation of the instance, or generating a hash value.
-    
+
         """
         return ['fpath', 'file_hash']
 
@@ -125,85 +125,6 @@ class AnalysedFile(ABC):
         return hash(tuple(things))
 
 
-# Todo: Better name? It's an analysed file in a dependency tree (as opposed to an analysed x90, for example).
-class AnalysedDependent(AnalysedFile, ABC):
-    """
-    An :class:`~fab.parse.AnalysedFile` which can depend on others, and be a dependency.
-    Instances of this class are nodes in a source dependency tree.
-
-    During parsing, the symbol definitions and dependencies are filled in.
-    During dependency analysis, symbol dependencies are turned into file dependencies.
-
-    """
-    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
-                 symbol_defs: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
-                 file_deps: Optional[Iterable[Path]] = None):
-        """
-        :param fpath:
-            The source file that was analysed.
-        :param file_hash:
-            The hash of the source. If omitted, Fab will evaluate lazily.
-        :param symbol_defs:
-            Set of symbol names defined by this source file.
-        :param symbol_deps:
-            Set of symbol names used by this source file.
-            Can include symbols in the same file.
-        :param file_deps:
-            Other files on which this source depends. Must not include itself.
-            This attribute is calculated during symbol analysis, after everything has been parsed.
-
-        """
-        super().__init__(fpath=fpath, file_hash=file_hash)
-
-        self.symbol_defs: Set[str] = set(symbol_defs or {})
-        self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.file_deps: Set[Path] = set(file_deps or [])
-
-        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
-        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
-
-    def add_symbol_def(self, name):
-        assert name and len(name)
-        self.symbol_defs.add(name.lower())
-
-    def add_symbol_dep(self, name):
-        assert name and len(name)
-        self.symbol_deps.add(name.lower())
-
-    def add_file_dep(self, name):
-        assert name and len(name)
-        self.file_deps.add(name)
-
-    @classmethod
-    def field_names(cls):
-        """Defines the order in which we want fields to appear if a human is reading them"""
-        return super().field_names() + [
-            'symbol_defs', 'symbol_deps',
-            'file_deps',
-        ]
-
-    def to_dict(self) -> Dict[str, Any]:
-        result = super().to_dict()
-        result.update({
-            "symbol_defs": list(self.symbol_defs),
-            "symbol_deps": list(self.symbol_deps),
-            "file_deps": list(map(str, self.file_deps)),
-        })
-        return result
-
-    @classmethod
-    def from_dict(cls, d):
-        result = cls(
-            fpath=Path(d["fpath"]),
-            file_hash=d["file_hash"],
-            symbol_defs=set(d["symbol_defs"]),
-            symbol_deps=set(d["symbol_deps"]),
-            file_deps=set(map(Path, d["file_deps"])),
-        )
-        assert result.file_hash is not None
-        return result
-
-
 # todo: There's a design weakness relating to this class:
 #       we don't save empty results, which means we'll keep reanalysing them.
 #       We should save empty files and allow the loading to detect this, as it already reads the class name.
@@ -223,4 +144,3 @@ class EmptySourceFile(AnalysedFile):
     @classmethod
     def from_dict(cls, d):
         raise NotImplementedError
-

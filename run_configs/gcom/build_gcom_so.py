@@ -15,7 +15,6 @@ from fab.steps.compile_fortran import get_fortran_compiler
 from fab.steps.link import LinkSharedObject
 
 from gcom_build_steps import common_build_steps
-from grab_gcom import gcom_grab_config
 
 
 def gcom_so_config(revision=None, verbose=False):

@@ -5,7 +5,6 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
-from fab.parse import AnalysedFile
 from fab.parse.fortran import FortranParserWorkaround, AnalysedFortran
 from fab.steps.analyse import Analyse, _gen_file_deps, _gen_symbol_table
 from fab.util import HashedFile

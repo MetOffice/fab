@@ -14,7 +14,7 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.parse import EmptySourceFile
-from fab.parse.fortran import FortranAnalyser, AnalysedFortran, iter_content
+from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.fortran_common import iter_content
 
 

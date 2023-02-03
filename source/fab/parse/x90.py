@@ -70,7 +70,7 @@ class X90Analyser(FortranAnalyserBase):
     def __init__(self):
         super().__init__(result_class=AnalysedX90)
 
-    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:
+    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:  # type: ignore
 
         analysed_file = AnalysedX90(fpath=fpath, file_hash=file_hash)
         symbol_deps: Dict[str, str] = {}
