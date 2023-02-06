@@ -188,21 +188,6 @@ class Analyse(Step):
 
         artefact_store[BUILD_TREES] = build_trees
 
-    # def _analyse_dependencies(self, analysed_files: Iterable[AnalysedFile]):
-    #     """
-    #     Turn symbol deps into file deps and build a source dependency tree for the entire source.
-    #
-    #     """
-    #     with TimerLogger("converting symbol dependencies to file dependencies"):
-    #         # map symbols to the files they're in
-    #         symbols: Dict[str, Path] = _gen_symbol_table(analysed_files)
-    #
-    #         # fill in the file deps attribute in the analysed file objects
-    #         _gen_file_deps(analysed_files, symbols)
-    #
-    #     source_tree: Dict[Path, AnalysedFile] = {a.fpath: a for a in analysed_files}
-    #     return source_tree, symbols
-
     def _extract_build_trees(self, project_source_tree, symbol_table):
         """
         Find the subset of files needed to build each root symbol (executable).
@@ -282,53 +267,6 @@ class Analyse(Step):
                 analysed_files.add(r.as_analysed_fortran())
 
             logger.info(f'added {len(self.special_measure_analysis_results)} manual analysis results')
-
-    # def _gen_symbol_table(self, analysed_files: Iterable[AnalysedFile]) -> Dict[str, Path]:
-    #     """
-    #     Create a dictionary mapping symbol names to the files in which they appear.
-    #
-    #     """
-    #     symbols: Dict[str, Path] = dict()
-    #     duplicates = []
-    #     for analysed_file in analysed_files:
-    #         for symbol_def in analysed_file.symbol_defs:
-    #             # check for duplicates
-    #             if symbol_def in symbols:
-    #                 duplicates.append(ValueError(
-    #                     f"duplicate symbol '{symbol_def}' defined in {analysed_file.fpath} "
-    #                     f"already found in {symbols[symbol_def]}"))
-    #                 continue
-    #             symbols[symbol_def] = analysed_file.fpath
-    #
-    #     if duplicates:
-    #         # we don't break the build because these symbols might not be required to build the exe
-    #         # todo: put a big warning at the end of the build?
-    #         err_msg = "\n".join(map(str, duplicates))
-    #         warnings.warn(f"Duplicates found while generating symbol table:\n{err_msg}")
-    #
-    #     return symbols
-
-    # def _gen_file_deps(self, analysed_files: Iterable[AnalysedFile], symbols: Dict[str, Path]):
-    #     """
-    #     Use the symbol table to convert symbol dependencies into file dependencies.
-    #
-    #     """
-    #     deps_not_found = set()
-    #     with TimerLogger("converting symbol to file deps"):
-    #         for analysed_file in analysed_files:
-    #             for symbol_dep in analysed_file.symbol_deps:
-    #                 file_dep = symbols.get(symbol_dep)
-    #                 # don't depend on oneself!
-    #                 if file_dep == analysed_file.fpath:
-    #                     continue
-    #                 # warn of missing file
-    #                 if not file_dep:
-    #                     deps_not_found.add(symbol_dep)
-    #                     logger.debug(f"not found {symbol_dep} for {analysed_file.fpath}")
-    #                     continue
-    #                 analysed_file.file_deps.add(file_dep)
-    #     if deps_not_found:
-    #         logger.info(f"{len(deps_not_found)} deps not found")
 
     def _add_unreferenced_deps(self, symbol_table: Dict[str, Path],
                                all_analysed_files: Dict[Path, AnalysedDependent],

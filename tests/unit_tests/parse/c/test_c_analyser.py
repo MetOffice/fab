@@ -22,7 +22,8 @@ def test_simple_result(tmp_path):
         analysis, artefact = c_analyser.run(fpath)
 
     expected = AnalysedC(
-        fpath=fpath, file_hash=1429445462,
+        fpath=fpath,
+        file_hash=1429445462,
         symbol_deps={'usr_var', 'usr_func'},
         symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
     )

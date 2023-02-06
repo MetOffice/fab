@@ -127,7 +127,7 @@ class CompileC(Step):
 
         # prebuild available?
         if obj_file_prebuild.exists():
-            log_or_dot(logger, f'found c compilation prebuild for {analysed_file.fpath}')
+            log_or_dot(logger, f'CompileC using prebuild: {analysed_file.fpath}')
         else:
             with Timer() as timer:
                 obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
@@ -137,7 +137,7 @@ class CompileC(Step):
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(obj_file_prebuild)])
 
-                log_or_dot(logger, f'compiling {analysed_file.fpath}')
+                log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
                 try:
                     run_command(command)
                 except Exception as err:

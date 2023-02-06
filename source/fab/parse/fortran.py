@@ -94,7 +94,6 @@ class AnalysedFortran(AnalysedDependent):
 
     @classmethod
     def field_names(cls):
-        """Defines the order in which we want fields to appear if a human is reading them"""
         # we're not using the super class because we want to insert, not append the order of our attributes
         return [
             'fpath', 'file_hash',
