@@ -261,7 +261,7 @@ class Analyse(Step):
             err_str = '\n\n'.join(map(str, exceptions))
             print(f"\nThere were {len(exceptions)} analysis errors:\n\n{err_str}\n\n", file=sys.stderr)
 
-        # mark the artefacts as being current
+        # record the artefacts as being current
         artefacts = by_type(fortran_artefacts + c_artefacts, Path)
         self._config.add_current_prebuilds(artefacts)
 

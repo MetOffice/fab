@@ -102,7 +102,7 @@ class CompileC(Step):
         prebuild_files = {r.output_fpath for r in compiled_c}
         config.add_current_prebuilds(prebuild_files)
 
-        # record the compilation results for the next step
+        # mark the compilation results for the next step
         self.store_artefacts(compiled_c, build_lists, artefact_store)
 
     # todo: very similar code in fortran compiler

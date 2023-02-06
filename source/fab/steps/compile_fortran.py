@@ -154,7 +154,7 @@ class CompileFortran(Step):
         compiled_this_pass = list(by_type(compilation_results, CompiledFile))
         logger.debug(f"compiled {len(compiled_this_pass)} files")
 
-        # mark the prebuild files as being current, so the cleanup knows not to delete them
+        # record the prebuild files as being current, so the cleanup knows not to delete them
         config.add_current_prebuilds(chain(*prebuild_files))
 
         # hash the modules we just created
