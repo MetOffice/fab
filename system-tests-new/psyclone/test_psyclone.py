@@ -56,10 +56,7 @@ class TestX90Analyser(object):
     expected_analysis_result = AnalysedX90(
         fpath=EXPECT_PARSABLE_X90,
         file_hash=3649068569,
-        kernel_deps={
-            'kernel_one_type': 'imaginary_mod_one',
-            'kernel_two_type': 'imaginary_mod_one',
-        })
+        kernel_deps={'kernel_one_type', 'kernel_two_type'})
 
     def run(self, tmp_path) -> Tuple[AnalysedX90, Path]:
         parsable_x90_path = self.expected_analysis_result.fpath
@@ -85,7 +82,7 @@ class TestX90Analyser(object):
 class TestPsyclone(object):
 
     @pytest.fixture
-    def psyclone_step(self, tmp_path):
+    def psyclone_step(self, tmp_path) -> Psyclone:
         psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
         psyclone_step._config = BuildConfig('proj', fab_workspace=tmp_path)
         psyclone_step._config._prep_output_folders()
@@ -118,6 +115,11 @@ class TestPsyclone(object):
 
     def test_gen_prebuild_hash(self):
         # todo
+        pass
+
+    def test_analysis_interop(self):
+        # call it before analysis
+        # call it after analysis
         pass
 
 

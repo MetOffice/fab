@@ -196,9 +196,7 @@ class Psyclone(Step):
         # Analyse the parsable x90s to see which kernels they use.
         self._analysed_x90 = self._analyse_x90s(parsable_x90)
         # each x90 analysis result contains the kernels they depend on, and the names of the modules they're in
-        # todo: we'd simplify this block of code if the x90 analyser didn't record the modules they're in
-        kernel_sets = [set(a.kernel_deps.keys()) for a in self._analysed_x90.values()]
-        used_kernels = set.union(*kernel_sets) if kernel_sets else set()
+        used_kernels = set(chain.from_iterable(x90.kernel_deps for x90 in self._analysed_x90.values()))
         logger.info(f'found {len(used_kernels)} kernels used')
 
         # Analyse *all* the kernel files, hashing the psyclone kernel metadata.
@@ -210,13 +208,7 @@ class Psyclone(Step):
         all_kernel_hashes = self._analyse_kernels(all_kernel_f90)
 
         # we only need to remember the hashes of kernels which are used by our x90s
-        self._used_kernel_hashes = {}
-        for kernel in used_kernels:
-            self._used_kernel_hashes[kernel] = all_kernel_hashes.get(kernel)
-            if not self._used_kernel_hashes[kernel]:
-                # If we can't get a hash for this kernel, we can't tell if it's changed.
-                # We *could* continue, without prebuilds, but psyclone would presumably fail with a missing kernel.
-                raise FabException(f"could not find hash for used kernel '{kernel}'")
+        self._used_kernel_hashes = _get_used_kernel_hashes(all_kernel_hashes, used_kernels)
 
     def _analyse_x90s(self, parsable_x90: Set[Path]) -> Dict[Path, AnalysedX90]:
         # Analyse the parsable version of the x90, finding kernel dependencies.
@@ -437,3 +429,17 @@ def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     open(out_path, 'wt').write(out)
 
     return out_path, replaced
+
+
+def _get_used_kernel_hashes(all_kernel_hashes: Dict[str, int], used_kernels: Set) -> Dict[str, int]:
+
+    used_kernel_hashes = {}
+    for kernel in used_kernels:
+        kernal_hash = all_kernel_hashes.get(kernel)
+        if not kernal_hash:
+            # If we can't get a hash for this kernel, we can't tell if it's changed.
+            # We *could* continue, without prebuilds, but psyclone would presumably fail with a missing kernel.
+            raise FabException(f"could not find hash for used kernel '{kernel}'")
+        used_kernel_hashes[kernel] = kernal_hash
+
+    return used_kernel_hashes
