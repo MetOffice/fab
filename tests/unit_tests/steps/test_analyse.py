@@ -6,7 +6,7 @@ import pytest
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran import FortranParserWorkaround, AnalysedFortran
-from fab.steps.analyse import Analyse, _gen_file_deps, _gen_symbol_table
+from fab.steps.analyse import Analyse
 from fab.util import HashedFile
 
 
@@ -29,7 +29,8 @@ class Test_gen_symbol_table(object):
                 AnalysedDependent(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=0)]
 
     def test_vanilla(self, analysed_files):
-        result = _gen_symbol_table(analysed_files=analysed_files)
+        analyser = Analyse(root_symbol=None)
+        result = analyser._gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -41,9 +42,10 @@ class Test_gen_symbol_table(object):
     def test_duplicate_symbol(self, analysed_files):
         # duplicate a symbol from the first file in the second file
         analysed_files[1].symbol_defs.add('foo_1')
+        analyser = Analyse(root_symbol=None)
 
         with pytest.warns(UserWarning):
-            result = _gen_symbol_table(analysed_files=analysed_files)
+            result = analyser._gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -55,7 +57,7 @@ class Test_gen_symbol_table(object):
 
 class Test_gen_file_deps(object):
 
-    def test_vanilla(self):
+    def test_vanilla(self, analyser):
 
         my_file = Path('my_file.f90')
         symbols = {
@@ -70,7 +72,7 @@ class Test_gen_file_deps(object):
                 spec=AnalysedDependent, fpath=my_file, symbol_deps={'my_func', 'dep1_mod', 'dep2'}, file_deps=set()),
         ]
 
-        _gen_file_deps(analysed_files=analysed_files, symbols=symbols)
+        analyser._gen_file_deps(analysed_files=analysed_files, symbols=symbols)
 
         assert analysed_files[0].file_deps == {symbols['dep1_mod'], symbols['dep2']}
 
