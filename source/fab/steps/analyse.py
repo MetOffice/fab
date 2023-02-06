@@ -167,7 +167,7 @@ class Analyse(Step):
         self._add_manual_results(analysed_files)
 
         # analyse
-        project_source_tree, symbol_table = self.analyse_source_tree(analysed_files)
+        project_source_tree, symbol_table = self._analyse_dependencies(analysed_files)
 
         # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
         with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
@@ -188,23 +188,9 @@ class Analyse(Step):
 
         artefact_store[BUILD_TREES] = build_trees
 
-    def analyse_source_tree(self, analysed_files: Iterable[AnalysedDependent]):
+    def _analyse_dependencies(self, analysed_files: Iterable[AnalysedDependent]):
         """
         Build a source dependency tree for the entire source.
-
-        """
-        # find file dependencies
-        symbol_table = self.analyse_file_dependencies(analysed_files)
-
-        # build the tree
-        # the nodes refer to other nodes via the file dependencies we just made, which are keys into this dict
-        source_tree: Dict[Path, AnalysedDependent] = {a.fpath: a for a in analysed_files}
-
-        return source_tree, symbol_table
-
-    def analyse_file_dependencies(self, analysed_files):
-        """
-        Turn symbol deps into file deps, returning the symbol table mapping symbols to files.
 
         """
         with TimerLogger("converting symbol dependencies to file dependencies"):
@@ -214,7 +200,11 @@ class Analyse(Step):
             # fill in the file deps attribute in the analysed file objects
             self._gen_file_deps(analysed_files, symbol_table)
 
-        return symbol_table
+        # build the tree
+        # the nodes refer to other nodes via the file dependencies we just made, which are keys into this dict
+        source_tree: Dict[Path, AnalysedDependent] = {a.fpath: a for a in analysed_files}
+
+        return source_tree, symbol_table
 
     def _extract_build_trees(self, project_source_tree, symbol_table):
         """
