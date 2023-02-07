@@ -8,6 +8,7 @@ A preprocessor and code generation step for PSyclone.
 https://github.com/stfc/PSyclone
 
 """
+from dataclasses import dataclass
 import logging
 import re
 import shutil
@@ -53,6 +54,21 @@ def psyclone_preprocessor(set_um_physics=False):
     )
 
 
+@dataclass
+class MpPayload:
+    """
+    Runtime data for child processes to read.
+
+    Contains data used to calculate the prebuild hash.
+
+    """
+    transformation_script_hash: int = 0
+    # these optionals aren't really optional, that's just for the constructor
+    analysed_x90: Optional[Dict[Path, AnalysedX90]] = None
+    used_kernel_hashes: Optional[Dict[str, int]] = None
+    removed_invoke_names: Optional[Dict[Path, List[str]]] = None
+
+
 class Psyclone(Step):
     """
 
@@ -67,57 +83,25 @@ class Psyclone(Step):
         # "the gross switch which turns off MPI usage is a command-line argument"
         self.cli_args: List[str] = cli_args or []
 
-        # runtime, for child processes to read
-        self._transformation_script_hash = 0
-        self._file_hashes = None
-        self._analysed_x90: Dict[Path, AnalysedX90] = {}  # analysis of parsable versions of the x90s
-        self._used_kernel_hashes: Dict[str, int] = {}  # hash of every kernel used by the x90
-        self._removed_invoke_names: Dict[Path, List[str]] = {}  # name keywords passed to invoke, removed for parsing
-
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
+        x90s = artefact_store['preprocessed_x90']
 
-        # In order to build reusable psyclone results, we need to know everything that goes into making one.
-        # Then we can hash it all, and check for changes in subsequent builds.
+        # get the data which child processes use to calculate prebuild hashes
+        mp_payload = self.analysis_for_prebuilds(artefact_store)
 
-        # Analyse all the x90s, and the kernels (and other x90s) they use.
-        # Hash the dependencies for every x90.
-        #
-        # We should be able to analyse just the x90s and the kernel root folders.
-        # The configs we've seen set the entire source root as the kernel root, but that's ok.
-        # Depending on the kernel_roots config, we might analyse the whole codebase
-        # which is fine because we're going to have to analyse it anyway later in the build.
-        #
-        # We don't need all the analysis step features,
-        # like mo-commented deps, unreferenced deps and dependency tree building.
-        # We just need to parse the x90s and the kernel files, and produce a symbol table for finding module source.
-        #
-
-        self.analyse(artefact_store)
-
-        # hash the trees
-        # in the fortran compiler we hash the module files themselves
-        # but they're not built yet in this step so we'll hash the fortran files which define the module dependencies.
-
-        # hash the transformation script (can be omitted, but warn)
-        # todo: we should hash anything the transformation script might import, too
-        if self.transformation_script:
-            self._transformation_script_hash = file_checksum(self.transformation_script).file_hash
-        else:
-            warnings.warn('no transformation script specified')
-            self._transformation_script_hash = 0
+        # the argument to run_mp contains, for each file, the filename and the mp payload.
+        mp_arg = [(x90, mp_payload) for x90 in x90s]
 
         # run psyclone.
-        # for every file, we get back a list of the output files, plus a list of the prebuild copies.
-        x90s = artefact_store['preprocessed_x90']
         with TimerLogger(f"running psyclone on {len(x90s)} x90 files"):
-            results = self.run_mp(x90s, self.do_one_file)
+            results = self.run_mp(mp_arg, self.do_one_file)
         log_or_dot_finish(logger)
+        # for every file, we get back a list of its output files plus a list of the prebuild copies.
         outputs, prebuilds = zip(*results)
         check_for_errors(outputs, caller_label=self.name)
 
         # flatten the list of lists we got back from run_mp
-        # output_files: List[List[Path]] = list(filter(lambda r: not isinstance(r, Exception), outputs))
         output_files: List[Path] = list(chain(*by_type(outputs, List)))
         prebuild_files: List[Path] = list(chain(*by_type(prebuilds, List)))
 
@@ -126,7 +110,7 @@ class Psyclone(Step):
         outputs_str = "\n".join(map(str, output_files))
         logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 
-        # mark the prebuild files as being current, so the cleanup step doesn't delete them
+        # mark the prebuild files as being current so the cleanup step doesn't delete them
         config.add_current_prebuilds(prebuild_files)
         prebuilds_str = "\n".join(map(str, prebuild_files))
         logger.debug(f'psyclone prebuilds:\n{prebuilds_str}\n')
@@ -136,11 +120,15 @@ class Psyclone(Step):
         # assert False
 
     # todo: test that we can run this step before or after the analysis step
-    def analyse(self, artefact_store):
+    def analysis_for_prebuilds(self, artefact_store) -> MpPayload:
         """
         Analysis for PSyclone prebuilds.
 
-        Changes which trigger reprocessing of an x90 file:
+        In order to build reusable psyclone results, we need to know everything that goes into making one.
+        Then we can hash it all, and check for changes in subsequent builds.
+        We'll build up this data in a payload object, to be passed to the child processes.
+
+        Changes which must trigger reprocessing of an x90 file:
          - x90 source, comprising:
            - the parsable version of the source, with any invoke name keywords removed
            - any removed invoke name keywords
@@ -176,6 +164,14 @@ class Psyclone(Step):
         Analysis results are saved and reused. It doesn't matter which step is first.
 
         """
+        mp_payload = MpPayload()
+
+        # hash the transformation script
+        if self.transformation_script:
+            mp_payload.transformation_script_hash = file_checksum(self.transformation_script).file_hash
+        else:
+            warnings.warn('no transformation script specified')
+
 
         # Convert all the x90s to parsable fortran so they can be analysed.
         # For each file, we get back the fpath of the temporary, parsable file plus any removed invoke() names.
@@ -189,12 +185,12 @@ class Psyclone(Step):
         parsable_x90: Set[Path] = {p for p, _ in mp_results}
 
         # gather the name keywords which were removed from the x90s
-        self._removed_invoke_names = {path.with_suffix('.x90'): names for path, names in mp_results}
+        mp_payload.removed_invoke_names = {path.with_suffix('.x90'): names for path, names in mp_results}
 
         # Analyse the parsable x90s to see which kernels they use.
         # Each x90 analysis result contains the kernels they depend on.
-        self._analysed_x90 = self._analyse_x90s(parsable_x90)
-        used_kernels = set(chain.from_iterable(x90.kernel_deps for x90 in self._analysed_x90.values()))
+        mp_payload.analysed_x90 = self._analyse_x90s(parsable_x90)
+        used_kernels = set(chain.from_iterable(x90.kernel_deps for x90 in mp_payload.analysed_x90.values()))
         logger.info(f'found {len(used_kernels)} kernels used')
 
         # Analyse *all* the kernel files, hashing the psyclone kernel metadata.
@@ -206,7 +202,9 @@ class Psyclone(Step):
         all_kernel_hashes = self._analyse_kernels(all_kernel_f90)
 
         # we only need to remember the hashes of kernels which are used by our x90s
-        self._used_kernel_hashes = _get_used_kernel_hashes(all_kernel_hashes, used_kernels)
+        mp_payload.used_kernel_hashes = _get_used_kernel_hashes(all_kernel_hashes, used_kernels)
+
+        return mp_payload
 
     def _analyse_x90s(self, parsable_x90: Set[Path]) -> Dict[Path, AnalysedX90]:
         # Analyse the parsable version of the x90, finding kernel dependencies.
@@ -259,8 +257,9 @@ class Psyclone(Step):
 
         return all_kernel_hashes
 
-    def do_one_file(self, x90_file):
-        prebuild_hash = self._gen_prebuild_hash(x90_file)
+    def do_one_file(self, arg):
+        x90_file, mp_payload = arg
+        prebuild_hash = self._gen_prebuild_hash(x90_file, mp_payload)
 
         # These are the filenames we expect to be output for this x90 input file.
         # There will always be one modified_alg, and 0+ generated.
@@ -311,23 +310,23 @@ class Psyclone(Step):
 
         return result, prebuild_result
 
-    def _gen_prebuild_hash(self, x90_file):
+    def _gen_prebuild_hash(self, x90_file: Path, mp_payload: MpPayload):
         """
         Calculate the prebuild hash for this x90 file, based on all the things which should trigger reprocessing.
 
         """
         # We've analysed (a parsable version of) this x90.
-        analysis_result = self._analysed_x90[x90_file]
+        analysis_result = mp_payload.analysed_x90[x90_file]
 
         # include the list of invoke names that were removed before fortran analysis
         # (alternatively, we could use the hash of the non-parsable x90 and not record removed names...)
         # todo: chat about that sometime
-        removed_inkove_names = self._removed_invoke_names.get(x90_file)
+        removed_inkove_names = mp_payload.removed_invoke_names.get(x90_file)
         if removed_inkove_names is None:
             raise FabException(f"No removed name data for path '{x90_file}'")
 
         # include the hashes of kernels used by this x90
-        kernel_deps_hashes = {self._used_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}
+        kernel_deps_hashes = {mp_payload.used_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}
 
         # hash everything which should trigger re-processing
         # todo: hash the psyclone version in case the built-in kernels change?
@@ -343,7 +342,7 @@ class Psyclone(Step):
             sum(kernel_deps_hashes),
 
             #
-            self._transformation_script_hash,
+            mp_payload.transformation_script_hash,
 
             # command-line arguments
             string_checksum(str(self.cli_args)),

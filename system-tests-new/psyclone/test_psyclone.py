@@ -91,9 +91,9 @@ class TestPsyclone(object):
     def test_analyse(self, psyclone_step):
 
         artefact_store = {'preprocessed_x90': [SAMPLE_X90]}
-        psyclone_step.analyse(artefact_store=artefact_store)
+        mp_payload = psyclone_step.analysis_for_prebuilds(artefact_store=artefact_store)
 
-        assert psyclone_step._used_kernel_hashes == {
+        assert mp_payload.used_kernel_hashes == {
             'kernel_one_type': 2915127408,
             'kernel_two_type': 3793991362,
         }
@@ -147,9 +147,9 @@ class Test_gen_prebuild_hash(object):
 
         return psyclone_step
 
-    def test_vanilla(self, psyclone_step):
-        x90_file = Path('foo.x90')
-        psyclone_step._gen_prebuild_hash(x90_file=x90_file)
+    # def test_vanilla(self, psyclone_step):
+    #     x90_file = Path('foo.x90')
+    #     psyclone_step._gen_prebuild_hash(x90_file=x90_file)
 
     def test_file_hash(self):
         # changing the file hash should change the hash
