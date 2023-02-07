@@ -110,74 +110,26 @@ class TestPsyclone(object):
             'kernel_four_type': 1427207736,
         }
 
+
+class TestAnalysisInterop(object):
+    """
+    Ensure the PSyclone can be called either before or after the analysis step.
+
+    They share the same Fortran analyser and certain he psyclone configuration can cause the entire Fortran
+    analysis to occur in the Psyclone step.
+
+    """
     def test_analysis_interop(self):
         # call it before analysis
         # call it after analysis
         pass
-
-
-class Test_gen_prebuild_hash(object):
-
-    @pytest.fixture
-    def psyclone_step(self, tmp_path) -> Psyclone:
-        config = BuildConfig('proj', fab_workspace=tmp_path)
-        config._prep_output_folders()
-
-        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
-        psyclone_step._config = config
-
-        psyclone_step._transformation_script_hash = 123
-
-        x90_file = Path('foo.x90')
-        psyclone_step._analysed_x90 = {
-            x90_file: AnalysedX90(
-                fpath=x90_file,
-                file_hash=234,
-                kernel_deps={'kernel1', 'kernel2'})
-        }
-
-        psyclone_step._removed_invoke_names = {
-            x90_file: ['name1', 'name2'],
-        }
-
-        psyclone_step._used_kernel_hashes = {
-            'kernel1': 345,
-            'kernel2': 456,
-        }
-
-        return psyclone_step
-
-    # def test_vanilla(self, psyclone_step):
-    #     x90_file = Path('foo.x90')
-    #     psyclone_step._gen_prebuild_hash(x90_file=x90_file)
-
-    def test_file_hash(self):
-        # changing the file hash should change the hash
-        pass
-
-    def test_invoke_names(self):
-        # changing the invoke names should change the hash
-        pass
-
-    def test_kernal_deps(self):
-        # changing the kernel deps should change the hash
-        pass
-
-    def test_trans_script(self):
-        # changing the transformation script should change the hash
-        pass
-
-    def test_cli_args(self):
-        # changing the cli args should change the hash
-        pass
-
-
-
-
-# todo: test putting the analysis step before and after psyclone
 
 # todo: test cleanup of prebuild files for:
 #       - analysed x90
 #       - analysed kernels (should work with no code, it's the same analyser)
 #       - psyclone output
 #       - general analysis both before and afterwards
+#   But wait, there's a suggestion to remove this possibly over engineered "current" prebuilds system,
+#       which would mean we wouldn't need to write these tests.
+#   Perhaps spin this out into a separate ticket?
+#

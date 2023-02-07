@@ -318,7 +318,7 @@ class Psyclone(Step):
         # We've analysed (a parsable version of) this x90.
         analysis_result = mp_payload.analysed_x90[x90_file]
 
-        # include the list of invoke names that were removed before fortran analysis
+        # include the list of invoke names that were removed from this x90 before fortran analysis
         # (alternatively, we could use the hash of the non-parsable x90 and not record removed names...)
         # todo: chat about that sometime
         removed_inkove_names = mp_payload.removed_invoke_names.get(x90_file)
