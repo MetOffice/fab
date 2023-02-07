@@ -86,7 +86,6 @@ class TestPsyclone(object):
         psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
         psyclone_step._config = BuildConfig('proj', fab_workspace=tmp_path)
         psyclone_step._config._prep_output_folders()
-
         return psyclone_step
 
     def test_analyse(self, psyclone_step):
@@ -98,8 +97,6 @@ class TestPsyclone(object):
             'kernel_one_type': 2915127408,
             'kernel_two_type': 3793991362,
         }
-
-        # todo: better testing of the logic which joins the kernel names into used_kernels
 
     def test_analyse_kernels(self, psyclone_step):
         kernel_files = [SAMPLE_KERNEL]
@@ -113,14 +110,68 @@ class TestPsyclone(object):
             'kernel_four_type': 1427207736,
         }
 
-    def test_gen_prebuild_hash(self):
-        # todo
-        pass
-
     def test_analysis_interop(self):
         # call it before analysis
         # call it after analysis
         pass
+
+
+class Test_gen_prebuild_hash(object):
+
+    @pytest.fixture
+    def psyclone_step(self, tmp_path) -> Psyclone:
+        config = BuildConfig('proj', fab_workspace=tmp_path)
+        config._prep_output_folders()
+
+        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
+        psyclone_step._config = config
+
+        psyclone_step._transformation_script_hash = 123
+
+        x90_file = Path('foo.x90')
+        psyclone_step._analysed_x90 = {
+            x90_file: AnalysedX90(
+                fpath=x90_file,
+                file_hash=234,
+                kernel_deps={'kernel1', 'kernel2'})
+        }
+
+        psyclone_step._removed_invoke_names = {
+            x90_file: ['name1', 'name2'],
+        }
+
+        psyclone_step._used_kernel_hashes = {
+            'kernel1': 345,
+            'kernel2': 456,
+        }
+
+        return psyclone_step
+
+    def test_vanilla(self, psyclone_step):
+        x90_file = Path('foo.x90')
+        psyclone_step._gen_prebuild_hash(x90_file=x90_file)
+
+    def test_file_hash(self):
+        # changing the file hash should change the hash
+        pass
+
+    def test_invoke_names(self):
+        # changing the invoke names should change the hash
+        pass
+
+    def test_kernal_deps(self):
+        # changing the kernel deps should change the hash
+        pass
+
+    def test_trans_script(self):
+        # changing the transformation script should change the hash
+        pass
+
+    def test_cli_args(self):
+        # changing the cli args should change the hash
+        pass
+
+
 
 
 # todo: test putting the analysis step before and after psyclone

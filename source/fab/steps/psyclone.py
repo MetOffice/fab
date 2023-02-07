@@ -185,17 +185,15 @@ class Psyclone(Step):
         with TimerLogger(f"converting {len(x90s)} x90s into parsable fortran"):
             mp_results = self.run_mp(items=x90s, func=make_parsable_x90)
 
-        # todo: any mp errors?
-
-        # the parsable versions of the x90s
+        # gather the paths of the parsable x90s we just created
         parsable_x90: Set[Path] = {p for p, _ in mp_results}
 
-        # the name keywords which were removed from the x90s
+        # gather the name keywords which were removed from the x90s
         self._removed_invoke_names = {path.with_suffix('.x90'): names for path, names in mp_results}
 
         # Analyse the parsable x90s to see which kernels they use.
+        # Each x90 analysis result contains the kernels they depend on.
         self._analysed_x90 = self._analyse_x90s(parsable_x90)
-        # each x90 analysis result contains the kernels they depend on, and the names of the modules they're in
         used_kernels = set(chain.from_iterable(x90.kernel_deps for x90 in self._analysed_x90.values()))
         logger.info(f'found {len(used_kernels)} kernels used')
 
@@ -314,11 +312,16 @@ class Psyclone(Step):
         return result, prebuild_result
 
     def _gen_prebuild_hash(self, x90_file):
+        """
+        Calculate the prebuild hash for this x90 file, based on all the things which should trigger reprocessing.
+
+        """
         # We've analysed (a parsable version of) this x90.
         analysis_result = self._analysed_x90[x90_file]
 
-        # we'll hash the list of invoke names that were removed before fortran analysis
+        # include the list of invoke names that were removed before fortran analysis
         # (alternatively, we could use the hash of the non-parsable x90 and not record removed names...)
+        # todo: chat about that sometime
         removed_inkove_names = self._removed_invoke_names.get(x90_file)
         if removed_inkove_names is None:
             raise FabException(f"No removed name data for path '{x90_file}'")
@@ -399,6 +402,8 @@ def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
         call invoke( name = "compute_dry_mass", ...
 
     Returns the path of the parsable file, plus any invoke() names which were removed.
+
+    This function is not slow so we're not creating prebuilds for this work.
 
     """
     global _x90_compliance_pattern
