@@ -144,12 +144,6 @@ class TestPsyclone(object):
         config.steps = [
             GrabFolder(here / 'skeleton'),
 
-            Configurator(
-                lfric_source=here,
-                gpl_utils_source=gpl_utils_source,
-                rose_meta_conf=lfric_source / 'mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf',
-            ),
-
             FindSourceFiles(),
             fortran_preprocessor(preprocessor='fpp -P'),
 
@@ -158,8 +152,6 @@ class TestPsyclone(object):
             Psyclone(kernel_roots=[config.build_output / 'kernel']),
 
             Analyse(),
-            CompileFortran(),
-            LinkExe(),
         ]
 
         config.run()

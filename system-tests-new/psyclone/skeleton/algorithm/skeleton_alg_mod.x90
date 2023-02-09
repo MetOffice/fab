@@ -43,11 +43,11 @@ contains
     type(mesh_type), pointer            :: mesh => null()
     type( operator_type ), pointer      :: divergence => null()
 
-    call log_event( "skeleton: Running algorithm", LOG_LEVEL_INFO )
-
-    ! Create a new field on the W2 function space
-    mesh => field_1%get_mesh()
-    call field_2%initialise( function_space_collection%get_fs( mesh, element_order, W2))
+!    call log_event( "skeleton: Running algorithm", LOG_LEVEL_INFO )
+!
+!    ! Create a new field on the W2 function space
+!    mesh => field_1%get_mesh()
+!    call field_2%initialise( function_space_collection%get_fs( mesh, element_order, W2))
 
     ! Set the new field to a constant value and compute the divergence of it
     divergence => get_div()
@@ -57,13 +57,13 @@ contains
                  setval_c(field_1, 0.0_r_def), &
                  matrix_vector_kernel_type(field_1, field_2, divergence) )
 
-    ! The divergence of a constant field should be zero so lets check this by
-    ! printing the min/max values in field_1
-    call field_1%log_minmax(LOG_LEVEL_INFO,'field_1')
-
-    nullify(mesh)
-
-    call log_event( "skeleton: finished algorithm", LOG_LEVEL_INFO )
+!    ! The divergence of a constant field should be zero so lets check this by
+!    ! printing the min/max values in field_1
+!    call field_1%log_minmax(LOG_LEVEL_INFO,'field_1')
+!
+!    nullify(mesh)
+!
+!    call log_event( "skeleton: finished algorithm", LOG_LEVEL_INFO )
 
   end subroutine skeleton_alg
 

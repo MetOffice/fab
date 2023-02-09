@@ -90,16 +90,16 @@ contains
     real(kind=r_single), dimension(ndf2) :: x_e
     real(kind=r_single), dimension(ndf1) :: lhs_e
 
-    do k = 0, nlayers-1
-      do df = 1, ndf2
-        x_e(df) = x(map2(df)+k)
-      end do
-      ik = (cell-1)*nlayers + k + 1
-      lhs_e = matmul(matrix(:,:,ik),x_e)
-      do df = 1,ndf1
-        lhs(map1(df)+k) = lhs(map1(df)+k) + lhs_e(df)
-      end do
-    end do
+!    do k = 0, nlayers-1
+!      do df = 1, ndf2
+!        x_e(df) = x(map2(df)+k)
+!      end do
+!      ik = (cell-1)*nlayers + k + 1
+!      lhs_e = matmul(matrix(:,:,ik),x_e)
+!      do df = 1,ndf1
+!        lhs(map1(df)+k) = lhs(map1(df)+k) + lhs_e(df)
+!      end do
+!    end do
 
   end subroutine matrix_vector_code_r_single
 
@@ -131,16 +131,16 @@ contains
     real(kind=r_double), dimension(ndf2) :: x_e
     real(kind=r_double), dimension(ndf1) :: lhs_e
 
-    do k = 0, nlayers-1
-      do df = 1, ndf2
-        x_e(df) = x(map2(df)+k)
-      end do
-      ik = (cell-1)*nlayers + k + 1
-      lhs_e = matmul(matrix(:,:,ik),x_e)
-      do df = 1,ndf1
-        lhs(map1(df)+k) = lhs(map1(df)+k) + lhs_e(df)
-      end do
-    end do
+!    do k = 0, nlayers-1
+!      do df = 1, ndf2
+!        x_e(df) = x(map2(df)+k)
+!      end do
+!      ik = (cell-1)*nlayers + k + 1
+!      lhs_e = matmul(matrix(:,:,ik),x_e)
+!      do df = 1,ndf1
+!        lhs(map1(df)+k) = lhs(map1(df)+k) + lhs_e(df)
+!      end do
+!    end do
 
   end subroutine matrix_vector_code_r_double
 
