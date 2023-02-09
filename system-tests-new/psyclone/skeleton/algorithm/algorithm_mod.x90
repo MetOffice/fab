@@ -5,7 +5,7 @@
 !-----------------------------------------------------------------------------
 
 !>@brief Barebones algorithm to help the development of miniapps
-module skeleton_alg_mod
+module algorithm_mod
 
   use constants_mod,                  only: i_def,r_def
   use log_mod,                        only: log_event,         &
@@ -16,7 +16,7 @@ module skeleton_alg_mod
   use fs_continuity_mod,              only: W2
   use function_space_collection_mod,  only: function_space_collection
   use operator_mod,                   only: operator_type
-  use matrix_vector_kernel_mod,       only: matrix_vector_kernel_type
+  use kernel_mod,                     only: my_kernel_type
   use skeleton_constants_mod,         only: get_div
 
   implicit none
@@ -49,9 +49,9 @@ contains
     call invoke( name = "Compute divergence",  &
                  setval_c(field_2, s        ), &
                  setval_c(field_1, 0.0_r_def), &
-                 matrix_vector_kernel_type(field_1, field_2, divergence) )
+                 my_kernel_type(field_1, field_2, divergence) )
 
 
   end subroutine skeleton_alg
 
-end module skeleton_alg_mod
+end module algorithm_mod

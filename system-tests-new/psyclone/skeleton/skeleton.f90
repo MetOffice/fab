@@ -1,7 +1,7 @@
 
 program skeleton
 
-  use skeleton_alg_mod,         only : skeleton_alg
+  use algorithm_mod,         only : algorithm
 
   implicit none
 

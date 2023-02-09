@@ -121,48 +121,44 @@ class Test_analysis(object):
         }
 
 
-# todo: We don't have a full blown psyclone project in this folder.
-#       These tests currently mock out the run_psyclone() command.
-#       It would be better to craft a full, small psyclone project to build.
-# todo: This test class feels brittle.
 class TestPsyclone(object):
     """
-    Ensure the PSyclone step can be called either before or after the analysis step.
-
-    They share the same Fortran analyser, and a psyclone configuration can cause the entire Fortran
-    analysis to occur in the Psyclone step (i.e, when the source root is in the kernel roots)
+    Basic run of the psyclone step.
 
     """
-    def test_build(self, tmp_path):
+    def test_run(self, tmp_path):
         here = Path(__file__).parent
 
-        config = BuildConfig(
-            'proj', fab_workspace=tmp_path,
-            verbose=True,
-        )
+        config = BuildConfig('proj', fab_workspace=tmp_path, verbose=True)
 
         config.steps = [
             GrabFolder(here / 'skeleton'),
-
             FindSourceFiles(),
             fortran_preprocessor(preprocessor='fpp -P'),
 
             psyclone_preprocessor(),
-            # todo: it's not clear that we need to find the f90 not the F90.
+            # todo: it's easy to forget that we need to find the f90 not the F90.
+            #       it manifests as an error, a missing kernel hash.
+            #       Perhaps add validation, warn if it's not in the build_output folder?
             Psyclone(kernel_roots=[config.build_output / 'kernel']),
-
-            Analyse(),
         ]
 
+        # if these files exist after the run then know:
+        #   a) the expected files were created
+        #   b) the prebuilds were protected from automatic cleanup
+        expect_files = [
+            # there should be an f90 and a _psy.f90 built from the x90
+            config.build_output / 'algorithm/algorithm_mod.parsable_x90',
+            config.build_output / 'algorithm/algorithm_mod.f90',
+            config.build_output / 'algorithm/algorithm_mod_psy.f90',
+
+            # Expect these prebuild files
+            config.prebuild_folder / 'algorithm_mod.205866748.an',  # x90 analysis result
+            config.prebuild_folder / 'kernel_mod.4076575089.an',  # kernel analysis results
+            config.prebuild_folder / 'algorithm_mod.4366459448.f90',  # prebuild
+            config.prebuild_folder / 'algorithm_mod_psy.4366459448.f90',  # prebuild
+        ]
+
+        assert all(not f.exists() for f in expect_files)
         config.run()
-
-
-# todo: test cleanup of prebuild files for:
-#       - analysed x90
-#       - analysed kernels (should work with no code, it's the same analyser)
-#       - psyclone output
-#       - general analysis both before and afterwards
-#   But wait, there's a suggestion to remove this possibly over engineered "current" prebuilds system,
-#       which would mean we wouldn't need to write these tests.
-#   Perhaps spin this out into a separate ticket?
-#
+        assert all(f.exists() for f in expect_files)

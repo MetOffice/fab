@@ -1,5 +1,5 @@
 
-module matrix_vector_kernel_mod
+module kernel_mod
   use argument_mod,            only : arg_type,                 &
                                       GH_FIELD, GH_OPERATOR,    &
                                       GH_REAL, GH_READ, GH_INC, &
@@ -12,7 +12,7 @@ module matrix_vector_kernel_mod
 
   private
 
-  type, public, extends(kernel_type) :: matrix_vector_kernel_type
+  type, public, extends(kernel_type) :: my_kernel_type
     private
     type(arg_type) :: meta_args(3) = (/                                    &
          arg_type(GH_FIELD,    GH_REAL, GH_INC,  ANY_SPACE_1),             &
@@ -86,4 +86,4 @@ contains
 
   end subroutine matrix_vector_code_r_double
 
-end module matrix_vector_kernel_mod
+end module kernel_mod
