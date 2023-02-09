@@ -4,18 +4,21 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 import filecmp
+import glob
 import shutil
 from os import unlink
 from pathlib import Path
 from typing import Tuple
 from unittest import mock
 
+from fab.steps.find_source_files import FindSourceFiles
+
+from fab.steps.analyse import Analyse
 import pytest
 
 from fab.build_config import BuildConfig
 from fab.parse.x90 import X90Analyser, AnalysedX90
-from fab.steps.psyclone import make_parsable_x90, Psyclone
-
+from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor
 
 SAMPLE_KERNEL = Path(__file__).parent / 'sample_kernel.f90'
 
@@ -79,7 +82,7 @@ class TestX90Analyser(object):
         assert analysed_x90 == self.expected_analysis_result
 
 
-class TestPsyclone(object):
+class Test_analysis(object):
 
     @pytest.fixture
     def psyclone_step(self, tmp_path) -> Psyclone:
@@ -111,18 +114,76 @@ class TestPsyclone(object):
         }
 
 
+# todo: We don't have a full blown psyclone project in this folder.
+#       These tests currently mock out the run_psyclone() command.
+#       It would be better to craft a full, small psyclone project to build.
+# todo: This test class feels brittle.
 class TestAnalysisInterop(object):
     """
-    Ensure the PSyclone can be called either before or after the analysis step.
+    Ensure the PSyclone step can be called either before or after the analysis step.
 
-    They share the same Fortran analyser and certain he psyclone configuration can cause the entire Fortran
-    analysis to occur in the Psyclone step.
+    They share the same Fortran analyser, and a psyclone configuration can cause the entire Fortran
+    analysis to occur in the Psyclone step (i.e, when the source root is in the kernel roots)
 
     """
-    def test_analysis_interop(self):
-        # call it before analysis
-        # call it after analysis
-        pass
+    # def test_analysis_first(self, tmp_path):
+    #     config = BuildConfig('proj', fab_workspace=tmp_path)
+    #     here = Path(__file__).parent
+    #
+    #     # Run the steps one by one.
+    #     # We're not running them through config.run because we want to do some targeted mocking.
+    #     # So this is like the inside of config.run().
+    #     config._run_prep()
+    #     step_kwargs = {'config': config, 'artefact_store': config._artefact_store}
+    #
+    #     FindSourceFiles(source_root=here).run(**step_kwargs)
+    #
+    #     # The analysis step should parse the kernel file only. The x90 has not been made fortran compliant yet.
+    #     Analyse().run(**step_kwargs)
+    #     assert len(glob.glob(str(config.prebuild_folder / '*.an'))) == 1
+    #     assert (config.prebuild_folder / 'sample_kernel.2597688193.an').exists()
+    #
+    #     psyclone_preprocessor().run(**step_kwargs)
+    #
+    #     # The psyclone step should not parse the kernel a second time, but should create and parse the compliant x90.
+    #     psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
+    #     with mock.patch('fab.steps.psyclone.Psyclone.run_psyclone'):
+    #         with mock.patch('shutil.copy2'):
+    #             with mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk:
+    #                 psyclone_step.run(**step_kwargs)
+    #     mock_fortran_walk.assert_not_called()
+    #     assert len(glob.glob(str(config.prebuild_folder / '*.an'))) == 2
+    #     assert (config.prebuild_folder / 'sample.3282911356.an').exists()
+
+    def test_psyclone_first(self, tmp_path):
+        config = BuildConfig('proj', fab_workspace=tmp_path)
+        here = Path(__file__).parent
+
+        # Run the steps one by one.
+        # We're not running them through config.run because we want to do some targeted mocking.
+        # So this is like the inside of config.run().
+        config._run_prep()
+        step_kwargs = {'config': config, 'artefact_store': config._artefact_store}
+
+        FindSourceFiles(source_root=here).run(**step_kwargs)
+
+        psyclone_preprocessor().run(**step_kwargs)
+
+        # The psyclone step should parse both the kernel and the compliant x90.
+        # psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
+        # with mock.patch('fab.steps.psyclone.Psyclone.run_psyclone'):
+        #     with mock.patch('shutil.copy2'):
+        Psyclone(kernel_roots=[Path(__file__).parent]).run(**step_kwargs)
+        # assert len(glob.glob(str(config.prebuild_folder / '*.an'))) == 2
+        # assert (config.prebuild_folder / 'sample.3282911356.an').exists()
+        # assert (config.prebuild_folder / 'sample_kernel.2597688193.an').exists()
+
+        # The analysis step should not parse the kernel file since the psyclone step did that.
+        # with mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk:
+        #     Analyse().run(**step_kwargs)
+        # mock_fortran_walk.assert_not_called()
+        Analyse().run(**step_kwargs)
+
 
 # todo: test cleanup of prebuild files for:
 #       - analysed x90

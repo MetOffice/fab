@@ -57,7 +57,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     'preprocessed_c',
     'preprocessed_fortran',
 
-    # todo: this is lfric stuff so might be better placed with the lfric run configs
+    # todo: this is lfric stuff so might be better placed elsewhere
     SuffixFilter('psyclone_output', '.f90'),
     'preprocessed_psyclone',
     'configurator_output',

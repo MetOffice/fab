@@ -87,18 +87,16 @@ class Psyclone(Step):
         super().run(artefact_store=artefact_store, config=config)
         x90s = artefact_store['preprocessed_x90']
 
-        # get the data which child processes use to calculate prebuild hashes
+        # get the data for child processes to calculate prebuild hashes
         mp_payload = self.analysis_for_prebuilds(artefact_store)
 
-        # the argument to run_mp contains, for each file, the filename and the mp payload.
-        mp_arg = [(x90, mp_payload) for x90 in x90s]
-
         # run psyclone.
+        # for every file, we get back a list of its output files plus a list of the prebuild copies.
+        mp_arg = [(x90, mp_payload) for x90 in x90s]
         with TimerLogger(f"running psyclone on {len(x90s)} x90 files"):
             results = self.run_mp(mp_arg, self.do_one_file)
         log_or_dot_finish(logger)
-        # for every file, we get back a list of its output files plus a list of the prebuild copies.
-        outputs, prebuilds = zip(*results)
+        outputs, prebuilds = zip(*results) if results else ((), ())
         check_for_errors(outputs, caller_label=self.name)
 
         # flatten the list of lists we got back from run_mp

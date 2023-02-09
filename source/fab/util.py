@@ -193,17 +193,31 @@ def input_to_output_fpath(config, input_path: Path):
     :param input_path:
         The path to transform from input to output folders.
 
+    Note: This function can also handle paths which are not in the project workspace at all.
+    This can happen when pointing the FindFiles step elsewhere, for example.
+    In that case, the entire path will be made relative to the source folder instead of its anchor.
+
     """
     build_output = config.build_output
 
-    # perhaps it's already in the output folder? todo: can use Path.is_relative_to from Python 3.9
+    # perhaps it's already in the output folder?
     try:
         input_path.relative_to(build_output)
         return input_path
     except ValueError:
         pass
-    rel_path = input_path.relative_to(config.source_root)
-    return build_output / rel_path
+
+    # try to convert it from the project source folder to the output folder
+    try:
+        rel_path = input_path.relative_to(config.source_root)
+        return build_output / rel_path
+    except ValueError:
+        pass
+
+    # It's neither in the project source folder nor the output folder.
+    # This can happen if we're pointing the FindFiles step elsewhere.
+    # We'll just have to convert the entire path to be inside the output folder.
+    return build_output / '/'.join(input_path.parts[1:])
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):

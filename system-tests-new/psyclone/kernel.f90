@@ -1,6 +1,6 @@
 ! four kernels, only two of which are used by the x90
 
-module my_kernel_mod
+module kernel_mod
 
 use some_other_kernel_mod,              only : kernel_type
 
@@ -53,4 +53,4 @@ contains
   procedure, nopass :: kernel_two_code
 end type
 
-end module my_kernel_mod
+end module kernel_mod
