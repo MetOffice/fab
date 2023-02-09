@@ -87,4 +87,4 @@ contains
 
     end subroutine my_subroutine_two
 
-end module sample_algorithm
+end module algorithm_mod

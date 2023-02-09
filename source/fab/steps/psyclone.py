@@ -170,7 +170,6 @@ class Psyclone(Step):
         else:
             warnings.warn('no transformation script specified')
 
-
         # Convert all the x90s to parsable fortran so they can be analysed.
         # For each file, we get back the fpath of the temporary, parsable file plus any removed invoke() names.
         # These names are part of our change detection.
@@ -195,9 +194,9 @@ class Psyclone(Step):
         # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice,
         # so we pass them through the general fortran analyser, which currently recognises kernel metadata.
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
-        all_kernel_files = set(*chain(file_walk(root) for root in self.kernel_roots))
-        all_kernel_f90 = suffix_filter(all_kernel_files, ['.f90'])
-        all_kernel_hashes = self._analyse_kernels(all_kernel_f90)
+        all_kernel_files: Set[Path] = set(*chain(file_walk(root) for root in self.kernel_roots))
+        all_kernel_f90: List[Path] = suffix_filter(all_kernel_files, ['.f90'])
+        all_kernel_hashes: Dict[str, int] = self._analyse_kernels(all_kernel_f90)
 
         # we only need to remember the hashes of kernels which are used by our x90s
         mp_payload.used_kernel_hashes = _get_used_kernel_hashes(all_kernel_hashes, used_kernels)
@@ -314,17 +313,18 @@ class Psyclone(Step):
 
         """
         # We've analysed (a parsable version of) this x90.
-        analysis_result = mp_payload.analysed_x90[x90_file]
+        analysis_result = mp_payload.analysed_x90[x90_file]  # type: ignore
 
         # include the list of invoke names that were removed from this x90 before fortran analysis
         # (alternatively, we could use the hash of the non-parsable x90 and not record removed names...)
         # todo: chat about that sometime
-        removed_inkove_names = mp_payload.removed_invoke_names.get(x90_file)
+        removed_inkove_names = mp_payload.removed_invoke_names.get(x90_file)  # type: ignore
         if removed_inkove_names is None:
             raise FabException(f"No removed name data for path '{x90_file}'")
 
         # include the hashes of kernels used by this x90
-        kernel_deps_hashes = {mp_payload.used_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}
+        kernel_deps_hashes = {
+            mp_payload.used_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}  # type: ignore
 
         # hash everything which should trigger re-processing
         # todo: hash the psyclone version in case the built-in kernels change?

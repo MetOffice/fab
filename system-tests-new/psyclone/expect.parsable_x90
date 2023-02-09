@@ -1,7 +1,7 @@
 
-module physics_mappings_alg_mod
+module algorithm_mod
 
-    use imaginary_mod_one, only : kernel_one_type, kernel_two_type
+    use kernel_mod, only : kernel_one_type, kernel_two_type
 
     implicit none
 
@@ -73,4 +73,4 @@ contains
 
     end subroutine my_subroutine_two
 
-end module physics_mappings_alg_mod
+end module algorithm_mod
