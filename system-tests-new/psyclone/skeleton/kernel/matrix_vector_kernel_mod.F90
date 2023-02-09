@@ -1,11 +1,4 @@
-!-----------------------------------------------------------------------------
-! Copyright (c) 2017,  Met Office, on behalf of HMSO and Queen's Printer
-! For further details please refer to the file LICENCE.original which you
-! should have received as part of this distribution.
-!-----------------------------------------------------------------------------
 
-!> @brief This version is for use on continuous spaces and will force
-!>        halo exchanges on the input fields
 module matrix_vector_kernel_mod
   use argument_mod,            only : arg_type,                 &
                                       GH_FIELD, GH_OPERATOR,    &
@@ -19,9 +12,6 @@ module matrix_vector_kernel_mod
 
   private
 
-  !-------------------------------------------------------------------------------
-  ! Public types
-  !-------------------------------------------------------------------------------
   type, public, extends(kernel_type) :: matrix_vector_kernel_type
     private
     type(arg_type) :: meta_args(3) = (/                                    &
@@ -32,12 +22,8 @@ module matrix_vector_kernel_mod
     integer :: operates_on = CELL_COLUMN
   end type
 
-  !-------------------------------------------------------------------------------
-  ! Contained functions/subroutines
-  !-------------------------------------------------------------------------------
   public :: matrix_vector_code
 
-  ! Generic interface for real32 and real64 types
   interface matrix_vector_code
     module procedure  &
       matrix_vector_code_r_single, &
@@ -46,25 +32,6 @@ module matrix_vector_kernel_mod
 
 contains
 
-  !> @brief Computes lhs = matrix*x
-  !> @brief real32 and real64 variants
-  !! @param[in] cell Horizontal cell index
-  !! @param[in] nlayers Number of layers
-  !! @param[inout] lhs Output lhs (A*x)
-  !! @param[in] x Input data
-  !! @param[in] ncell_3d Total number of cells
-  !! @param[in] matrix Local matrix assembly form of the operator A
-  !! @param[in] ndf1 Number of degrees of freedom per cell for the output field
-  !! @param[in] undf1 Unique number of degrees of freedom  for the output field
-  !! @param[in] map1 Dofmap for the cell at the base of the column for the
-  !! output field
-  !! @param[in] ndf2 Number of degrees of freedom per cell for the input field
-  !! @param[in] undf2 Unique number of degrees of freedom for the input field
-  !! @param[in] map2 Dofmap for the cell at the base of the column for the input
-  !! field
-
-  ! R_SINGLE PRECISION
-  ! ==================
   subroutine matrix_vector_code_r_single(cell,              &
                                          nlayers,           &
                                          lhs, x,            &
@@ -90,22 +57,8 @@ contains
     real(kind=r_single), dimension(ndf2) :: x_e
     real(kind=r_single), dimension(ndf1) :: lhs_e
 
-!    do k = 0, nlayers-1
-!      do df = 1, ndf2
-!        x_e(df) = x(map2(df)+k)
-!      end do
-!      ik = (cell-1)*nlayers + k + 1
-!      lhs_e = matmul(matrix(:,:,ik),x_e)
-!      do df = 1,ndf1
-!        lhs(map1(df)+k) = lhs(map1(df)+k) + lhs_e(df)
-!      end do
-!    end do
-
   end subroutine matrix_vector_code_r_single
 
-
-  ! R_DOUBLE PRECISION
-  ! ==================
   subroutine matrix_vector_code_r_double(cell,              &
                                          nlayers,           &
                                          lhs, x,            &
@@ -130,17 +83,6 @@ contains
     integer(kind=i_def)                  :: df, k, ik
     real(kind=r_double), dimension(ndf2) :: x_e
     real(kind=r_double), dimension(ndf1) :: lhs_e
-
-!    do k = 0, nlayers-1
-!      do df = 1, ndf2
-!        x_e(df) = x(map2(df)+k)
-!      end do
-!      ik = (cell-1)*nlayers + k + 1
-!      lhs_e = matmul(matrix(:,:,ik),x_e)
-!      do df = 1,ndf1
-!        lhs(map1(df)+k) = lhs(map1(df)+k) + lhs_e(df)
-!      end do
-!    end do
 
   end subroutine matrix_vector_code_r_double
 
