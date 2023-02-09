@@ -10,22 +10,14 @@ from pathlib import Path
 from typing import Tuple
 from unittest import mock
 
-from fab.steps.link import LinkExe
-
-from fab.steps.compile_fortran import CompileFortran
-
-from fab.steps.preprocess import fortran_preprocessor
-
-from fab.steps.analyse import Analyse
-
-from fab.steps.find_source_files import FindSourceFiles
 import pytest
 
 from fab.build_config import BuildConfig
 from fab.parse.x90 import X90Analyser, AnalysedX90
+from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
+from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor
-from run_configs.lfric.lfric_common import Configurator
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
 
