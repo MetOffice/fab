@@ -188,7 +188,7 @@ class Psyclone(Step):
         # Each x90 analysis result contains the kernels they depend on.
         mp_payload.analysed_x90 = self._analyse_x90s(parsable_x90)
         used_kernels = set(chain.from_iterable(x90.kernel_deps for x90 in mp_payload.analysed_x90.values()))
-        logger.info(f'found {len(used_kernels)} kernels used')
+        logger.info(f'found {len(used_kernels)} used kernels')
 
         # Analyse *all* the kernel files, hashing the psyclone kernel metadata.
         # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice,
@@ -234,14 +234,14 @@ class Psyclone(Step):
         log_or_dot_finish(logger)
         fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
 
-        # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
-        prebuild_files = list(by_type(fortran_artefacts, Path))
-        self._config.add_current_prebuilds(prebuild_files)
-
         errors: List[Exception] = list(by_type(fortran_analyses, Exception))
         if errors:
             errs_str = '\n\n'.join(map(str, errors))
             logger.error(f"There were {len(errors)} errors while parsing kernels:\n\n{errs_str}")
+
+        # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
+        prebuild_files = list(by_type(fortran_artefacts, Path))
+        self._config.add_current_prebuilds(prebuild_files)
 
         analysed_fortran: List[AnalysedFortran] = list(by_type(fortran_analyses, AnalysedFortran))
 
@@ -437,11 +437,11 @@ def _get_used_kernel_hashes(all_kernel_hashes: Dict[str, int], used_kernels: Set
 
     used_kernel_hashes = {}
     for kernel in used_kernels:
-        kernal_hash = all_kernel_hashes.get(kernel)
-        if not kernal_hash:
+        kernel_hash = all_kernel_hashes.get(kernel)
+        if not kernel_hash:
             # If we can't get a hash for this kernel, we can't tell if it's changed.
             # We *could* continue, without prebuilds, but psyclone would presumably fail with a missing kernel.
             raise FabException(f"could not find hash for used kernel '{kernel}'")
-        used_kernel_hashes[kernel] = kernal_hash
+        used_kernel_hashes[kernel] = kernel_hash
 
     return used_kernel_hashes

@@ -1,0 +1,182 @@
+!-----------------------------------------------------------------------------
+! (C) Crown copyright 2022 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+!
+!> @brief Provides finite element constants for use in the skeleton.
+!>
+!> @details This module controls the set-up of finite element objects that
+!>          do not change during a run, such as mass matrices and differential
+!>          operators. These objects are  accessed from this module through
+!>          appropriate 'get' functions.
+!-------------------------------------------------------------------------------
+
+module skeleton_constants_mod
+
+  ! Infrastructure
+  use constants_mod,                      only: str_def
+  use field_mod,                          only: field_type
+  use fs_continuity_mod,                  only: W0, W1, W2, W2broken, &
+                                                W2H, W2V, W3, Wtheta
+  use function_space_collection_mod,      only: function_space_collection
+  use function_space_mod,                 only: function_space_type
+  use io_config_mod,                      only: subroutine_timers
+  use log_mod,                            only: log_event, LOG_LEVEL_INFO, &
+                                                LOG_LEVEL_ERROR
+  use mesh_mod,                           only: mesh_type
+  use operator_mod,                       only: operator_type
+  use quadrature_xyoz_mod,                only: quadrature_xyoz_type
+  use quadrature_rule_gaussian_mod,       only: quadrature_rule_gaussian_type
+  use timer_mod,                          only: timer
+
+  ! Configuration
+  use finite_element_config_mod,          only: element_order, nqp_exact
+
+  ! Kernels
+  use compute_derham_matrices_kernel_mod, only: compute_derham_matrices_kernel_type
+
+  implicit none
+
+  private
+
+  ! Variables private to this module that can only be accessed by public
+  ! functions returning pointers to them
+
+  ! Mass matrices
+  type(operator_type), target :: mm_w0
+  type(operator_type), target :: mm_w1
+  type(operator_type), target :: mm_w2
+  type(operator_type), target :: mm_w2b
+  type(operator_type), target :: mm_w3
+  type(operator_type), target :: mm_wtheta
+
+  ! Differential operators
+  type(operator_type), target :: div
+  type(operator_type), target :: grad
+  type(operator_type), target :: curl
+  type(operator_type), target :: broken_div
+  type(operator_type), target :: im3_div
+
+  ! Quadrature objects
+  type(quadrature_xyoz_type), target  :: qr
+  type(quadrature_rule_gaussian_type) :: quadrature_rule
+
+  ! Public functions to create and access the module contents
+
+  public :: create_skeleton_constants
+  public :: final_skeleton_constants
+  public :: get_div
+
+contains
+
+  !> @brief Subroutine to create the finite element constants
+  !> @param[in] mesh      The prime model mesh
+  !> @param[in] chi       Coordinate fields
+  !> @param[in] panel_id  Panel_id field
+  subroutine create_skeleton_constants(mesh,    &
+                                       chi,     &
+                                       panel_id )
+    implicit none
+
+    ! Arguments
+    type(mesh_type),    pointer, intent(in) :: mesh
+    type(field_type),    target, intent(in) :: chi(:)
+    type(field_type),    target, intent(in) :: panel_id
+
+    ! Internal variables
+    type(function_space_type), pointer :: w0_fs     => null()
+    type(function_space_type), pointer :: w1_fs     => null()
+    type(function_space_type), pointer :: w2_fs     => null()
+    type(function_space_type), pointer :: w2b_fs    => null()
+    type(function_space_type), pointer :: w2h_fs    => null()
+    type(function_space_type), pointer :: w2v_fs    => null()
+    type(function_space_type), pointer :: w3_fs     => null()
+    type(function_space_type), pointer :: wtheta_fs => null()
+
+    if ( subroutine_timers ) call timer('skeleton_constants_alg')
+    call log_event( "Gungho: creating skeleton_constants", LOG_LEVEL_INFO )
+
+    !======================== Create quadrature object ========================!
+
+    qr = quadrature_xyoz_type(nqp_exact, quadrature_rule)
+
+    !=========== Create function spaces required for setup ==================!
+
+    w0_fs     => function_space_collection%get_fs( mesh, element_order, W0 )
+    w1_fs     => function_space_collection%get_fs( mesh, element_order, W1 )
+    w2_fs     => function_space_collection%get_fs( mesh, element_order, W2 )
+    w2b_fs    => function_space_collection%get_fs( mesh, element_order, W2broken )
+    w2v_fs    => function_space_collection%get_fs( mesh, element_order, W2V )
+    w2h_fs    => function_space_collection%get_fs( mesh, element_order, W2H )
+    w3_fs     => function_space_collection%get_fs( mesh, element_order, W3 )
+    wtheta_fs => function_space_collection%get_fs( mesh, element_order, Wtheta )
+
+    !=================== Create de Rham cochain operators ===================!
+
+    ! Set up all mass matrices and operators
+    ! Mass matrices
+    mm_w0      = operator_type( w0_fs, w0_fs )
+    mm_w1      = operator_type( w1_fs, w1_fs )
+    mm_w2      = operator_type( w2_fs, w2_fs )
+    mm_w2b     = operator_type( w2b_fs, w2b_fs )
+    mm_w3      = operator_type( w3_fs, w3_fs )
+    mm_wtheta  = operator_type( wtheta_fs, wtheta_fs )
+
+    ! Differential operators
+    div        = operator_type( w3_fs, w2_fs )
+    grad       = operator_type( w1_fs, w0_fs )
+    curl       = operator_type( w2_fs, w1_fs )
+    broken_div = operator_type( w3_fs, w2b_fs )
+    im3_div    = operator_type( w3_fs, w2_fs )
+
+    call invoke( name = "create_de_rham_matrices",                      &
+                 compute_derham_matrices_kernel_type(mm_w0, mm_w1,      &
+                                                     mm_w2, mm_w2b,     &
+                                                     mm_w3, mm_wtheta,  &
+                                                     grad, curl,        &
+                                                     div, broken_div,   &
+                                                     chi, panel_id, qr) )
+
+    nullify( wtheta_fs )
+    nullify( w3_fs  )
+    nullify( w2v_fs )
+    nullify( w2h_fs )
+    nullify( w2b_fs )
+    nullify( w2_fs  )
+    nullify( w1_fs  )
+    nullify( w0_fs  )
+
+    if ( subroutine_timers ) call timer('skeleton_constants_alg')
+    call log_event( "Skeleton: created FEM constants", LOG_LEVEL_INFO )
+
+  end subroutine create_skeleton_constants
+
+  !> @brief Returns a pointer to the div operator
+  !> @return The div operator
+  function get_div() result(div_op)
+    implicit none
+    type(operator_type),      pointer :: div_op
+    character(str_def)                :: op_name
+
+    op_name = 'div'
+    div_op => div
+
+    if (.not. div_op%is_initialised()) then
+      call log_event("Divergence operator not initialised", LOG_LEVEL_ERROR)
+    end if
+
+  end function get_div
+
+  !> @brief Explicitly reclaim memory from module scope variables
+  !
+  subroutine final_skeleton_constants()
+
+    implicit none
+
+    ! Quadrature
+    call qr%quadrature_final()
+
+  end subroutine final_skeleton_constants
+
+end module skeleton_constants_mod
