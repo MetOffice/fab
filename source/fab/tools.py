@@ -93,7 +93,8 @@ def run_command(command, env=None, cwd=None, capture_output=True):
         If True, capture and return stdout. If False, the command will print its output directly to the console.
 
     """
-    logger.debug(f'run_command: {command}')
+    dbg_msg = ' '.join(map(str, command))
+    logger.debug(f'run_command: {dbg_msg}')
     res = subprocess.run(command, capture_output=capture_output, env=env, cwd=cwd)
     if res.returncode != 0:
         msg = f'Command failed:\n{command}'

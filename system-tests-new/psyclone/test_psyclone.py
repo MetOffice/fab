@@ -121,7 +121,7 @@ class TestPsyclone(object):
     def test_run(self, tmp_path):
         here = Path(__file__).parent
 
-        config = BuildConfig('proj', fab_workspace=tmp_path, verbose=True)
+        config = BuildConfig('proj', fab_workspace=tmp_path, verbose=True, multiprocessing=False)
 
         config.steps = [
             GrabFolder(here / 'skeleton'),
