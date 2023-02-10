@@ -526,4 +526,3 @@ class Test_get_fortran_compiler(object):
 
         assert fc == 'ifort'
         assert fc_flags == []
-
