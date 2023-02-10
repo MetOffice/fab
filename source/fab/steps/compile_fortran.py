@@ -346,6 +346,41 @@ class CompileFortran(Step):
             value={'time_taken': timer.taken, 'start': timer.start})
 
 
+def get_fortran_preprocessor():
+    fpp, fpp_flags = None, None
+
+    try:
+        fpp, fpp_flags = get_tool(os.getenv('FPP'))
+    except ValueError:
+        pass
+
+    if not fpp:
+        try:
+            run_command(['echo', '"#define foo"', '|', 'fpp'])
+            fpp, fpp_flags = 'fpp', ['-P']
+            logger.info('detected fpp')
+        except RuntimeError:
+            # fpp not available
+            pass
+
+    if not fpp:
+        try:
+            run_command(['echo', '"#define foo"', '|', 'cpp'])
+            fpp, fpp_flags = 'cpp', ['-traditional-cpp', '-P']
+            logger.info('detected cpp')
+        except RuntimeError:
+            # fpp not available
+            pass
+
+    if not fpp:
+        raise RuntimeError('no fortran preprocessor specified or discovered')
+
+    if '-P' not in fpp_flags:
+        fpp_flags.append('-P')
+
+    return fpp, fpp_flags
+
+
 def get_fortran_compiler(compiler: Optional[str] = None):
     """
     Get the fortran compiler specified by the `$FC` environment variable,
@@ -370,6 +405,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
         try:
             run_command(['gfortran', '--help'])
             fortran_compiler = 'gfortran', []
+            logger.info('detected gfortran')
         except RuntimeError:
             # gfortran not available
             pass
@@ -378,6 +414,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
         try:
             run_command(['ifort', '--help'])
             fortran_compiler = 'ifort', []
+            logger.info('detected ifort')
         except RuntimeError:
             # gfortran not available
             pass

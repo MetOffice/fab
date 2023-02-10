@@ -13,7 +13,7 @@ from fab.constants import PRAGMAD_C
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
+from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler, get_fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
@@ -29,13 +29,13 @@ def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildC
     # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
     label = '/'.join(folder.parts[1:])
 
-    # which compiler is set in the environment?
-    # we need to know because there are some linker flags that we'll need
-    compiler = get_fortran_compiler()[0]
-    if compiler == 'gfortran':
+    fpp, fpp_flags = get_fortran_preprocessor()
+    fc, fc_flags = get_fortran_compiler()
+
+    if fc == 'gfortran':
         link_step = LinkExe(linker='gcc', flags=['-lgfortran'])
     else:
-        raise NotImplementedError(f"Fab's zero config not yet configured for your compiler: '{compiler}'")
+        raise NotImplementedError(f"Fab's zero config not yet configured for compiler: '{fc}'")
 
     config = BuildConfig(
         project_label=label,
@@ -45,14 +45,14 @@ def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildC
 
             RootIncFiles(),  # JULES helper, get rid of this eventually
 
-            fortran_preprocessor(common_flags=['-P']),
+            fortran_preprocessor(preprocessor=fpp, common_flags=fpp_flags),
 
             CPragmaInjector(),
             c_preprocessor(source=CollectionGetter(PRAGMAD_C)),
 
             Analyse(find_programs=True),
 
-            CompileFortran(),
+            CompileFortran(compiler=fc, common_flags=fc_flags),
             CompileC(),
 
             link_step,

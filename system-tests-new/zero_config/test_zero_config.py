@@ -18,6 +18,6 @@ class TestZeroConfig(object):
         # test the sample project in the fortran dependencies system test
         config = _generic_build_config(
             Path(__file__).parent.parent / 'CFortranInterop',
-            kwargs={'fab_workspace': tmp_path, 'multiprocessing': False})
+            kwargs={'fab_workspace': tmp_path, 'multiprocessing': False, 'verbose': True})
         config.run()
         assert (config.project_workspace / 'main.exe').exists()
