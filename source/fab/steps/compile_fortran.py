@@ -351,6 +351,7 @@ def get_fortran_preprocessor():
 
     try:
         fpp, fpp_flags = get_tool(os.getenv('FPP'))
+        logger.info(f'env defined fpp as "{fpp}"')
     except ValueError:
         pass
 

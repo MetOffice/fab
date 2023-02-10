@@ -1,4 +1,6 @@
+import os
 from pathlib import Path
+from unittest import mock
 
 from fab.cli import _generic_build_config
 
