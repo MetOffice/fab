@@ -5,6 +5,7 @@
 # ##############################################################################
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import Optional
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import BuildConfig
@@ -20,7 +21,7 @@ from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 
 
-def generic_build_config(folder: Path) -> BuildConfig:
+def _generic_build_config(folder: Path, fab_workspace: Optional[Path] = None) -> BuildConfig:
     folder = folder.resolve()
 
     # Within the fab workspace, we'll create a project workspace.
@@ -37,6 +38,7 @@ def generic_build_config(folder: Path) -> BuildConfig:
 
     config = BuildConfig(
         project_label=label,
+        fab_workspace=fab_workspace,
         steps=[
             GrabFolder(folder),
             FindSourceFiles(),
@@ -48,7 +50,7 @@ def generic_build_config(folder: Path) -> BuildConfig:
             CPragmaInjector(),
             c_preprocessor(source=CollectionGetter(PRAGMAD_C)),
 
-            Analyse(find_fortran_programs=True),
+            Analyse(find_programs=True),
 
             CompileFortran(),
             CompileC(),
@@ -69,6 +71,6 @@ def cli_fab():
     arg_parser.add_argument('folder', nargs='?', default='.', type=Path)
     args = arg_parser.parse_args()
 
-    config = generic_build_config(args.folder)
+    config = _generic_build_config(args.folder)
 
     config.run()

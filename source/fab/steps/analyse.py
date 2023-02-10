@@ -40,7 +40,9 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
-from fab.parse.c import CAnalyser
+from fab import FabException
+
+from fab.parse.c import AnalysedC, CAnalyser
 
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
 
@@ -80,7 +82,7 @@ class Analyse(Step):
     def __init__(self,
                  source: Optional[ArtefactsGetter] = None,
                  root_symbol: Optional[Union[str, List[str]]] = None,
-                 find_fortran_programs: bool = False,
+                 find_programs: bool = False,
                  std: str = "f2008",
                  special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
@@ -97,7 +99,7 @@ class Analyse(Step):
 
         :param source:
             An :class:`~fab.util.ArtefactsGetter` to get the source files.
-        :param find_fortran_programs:
+        :param find_programs:
             Instructs the analyser to automatically identify program definitions in the source.
             Alternatively, the required programs can be specified with the root_symbol argument.
         :param root_symbol:
@@ -126,12 +128,12 @@ class Analyse(Step):
         # because the files they refer to probably don't exist yet,
         # because we're just creating steps at this point, so there's been no grab...
 
-        if find_fortran_programs and root_symbol:
-            raise ValueError("find_fortran_programs and root_symbol can't be used together")
+        if find_programs and root_symbol:
+            raise ValueError("find_programs and root_symbol can't be used together")
 
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.find_fortran_programs = find_fortran_programs
+        self.find_programs = find_programs
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[FortranParserWorkaround] = \
             list(special_measure_analysis_results or [])
@@ -175,10 +177,19 @@ class Analyse(Step):
         analysed_files = self._parse_files(files=files)
         self._add_manual_results(analysed_files)
 
-        # shall we search the results for fortran programs?
-        if self.find_fortran_programs:
+        # shall we search the results for fortran programs and a c function called main?
+        if self.find_programs:
+            # find fortran programs
             sets_of_programs = [af.program_defs for af in by_type(analysed_files, AnalysedFortran)]
-            self.root_symbols = set(chain(*sets_of_programs))
+            self.root_symbols = list(chain(*sets_of_programs))
+
+            # find c main()
+            c_with_main = list(filter(lambda c: 'main' in c.symbol_defs, by_type(analysed_files, AnalysedC)))
+            if c_with_main:
+                self.root_symbols.append('main')
+                if len(c_with_main) > 1:
+                    raise FabException("multiple c main() functions found")
+
             logger.info(f'automatically found the following programs to build: {", ".join(self.root_symbols)}')
 
         # analyse
