@@ -128,7 +128,7 @@ class TestPsyclone(object):
         config.steps = [
             GrabFolder(here / 'skeleton'),
             FindSourceFiles(),
-            fortran_preprocessor(preprocessor='fpp -P'),
+            fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
             psyclone_preprocessor(),
             # todo: it's easy to forget that we need to find the f90 not the F90.
@@ -147,8 +147,9 @@ class TestPsyclone(object):
             config.build_output / 'algorithm/algorithm_mod_psy.f90',
 
             # Expect these prebuild files
+            # todo: the kernal hash differs between fpp and cpp, perhaps just use wildcards.
             config.prebuild_folder / 'algorithm_mod.235114589.an',  # x90 analysis result
-            config.prebuild_folder / 'my_kernel_mod.7850559.an',  # kernel analysis results
+            config.prebuild_folder / 'my_kernel_mod.4187107526.an',  # kernel analysis results
             config.prebuild_folder / 'algorithm_mod.4395707289.f90',  # prebuild
             config.prebuild_folder / 'algorithm_mod_psy.4395707289.f90',  # prebuild
         ]
