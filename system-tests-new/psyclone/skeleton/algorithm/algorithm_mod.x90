@@ -16,7 +16,7 @@ module algorithm_mod
   use fs_continuity_mod,              only: W2
   use function_space_collection_mod,  only: function_space_collection
   use operator_mod,                   only: operator_type
-  use kernel_mod,                     only: my_kernel_type
+  use my_kernel_mod,                  only: my_kernel_type
   use skeleton_constants_mod,         only: get_div
 
   implicit none

@@ -120,8 +120,10 @@ class TestPsyclone(object):
     """
     def test_run(self, tmp_path):
         here = Path(__file__).parent
+        print('here = ', here)
 
         config = BuildConfig('proj', fab_workspace=tmp_path, verbose=True, multiprocessing=False)
+        # config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False)
 
         config.steps = [
             GrabFolder(here / 'skeleton'),
@@ -145,10 +147,10 @@ class TestPsyclone(object):
             config.build_output / 'algorithm/algorithm_mod_psy.f90',
 
             # Expect these prebuild files
-            config.prebuild_folder / 'algorithm_mod.205866748.an',  # x90 analysis result
-            config.prebuild_folder / 'kernel_mod.4076575089.an',  # kernel analysis results
-            config.prebuild_folder / 'algorithm_mod.4366459448.f90',  # prebuild
-            config.prebuild_folder / 'algorithm_mod_psy.4366459448.f90',  # prebuild
+            config.prebuild_folder / 'algorithm_mod.235114589.an',  # x90 analysis result
+            config.prebuild_folder / 'my_kernel_mod.7850559.an',  # kernel analysis results
+            config.prebuild_folder / 'algorithm_mod.4395707289.f90',  # prebuild
+            config.prebuild_folder / 'algorithm_mod_psy.4395707289.f90',  # prebuild
         ]
 
         assert all(not f.exists() for f in expect_files)

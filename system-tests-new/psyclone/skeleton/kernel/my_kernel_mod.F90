@@ -1,5 +1,5 @@
 
-module kernel_mod
+module my_kernel_mod
   use argument_mod,            only : arg_type,                 &
                                       GH_FIELD, GH_OPERATOR,    &
                                       GH_REAL, GH_READ, GH_INC, &
@@ -86,4 +86,4 @@ contains
 
   end subroutine matrix_vector_code_r_double
 
-end module kernel_mod
+end module my_kernel_mod
