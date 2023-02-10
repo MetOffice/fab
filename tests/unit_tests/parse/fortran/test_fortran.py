@@ -138,6 +138,7 @@ class TestAnalysedFortran(object):
         return {
             'fpath': 'foo.f90',
             'file_hash': 123,
+            'program_defs': [],
             'module_defs': ['my_mod1', 'my_mod2'],
             'symbol_defs': ['my_func1', 'my_func2', 'my_mod1', 'my_mod2'],
             'module_deps': ['other_mod1', 'other_mod2'],

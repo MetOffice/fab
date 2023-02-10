@@ -73,6 +73,7 @@ class Test_Analyser(object):
 
             module_expected.fpath = Path(tmp_file.name)
             module_expected._file_hash = 768896775
+            module_expected.program_defs = {'foo_mod'}
             module_expected.module_defs = set()
             module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
 

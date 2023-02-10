@@ -5,7 +5,7 @@
 # ##############################################################################
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import BuildConfig
@@ -21,8 +21,9 @@ from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 
 
-def _generic_build_config(folder: Path, fab_workspace: Optional[Path] = None) -> BuildConfig:
+def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildConfig:
     folder = folder.resolve()
+    kwargs = kwargs or {}
 
     # Within the fab workspace, we'll create a project workspace.
     # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
@@ -38,7 +39,6 @@ def _generic_build_config(folder: Path, fab_workspace: Optional[Path] = None) ->
 
     config = BuildConfig(
         project_label=label,
-        fab_workspace=fab_workspace,
         steps=[
             GrabFolder(folder),
             FindSourceFiles(),
@@ -56,7 +56,8 @@ def _generic_build_config(folder: Path, fab_workspace: Optional[Path] = None) ->
             CompileC(),
 
             link_step,
-        ]
+        ],
+        **kwargs,
     )
 
     return config
