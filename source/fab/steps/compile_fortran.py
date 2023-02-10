@@ -356,6 +356,8 @@ def get_fortran_compiler(compiler: Optional[str] = None):
     :param compiler:
         Use this string instead of the $FC environment variable.
 
+    Returns the tool and a list of flags.
+
     """
     fortran_compiler = None
     try:
@@ -367,7 +369,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
     if not fortran_compiler:
         try:
             run_command(['gfortran', '--help'])
-            fortran_compiler = 'gfortran'
+            fortran_compiler = 'gfortran', []
         except RuntimeError:
             # gfortran not available
             pass
@@ -375,7 +377,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
     if not fortran_compiler:
         try:
             run_command(['ifort', '--help'])
-            fortran_compiler = 'ifort'
+            fortran_compiler = 'ifort', []
         except RuntimeError:
             # gfortran not available
             pass
