@@ -17,7 +17,7 @@ from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor
+from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor, tool_available
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
 
@@ -113,6 +113,7 @@ class Test_analysis(object):
         }
 
 
+@pytest.mark.skipif(not tool_available(), reason="psyclone cli tool not available")
 class TestPsyclone(object):
     """
     Basic run of the psyclone step.

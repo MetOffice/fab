@@ -32,6 +32,14 @@ from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk
 logger = logging.getLogger(__name__)
 
 
+def tool_available() -> bool:
+    try:
+        run_command(['psyclone', '-h'])
+    except RuntimeError:
+        return False
+    return True
+
+
 # todo: should this be part of the psyclone step?
 def psyclone_preprocessor(set_um_physics=False):
     um_physics = ['-DUM_PHYSICS'] if set_um_physics else []
