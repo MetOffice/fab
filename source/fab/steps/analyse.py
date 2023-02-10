@@ -33,7 +33,7 @@ by passing FortranParserWorkaround objects into the `special_measure_analysis_re
 You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
 
 """
-
+from itertools import chain
 import logging
 import sys
 import warnings
@@ -42,7 +42,7 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab.parse.c import CAnalyser
 
-from fab.parse.fortran import FortranParserWorkaround, FortranAnalyser
+from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
 
 from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
@@ -79,7 +79,8 @@ class Analyse(Step):
     # todo: allow the user to specify a different output artefact collection name?
     def __init__(self,
                  source: Optional[ArtefactsGetter] = None,
-                 root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
+                 root_symbol: Optional[Union[str, List[str]]] = None,
+                 find_fortran_programs: bool = False,
                  std: str = "f2008",
                  special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
@@ -96,6 +97,9 @@ class Analyse(Step):
 
         :param source:
             An :class:`~fab.util.ArtefactsGetter` to get the source files.
+        :param find_fortran_programs:
+            Instructs the analyser to automatically identify program definitions in the source.
+            Alternatively, the required programs can be specified with the root_symbol argument.
         :param root_symbol:
             When building an executable, provide the Fortran Program name(s), or 'main' for C.
             If None, build tree extraction will not be performed and the entire source will be used
@@ -122,8 +126,12 @@ class Analyse(Step):
         # because the files they refer to probably don't exist yet,
         # because we're just creating steps at this point, so there's been no grab...
 
+        if find_fortran_programs and root_symbol:
+            raise ValueError("find_fortran_programs and root_symbol can't be used together")
+
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
+        self.find_fortran_programs = find_fortran_programs
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[FortranParserWorkaround] = \
             list(special_measure_analysis_results or [])
@@ -166,6 +174,12 @@ class Analyse(Step):
         files: List[Path] = self.source_getter(artefact_store)
         analysed_files = self._parse_files(files=files)
         self._add_manual_results(analysed_files)
+
+        # shall we search the results for fortran programs?
+        if self.find_fortran_programs:
+            sets_of_programs = [af.program_defs for af in by_type(analysed_files, AnalysedFortran)]
+            self.root_symbols = set(chain(*sets_of_programs))
+            logger.info(f'automatically found the following programs to build: {", ".join(self.root_symbols)}')
 
         # analyse
         project_source_tree, symbols = self._analyse_dependencies(analysed_files)

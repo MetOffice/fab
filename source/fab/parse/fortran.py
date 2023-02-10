@@ -37,6 +37,7 @@ class AnalysedFortran(AnalysedDependent):
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None,
+                 program_defs: Optional[Iterable[str]] = None,
                  module_defs: Optional[Iterable[str]] = None, symbol_defs: Optional[Iterable[str]] = None,
                  module_deps: Optional[Iterable[str]] = None, symbol_deps: Optional[Iterable[str]] = None,
                  mo_commented_file_deps: Optional[Iterable[str]] = None, file_deps: Optional[Iterable[Path]] = None,
@@ -46,6 +47,8 @@ class AnalysedFortran(AnalysedDependent):
             The source file that was analysed.
         :param file_hash:
             The hash of the source. If omitted, Fab will evaluate lazily.
+        :param program_defs:
+            Set of program names defined by this source file.
         :param module_defs:
             Set of module names defined by this source file.
             A subset of symbol_defs
@@ -69,6 +72,7 @@ class AnalysedFortran(AnalysedDependent):
         super().__init__(fpath=fpath, file_hash=file_hash,
                          symbol_defs=symbol_defs, symbol_deps=symbol_deps, file_deps=file_deps)
 
+        self.program_defs: Set[str] = set(program_defs or [])
         self.module_defs: Set[str] = set(module_defs or [])
         self.module_deps: Set[str] = set(module_deps or [])
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
@@ -78,6 +82,10 @@ class AnalysedFortran(AnalysedDependent):
         self.psyclone_kernels: Dict[str, int] = psyclone_kernels or {}
 
         self.validate()
+
+    def add_program_def(self, name):
+        self.program_defs.add(name.lower())
+        self.add_symbol_def(name)
 
     def add_module_def(self, name):
         self.module_defs.add(name.lower())
@@ -97,6 +105,7 @@ class AnalysedFortran(AnalysedDependent):
         # we're not using the super class because we want to insert, not append the order of our attributes
         return [
             'fpath', 'file_hash',
+            'program_defs',
             'module_defs', 'symbol_defs',
             'module_deps', 'symbol_deps',
             'mo_commented_file_deps',
@@ -109,6 +118,7 @@ class AnalysedFortran(AnalysedDependent):
         # We sort the lists for reproducibility in testing.
         result = super().to_dict()
         result.update({
+            "program_defs": list(sorted(self.program_defs)),
             "module_defs": list(sorted(self.module_defs)),
             "module_deps": list(sorted(self.module_deps)),
             "mo_commented_file_deps": list(sorted(self.mo_commented_file_deps)),
@@ -122,6 +132,7 @@ class AnalysedFortran(AnalysedDependent):
         result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
+            program_defs=set(d["program_defs"]),
             module_defs=set(d["module_defs"]),
             symbol_defs=set(d["symbol_defs"]),
             module_deps=set(d["module_deps"]),
@@ -137,12 +148,14 @@ class AnalysedFortran(AnalysedDependent):
     def validate(self):
         assert self.file_hash is not None
 
+        assert all([d and len(d) for d in self.program_defs]), "bad program definitions"
         assert all([d and len(d) for d in self.module_defs]), "bad module definitions"
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
         assert all([d and len(d) for d in self.module_deps]), "bad module dependencies"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
 
         # todo: this feels a little clanky.
+        assert self.program_defs <= self.symbol_defs, "programs definitions must also be symbol definitions"
         assert self.module_defs <= self.symbol_defs, "modules definitions must also be symbol definitions"
         assert self.module_deps <= self.symbol_deps, "modules dependencies must also be symbol dependencies"
 
@@ -185,7 +198,7 @@ class FortranAnalyser(FortranAnalyserBase):
                         analysed_fortran.add_symbol_dep(called_name.string)
 
                 elif obj_type == Program_Stmt:
-                    analysed_fortran.add_symbol_def(str(obj.get_name()))
+                    analysed_fortran.add_program_def(str(obj.get_name()))
 
                 elif obj_type == Module_Stmt:
                     analysed_fortran.add_module_def(str(obj.get_name()))
