@@ -357,7 +357,33 @@ def get_fortran_compiler(compiler: Optional[str] = None):
         Use this string instead of the $FC environment variable.
 
     """
-    return get_tool(compiler or os.getenv('FC', ''))  # type: ignore
+    fortran_compiler = None
+    try:
+        fortran_compiler = get_tool(compiler or os.getenv('FC', ''))  # type: ignore
+    except ValueError:
+        # tool not specified
+        pass
+
+    if not fortran_compiler:
+        try:
+            run_command(['gfortran', '--help'])
+            fortran_compiler = 'gfortran'
+        except RuntimeError:
+            # gfortran not available
+            pass
+
+    if not fortran_compiler:
+        try:
+            run_command(['ifort', '--help'])
+            fortran_compiler = 'ifort'
+        except RuntimeError:
+            # gfortran not available
+            pass
+
+    if not fortran_compiler:
+        raise RuntimeError('no fortran compiler specified or discovered')
+
+    return fortran_compiler
 
 
 def get_mod_hashes(analysed_files: Set[AnalysedFortran], config) -> Dict[str, int]:
