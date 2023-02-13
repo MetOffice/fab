@@ -357,7 +357,7 @@ def get_fortran_preprocessor():
 
     if not fpp:
         try:
-            run_command(['echo', '"#define foo"', '|', 'fpp'])
+            run_command(['which', 'fpp'])
             fpp, fpp_flags = 'fpp', ['-P']
             logger.info('detected fpp')
         except RuntimeError:
@@ -366,7 +366,7 @@ def get_fortran_preprocessor():
 
     if not fpp:
         try:
-            run_command(['echo', '"#define foo"', '|', 'cpp'])
+            run_command(['which', 'cpp'])
             fpp, fpp_flags = 'cpp', ['-traditional-cpp', '-P']
             logger.info('detected cpp')
         except RuntimeError:
