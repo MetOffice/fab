@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from typing import Dict, Optional
 
+import fab
 from fab.artefacts import CollectionGetter
 from fab.build_config import BuildConfig
 from fab.constants import PRAGMAD_C
@@ -70,7 +71,12 @@ def cli_fab():
     """
     arg_parser = ArgumentParser()
     arg_parser.add_argument('folder', nargs='?', default='.', type=Path)
+    arg_parser.add_argument('-v', '--version', action='store_true')
     args = arg_parser.parse_args()
+
+    if args.version:
+        print('Fab', fab.__version__)
+        exit(0)
 
     config = _generic_build_config(args.folder)
 

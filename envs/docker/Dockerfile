@@ -1,6 +1,6 @@
 # Usage:
 # docker build -t fab .
-# docker run --env PYTHONPATH=/fab -v /home/byron/git/fab/source:/fab -v /home/byron:/home/byron -it fab bash
+# docker run --env PYTHONPATH=/fab/source -v /home/byron/git/fab:/fab -v /home/byron:/home/byron -it fab bash
 
 FROM ubuntu:20.04
 
