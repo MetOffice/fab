@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import logging
-
-from fab.util import common_arg_parser
+from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig, AddFlags
 from fab.steps.analyse import Analyse
@@ -17,8 +16,7 @@ from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation
-from fab.steps.psyclone import psyclone_preprocessor, Psyclone
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 
 logger = logging.getLogger('fab')
 
@@ -26,7 +24,7 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def atm_config(two_stage=False, verbose=False):
+def atm_config(two_stage=False, opt='Og'):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
@@ -34,8 +32,9 @@ def atm_config(two_stage=False, verbose=False):
     compiler, _ = get_fortran_compiler()
 
     config = BuildConfig(
-        project_label=f'atm {compiler} {int(two_stage)+1}stage',
-        verbose=verbose,
+        project_label=f'atm {compiler} {opt} {int(two_stage)+1}stage',
+        # multiprocessing=False,
+        # reuse_artefacts=True,
     )
 
     config.steps = [
@@ -119,9 +118,6 @@ def atm_config(two_stage=False, verbose=False):
         Analyse(
             root_symbol='lfric_atm',
             ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
-            # extra_node_processing = (
-            #   kernel_roots: something_kernel_types,
-            # ),
         ),
 
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
@@ -133,6 +129,9 @@ def atm_config(two_stage=False, verbose=False):
                 '-g',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
                 '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
+
+                # '-Og',
+                f'-{opt}',
 
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
@@ -559,7 +558,12 @@ def file_filtering(config):
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
-    atm_config(two_stage=args.two_stage, verbose=args.verbose).run()
+    # logger.setLevel(logging.DEBUG)
+
+    atm_config(two_stage=args.two_stage, opt=args.opt).run()
+    # metrics_summary(metrics_folder=atm_config().metrics_folder)

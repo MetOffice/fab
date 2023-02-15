@@ -5,14 +5,13 @@
 # which you should have received as part of this distribution
 ##############################################################################
 import os
-
-from fab.util import common_arg_parser
+from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import GrabFcm
 
 
-def gcom_grab_config(revision=None, verbose=False):
+def gcom_grab_config(revision=None):
     """
     Grab the gcom source.
 
@@ -21,14 +20,12 @@ def gcom_grab_config(revision=None, verbose=False):
         project_label=f'gcom_source_{revision}',
         steps=[
             GrabFcm(src='fcm:gcom.xm_tr/build', revision=revision, dst="gcom"),
-        ],
-        verbose=verbose,
-    )
+        ])
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
+    arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
     args = arg_parser.parse_args()
 
-    gcom_grab_config(revision=args.revision, verbose=args.verbose).run()
+    gcom_grab_config(revision=args.revision).run()

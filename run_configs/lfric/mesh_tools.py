@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from fab.util import common_arg_parser
+from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
@@ -10,23 +10,18 @@ from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation
-from fab.steps.psyclone import psyclone_preprocessor, Psyclone
+from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 
-def mesh_tools_config(two_stage=False, verbose=False):
+def mesh_tools_config(two_stage=False, opt='Og'):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
     compiler, _ = get_fortran_compiler()
 
-    config = BuildConfig(
-        project_label=f'mesh tools {compiler} {int(two_stage)+1}stage',
-        verbose=verbose,
-    )
-
+    config = BuildConfig(project_label=f'mesh tools {compiler} {opt} {int(two_stage)+1}stage')
     config.steps = [
 
         GrabFolder(src=lfric_source / 'infrastructure/source/', dst=''),
@@ -60,9 +55,13 @@ def mesh_tools_config(two_stage=False, verbose=False):
             # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         ),
 
+        # todo:
+        # compile one big lump
+
         CompileFortran(
             common_flags=[
                 '-c',
+                f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
         ),
@@ -85,7 +84,9 @@ def mesh_tools_config(two_stage=False, verbose=False):
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
-    mesh_tools_config(two_stage=args.two_stage, verbose=args.verbose).run()
+    mesh_tools_config(two_stage=args.two_stage, opt=args.opt).run()

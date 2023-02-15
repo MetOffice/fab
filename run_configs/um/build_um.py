@@ -12,9 +12,7 @@ import logging
 import os
 import re
 import warnings
-
-from fab.util import common_arg_parser
-
+from argparse import ArgumentParser
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
@@ -37,13 +35,11 @@ logger = logging.getLogger('fab')
 # todo: fail fast, check gcom exists
 
 
-def um_atmos_safe_config(revision, two_stage=False, verbose=False):
+def um_atmos_safe_config(revision, two_stage=False):
     um_revision = revision.replace('vn', 'um')
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
     compiler, _ = get_fortran_compiler()
-
-    # compiler-specific flags
     if compiler == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
     elif compiler == 'ifort':
@@ -63,7 +59,8 @@ def um_atmos_safe_config(revision, two_stage=False, verbose=False):
 
     config = BuildConfig(
         project_label=f'um atmos safe {revision} {compiler} {int(two_stage)+1}stage',
-        verbose=verbose,
+        # multiprocessing=False,
+        # reuse_artefacts=True,
     )
 
     # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
@@ -131,19 +128,7 @@ def um_atmos_safe_config(revision, two_stage=False, verbose=False):
             ],
         ),
 
-        Analyse(
-            root_symbol='um_main',
-
-            # # fparser2 fails to parse this file, but it does compile.
-            # special_measure_analysis_results=[
-            #     FortranParserWorkaround(
-            #         fpath=Path(config.build_output / "casim/lookup.f90"),
-            #         symbol_defs={'lookup'},
-            #         symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-            #                      'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
-            #     )
-            # ]
-        ),
+        Analyse(root_symbol='um_main'),
 
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
 
@@ -309,8 +294,10 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
+    arg_parser = ArgumentParser()
     arg_parser.add_argument('--revision', default=os.getenv('UM_REVISION', 'vn12.1'))
+    arg_parser.add_argument('--two-stage', action='store_true')
     args = arg_parser.parse_args()
 
-    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage, verbose=args.verbose).run()
+    # logging.getLogger('fab').setLevel(logging.DEBUG)
+    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage).run()

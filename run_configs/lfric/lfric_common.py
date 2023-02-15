@@ -4,7 +4,10 @@ import shutil
 from pathlib import Path
 from typing import Dict
 
-from fab.steps import Step
+from fab.artefacts import SuffixFilter
+from fab.steps import Step, check_for_errors
+from fab.steps.preprocess import PreProcessor
+from fab.util import log_or_dot, input_to_output_fpath
 from fab.tools import run_command
 
 logger = logging.getLogger('fab')
@@ -82,8 +85,6 @@ class Configurator(Step):
         )
 
         # put the generated source into an artefact
-        # todo: we shouldn't need to do this, should we?
-        #       it's just going to be found in the source folder with everything else.
         artefact_store['configurator_output'] = [
             configuration_mod_fpath,
             feign_config_mod_fpath

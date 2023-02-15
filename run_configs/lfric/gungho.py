@@ -5,21 +5,19 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 import logging
-
-from fab.util import common_arg_parser
+from argparse import ArgumentParser
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.psyclone import psyclone_preprocessor, Psyclone
+from fab.steps.find_source_files import FindSourceFiles, Exclude
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 
 logger = logging.getLogger('fab')
 
@@ -27,25 +25,17 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def gungho_config(two_stage=False, verbose=False):
+def gungho_config(two_stage=False, opt='Og'):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
     compiler, _ = get_fortran_compiler()
 
-    # fab development: try to use separate branches for different fab branches
-    git_branch = ''
-    # try:
-    #     git_branch = run_command(['git', 'branch', '--show-current'], capture_output=True).strip()
-    #     git_branch += ' '
-    #     logger.info(f"git branch is '{git_branch}'")
-    # except Exception:
-    #     pass
-
     config = BuildConfig(
-        project_label=f'{git_branch}gungho {compiler} {int(two_stage)+1}stage',
-        verbose=verbose,
+        project_label=f'gungho {compiler} {opt} {int(two_stage)+1}stage',
+        # multiprocessing=False,
+        # reuse_artefacts=True,
     )
 
     config.steps = [
@@ -96,6 +86,8 @@ def gungho_config(two_stage=False, verbose=False):
                 '-c',
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
+                # '-Og',
+                f'-{opt}',
                 '-std=f2008',
 
                 '-Wall', '-Werror=conversion', '-Werror=unused-variable', '-Werror=character-truncation',
@@ -126,7 +118,9 @@ def gungho_config(two_stage=False, verbose=False):
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument('--two-stage', action='store_true')
+    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
     args = arg_parser.parse_args()
 
-    gungho_config(two_stage=args.two_stage, verbose=args.verbose).run()
+    gungho_config(two_stage=args.two_stage, opt=args.opt).run()
