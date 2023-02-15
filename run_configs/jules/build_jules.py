@@ -23,11 +23,14 @@ from fab.util import common_arg_parser
 logger = logging.getLogger('fab')
 
 
-def jules_config(revision=None, compiler=None, two_stage=False):
+def jules_config(revision=None, two_stage=False, verbose=False):
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_fortran_compiler(compiler)
-    config = BuildConfig(project_label=f'jules {revision} {compiler} {int(two_stage)+1}stage')
+    compiler, _ = get_fortran_compiler()
+    config = BuildConfig(
+        project_label=f'jules {revision} {compiler} {int(two_stage)+1}stage',
+        verbose=verbose,
+    )
 
     logger.info(f'building jules {config.project_label}')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
@@ -71,7 +74,6 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
 
         CompileFortran(
-            compiler=compiler,
             two_stage_flag=two_stage_flag,
             # required for newer gfortran versions
             # path_flags=[
@@ -96,4 +98,4 @@ if __name__ == '__main__':
     arg_parser.add_argument('--revision', default=os.getenv('JULES_REVISION', 'vn6.3'))
     args = arg_parser.parse_args()
 
-    jules_config(revision=args.revision, compiler=args.compiler, two_stage=args.two_stage).run()
+    jules_config(revision=args.revision, two_stage=args.two_stage, verbose=args.verbose).run()
