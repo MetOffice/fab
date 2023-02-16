@@ -46,15 +46,6 @@ class AnalysedFile(ABC):
             self._file_hash: int = file_checksum(self.fpath).file_hash
         return self._file_hash
 
-    def __str__(self):
-        # We use self.field_names() instead of vars(self) in order to evaluate any lazy attributes.
-        values = [getattr(self, field_name) for field_name in self.field_names()]
-        return f'{self.__class__.__name__} ' + ' '.join(map(str, values))
-
-    def __repr__(self):
-        params = ', '.join([f'{f}={repr(getattr(self, f))}' for f in self.field_names()])
-        return f'{self.__class__.__name__}({params})'
-
     def __eq__(self, other):
         # todo: better to use self.field_names() instead of vars(self) in order to evaluate any lazy attributes?
         return vars(self) == vars(other)
@@ -103,6 +94,15 @@ class AnalysedFile(ABC):
 
         """
         return ['fpath', 'file_hash']
+
+    def __str__(self):
+        # We use self.field_names() instead of vars(self) in order to evaluate any lazy attributes.
+        values = [getattr(self, field_name) for field_name in self.field_names()]
+        return f'{self.__class__.__name__} ' + ' '.join(map(str, values))
+
+    def __repr__(self):
+        params = ', '.join([f'{f}={repr(getattr(self, f))}' for f in self.field_names()])
+        return f'{self.__class__.__name__}({params})'
 
     # We need to be hashable before we can go into a set, which is useful for our subclasses.
     # Note, the numerical result will change with each Python invocation.
