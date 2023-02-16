@@ -14,4 +14,7 @@ RUN pip install sphinx sphinx_rtd_theme sphinx-autodoc-typehints
 RUN pip install svn GitPython matplotlib
 RUN pip install fparser psyclone==2.1.0
 
+RUN mkdir /usr/share/psyclone
+RUN ln -s /usr/local/share/psyclone/psyclone.cfg /usr/share/psyclone/psyclone.cfg
+
 CMD [ "python3", "--version" ]
