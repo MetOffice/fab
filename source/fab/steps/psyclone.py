@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 def tool_available() -> bool:
     try:
         run_command(['psyclone', '-h'])
-    except RuntimeError:
+    except (RuntimeError, FileNotFoundError):
         return False
     return True
 
