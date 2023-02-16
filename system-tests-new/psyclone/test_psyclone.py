@@ -95,15 +95,15 @@ class Test_analysis(object):
         artefact_store = {'preprocessed_x90': [SAMPLE_X90]}
         mp_payload = psyclone_step.analysis_for_prebuilds(artefact_store=artefact_store)
 
-        assert mp_payload.used_kernel_hashes == {
+        assert mp_payload.all_kernel_hashes == {
             'kernel_one_type': 2915127408,
             'kernel_two_type': 3793991362,
+            'kernel_three_type': 319981435,
+            'kernel_four_type': 1427207736,
         }
 
     def test_analyse_kernels(self, psyclone_step):
-        kernel_files = [SAMPLE_KERNEL]
-
-        all_kernels = psyclone_step._analyse_kernels(kernel_files=kernel_files)
+        all_kernels = psyclone_step._analyse_kernels(kernel_roots=[SAMPLE_KERNEL.parent])
 
         assert all_kernels == {
             'kernel_one_type': 2915127408,

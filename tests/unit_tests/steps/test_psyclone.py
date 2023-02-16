@@ -41,7 +41,7 @@ class Test_gen_prebuild_hash(object):
             x90_file: ['name1', 'name2'],
         }
 
-        mp_payload.used_kernel_hashes = {
+        mp_payload.all_kernel_hashes = {
             'kernel1': 345,
             'kernel2': 456,
         }
@@ -72,7 +72,7 @@ class Test_gen_prebuild_hash(object):
     def test_kernal_deps(self, data):
         # changing a kernel deps hash should change the hash
         psyclone_step, mp_payload, x90_file, expect_hash = data
-        mp_payload.used_kernel_hashes['kernel1'] += 1
+        mp_payload.all_kernel_hashes['kernel1'] += 1
         result = psyclone_step._gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
         assert result == expect_hash + 1
 

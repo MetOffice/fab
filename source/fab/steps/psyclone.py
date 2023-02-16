@@ -73,7 +73,7 @@ class MpPayload:
     transformation_script_hash: int = 0
     # these optionals aren't really optional, that's just for the constructor
     analysed_x90: Optional[Dict[Path, AnalysedX90]] = None
-    used_kernel_hashes: Optional[Dict[str, int]] = None
+    all_kernel_hashes: Optional[Dict[str, int]] = None
     removed_invoke_names: Optional[Dict[Path, List[str]]] = None
 
 
@@ -202,12 +202,7 @@ class Psyclone(Step):
         # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice,
         # so we pass them through the general fortran analyser, which currently recognises kernel metadata.
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
-        all_kernel_files: Set[Path] = set(*chain(file_walk(root) for root in self.kernel_roots))
-        all_kernel_f90: List[Path] = suffix_filter(all_kernel_files, ['.f90'])
-        all_kernel_hashes: Dict[str, int] = self._analyse_kernels(all_kernel_f90)
-
-        # we only need to remember the hashes of kernels which are used by our x90s
-        mp_payload.used_kernel_hashes = _get_used_kernel_hashes(all_kernel_hashes, used_kernels)
+        mp_payload.all_kernel_hashes = self._analyse_kernels(self.kernel_roots)
 
         return mp_payload
 
@@ -230,8 +225,11 @@ class Psyclone(Step):
         analysed_x90 = by_type(x90_analyses, AnalysedX90)
         return {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
 
-    def _analyse_kernels(self, kernel_files) -> Dict[str, int]:
+    def _analyse_kernels(self, kernel_roots) -> Dict[str, int]:
         # We want to hash the kernel metadata (type defs).
+        all_kernel_files: Set[Path] = set(*chain(file_walk(root) for root in kernel_roots))
+        kernel_files: List[Path] = suffix_filter(all_kernel_files, ['.f90'])
+
         # We use the normal Fortran analyser, which records psyclone kernel metadata.
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
         # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
@@ -332,7 +330,7 @@ class Psyclone(Step):
 
         # include the hashes of kernels used by this x90
         kernel_deps_hashes = {
-            mp_payload.used_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}  # type: ignore
+            mp_payload.all_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}  # type: ignore
 
         # hash everything which should trigger re-processing
         # todo: hash the psyclone version in case the built-in kernels change?
@@ -439,17 +437,3 @@ def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     open(out_path, 'wt').write(out)
 
     return out_path, replaced
-
-
-def _get_used_kernel_hashes(all_kernel_hashes: Dict[str, int], used_kernels: Set) -> Dict[str, int]:
-
-    used_kernel_hashes = {}
-    for kernel in used_kernels:
-        kernel_hash = all_kernel_hashes.get(kernel)
-        if not kernel_hash:
-            # If we can't get a hash for this kernel, we can't tell if it's changed.
-            # We *could* continue, without prebuilds, but psyclone would presumably fail with a missing kernel.
-            raise FabException(f"could not find hash for used kernel '{kernel}'")
-        used_kernel_hashes[kernel] = kernel_hash
-
-    return used_kernel_hashes
