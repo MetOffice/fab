@@ -37,7 +37,7 @@ def test_make_parsable_x90(tmp_path):
     input_x90_path = tmp_path / grab_x90_path.name
     shutil.copy(grab_x90_path, input_x90_path)
 
-    parsable_x90_path, removed_names = make_parsable_x90(input_x90_path)
+    parsable_x90_path = make_parsable_x90(input_x90_path)
 
     # the point of this function is to make the file parsable by fparser
     x90_analyser = X90Analyser()
@@ -46,7 +46,6 @@ def test_make_parsable_x90(tmp_path):
     x90_analyser.run(parsable_x90_path)
 
     # ensure the files are as expected
-    assert removed_names == NAME_KEYWORDS
     assert filecmp.cmp(parsable_x90_path, EXPECT_PARSABLE_X90)
 
     # don't leave this in my git repo
@@ -151,8 +150,8 @@ class TestPsyclone(object):
             # todo: the kernal hash differs between fpp and cpp, perhaps just use wildcards.
             config.prebuild_folder / 'algorithm_mod.235114589.an',  # x90 analysis result
             config.prebuild_folder / 'my_kernel_mod.4187107526.an',  # kernel analysis results
-            config.prebuild_folder / 'algorithm_mod.4395707289.f90',  # prebuild
-            config.prebuild_folder / 'algorithm_mod_psy.4395707289.f90',  # prebuild
+            config.prebuild_folder / 'algorithm_mod.3327836028.f90',  # prebuild
+            config.prebuild_folder / 'algorithm_mod_psy.3327836028.f90',  # prebuild
         ]
 
         assert all(not f.exists() for f in expect_files)

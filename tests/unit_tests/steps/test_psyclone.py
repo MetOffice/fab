@@ -46,7 +46,7 @@ class Test_gen_prebuild_hash(object):
             'kernel2': 456,
         }
 
-        expect_hash = 1627026902
+        expect_hash = 223133615
 
         return psyclone_step, mp_payload, x90_file, expect_hash
 

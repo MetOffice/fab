@@ -74,7 +74,6 @@ class MpPayload:
     # these optionals aren't really optional, that's just for the constructor
     analysed_x90: Optional[Dict[Path, AnalysedX90]] = None
     all_kernel_hashes: Optional[Dict[str, int]] = None
-    removed_invoke_names: Optional[Dict[Path, List[str]]] = None
 
 
 class Psyclone(Step):
@@ -178,52 +177,47 @@ class Psyclone(Step):
         else:
             warnings.warn('no transformation script specified')
 
-        # Convert all the x90s to parsable fortran so they can be analysed.
-        # For each file, we get back the fpath of the temporary, parsable file plus any removed invoke() names.
-        # These names are part of our change detection.
-        # Note: We could use the hash of the original x90 instead of capturing the removed names...
+        # analyse the x90s
         x90s = artefact_store['preprocessed_x90']
-        with TimerLogger(f"converting {len(x90s)} x90s into parsable fortran"):
-            mp_results = self.run_mp(items=x90s, func=make_parsable_x90)
+        mp_payload.analysed_x90 = self._analyse_x90s(x90s)
 
-        # gather the paths of the parsable x90s we just created
-        parsable_x90: Set[Path] = {p for p, _ in mp_results}
-
-        # gather the name keywords which were removed from the x90s
-        mp_payload.removed_invoke_names = {path.with_suffix('.x90'): names for path, names in mp_results}
-
-        # Analyse the parsable x90s to see which kernels they use.
-        # Each x90 analysis result contains the kernels they depend on.
-        mp_payload.analysed_x90 = self._analyse_x90s(parsable_x90)
-        used_kernels = set(chain.from_iterable(x90.kernel_deps for x90 in mp_payload.analysed_x90.values()))
-        logger.info(f'found {len(used_kernels)} used kernels')
-
-        # Analyse *all* the kernel files, hashing the psyclone kernel metadata.
-        # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice,
-        # so we pass them through the general fortran analyser, which currently recognises kernel metadata.
+        # Analyse the kernel files, hashing the psyclone kernel metadata.
+        # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice.
+        # We pass them through the general fortran analyser, which currently recognises kernel metadata.
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
         mp_payload.all_kernel_hashes = self._analyse_kernels(self.kernel_roots)
 
         return mp_payload
 
-    def _analyse_x90s(self, parsable_x90: Set[Path]) -> Dict[Path, AnalysedX90]:
-        # Analyse the parsable version of the x90, finding kernel dependencies.
+    def _analyse_x90s(self, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
+        # Analyse parsable versions of the x90s, finding kernel dependencies.
+
+        # make parsable
+        with TimerLogger(f"converting {len(x90s)} x90s into parsable fortran"):
+            parsable_x90s = self.run_mp(items=x90s, func=make_parsable_x90)
+
+        # parse
         x90_analyser = X90Analyser()
         x90_analyser._config = self._config
-
-        with TimerLogger(f"analysing {len(parsable_x90)} parsable x90 files"):
-            x90_results = self.run_mp(items=parsable_x90, func=x90_analyser.run)
+        with TimerLogger(f"analysing {len(parsable_x90s)} parsable x90 files"):
+            x90_results = self.run_mp(items=parsable_x90s, func=x90_analyser.run)
         log_or_dot_finish(logger)
-        x90_analyses, x90_artefacts = zip(*x90_results) if x90_results else (tuple(), tuple())
+        x90_analyses, x90_artefacts = zip(*x90_results) if x90_results else ((), ())
         check_for_errors(results=x90_analyses)
 
         # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
         prebuild_files = list(by_type(x90_artefacts, Path))
         self._config.add_current_prebuilds(prebuild_files)
 
-        # record the analysis result against the original x90 filename (not the parsable version we analysed)
+        # record the analysis results against the original x90 filenames (not the parsable versions we analysed)
         analysed_x90 = by_type(x90_analyses, AnalysedX90)
-        return {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
+        analysed_x90 = {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
+
+        # make the hashes from the original x90s, not the parsable versions which have invoke names removed.
+        for p, r in analysed_x90.items():
+            analysed_x90[p]._file_hash = file_checksum(p).file_hash
+
+        return analysed_x90
 
     def _analyse_kernels(self, kernel_roots) -> Dict[str, int]:
         # We want to hash the kernel metadata (type defs).
@@ -321,13 +315,6 @@ class Psyclone(Step):
         # We've analysed (a parsable version of) this x90.
         analysis_result = mp_payload.analysed_x90[x90_file]  # type: ignore
 
-        # include the list of invoke names that were removed from this x90 before fortran analysis
-        # (alternatively, we could use the hash of the non-parsable x90 and not record removed names...)
-        # todo: chat about that sometime
-        removed_inkove_names = mp_payload.removed_invoke_names.get(x90_file)  # type: ignore
-        if removed_inkove_names is None:
-            raise FabException(f"No removed name data for path '{x90_file}'")
-
         # include the hashes of kernels used by this x90
         kernel_deps_hashes = {
             mp_payload.all_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}  # type: ignore
@@ -336,11 +323,8 @@ class Psyclone(Step):
         # todo: hash the psyclone version in case the built-in kernels change?
         prebuild_hash = sum([
 
-            # the parsable version of the x90
+            # the hash of the x90 (not of the parsable version, so includes invoke names)
             analysis_result.file_hash,
-
-            # the 'name=' keywords passed to invoke(), which were removed from the x90 to make it parsable
-            string_checksum(str(removed_inkove_names)),
 
             # the hashes of the kernels used by this x90
             sum(kernel_deps_hashes),
@@ -396,7 +380,7 @@ NAMED_INVOKE = 'call' + WHITE + 'invoke' + OPT_WHITE + r'\(' + OPT_WHITE + NAME_
 _x90_compliance_pattern = None
 
 
-def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
+def make_parsable_x90(x90_path: Path) -> Path:
     """
     Take out the leading name keyword in calls to invoke(), making temporary, parsable fortran from x90s.
 
@@ -404,7 +388,7 @@ def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
 
         call invoke( name = "compute_dry_mass", ...
 
-    Returns the path of the parsable file, plus any invoke() names which were removed.
+    Returns the path of the parsable file.
 
     This function is not slow so we're not creating prebuilds for this work.
 
@@ -423,7 +407,6 @@ def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     src = ''.join(no_comment_lines)
 
     replaced = []
-
     def repl(matchobj):
         # matchobj[0] contains the entire matching string, from "call" to the "," after the name keyword.
         # matchobj[1] contains the single group in the search pattern, which is defined in STRING.
@@ -436,4 +419,6 @@ def make_parsable_x90(x90_path: Path) -> Tuple[Path, List[str]]:
     out_path = x90_path.with_suffix('.parsable_x90')
     open(out_path, 'wt').write(out)
 
-    return out_path, replaced
+    logger.debug(f'names removes from {str(x90_path)}: {replaced}')
+
+    return out_path
