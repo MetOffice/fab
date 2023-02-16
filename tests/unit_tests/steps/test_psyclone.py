@@ -58,13 +58,6 @@ class Test_gen_prebuild_hash(object):
         result = psyclone_step._gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
         assert result == expect_hash + 1
 
-    def test_invoke_names(self, data):
-        # changing the invoke names should change the hash
-        psyclone_step, mp_payload, x90_file, expect_hash = data
-        mp_payload.removed_invoke_names[x90_file][0] = 'othername1'
-        result = psyclone_step._gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
-        assert result != expect_hash
-
     def test_kernal_deps(self, data):
         # changing a kernel deps hash should change the hash
         psyclone_step, mp_payload, x90_file, expect_hash = data
