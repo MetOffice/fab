@@ -37,10 +37,6 @@ class Test_gen_prebuild_hash(object):
                 kernel_deps={'kernel1', 'kernel2'})
         }
 
-        mp_payload.removed_invoke_names = {
-            x90_file: ['name1', 'name2'],
-        }
-
         mp_payload.all_kernel_hashes = {
             'kernel1': 345,
             'kernel2': 456,

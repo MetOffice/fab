@@ -98,11 +98,11 @@ class CompileC(Step):
         compiled_c = list(by_type(compilation_results, CompiledFile))
         logger.info(f"compiled {len(compiled_c)} c files")
 
-        # mark the prebuild files as being current, so the cleanup knows not to delete them
+        # record the prebuild files as being current, so the cleanup knows not to delete them
         prebuild_files = {r.output_fpath for r in compiled_c}
         config.add_current_prebuilds(prebuild_files)
 
-        # mark the compilation results for the next step
+        # record the compilation results for the next step
         self.store_artefacts(compiled_c, build_lists, artefact_store)
 
     # todo: very similar code in fortran compiler
