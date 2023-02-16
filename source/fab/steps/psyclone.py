@@ -15,11 +15,9 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from fab.tools import run_command
-
-from fab import FabException
 
 from fab.artefacts import SuffixFilter
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
@@ -407,6 +405,7 @@ def make_parsable_x90(x90_path: Path) -> Path:
     src = ''.join(no_comment_lines)
 
     replaced = []
+
     def repl(matchobj):
         # matchobj[0] contains the entire matching string, from "call" to the "," after the name keyword.
         # matchobj[1] contains the single group in the search pattern, which is defined in STRING.
