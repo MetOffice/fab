@@ -9,8 +9,9 @@ from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
+from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
-from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 

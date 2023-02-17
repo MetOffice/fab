@@ -222,7 +222,9 @@ class Psyclone(Step):
 
     def _analyse_kernels(self, kernel_roots) -> Dict[str, int]:
         # We want to hash the kernel metadata (type defs).
-        all_kernel_files: Set[Path] = set(*chain(file_walk(root) for root in kernel_roots))
+        # Ignore the prebuild folder. Todo: test the prebuild folder is ignored, in case someone breaks this.
+        file_lists = [file_walk(root, ignore_folders=[self._config.prebuild_folder]) for root in kernel_roots]
+        all_kernel_files: Set[Path] = set(*chain(file_lists))
         kernel_files: List[Path] = suffix_filter(all_kernel_files, ['.f90'])
 
         # We use the normal Fortran analyser, which records psyclone kernel metadata.
@@ -421,6 +423,6 @@ def make_parsable_x90(x90_path: Path) -> Path:
     out_path = x90_path.with_suffix('.parsable_x90')
     open(out_path, 'wt').write(out)
 
-    logger.debug(f'names removes from {str(x90_path)}: {replaced}')
+    logger.debug(f'names removed from {str(x90_path)}: {replaced}')
 
     return out_path

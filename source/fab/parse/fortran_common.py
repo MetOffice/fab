@@ -110,7 +110,7 @@ class FortranAnalyserBase(ABC):
 
         # do we already have analysis results for this file?
         if analysis_fpath.exists():
-            log_or_dot(logger, f"found fortran analysis prebuild for {fpath}")
+            log_or_dot(logger, f"found analysis prebuild for {fpath}")
 
             # Load the result file into whatever result class we use.
             loaded_result = self.result_class.load(analysis_fpath)
