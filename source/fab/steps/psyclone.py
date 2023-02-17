@@ -7,12 +7,6 @@
 A preprocessor and code generation step for PSyclone.
 https://github.com/stfc/PSyclone
 
-
-TODO: DESCRIBE THIS
-
-3 prebuild operations
-
-
 """
 from dataclasses import dataclass
 import logging
@@ -82,6 +76,12 @@ class MpPayload:
 
 class Psyclone(Step):
     """
+    Psyclone runner step.
+
+    This step stores prebuilt results to speed up subsequent builds.
+    To generate the prebuild hashes, it analyses the X90 and kernel files, storing prebuilt results for these also.
+
+    Kernel files are just normal Fortran, and the standard Fortran analyser is used to analyse them
 
     """
     def __init__(self, name=None, kernel_roots=None,
@@ -138,15 +138,13 @@ class Psyclone(Step):
         We'll build up this data in a payload object, to be passed to the child processes.
 
         Changes which must trigger reprocessing of an x90 file:
-         - x90 source, comprising:
-           - the parsable version of the source, with any invoke name keywords removed
-           - any removed invoke name keywords
+         - x90 source:
          - kernel metadata used by the x90
          - transformation script
          - cli args
 
         Later:
-         - psyclone version, to cover changes to built-in kernels
+         - the psyclone version, to cover changes to built-in kernels
 
         Kernels:
 
@@ -168,9 +166,8 @@ class Psyclone(Step):
         psyclone/domain/lfric/lfric_builtins.py#L2136>`_.
         They will not appear in use statements and can be ignored.
 
-        The Psyclone step and the Analyse step:
-        Both steps use the generic Fortran analyser, which recognises Psyclone kernel metadata.
-        Analysis results are saved and reused. It doesn't matter which step is first.
+        The Psyclone and Analyse steps both use the generic Fortran analyser, which recognises Psyclone kernel metadata.
+        The Analysis step must come after this step because it needs to analyse the fortran we create.
 
         """
         mp_payload = MpPayload()
