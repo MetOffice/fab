@@ -7,6 +7,12 @@
 A preprocessor and code generation step for PSyclone.
 https://github.com/stfc/PSyclone
 
+
+TODO: DESCRIBE THIS
+
+3 prebuild operations
+
+
 """
 from dataclasses import dataclass
 import logging
@@ -190,7 +196,7 @@ class Psyclone(Step):
     def _analyse_x90s(self, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
         # Analyse parsable versions of the x90s, finding kernel dependencies.
 
-        # make parsable
+        # make parsable - todo: fast enough not to require prebuilds?
         with TimerLogger(f"converting {len(x90s)} x90s into parsable fortran"):
             parsable_x90s = self.run_mp(items=x90s, func=make_parsable_x90)
 

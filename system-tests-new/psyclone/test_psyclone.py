@@ -17,7 +17,8 @@ from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor, tool_available
+from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor, tool_available, MpPayload
+from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
 
@@ -80,11 +81,11 @@ class TestX90Analyser(object):
         assert analysed_x90 == self.expected_analysis_result
 
 
-class Test_analysis(object):
+class Test_analysis_for_prebuilds(object):
 
     @pytest.fixture
     def psyclone_step(self, tmp_path) -> Psyclone:
-        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
+        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent], transformation_script=__file__)
         psyclone_step._config = BuildConfig('proj', fab_workspace=tmp_path)
         psyclone_step._config._prep_output_folders()
         return psyclone_step
@@ -92,19 +93,20 @@ class Test_analysis(object):
     def test_analyse(self, psyclone_step):
 
         artefact_store = {'preprocessed_x90': [SAMPLE_X90]}
-        mp_payload = psyclone_step.analysis_for_prebuilds(artefact_store=artefact_store)
+        mp_payload: MpPayload = psyclone_step.analysis_for_prebuilds(artefact_store=artefact_store)
 
+        # transformation_script_hash
+        assert mp_payload.transformation_script_hash == file_checksum(__file__).file_hash
+
+        # analysed_x90
+        assert mp_payload.analysed_x90 == {
+            SAMPLE_X90: AnalysedX90(
+                fpath=SAMPLE_X90.with_suffix('.parsable_x90'),
+                file_hash=file_checksum(SAMPLE_X90).file_hash,
+                kernel_deps={'kernel_one_type', 'kernel_two_type'})}
+
+        # all_kernel_hashes
         assert mp_payload.all_kernel_hashes == {
-            'kernel_one_type': 2915127408,
-            'kernel_two_type': 3793991362,
-            'kernel_three_type': 319981435,
-            'kernel_four_type': 1427207736,
-        }
-
-    def test_analyse_kernels(self, psyclone_step):
-        all_kernels = psyclone_step._analyse_kernels(kernel_roots=[SAMPLE_KERNEL.parent])
-
-        assert all_kernels == {
             'kernel_one_type': 2915127408,
             'kernel_two_type': 3793991362,
             'kernel_three_type': 319981435,
@@ -118,13 +120,11 @@ class TestPsyclone(object):
     Basic run of the psyclone step.
 
     """
-    def test_run(self, tmp_path):
+    @pytest.fixture
+    def config(self, tmp_path):
         here = Path(__file__).parent
-        print('here = ', here)
 
         config = BuildConfig('proj', fab_workspace=tmp_path, verbose=True, multiprocessing=False)
-        # config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False)
-
         config.steps = [
             GrabFolder(here / 'skeleton'),
             FindSourceFiles(),
@@ -137,12 +137,14 @@ class TestPsyclone(object):
             Psyclone(kernel_roots=[config.build_output / 'kernel']),
         ]
 
-        # if these files exist after the run then know:
+        return config
+
+    def test_run(self, config):
+        # if these files exist after the run then we know:
         #   a) the expected files were created
         #   b) the prebuilds were protected from automatic cleanup
         expect_files = [
             # there should be an f90 and a _psy.f90 built from the x90
-            config.build_output / 'algorithm/algorithm_mod.parsable_x90',
             config.build_output / 'algorithm/algorithm_mod.f90',
             config.build_output / 'algorithm/algorithm_mod_psy.f90',
 
@@ -157,3 +159,16 @@ class TestPsyclone(object):
         assert all(not f.exists() for f in expect_files)
         config.run()
         assert all(f.exists() for f in expect_files)
+
+    def test_prebuild(self, tmp_path, config):
+        config.run()
+
+        # make sure no work gets done the second time round
+        with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk:
+            with mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk:
+                with mock.patch('fab.steps.psyclone.Psyclone.run_psyclone') as mock_run:
+                    config.run()
+
+        mock_x90_walk.assert_not_called()
+        mock_fortran_walk.assert_not_called()
+        mock_run.assert_not_called()
