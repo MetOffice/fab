@@ -110,8 +110,8 @@ class AnalysedFile(ABC):
         # Build up a list of things to hash, from our attributes.
         # We use self.field_names() rather than vars(self) because we want to evaluate any lazy attributes.
         # We turn dicts and sets into sorted tuples for hashing.
-        # todo: There's a good reason dicts and sets aren't hashable, so we should be sure we're happy doing this.
-        #       Discuss.
+        # todo: There's a good reason dicts and sets aren't supposed to be hashable.
+        #       Please see https://github.com/metomi/fab/issues/229
         things = set()
         for field_name in self.field_names():
             thing = getattr(self, field_name)
@@ -143,4 +143,5 @@ class EmptySourceFile(AnalysedFile):
 
     @classmethod
     def from_dict(cls, d):
+        # todo: load & save should be implemented here and used by the calling code, to save reanalysis.
         raise NotImplementedError

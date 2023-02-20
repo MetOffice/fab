@@ -104,21 +104,6 @@ class AnalysedFortran(AnalysedDependent):
             'psyclone_kernels',
         ]
 
-    def __hash__(self):
-        # If we haven't been given a file hash, we can't be hashed (i.e. put into a set) until the target file exists.
-        # This only affects user workarounds of fparser issues when the user has not provided a file hash.
-        return hash((
-            self.fpath,
-            self.file_hash,  # this is a lazily evaluated property
-            tuple(sorted(self.module_defs)),
-            tuple(sorted(self.symbol_defs)),
-            tuple(sorted(self.module_deps)),
-            tuple(sorted(self.symbol_deps)),
-            tuple(sorted(self.file_deps)),
-            tuple(sorted(self.mo_commented_file_deps)),
-            tuple(sorted(self.psyclone_kernels.items())),
-        ))
-
     def to_dict(self) -> Dict[str, Any]:
         # These dicts will be written to json files, so can't contain sets.
         # We sort the lists for reproducibility in testing.
