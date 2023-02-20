@@ -16,15 +16,13 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-    - name: install sphinx
-      run: pip install sphinx sphinx-rtd-theme
     - name: install fab
       run: pip install .[docs]
     - name: build docs
       run: |
         cd docs
         rm -rf build
-        sphinx-apidoc --separate --module-first -d 3 -f -o source/apidoc ../source/fab
+        sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
         make html
     - name: move built docs to docs root
       run: |
