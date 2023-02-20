@@ -54,7 +54,7 @@ A grab step will copy files from a folder or remote repo into the project worksp
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import GrabFcm
+    from fab.steps.grab import FcmExport
 
     config = BuildConfig(
         project_label='my project',
@@ -109,7 +109,7 @@ It was added to the :term:`Artefact Store` by the preceding step.
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import GrabFcm
+    from fab.steps.grab import FcmExport
     from fab.steps.preprocess import fortran_preprocessor
 
     config = BuildConfig(
@@ -141,7 +141,7 @@ We must :class:`~fab.steps.analyse.Analyse` the source code to determine the For
     from fab.steps.analyse import Analyse
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import GrabFcm
+    from fab.steps.grab import FcmExport
     from fab.steps.preprocess import fortran_preprocessor
 
     config = BuildConfig(
@@ -175,7 +175,7 @@ in the build output folder. The :class:`~fab.steps.link.LinkExe` step then creat
     from fab.steps.compile_fortran import CompileFortran
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import GrabFcm
+    from fab.steps.grab import FcmExport
     from fab.steps.link import LinkExe
     from fab.steps.preprocess import fortran_preprocessor
 
