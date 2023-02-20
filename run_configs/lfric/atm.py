@@ -12,11 +12,12 @@ from fab.steps.grab.fcm import GrabFcm
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
+from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
 
 logger = logging.getLogger('fab')
 

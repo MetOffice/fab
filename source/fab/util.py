@@ -292,6 +292,7 @@ def common_arg_parser() -> ArgumentParser:
     """
     # consider adding preprocessor, linker, optimisation, two-stage
     arg_parser = ArgumentParser()
+    arg_parser.add_argument('--compiler', default=None)
     arg_parser.add_argument('--two-stage', action='store_true')
     arg_parser.add_argument('--verbose', action='store_true')
 
