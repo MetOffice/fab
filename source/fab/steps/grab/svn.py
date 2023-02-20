@@ -82,7 +82,7 @@ class GrabSvnBase(GrabSourceBase, ABC):
         # return the command line argument to specif the revision, if there is one
         return ['--revision', str(self.revision)] if self.revision is not None else []
 
-    def _is_working_copy(self, dst: Union[str, Path]) -> bool:
+    def is_working_copy(self, dst: Union[str, Path]) -> bool:
         # is the given path is a working copy?
         try:
             run_command([self.command, 'info'], cwd=dst)
@@ -129,7 +129,7 @@ class SvnCheckout(GrabSvnBase):
 
         else:
             # working copy?
-            if self._is_working_copy(self._dst):  # type: ignore
+            if self.is_working_copy(self._dst):  # type: ignore
                 # update
                 # todo: ensure the existing checkout is from self.src?
                 run_command([self.command, 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
@@ -146,7 +146,7 @@ class SvnMerge(GrabSvnBase):
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        if not self._dst or not self._is_working_copy(self._dst):
+        if not self._dst or not self.is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
         else:
             # We seem to need the url and version combined for this operation.
