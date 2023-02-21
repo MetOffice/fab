@@ -33,10 +33,15 @@ def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildC
     fpp, fpp_flags = get_fortran_preprocessor()
     fc, fc_flags = get_fortran_compiler()
 
-    if fc == 'gfortran':
-        link_step = LinkExe(linker='gcc', flags=['-lgfortran'])
-    else:
-        raise NotImplementedError(f"Fab's zero config not yet configured for compiler: '{fc}'")
+    # linker and flags depend on compiler
+    linkers = {
+        'gfortran': ('gcc', ['-lgfortran']),
+        # 'ifort': (..., [...])
+    }
+    try:
+        linker, linker_flags = linkers[fc]
+    except KeyError:
+        raise NotImplementedError(f"Fab's zero configuration mode does not yet work with compiler '{fc}'")
 
     config = BuildConfig(
         project_label=label,
@@ -56,7 +61,7 @@ def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildC
             CompileFortran(compiler=fc, common_flags=fc_flags),
             CompileC(),
 
-            link_step,
+            LinkExe(linker=linker, flags=linker_flags),
         ],
         **kwargs,
     )
@@ -71,12 +76,8 @@ def cli_fab():
     """
     arg_parser = ArgumentParser()
     arg_parser.add_argument('folder', nargs='?', default='.', type=Path)
-    arg_parser.add_argument('-v', '--version', action='store_true')
+    arg_parser.add_argument('--version', action='version', version=f'%(prog)s {fab.__version__}')
     args = arg_parser.parse_args()
-
-    if args.version:
-        print('Fab', fab.__version__)
-        exit(0)
 
     config = _generic_build_config(args.folder)
 

@@ -474,7 +474,7 @@ class Test_get_fortran_preprocessor(object):
             if 'fpp' not in command:
                 raise RuntimeError('foo')
 
-        with mock.patch.dict(os.environ, values={'FPP': ''}):
+        with mock.patch.dict(os.environ, clear=True):
             with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
                 fpp, fpp_flags = get_fortran_preprocessor()
 
