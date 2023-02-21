@@ -23,7 +23,7 @@ from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.grab.fcm import GrabFcm
+from fab.steps.grab.fcm import FcmExport
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
@@ -74,19 +74,19 @@ def um_atmos_safe_config(revision, two_stage=False):
         # todo: these repo defs could make a good set of reusable variables
 
         # UM 12.1, 16th November 2021
-        GrabFcm(src='fcm:um.xm_tr/src', dst='um', revision=revision),
+        FcmExport(src='fcm:um.xm_tr/src', dst='um', revision=revision),
 
         # JULES 6.2, for UM 12.1
-        GrabFcm(src='fcm:jules.xm_tr/src', dst='jules', revision=um_revision),
+        FcmExport(src='fcm:jules.xm_tr/src', dst='jules', revision=um_revision),
 
         # SOCRATES 21.11, for UM 12.1
-        GrabFcm(src='fcm:socrates.xm_tr/src', dst='socrates', revision=um_revision),
+        FcmExport(src='fcm:socrates.xm_tr/src', dst='socrates', revision=um_revision),
 
         # SHUMLIB, for UM 12.1
-        GrabFcm(src='fcm:shumlib.xm_tr/', dst='shumlib', revision=um_revision),
+        FcmExport(src='fcm:shumlib.xm_tr/', dst='shumlib', revision=um_revision),
 
         # CASIM, for UM 12.1
-        GrabFcm(src='fcm:casim.xm_tr/src', dst='casim', revision=um_revision),
+        FcmExport(src='fcm:casim.xm_tr/src', dst='casim', revision=um_revision),
 
 
         MyCustomCodeFixes(name="my custom code fixes"),
