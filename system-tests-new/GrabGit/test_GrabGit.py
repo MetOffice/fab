@@ -20,7 +20,6 @@ With this we can test grabbing a branch, tag and commit.
 from pathlib import Path
 from unittest import mock
 
-import git
 import pytest
 
 from fab.steps.grab.git import GrabGit

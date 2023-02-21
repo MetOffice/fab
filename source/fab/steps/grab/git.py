@@ -3,113 +3,144 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+from abc import ABC
 from pathlib import Path
-from typing import Union, Dict
+from typing import Union, Dict, Tuple
+import xml.etree.ElementTree as ET
 
 from fab.steps.grab import GrabSourceBase
-
-try:
-    import git
-except ImportError:
-    git = None  # type: ignore
+from fab.tools import run_command
 
 
-class GrabGit(GrabSourceBase):
+class GrabGitBase(GrabSourceBase, ABC):
     """
-    Grab a Git repo into the project workspace.
-
-    A destination name must be specified because each git repo needs to be in a separate folder.
-
-    .. note::
-
-        A revision must be specified.
-        If `shallow` is set (the default), then the revision should be a branch or tag.
-        If `shallow` is not set, the revision can also be a commit hash.
-
-    A `shallow` grab clones/fetches only the given revision, with no history.
-    Otherwise, the full repo is cloned including all branches and history.
-
-    Example::
-
-        GrabGit(src='~/git/my_project', revision='v0.1b')
-        GrabGit(src='https://github.com/me/my_project.git', revision='a1b2c3', shallow=False)
+    Base class for Git operations.
 
     """
-
-    def __init__(self, src: Union[Path, str], dst: str = None,  # type: ignore
-                 revision=None, shallow: bool = True, name=None):
+    def __init__(self, src: str, dst: str, revision=None, name=None):
         """
-        Params as for :class:`~fab.steps.grab.GrabSourceBase`, plus the following.
-
-        :param shallow:
-            This flag causes the grab to be quick and shallow, fetching just the branch and no history.
-            You may need to turn this off when fetching a commit hash.
+        :param src:
+            Such as `https://github.com/metomi/fab-test-data.git`.
+        :param dst:
+            The name of a sub folder, in the project workspace, in which to put the source.
+            If not specified, the code is copied into the root of the source folder.
+        :param revision:
+            E.g 'vn6.3'.
+        :param name:
+            Human friendly name for logger output, with sensible default.
 
         """
-        if not revision:
-            raise ValueError("GrabGit (currently) requires a revision to be specifed.")
+        super().__init__(src, dst, name=name, revision=revision)
 
-        if not dst:
-            raise ValueError("A destination name must be specified to GrabGit.")
+    def run(self, artefact_store: Dict, config):
+        if not self.tool_available():
+            raise RuntimeError("git command line tool not available")
+        super().run(artefact_store, config)
 
-        super().__init__(src=str(src), dst=dst, revision=revision, name=name)
+    @classmethod
+    def tool_available(cls) -> bool:
+        """Is the command line tool available?"""
+        try:
+            run_command(['git', 'help'])
+        except FileNotFoundError:
+            return False
+        return True
 
-        self.shallow = shallow
+    # def _cli_revision_parts(self):
+    #     # return the command line argument to specif the revision, if there is one
+    #     return ['--branch', str(self.revision)] if self.revision is not None else []
 
+    def is_working_copy(self, dst: Union[str, Path]) -> bool:
+        # is the given path is a working copy?
+        try:
+            run_command(['git', 'status'], cwd=dst)
+        except RuntimeError:
+            return False
+        return True
+
+
+class GitExport(GrabGitBase):
+    """
+    Export a git repo folder to the project workspace.
+
+    """
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        if not git:
-            raise ImportError('git not installed, unable to continue')
+        command = ['git', 'archive', '--remote', self.src]
+        # todo untar
+        assert False
 
-        our_repo = self._fetch()
-        ref = self._find_ref(our_repo)
+        if self.revision:
+            command.append(self.revision)
 
-        # point head to the revision reference and "checkout"
-        our_repo.head.reference = ref
-        our_repo.head.reset(index=True, working_tree=True)
+        run_command(command, str(self._dst))
 
-    def _fetch(self):
-        # fetch the branch/tag/commit
-        fetch_args = [self.revision] if self.shallow else []
-        fetch_kwargs = {'depth': 1, 'tags': True} if self.shallow else {'tags': True}
 
+class GitCheckout(GrabGitBase):
+    """
+    Checkout or update a Git repo.
+
+    .. note::
+        If the destination is a working copy, it will be updated to the given revision, **ignoring the source url**.
+        As such, the revision should be provided via the argument, not as part of the url.
+
+    """
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
+
+        # new folder?
         if not self._dst.exists():  # type: ignore
-            our_repo = git.Repo.init(self._dst, mkdir=True)
-            our_repo.create_remote('origin', self.src)
+            revision_parts = ['--branch', str(self.revision)] if self.revision is not None else []
+            run_command([
+                'git', 'clone',
+                *revision_parts,
+                self.src, str(self._dst)
+            ])
+
         else:
-            our_repo = git.Repo(self._dst)
+            # working copy?
+            if self.is_working_copy(self._dst):  # type: ignore
+                # update
+                # todo: ensure the existing checkout is from self.src?
+                revision_parts = [str(self.revision)] if self.revision is not None else []
+                run_command([
+                    'git', 'checkout',
+                    remote,
+                    *revision_parts,
+                ], cwd=self._dst)
+            else:
+                # we can't deal with an existing folder that isn't a working copy
+                raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
 
-        our_repo.remotes['origin'].fetch(*fetch_args, **fetch_kwargs)
 
-        return our_repo
+class GitMerge(GrabGitBase):
+    """
+    Merge a git repo into a local working copy.
 
-    def _find_ref(self, our_repo):
-        # find the revision
-        ref = None
+    """
+    def run(self, artefact_store: Dict, config):
+        super().run(artefact_store, config)
+        if not self._dst or not self.is_working_copy(self._dst):
+            raise ValueError(f"destination is not a working copy: '{self._dst}'")
 
-        # try our branches & tags
-        try:
-            ref = our_repo.refs[self.revision]
-        except IndexError:
-            pass
+        # we need to make sure the src is in the list of remotes
 
-        # try our commits
-        if not ref:
-            try:
-                ref = our_repo.commit(self.revision)
-            except git.BadName:
-                pass
+        run_command(['git', 'merge', self.revision], cwd=self._dst)
+        self.check_conflict()
 
-        # try the origin repo
-        if not ref:
-            try:
-                origin_ref = our_repo.remotes['origin'].refs[self.revision]
-                our_repo.create_head(self.revision, origin_ref.commit)
-                ref = our_repo.refs[self.revision]
-            except IndexError:
-                pass
+    def check_conflict(self):
+        # check if there's a conflict
+        xml_str = run_command([self.command, 'status', '--xml'], cwd=self._dst)
+        root = ET.fromstring(xml_str)
 
-        if not ref:
-            raise ValueError(f"can't find branch/tag/commit {self.revision}")
-        return ref
+        for target in root:
+            if target.tag != 'target':
+                continue
+            for entry in target:
+                if entry.tag != 'entry':
+                    continue
+                for element in entry:
+                    if element.tag == 'wc-status' and element.attrib['item'] == 'conflicted':
+                        raise RuntimeError(f'{self.command} merge encountered a conflict:\n{xml_str}')
+        return False

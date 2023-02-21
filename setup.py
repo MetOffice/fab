@@ -22,7 +22,7 @@ with open(os.path.join(_here, 'source', 'fab', '__init__.py'),
 
 tests = ['pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy']
 docs = ['sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints']
-features = ['GitPython', 'matplotlib']
+features = ['matplotlib']
 
 setuptools.setup(
     name='sci-fab',

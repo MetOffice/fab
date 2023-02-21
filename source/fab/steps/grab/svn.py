@@ -145,19 +145,18 @@ class SvnMerge(GrabSvnBase):
     """
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
-
         if not self._dst or not self.is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
-        else:
-            # We seem to need the url and version combined for this operation.
-            # The help for fcm merge says it accepts the --revision param, like other commands,
-            # but it doesn't seem to be recognised.
-            rev_url = f'{self.src}'
-            if self.revision is not None:
-                rev_url += f'@{self.revision}'
 
-            run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
-            self.check_conflict()
+        # We seem to need the url and version combined for this operation.
+        # The help for fcm merge says it accepts the --revision param, like other commands,
+        # but it doesn't seem to be recognised.
+        rev_url = f'{self.src}'
+        if self.revision is not None:
+            rev_url += f'@{self.revision}'
+
+        run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
+        self.check_conflict()
 
     def check_conflict(self):
         # check if there's a conflict
