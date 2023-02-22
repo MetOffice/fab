@@ -26,24 +26,28 @@ class Test_gen_prebuild_hash(object):
         psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
         psyclone_step._config = config
 
-        mp_payload = MpPayload()
-        mp_payload.transformation_script_hash = 123
+        transformation_script_hash = 123
 
         x90_file = Path('foo.x90')
-        mp_payload.analysed_x90 = {
+        analysed_x90 = {
             x90_file: AnalysedX90(
                 fpath=x90_file,
                 file_hash=234,
                 kernel_deps={'kernel1', 'kernel2'})
         }
 
-        mp_payload.all_kernel_hashes = {
+        all_kernel_hashes = {
             'kernel1': 345,
             'kernel2': 456,
         }
 
         expect_hash = 223133615
 
+        mp_payload = MpPayload(
+            transformation_script_hash=transformation_script_hash,
+            analysed_x90=analysed_x90,
+            all_kernel_hashes=all_kernel_hashes,
+        )
         return psyclone_step, mp_payload, x90_file, expect_hash
 
     def test_vanilla(self, data):

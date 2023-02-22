@@ -45,7 +45,7 @@ def mesh_tools_config(two_stage=False, opt='Og'):
 
         fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
-        psyclone_preprocessor(),
+        psyclone_preprocessor(common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 
         Psyclone(kernel_roots=[config.build_output]),
 

@@ -67,7 +67,7 @@ def gungho_config(two_stage=False, opt='Og'):
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
             ]),
 
-        psyclone_preprocessor(),
+        psyclone_preprocessor(common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 
         Psyclone(
             kernel_roots=[config.build_output],

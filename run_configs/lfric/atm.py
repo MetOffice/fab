@@ -105,7 +105,7 @@ def atm_config(two_stage=False, opt='Og'):
         ),
 
         # todo: put this inside the psyclone step, no need for it to be separate, there's nothing required between them
-        psyclone_preprocessor(set_um_physics=True),
+        psyclone_preprocessor(common_flags=['-DUM_PHYSICS', '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 
         Psyclone(
             kernel_roots=[config.build_output],

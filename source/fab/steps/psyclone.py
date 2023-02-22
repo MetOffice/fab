@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Set
 
 from fab.tools import run_command
 
-from fab.artefacts import SuffixFilter
+from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import Step, check_for_errors
@@ -39,24 +39,19 @@ def tool_available() -> bool:
 
 
 # todo: should this be part of the psyclone step?
-def psyclone_preprocessor(set_um_physics=False):
-    um_physics = ['-DUM_PHYSICS'] if set_um_physics else []
+def psyclone_preprocessor(common_flags: Optional[List[str]] = None):
+    common_flags = common_flags or []
 
     return PreProcessor(
         # todo: use env vars and param
         preprocessor='cpp -traditional-cpp',
 
-        # todo: the input files changed to upper X90 at some point - handle both
-        source=SuffixFilter('all_source', '.x90'),
+        source=SuffixFilter('all_source', '.X90'),
         output_collection='preprocessed_x90',
 
         output_suffix='.x90',
         name='preprocess x90',
-        common_flags=[
-            '-P',
-            '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED',
-            *um_physics,
-        ],
+        common_flags=common_flags + ['-P'],
     )
 
 
@@ -68,10 +63,15 @@ class MpPayload:
     Contains data used to calculate the prebuild hash.
 
     """
+    analysed_x90: Dict[Path, AnalysedX90]
+    all_kernel_hashes: Dict[str, int]
     transformation_script_hash: int = 0
-    # these optionals aren't really optional, that's just for the constructor
-    analysed_x90: Optional[Dict[Path, AnalysedX90]] = None
-    all_kernel_hashes: Optional[Dict[str, int]] = None
+
+
+DEFAULT_SOURCE_GETTER = CollectionConcat([
+    'preprocessed_x90',  # any X90 we've preprocessed this run
+    SuffixFilter('all_source', '.x90'),  # any already preprocessed x90 we pulled in
+])
 
 
 class Psyclone(Step):
@@ -86,7 +86,8 @@ class Psyclone(Step):
     """
     def __init__(self, name=None, kernel_roots=None,
                  transformation_script: Optional[Path] = None,
-                 cli_args: Optional[List[str]] = None):
+                 cli_args: Optional[List[str]] = None,
+                 source_getter: Optional[ArtefactsGetter] = None):
         super().__init__(name=name or 'psyclone')
         self.kernel_roots = kernel_roots or []
         self.transformation_script = transformation_script
@@ -94,12 +95,14 @@ class Psyclone(Step):
         # "the gross switch which turns off MPI usage is a command-line argument"
         self.cli_args: List[str] = cli_args or []
 
+        self.source_getter = source_getter or DEFAULT_SOURCE_GETTER
+
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
-        x90s = artefact_store['preprocessed_x90']
+        x90s = self.source_getter(artefact_store)
 
         # get the data for child processes to calculate prebuild hashes
-        mp_payload = self.analysis_for_prebuilds(artefact_store)
+        mp_payload = self.analysis_for_prebuilds(x90s)
 
         # run psyclone.
         # for every file, we get back a list of its output files plus a list of the prebuild copies.
@@ -129,7 +132,7 @@ class Psyclone(Step):
         # assert False
 
     # todo: test that we can run this step before or after the analysis step
-    def analysis_for_prebuilds(self, artefact_store) -> MpPayload:
+    def analysis_for_prebuilds(self, x90s) -> MpPayload:
         """
         Analysis for PSyclone prebuilds.
 
@@ -170,25 +173,27 @@ class Psyclone(Step):
         The Analysis step must come after this step because it needs to analyse the fortran we create.
 
         """
-        mp_payload = MpPayload()
-
         # hash the transformation script
         if self.transformation_script:
-            mp_payload.transformation_script_hash = file_checksum(self.transformation_script).file_hash
+            transformation_script_hash = file_checksum(self.transformation_script).file_hash
         else:
             warnings.warn('no transformation script specified')
+            transformation_script_hash = 0
 
         # analyse the x90s
-        x90s = artefact_store['preprocessed_x90']
-        mp_payload.analysed_x90 = self._analyse_x90s(x90s)
+        analysed_x90 = self._analyse_x90s(x90s)
 
         # Analyse the kernel files, hashing the psyclone kernel metadata.
         # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice.
         # We pass them through the general fortran analyser, which currently recognises kernel metadata.
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
-        mp_payload.all_kernel_hashes = self._analyse_kernels(self.kernel_roots)
+        all_kernel_hashes = self._analyse_kernels(self.kernel_roots)
 
-        return mp_payload
+        return MpPayload(
+            transformation_script_hash=transformation_script_hash,
+            analysed_x90=analysed_x90,
+            all_kernel_hashes=all_kernel_hashes
+        )
 
     def _analyse_x90s(self, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
         # Analyse parsable versions of the x90s, finding kernel dependencies.
@@ -383,6 +388,7 @@ NAMED_INVOKE = 'call' + WHITE + 'invoke' + OPT_WHITE + r'\(' + OPT_WHITE + NAME_
 _x90_compliance_pattern = None
 
 
+# todo: In the future, we'd like to extend fparser to handle the leading invoke keywords. (Lots of effort.)
 def make_parsable_x90(x90_path: Path) -> Path:
     """
     Take out the leading name keyword in calls to invoke(), making temporary, parsable fortran from x90s.

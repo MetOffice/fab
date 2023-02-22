@@ -32,6 +32,11 @@ EXPECT_PARSABLE_X90 = Path(__file__).parent / 'expect.parsable_x90'
 NAME_KEYWORDS = ['name a', 'name b', 'name c', 'name d', 'name e', 'name f']
 
 
+# todo: Tidy up the test data in here. There are two sample projects, one not even in its own subfolder.
+#       Make the skeleton sample call more than one kernel.
+#       Make the skeleton sample include a big X90 and a little x90.
+
+
 def test_make_parsable_x90(tmp_path):
     # turn x90 into parsable fortran by removing the name keyword from calls to invoke
     grab_x90_path = SAMPLE_X90
@@ -49,7 +54,10 @@ def test_make_parsable_x90(tmp_path):
     # ensure the files are as expected
     assert filecmp.cmp(parsable_x90_path, EXPECT_PARSABLE_X90)
 
-    # don't leave this in my git repo
+    # make_parsable_x90() puts its output file next to the source.
+    # Because we're reading sample code from our Fab git repos,
+    # we don't want to leave this test output in our working copies, so delete it.
+    # Otherwise, it'll appear in the output from `git status`.
     unlink(parsable_x90_path)
 
 
@@ -92,8 +100,7 @@ class Test_analysis_for_prebuilds(object):
 
     def test_analyse(self, psyclone_step):
 
-        artefact_store = {'preprocessed_x90': [SAMPLE_X90]}
-        mp_payload: MpPayload = psyclone_step.analysis_for_prebuilds(artefact_store=artefact_store)
+        mp_payload: MpPayload = psyclone_step.analysis_for_prebuilds(x90s=[SAMPLE_X90])
 
         # transformation_script_hash
         assert mp_payload.transformation_script_hash == file_checksum(__file__).file_hash
@@ -150,10 +157,10 @@ class TestPsyclone(object):
 
             # Expect these prebuild files
             # todo: the kernal hash differs between fpp and cpp, perhaps just use wildcards.
-            config.prebuild_folder / 'algorithm_mod.235114589.an',  # x90 analysis result
+            config.prebuild_folder / 'algorithm_mod.1602753696.an',  # x90 analysis result
             config.prebuild_folder / 'my_kernel_mod.4187107526.an',  # kernel analysis results
-            config.prebuild_folder / 'algorithm_mod.3327836028.f90',  # prebuild
-            config.prebuild_folder / 'algorithm_mod_psy.3327836028.f90',  # prebuild
+            config.prebuild_folder / 'algorithm_mod.5088673431.f90',  # prebuild
+            config.prebuild_folder / 'algorithm_mod_psy.5088673431.f90',  # prebuild
         ]
 
         assert all(not f.exists() for f in expect_files)
