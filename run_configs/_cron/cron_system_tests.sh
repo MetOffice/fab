@@ -22,7 +22,7 @@ git clone --branch master --depth 1 https://github.com/metomi/fab.git 2>&1 >/dev
 1>&2 echo "removing old conda"
 conda env remove --name cron-fab-system-tests
 1>&2 echo "creating conda"
-conda env create -f fab/dev_envs/dev_env.yml --name cron-fab-system-tests
+conda env create -f fab/envs/conda/dev_env.yml --name cron-fab-system-tests
 
 # install the head of fab trunk
 1>&2 echo "activating conda 1/2"
