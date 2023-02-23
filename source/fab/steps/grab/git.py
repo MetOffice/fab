@@ -12,15 +12,45 @@ from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
 
+def tool_available() -> bool:
+    """Is the command line git tool available?"""
+    try:
+        run_command(['git', 'help'])
+    except FileNotFoundError:
+        return False
+    return True
+
+
+def get_remotes() -> Dict[str, str]:
+    """Get the remotes as a mapping from label to url."""
+    output = run_command(['git', 'remote', '-v'])
+    lines = output.split('\n')
+    remotes = {}
+    for line in lines:
+        if line:
+            split = line.split()
+            remotes[split[0]] = split[1]
+    return remotes
+
+
+def _next_name(base, current_names, i=1):
+    """Return the next name in the sequence <base><n>."""
+    while True:
+        next = f'{base}{i}'
+        if next not in current_names:
+            return next
+        i += 1
+
+
 class GrabGitBase(GrabSourceBase, ABC):
     """
     Base class for Git operations.
 
     """
-    def __init__(self, src: str, dst: str, revision=None, name=None):
+    def __init__(self, src: Union[str, Path], dst: str, revision=None, name=None):
         """
         :param src:
-            Such as `https://github.com/metomi/fab-test-data.git`.
+            Such as `https://github.com/metomi/fab-test-data.git` or path to a local working copy.
         :param dst:
             The name of a sub folder, in the project workspace, in which to put the source.
             If not specified, the code is copied into the root of the source folder.
@@ -33,57 +63,60 @@ class GrabGitBase(GrabSourceBase, ABC):
         super().__init__(src, dst, name=name, revision=revision)
 
     def run(self, artefact_store: Dict, config):
-        if not self.tool_available():
+        if not tool_available():
             raise RuntimeError("git command line tool not available")
         super().run(artefact_store, config)
 
-    @classmethod
-    def tool_available(cls) -> bool:
-        """Is the command line tool available?"""
-        try:
-            run_command(['git', 'help'])
-        except FileNotFoundError:
-            return False
-        return True
-
-    # def _cli_revision_parts(self):
-    #     # return the command line argument to specif the revision, if there is one
-    #     return ['--branch', str(self.revision)] if self.revision is not None else []
-
     def is_working_copy(self, dst: Union[str, Path]) -> bool:
-        # is the given path is a working copy?
+        """Is the given path is a working copy?"""
         try:
             run_command(['git', 'status'], cwd=dst)
         except RuntimeError:
             return False
         return True
 
+    def fetch(self) -> str:
+        """
+        Fetch the source url, adding a new remote if necessary.
 
-class GitExport(GrabGitBase):
-    """
-    Export a git repo folder to the project workspace.
+        Returns the remote alias.
 
-    """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
+        """
+        # todo: check it's a url not a path?
+        remotes = get_remotes()
+        if self.src not in remotes.values():
+            remote_name = self.add_remote()
+        else:
+            remote_name = [k for k, v in remotes.items() if v == self.src][0]
 
-        command = ['git', 'archive', '--remote', self.src]
-        # todo untar
-        assert False
-
+        # ok it's a remote, we can fetch
+        command = ['git', 'fetch', '--depth', '1', remote_name]
         if self.revision:
             command.append(self.revision)
 
-        run_command(command, str(self._dst))
+        run_command(command)
+        return remote_name
+
+    def add_remote(self) -> str:
+        """
+        Add a new remote with the name `remote<n>`
+
+        Returns the remote alias.
+
+        """
+        # todo: check it's a url not a path?
+        remotes = get_remotes()
+        remote_name = _next_name(base='remote', current_names=remotes.keys())
+        run_command(['git', 'remote', 'add', remote_name, self.src])
+        return remote_name
 
 
+# todo: allow cli args, e.g to set the depth
 class GitCheckout(GrabGitBase):
     """
     Checkout or update a Git repo.
 
-    .. note::
-        If the destination is a working copy, it will be updated to the given revision, **ignoring the source url**.
-        As such, the revision should be provided via the argument, not as part of the url.
+    If a revision is provided, no history is fetched.
 
     """
     def run(self, artefact_store: Dict, config):
@@ -94,21 +127,23 @@ class GitCheckout(GrabGitBase):
             revision_parts = ['--branch', str(self.revision)] if self.revision is not None else []
             run_command([
                 'git', 'clone',
+                '--depth', '1',
                 *revision_parts,
                 self.src, str(self._dst)
             ])
 
         else:
-            # working copy?
             if self.is_working_copy(self._dst):  # type: ignore
-                # update
-                # todo: ensure the existing checkout is from self.src?
-                revision_parts = [str(self.revision)] if self.revision is not None else []
-                run_command([
+                remote_name = self.fetch()
+                command = [
                     'git', 'checkout',
-                    remote,
-                    *revision_parts,
-                ], cwd=self._dst)
+                    '--detach',
+                    remote_name,
+                ]
+                if self.revision:
+                    command.append(str(self.revision))
+
+                run_command(command, cwd=self._dst)
             else:
                 # we can't deal with an existing folder that isn't a working copy
                 raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
