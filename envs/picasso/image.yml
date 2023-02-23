@@ -12,6 +12,7 @@ conda:
     - mypy
     - matplotlib
     - rsync
+    - ca-certificates
 
 commands:
   - python3 setup.py install
