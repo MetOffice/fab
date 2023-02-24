@@ -47,7 +47,8 @@ class AnalysedFile(ABC):
         return self._file_hash
 
     def __eq__(self, other):
-        return vars(self) == vars(other) and type(self) == type(other)
+        # todo: better to use self.field_names() instead of vars(self) in order to evaluate any lazy attributes?
+        return vars(self) == vars(other)
 
     # persistence
     def to_dict(self) -> Dict[str, Any]:
@@ -104,13 +105,13 @@ class AnalysedFile(ABC):
         return f'{self.__class__.__name__}({params})'
 
     # We need to be hashable before we can go into a set, which is useful for our subclasses.
-    # Note, the result will change with each Python invocation.
+    # Note, the numerical result will change with each Python invocation.
     def __hash__(self):
         # Build up a list of things to hash, from our attributes.
         # We use self.field_names() rather than vars(self) because we want to evaluate any lazy attributes.
         # We turn dicts and sets into sorted tuples for hashing.
-        # todo: There's a good reason dicts and sets aren't hashable, so we should be sure we're happy doing this.
-        #       Discuss.
+        # todo: There's a good reason dicts and sets aren't supposed to be hashable.
+        #       Please see https://github.com/metomi/fab/issues/229
         things = set()
         for field_name in self.field_names():
             thing = getattr(self, field_name)
@@ -139,3 +140,8 @@ class EmptySourceFile(AnalysedFile):
 
         """
         super().__init__(fpath=fpath)
+
+    @classmethod
+    def from_dict(cls, d):
+        # todo: load & save should be implemented here and used by the calling code, to save reanalysis.
+        raise NotImplementedError

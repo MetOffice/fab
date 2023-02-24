@@ -1,0 +1,57 @@
+!-----------------------------------------------------------------------------
+! (c) Crown copyright 2017 Met Office. All rights reserved.
+! The file LICENCE, distributed with this code, contains details of the terms
+! under which the code may be used.
+!-----------------------------------------------------------------------------
+
+!>@brief Barebones algorithm to help the development of miniapps
+module algorithm_mod
+
+  use constants_mod,                  only: i_def,r_def
+  use log_mod,                        only: log_event,         &
+                                            LOG_LEVEL_INFO
+  use mesh_mod,                       only: mesh_type
+  use field_mod,                      only: field_type
+  use finite_element_config_mod,      only: element_order
+  use fs_continuity_mod,              only: W2
+  use function_space_collection_mod,  only: function_space_collection
+  use operator_mod,                   only: operator_type
+  use my_kernel_mod,                  only: my_kernel_type
+  use skeleton_constants_mod,         only: get_div
+
+  implicit none
+
+  private
+
+  public :: skeleton_alg
+
+contains
+
+  !> @details An algorithm for developing miniapps
+  !> @param[inout] field_1  A prognostic field object
+  subroutine skeleton_alg(field_1)
+
+    implicit none
+
+    ! Prognostic fields
+    type( field_type ), intent( inout ) :: field_1
+
+    ! Diagnostic fields
+    type( field_type )                  :: field_2
+
+    real(r_def)                         :: s
+    type(mesh_type), pointer            :: mesh => null()
+    type( operator_type ), pointer      :: divergence => null()
+
+    ! Set the new field to a constant value and compute the divergence of it
+    divergence => get_div()
+    s = 2.0_r_def
+    call invoke( name = "Compute divergence",  &
+                 setval_c(field_2, s        ), &
+                 setval_c(field_1, 0.0_r_def), &
+                 my_kernel_type(field_1, field_2, divergence) )
+
+
+  end subroutine skeleton_alg
+
+end module algorithm_mod

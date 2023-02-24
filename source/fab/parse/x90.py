@@ -4,7 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Union, Optional, Dict, Any
+from typing import Iterable, Set, Union, Optional, Dict, Any
 
 from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
 
@@ -20,15 +20,12 @@ class AnalysedX90(AnalysedFile):
     """
     def __init__(self, fpath: Union[str, Path], file_hash: int,
                  # todo: the fortran version doesn't include the remaining args - update this too, for simplicity.
-                 kernel_deps: Optional[Dict[str, str]] = None):
+                 kernel_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
             The path of the x90 file.
         :param file_hash:
             The checksum of the x90 file.
-
-        todo: not as param
-
         :param kernel_deps:
             Kernel symbols used by the x90 file.
 
@@ -36,12 +33,12 @@ class AnalysedX90(AnalysedFile):
         super().__init__(fpath=fpath, file_hash=file_hash)
 
         # Maps used kernel metadata (type def names) to the modules they're found in
-        self.kernel_deps: Dict[str, str] = kernel_deps or {}
+        self.kernel_deps: Set[str] = set(kernel_deps or {})
 
     def to_dict(self) -> Dict[str, Any]:
         result = super().to_dict()
         result.update({
-            "kernel_deps": self.kernel_deps,
+            "kernel_deps": sorted(self.kernel_deps),
         })
         return result
 
@@ -50,7 +47,7 @@ class AnalysedX90(AnalysedFile):
         result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
-            kernel_deps=d["kernel_deps"],
+            kernel_deps=set(d["kernel_deps"]),
         )
         assert result.file_hash is not None
         return result
@@ -115,14 +112,13 @@ class X90Analyser(FortranAnalyserBase):
         if called_name.string == "invoke":
             arg_list = _typed_child(obj, Actual_Arg_Spec_List)
             if not arg_list:
-                logger.info(f'No arg list passed to invoke: {obj.string}')
+                logger.debug(f'No arg list passed to invoke: {obj.string}')
                 return
             args = by_type(arg_list.children, Part_Ref)
             for arg in args:
                 arg_name = _typed_child(arg, Name)
                 arg_name = arg_name.string
                 if arg_name in symbol_deps:
-                    in_mod = symbol_deps[arg_name]
-                    analysed_file.kernel_deps[arg_name] = in_mod
+                    analysed_file.kernel_deps.add(arg_name)
                 else:
                     logger.debug(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")

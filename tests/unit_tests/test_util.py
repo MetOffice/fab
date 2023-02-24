@@ -1,9 +1,10 @@
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
 from fab.artefacts import CollectionConcat, SuffixFilter
-from fab.util import suffix_filter, file_walk
+from fab.util import input_to_output_fpath, suffix_filter, file_walk
 
 
 @pytest.fixture
@@ -71,3 +72,25 @@ class Test_file_walk(object):
 
         result = list(file_walk(tmp_path / 'foo', ignore_folders=[pbf.parent]))
         assert result == [f]
+
+
+class Test_input_to_output_fpath(object):
+
+    @pytest.fixture
+    def config(self):
+        return mock.Mock(source_root=Path('/proj/source'), build_output=Path('/proj/build_output'))
+
+    def test_vanilla(self, config):
+        input_path = Path('/proj/source/folder/file.txt')
+        result = input_to_output_fpath(config, input_path)
+        assert result == Path(config.build_output / 'folder/file.txt')
+
+    def test_already_output(self, config):
+        input_path = Path('/proj/build_output/folder/file.txt')
+        result = input_to_output_fpath(config, input_path)
+        assert result == input_path
+
+    def test_outside_project(self, config):
+        input_path = Path('/other/folder/file.txt')
+        result = input_to_output_fpath(config, input_path)
+        assert result == Path(config.build_output / 'other/folder/file.txt')

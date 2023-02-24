@@ -16,31 +16,20 @@ class TestAnalysedX90(object):
     def analysed_x90(self):
         return AnalysedX90(
             fpath=Path('foo.f90'), file_hash=123,
-            kernel_deps={
-                'kernel_one_type': 'kernel_module_one',
-                'kernel_two_type': 'kernel_module_two',
-            }
-        )
+            kernel_deps={'kernel_one_type', 'kernel_two_type'})
 
     @pytest.fixture
     def different_kernel_deps(self):
         return AnalysedX90(
             fpath=Path('foo.f90'), file_hash=123,
-            kernel_deps={
-                'kernel_three_type': 'kernel_module_three',
-                'kernel_four_type': 'kernel_module_four',
-            }
-        )
+            kernel_deps={'kernel_three_type', 'kernel_four_type'})
 
     @pytest.fixture
     def as_dict(self):
         return {
             'fpath': 'foo.f90',
             'file_hash': 123,
-            'kernel_deps': {
-                'kernel_one_type': 'kernel_module_one',
-                'kernel_two_type': 'kernel_module_two',
-            },
+            'kernel_deps': ['kernel_one_type', 'kernel_two_type'],
         }
 
     def test_to_dict(self, analysed_x90, as_dict):

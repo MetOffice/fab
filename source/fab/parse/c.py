@@ -11,13 +11,14 @@ from collections import deque
 from pathlib import Path
 from typing import List, Optional, Union, Tuple
 
+from fab.dep_tree import AnalysedDependent
+
 try:
     import clang  # type: ignore
     import clang.cindex  # type: ignore
 except ImportError:
     clang = None
 
-from fab.dep_tree import AnalysedDependent
 from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)
@@ -109,14 +110,16 @@ class CAnalyser(object):
             msg = 'clang not available, C analysis disabled'
             warnings.warn(msg, ImportWarning)
             return ImportWarning(msg), None
-        log_or_dot(logger, f"analysing {fpath}")
 
         # do we already have analysis results for this file?
         # todo: dupe - probably best in a parser base class
         file_hash = file_checksum(fpath).file_hash
         analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
         if analysis_fpath.exists():
+            log_or_dot(logger, f"found analysis prebuild for {fpath}")
             return AnalysedC.load(analysis_fpath), analysis_fpath
+
+        log_or_dot(logger, f"analysing {fpath}")
 
         analysed_file = AnalysedC(fpath=fpath, file_hash=file_hash)
 
