@@ -33,20 +33,21 @@ by passing FortranParserWorkaround objects into the `special_measure_analysis_re
 You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
 
 """
-
+from itertools import chain
 import logging
 import sys
 import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
+from fab import FabException
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.constants import BUILD_TREES
-from fab.dep_tree import AnalysedDependent, extract_sub_tree, validate_dependencies
+from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
-from fab.parse.c import CAnalyser
-from fab.parse.fortran import FortranParserWorkaround, FortranAnalyser
+from fab.parse.c import AnalysedC, CAnalyser
+from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
 from fab.steps import Step
 from fab.util import TimerLogger, by_type
 
@@ -78,7 +79,8 @@ class Analyse(Step):
     # todo: allow the user to specify a different output artefact collection name?
     def __init__(self,
                  source: Optional[ArtefactsGetter] = None,
-                 root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
+                 root_symbol: Optional[Union[str, List[str]]] = None,
+                 find_programs: bool = False,
                  std: str = "f2008",
                  special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
@@ -95,6 +97,9 @@ class Analyse(Step):
 
         :param source:
             An :class:`~fab.util.ArtefactsGetter` to get the source files.
+        :param find_programs:
+            Instructs the analyser to automatically identify program definitions in the source.
+            Alternatively, the required programs can be specified with the root_symbol argument.
         :param root_symbol:
             When building an executable, provide the Fortran Program name(s), or 'main' for C.
             If None, build tree extraction will not be performed and the entire source will be used
@@ -121,8 +126,12 @@ class Analyse(Step):
         # because the files they refer to probably don't exist yet,
         # because we're just creating steps at this point, so there's been no grab...
 
+        if find_programs and root_symbol:
+            raise ValueError("find_programs and root_symbol can't be used together")
+
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
+        self.find_programs = find_programs
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[FortranParserWorkaround] = \
             list(special_measure_analysis_results or [])
@@ -165,6 +174,21 @@ class Analyse(Step):
         files: List[Path] = self.source_getter(artefact_store)
         analysed_files = self._parse_files(files=files)
         self._add_manual_results(analysed_files)
+
+        # shall we search the results for fortran programs and a c function called main?
+        if self.find_programs:
+            # find fortran programs
+            sets_of_programs = [af.program_defs for af in by_type(analysed_files, AnalysedFortran)]
+            self.root_symbols = list(chain(*sets_of_programs))
+
+            # find c main()
+            c_with_main = list(filter(lambda c: 'main' in c.symbol_defs, by_type(analysed_files, AnalysedC)))
+            if c_with_main:
+                self.root_symbols.append('main')
+                if len(c_with_main) > 1:
+                    raise FabException("multiple c main() functions found")
+
+            logger.info(f'automatically found the following programs to build: {", ".join(self.root_symbols)}')
 
         # analyse
         project_source_tree, symbol_table = self._analyse_dependencies(analysed_files)

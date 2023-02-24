@@ -55,5 +55,10 @@ setuptools.setup(
         'tests': tests,
         'docs': docs,
         'dev': [*tests, *docs, *features],
-    }
+    },
+    entry_points={
+        'console_scripts': [
+            'fab=fab.cli:cli_fab'
+        ]
+    },
 )

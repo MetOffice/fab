@@ -54,11 +54,13 @@ def test_FortranDependencies(tmp_path):
     # check the analysis results
     assert AnalysedFortran.load(config.prebuild_folder / 'first.193489053.an') == AnalysedFortran(
         fpath=config.source_root / 'first.f90', file_hash=193489053,
+        program_defs={'first'},
         module_defs=None, symbol_defs={'first'},
         module_deps={'greeting_mod', 'constants_mod'}, symbol_deps={'greeting_mod', 'constants_mod', 'greet'})
 
     assert AnalysedFortran.load(config.prebuild_folder / 'two.2557739057.an') == AnalysedFortran(
         fpath=config.source_root / 'two.f90', file_hash=2557739057,
+        program_defs={'second'},
         module_defs=None, symbol_defs={'second'},
         module_deps={'constants_mod', 'bye_mod'}, symbol_deps={'constants_mod', 'bye_mod', 'farewell'})
 
