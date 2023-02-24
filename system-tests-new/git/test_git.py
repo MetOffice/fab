@@ -155,10 +155,22 @@ class TestFromGithub(object):
     # so we just have one small grab here and the rest use a local repo.
 
     def test_checkout(self, tmp_path):
-        # todo: put this somewhere better, under MO control.
         tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
-        grab = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
-        grab.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+        clone = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
 
-        my_mod = open(grab._dst / 'tiny_fortran/src/my_mod.F90').read()
+        # run once, expect a clone
+        clone.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+
+        my_mod = open(clone._dst / 'tiny_fortran/src/my_mod.F90').read()
         assert "foo = 1" in my_mod
+
+    def test_update(self, tmp_path):
+        tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
+
+        # run once, expect a clone
+        clone = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
+        clone.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+
+        # run a second time, expect a checkout
+        checkout = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
+        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
