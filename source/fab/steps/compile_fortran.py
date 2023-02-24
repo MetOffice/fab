@@ -16,12 +16,11 @@ from itertools import chain
 from pathlib import Path
 from typing import List, Set, Dict, Tuple, Optional, Union
 
-from fab.parse.fortran import AnalysedFortran
-
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
+from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, Step
 from fab.tools import COMPILERS, remove_managed_flags, flags_checksum, run_command, get_tool, get_compiler_version
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \
@@ -88,7 +87,7 @@ class CompileFortran(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.two_stage_flag = two_stage_flag
 
-        # runtime
+        # runtime, for child processes to read
         self._stage = None
         self._mod_hashes: Dict[str, int] = {}
 
@@ -274,6 +273,7 @@ class CompileFortran(Step):
 
     def _get_obj_combo_hash(self, analysed_file, flags):
         # get a combo hash of things which matter to the object file we define
+        # todo: don't just silently use 0 for a missing dep hash
         mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
         try:
             obj_combo_hash = sum([
@@ -333,8 +333,6 @@ class CompileFortran(Step):
             # files
             command.append(analysed_file.fpath.name)
             command.extend(['-o', str(output_fpath)])
-
-            log_or_dot(logger, 'CompileFortran running command: ' + ' '.join(command))
 
             run_command(command, cwd=analysed_file.fpath.parent)
 

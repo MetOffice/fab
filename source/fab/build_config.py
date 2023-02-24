@@ -119,8 +119,6 @@ class BuildConfig(object):
         Mark the given file paths as being current prebuilds, not to be cleaned during housekeeping.
 
         """
-        if not self._artefact_store.get(CURRENT_PREBUILDS):
-            self.init_artefact_store()
         self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
 
     def run(self):
@@ -151,16 +149,16 @@ class BuildConfig(object):
             self._finalise_logging()
 
     def _run_prep(self):
+        self._init_logging()
+
         logger.info('')
         logger.info('------------------------------------------------------------')
         logger.info(f'running {self.project_label}')
         logger.info('------------------------------------------------------------')
         logger.info('')
 
-        self.build_output.mkdir(parents=True, exist_ok=True)
-        self.prebuild_folder.mkdir(parents=True, exist_ok=True)
+        self._prep_output_folders()
 
-        self._init_logging()
         init_metrics(metrics_folder=self.metrics_folder)
 
         # note: initialising here gives a new set of artefacts each run
@@ -171,6 +169,10 @@ class BuildConfig(object):
         if not list(by_type(self.steps, CleanupPrebuilds)):
             logger.info("no housekeeping specified, adding a default hard cleanup")
             self.steps.append(CleanupPrebuilds(all_unused=True))
+
+    def _prep_output_folders(self):
+        self.build_output.mkdir(parents=True, exist_ok=True)
+        self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
     def _init_logging(self):
         # add a file logger for our run

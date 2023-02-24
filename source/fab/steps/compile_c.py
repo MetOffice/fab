@@ -15,16 +15,14 @@ from collections import defaultdict
 from typing import List, Dict, Optional
 
 from fab import FabException
-
-from fab.parse.c import AnalysedC
-
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
+from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, Step
-from fab.util import CompiledFile, log_or_dot, Timer, by_type
 from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
+from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +137,7 @@ class CompileC(Step):
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(obj_file_prebuild)])
 
-                log_or_dot(logger, 'CompileC running command: ' + ' '.join(command))
+                log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
                 try:
                     run_command(command)
                 except Exception as err:

@@ -12,11 +12,12 @@ from fab.steps.grab.fcm import FcmExport
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
+from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
 
 logger = logging.getLogger('fab')
 
@@ -103,9 +104,14 @@ def atm_config(two_stage=False, opt='Og'):
             ],
         ),
 
-        psyclone_preprocessor(set_um_physics=True),
+        # todo: put this inside the psyclone step, no need for it to be separate, there's nothing required between them
+        psyclone_preprocessor(common_flags=['-DUM_PHYSICS', '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 
-        Psyclone(kernel_roots=[config.build_output]),
+        Psyclone(
+            kernel_roots=[config.build_output],
+            transformation_script=lfric_source / 'lfric_atm/optimisation/meto-spice/global.py',
+            cli_args=[],
+        ),
 
         # todo: do we need this one in here?
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),

@@ -8,9 +8,9 @@ from unittest import mock
 from unittest.mock import Mock
 
 import clang  # type: ignore
-from fab.parse.c import CAnalyser, AnalysedC
 
 from fab.build_config import BuildConfig
+from fab.parse.c import CAnalyser, AnalysedC
 
 
 def test_simple_result(tmp_path):
@@ -26,7 +26,6 @@ def test_simple_result(tmp_path):
         file_hash=1429445462,
         symbol_deps={'usr_var', 'usr_func'},
         symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
-        file_deps=set(),
     )
     assert analysis == expected
     assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
