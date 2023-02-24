@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest import mock
 
 from fab.constants import OBJECT_FILES
-
 from fab.steps.link import LinkExe
 
 

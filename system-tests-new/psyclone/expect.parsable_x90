@@ -1,0 +1,76 @@
+
+module algorithm_mod
+
+    use kernel_mod, only : kernel_one_type, kernel_two_type
+
+    implicit none
+
+    private
+
+    public :: my_subroutine_one
+
+contains
+
+    subroutine my_subroutine_one(a, b)
+
+        implicit none
+
+        integer :: a
+        integer :: b
+
+        call invoke(kernel_one_type( a, b ), kernel_two_type( a, b ), built_in() )
+        call invoke(kernel_one_type(a,b),kernel_two_type(a,b),built_in())
+
+        call invoke(kernel_one_type( a, b ), &
+                     kernel_two_type( a, b ), &
+                     built_in() )
+        call invoke(kernel_one_type(a,b),&
+                    kernel_two_type(a,b),&
+                    built_in())
+
+        call invoke(kernel_one_type( a, &
+                                      b ), &
+                     kernel_two_type( a, &
+                                      b ), &
+                     built_in() )
+        call invoke(kernel_one_type(a,&
+                                    b),&
+                    kernel_two_type(a,&
+                                    b),&
+                    built_in())
+
+    end subroutine my_subroutine_one
+
+    subroutine my_subroutine_two(a, b)
+
+        implicit none
+
+        integer :: a
+        integer :: b
+
+        call invoke(kernel_one_type( a, b ), kernel_two_type( a, b ), built_in() )
+        call invoke(kernel_one_type(a,b),kernel_two_type(a,b),built_in())
+
+        call invoke( kernel_one_type( a, b ), &
+                     kernel_two_type( a, b ), &
+                     built_in() )
+        call invoke(kernel_one_type(a,b),&
+                    kernel_two_type(a,b),&
+                    built_in())
+
+        call invoke( &
+                     kernel_one_type( a, &
+                                      b ), &
+                     kernel_two_type( a, &
+                                      b ), &
+                     built_in() )
+        call invoke(&
+                    kernel_one_type(a,&
+                                    b),&
+                    kernel_two_type(a,&
+                                    b),&
+                    built_in())
+
+    end subroutine my_subroutine_two
+
+end module algorithm_mod

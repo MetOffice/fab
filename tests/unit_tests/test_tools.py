@@ -181,7 +181,7 @@ class Test_run_command(object):
     def test_no_error(self):
         mock_result = mock.Mock(returncode=0)
         with mock.patch('fab.tools.subprocess.run', return_value=mock_result):
-            run_command(None)
+            run_command([])
 
     def test_error(self):
         mock_result = mock.Mock(returncode=1)
@@ -189,5 +189,5 @@ class Test_run_command(object):
         mock_result.stderr.decode = mock.Mock(return_value=mocked_error_message)
         with mock.patch('fab.tools.subprocess.run', return_value=mock_result):
             with pytest.raises(RuntimeError) as err:
-                run_command(None)
+                run_command([])
             assert mocked_error_message in str(err.value)

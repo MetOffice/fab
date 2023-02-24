@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Dict, Pattern, Optional, Match
 
 from fab import FabException
-
 from fab.constants import PRAGMAD_C
 from fab.steps import Step
 from fab.artefacts import ArtefactsGetter, SuffixFilter

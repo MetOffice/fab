@@ -17,15 +17,14 @@ from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab import FabException
-from fab.parse import EmptySourceFile
 from fab.dep_tree import AnalysedDependent
+from fab.parse import EmptySourceFile
 from fab.util import log_or_dot, file_checksum
 
 
 logger = logging.getLogger(__name__)
 
 
-# todo: a nicer recursion pattern?
 def iter_content(obj):
     """
     Return a generator which yields every node in the tree.
@@ -105,14 +104,14 @@ class FortranAnalyserBase(ABC):
         Returns the analysis data and the result file where it was stored/loaded.
 
         """
-        log_or_dot(logger, f"analysing {fpath}")
-
         # calculate the prebuild filename
         file_hash = file_checksum(fpath).file_hash
         analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
 
         # do we already have analysis results for this file?
         if analysis_fpath.exists():
+            log_or_dot(logger, f"found analysis prebuild for {fpath}")
+
             # Load the result file into whatever result class we use.
             loaded_result = self.result_class.load(analysis_fpath)
             if loaded_result:
@@ -121,6 +120,8 @@ class FortranAnalyserBase(ABC):
                 # it will point to the user's original file, somewhere else. So replace it with our own path.
                 loaded_result.fpath = fpath
                 return loaded_result, analysis_fpath
+
+        log_or_dot(logger, f"analysing {fpath}")
 
         # parse the file, get a node tree
         node_tree = self._parse_file(fpath=fpath)

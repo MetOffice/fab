@@ -7,17 +7,15 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest import mock
 
-import pytest
-from fab.parse.fortran_common import iter_content
-
-from fab.parse import EmptySourceFile
-
-from fab.parse.fortran import AnalysedFortran, FortranAnalyser
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
+import pytest
 
 from fab.build_config import BuildConfig
+from fab.parse import EmptySourceFile
+from fab.parse.fortran import FortranAnalyser, AnalysedFortran
+from fab.parse.fortran_common import iter_content
 
 
 # todo: test function binding

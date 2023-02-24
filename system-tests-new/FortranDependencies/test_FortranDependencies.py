@@ -8,11 +8,11 @@ from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
+from fab.parse.fortran import AnalysedFortran
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
-from fab.parse.fortran import AnalysedFortran
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
