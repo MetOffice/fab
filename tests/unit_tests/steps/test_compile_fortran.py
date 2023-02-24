@@ -5,8 +5,6 @@ from unittest.mock import call
 
 import pytest
 
-from fab.parse.fortran import AnalysedFortran
-
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran

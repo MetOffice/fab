@@ -40,22 +40,14 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
+from fab import FabException
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.constants import BUILD_TREES
-from fab.dep_tree import AnalysedDependent, extract_sub_tree, validate_dependencies
-from fab.mo import add_mo_commented_file_deps
-from fab.parse import AnalysedFile, EmptySourceFile
-from fab.parse.c import CAnalyser
-from fab.parse.fortran import FortranParserWorkaround, FortranAnalyser
-from fab import FabException
-
-from fab.parse.c import AnalysedC, CAnalyser
-
-from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
-
-from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
+from fab.parse import AnalysedFile, EmptySourceFile
+from fab.parse.c import AnalysedC, CAnalyser
+from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
 from fab.steps import Step
 from fab.util import TimerLogger, by_type
 
