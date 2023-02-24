@@ -396,7 +396,7 @@ class Test_process_file(object):
 class test_constructor(object):
 
     def test_bare(self):
-        with mock.patch.dict(os.environ, FC='foofc', FFLAGS=''):
+        with mock.patch.dict(os.environ, FC='foofc', clear=True):
             cf = CompileFortran()
         assert cf.compiler == 'foofc'
         assert cf.flags.common_flags == []
@@ -430,7 +430,7 @@ class test_constructor(object):
         assert cf.compiler == 'barfc'
 
     def test_no_compiler(self):
-        with mock.patch.dict(os.environ, FC=''):
+        with mock.patch.dict(os.environ, clear=True):
             with pytest.raises(ValueError):
                 CompileFortran()
 
@@ -486,7 +486,7 @@ class Test_get_fortran_preprocessor(object):
             if 'cpp' not in command:
                 raise RuntimeError('foo')
 
-        with mock.patch.dict(os.environ, values={'FPP': ''}):
+        with mock.patch.dict(os.environ, clear=True):
             with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
                 fpp, fpp_flags = get_fortran_preprocessor()
 
@@ -508,7 +508,7 @@ class Test_get_fortran_compiler(object):
             if 'gfortran' not in command:
                 raise RuntimeError('foo')
 
-        with mock.patch.dict(os.environ, values={'FC': ''}):
+        with mock.patch.dict(os.environ, clear=True):
             with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
                 fc, fc_flags = get_fortran_compiler()
 
@@ -520,7 +520,7 @@ class Test_get_fortran_compiler(object):
             if 'ifort' not in command:
                 raise RuntimeError('foo')
 
-        with mock.patch.dict(os.environ, values={'FC': ''}):
+        with mock.patch.dict(os.environ, clear=True):
             with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
                 fc, fc_flags = get_fortran_compiler()
 

@@ -347,6 +347,17 @@ class CompileFortran(Step):
 
 
 def get_fortran_preprocessor():
+    """
+    Identify the fortran preprocessor and any flags from the environment.
+
+    Initially looks for the `FPP` environment variable, then tries to call the `fpp` and `cpp` command line tools.
+
+    Returns the executable and flags.
+
+    The returned flags will always include `-P` to suppress line numbers.
+    This fparser ticket requests line number handling https://github.com/stfc/fparser/issues/390 .
+
+    """
     fpp, fpp_flags = None, None
 
     try:

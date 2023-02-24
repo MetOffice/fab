@@ -15,10 +15,14 @@ from fab.util import file_walk
 from fab.steps.find_source_files import FindSourceFiles
 
 
-@mock.patch.dict(os.environ, {'FFLAGS': ''})
+@mock.patch.dict(os.environ)
 class TestFortranPrebuild(object):
 
     def build_config(self, fab_workspace, grab_prebuild_folder=None):
+        # remove FFLAGS from the *mocked*, i.e copy of, the environment variables
+        if os.getenv('FFLAGS'):
+            del os.environ['FFLAGS']
+
         logging.getLogger('fab').setLevel(logging.WARNING)
 
         build_config = BuildConfig(
