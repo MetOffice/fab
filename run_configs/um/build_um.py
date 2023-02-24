@@ -13,19 +13,17 @@ import os
 import re
 import warnings
 from argparse import ArgumentParser
-from pathlib import Path
 
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import PRAGMAD_C
-from fab.dep_tree import ParserWorkaround
 from fab.steps import Step
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.grab import GrabFcm
+from fab.steps.grab.fcm import FcmExport
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
@@ -76,19 +74,19 @@ def um_atmos_safe_config(revision, two_stage=False):
         # todo: these repo defs could make a good set of reusable variables
 
         # UM 12.1, 16th November 2021
-        GrabFcm(src='fcm:um.xm_tr/src', dst='um', revision=revision),
+        FcmExport(src='fcm:um.xm_tr/src', dst='um', revision=revision),
 
         # JULES 6.2, for UM 12.1
-        GrabFcm(src='fcm:jules.xm_tr/src', dst='jules', revision=um_revision),
+        FcmExport(src='fcm:jules.xm_tr/src', dst='jules', revision=um_revision),
 
         # SOCRATES 21.11, for UM 12.1
-        GrabFcm(src='fcm:socrates.xm_tr/src', dst='socrates', revision=um_revision),
+        FcmExport(src='fcm:socrates.xm_tr/src', dst='socrates', revision=um_revision),
 
         # SHUMLIB, for UM 12.1
-        GrabFcm(src='fcm:shumlib.xm_tr/', dst='shumlib', revision=um_revision),
+        FcmExport(src='fcm:shumlib.xm_tr/', dst='shumlib', revision=um_revision),
 
         # CASIM, for UM 12.1
-        GrabFcm(src='fcm:casim.xm_tr/src', dst='casim', revision=um_revision),
+        FcmExport(src='fcm:casim.xm_tr/src', dst='casim', revision=um_revision),
 
 
         MyCustomCodeFixes(name="my custom code fixes"),
@@ -130,19 +128,7 @@ def um_atmos_safe_config(revision, two_stage=False):
             ],
         ),
 
-        Analyse(
-            root_symbol='um_main',
-
-            # fparser2 fails to parse this file, but it does compile.
-            special_measure_analysis_results=[
-                ParserWorkaround(
-                    fpath=Path(config.build_output / "casim/lookup.f90"),
-                    symbol_defs={'lookup'},
-                    symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-                                 'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
-                )
-            ]
-        ),
+        Analyse(root_symbol='um_main'),
 
         CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
 

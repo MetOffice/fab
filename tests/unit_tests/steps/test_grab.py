@@ -6,8 +6,13 @@
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
+from unittest.mock import call
 
-from fab.steps.grab import GrabFolder, GrabFcm
+import pytest
+
+from fab.steps.grab.fcm import FcmExport
+from fab.steps.grab.folder import GrabFolder
+from fab.steps.grab.git import GrabGit
 
 
 class TestGrabFolder(object):
@@ -38,36 +43,46 @@ class TestGrabFcm(object):
         source_root = Path('/workspace/source')
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
-        grabber = GrabFcm(src=source_url, dst=dst_label)
+        grabber = FcmExport(src=source_url, dst=dst_label)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
-        mock_run.assert_called_once_with(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
+        mock_run.assert_has_calls([
+            call(['fcm', 'help']),
+            call(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
+        ])
 
     def test_revision(self):
         source_root = Path('/workspace/source')
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
         revision = '42'
-        grabber = GrabFcm(src=source_url, dst=dst_label, revision=revision)
+        grabber = FcmExport(src=source_url, dst=dst_label, revision=revision)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.run_command') as mock_run:
+            with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
                 grabber.run(artefact_store={}, config=mock_config)
 
-        mock_run.assert_called_once_with(
-            ['fcm', 'export', '--force', f'{source_url}@{revision}', str(source_root / dst_label)])
+        mock_run.assert_has_calls([
+            call(['fcm', 'help']),
+            call(['fcm', 'export', '--force', '--revision', '42', f'{source_url}', str(source_root / dst_label)])
+        ])
 
     # todo: test missing repo
     # def test_missing(self):
     #     assert False
 
 
-# todo: test GrabSvn
-# class TestGrabSvn(object):
-#     def test(self):
-#         assert False
+class TestGrabGit(object):
+
+    def test_no_revision(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst='foo', revision=None)
+
+    def test_no_dst(self):
+        with pytest.raises(ValueError):
+            GrabGit(src='foo', dst=None, revision='foo')
