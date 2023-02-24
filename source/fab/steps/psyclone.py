@@ -30,14 +30,6 @@ from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk
 logger = logging.getLogger(__name__)
 
 
-def tool_available() -> bool:
-    try:
-        run_command(['psyclone', '-h'])
-    except (RuntimeError, FileNotFoundError):
-        return False
-    return True
-
-
 # todo: should this be part of the psyclone step?
 def psyclone_preprocessor(common_flags: Optional[List[str]] = None):
     common_flags = common_flags or []
@@ -96,6 +88,15 @@ class Psyclone(Step):
         self.cli_args: List[str] = cli_args or []
 
         self.source_getter = source_getter or DEFAULT_SOURCE_GETTER
+
+    @classmethod
+    def tool_available(cls) -> bool:
+        """Check if tje psyclone tool is available at the command line."""
+        try:
+            run_command(['psyclone', '-h'])
+        except (RuntimeError, FileNotFoundError):
+            return False
+        return True
 
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store=artefact_store, config=config)
