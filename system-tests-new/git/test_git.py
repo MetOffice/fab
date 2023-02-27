@@ -19,9 +19,7 @@ With this we can test grabbing a branch, tag and commit.
 """
 from unittest import mock
 
-import pytest
-
-from fab.steps.grab.git import GitCheckout
+from fab.steps.grab.git import current_commit, GitCheckout
 
 
 # MY_MOD = 'src/my_mod.F90'
@@ -149,6 +147,7 @@ from fab.steps.grab.git import GitCheckout
 #         assert "foo = 2" in open(grab._dst / MY_MOD).read()
 #
 
+
 class TestFromGithub(object):
     # Check we can grab from github.
     # There's no need to hit their servers lots of times just for our tests,
@@ -161,16 +160,18 @@ class TestFromGithub(object):
         # run once, expect a clone
         clone.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
 
-        my_mod = open(clone._dst / 'tiny_fortran/src/my_mod.F90').read()
-        assert "foo = 1" in my_mod
+        assert current_commit(tmp_path / 'tiny_fortran') == '9c86748'
 
     def test_update(self, tmp_path):
         tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
 
-        # run once, expect a clone
+        # run once, expect a clone, get an older commit
         clone = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
         clone.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
 
-        # run a second time, expect a checkout
-        checkout = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
+        # run a second time, expect a checkout, get the latest commit
+        checkout = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='main')
         checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+
+        # Note: this is not very future-proof, as the latest commit will likely keep changing.
+        assert current_commit(tmp_path / 'tiny_fortran') == '3cba55e'

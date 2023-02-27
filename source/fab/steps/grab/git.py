@@ -21,9 +21,23 @@ def tool_available() -> bool:
     return True
 
 
-def get_remotes() -> Dict[str, str]:
+def current_commit(folder=None):
+    folder = folder or '.'
+    output = run_command(['git', 'log', '--oneline', '-n', '1'], cwd=folder)
+    commit = output.split()[0]
+    return commit
+
+
+def current_branch(folder=None):
+    folder = folder or '.'
+    output = run_command(['git', 'branch', '--show-current'], cwd=folder)
+    return output.strip()
+
+
+def get_remotes(folder=None) -> Dict[str, str]:
     """Get the remotes as a mapping from label to url."""
-    output = run_command(['git', 'remote', '-v'])
+    folder = folder or '.'
+    output = run_command(['git', 'remote', '-v'], cwd=folder)
     lines = output.split('\n')
     remotes = {}
     for line in lines:
@@ -47,7 +61,7 @@ class GrabGitBase(GrabSourceBase, ABC):
     Base class for Git operations.
 
     """
-    def __init__(self, src: Union[str, Path], dst: str, revision=None, name=None):
+    def __init__(self, src: Union[str, Path], dst: str, revision, name=None):
         """
         :param src:
             Such as `https://github.com/metomi/fab-test-data.git` or path to a local working copy.
@@ -55,7 +69,7 @@ class GrabGitBase(GrabSourceBase, ABC):
             The name of a sub folder, in the project workspace, in which to put the source.
             If not specified, the code is copied into the root of the source folder.
         :param revision:
-            E.g 'vn6.3'.
+            A branch, tag or commit.
         :param name:
             Human friendly name for logger output, with sensible default.
 
@@ -83,18 +97,16 @@ class GrabGitBase(GrabSourceBase, ABC):
 
         """
         # todo: check it's a url not a path?
-        remotes = get_remotes()
+        remotes = get_remotes(self._dst)
         if self.src not in remotes.values():
             remote_name = self.add_remote()
         else:
             remote_name = [k for k, v in remotes.items() if v == self.src][0]
 
         # ok it's a remote, we can fetch
-        command = ['git', 'fetch', '--depth', '1', remote_name]
-        if self.revision:
-            command.append(self.revision)
-
+        command = ['git', 'fetch', '--depth', '1', remote_name, self.revision]
         run_command(command)
+
         return remote_name
 
     def add_remote(self) -> str:
@@ -124,25 +136,17 @@ class GitCheckout(GrabGitBase):
 
         # new folder?
         if not self._dst.exists():  # type: ignore
-            revision_parts = ['--branch', str(self.revision)] if self.revision is not None else []
             run_command([
                 'git', 'clone',
                 '--depth', '1',
-                *revision_parts,
+                '--branch', str(self.revision),
                 self.src, str(self._dst)
             ])
 
         else:
             if self.is_working_copy(self._dst):  # type: ignore
                 remote_name = self.fetch()
-                command = [
-                    'git', 'checkout',
-                    '--detach',
-                    remote_name,
-                ]
-                if self.revision:
-                    command.append(str(self.revision))
-
+                command = ['git', 'checkout', f'{remote_name}/{self.revision}']
                 run_command(command, cwd=self._dst)
             else:
                 # we can't deal with an existing folder that isn't a working copy
