@@ -100,20 +100,21 @@ class Test_analysis_for_prebuilds(object):
 
     def test_analyse(self, psyclone_step):
 
-        mp_payload: MpPayload = psyclone_step.analysis_for_prebuilds(x90s=[SAMPLE_X90])
+        prebuild_analyses = psyclone_step._analysis_for_prebuilds(x90s=[SAMPLE_X90])
+        transformation_script_hash, analysed_x90, all_kernel_hashes = prebuild_analyses
 
         # transformation_script_hash
-        assert mp_payload.transformation_script_hash == file_checksum(__file__).file_hash
+        assert transformation_script_hash == file_checksum(__file__).file_hash
 
         # analysed_x90
-        assert mp_payload.analysed_x90 == {
+        assert analysed_x90 == {
             SAMPLE_X90: AnalysedX90(
                 fpath=SAMPLE_X90.with_suffix('.parsable_x90'),
                 file_hash=file_checksum(SAMPLE_X90).file_hash,
                 kernel_deps={'kernel_one_type', 'kernel_two_type'})}
 
         # all_kernel_hashes
-        assert mp_payload.all_kernel_hashes == {
+        assert all_kernel_hashes == {
             'kernel_one_type': 2915127408,
             'kernel_two_type': 3793991362,
             'kernel_three_type': 319981435,

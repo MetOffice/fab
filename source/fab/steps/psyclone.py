@@ -122,7 +122,7 @@ class Psyclone(Step):
         x90s = self.source_getter(artefact_store)
 
         # get the data for child processes to calculate prebuild hashes
-        mp_payload = self.generate_mp_payload(x90s)
+        mp_payload = self._generate_mp_payload(x90s)
 
         # run psyclone.
         # for every file, we get back a list of its output files plus a list of the prebuild copies.
@@ -151,8 +151,8 @@ class Psyclone(Step):
         # is this called psykal?
         # assert False
 
-    def generate_mp_payload(self, x90s):
-        prebuild_analyses = self.analysis_for_prebuilds(x90s)
+    def _generate_mp_payload(self, x90s):
+        prebuild_analyses = self._analysis_for_prebuilds(x90s)
         transformation_script_hash, analysed_x90, all_kernel_hashes = prebuild_analyses
 
         override_files: List[str] = []
@@ -167,7 +167,7 @@ class Psyclone(Step):
         )
 
     # todo: test that we can run this step before or after the analysis step
-    def analysis_for_prebuilds(self, x90s) -> MpPayload:
+    def _analysis_for_prebuilds(self, x90s) -> MpPayload:
         """
         Analysis for PSyclone prebuilds.
 
