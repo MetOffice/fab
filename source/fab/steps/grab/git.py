@@ -12,15 +12,6 @@ from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
 
-def tool_available() -> bool:
-    """Is the command line git tool available?"""
-    try:
-        run_command(['git', 'help'])
-    except FileNotFoundError:
-        return False
-    return True
-
-
 def current_commit(folder=None):
     folder = folder or '.'
     output = run_command(['git', 'log', '--oneline', '-n', '1'], cwd=folder)
@@ -77,9 +68,17 @@ class GrabGitBase(GrabSourceBase, ABC):
         super().__init__(src, dst, name=name, revision=revision)
 
     def run(self, artefact_store: Dict, config):
-        if not tool_available():
+        if not self.tool_available():
             raise RuntimeError("git command line tool not available")
         super().run(artefact_store, config)
+
+    def tool_available(self) -> bool:
+        """Is the command line git tool available?"""
+        try:
+            run_command(['git', 'help'])
+        except FileNotFoundError:
+            return False
+        return True
 
     def is_working_copy(self, dst: Union[str, Path]) -> bool:
         """Is the given path is a working copy?"""

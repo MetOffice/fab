@@ -19,7 +19,10 @@ With this we can test grabbing a branch, tag and commit.
 """
 from unittest import mock
 
-from fab.steps.grab.git import current_commit, GitCheckout
+import pytest
+
+from fab.steps.grab.git import current_branch, current_commit, GitCheckout
+from fab.tools import run_command
 
 
 # MY_MOD = 'src/my_mod.F90'
@@ -152,27 +155,44 @@ class TestFromGithub(object):
     # Check we can grab from github.
     # There's no need to hit their servers lots of times just for our tests,
     # so we just have one small grab here and the rest use a local repo.
+    @pytest.fixture
+    def url(self):
+        return 'https://github.com/metomi/fab-test-data.git'
 
-    def test_checkout(self, tmp_path):
-        tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
-        checkout = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
-
-        # run once, expect a clone
+    def test_checkout_branch(self, tmp_path, url):
+        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='main')
         checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+        assert current_branch(tmp_path / 'tiny_fortran') == 'main'
 
-        assert current_commit(tmp_path / 'tiny_fortran') == 'ee56489'
+    def test_checkout_commit(self, tmp_path, url):
+        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='ee56489')
+        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+        assert current_branch(tmp_path / 'tiny_fortran') == 'ee56489'
 
-    def test_update(self, tmp_path):
-        tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
+    def test_checkout_tag(self, tmp_path, url):
+        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='early')
+        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+        get_tag = run_command(['git', 'describe', '--tag'], cwd=checkout._dst)
+        assert get_tag.strip() == 'early'
+
+    def test_(self, tmp_path, url):
 
         # run once, expect a clone, get an older commit
-        clone = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
+        clone = GitCheckout(src=url, dst='tiny_fortran', revision='early')
         clone.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+        assert current_commit(tmp_path / 'tiny_fortran') == 'ee56489'
 
         # run a second time, expect a checkout, get the latest commit
         # todo: we should test getting from a second repo, too
-        checkout = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='main')
+        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='main')
         checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+        assert current_commit(tmp_path / 'tiny_fortran') != 'ee56489'
 
-        # Note: this is not very future-proof, as the latest commit will likely keep changing.
-        assert current_commit(tmp_path / 'tiny_fortran') == '3cba55e'
+    # new commit
+    # new branch
+    # new remote
+
+
+class TestFromLocalRepo(object):
+    """Not hitting github"""
+    pass
