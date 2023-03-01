@@ -94,7 +94,7 @@ def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = 
     logger.debug(f'run_command: {command}')
     res = subprocess.run(command, capture_output=capture_output, env=env, cwd=cwd)
     if res.returncode != 0:
-        msg = f'Command failed:\n{command}'
+        msg = f'Command failed with return code {res.returncode}:\n{command}'
         if res.stdout:
             msg += f'\n{res.stdout.decode()}'
         if res.stderr:
