@@ -15,7 +15,7 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from fab.tools import run_command
 
@@ -167,7 +167,7 @@ class Psyclone(Step):
         )
 
     # todo: test that we can run this step before or after the analysis step
-    def _analysis_for_prebuilds(self, x90s) -> MpPayload:
+    def _analysis_for_prebuilds(self, x90s) -> Tuple:
         """
         Analysis for PSyclone prebuilds.
 
@@ -414,6 +414,8 @@ class Psyclone(Step):
         Returns either the override or original path.
 
         """
+        assert self.overrides_folder
+
         if check_path.name in override_files:
             # there is an override so delete this output file...
             logger.warning(f"\noverride found for '{check_path}'")

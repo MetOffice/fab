@@ -17,7 +17,7 @@ from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor, MpPayload
+from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
