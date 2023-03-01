@@ -409,19 +409,18 @@ class Psyclone(Step):
         """
         Delete the file if there's an override for it.
 
-        Assumes the override folder is flat.
+        Assumes `self.overrides_folder` is not None, and is a flat folder.
 
         Returns either the override or original path.
 
         """
-        assert self.overrides_folder
 
         if check_path.name in override_files:
             # there is an override so delete this output file...
             logger.warning(f"\noverride found for '{check_path}'")
             check_path.unlink()
             # ... and return the override path instead
-            return self.overrides_folder / check_path.name
+            return self.overrides_folder / check_path.name  # type: ignore
 
         # we didn't have an override, so continue using this file
         return check_path
