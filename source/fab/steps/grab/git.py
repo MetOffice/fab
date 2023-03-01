@@ -106,14 +106,15 @@ class GitCheckout(GrabGitBase):
             run_command(['git', 'init', '.'], self._dst)
 
             try:
-                run_command(['git', 'fetch', '--depth', '1', self.src, str(self.revision), ], cwd=str(self._dst))
+                run_command(['git', 'fetch', '--depth', '1', self.src, str(self.revision)], cwd=str(self._dst))
                 run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=self._dst)
 
             except RuntimeError:
                 # if it was a commit it will fail with github, so clone the whole repo and checkout the commit
                 # todo: can we do this without pulling the whole repo? E.g find a branch containing the commit?
                 warnings.warn('shallow git clone failed, retrying with full clone')
-                run_command(['git', 'clone', self.src, str(self._dst)])
+                run_command(['git', 'fetch', self.src], cwd=self._dst)
+                xxxxxx
                 run_command(['git', 'checkout', self.revision], cwd=self._dst)
 
         else:
