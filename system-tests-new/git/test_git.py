@@ -155,12 +155,12 @@ class TestFromGithub(object):
 
     def test_checkout(self, tmp_path):
         tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
-        clone = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
+        checkout = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='early')
 
         # run once, expect a clone
-        clone.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
+        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
 
-        assert current_commit(tmp_path / 'tiny_fortran') == '9c86748'
+        assert current_commit(tmp_path / 'tiny_fortran') == 'ee56489'
 
     def test_update(self, tmp_path):
         tiny_fortran_github = 'https://github.com/metomi/fab-test-data.git'
@@ -170,6 +170,7 @@ class TestFromGithub(object):
         clone.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
 
         # run a second time, expect a checkout, get the latest commit
+        # todo: we should test getting from a second repo, too
         checkout = GitCheckout(src=tiny_fortran_github, dst='tiny_fortran', revision='main')
         checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
 
