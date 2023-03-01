@@ -20,34 +20,6 @@ def current_commit(folder=None):
     return commit
 
 
-def current_branch(folder=None):
-    folder = folder or '.'
-    output = run_command(['git', 'branch', '--show-current'], cwd=folder)
-    return output.strip()
-
-
-def get_remotes(folder=None) -> Dict[str, str]:
-    """Get the remotes as a mapping from label to url."""
-    folder = folder or '.'
-    output = run_command(['git', 'remote', '-v'], cwd=folder)
-    lines = output.split('\n')
-    remotes = {}
-    for line in lines:
-        if line:
-            split = line.split()
-            remotes[split[0]] = split[1]
-    return remotes
-
-
-def _next_name(base, current_names, i=1):
-    """Return the next name in the sequence <base><n>."""
-    while True:
-        next = f'{base}{i}'
-        if next not in current_names:
-            return next
-        i += 1
-
-
 class GrabGitBase(GrabSourceBase, ABC):
     """
     Base class for Git operations.
@@ -89,38 +61,26 @@ class GrabGitBase(GrabSourceBase, ABC):
             return False
         return True
 
-    def fetch(self) -> str:
-        """
-        Fetch the source url, adding a new remote if necessary.
+    # def fetch(self) -> str:
+    #     """
+    #     Fetch the source url, adding a new remote if necessary.
+    #
+    #     Returns the remote alias.
+    #
+    #     """
+    #     # todo: check it's a url not a path?
+    #     remotes = get_remotes(self._dst)
+    #     if self.src not in remotes.values():
+    #         remote_name = self.add_remote()
+    #     else:
+    #         remote_name = [k for k, v in remotes.items() if v == self.src][0]
+    #
+    #     # ok it's a remote, we can fetch
+    #     command = ['git', 'fetch', '--depth', '1', remote_name, self.revision]
+    #     run_command(command)
+    #
+    #     return remote_name
 
-        Returns the remote alias.
-
-        """
-        # todo: check it's a url not a path?
-        remotes = get_remotes(self._dst)
-        if self.src not in remotes.values():
-            remote_name = self.add_remote()
-        else:
-            remote_name = [k for k, v in remotes.items() if v == self.src][0]
-
-        # ok it's a remote, we can fetch
-        command = ['git', 'fetch', '--depth', '1', remote_name, self.revision]
-        run_command(command)
-
-        return remote_name
-
-    def add_remote(self) -> str:
-        """
-        Add a new remote with the name `remote<n>`
-
-        Returns the remote alias.
-
-        """
-        # todo: check it's a url not a path?
-        remotes = get_remotes()
-        remote_name = _next_name(base='remote', current_names=remotes.keys())
-        run_command(['git', 'remote', 'add', remote_name, self.src])
-        return remote_name
 
 
 # todo: allow cli args, e.g to set the depth
@@ -141,13 +101,16 @@ class GitCheckout(GrabGitBase):
 
         # new folder?
         if not self._dst.exists():  # type: ignore
+
+            self._dst.mkdir(parents=True)
+            run_command(['git', 'init', '.'], self._dst)
+
             try:
                 run_command([
-                    'git', 'clone',
+                    'git', 'fetch',
                     '--depth', '1',
-                    '--branch', str(self.revision),
-                    self.src, str(self._dst)
-                ])
+                    self.src, str(self.revision),
+                ], cwd=str(self._dst))
             except RuntimeError:
                 # if it was a commit it will fail with github, so clone the whole repo and checkout the commit
                 # todo: can we do this without pulling the whole repo? E.g find a branch containing the commit?
