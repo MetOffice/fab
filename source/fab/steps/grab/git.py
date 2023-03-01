@@ -114,7 +114,6 @@ class GitCheckout(GrabGitBase):
                 # todo: can we do this without pulling the whole repo? E.g find a branch containing the commit?
                 warnings.warn('shallow git clone failed, retrying with full clone')
                 run_command(['git', 'fetch', self.src], cwd=self._dst)
-                xxxxxx
                 run_command(['git', 'checkout', self.revision], cwd=self._dst)
 
         else:
