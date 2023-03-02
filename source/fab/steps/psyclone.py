@@ -71,6 +71,10 @@ class Psyclone(Step):
     """
     Psyclone runner step.
 
+    .. note::
+
+        This step produces Fortran, so it must be run before the :class:`~fab.steps.analyse.Analyse` step.
+
     This step stores prebuilt results to speed up subsequent builds.
     To generate the prebuild hashes, it analyses the X90 and kernel files, storing prebuilt results for these also.
 
@@ -95,7 +99,7 @@ class Psyclone(Step):
             Optional override for getting input files from the artefact store.
         :param overrides_folder:
             Optional folder containing hand-crafted override files.
-            Must be part of the analysed source code.
+            Must be part of the subsequently analysed source code.
             Any file produced by psyclone will be deleted if there is a corresponding file in this folder.
         """
         super().__init__(name=name or 'psyclone')
