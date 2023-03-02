@@ -15,7 +15,7 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from fab.tools import run_command
 
@@ -57,6 +57,7 @@ class MpPayload:
     """
     analysed_x90: Dict[Path, AnalysedX90]
     all_kernel_hashes: Dict[str, int]
+    override_files: List[str]  # filenames (not paths) of hand crafted overrides
     transformation_script_hash: int = 0
 
 
@@ -70,6 +71,10 @@ class Psyclone(Step):
     """
     Psyclone runner step.
 
+    .. note::
+
+        This step produces Fortran, so it must be run before the :class:`~fab.steps.analyse.Analyse` step.
+
     This step stores prebuilt results to speed up subsequent builds.
     To generate the prebuild hashes, it analyses the X90 and kernel files, storing prebuilt results for these also.
 
@@ -79,7 +84,24 @@ class Psyclone(Step):
     def __init__(self, name=None, kernel_roots=None,
                  transformation_script: Optional[Path] = None,
                  cli_args: Optional[List[str]] = None,
-                 source_getter: Optional[ArtefactsGetter] = None):
+                 source_getter: Optional[ArtefactsGetter] = None,
+                 overrides_folder: Optional[Path] = None):
+        """
+        :param name:
+            Human friendly name for logger output.
+        :param kernel_root:
+            Folder containing kernel files. Must be part of the analysed source code.
+        :param transformation_script:
+            The Python transformation script.
+        :param cli_args:
+            Passed through to the psyclone cli tool.
+        :param source_getter:
+            Optional override for getting input files from the artefact store.
+        :param overrides_folder:
+            Optional folder containing hand-crafted override files.
+            Must be part of the subsequently analysed source code.
+            Any file produced by psyclone will be deleted if there is a corresponding file in this folder.
+        """
         super().__init__(name=name or 'psyclone')
         self.kernel_roots = kernel_roots or []
         self.transformation_script = transformation_script
@@ -88,6 +110,7 @@ class Psyclone(Step):
         self.cli_args: List[str] = cli_args or []
 
         self.source_getter = source_getter or DEFAULT_SOURCE_GETTER
+        self.overrides_folder = overrides_folder
 
     @classmethod
     def tool_available(cls) -> bool:
@@ -103,7 +126,7 @@ class Psyclone(Step):
         x90s = self.source_getter(artefact_store)
 
         # get the data for child processes to calculate prebuild hashes
-        mp_payload = self.analysis_for_prebuilds(x90s)
+        mp_payload = self._generate_mp_payload(x90s)
 
         # run psyclone.
         # for every file, we get back a list of its output files plus a list of the prebuild copies.
@@ -132,8 +155,23 @@ class Psyclone(Step):
         # is this called psykal?
         # assert False
 
+    def _generate_mp_payload(self, x90s):
+        prebuild_analyses = self._analysis_for_prebuilds(x90s)
+        transformation_script_hash, analysed_x90, all_kernel_hashes = prebuild_analyses
+
+        override_files: List[str] = []
+        if self.overrides_folder:
+            override_files = [f.name for f in file_walk(self.overrides_folder)]
+
+        return MpPayload(
+            transformation_script_hash=transformation_script_hash,
+            analysed_x90=analysed_x90,
+            all_kernel_hashes=all_kernel_hashes,
+            override_files=override_files,
+        )
+
     # todo: test that we can run this step before or after the analysis step
-    def analysis_for_prebuilds(self, x90s) -> MpPayload:
+    def _analysis_for_prebuilds(self, x90s) -> Tuple:
         """
         Analysis for PSyclone prebuilds.
 
@@ -190,11 +228,7 @@ class Psyclone(Step):
         # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
         all_kernel_hashes = self._analyse_kernels(self.kernel_roots)
 
-        return MpPayload(
-            transformation_script_hash=transformation_script_hash,
-            analysed_x90=analysed_x90,
-            all_kernel_hashes=all_kernel_hashes
-        )
+        return transformation_script_hash, analysed_x90, all_kernel_hashes
 
     def _analyse_x90s(self, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
         # Analyse parsable versions of the x90s, finding kernel dependencies.
@@ -268,15 +302,13 @@ class Psyclone(Step):
         prebuild_hash = self._gen_prebuild_hash(x90_file, mp_payload)
 
         # These are the filenames we expect to be output for this x90 input file.
-        # There will always be one modified_alg, and 0+ generated.
-        modified_alg = x90_file.with_suffix('.f90')
+        # There will always be one modified_alg, and 0-1 generated.
+        modified_alg: Path = x90_file.with_suffix('.f90')
         modified_alg = input_to_output_fpath(config=self._config, input_path=modified_alg)
-        generated = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
+        generated: Path = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
         generated = input_to_output_fpath(config=self._config, input_path=generated)
 
         generated.parent.mkdir(parents=True, exist_ok=True)
-
-        # todo: do we have handwritten overrides?
 
         # do we already have prebuilt results for this x90 file?
         prebuilt_alg, prebuilt_gen = self._get_prebuild_paths(modified_alg, generated, prebuild_hash)
@@ -304,6 +336,10 @@ class Psyclone(Step):
             except Exception as err:
                 logger.error(err)
                 return err, None
+
+        # do we have handwritten overrides for either of the files we just created?
+        modified_alg = self._check_override(modified_alg, mp_payload.override_files)
+        generated = self._check_override(generated, mp_payload.override_files)
 
         # return the output files from psyclone
         result: List[Path] = [modified_alg]
@@ -372,6 +408,26 @@ class Psyclone(Step):
         ]
 
         run_command(command)
+
+    def _check_override(self, check_path: Path, override_files: List[str]):
+        """
+        Delete the file if there's an override for it.
+
+        Assumes `self.overrides_folder` is not None, and is a flat folder.
+
+        Returns either the override or original path.
+
+        """
+
+        if check_path.name in override_files:
+            # there is an override so delete this output file...
+            logger.warning(f"\noverride found for '{check_path}'")
+            check_path.unlink()
+            # ... and return the override path instead
+            return self.overrides_folder / check_path.name  # type: ignore
+
+        # we didn't have an override, so continue using this file
+        return check_path
 
 
 # regex to convert an x90 into parsable fortran, so it can be analysed using a third party tool

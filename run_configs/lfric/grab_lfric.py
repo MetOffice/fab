@@ -7,7 +7,7 @@
 from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import FcmExport
 
-LFRIC_REVISION = 36615
+LFRIC_REVISION = 40984
 
 
 def lfric_source_config(revision=LFRIC_REVISION):

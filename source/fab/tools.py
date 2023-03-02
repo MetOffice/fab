@@ -94,8 +94,8 @@ def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = 
         If True, capture and return stdout. If False, the command will print its output directly to the console.
 
     """
-    dbg_msg = ' '.join(map(str, command))
-    logger.debug(f'run_command: {dbg_msg}')
+    command = list(map(str, command))
+    logger.debug(f'run_command: {" ".join(command)}')
     res = subprocess.run(command, capture_output=capture_output, env=env, cwd=cwd)
     if res.returncode != 0:
         msg = f'Command failed:\n{command}'
