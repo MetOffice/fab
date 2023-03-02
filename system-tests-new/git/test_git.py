@@ -17,13 +17,13 @@ The repo has the following commit structure, each printing a different variable.
 With this we can test grabbing a branch, tag and commit.
 
 """
+import shutil
 from pathlib import Path
 
 import pytest
 
 from fab.build_config import BuildConfig
 from fab.steps.grab.git import current_commit, GitCheckout, GitMerge
-from fab.tools import run_command
 
 
 @pytest.fixture
@@ -32,9 +32,7 @@ def config(tmp_path):
 
 
 class TestGitCheckout(object):
-    # Check we can grab from github.
-    # There's no need to hit their servers lots of times just for our tests,
-    # so we just have one small grab here and the rest use a local repo.
+    # Check we can fetch from github.
     @pytest.fixture
     def url(self):
         return 'https://github.com/metomi/fab-test-data.git'
@@ -61,17 +59,32 @@ class TestGitCheckout(object):
         checkout.run(artefact_store=None, config=config)
         assert current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
 
+
 # todo: we could do with a test to ensure left-over files from previous fetches are cleaned away
 
 
 class TestGitMerge(object):
 
-    def test(self, tmp_path, config):
+    @pytest.fixture
+    def repo_url(self, tmp_path):
+        shutil.unpack_archive(Path(__file__).parent / 'repo.tar.gz', tmp_path)
+        return f'file://{tmp_path}/repo'
 
-        repo_path = tmp_path / 'repo'
-        repo_path.mkdir()
-        run_command(['tar', '-xkf', str(Path(__file__).parent / 'tiny_fortran.tar')], cwd=repo_path)
+    def test_vanilla(self, tmp_path, repo_url, config):
 
-        checkout = GitCheckout(src=repo_path / 'tiny_fortran', dst='tiny_fortran', revision=xxx)
-        merge = GitMerge(src=repo_path / 'tiny_fortran', dst='tiny_fortran', revision=xxx)
+        # checkout master
+        checkout_master = GitCheckout(src=repo_url, dst='tiny_fortran', revision='master')
+        checkout_master.run(artefact_store=None, config=config)
+        check_file = checkout_master._dst / 'file1.txt'
+        assert 'This is sentence one in file one.' in open(check_file).read()
 
+        merge_a = GitMerge(src=repo_url, dst='tiny_fortran', revision='experiment_a')
+        merge_a.run(artefact_store=None, config=config)
+        assert 'This is sentence one, with Experiment A modification.' in open(check_file).read()
+
+        merge_b = GitMerge(src=repo_url, dst='tiny_fortran', revision='experiment_b')
+        with pytest.raises(RuntimeError):
+            merge_b.run(artefact_store=None, config=config)
+
+        # The conflicted merge must have been aborted, check that we can cdo another checkout
+        checkout_master.run(artefact_store=None, config=config)

@@ -47,7 +47,8 @@ class GrabGitBase(GrabSourceBase, ABC):
         return True
 
     def fetch(self):
-        command = ['git', 'fetch', '--depth', '1', self.src]
+        # command = ['git', 'fetch', '--depth', '1', self.src]
+        command = ['git', 'fetch', self.src]
         if self.revision:
             command.append(self.revision)
         run_command(command, cwd=str(self._dst))
@@ -90,21 +91,9 @@ class GitMerge(GrabGitBase):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
 
         self.fetch()
-        run_command(['git', 'merge', self.revision], cwd=self._dst)
-        self.check_conflict()
 
-    def check_conflict(self):
-        # check if there's a conflict
-        xml_str = run_command([self.command, 'status', '--xml'], cwd=self._dst)
-        root = ET.fromstring(xml_str)
-
-        for target in root:
-            if target.tag != 'target':
-                continue
-            for entry in target:
-                if entry.tag != 'entry':
-                    continue
-                for element in entry:
-                    if element.tag == 'wc-status' and element.attrib['item'] == 'conflicted':
-                        raise RuntimeError(f'{self.command} merge encountered a conflict:\n{xml_str}')
-        return False
+        try:
+            run_command(['git', 'merge', 'FETCH_HEAD'], cwd=self._dst)
+        except RuntimeError as err:
+            run_command(['git', 'merge', '--abort'], cwd=self._dst)
+            raise RuntimeError(f"Error merging {self.revision}. Merge aborted.\n{err}")
