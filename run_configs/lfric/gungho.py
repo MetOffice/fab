@@ -15,9 +15,10 @@ from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
+from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
 
 logger = logging.getLogger('fab')
 
@@ -66,9 +67,13 @@ def gungho_config(two_stage=False, opt='Og'):
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
             ]),
 
-        psyclone_preprocessor(),
+        psyclone_preprocessor(common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 
-        Psyclone(kernel_roots=[config.build_output]),
+        Psyclone(
+            kernel_roots=[config.build_output],
+            transformation_script=lfric_source / 'gungho/optimisation/meto-spice/global.py',
+            cli_args=[],
+        ),
 
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 

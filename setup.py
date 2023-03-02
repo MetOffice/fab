@@ -22,7 +22,7 @@ with open(os.path.join(_here, 'source', 'fab', '__init__.py'),
 
 tests = ['pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy']
 docs = ['sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints']
-features = ['matplotlib']
+features = ['matplotlib', 'jinja2', 'psyclone']
 
 setuptools.setup(
     name='sci-fab',
@@ -54,5 +54,10 @@ setuptools.setup(
         'tests': tests,
         'docs': docs,
         'dev': [*tests, *docs, *features],
-    }
+    },
+    entry_points={
+        'console_scripts': [
+            'fab=fab.cli:cli_fab'
+        ]
+    },
 )

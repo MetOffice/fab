@@ -33,23 +33,23 @@ by passing FortranParserWorkaround objects into the `special_measure_analysis_re
 You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
 
 """
-
+from itertools import chain
 import logging
 import sys
 import warnings
 from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
-from fab.parse.c import CAnalyser
-
-from fab.parse.fortran import FortranParserWorkaround, FortranAnalyser
-
-from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
+from fab import FabException
+from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
+from fab.constants import BUILD_TREES
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
+from fab.parse import AnalysedFile, EmptySourceFile
+from fab.parse.c import AnalysedC, CAnalyser
+from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
 from fab.steps import Step
 from fab.util import TimerLogger, by_type
-from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     'preprocessed_c',
     'preprocessed_fortran',
 
-    # todo: this is lfric stuff so might be better placed with the lfric run configs
+    # todo: this is lfric stuff so might be better placed elsewhere
     SuffixFilter('psyclone_output', '.f90'),
     'preprocessed_psyclone',
     'configurator_output',
@@ -79,7 +79,8 @@ class Analyse(Step):
     # todo: allow the user to specify a different output artefact collection name?
     def __init__(self,
                  source: Optional[ArtefactsGetter] = None,
-                 root_symbol: Optional[Union[str, List[str]]] = None,  # todo: iterable is more correct
+                 root_symbol: Optional[Union[str, List[str]]] = None,
+                 find_programs: bool = False,
                  std: str = "f2008",
                  special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
@@ -96,6 +97,9 @@ class Analyse(Step):
 
         :param source:
             An :class:`~fab.util.ArtefactsGetter` to get the source files.
+        :param find_programs:
+            Instructs the analyser to automatically identify program definitions in the source.
+            Alternatively, the required programs can be specified with the root_symbol argument.
         :param root_symbol:
             When building an executable, provide the Fortran Program name(s), or 'main' for C.
             If None, build tree extraction will not be performed and the entire source will be used
@@ -122,8 +126,12 @@ class Analyse(Step):
         # because the files they refer to probably don't exist yet,
         # because we're just creating steps at this point, so there's been no grab...
 
+        if find_programs and root_symbol:
+            raise ValueError("find_programs and root_symbol can't be used together")
+
         super().__init__(name)
         self.source_getter = source or DEFAULT_SOURCE_GETTER
+        self.find_programs = find_programs
         self.root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
         self.special_measure_analysis_results: List[FortranParserWorkaround] = \
             list(special_measure_analysis_results or [])
@@ -167,8 +175,23 @@ class Analyse(Step):
         analysed_files = self._parse_files(files=files)
         self._add_manual_results(analysed_files)
 
+        # shall we search the results for fortran programs and a c function called main?
+        if self.find_programs:
+            # find fortran programs
+            sets_of_programs = [af.program_defs for af in by_type(analysed_files, AnalysedFortran)]
+            self.root_symbols = list(chain(*sets_of_programs))
+
+            # find c main()
+            c_with_main = list(filter(lambda c: 'main' in c.symbol_defs, by_type(analysed_files, AnalysedC)))
+            if c_with_main:
+                self.root_symbols.append('main')
+                if len(c_with_main) > 1:
+                    raise FabException("multiple c main() functions found")
+
+            logger.info(f'automatically found the following programs to build: {", ".join(self.root_symbols)}')
+
         # analyse
-        project_source_tree, symbols = self._analyse_dependencies(analysed_files)
+        project_source_tree, symbol_table = self._analyse_dependencies(analysed_files)
 
         # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
         with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
@@ -178,33 +201,36 @@ class Analyse(Step):
 
         # extract "build trees" for executables.
         if self.root_symbols:
-            build_trees = self._extract_build_trees(project_source_tree, symbols)
+            build_trees = self._extract_build_trees(project_source_tree, symbol_table)
         else:
             build_trees = {None: project_source_tree}
 
         # throw in any extra source we need, which Fab can't automatically detect
         for build_tree in build_trees.values():
-            self._add_unreferenced_deps(symbols, project_source_tree, build_tree)
+            self._add_unreferenced_deps(symbol_table, project_source_tree, build_tree)
             validate_dependencies(build_tree)
 
         artefact_store[BUILD_TREES] = build_trees
 
     def _analyse_dependencies(self, analysed_files: Iterable[AnalysedDependent]):
         """
-        Turn symbol deps into file deps and build a source dependency tree for the entire source.
+        Build a source dependency tree for the entire source.
 
         """
         with TimerLogger("converting symbol dependencies to file dependencies"):
             # map symbols to the files they're in
-            symbols: Dict[str, Path] = self._gen_symbol_table(analysed_files)
+            symbol_table: Dict[str, Path] = self._gen_symbol_table(analysed_files)
 
             # fill in the file deps attribute in the analysed file objects
-            self._gen_file_deps(analysed_files, symbols)
+            self._gen_file_deps(analysed_files, symbol_table)
 
+        # build the tree
+        # the nodes refer to other nodes via the file dependencies we just made, which are keys into this dict
         source_tree: Dict[Path, AnalysedDependent] = {a.fpath: a for a in analysed_files}
-        return source_tree, symbols
 
-    def _extract_build_trees(self, project_source_tree, symbols):
+        return source_tree, symbol_table
+
+    def _extract_build_trees(self, project_source_tree, symbol_table):
         """
         Find the subset of files needed to build each root symbol (executable).
 
@@ -215,9 +241,9 @@ class Analyse(Step):
         build_trees = {}
         for root in self.root_symbols:
             with TimerLogger(f"extracting build tree for root '{root}'"):
-                build_tree = extract_sub_tree(project_source_tree, symbols[root], verbose=False)
+                build_tree = extract_sub_tree(project_source_tree, symbol_table[root], verbose=False)
 
-            logger.info(f"target source tree size {len(build_tree)} (target '{symbols[root]}')")
+            logger.info(f"target source tree size {len(build_tree)} (target '{symbol_table[root]}')")
             build_trees[root] = build_tree
 
         return build_trees
@@ -235,6 +261,10 @@ class Analyse(Step):
         with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
             fortran_results = self.run_mp(items=fortran_files, func=self.fortran_analyser.run)
         fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
+
+        # warn about naughty fortran usage
+        if self.fortran_analyser.depends_on_comment_found:
+            warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
         # c
         c_files = set(filter(lambda f: f.suffix == '.c', files))
@@ -257,13 +287,12 @@ class Analyse(Step):
 
         # record the artefacts as being current
         artefacts = by_type(fortran_artefacts + c_artefacts, Path)
-        self._config._artefact_store[CURRENT_PREBUILDS].update(artefacts)  # slightly naughty access.
+        self._config.add_current_prebuilds(artefacts)
 
-        # warn about naughty fortran usage
-        if self.fortran_analyser.depends_on_comment_found:
-            warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
-
-        return set(by_type(analyses, AnalysedDependent))
+        # ignore empty files
+        analysed_files = by_type(analyses, AnalysedFile)
+        non_empty = {af for af in analysed_files if not isinstance(af, EmptySourceFile)}
+        return non_empty
 
     def _add_manual_results(self, analysed_files: Set[AnalysedDependent]):
         # add manual analysis results for files which could not be parsed
@@ -328,8 +357,7 @@ class Analyse(Step):
         if deps_not_found:
             logger.info(f"{len(deps_not_found)} deps not found")
 
-    def _add_unreferenced_deps(self,
-                               symbols: Dict[str, Path],
+    def _add_unreferenced_deps(self, symbol_table: Dict[str, Path],
                                all_analysed_files: Dict[Path, AnalysedDependent],
                                build_tree: Dict[Path, AnalysedDependent]):
         """
@@ -345,7 +373,7 @@ class Analyse(Step):
         for symbol_dep in self.unreferenced_deps:
 
             # what file is the symbol in?
-            analysed_fpath = symbols.get(symbol_dep)
+            analysed_fpath = symbol_table.get(symbol_dep)
             if not analysed_fpath:
                 warnings.warn(f"no file found for unreferenced dependency {symbol_dep}")
                 continue

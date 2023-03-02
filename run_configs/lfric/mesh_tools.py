@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from argparse import ArgumentParser
+from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
@@ -9,8 +10,9 @@ from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
+from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
-from lfric_common import Configurator, psyclone_preprocessor, Psyclone, FparserWorkaround_StopConcatenation
+from lfric_common import Configurator, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 
@@ -21,6 +23,9 @@ def mesh_tools_config(two_stage=False, opt='Og'):
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
     compiler, _ = get_fortran_compiler()
 
+    # this folder just contains previous output, for testing the overrides mechanism.
+    psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
+
     config = BuildConfig(project_label=f'mesh tools {compiler} {opt} {int(two_stage)+1}stage')
     config.steps = [
 
@@ -29,6 +34,9 @@ def mesh_tools_config(two_stage=False, opt='Og'):
         GrabFolder(src=lfric_source / 'components/science/source/', dst=''),
 
         GrabFolder(src=lfric_source / 'gungho/source/', dst=''),
+
+        # grab the psyclone overrides folder into the source folder
+        GrabFolder(src=psyclone_overrides, dst='mesh_tools_overrides'),
 
         # generate more source files in source and source/configuration
         Configurator(
@@ -44,9 +52,13 @@ def mesh_tools_config(two_stage=False, opt='Og'):
 
         fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
-        psyclone_preprocessor(),
+        psyclone_preprocessor(common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 
-        Psyclone(kernel_roots=[config.build_output]),
+        Psyclone(
+            kernel_roots=[config.build_output],
+            cli_args=['--config', Path(__file__).parent / 'psyclone.cfg'],
+            overrides_folder=config.source_root / 'mesh_tools_overrides',
+        ),
 
         FparserWorkaround_StopConcatenation(name='fparser stop bug workaround'),
 
