@@ -86,5 +86,5 @@ class TestGitMerge(object):
         with pytest.raises(RuntimeError):
             merge_b.run(artefact_store=None, config=config)
 
-        # The conflicted merge must have been aborted, check that we can cdo another checkout
+        # The conflicted merge must have been aborted, check that we can do another checkout
         checkout_master.run(artefact_store=None, config=config)

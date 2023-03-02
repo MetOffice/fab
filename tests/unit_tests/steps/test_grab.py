@@ -8,8 +8,6 @@ from types import SimpleNamespace
 from unittest import mock
 from unittest.mock import call
 
-import pytest
-
 from fab.steps.grab.fcm import FcmExport
 from fab.steps.grab.folder import GrabFolder
 
