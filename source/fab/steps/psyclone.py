@@ -355,7 +355,7 @@ class Psyclone(Step):
     def run_psyclone(self, generated, modified_alg, x90_file):
 
         # -d specifies "a root directory structure containing kernel source"
-        kernel_args = sum([['-d', k] for k in self.kernel_roots], [])
+        kernel_args: list[str] | list = sum([['-d', k] for k in self.kernel_roots], [])
 
         # transformation python script
         transform_options = ['-s', self.transformation_script] if self.transformation_script else []

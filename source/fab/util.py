@@ -122,6 +122,7 @@ class Timer(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        assert self.start is not None
         self.taken = perf_counter() - self.start
 
 
