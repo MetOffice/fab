@@ -6,8 +6,7 @@
 import warnings
 from abc import ABC
 from pathlib import Path
-from typing import Union, Dict, Tuple
-import xml.etree.ElementTree as ET
+from typing import Union, Dict
 
 from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
@@ -47,10 +46,11 @@ class GrabGitBase(GrabSourceBase, ABC):
         return True
 
     def fetch(self):
-        # command = ['git', 'fetch', '--depth', '1', self.src]
+        # todo: allow shallow fetch with --depth 1
         command = ['git', 'fetch', self.src]
         if self.revision:
             command.append(self.revision)
+
         run_command(command, cwd=str(self._dst))
 
 
@@ -70,7 +70,7 @@ class GitCheckout(GrabGitBase):
         elif not self.is_working_copy(self._dst):  # type: ignore
             raise ValueError(f"destination exists but is not a working copy: '{self._dst}'")
 
-        self.fetch()
+        self.fetch(with_history=self.with_history)
         run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=self._dst)
 
         try:
@@ -90,7 +90,7 @@ class GitMerge(GrabGitBase):
         if not self._dst or not self.is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
 
-        self.fetch()
+        self.fetch(with_history=True)
 
         try:
             run_command(['git', 'merge', 'FETCH_HEAD'], cwd=self._dst)

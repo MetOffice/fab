@@ -70,7 +70,7 @@ class TestGitMerge(object):
         shutil.unpack_archive(Path(__file__).parent / 'repo.tar.gz', tmp_path)
         return f'file://{tmp_path}/repo'
 
-    def test_vanilla(self, tmp_path, repo_url, config):
+    def test_vanilla(self, repo_url, config):
 
         # checkout master
         checkout_master = GitCheckout(src=repo_url, dst='tiny_fortran', revision='master')
