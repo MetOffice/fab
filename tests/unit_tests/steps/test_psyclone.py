@@ -47,6 +47,7 @@ class Test_gen_prebuild_hash(object):
             transformation_script_hash=transformation_script_hash,
             analysed_x90=analysed_x90,
             all_kernel_hashes=all_kernel_hashes,
+            override_files=[]
         )
         return psyclone_step, mp_payload, x90_file, expect_hash
 
@@ -82,3 +83,24 @@ class Test_gen_prebuild_hash(object):
         psyclone_step.cli_args = ['--foo']
         result = psyclone_step._gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
         assert result != expect_hash
+
+
+class Test_check_override(object):
+
+    def test_no_override(self):
+        overrides_folder = Path('/foo')
+        override_files = [Path('/foo/bar.f90')]
+        psyclone_step = Psyclone(overrides_folder=overrides_folder)
+
+        check_path = Path('/not_foo/bar.f90')
+        result = psyclone_step._check_override(check_path=check_path, override_files=override_files)
+        assert result == check_path
+
+    def test_override(self):
+        overrides_folder = Path('/foo')
+        override_files = [Path('/foo/bar.f90')]
+        psyclone_step = Psyclone(overrides_folder=overrides_folder)
+
+        check_path = Path('/foo/bar.f90')
+        result = psyclone_step._check_override(check_path=check_path, override_files=override_files)
+        assert result == overrides_folder / 'bar.f90'
