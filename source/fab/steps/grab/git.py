@@ -25,21 +25,6 @@ class GrabGitBase(GrabSourceBase, ABC):
     Base class for Git operations.
 
     """
-    def __init__(self, src: Union[str, Path], dst: str, revision, name=None):
-        """
-        :param src:
-            Such as `https://github.com/metomi/fab-test-data.git` or path to a local working copy.
-        :param dst:
-            The name of a sub folder, in the project workspace, in which to put the source.
-            If not specified, the code is copied into the root of the source folder.
-        :param revision:
-            A branch, tag or commit.
-        :param name:
-            Human friendly name for logger output, with sensible default.
-
-        """
-        super().__init__(src, dst, name=name, revision=revision)
-
     def run(self, artefact_store: Dict, config):
         if not self.tool_available():
             raise RuntimeError("git command line tool not available")
@@ -61,26 +46,11 @@ class GrabGitBase(GrabSourceBase, ABC):
             return False
         return True
 
-    # def fetch(self) -> str:
-    #     """
-    #     Fetch the source url, adding a new remote if necessary.
-    #
-    #     Returns the remote alias.
-    #
-    #     """
-    #     # todo: check it's a url not a path?
-    #     remotes = get_remotes(self._dst)
-    #     if self.src not in remotes.values():
-    #         remote_name = self.add_remote()
-    #     else:
-    #         remote_name = [k for k, v in remotes.items() if v == self.src][0]
-    #
-    #     # ok it's a remote, we can fetch
-    #     command = ['git', 'fetch', '--depth', '1', remote_name, self.revision]
-    #     run_command(command)
-    #
-    #     return remote_name
-
+    def fetch(self):
+        command = ['git', 'fetch', '--depth', '1', self.src]
+        if self.revision:
+            command.append(self.revision)
+        run_command(command, cwd=str(self._dst))
 
 
 # todo: allow cli args, e.g to set the depth
@@ -88,42 +58,25 @@ class GitCheckout(GrabGitBase):
     """
     Checkout or update a Git repo.
 
-    If the revision is a branch or tag is provided, no extra branches or history is fetched.
-    If the revision is a commit, the entire remote is fetched.
-
     """
-
-    # todo: just fetch url refspec then checkout FETCH_HEAD
-
-
     def run(self, artefact_store: Dict, config):
         super().run(artefact_store, config)
 
-        # new folder?
+        # create folder?
         if not self._dst.exists():  # type: ignore
-
             self._dst.mkdir(parents=True)
-            run_command(['git', 'init', '.'], self._dst)
+            run_command(['git', 'init', '.'], cwd=self._dst)
+        elif not self.is_working_copy(self._dst):  # type: ignore
+            raise ValueError(f"destination exists but is not a working copy: '{self._dst}'")
 
-            try:
-                run_command(['git', 'fetch', '--depth', '1', self.src, str(self.revision)], cwd=str(self._dst))
-                run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=self._dst)
+        self.fetch()
+        run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=self._dst)
 
-            except RuntimeError:
-                # if it was a commit it will fail with github, so clone the whole repo and checkout the commit
-                # todo: can we do this without pulling the whole repo? E.g find a branch containing the commit?
-                warnings.warn('shallow git clone failed, retrying with full clone')
-                run_command(['git', 'fetch', self.src], cwd=self._dst)
-                run_command(['git', 'checkout', self.revision], cwd=self._dst)
-
-        else:
-            if self.is_working_copy(self._dst):  # type: ignore
-                remote_name = self.fetch()
-                run_command(['git', 'checkout', f'{remote_name}/{self.revision}'], cwd=self._dst)
-                run_command(['git', 'reset', '--hard'], cwd=self._dst)
-            else:
-                # we can't deal with an existing folder that isn't a working copy
-                raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
+        try:
+            self._dst.relative_to(config.project_workspace)
+            run_command(['git', 'clean', '-f'], cwd=self._dst)
+        except ValueError:
+            warnings.warn(f'not safe to clean git source in {self._dst}')
 
 
 class GitMerge(GrabGitBase):
@@ -136,8 +89,7 @@ class GitMerge(GrabGitBase):
         if not self._dst or not self.is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
 
-        # we need to make sure the src is in the list of remotes
-
+        self.fetch()
         run_command(['git', 'merge', self.revision], cwd=self._dst)
         self.check_conflict()
 

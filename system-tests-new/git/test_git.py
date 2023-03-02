@@ -17,142 +17,21 @@ The repo has the following commit structure, each printing a different variable.
 With this we can test grabbing a branch, tag and commit.
 
 """
-from unittest import mock
+from pathlib import Path
 
 import pytest
 
-from fab.steps.grab.git import current_branch, current_commit, GitCheckout
+from fab.build_config import BuildConfig
+from fab.steps.grab.git import current_commit, GitCheckout, GitMerge
 from fab.tools import run_command
 
 
-# MY_MOD = 'src/my_mod.F90'
-#
-#
-# class TestGitExport_Local(object):
-#
-#     def prep(self, tmp_path: Path, revision, shallow: bool, update=False):
-#         repo_path = tmp_path / 'repo'
-#
-#         # when testing repo updates, there will already have been a preceding call to prep
-#         if not update:
-#             repo_path.mkdir()
-#             run_command(['tar', '-xkf', str(Path(__file__).parent / 'tiny_fortran.tar')], cwd=repo_path)
-#
-#         grab = GitExport(src=repo_path / 'tiny_fortran', dst='tiny_fortran', revision=revision)
-#         config = mock.Mock(source_root=tmp_path / 'source')
-#
-#         return grab, config
-#
-#     # shallow clone (new folder) tests
-#     def test_shallow_clone_branch(self, tmp_path):
-#         grab, config = self.prep(tmp_path, revision='foo2', shallow=True)
-#         grab.run(artefact_store=None, config=config)
-#
-#         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-#         # check it's shallow
-#         our_repo = git.Repo(grab._dst)
-#         assert len(our_repo.branches) == 1
-#         assert len(list(our_repo.iter_commits())) == 1
-#
-#     def test_shallow_clone_tag(self, tmp_path):
-#         grab, config = self.prep(tmp_path, revision='my_tag', shallow=True)
-#         grab.run(artefact_store=None, config=config)
-#         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-#
-#     def test_shallow_clone_commit(self, tmp_path):
-#         # We can't shallow grab a commit. Git won't let us.
-#         grab, config = self.prep(tmp_path, revision='15c0d5', shallow=True)
-#         with pytest.raises(git.GitCommandError):
-#             grab.run(artefact_store=None, config=config)
-#
-#     # shallow update (existing folder) tests
-#     def test_shallow_update_branch(self, tmp_path):
-#
-#         # first grab creates folder at a different commit
-#         grab, config = self.prep(tmp_path, revision='main', shallow=True)
-#         grab.run(artefact_store=None, config=config)
-#
-#         # grab again, folder already exists
-#         grab, config = self.prep(tmp_path, revision='foo2', shallow=True, update=True)
-#         grab.run(artefact_store=None, config=mock.Mock(source_root=tmp_path / 'source'))
-#
-#         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-#
-#     def test_shallow_update_tag(self, tmp_path):
-#
-#         # first grab creates folder at a different commit
-#         grab, config = self.prep(tmp_path, revision='main', shallow=True)
-#         grab.run(artefact_store=None, config=config)
-#
-#         # grab again, folder already exists
-#         grab, config = self.prep(tmp_path, revision='my_tag', shallow=True, update=True)
-#         grab.run(artefact_store=None, config=config)
-#
-#         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-#
-#     # deep clone (new folder) tests
-#     def test_deep_clone_branch(self, tmp_path):
-#         grab, config = self.prep(tmp_path, revision='foo2', shallow=False)
-#         grab.run(artefact_store=None, config=config)
-#
-#         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-#
-#         # check it's deep
-#         our_repo = git.Repo(grab._dst)
-#         assert len(our_repo.remotes['origin'].refs) == 2
-#         assert len(list(our_repo.iter_commits())) == 4
-#
-#     def test_deep_clone_tag(self, tmp_path):
-#         grab, config = self.prep(tmp_path, revision='my_tag', shallow=False)
-#         grab.run(artefact_store=None, config=config)
-#         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-#
-#     def test_deep_clone_commit(self, tmp_path):
-#         grab, config = self.prep(tmp_path, revision='15c0d5', shallow=False)
-#         grab.run(artefact_store=None, config=config)
-#         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-#
-#     # deep update (existing folder) tests
-#     def test_deep_update_branch(self, tmp_path):
-#
-#         # first grab creates folder at an old commit
-#         grab, config = self.prep(tmp_path, revision='a981a2', shallow=False)
-#         grab.run(artefact_store=None, config=config)
-#
-#         # grab again, folder already exists
-#         grab, config = self.prep(tmp_path, revision='foo2', shallow=False, update=True)
-#         grab.run(artefact_store=None, config=config)
-#
-#         assert "foo = 22" in open(grab._dst / MY_MOD).read()
-#
-#     def test_deep_update_tag(self, tmp_path):
-#
-#         # first grab creates folder at an old commit
-#         grab, config = self.prep(tmp_path, revision='a981a2', shallow=False)
-#         grab.run(artefact_store=None, config=config)
-#
-#         # grab again, folder already exists
-#         grab, config = self.prep(tmp_path, revision='my_tag', shallow=False, update=True)
-#         grab.run(artefact_store=None, config=config)
-#
-#         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-#
-#     def test_deep_update_commit(self, tmp_path):
-#
-#         # first grab creates folder at an old commit
-#         grab, config = self.prep(tmp_path, revision='a981a2', shallow=False)
-#         grab.run(artefact_store=None, config=config)
-#
-#         # grab again, folder already exists
-#         grab, config = self.prep(tmp_path, revision='15c0d5', shallow=False, update=True)
-#         grab.run(artefact_store=None, config=config)
-#
-#         assert "foo = 2" in open(grab._dst / MY_MOD).read()
-#
+@pytest.fixture
+def config(tmp_path):
+    return BuildConfig('proj', fab_workspace=tmp_path)
 
 
-
-class TestCloneFromGithub(object):
+class TestGitCheckout(object):
     # Check we can grab from github.
     # There's no need to hit their servers lots of times just for our tests,
     # so we just have one small grab here and the rest use a local repo.
@@ -160,44 +39,39 @@ class TestCloneFromGithub(object):
     def url(self):
         return 'https://github.com/metomi/fab-test-data.git'
 
-    # test cloning a repo
-    def test_checkout_branch(self, tmp_path, url):
+    def test_checkout_url(self, tmp_path, url, config):
+        checkout = GitCheckout(src=url, dst='tiny_fortran')
+        checkout.run(artefact_store=None, config=config)
+        # todo: The commit will keep changing. Perhaps make a non-changing branch
+        assert current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
+
+    def test_checkout_branch(self, tmp_path, url, config):
         checkout = GitCheckout(src=url, dst='tiny_fortran', revision='main')
-        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
-        assert current_branch(tmp_path / 'tiny_fortran') == 'main'
+        checkout.run(artefact_store=None, config=config)
+        # todo: The commit will keep changing. Perhaps make a non-changing branch
+        assert current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
 
-    def test_checkout_tag(self, tmp_path, url):
+    def test_checkout_tag(self, tmp_path, url, config):
         checkout = GitCheckout(src=url, dst='tiny_fortran', revision='early')
-        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
-        get_tag = run_command(['git', 'describe', '--tag'], cwd=checkout._dst)
-        assert get_tag.strip() == 'early'
+        checkout.run(artefact_store=None, config=config)
+        assert current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
 
-    def test_checkout_commit(self, tmp_path, url):
-        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='ee56489')
-        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
-        assert current_commit(tmp_path / 'tiny_fortran') == 'ee56489'
+    def test_checkout_commit(self, tmp_path, url, config):
+        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='ee5648928893701c5dbccdbf0561c0038352a5ff')
+        checkout.run(artefact_store=None, config=config)
+        assert current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
 
-    # new commit
-    # new branch
-    # new remote
+# todo: we could do with a test to ensure left-over files from previous fetches are cleaned away
 
 
-class TestUpdateFromLocalRepo(object):
+class TestGitMerge(object):
 
-    # test updating a repo
-    # these tests are the same as the clone ones, with a preceding clone of an earlier commit
-    def test_update_branch(self, tmp_path, url):
-        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='main')
-        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
-        assert current_branch(tmp_path / 'tiny_fortran') == 'main'
+    def test(self, tmp_path, config):
 
-    def test_update_tag(self, tmp_path, url):
-        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='early')
-        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
-        get_tag = run_command(['git', 'describe', '--tag'], cwd=checkout._dst)
-        assert get_tag.strip() == 'early'
+        repo_path = tmp_path / 'repo'
+        repo_path.mkdir()
+        run_command(['tar', '-xkf', str(Path(__file__).parent / 'tiny_fortran.tar')], cwd=repo_path)
 
-    def test_update_commit(self, tmp_path, url):
-        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='ee56489')
-        checkout.run(artefact_store=None, config=mock.Mock(source_root=tmp_path))
-        assert current_commit(tmp_path / 'tiny_fortran') == 'ee56489'
+        checkout = GitCheckout(src=repo_path / 'tiny_fortran', dst='tiny_fortran', revision=xxx)
+        merge = GitMerge(src=repo_path / 'tiny_fortran', dst='tiny_fortran', revision=xxx)
+
