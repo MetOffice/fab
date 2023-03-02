@@ -64,13 +64,14 @@ class GitCheckout(GrabGitBase):
         super().run(artefact_store, config)
 
         # create folder?
-        if not self._dst.exists():  # type: ignore
+        assert self._dst  # for mypy
+        if not self._dst.exists():
             self._dst.mkdir(parents=True)
             run_command(['git', 'init', '.'], cwd=self._dst)
         elif not self.is_working_copy(self._dst):  # type: ignore
             raise ValueError(f"destination exists but is not a working copy: '{self._dst}'")
 
-        self.fetch(with_history=self.with_history)
+        self.fetch()
         run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=self._dst)
 
         try:
@@ -90,7 +91,7 @@ class GitMerge(GrabGitBase):
         if not self._dst or not self.is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
 
-        self.fetch(with_history=True)
+        self.fetch()
 
         try:
             run_command(['git', 'merge', 'FETCH_HEAD'], cwd=self._dst)
