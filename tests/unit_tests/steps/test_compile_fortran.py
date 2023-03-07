@@ -8,7 +8,7 @@ import pytest
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
-from fab.steps.compile_fortran import CompileFortran, get_mod_hashes
+from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler, get_fortran_preprocessor, get_mod_hashes
 from fab.util import CompiledFile
 
 
@@ -395,7 +395,7 @@ class Test_process_file(object):
 class test_constructor(object):
 
     def test_bare(self):
-        with mock.patch.dict(os.environ, FC='foofc', FFLAGS=''):
+        with mock.patch.dict(os.environ, FC='foofc', clear=True):
             cf = CompileFortran()
         assert cf.compiler == 'foofc'
         assert cf.flags.common_flags == []
@@ -429,7 +429,7 @@ class test_constructor(object):
         assert cf.compiler == 'barfc'
 
     def test_no_compiler(self):
-        with mock.patch.dict(os.environ, FC=''):
+        with mock.patch.dict(os.environ, clear=True):
             with pytest.raises(ValueError):
                 CompileFortran()
 
@@ -457,3 +457,71 @@ class Test_get_mod_hashes(object):
                 result = get_mod_hashes(analysed_files=analysed_files, config=config)
 
         assert result == {'foo': 123, 'bar': 456}
+
+
+class Test_get_fortran_preprocessor(object):
+
+    def test_from_env(self):
+        with mock.patch.dict(os.environ, values={'FPP': 'foo_pp --foo'}):
+            fpp, fpp_flags = get_fortran_preprocessor()
+
+        assert fpp == 'foo_pp'
+        assert fpp_flags == ['--foo', '-P']
+
+    def test_empty_env_fpp(self):
+        def mock_run_command(command):
+            if 'fpp' not in command:
+                raise RuntimeError('foo')
+
+        with mock.patch.dict(os.environ, clear=True):
+            with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
+                fpp, fpp_flags = get_fortran_preprocessor()
+
+        assert fpp == 'fpp'
+        assert fpp_flags == ['-P']
+
+    def test_empty_env_cpp(self):
+        def mock_run_command(command):
+            if 'cpp' not in command:
+                raise RuntimeError('foo')
+
+        with mock.patch.dict(os.environ, clear=True):
+            with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
+                fpp, fpp_flags = get_fortran_preprocessor()
+
+        assert fpp == 'cpp'
+        assert fpp_flags == ['-traditional-cpp', '-P']
+
+
+class Test_get_fortran_compiler(object):
+
+    def test_from_env(self):
+        with mock.patch.dict(os.environ, values={'FC': 'foo_c --foo'}):
+            fc, fc_flags = get_fortran_compiler()
+
+        assert fc == 'foo_c'
+        assert fc_flags == ['--foo']
+
+    def test_empty_env_gfortran(self):
+        def mock_run_command(command):
+            if 'gfortran' not in command:
+                raise RuntimeError('foo')
+
+        with mock.patch.dict(os.environ, clear=True):
+            with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
+                fc, fc_flags = get_fortran_compiler()
+
+        assert fc == 'gfortran'
+        assert fc_flags == []
+
+    def test_empty_env_ifort(self):
+        def mock_run_command(command):
+            if 'ifort' not in command:
+                raise RuntimeError('foo')
+
+        with mock.patch.dict(os.environ, clear=True):
+            with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
+                fc, fc_flags = get_fortran_compiler()
+
+        assert fc == 'ifort'
+        assert fc_flags == []

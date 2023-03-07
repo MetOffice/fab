@@ -94,8 +94,8 @@ def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = 
         If True, capture and return stdout. If False, the command will print its output directly to the console.
 
     """
-    dbg_msg = ' '.join(map(str, command))
-    logger.debug(f'run_command: {dbg_msg}')
+    command = list(map(str, command))
+    logger.debug(f'run_command: {" ".join(command)}')
     res = subprocess.run(command, capture_output=capture_output, env=env, cwd=cwd)
     if res.returncode != 0:
         msg = f'Command failed:\n{command}'
@@ -109,7 +109,7 @@ def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = 
         return res.stdout.decode()
 
 
-def get_tool(tool_str: str = '') -> Tuple[str, List[str]]:
+def get_tool(tool_str: Optional[str] = None) -> Tuple[str, List[str]]:
     """
     Get the compiler, preprocessor, etc, from the given string.
 
@@ -121,6 +121,8 @@ def get_tool(tool_str: str = '') -> Tuple[str, List[str]]:
         The environment variable from which to find the tool.
 
     """
+    tool_str = tool_str or ''
+
     tool_split = tool_str.split()
     if not tool_split:
         raise ValueError(f"Tool not specified in '{tool_str}'. Cannot continue.")

@@ -35,18 +35,19 @@ class PreProcessor(Step):
     LABEL: str
 
     def __init__(self,
+                 preprocessor: str,
                  source: Optional[ArtefactsGetter] = None, output_collection=None, output_suffix=None,
-                 preprocessor: Optional[str] = None, common_flags: Optional[List[str]] = None,
+                 common_flags: Optional[List[str]] = None,
                  path_flags: Optional[List] = None, name=None):
         """
+        :param preprocessor:
+            The preprocessor executable.
         :param source:
             Defines the files to preprocess. Defaults to DEFAULT_SOURCE.
         :param output_collection:
             The name of the output artefact collection, defaulting to DEFAULT_OUTPUT_NAME.
         :param output_suffix:
             Defaults to DEFAULT_OUTPUT_SUFFIX.
-        :param preprocessor:
-            The preprocessor executable.
         :param common_flags:
             Used to construct a :class:`~fab.config.FlagsConfig` object.
         :param path_flags:
@@ -60,7 +61,7 @@ class PreProcessor(Step):
         # todo: should we manage known preprocessors like we do compilers, so we can ensure the -P flag is added?
 
         # Command line tools are sometimes specified with flags attached, e.g 'cpp -traditional-cpp'
-        preprocessor_split = (preprocessor or os.getenv('FPP', 'fpp -P')).split()  # type: ignore
+        preprocessor_split = preprocessor.split()
         self.preprocessor = preprocessor_split[0]
 
         common_flags = preprocessor_split[1:] + (common_flags or [])

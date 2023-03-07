@@ -88,7 +88,7 @@ class CompileFortran(Step):
         self.two_stage_flag = two_stage_flag
 
         # runtime, for child processes to read
-        self._stage = None
+        self._stage: Optional[int] = None
         self._mod_hashes: Dict[str, int] = {}
 
     def run(self, artefact_store, config):
@@ -344,6 +344,55 @@ class CompileFortran(Step):
             value={'time_taken': timer.taken, 'start': timer.start})
 
 
+def get_fortran_preprocessor():
+    """
+    Identify the fortran preprocessor and any flags from the environment.
+
+    Initially looks for the `FPP` environment variable, then tries to call the `fpp` and `cpp` command line tools.
+
+    Returns the executable and flags.
+
+    The returned flags will always include `-P` to suppress line numbers.
+    This fparser ticket requests line number handling https://github.com/stfc/fparser/issues/390 .
+
+    """
+    fpp: Optional[str] = None
+    fpp_flags: Optional[list[str]] = None
+
+    try:
+        fpp, fpp_flags = get_tool(os.getenv('FPP'))
+        logger.info(f"The environment defined FPP as '{fpp}'")
+    except ValueError:
+        pass
+
+    if not fpp:
+        try:
+            run_command(['which', 'fpp'])
+            fpp, fpp_flags = 'fpp', ['-P']
+            logger.info('detected fpp')
+        except RuntimeError:
+            # fpp not available
+            pass
+
+    if not fpp:
+        try:
+            run_command(['which', 'cpp'])
+            fpp, fpp_flags = 'cpp', ['-traditional-cpp', '-P']
+            logger.info('detected cpp')
+        except RuntimeError:
+            # fpp not available
+            pass
+
+    if not fpp:
+        raise RuntimeError('no fortran preprocessor specified or discovered')
+
+    assert fpp_flags is not None
+    if '-P' not in fpp_flags:
+        fpp_flags.append('-P')
+
+    return fpp, fpp_flags
+
+
 def get_fortran_compiler(compiler: Optional[str] = None):
     """
     Get the fortran compiler specified by the `$FC` environment variable,
@@ -354,8 +403,38 @@ def get_fortran_compiler(compiler: Optional[str] = None):
     :param compiler:
         Use this string instead of the $FC environment variable.
 
+    Returns the tool and a list of flags.
+
     """
-    return get_tool(compiler or os.getenv('FC', ''))  # type: ignore
+    fortran_compiler = None
+    try:
+        fortran_compiler = get_tool(compiler or os.getenv('FC', ''))  # type: ignore
+    except ValueError:
+        # tool not specified
+        pass
+
+    if not fortran_compiler:
+        try:
+            run_command(['gfortran', '--help'])
+            fortran_compiler = 'gfortran', []
+            logger.info('detected gfortran')
+        except RuntimeError:
+            # gfortran not available
+            pass
+
+    if not fortran_compiler:
+        try:
+            run_command(['ifort', '--help'])
+            fortran_compiler = 'ifort', []
+            logger.info('detected ifort')
+        except RuntimeError:
+            # gfortran not available
+            pass
+
+    if not fortran_compiler:
+        raise RuntimeError('no fortran compiler specified or discovered')
+
+    return fortran_compiler
 
 
 def get_mod_hashes(analysed_files: Set[AnalysedFortran], config) -> Dict[str, int]:
