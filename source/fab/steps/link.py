@@ -68,6 +68,7 @@ class LinkerBase(Step, ABC):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
     def _call_linker(self, filename, objects):
+        assert isinstance(self.linker, str)
         command = self.linker.split()
         command.extend(['-o', filename])
         # todo: we need to be able to specify flags which appear before the object files
