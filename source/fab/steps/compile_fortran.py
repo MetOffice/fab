@@ -88,7 +88,7 @@ class CompileFortran(Step):
         self.two_stage_flag = two_stage_flag
 
         # runtime, for child processes to read
-        self._stage = None
+        self._stage: Optional[int] = None
         self._mod_hashes: Dict[str, int] = {}
 
     def run(self, artefact_store, config):
@@ -356,7 +356,8 @@ def get_fortran_preprocessor():
     This fparser ticket requests line number handling https://github.com/stfc/fparser/issues/390 .
 
     """
-    fpp, fpp_flags = None, None
+    fpp: Optional[str] = None
+    fpp_flags: Optional[list[str]] = None
 
     try:
         fpp, fpp_flags = get_tool(os.getenv('FPP'))
@@ -385,6 +386,7 @@ def get_fortran_preprocessor():
     if not fpp:
         raise RuntimeError('no fortran preprocessor specified or discovered')
 
+    assert fpp_flags is not None
     if '-P' not in fpp_flags:
         fpp_flags.append('-P')
 
