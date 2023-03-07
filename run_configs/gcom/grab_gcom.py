@@ -6,10 +6,9 @@
 ##############################################################################
 import os
 
-from fab.util import common_arg_parser
-
 from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import FcmExport
+from fab.util import common_arg_parser
 
 
 def gcom_grab_config(revision=None, verbose=False):

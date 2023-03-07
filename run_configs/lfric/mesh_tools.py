@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from pathlib import Path
+
 from fab.util import common_arg_parser
 
 from fab.build_config import BuildConfig
@@ -11,7 +13,6 @@ from fab.steps.preprocess import fortran_preprocessor
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
-from lfric_common import Configurator, FparserWorkaround_StopConcatenation, psyclone_preprocessor, Psyclone
 from lfric_common import Configurator, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 

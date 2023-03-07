@@ -16,7 +16,6 @@ from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
