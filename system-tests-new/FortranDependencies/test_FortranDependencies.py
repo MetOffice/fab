@@ -8,11 +8,11 @@ from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
+from fab.parse.fortran import AnalysedFortran
 from fab.steps.analyse import Analyse
 from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
-from fab.parse.fortran import AnalysedFortran
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
@@ -54,11 +54,13 @@ def test_FortranDependencies(tmp_path):
     # check the analysis results
     assert AnalysedFortran.load(config.prebuild_folder / 'first.193489053.an') == AnalysedFortran(
         fpath=config.source_root / 'first.f90', file_hash=193489053,
+        program_defs={'first'},
         module_defs=None, symbol_defs={'first'},
         module_deps={'greeting_mod', 'constants_mod'}, symbol_deps={'greeting_mod', 'constants_mod', 'greet'})
 
     assert AnalysedFortran.load(config.prebuild_folder / 'two.2557739057.an') == AnalysedFortran(
         fpath=config.source_root / 'two.f90', file_hash=2557739057,
+        program_defs={'second'},
         module_defs=None, symbol_defs={'second'},
         module_deps={'constants_mod', 'bye_mod'}, symbol_deps={'constants_mod', 'bye_mod', 'farewell'})
 

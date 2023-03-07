@@ -5,15 +5,15 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from fab.build_config import BuildConfig
-from fab.steps.grab.fcm import GrabFcm
+from fab.steps.grab.fcm import FcmExport
 
-LFRIC_REVISION = 36615
+LFRIC_REVISION = 40984
 
 
 def lfric_source_config(revision=LFRIC_REVISION):
     return BuildConfig(
         project_label=f'lfric source {revision}',
-        steps=[GrabFcm(src='fcm:lfric.xm_tr', revision=revision, dst='lfric')]
+        steps=[FcmExport(src='fcm:lfric.xm_tr', revision=revision, dst='lfric')]
     )
 
 
@@ -25,7 +25,7 @@ def gpl_utils_source_config(revision=LFRIC_REVISION):
             # GrabSvn(
             #     src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
             #     revision=revision, dst='gpl_utils'),
-            GrabFcm(
+            FcmExport(
                 src='fcm:lfric_gpl_utils.xm-tr',
                 revision=revision, dst='gpl_utils'),
         ]

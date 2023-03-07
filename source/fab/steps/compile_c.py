@@ -15,16 +15,14 @@ from collections import defaultdict
 from typing import List, Dict, Optional
 
 from fab import FabException
-
-from fab.parse.c import AnalysedC
-
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
+from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, Step
-from fab.util import CompiledFile, log_or_dot, Timer, by_type
 from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
+from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +89,7 @@ class CompileC(Step):
 
         # gather all the source to compile, for all build trees, into one big lump
         build_lists: Dict = self.source_getter(artefact_store)
-        to_compile = sum(build_lists.values(), [])
+        to_compile: list = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} c files")
 
         # compile everything in one go
@@ -139,7 +137,7 @@ class CompileC(Step):
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(obj_file_prebuild)])
 
-                log_or_dot(logger, 'CompileC running command: ' + ' '.join(command))
+                log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
                 try:
                     run_command(command)
                 except Exception as err:

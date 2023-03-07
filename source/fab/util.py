@@ -87,10 +87,9 @@ def file_walk(path: Union[str, Path], ignore_folders: Optional[List[Path]] = Non
 
         The prebuild folder can contain multiple versions of a single, generated fortran file,
         created by multiple runs of the build config. The prebuild folder stores these copies for when they're next
-        needed, when they are copied out and reused. We often don't want to include this folder when
+        needed, when they are copied out and reused. We usually won't want to include this folder when
         searching for source code to analyse.
-
-        To meet these needs, this function will not traverse *into* the given folders, if provided.
+        To meet these needs, this function will not traverse into the given folders, if provided.
 
     """
     path = Path(path)
@@ -123,6 +122,7 @@ class Timer(object):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        assert self.start is not None
         self.taken = perf_counter() - self.start
 
 
@@ -194,17 +194,31 @@ def input_to_output_fpath(config, input_path: Path):
     :param input_path:
         The path to transform from input to output folders.
 
+    Note: This function can also handle paths which are not in the project workspace at all.
+    This can happen when pointing the FindFiles step elsewhere, for example.
+    In that case, the entire path will be made relative to the source folder instead of its anchor.
+
     """
     build_output = config.build_output
 
-    # perhaps it's already in the output folder? todo: can use Path.is_relative_to from Python 3.9
+    # perhaps it's already in the output folder?
     try:
         input_path.relative_to(build_output)
         return input_path
     except ValueError:
         pass
-    rel_path = input_path.relative_to(config.source_root)
-    return build_output / rel_path
+
+    # try to convert it from the project source folder to the output folder
+    try:
+        rel_path = input_path.relative_to(config.source_root)
+        return build_output / rel_path
+    except ValueError:
+        pass
+
+    # It's neither in the project source folder nor the output folder.
+    # This can happen if we're pointing the FindFiles step elsewhere.
+    # We'll just have to convert the entire path to be inside the output folder.
+    return build_output / '/'.join(input_path.parts[1:])
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
@@ -248,7 +262,7 @@ def get_fab_workspace() -> Path:
     return fab_workspace
 
 
-def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
+def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set]:
     """
     Group prebuild filenames by originating artefact.
 
@@ -270,11 +284,11 @@ def get_prebuild_file_groups(prebuild_files) -> Dict[str, Set]:
     return pbf_groups
 
 
-def common_arg_parser():
+def common_arg_parser() -> ArgumentParser:
     """
     A helper function returning an argument parser with common, useful arguments controlling command line tools.
 
-    More arguments can be added as needed by the calling code.
+    More arguments can be added. The caller must call `parse_args` on the returned parser.
 
     """
     # consider adding preprocessor, linker, optimisation, two-stage
@@ -288,5 +302,6 @@ def common_arg_parser():
     group.add_argument(
         '--two-stage', action='store_true',
         help='Compile .mod files first in a separate pass. Theoretically faster in some projects.')
+    arg_parser.add_argument('--verbose', action='store_true')
 
     return arg_parser

@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
 from fab.constants import BUILD_TREES
-
 from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
 
@@ -86,6 +85,7 @@ class CollectionConcat(ArtefactsGetter):
     # todo: ensure the labelled values are iterables
     def __call__(self, artefact_store: Dict):
         super().__call__(artefact_store)
+        # todo: this should be a set, in case a file appears in multiple collections
         result = []
         for collection in self.collections:
             if isinstance(collection, str):

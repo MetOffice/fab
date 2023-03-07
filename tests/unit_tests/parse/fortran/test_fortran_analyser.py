@@ -7,17 +7,15 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest import mock
 
-import pytest
-from fab.parse.fortran_common import iter_content
-
-from fab.parse import EmptySourceFile
-
-from fab.parse.fortran import AnalysedFortran, FortranAnalyser
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
+import pytest
 
 from fab.build_config import BuildConfig
+from fab.parse import EmptySourceFile
+from fab.parse.fortran import FortranAnalyser, AnalysedFortran
+from fab.parse.fortran_common import iter_content
 
 
 # todo: test function binding
@@ -73,6 +71,7 @@ class Test_Analyser(object):
 
             module_expected.fpath = Path(tmp_file.name)
             module_expected._file_hash = 768896775
+            module_expected.program_defs = {'foo_mod'}
             module_expected.module_defs = set()
             module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
 

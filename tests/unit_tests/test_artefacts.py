@@ -3,9 +3,8 @@ from unittest.mock import call
 
 import pytest
 
-from fab.constants import BUILD_TREES
-
 from fab.artefacts import FilterBuildTrees
+from fab.constants import BUILD_TREES
 
 
 class TestFilterBuildTrees(object):

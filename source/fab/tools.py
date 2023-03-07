@@ -7,11 +7,15 @@
 Known command line tools whose flags we wish to manage.
 
 """
+import logging
+from pathlib import Path
 import subprocess
 import warnings
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
-from fab.util import logger, string_checksum
+from fab.util import string_checksum
+
+logger = logging.getLogger(__name__)
 
 
 class Compiler(object):
@@ -78,7 +82,7 @@ def flags_checksum(flags: List[str]):
     return string_checksum(str(flags))
 
 
-def run_command(command, env=None, cwd=None, capture_output=True):
+def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = None, capture_output=True):
     """
     Run a CLI command.
 
@@ -90,7 +94,8 @@ def run_command(command, env=None, cwd=None, capture_output=True):
         If True, capture and return stdout. If False, the command will print its output directly to the console.
 
     """
-    logger.debug(f'run_command: {command}')
+    command = list(map(str, command))
+    logger.debug(f'run_command: {" ".join(command)}')
     res = subprocess.run(command, capture_output=capture_output, env=env, cwd=cwd)
     if res.returncode != 0:
         msg = f'Command failed:\n{command}'
@@ -104,7 +109,7 @@ def run_command(command, env=None, cwd=None, capture_output=True):
         return res.stdout.decode()
 
 
-def get_tool(tool_str: str = '') -> Tuple[str, List[str]]:
+def get_tool(tool_str: Optional[str] = None) -> Tuple[str, List[str]]:
     """
     Get the compiler, preprocessor, etc, from the given string.
 
@@ -116,6 +121,8 @@ def get_tool(tool_str: str = '') -> Tuple[str, List[str]]:
         The environment variable from which to find the tool.
 
     """
+    tool_str = tool_str or ''
+
     tool_split = tool_str.split()
     if not tool_split:
         raise ValueError(f"Tool not specified in '{tool_str}'. Cannot continue.")

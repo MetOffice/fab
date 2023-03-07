@@ -9,7 +9,7 @@ import os
 from fab.util import common_arg_parser
 
 from fab.build_config import BuildConfig
-from fab.steps.grab.fcm import GrabFcm
+from fab.steps.grab.fcm import FcmExport
 
 
 def gcom_grab_config(revision=None, verbose=False):
@@ -20,7 +20,7 @@ def gcom_grab_config(revision=None, verbose=False):
     return BuildConfig(
         project_label=f'gcom_source_{revision}',
         steps=[
-            GrabFcm(src='fcm:gcom.xm_tr/build', revision=revision, dst="gcom"),
+            FcmExport(src='fcm:gcom.xm_tr/build', revision=revision, dst="gcom"),
         ],
         verbose=verbose,
     )
