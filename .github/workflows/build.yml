@@ -34,7 +34,7 @@ jobs:
       run: |
         pip install -e .[dev]
         pip install pytest
-        python -m mypy setup.py source tests/unit_tests
+        python -m mypy setup.py source tests
     - name: Code style check with flake8
       run: |
         pip install -e .[dev]
@@ -43,7 +43,11 @@ jobs:
       run: |
         pip install .[tests]
         python -m pytest --cov=fab tests/unit_tests
+    - name: Integration tests with Pytest
+      run: |
+        pip install .[tests]
+        python -m pytest --cov=fab tests/integration_tests
     - name: System tests with Pytest
       run: |
         pip install .[tests]
-        python -m pytest --cov=fab system-tests-new
+        python -m pytest --cov=fab tests/system-tests
