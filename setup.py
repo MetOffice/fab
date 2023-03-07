@@ -54,6 +54,7 @@ setuptools.setup(
     extras_require={
         'tests': tests,
         'docs': docs,
+        'features': features,
         'dev': [*tests, *docs, *features],
     },
     entry_points={

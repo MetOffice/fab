@@ -3,6 +3,23 @@ Development
 ***********
 Information for developers.
 
+Install from source
+===================
+An editable install lets you edit the code without needing to reinstall fab.
+
+.. code-block:: console
+
+    $ pip install -e <fab-folder>
+
+
+You can install extra features by using [test], [docs] or [dev], as defined in setup.py.
+
+.. code-block:: console
+
+    $ pip install -e <fab-folder>[dev]
+
+
+
 Version numbering
 =================
 We use a `PEP 440 compliant <https://peps.python.org/pep-0440/#examples-of-compliant-version-schemes>`_
@@ -86,3 +103,19 @@ When creating a object file from a Fortran source file, the prebuild checksum is
  - compiler version
  - compiler flags
  - modules on which the source depends
+
+
+Github Actions
+==============
+
+Testing a PR
+------------
+todo
+
+Build these docs
+----------------
+todo
+
+Build singularity image
+-----------------------
+todo

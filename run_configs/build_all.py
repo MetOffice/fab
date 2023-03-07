@@ -17,6 +17,7 @@ def build_all():
     configs_folder = Path(__file__).parent
     compiler, _ = get_fortran_compiler()
 
+    # todo: put it in a sibling of the actual fab workspace
     os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler}')
 
     scripts = [
