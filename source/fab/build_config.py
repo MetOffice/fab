@@ -102,6 +102,7 @@ class BuildConfig(object):
         if verbose:
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
+        # todo: should probably pull the artefact store out of the config
         # runtime
         self._artefact_store: Dict[str, Any] = {}
         self.init_artefact_store()  # note: the artefact store is reset with every call to run()

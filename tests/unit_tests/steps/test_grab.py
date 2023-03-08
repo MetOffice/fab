@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from unittest import mock
 from unittest.mock import call
 
-from fab.steps.grab.fcm import FcmExport
+from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.folder import GrabFolder
 
 
@@ -40,34 +40,28 @@ class TestGrabFcm(object):
         source_root = Path('/workspace/source')
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
-        grabber = FcmExport(src=source_url, dst=dst_label)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
             with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
-                grabber.run(artefact_store={}, config=mock_config)
+                fcm_export(config=mock_config, src=source_url, dst=dst_label)
 
-        mock_run.assert_has_calls([
-            call(['fcm', 'help']),
-            call(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
-        ])
+        mock_run.assert_called_once_with(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
+
 
     def test_revision(self):
         source_root = Path('/workspace/source')
         source_url = '/www.example.com/bar'
         dst_label = 'bar'
         revision = '42'
-        grabber = FcmExport(src=source_url, dst=dst_label, revision=revision)
 
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
             with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
-                grabber.run(artefact_store={}, config=mock_config)
+                fcm_export(mock_config, src=source_url, dst=dst_label, revision=revision)
 
-        mock_run.assert_has_calls([
-            call(['fcm', 'help']),
-            call(['fcm', 'export', '--force', '--revision', '42', f'{source_url}', str(source_root / dst_label)])
-        ])
+        mock_run.assert_called_once_with(
+            ['fcm', 'export', '--force', '--revision', '42', f'{source_url}', str(source_root / dst_label)])
 
     # todo: test missing repo
     # def test_missing(self):

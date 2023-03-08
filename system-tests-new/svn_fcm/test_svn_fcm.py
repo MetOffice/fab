@@ -15,16 +15,27 @@ import warnings
 import pytest
 
 import fab
-from fab.steps.grab.fcm import FcmCheckout, FcmExport, FcmMerge
-from fab.steps.grab.svn import GrabSvnBase, SvnCheckout, SvnExport, SvnMerge
+from fab.steps.grab.fcm import fcm_checkout, fcm_export, fcm_merge
+from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge, tool_available
 
 # Fcm isn't available in the github test images...unless we install it from github.
 
 # Which tools are available?
-export_classes = [i for i in [SvnExport, FcmExport] if i.tool_available()]
-checkout_classes = [i for i in [SvnCheckout, FcmCheckout] if i.tool_available()]
-merge_classes = [i for i in [SvnMerge, FcmMerge] if i.tool_available()]
-if not export_classes:
+export_funcs = []
+checkout_funcs = []
+merge_funcs = []
+
+if tool_available('svn'):
+    export_funcs.append(svn_export)
+    checkout_funcs.append(svn_checkout)
+    merge_funcs.append(svn_merge)
+
+if tool_available('fcm'):
+    export_funcs.append(fcm_export)
+    checkout_funcs.append(fcm_checkout)
+    merge_funcs.append(fcm_merge)
+
+if not export_funcs:
     warnings.warn('Neither svn not fcm are available for testing')
 
 
@@ -97,17 +108,15 @@ def confirm_file2_experiment_r8(config) -> bool:
 class TestExport(object):
 
     # Run the test twice, once with SvnExport and once with FcmExport - depending on which tools are available.
-    @pytest.mark.parametrize('export_class', export_classes)
-    def test_export(self, file2_experiment, config, export_class):
+    @pytest.mark.parametrize('export_func', export_funcs)
+    def test_export(self, file2_experiment, config, export_func):
         # Export the "file 2 experiment" branch, which has different sentence from trunk in r1 and r2
-        export = export_class(src=file2_experiment, dst='proj', revision=7)
-        export.run(artefact_store={}, config=config)
+        export_func(config, src=file2_experiment, dst_label='proj', revision=7)
         assert confirm_file2_experiment_r7(config)
 
         # Make sure we can export twice into the same folder.
         # Todo: should the export step wipe the destination first? To remove residual, orphaned files?
-        export = export_class(src=file2_experiment, dst='proj', revision=8)
-        export.run(artefact_store={}, config=config)
+        export_func(config, src=file2_experiment, dst_label='proj', revision=8)
         assert confirm_file2_experiment_r8(config)
 
 
