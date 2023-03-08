@@ -121,7 +121,7 @@ class BuildConfig(object):
         """
         self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
 
-    def run(self):
+    def run(self, prep=True):
         """
         Execute the build steps in order.
 
@@ -131,7 +131,8 @@ class BuildConfig(object):
         """
         start_time = datetime.now().replace(microsecond=0)
 
-        self._run_prep()
+        if prep:
+            self._run_prep()
 
         # run all the steps
         try:

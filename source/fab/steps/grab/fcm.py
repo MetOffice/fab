@@ -3,11 +3,19 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from fab.steps.grab.svn import SvnCheckout, SvnExport, SvnMerge
+from typing import Optional
+
+from fab.steps.grab.svn import svn_export, SvnCheckout, SvnMerge
 
 
-class FcmExport(SvnExport):
-    command = 'fcm'
+
+
+def fcm_export(config, src: str, dst: Optional[str] = None, revision=None):
+    """
+    Params as per :func:`~fab.steps.svn.svn_export`.
+
+    """
+    svn_export(config, src, dst, revision, tool='fcm')
 
 
 class FcmCheckout(SvnCheckout):

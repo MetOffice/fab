@@ -9,6 +9,7 @@ Build steps for pulling source code from remote repos and local folders.
 """
 import logging
 import os
+import warnings
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Union, Optional
@@ -41,6 +42,8 @@ class GrabSourceBase(Step, ABC):
             Human friendly name for logger output, with a sensible default.
 
         """
+        warnings.warn('GrabSourceBase is about to be removed', DeprecationWarning)
+
         super().__init__(name=name or f'{self.__class__.__name__} {src} {revision}'.strip())
         self.src: str = src
         self.dst_label: str = dst or ''

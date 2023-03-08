@@ -8,10 +8,28 @@ Predefined build steps with sensible defaults.
 
 """
 import multiprocessing
+import warnings
 from abc import ABC, abstractmethod
 from typing import Dict
 
-from fab.util import by_type
+from fab.metrics import send_metric
+from fab.util import by_type, TimerLogger
+
+
+def step(func):
+    """Function decorator for steps."""
+
+    def wrapper(*args, **kwargs):
+
+        name = func.__name__
+
+        # call the function
+        with TimerLogger(name) as step_timer:
+            func(*args, **kwargs)
+
+        send_metric('steps', name, step_timer.taken)
+
+    return wrapper
 
 
 class Step(ABC):
@@ -28,6 +46,8 @@ class Step(ABC):
             Human friendly name for logger output. Steps generally provide a sensible default.
 
         """
+        warnings.warn('class Step is about to be removed', DeprecationWarning)
+
         self.name = name or self.__class__.__name__
 
         # runtime
@@ -97,6 +117,55 @@ class Step(ABC):
         else:
             analysis_results = (func(a) for a in items)  # generator
             result_handler(analysis_results)
+
+
+def run_mp(config, items, func, no_multiprocessing: bool = False):
+    """
+    Called from Step.run() to process multiple items in parallel.
+
+    For example, a compile step would, in its run() method, find a list of source files in the artefact store.
+    It could then pass those paths to this method, along with a function to compile a *single* file.
+    The whole set of results are returned in a list-like, with undefined order.
+
+    :param items:
+        An iterable of items to process in parallel.
+    :param func:
+        A function to process a single item. Must accept a single argument.
+    :param no_multiprocessing:
+        Overrides the config's multiprocessing flag, disabling multiprocessing for this call.
+
+    """
+    if config.multiprocessing and not no_multiprocessing:
+        with multiprocessing.Pool(config.n_procs) as p:
+            results = p.map(func, items)
+    else:
+        results = [func(f) for f in items]
+
+    return results
+
+
+def run_mp_imap(config, items, func, result_handler):
+    """
+    Like run_mp, but uses imap instead of map so that we can process each result as it happens.
+
+    This is useful for a slow operation where we want to save our progress as we go
+    instead of waiting for everything to finish, allowing us to pick up where we left off if the program is halted.
+
+    :param items:
+        An iterable of items to process in parallel.
+    :param func:
+        A function to process a single item. Must accept a single argument.
+    :param result_handler:
+        A function to handle a single result. Must accept a single argument.
+
+    """
+    if config.multiprocessing:
+        with multiprocessing.Pool(config.n_procs) as p:
+            analysis_results = p.imap_unordered(func, items)
+            result_handler(analysis_results)
+    else:
+        analysis_results = (func(a) for a in items)  # generator
+        result_handler(analysis_results)
 
 
 def check_for_errors(results, caller_label=None):

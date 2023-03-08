@@ -3,11 +3,13 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+import warnings
 from abc import ABC
 from pathlib import Path
-from typing import Union, Dict, Tuple
+from typing import Optional, Union, Dict, Tuple
 import xml.etree.ElementTree as ET
 
+from fab.steps import step
 from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
@@ -59,6 +61,9 @@ class GrabSvnBase(GrabSourceBase, ABC):
             Human friendly name for logger output, with sensible default.
 
         """
+
+        warnings.warn('GrabSvnBase is about to be removed', DeprecationWarning)
+
         # pull the revision out of the url, if it's in there
         src, revision = _get_revision(src, revision)
         name = name or f'{self.__class__.__name__} {dst} {revision}'.strip()
@@ -69,42 +74,62 @@ class GrabSvnBase(GrabSourceBase, ABC):
             raise RuntimeError(f"command line tool not available: '{self.command}'")
         super().run(artefact_store, config)
 
-    @classmethod
-    def tool_available(cls) -> bool:
-        """Is the command line tool available?"""
-        try:
-            run_command([cls.command, 'help'])
-        except FileNotFoundError:
-            return False
-        return True
 
-    def _cli_revision_parts(self):
-        # return the command line argument to specif the revision, if there is one
-        return ['--revision', str(self.revision)] if self.revision is not None else []
-
-    def is_working_copy(self, dst: Union[str, Path]) -> bool:
-        # is the given path is a working copy?
-        try:
-            run_command([self.command, 'info'], cwd=dst)
-        except RuntimeError:
-            return False
-        return True
+def tool_available(command) -> bool:
+    """Is the command line tool available?"""
+    try:
+        run_command([command, 'help'])
+    except FileNotFoundError:
+        return False
+    return True
 
 
-class SvnExport(GrabSvnBase):
+def _cli_revision_parts(revision):
+    # return the command line argument to specif the revision, if there is one
+    return ['--revision', str(revision)] if revision is not None else []
+
+
+def is_working_copy(command, dst: Union[str, Path]) -> bool:
+    # is the given path is a working copy?
+    try:
+        run_command([command, 'info'], cwd=dst)
+    except RuntimeError:
+        return False
+    return True
+
+
+def svn_prep_common(config, src, dst, revision):
+    dst_label: str = dst or ''
+    src, revision = _get_revision(src, revision)
+    if not config.source_root.exists():
+        config.source_root.mkdir(parents=True, exist_ok=True)
+    _dst = config.source_root / dst_label
+
+    return src, _dst, revision
+
+
+def svn_run_common(command, tool):
+    if not tool_available(tool):
+        raise RuntimeError(f"command line tool not available: '{tool}'")
+    run_command(command)
+
+
+@step
+def svn_export(config, src: str, dst: Optional[str] = None, revision=None, tool='svn'):
     """
     Export an FCM repo folder to the project workspace.
 
     """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
+    src, _dst, revision = svn_prep_common(config, src, dst, revision)
 
-        run_command([
-            self.command, 'export', '--force',
-            *self._cli_revision_parts(),
-            self.src,
-            str(self._dst)
-        ])
+    command = [
+        tool, 'export', '--force',
+        *_cli_revision_parts(revision),
+        src,
+        str(_dst)
+    ]
+
+    svn_run_common(command, tool)
 
 
 class SvnCheckout(GrabSvnBase):
