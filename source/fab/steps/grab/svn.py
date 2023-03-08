@@ -99,7 +99,7 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None, revision=Non
     src, dst, revision = svn_prep_common(config, src, dst_label, revision)
 
     # new folder?
-    if not _dst.exists():  # type: ignore
+    if not dst.exists():  # type: ignore
         run_command([
             tool, 'checkout',
             *_cli_revision_parts(revision),
@@ -111,7 +111,7 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None, revision=Non
         if is_working_copy(tool, dst):  # type: ignore
             # update
             # todo: ensure the existing checkout is from self.src?
-            run_command([tool, 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
+            run_command([tool, 'update', *_cli_revision_parts(revision)], cwd=dst)  # type: ignore
         else:
             # we can't deal with an existing folder that isn't a working copy
             raise ValueError(f"destination exists but is not an fcm working copy: '{dst}'")

@@ -122,116 +122,96 @@ class TestExport(object):
 
 class TestCheckout(object):
 
-    @pytest.mark.parametrize('checkout_class', checkout_classes)
-    def test_new_folder(self, trunk, config, checkout_class):
-        checkout = checkout_class(src=trunk, dst='proj')
-        checkout.run(artefact_store={}, config=config)
+    @pytest.mark.parametrize('checkout_func', checkout_funcs)
+    def test_new_folder(self, trunk, config, checkout_func):
+        checkout_func(config, src=trunk, dst_label='proj')
         assert confirm_trunk(config)
 
-    @pytest.mark.parametrize('checkout_class', checkout_classes)
-    def test_working_copy(self, file2_experiment, config, checkout_class):
+    @pytest.mark.parametrize('checkout_func', checkout_funcs)
+    def test_working_copy(self, file2_experiment, config, checkout_func):
         # Make sure we can checkout into a working copy.
         # The scenario we're testing here is checking out across multiple builds.
         # This will usually be the same revision. The first run in a new folder will be a checkout,
         # and subsequent runs will use update, which can handle a version bump.
         # Since we can change the revision and expect it to work, let's test that while we're here.
 
+        if checkout_func == svn_checkout:
+            expect_tool = 'svn'
+        elif checkout_func == fcm_checkout:
+            expect_tool = 'fcm'
+        else:
+            assert False
+
         with mock.patch('fab.steps.grab.svn.run_command', wraps=fab.steps.grab.svn.run_command) as wrap:
 
-            checkout = checkout_class(src=file2_experiment, dst='proj', revision='7')
-            checkout.run(artefact_store={}, config=config)
+            checkout_func(config, src=file2_experiment, dst_label='proj', revision='7')
             assert confirm_file2_experiment_r7(config)
             wrap.assert_called_with([
-                checkout_class.command, 'checkout', '--revision', '7',
+                expect_tool, 'checkout', '--revision', '7',
                 file2_experiment, str(config.source_root / 'proj')])
 
-            checkout = checkout_class(src=file2_experiment, dst='proj', revision='8')
-            checkout.run(artefact_store={}, config=config)
+            checkout_func(config, src=file2_experiment, dst_label='proj', revision='8')
             assert confirm_file2_experiment_r8(config)
             wrap.assert_called_with(
-                [checkout_class.command, 'update', '--revision', '8'],
+                [expect_tool, 'update', '--revision', '8'],
                 cwd=config.source_root / 'proj')
 
-    @pytest.mark.parametrize('export_class,checkout_class', zip(export_classes, checkout_classes))
-    def test_not_working_copy(self, trunk, config, export_class, checkout_class):
+    @pytest.mark.parametrize('export_func,checkout_func', zip(export_funcs, checkout_funcs))
+    def test_not_working_copy(self, trunk, config, export_func, checkout_func):
         # the export command just makes files, not a working copy
-        export = export_class(src=trunk, dst='proj')
-        export.run(artefact_store={}, config=config)
+        export_func(config, src=trunk, dst_label='proj')
 
         # if we try to checkout into that folder, it should fail
-        export = checkout_class(src=trunk, dst='proj')
         with pytest.raises(ValueError):
-            export.run(artefact_store={}, config=config)
+            checkout_func(config, src=trunk, dst_label='proj')
 
 
 class TestMerge(object):
 
-    @pytest.mark.parametrize('checkout_class,merge_class', zip(checkout_classes, merge_classes))
-    def test_vanilla(self, trunk, file2_experiment, config, checkout_class, merge_class):
+    @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
+    def test_vanilla(self, trunk, file2_experiment, config, checkout_func, merge_func):
         # something to merge into; checkout trunk
-        checkout = checkout_class(src=trunk, dst='proj')
-        checkout.run(artefact_store={}, config=config)
+        checkout_func(config, src=trunk, dst_label='proj')
         confirm_trunk(config)
 
         # merge another branch in
-        merge = merge_class(src=file2_experiment, dst='proj')
-        merge.run(artefact_store={}, config=config)
+        merge_func(config, src=file2_experiment, dst_label='proj')
         confirm_file2_experiment_r8(config)
 
-    @pytest.mark.parametrize('checkout_class,merge_class', zip(checkout_classes, merge_classes))
-    def test_revision(self, trunk, file2_experiment, config, checkout_class, merge_class):
+    @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
+    def test_revision(self, trunk, file2_experiment, config, checkout_func, merge_func):
         # something to merge into; checkout trunk
-        checkout = checkout_class(src=trunk, dst='proj')
-        checkout.run(artefact_store={}, config=config)
+        checkout_func(config, src=trunk, dst_label='proj')
         confirm_trunk(config)
 
         # merge another branch in
-        merge = merge_class(src=file2_experiment, dst='proj', revision=7)
-        merge.run(artefact_store={}, config=config)
+        merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
         confirm_file2_experiment_r7(config)
 
-    @pytest.mark.parametrize('export_class,merge_class', zip(export_classes, merge_classes))
-    def test_not_working_copy(self, trunk, file2_experiment, config, export_class, merge_class):
-        export = export_class(src=trunk, dst='proj')
-        export.run(artefact_store={}, config=config)
+    @pytest.mark.parametrize('export_func,merge_func', zip(export_funcs, merge_funcs))
+    def test_not_working_copy(self, trunk, file2_experiment, config, export_func, merge_func):
+        export_func(config, src=trunk, dst_label='proj')
 
         # try to merge into an export
-        merge = merge_class(src=file2_experiment, dst='proj', revision=7)
         with pytest.raises(ValueError):
-            merge.run(artefact_store={}, config=config)
+            merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
 
-    @pytest.mark.parametrize('checkout_class,merge_class', zip(checkout_classes, merge_classes))
-    def test_conflict(self, file1_experiment_a, file1_experiment_b, config, checkout_class, merge_class):
-        checkout = checkout_class(src=file1_experiment_a, dst='proj')
-        checkout.run(artefact_store={}, config=config)
+    @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
+    def test_conflict(self, file1_experiment_a, file1_experiment_b, config, checkout_func, merge_func):
+        checkout_func(config, src=file1_experiment_a, dst_label='proj')
         confirm_file1_experiment_a(config)
 
         # this branch modifies the same line of text
-        merge = merge_class(src=file1_experiment_b, dst='proj')
         with pytest.raises(RuntimeError):
-            merge.run(artefact_store={}, config=config)
+            merge_func(config, src=file1_experiment_b, dst_label='proj')
 
-    @pytest.mark.parametrize('checkout_class,merge_class', zip(checkout_classes, merge_classes))
-    def test_multiple_merges(self, trunk, file1_experiment_a, file2_experiment, config, checkout_class, merge_class):
-        trunk = checkout_class(src=trunk, dst='proj')
-        trunk.run(artefact_store={}, config=config)
+    @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
+    def test_multiple_merges(self, trunk, file1_experiment_a, file2_experiment, config, checkout_func, merge_func):
+        checkout_func(config, src=trunk, dst_label='proj')
         confirm_trunk(config)
 
-        f1xa = merge_class(src=file1_experiment_a, dst='proj')
-        f1xa.run(artefact_store={}, config=config)
+        merge_func(config, src=file1_experiment_a, dst_label='proj')
         confirm_file1_experiment_a(config)
 
-        fx2 = merge_class(src=file2_experiment, dst='proj', revision=7)
-        fx2.run(artefact_store={}, config=config)
+        merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
         confirm_file2_experiment_r7(config)
-
-
-class TestBase(object):
-    # test the base class
-    def test_tool_unavailable(self):
-        class Foo(GrabSvnBase):
-            command = 'unlikely_cli_tool_name'
-
-        assert not Foo.tool_available()
-        with pytest.raises(RuntimeError):
-            Foo('', '').run(None, config=mock.Mock(source_root=Path(__file__).parent))

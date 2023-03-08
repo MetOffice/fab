@@ -6,7 +6,6 @@
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
-from unittest.mock import call
 
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.folder import GrabFolder
@@ -44,10 +43,9 @@ class TestGrabFcm(object):
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
             with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
-                fcm_export(config=mock_config, src=source_url, dst=dst_label)
+                fcm_export(config=mock_config, src=source_url, dst_label=dst_label)
 
         mock_run.assert_called_once_with(['fcm', 'export', '--force', source_url, str(source_root / dst_label)])
-
 
     def test_revision(self):
         source_root = Path('/workspace/source')
@@ -58,7 +56,7 @@ class TestGrabFcm(object):
         mock_config = SimpleNamespace(source_root=source_root)
         with mock.patch('pathlib.Path.mkdir'):
             with mock.patch('fab.steps.grab.svn.run_command') as mock_run:
-                fcm_export(mock_config, src=source_url, dst=dst_label, revision=revision)
+                fcm_export(mock_config, src=source_url, dst_label=dst_label, revision=revision)
 
         mock_run.assert_called_once_with(
             ['fcm', 'export', '--force', '--revision', '42', f'{source_url}', str(source_root / dst_label)])
