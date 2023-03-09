@@ -19,14 +19,10 @@ Fab can analyse your code to determine dependencies, including those between C a
 It can work out which files need to be compiled, in which order, to create an executable
 or library. Features include:
 
- * automatically detects dependency hierarchy / compile order
- * works with code generation tools, e.g. PSYclone
- * automatic discovery of source files
+ * dependency analysis / compile order
+ * extensible with arbitrary tools, e.g. PSYclone
+ * incremental operation, process what's changed
  * zero-config capability
- * extensible with arbitrary tools
- * written in Python
- * smart incremental operation, only re-processing what has changed
- * git, svn and fcm capabilities
 
 For more, please see the :ref:`features<Features>` page.
 
