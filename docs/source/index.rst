@@ -43,24 +43,12 @@ See also
  * `Fab on Github <https://github.com/metomi/fab>`_
  * :ref:`Developers guide<Development>`
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
-
-foo
-===
-foo
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
    :hidden:
 
-   index
    install
    config
    advanced_config
