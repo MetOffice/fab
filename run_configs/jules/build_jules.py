@@ -52,7 +52,7 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         # FcmExport(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
 
         # Copy another pre-build folder into our own.
-        GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
+        # GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
 
         FindSourceFiles(path_filters=[
             Exclude('src/control/um/'),
