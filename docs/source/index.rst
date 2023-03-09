@@ -28,23 +28,20 @@ or library. Features include:
  * smart incremental operation, only re-processing what has changed
  * git, svn and fcm capabilities
 
-For more, please see the :ref:`Features` page.
+For more, please see the :ref:`features<Features>` page.
 
 Running fab
 ===========
  * how to :ref:`set up an environment<Environment>`
- * how to install fab
- * intro to config files
+ * how to :ref:`install fab<Install>`
+ * intro to :ref:`config files<Config>`
 
 See also
 ========
- * Developers
- * Project wiki
- * Releases
- * Fab on Github
-
-
-
+ * `Project wiki <https://github.com/metomi/fab/wiki>`_
+ * `Fab on PyPI <https://pypi.org/project/sci-fab/>`_
+ * `Fab on Github <https://github.com/metomi/fab>`_
+ * :ref:`Developers guide<Development>`
 
 Indices and tables
 ==================

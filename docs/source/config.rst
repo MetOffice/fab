@@ -1,3 +1,6 @@
+.. _Config:
+
+
 How to Write a Build Config
 ***************************
 You'll need a development environment with Fab installed (see :ref:`install`).

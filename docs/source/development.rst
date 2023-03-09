@@ -1,6 +1,7 @@
+.. _Development:
 
-Development
-***********
+Developer's guide
+*****************
 Information for developers.
 
 Install from source
