@@ -51,17 +51,22 @@ Indices and tables
 * :ref:`search`
 
 
+foo
+===
+foo
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+   :hidden:
 
-   overview
+   index
    install
-   howto_write_config
+   config
    advanced_config
    features
    Api Reference <apidoc/modules>
    development
    glossary
    genindex
-   modindex
+   py-modindex
