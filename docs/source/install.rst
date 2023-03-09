@@ -1,5 +1,44 @@
 .. _Install:
 
+
+
+Installing Fab
+==============
+When you `pip install` Fab, the minimum Python dependencies (e.g. fparser) will also be installed automatically.
+
+.. code-block:: console
+
+    $ pip install sci-fab
+
+
+Extra features
+--------------
+You can install some extra Python packages to enable more features.
+This will install matplotlib for producing metrics graphs after a run, and psyclone for building LFRic.
+
+.. code-block:: console
+
+    $ pip install sci-fab[features]
+
+See also Developers Installation
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Installation
 ************
 Instructions for downloading and installing Fab.
