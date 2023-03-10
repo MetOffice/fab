@@ -3,8 +3,8 @@
 
 
 Installing Fab
-==============
-When you `pip install` Fab, the minimum Python dependencies (e.g. fparser) will also be installed automatically.
+**************
+When you install Fab, the minimum Python dependencies (e.g. fparser) will also be installed automatically.
 
 .. code-block:: console
 
@@ -12,7 +12,7 @@ When you `pip install` Fab, the minimum Python dependencies (e.g. fparser) will 
 
 
 Extra features
---------------
+==============
 You can install some extra Python packages to enable more features.
 This will install matplotlib for producing metrics graphs after a run, and psyclone for building LFRic.
 
@@ -40,7 +40,7 @@ See also Developers Installation
 
 
 Installation
-************
+============
 Instructions for downloading and installing Fab.
 
 Latest release
