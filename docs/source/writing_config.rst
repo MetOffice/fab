@@ -1,17 +1,13 @@
-.. _Config:
+.. _Writing Config:
 
 
 How to Write a Build Config
 ***************************
-You'll need a development environment with Fab installed (see :ref:`install`).
+This page walks through the process of writing a build script.
 
 Config File
 ===========
-Not only is Fab written in Python, its build configs are too, using Fab as a library.
-Writing Fab config should feel as simple as writing traditional config.
-The user isn't exposed to underlying details unless they need more control.
-
-Here's a simple config without any build steps. We'll start adding steps in the next section.
+Here's a simple config without any steps.
 
 .. code-block::
     :linenos:

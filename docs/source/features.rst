@@ -31,6 +31,8 @@ Extensible
 It's easy to add custom steps to your build script, e.g manipulating code, calling new tools, etc.
 
 
+.. _Zero Config:
+
 Zero Config
 ===========
 It's possible to run `fab` from the command line, in your source folder, for a default build operation.

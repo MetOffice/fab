@@ -30,7 +30,14 @@ Running fab
 ===========
  * how to :ref:`set up an environment<Environment>`
  * how to :ref:`install fab<Install>`
- * intro to :ref:`config files<Config>`
+ * To run fab with :ref:`zero configuration<Zero Config>`,
+   type ``fab`` at the command line, within your project.
+
+Config files
+------------
+ * intro to :ref:`config files<Config Intro>`
+ * guide to :ref:`writing config files<Writing Config>`
+ * :ref:`advanced config<Advanced Config>`
 
 See also
 ========
@@ -49,7 +56,8 @@ See also
 
    install
    environment
-   config
+   config_intro
+   writing_config
    advanced_config
    features
    Api Reference <apidoc/modules>

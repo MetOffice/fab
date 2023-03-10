@@ -1,4 +1,4 @@
-.. _Advanced Config Topics:
+.. _Advanced Config:
 
 Advanced Config
 ***************
