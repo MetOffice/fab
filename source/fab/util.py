@@ -17,12 +17,14 @@ from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Dict, Set, Union, List
+from typing import Iterator, Iterable, Optional, Dict, Set, Union, List, Any, Type
+from types import TracebackType
+
 
 logger = logging.getLogger(__name__)
 
 
-def log_or_dot(logger, msg):
+def log_or_dot(logger:logging.Logger, msg: str) -> None:
     """
     Util function which prints a fullstop without a newline, except in debug logging where it logs a message.
 
@@ -34,7 +36,7 @@ def log_or_dot(logger, msg):
         sys.stdout.flush()
 
 
-def log_or_dot_finish(logger):
+def log_or_dot_finish(logger:logging.Logger) -> None:
     """
     Util function which completes the row of fullstops from :func:`~fab.util.log_or_dot`,
     by printing a newline when not in debug logging.
@@ -47,7 +49,7 @@ def log_or_dot_finish(logger):
 HashedFile = namedtuple("HashedFile", ['fpath', 'file_hash'])
 
 
-def file_checksum(fpath):
+def file_checksum(fpath: Union[str, Path]) -> HashedFile:
     """
     Return a checksum of the given file.
 
@@ -61,7 +63,7 @@ def file_checksum(fpath):
         return HashedFile(fpath, zlib.crc32(infile.read()))
 
 
-def string_checksum(s: str):
+def string_checksum(s: str) -> int:
     """
     Return a checksum of the given string.
 
@@ -113,15 +115,18 @@ class Timer(object):
     A simple timing context manager.
 
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.start: Optional[float] = None
-        self.taken: Optional[float] = None
+        self.taken: float = 0.0
 
-    def __enter__(self):
+    def __enter__(self) -> 'Timer':
         self.start = perf_counter()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self,
+                 exc_type: Optional[Type[BaseException]],
+                 exc_val: Optional[BaseException],
+                 exc_tb: Optional[TracebackType]) -> None:
         assert self.start is not None
         self.taken = perf_counter() - self.start
 
@@ -131,17 +136,20 @@ class TimerLogger(Timer):
     A labelled timing context manager which logs the label and the time taken.
 
     """
-    def __init__(self, label, res=0.001):
+    def __init__(self, label: str, res: float = 0.001) -> None:
         super().__init__()
         self.label = label
         self.res = res
 
-    def __enter__(self):
+    def __enter__(self) -> 'TimerLogger':
         super().__enter__()
         logger.info("\n" + self.label)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self,
+                 exc_type: Optional[Type[BaseException]],
+                 exc_val: Optional[BaseException],
+                 exc_tb: Optional[TracebackType]) -> None:
         super().__exit__(exc_type, exc_val, exc_tb)
 
         # log the time taken
@@ -163,7 +171,7 @@ class CompiledFile(object):
     A Fortran or C file which has been compiled.
 
     """
-    def __init__(self, input_fpath, output_fpath):
+    def __init__(self, input_fpath: Union[str, Path], output_fpath: Union[str, Path]) -> None:
         """
         :param input_fpath:
             The file that was compiled.
@@ -175,15 +183,16 @@ class CompiledFile(object):
         self.input_fpath = Path(input_fpath)
         self.output_fpath = Path(output_fpath)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return vars(self) == vars(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'CompiledFile({self.input_fpath}, {self.output_fpath})'
 
 
 # todo: we should probably pass in the output folder, not the project workspace
-def input_to_output_fpath(config, input_path: Path):
+def input_to_output_fpath(config,                     # type: ignore # circular dependency problem
+                          input_path: Path) -> Path:
     """
     Convert a path in the project's source folder to the equivalent path in the output folder.
 
@@ -199,7 +208,7 @@ def input_to_output_fpath(config, input_path: Path):
     In that case, the entire path will be made relative to the source folder instead of its anchor.
 
     """
-    build_output = config.build_output
+    build_output: Path = config.build_output
 
     # perhaps it's already in the output folder?
     try:
@@ -221,7 +230,7 @@ def input_to_output_fpath(config, input_path: Path):
     return build_output / '/'.join(input_path.parts[1:])
 
 
-def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
+def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]) -> List[Path]:
     """
     Pull out all the paths with a given suffix from an iterable.
 
@@ -235,7 +244,7 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
     return list(filter(lambda fpath: fpath.suffix in suffixes, fpaths))
 
 
-def by_type(iterable, cls):
+def by_type(iterable: Iterable[Any], cls: Any) -> Any:
     """
     Find all the elements of an iterable which are of a given type.
 
@@ -262,7 +271,7 @@ def get_fab_workspace() -> Path:
     return fab_workspace
 
 
-def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set]:
+def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set[Path]]:
     """
     Group prebuild filenames by originating artefact.
 
