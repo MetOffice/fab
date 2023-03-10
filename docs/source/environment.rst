@@ -18,8 +18,6 @@ If your project includes C code:
  * libclang
  * python-clang
 
-Don't forget to :ref:`install fab<Install>`!
-
 
 Running Fab at The Met Office
 =============================
@@ -33,11 +31,13 @@ We create the conda environment as follows::
 
     conda env create -f envs/conda/dev_env.yml
 
+Then :ref:`install fab<Install>`.
+
 .. note::
 
     We do this in a new terminal, before any module commands.
 
-We then set up our environment as follows.
+We then set up our environment *in a new terminal* as follows.
 
 For use with gfortran::
 

@@ -6,10 +6,13 @@ Information for developers.
 
 Install from source
 ===================
-An editable install lets you edit the code without needing to reinstall fab.
+The following commands will checkout the latest version of the code and create an
+`editable install <https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs>`_.
+This lets you edit the code without needing to reinstall fab after every change.
 
 .. code-block:: console
 
+    $ git clone https://github.com/metomi/fab.git
     $ pip install -e <fab-folder>
 
 
