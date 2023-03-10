@@ -46,6 +46,7 @@ See also
    :hidden:
 
    install
+   environment
    config
    advanced_config
    features

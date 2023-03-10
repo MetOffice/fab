@@ -71,8 +71,8 @@ This can be useful on systems where your home space is on a slower network drive
 If you don't do this, Fab will create a project workspace underneath ``~/fab-workspace``.
 
 
-Run Environment
-===============
+Run Envixxxxxxronment
+=====================
 You must have an environment with the compilers and linkers you need to build your project.
 
 Conda

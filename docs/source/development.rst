@@ -117,6 +117,17 @@ Build these docs
 ----------------
 todo
 
+
+.. _Build Singularity:
+
 Build singularity image
 -----------------------
-todo
+The config file in envs/picasso defines the contents of a Singularity image which is built by the
+experimental Picasso app. We can build this image using a GitHub action, defined in .github/workflows/picasso_build.yml.
+This action is currently manually triggered. You'll have to push a branch to the metomi repo, not a fork,
+then you can trigger the action from your branch. Please remember to clean up the branch when you're finished.
+
+You can see the image in artefactory `here <https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/metomi/fab/MyImage>`_.
+
+See also `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_.
+
