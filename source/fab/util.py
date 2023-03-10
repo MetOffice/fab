@@ -24,7 +24,7 @@ from types import TracebackType
 logger = logging.getLogger(__name__)
 
 
-def log_or_dot(logger:logging.Logger, msg: str) -> None:
+def log_or_dot(logger: logging.Logger, msg: str) -> None:
     """
     Util function which prints a fullstop without a newline, except in debug logging where it logs a message.
 
@@ -36,7 +36,7 @@ def log_or_dot(logger:logging.Logger, msg: str) -> None:
         sys.stdout.flush()
 
 
-def log_or_dot_finish(logger:logging.Logger) -> None:
+def log_or_dot_finish(logger: logging.Logger) -> None:
     """
     Util function which completes the row of fullstops from :func:`~fab.util.log_or_dot`,
     by printing a newline when not in debug logging.
