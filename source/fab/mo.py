@@ -16,7 +16,7 @@ from fab.parse.c import AnalysedC
 from fab.parse.fortran import AnalysedFortran
 
 
-def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedDependent]):
+def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedDependent]) -> None:
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
     These are the comments which refer to a .o file and not those which just refer to symbols.
@@ -26,8 +26,8 @@ def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedDependent]):
 
     """
     # todo: this would be better if filtered by type, i,e, AnalysedFortran & AnalysedC
-    analysed_fortran: List[AnalysedFortran] = filter_source_tree(source_tree, '.f90')  # type: ignore
-    analysed_c: List[AnalysedC] = filter_source_tree(source_tree, '.c')  # type: ignore
+    analysed_fortran: List[AnalysedFortran] = filter_source_tree(source_tree, '.f90')
+    analysed_c: List[AnalysedC] = filter_source_tree(source_tree, '.c')
 
     lookup = {c.fpath.name: c for c in analysed_c}
     num_found = 0

@@ -33,7 +33,7 @@ from collections import defaultdict
 from multiprocessing import Process, Pipe
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Any, Optional, Dict
 
 JSON_FILENAME = 'metrics.json'
 
@@ -47,7 +47,7 @@ _metric_send_conn: Optional[Connection] = None
 _metric_recv_process: Optional[Process] = None
 
 
-def init_metrics(metrics_folder: Path):
+def init_metrics(metrics_folder: Path) -> None:
     """
     Create the pipe for sending metrics, the process to read them, and another pipe to push the final collated data.
 
@@ -75,7 +75,7 @@ def init_metrics(metrics_folder: Path):
     _metric_recv_process.start()
 
 
-def _read_metric(metrics_folder: Path):
+def _read_metric(metrics_folder: Path) -> None:
     """
     Intended to run as a child process, reading metrics created by other child processes.
 
@@ -116,7 +116,7 @@ def _read_metric(metrics_folder: Path):
         json.dump(metrics, outfile, indent='\t')
 
 
-def send_metric(group: str, name: str, value):
+def send_metric(group: str, name: str, value: Any) -> None:
     """
     Pass a metric to the reader process.
 
@@ -138,7 +138,7 @@ def send_metric(group: str, name: str, value):
     _metric_send_conn.send([group, name, value])  # type: ignore
 
 
-def stop_metrics():
+def stop_metrics() -> None:
     """
     Close the metrics pipe and reader process.
 
@@ -156,7 +156,7 @@ def stop_metrics():
     _metric_recv_conn = _metric_send_conn = _metric_recv_process = None
 
 
-def metrics_summary(metrics_folder: Path):
+def metrics_summary(metrics_folder: Path) -> None:
     """
     Create various summary charts from the metrics json.
 
@@ -216,7 +216,8 @@ def metrics_summary(metrics_folder: Path):
         if step_name not in metrics:
             continue
 
-        sorted_items = sorted(metrics[step_name].items(), key=lambda item: item[1]['start'])
+        sorted_items = sorted(metrics[step_name].items(),
+                              key=lambda item: item[1]['start'])  # type: ignore # depends on item type
         values = [item[1] for item in sorted_items]
         t0 = values[0]['start']
         starts = [value['start'] - t0 for value in values]

@@ -5,7 +5,7 @@
 # ##############################################################################
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import fab
 from fab.artefacts import CollectionGetter
@@ -22,7 +22,7 @@ from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 
 
-def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildConfig:
+def _generic_build_config(folder: Path, kwargs: Optional[Dict[Any, Any]] = None) -> BuildConfig:
     folder = folder.resolve()
     kwargs = kwargs or {}
 
@@ -69,7 +69,7 @@ def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildC
     return config
 
 
-def cli_fab():
+def cli_fab() -> None:
     """
     Running Fab from the command line will attempt to build the project in the current or given folder.
 
