@@ -104,6 +104,7 @@ class BuildConfig(object):
 
         # todo: should probably pull the artefact store out of the config
         # runtime
+        # todo: either make this public, add get/setters, or extract into a class.
         self._artefact_store: Dict[str, Any] = {}
         self.init_artefact_store()  # note: the artefact store is reset with every call to run()
 

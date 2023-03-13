@@ -10,7 +10,7 @@ Gather files from a source folder.
 import logging
 from typing import Optional, Iterable
 
-from fab.steps import Step
+from fab.steps import Step, step
 from fab.util import file_walk
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,9 @@ class Exclude(_PathFilter):
         return f'Exclude({", ".join(self.filter_strings)})'
 
 
-class FindSourceFiles(Step):
+@step
+def find_source_files(config, source_root=None, output_collection="all_source",
+                      path_filters: Optional[Iterable[_PathFilter]] = None):
     """
     Find the files in the source folder, with filtering.
 
@@ -95,59 +97,49 @@ class FindSourceFiles(Step):
     A path matches a filter string simply if it *contains* it,
     so the path *my_folder/my_file.F90* would match filters "my_folder", "my_file" and "er/my".
 
+    :param source_root:
+        Optional path to source folder, with a sensible default.
+    :param output_collection:
+        Name of artefact collection to create, with a sensible default.
+    :param path_filters:
+        Iterable of Include and/or Exclude objects, to be processed in order.
+    :param name:
+        Human friendly name for logger output, with sensible default.
+
     """
-    def __init__(self, source_root=None, output_collection="all_source",
-                 name="Walk source", path_filters: Optional[Iterable[_PathFilter]] = None):
-        """
-        :param source_root:
-            Optional path to source folder, with a sensible default.
-        :param output_collection:
-            Name of artefact collection to create, with a sensible default.
-        :param path_filters:
-            Iterable of Include and/or Exclude objects, to be processed in order.
-        :param name:
-            Human friendly name for logger output, with sensible default.
+    path_filters: Iterable[_PathFilter] = path_filters or []
 
-        """
-        super().__init__(name)
-        self.source_root = source_root
-        self.output_collection: str = output_collection
-        self.path_filters: Iterable[_PathFilter] = path_filters or []
+    """
+    Recursively get all files in the given folder, with filtering.
 
-    def run(self, artefact_store, config):
-        """
-        Recursively get all files in the given folder, with filtering.
+    :param artefact_store:
+        Contains artefacts created by previous Steps, and where we add our new artefacts.
+        This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
+    :param config:
+        The :class:`fab.build_config.BuildConfig` object where we can read settings
+        such as the project workspace folder or the multiprocessing flag.
 
-        :param artefact_store:
-            Contains artefacts created by previous Steps, and where we add our new artefacts.
-            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
-        :param config:
-            The :class:`fab.build_config.BuildConfig` object where we can read settings
-            such as the project workspace folder or the multiprocessing flag.
+    """
+    source_root = source_root or config.source_root
 
-        """
-        super().run(artefact_store, config)
+    # file filtering
+    filtered_fpaths = []
+    # todo: we shouldn't need to ignore the prebuild folder here, it's not underneath the source root.
+    for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
 
-        source_root = self.source_root or config.source_root
+        wanted = True
+        for path_filter in path_filters:
+            # did this filter have anything to say about this file?
+            res = path_filter.check(fpath)
+            if res is not None:
+                wanted = res
 
-        # file filtering
-        filtered_fpaths = []
-        # todo: we shouldn't need to ignore the prebuild folder here, it's not underneath the source root.
-        for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
+        if wanted:
+            filtered_fpaths.append(fpath)
+        else:
+            logger.debug(f"excluding {fpath}")
 
-            wanted = True
-            for path_filter in self.path_filters:
-                # did this filter have anything to say about this file?
-                res = path_filter.check(fpath)
-                if res is not None:
-                    wanted = res
+    if not filtered_fpaths:
+        raise RuntimeError("no source files found after filtering")
 
-            if wanted:
-                filtered_fpaths.append(fpath)
-            else:
-                logger.debug(f"excluding {fpath}")
-
-        if not filtered_fpaths:
-            raise RuntimeError("no source files found after filtering")
-
-        artefact_store[self.output_collection] = filtered_fpaths
+    config._artefact_store[output_collection] = filtered_fpaths

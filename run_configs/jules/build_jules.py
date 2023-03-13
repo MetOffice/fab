@@ -12,7 +12,7 @@ from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.find_source_files import FindSourceFiles, Exclude
+from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.prebuild import GrabPreBuild
 from fab.steps.link import LinkExe
@@ -52,15 +52,8 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         # FcmExport(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
 
         # Copy another pre-build folder into our own.
+        # todo: put this back in as it's part of testing
         # GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
-
-        FindSourceFiles(path_filters=[
-            Exclude('src/control/um/'),
-            Exclude('src/initialisation/um/'),
-            Exclude('src/control/rivers-standalone/'),
-            Exclude('src/initialisation/rivers-standalone/'),
-            Exclude('src/params/shared/cable_maths_constants_mod.F90'),
-        ]),
 
         RootIncFiles(),
 
@@ -97,11 +90,20 @@ if __name__ == '__main__':
     args = arg_parser.parse_args()
 
     config = jules_config(revision=args.revision, compiler=args.compiler, two_stage=args.two_stage)
+    # this contains some of the stuff that was in run(), which needs to come before the steps.
     config._run_prep()
-    # config.prep()
 
-    fcm_export(config, src='fcm:jules.xm_tr/src', revision=args.revision, dst='src')
-    fcm_export(config, src='fcm:jules.xm_tr/utils', revision=args.revision, dst='utils')
+    fcm_export(config, src='fcm:jules.xm_tr/src', revision=args.revision, dst_label='src')
+    fcm_export(config, src='fcm:jules.xm_tr/utils', revision=args.revision, dst_label='utils')
+
+    find_source_files(config, path_filters=[
+        Exclude('src/control/um/'),
+        Exclude('src/initialisation/um/'),
+        Exclude('src/control/rivers-standalone/'),
+        Exclude('src/initialisation/rivers-standalone/'),
+        Exclude('src/params/shared/cable_maths_constants_mod.F90'),
+    ])
 
     config.run(prep=False)
+    # we'll get rid of run() and call this here
     # config.finalise()
