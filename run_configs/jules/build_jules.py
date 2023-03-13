@@ -8,7 +8,7 @@ import logging
 import os
 
 from fab.build_config import BuildConfig
-from fab.steps.analyse import Analyse
+from fab.steps.analyse import analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
@@ -38,28 +38,7 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         if two_stage:
             two_stage_flag = '-fsyntax-only'
 
-    # A big list of symbols which are used in jules without a use statement.
-    # Fab doesn't automatically identify such dependencies, and so they must be specified here by the user.
-    # Note: there are likely to be differences between revisions here...
-    unreferenced_dependencies = [
-        # this is on a one-line if statement, which fab doesn't currently identify
-        'imogen_update_carb',
-    ]
-
     config.steps = [
-
-        # FcmExport(src='fcm:jules.xm_tr/src', revision=revision, dst='src'),
-        # FcmExport(src='fcm:jules.xm_tr/utils', revision=revision, dst='utils'),
-
-        # Copy another pre-build folder into our own.
-        # todo: put this back in as it's part of testing
-        # GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
-
-        # fortran_preprocessor(
-        #     common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
-        # ),
-
-        Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
 
         CompileFortran(
             compiler=compiler,
@@ -108,6 +87,15 @@ if __name__ == '__main__':
         config,
         common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
     ),
+
+    # A big list of symbols which are used in jules without a use statement.
+    # Fab doesn't automatically identify such dependencies, and so they must be specified here by the user.
+    # Note: there are likely to be differences between revisions here...
+    unreferenced_dependencies = [
+        # this is on a one-line if statement, which fab doesn't currently identify
+        'imogen_update_carb',
+    ]
+    analyse(config, root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
 
     config.run(prep=False)
     # we'll get rid of run() and call this here
