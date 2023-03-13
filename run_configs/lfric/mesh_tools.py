@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-from argparse import ArgumentParser
 from pathlib import Path
+
+from fab.util import common_arg_parser
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
@@ -16,7 +17,7 @@ from lfric_common import Configurator, FparserWorkaround_StopConcatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 
-def mesh_tools_config(two_stage=False, opt='Og'):
+def mesh_tools_config(two_stage=False, verbose=False):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
@@ -26,7 +27,10 @@ def mesh_tools_config(two_stage=False, opt='Og'):
     # this folder just contains previous output, for testing the overrides mechanism.
     psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
 
-    config = BuildConfig(project_label=f'mesh tools {compiler} {opt} {int(two_stage)+1}stage')
+    config = BuildConfig(
+        project_label=f'mesh tools {compiler} {int(two_stage)+1}stage',
+        verbose=verbose,
+    )
     config.steps = [
 
         GrabFolder(src=lfric_source / 'infrastructure/source/', dst=''),
@@ -67,13 +71,9 @@ def mesh_tools_config(two_stage=False, opt='Og'):
             # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         ),
 
-        # todo:
-        # compile one big lump
-
         CompileFortran(
             common_flags=[
                 '-c',
-                f'-{opt}',
             ],
             two_stage_flag='-fsyntax-only' if two_stage else None,
         ),
@@ -96,9 +96,7 @@ def mesh_tools_config(two_stage=False, opt='Og'):
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument('--two-stage', action='store_true')
-    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
+    arg_parser = common_arg_parser()
     args = arg_parser.parse_args()
 
-    mesh_tools_config(two_stage=args.two_stage, opt=args.opt).run()
+    mesh_tools_config(two_stage=args.two_stage, verbose=args.verbose).run()

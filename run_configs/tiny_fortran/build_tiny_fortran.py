@@ -18,10 +18,10 @@ from fab.util import common_arg_parser
 logger = logging.getLogger('fab')
 
 
-def config(compiler=None):
+def config():
 
     # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_fortran_compiler(compiler)
+    compiler, _ = get_fortran_compiler()
     config = BuildConfig(project_label=f'tiny_fortran {compiler}')
 
     logger.info(f'building tiny fortran {config.project_label}')
@@ -36,7 +36,7 @@ def config(compiler=None):
 
         Analyse(root_symbol='my_prog'),
 
-        CompileFortran(compiler=compiler),
+        CompileFortran(),
         LinkExe(linker='mpifort'),
     ]
 
@@ -47,4 +47,4 @@ if __name__ == '__main__':
     arg_parser = common_arg_parser()
     args = arg_parser.parse_args()
 
-    config(compiler=args.compiler).run()
+    config().run()
