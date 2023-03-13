@@ -55,9 +55,9 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         # todo: put this back in as it's part of testing
         # GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
 
-        fortran_preprocessor(
-            common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
-        ),
+        # fortran_preprocessor(
+        #     common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
+        # ),
 
         Analyse(root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
 
@@ -103,6 +103,11 @@ if __name__ == '__main__':
     ])
 
     root_inc_files(config)
+
+    fortran_preprocessor(
+        config,
+        common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
+    ),
 
     config.run(prep=False)
     # we'll get rid of run() and call this here

@@ -97,6 +97,9 @@ def find_source_files(config, source_root=None, output_collection="all_source",
     A path matches a filter string simply if it *contains* it,
     so the path *my_folder/my_file.F90* would match filters "my_folder", "my_file" and "er/my".
 
+    :param config:
+        The :class:`fab.build_config.BuildConfig` object where we can read settings
+        such as the project workspace folder or the multiprocessing flag.
     :param source_root:
         Optional path to source folder, with a sensible default.
     :param output_collection:
