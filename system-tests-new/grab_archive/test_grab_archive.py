@@ -12,7 +12,7 @@ from fab.steps.grab.archive import GrabArchive
 class TestGrabArchive(object):
 
     def test(self, tmp_path):
-        tar_file = Path(__file__).parent / '../GrabGit/tiny_fortran.tar'
+        tar_file = Path(__file__).parent / '../git/tiny_fortran.tar'
         grab = GrabArchive(src=tar_file)
         grab.run(artefact_store={}, config=mock.Mock(source_root=tmp_path))
 
