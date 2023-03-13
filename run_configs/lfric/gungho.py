@@ -5,16 +5,17 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 import logging
-from argparse import ArgumentParser
+
+from fab.util import common_arg_parser
 
 from fab.build_config import BuildConfig
 from fab.steps.analyse import Analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
+from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
@@ -26,7 +27,7 @@ logger = logging.getLogger('fab')
 # todo: optimisation path stuff
 
 
-def gungho_config(two_stage=False, opt='Og'):
+def gungho_config(two_stage=False, verbose=False):
     lfric_source = lfric_source_config().source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config().source_root / 'gpl_utils'
 
@@ -34,9 +35,8 @@ def gungho_config(two_stage=False, opt='Og'):
     compiler, _ = get_fortran_compiler()
 
     config = BuildConfig(
-        project_label=f'gungho {compiler} {opt} {int(two_stage)+1}stage',
-        # multiprocessing=False,
-        # reuse_artefacts=True,
+        project_label=f'gungho {compiler} {int(two_stage)+1}stage',
+        verbose=verbose,
     )
 
     config.steps = [
@@ -87,8 +87,6 @@ def gungho_config(two_stage=False, opt='Og'):
                 '-c',
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
-                # '-Og',
-                f'-{opt}',
                 '-std=f2008',
 
                 '-Wall', '-Werror=conversion', '-Werror=unused-variable', '-Werror=character-truncation',
@@ -119,9 +117,7 @@ def gungho_config(two_stage=False, opt='Og'):
 
 
 if __name__ == '__main__':
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument('--two-stage', action='store_true')
-    arg_parser.add_argument('-opt', default='Og', choices=['Og', 'O0', 'O1', 'O2', 'O3'])
+    arg_parser = common_arg_parser()
     args = arg_parser.parse_args()
 
-    gungho_config(two_stage=args.two_stage, opt=args.opt).run()
+    gungho_config(two_stage=args.two_stage, verbose=args.verbose).run()

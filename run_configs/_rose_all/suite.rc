@@ -50,21 +50,21 @@
 
     [[build_gcom_ar<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = build_gcom_ar.py
+        script = build_gcom_ar.py {{ VERBOSE }}
 
     [[build_gcom_so<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = build_gcom_so.py
+        script = build_gcom_so.py {{ VERBOSE }}
 
     [[build_jules<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = build_jules.py
+        script = build_jules.py {{ VERBOSE }}
         [[[directives]]]
             --mem=1024
 
     [[build_um<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = build_um.py
+        script = build_um.py {{ VERBOSE }}
         [[[directives]]]
             --mem=2048
 
@@ -74,18 +74,18 @@
 
     [[mesh_tools<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = mesh_tools.py
+        script = mesh_tools.py {{ VERBOSE }}
         [[[directives]]]
             --mem=1024
 
     [[gungho<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = gungho.py
+        script = gungho.py {{ VERBOSE }}
         [[[directives]]]
             --mem=2048
 
     [[atm<pyver,compiler>]]
         inherit = 'common<pyver,compiler>'
-        script = atm.py
+        script = atm.py {{ VERBOSE }}
         [[[directives]]]
             --mem=2048
