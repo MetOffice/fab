@@ -17,7 +17,7 @@ from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.prebuild import GrabPreBuild
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.root_inc_files import RootIncFiles
+from fab.steps.root_inc_files import root_inc_files
 from fab.util import common_arg_parser
 
 logger = logging.getLogger('fab')
@@ -54,8 +54,6 @@ def jules_config(revision=None, compiler=None, two_stage=False):
         # Copy another pre-build folder into our own.
         # todo: put this back in as it's part of testing
         # GrabPreBuild(path='/home/h02/bblay/temp_prebuild', allow_fail=True),
-
-        RootIncFiles(),
 
         fortran_preprocessor(
             common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output']
@@ -103,6 +101,8 @@ if __name__ == '__main__':
         Exclude('src/initialisation/rivers-standalone/'),
         Exclude('src/params/shared/cable_maths_constants_mod.F90'),
     ])
+
+    root_inc_files(config)
 
     config.run(prep=False)
     # we'll get rid of run() and call this here
