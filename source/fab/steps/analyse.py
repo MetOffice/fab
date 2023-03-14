@@ -84,8 +84,6 @@ def analyse(
     The resulting artefact collection is a mapping from root symbol to build tree.
     The name of this artefact collection is taken from :py:const:`fab.constants.BUILD_TREES`.
 
-    """
-    """
     If no artefact getter is specified in *source*, a default is used which provides input files
     from multiple artefact collections, including the default C and Fortran preprocessor outputs
     and any source files with a 'little' *.f90* extension.
