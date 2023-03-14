@@ -29,7 +29,6 @@ stop
 import datetime
 import json
 import logging
-import warnings
 from collections import defaultdict
 from multiprocessing import Process, Pipe
 from multiprocessing.connection import Connection
@@ -136,9 +135,6 @@ def send_metric(group: str, name: str, value):
         Value of the metric.
 
     """
-    if not _metric_send_conn:
-        warnings.warn('metrics not initialised, cannot send metric')
-        return
     _metric_send_conn.send([group, name, value])  # type: ignore
 
 
@@ -149,10 +145,6 @@ def stop_metrics():
     """
     global _metric_recv_conn, _metric_send_conn
     global _metric_recv_process
-
-    if not _metric_send_conn:
-        warnings.warn('metrics not initialised, not attempting to stop metrics')
-        return
 
     # Close the metrics recording pipe.
     # The metrics recording process will notice and finish,

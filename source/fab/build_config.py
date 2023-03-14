@@ -54,25 +54,23 @@ def build_config(project_label: str, arg_parser: Optional[ArgumentParser] = None
     arg_parser = arg_parser or common_arg_parser()
     parsed_args = vars(arg_parser.parse_args())
 
-    # todo: this is a circular import workaround
+    # todo: this import is a circular import workaround
     from fab.steps.compile_fortran import get_fortran_compiler
     compiler, _ = get_fortran_compiler()
     config = BuildConfig(project_label=f'project_label {compiler}', parsed_args=parsed_args, *args, **kwargs)
 
-    logger.info(f'building {project_label}')
-
+    logger.info(f'building {config.project_label}')
     start_time = datetime.now().replace(microsecond=0)
     config._run_prep()
 
     try:
         with TimerLogger(f'running {project_label} build steps') as build_timer:
-
             # this will return to the build script
             yield config
 
-        # note: this won't run if an exception occurs in the build script
         # do we need to run a cleanup?
-        # todo: this is a circular import workaround
+        # note: this won't run if an exception occurs in the build script
+        # todo: this import is a circular import workaround
         from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
         if CLEANUP_COUNT not in config._artefact_store:
             logger.info("no housekeeping step was run, using a default hard cleanup")
