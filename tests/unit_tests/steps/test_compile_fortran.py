@@ -52,7 +52,8 @@ class Test_compile_pass(object):
         config = BuildConfig('proj')
         with mock.patch('fab.steps.compile_fortran.CompileFortran.run_mp', return_value=run_mp_results):
             with mock.patch('fab.steps.compile_fortran.get_mod_hashes'):
-                uncompiled_result = compiler.compile_pass(compiled=compiled, uncompiled=uncompiled, config=config)
+                uncompiled_result = compiler.compile_pass(config=config, compiled=compiled, uncompiled=uncompiled,
+                                                          _mod_hashes=)
 
         assert Path('b.f90') in compiled
         assert list(uncompiled_result)[0].fpath == Path('a.f90')

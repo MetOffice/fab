@@ -15,7 +15,7 @@ from fab.steps import step
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.cleanup_prebuilds import CleanupPrebuilds
-from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
+from fab.steps.compile_fortran import compile_fortran, get_fortran_compiler
 from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.prebuild import GrabPreBuild
@@ -42,15 +42,6 @@ def jules_config(revision=None, compiler=None, two_stage=False):
             two_stage_flag = '-fsyntax-only'
 
     config.steps = [
-
-        CompileFortran(
-            compiler=compiler,
-            two_stage_flag=two_stage_flag,
-            # required for newer gfortran versions
-            # path_flags=[
-            #     AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
-            # ]
-        ),
 
         ArchiveObjects(),
 
@@ -144,6 +135,16 @@ if __name__ == '__main__':
         'imogen_update_carb',
     ]
     analyse(config, root_symbol='jules', unreferenced_deps=unreferenced_dependencies),
+
+    compile_fortran(
+        config,
+        compiler=args.compiler,
+        two_stage_flag=args.two_stage,
+        # required for newer gfortran versions
+        # path_flags=[
+        #     AddFlags('*/io/dump/read_dump_mod.f90', ['-fallow-argument-mismatch']),
+        # ]
+    ),
 
     config.run(prep=False)
     # we'll get rid of run() and call this here
