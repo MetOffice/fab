@@ -9,7 +9,7 @@ Fortran language handling classes.
 """
 import logging
 from pathlib import Path
-from typing import Union, Optional, Iterable, Dict, Any, Set
+from typing import Union, Optional, Iterable, Dict, Any, Set, List
 
 from fparser.two.Fortran2003 import (  # type: ignore
     Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
@@ -83,25 +83,25 @@ class AnalysedFortran(AnalysedDependent):
 
         self.validate()
 
-    def add_program_def(self, name):
+    def add_program_def(self, name: str) -> None:
         self.program_defs.add(name.lower())
         self.add_symbol_def(name)
 
-    def add_module_def(self, name):
+    def add_module_def(self, name: str) -> None:
         self.module_defs.add(name.lower())
         self.add_symbol_def(name)
 
-    def add_module_dep(self, name):
+    def add_module_dep(self, name: str) -> None:
         self.module_deps.add(name.lower())
         self.add_symbol_dep(name)
 
     @property
-    def mod_filenames(self):
+    def mod_filenames(self) -> Set[str]:
         """The mod_filenames property defines which module files are expected to be created (but not where)."""
         return {f'{mod}.mod' for mod in self.module_defs}
 
     @classmethod
-    def field_names(cls):
+    def field_names(cls) -> List[str]:
         # we're not using the super class because we want to insert, not append the order of our attributes
         return [
             'fpath', 'file_hash',
@@ -128,7 +128,7 @@ class AnalysedFortran(AnalysedDependent):
         return result
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: Dict[str, Any]) -> 'AnalysedFortran':
         result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
@@ -145,7 +145,7 @@ class AnalysedFortran(AnalysedDependent):
         result.validate()
         return result
 
-    def validate(self):
+    def validate(self) -> None:
         assert self.file_hash is not None
 
         assert all([d and len(d) for d in self.program_defs]), "bad program definitions"
@@ -166,7 +166,7 @@ class FortranAnalyser(FortranAnalyserBase):
     A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFortran`.
 
     """
-    def __init__(self, std=None, ignore_mod_deps: Optional[Iterable[str]] = None):
+    def __init__(self, std: Optional[str] = None, ignore_mod_deps: Optional[Iterable[str]] = None) -> None:
         """
         :param std:
             The Fortran standard.
@@ -178,7 +178,7 @@ class FortranAnalyser(FortranAnalyserBase):
         self.ignore_mod_deps: Iterable[str] = list(ignore_mod_deps or [])
         self.depends_on_comment_found = False
 
-    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFortran:
+    def walk_nodes(self, fpath: Path, file_hash: int, node_tree: Any) -> AnalysedFortran:
 
         # see what's in the tree
         analysed_fortran = AnalysedFortran(fpath=fpath, file_hash=file_hash)
@@ -246,7 +246,7 @@ class FortranAnalyser(FortranAnalyserBase):
 
         return analysed_fortran
 
-    def _process_use_statement(self, analysed_file, obj):
+    def _process_use_statement(self, analysed_file: AnalysedFortran, obj: Any) -> None:
         use_name = _typed_child(obj, Name, must_exist=True)
         use_name = use_name.string
 
@@ -256,7 +256,7 @@ class FortranAnalyser(FortranAnalyserBase):
             # found a dependency on fortran
             analysed_file.add_module_dep(use_name)
 
-    def _process_variable_binding(self, analysed_file, obj: Type_Declaration_Stmt):
+    def _process_variable_binding(self, analysed_file: AnalysedFortran, obj: Type_Declaration_Stmt) -> None:
         # The name keyword on the bind statement is optional.
         # If it doesn't exist, the Fortran variable name is used
 
@@ -275,7 +275,7 @@ class FortranAnalyser(FortranAnalyserBase):
             name = _typed_child(entity, Name)
             analysed_file.add_symbol_def(name.string)
 
-    def _process_comment(self, analysed_file, obj):
+    def _process_comment(self, analysed_file: AnalysedFortran, obj: Any) -> None:
         # Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
         # Be sure to alert the user that this practice is deprecated.
         # TODO: error handling in case we catch a genuine comment
@@ -291,7 +291,7 @@ class FortranAnalyser(FortranAnalyserBase):
             else:
                 analysed_file.add_symbol_dep(dep)
 
-    def _process_subroutine_or_function(self, analysed_file, fpath, obj):
+    def _process_subroutine_or_function(self, analysed_file: AnalysedFortran, fpath: Path, obj: Any) -> None:
         # binding?
         bind = _typed_child(obj, Language_Binding_Spec)
         if bind:
@@ -365,7 +365,7 @@ class FortranParserWorkaround(object):
         self.symbol_deps: Set[str] = set(symbol_deps or {})
         self.mo_commented_file_deps: Set[str] = set(mo_commented_file_deps or [])
 
-    def as_analysed_fortran(self):
+    def as_analysed_fortran(self) -> AnalysedFortran:
 
         # To be as helpful as possible, we allow the user to omit module defs/deps from the symbol defs/deps.
         # However, they need to be there so do this now.

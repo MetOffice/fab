@@ -13,7 +13,7 @@ which need to be processed. Most steps have sensible defaults and can be configu
 """
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Iterable, Union, Dict, List
+from typing import Any, Iterable, Union, Dict, List
 
 from fab.constants import BUILD_TREES
 from fab.dep_tree import filter_source_tree, AnalysedDependent
@@ -26,7 +26,7 @@ class ArtefactsGetter(ABC):
 
     """
     @abstractmethod
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: Dict[Any, Any]) -> Any:
         """
         :param artefact_store:
             The artefact store from which to retrieve.
@@ -44,7 +44,7 @@ class CollectionGetter(ArtefactsGetter):
         `CollectionGetter('preprocessed_fortran')`
 
     """
-    def __init__(self, collection_name):
+    def __init__(self, collection_name: str) -> None:
         """
         :param collection_name:
             The name of the artefact collection to retrieve.
@@ -52,7 +52,7 @@ class CollectionGetter(ArtefactsGetter):
         """
         self.collection_name = collection_name
 
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: Dict[Any, Any]) -> Any:
         super().__call__(artefact_store)
         return artefact_store.get(self.collection_name, [])
 
@@ -83,7 +83,7 @@ class CollectionConcat(ArtefactsGetter):
         self.collections = collections
 
     # todo: ensure the labelled values are iterables
-    def __call__(self, artefact_store: Dict):
+    def __call__(self, artefact_store: Dict[Any, Any]) -> Any:
         super().__call__(artefact_store)
         # todo: this should be a set, in case a file appears in multiple collections
         result = []
@@ -117,7 +117,7 @@ class SuffixFilter(ArtefactsGetter):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: Dict[Any, Any]) -> List[Path]:
         super().__call__(artefact_store)
         # todo: returning an empty list is probably "dishonest" if the collection doesn't exist - return None instead?
         fpaths: Iterable[Path] = artefact_store.get(self.collection_name, [])
@@ -148,7 +148,7 @@ class FilterBuildTrees(ArtefactsGetter):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: Dict[Any, Any]) -> Any:
         super().__call__(artefact_store)
 
         build_trees = artefact_store[self.collection_name]

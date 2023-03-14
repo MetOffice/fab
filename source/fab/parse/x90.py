@@ -4,7 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Iterable, Set, Union, Optional, Dict, Any
+from typing import Iterable, Set, Union, Optional, Dict, Any, List
 
 from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
 
@@ -43,7 +43,7 @@ class AnalysedX90(AnalysedFile):
         return result
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: Dict[Any, Any]) -> 'AnalysedX90':
         result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
@@ -53,7 +53,7 @@ class AnalysedX90(AnalysedFile):
         return result
 
     @classmethod
-    def field_names(cls):
+    def field_names(cls) -> List[str]:
         return super().field_names() + [
             'kernel_deps',
         ]
@@ -64,7 +64,7 @@ class X90Analyser(FortranAnalyserBase):
     # Makes a parsable fortran version of x90.
     # todo: Use hashing to reuse previous analysis results.
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(result_class=AnalysedX90)
 
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:  # type: ignore
@@ -90,7 +90,7 @@ class X90Analyser(FortranAnalyserBase):
 
         return analysed_file
 
-    def _process_use_statement(self, symbol_deps: Dict[str, str], obj):
+    def _process_use_statement(self, symbol_deps: Dict[str, str], obj: Any) -> None:
         # Record the modules in which potential kernels live.
         # We'll find out if they're kernels later.
         module_dep = _typed_child(obj, Name, must_exist=True)
@@ -102,7 +102,8 @@ class X90Analyser(FortranAnalyserBase):
         for name in name_nodes:
             symbol_deps[name.string] = module_dep.string
 
-    def _process_call_statement(self, symbol_deps: Dict[str, str], analysed_file, obj):
+    def _process_call_statement(self, symbol_deps: Dict[str, str],
+                                analysed_file: AnalysedX90, obj: Any) -> None:
         # if we're calling invoke, record the names of the args.
         # sanity check they end with "_type".
         called_name = _typed_child(obj, Name)

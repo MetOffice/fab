@@ -9,7 +9,7 @@ import logging
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import List, Optional, Union, Tuple
+from typing import Any, Deque, List, Optional, Union, Tuple, cast
 
 from fab.dep_tree import AnalysedDependent
 
@@ -45,13 +45,13 @@ class CAnalyser(object):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
 
         # runtime
         self._config = None
 
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
-    def _locate_include_regions(self, trans_unit) -> None:
+    def _locate_include_regions(self, trans_unit: Any) -> None:
         """
         Look for Fab pragmas identifying included code which came from system or user #includes.
         """
@@ -60,7 +60,7 @@ class CAnalyser(object):
 
         # Use a deque to implement a rolling window of 4 identifiers
         # (enough to be sure we can spot an entire pragma)
-        identifiers: deque = deque([])
+        identifiers: Deque[Any] = deque([])
         for token in trans_unit.cursor.get_tokens():
             identifiers.append(token)
             if len(identifiers) < 4:
@@ -87,7 +87,7 @@ class CAnalyser(object):
                     self._include_region.append(
                         (lineno, "usr_include_end"))
 
-    def _check_for_include(self, lineno) -> Optional[str]:
+    def _check_for_include(self, lineno: int) -> Optional[str]:
         """Check whether a given line number is in a region that has come from an include."""
         # todo: don't need a stack?
         include_stack = []
@@ -114,10 +114,11 @@ class CAnalyser(object):
         # do we already have analysis results for this file?
         # todo: dupe - probably best in a parser base class
         file_hash = file_checksum(fpath).file_hash
-        analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')  # type: ignore
         if analysis_fpath.exists():
             log_or_dot(logger, f"found analysis prebuild for {fpath}")
-            return AnalysedC.load(analysis_fpath), analysis_fpath
+            # Explicitly correct the type of the analysed file
+            return cast(AnalysedC, AnalysedC.load(analysis_fpath)), analysis_fpath
 
         log_or_dot(logger, f"analysing {fpath}")
 
@@ -160,7 +161,7 @@ class CAnalyser(object):
         analysed_file.save(analysis_fpath)
         return analysed_file, analysis_fpath
 
-    def _process_symbol_declaration(self, analysed_file, node, usr_symbols):
+    def _process_symbol_declaration(self, analysed_file, node, usr_symbols) -> None:  # type: ignore # todo: check types
         # Identify symbol declarations which are definitions or user includes
         logger.debug('  * Is a declaration')
         if node.is_definition():
@@ -176,7 +177,7 @@ class CAnalyser(object):
                 logger.debug('  * Is not defined in this file')
                 usr_symbols.append(node.spelling)
 
-    def _process_symbol_dependency(self, analysed_file, node, usr_symbols):
+    def _process_symbol_dependency(self, analysed_file, node, usr_symbols) -> None:  # type: ignore # todo: check types
         # When encountering a function call we should be able to
         # cross-reference it with a definition seen earlier; and
         # if it came from a user supplied header then we will

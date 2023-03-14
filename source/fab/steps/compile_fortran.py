@@ -14,10 +14,10 @@ import zlib
 from collections import defaultdict
 from itertools import chain
 from pathlib import Path
-from typing import List, Set, Dict, Tuple, Optional, Union
+from typing import Any, List, Set, Dict, Tuple, Optional, Union
 
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
-from fab.build_config import FlagsConfig
+from fab.build_config import AddFlags, FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
@@ -40,8 +40,9 @@ class CompileFortran(Step):
 
     """
     def __init__(self, compiler: Optional[str] = None, common_flags: Optional[List[str]] = None,
-                 path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None,
-                 two_stage_flag=None, name='compile fortran'):
+                 path_flags: Optional[List[AddFlags]] = None, source: Optional[ArtefactsGetter] = None,
+                 two_stage_flag: Optional[str] = None,
+                 name: str = 'compile fortran') -> None:
         """
         :param compiler:
             The command line compiler to call. Defaults to `gfortran -c`.
@@ -91,7 +92,7 @@ class CompileFortran(Step):
         self._stage: Optional[int] = None
         self._mod_hashes: Dict[str, int] = {}
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Compile all Fortran files in all build trees.
 
@@ -109,7 +110,7 @@ class CompileFortran(Step):
         logger.info(f'fortran compiler is {self.compiler} {self.compiler_version}')
 
         # get all the source to compile, for all build trees, into one big lump
-        build_lists: Dict[str, List] = self.source_getter(artefact_store)
+        build_lists: Dict[str, List[Any]] = self.source_getter(artefact_store)  # todo: check list types
 
         # compile everything in multiple passes
         compiled: Dict[Path, CompiledFile] = {}
@@ -139,7 +140,8 @@ class CompileFortran(Step):
         # record the compilation results for the next step
         self.store_artefacts(compiled, build_lists, artefact_store)
 
-    def compile_pass(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran], config):
+    def compile_pass(self, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran],
+                     config: Any) -> Set[AnalysedFortran]:
 
         # what can we compile next?
         compile_next = self.get_compile_next(compiled, uncompiled)
@@ -194,7 +196,9 @@ class CompileFortran(Step):
 
         return compile_next
 
-    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile], build_lists: Dict[str, List], artefact_store):
+    def store_artefacts(self, compiled_files: Dict[Path, CompiledFile],
+                        build_lists: Dict[str, List[Any]],
+                        artefact_store: Dict[Any, Any]) -> None:
         """
         Create our artefact collection; object files for each compiled file, per root symbol.
 
@@ -231,14 +235,16 @@ class CompileFortran(Step):
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
 
         # calculate the incremental/prebuild artefact filenames
-        obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+        obj_file_prebuild = (self._config.prebuild_folder  # type: ignore # config confusion
+                             / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o')
         mod_file_prebuilds = [
-            self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
+            self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'  # type: ignore # config confusion
             for mod_def in analysed_file.module_defs
         ]
 
         # have we got all the prebuilt artefacts we need to avoid a recompile?
-        prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds))
+        # todo: fix type complaint about Any vs object
+        prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds))  # type: ignore
         if not all(prebuilds_exist):
             # compile
             try:
@@ -251,8 +257,10 @@ class CompileFortran(Step):
             # note: perhaps we could sometimes avoid these copies because mods can change less frequently than obj
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
-                    self._config.build_output / f'{mod_def}.mod',
-                    self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
+                    self._config.build_output  # type: ignore # config confusion
+                    / f'{mod_def}.mod',
+                    self._config.prebuild_folder  # type: ignore # config confusion
+                    / f'{mod_def}.{mod_combo_hash:x}.mod',
                 )
 
         else:
@@ -261,8 +269,10 @@ class CompileFortran(Step):
             # copy the prebuilt mod files from the prebuild folder
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
-                    self._config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
-                    self._config.build_output / f'{mod_def}.mod',
+                    self._config.prebuild_folder  # type: ignore # config confusion
+                    / f'{mod_def}.{mod_combo_hash:x}.mod',
+                    self._config.build_output  # type: ignore # config confusion
+                    / f'{mod_def}.mod',
                 )
 
         # return the results
@@ -271,7 +281,7 @@ class CompileFortran(Step):
 
         return compiled_file, artefacts
 
-    def _get_obj_combo_hash(self, analysed_file, flags):
+    def _get_obj_combo_hash(self, analysed_file: AnalysedFortran, flags: List[str]) -> int:
         # get a combo hash of things which matter to the object file we define
         # todo: don't just silently use 0 for a missing dep hash
         mod_deps_hashes = {mod_dep: self._mod_hashes.get(mod_dep, 0) for mod_dep in analysed_file.module_deps}
@@ -287,7 +297,7 @@ class CompileFortran(Step):
             raise ValueError("could not generate combo hash for object file")
         return obj_combo_hash
 
-    def _get_mod_combo_hash(self, analysed_file):
+    def _get_mod_combo_hash(self, analysed_file: AnalysedFortran) -> int:
         # get a combo hash of things which matter to the mod files we define
         try:
             mod_combo_hash = sum([
@@ -299,7 +309,7 @@ class CompileFortran(Step):
             raise ValueError("could not generate combo hash for mod files")
         return mod_combo_hash
 
-    def compile_file(self, analysed_file, flags, output_fpath):
+    def compile_file(self, analysed_file: AnalysedFortran, flags: List[str], output_fpath: Path) -> None:
         """
         Call the compiler.
 
@@ -328,7 +338,8 @@ class CompileFortran(Step):
             # Module folder.
             # If it's an unknown compiler, we rely on the user config to specify this.
             if known_compiler:
-                command.extend([known_compiler.module_folder_flag, str(self._config.build_output)])
+                command.extend([known_compiler.module_folder_flag,
+                                str(self._config.build_output)])  # type: ignore # config confusion
 
             # files
             command.append(analysed_file.fpath.name)
@@ -344,7 +355,7 @@ class CompileFortran(Step):
             value={'time_taken': timer.taken, 'start': timer.start})
 
 
-def get_fortran_preprocessor():
+def get_fortran_preprocessor() -> Tuple[str, List[str]]:
     """
     Identify the fortran preprocessor and any flags from the environment.
 
@@ -357,7 +368,7 @@ def get_fortran_preprocessor():
 
     """
     fpp: Optional[str] = None
-    fpp_flags: Optional[list[str]] = None
+    fpp_flags: Optional[List[str]] = None
 
     try:
         fpp, fpp_flags = get_tool(os.getenv('FPP'))
@@ -393,7 +404,7 @@ def get_fortran_preprocessor():
     return fpp, fpp_flags
 
 
-def get_fortran_compiler(compiler: Optional[str] = None):
+def get_fortran_compiler(compiler: Optional[str] = None) -> Tuple[str, List[Any]]:
     """
     Get the fortran compiler specified by the `$FC` environment variable,
     or overridden by the optional `compiler` argument.
@@ -408,7 +419,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
     """
     fortran_compiler = None
     try:
-        fortran_compiler = get_tool(compiler or os.getenv('FC', ''))  # type: ignore
+        fortran_compiler = get_tool(compiler or os.getenv('FC', ''))
     except ValueError:
         # tool not specified
         pass
@@ -437,7 +448,7 @@ def get_fortran_compiler(compiler: Optional[str] = None):
     return fortran_compiler
 
 
-def get_mod_hashes(analysed_files: Set[AnalysedFortran], config) -> Dict[str, int]:
+def get_mod_hashes(analysed_files: Set[AnalysedFortran], config: Any) -> Dict[str, int]:
     """
     Get the hash of every module file defined in the list of analysed files.
 

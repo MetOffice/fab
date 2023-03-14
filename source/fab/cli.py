@@ -54,7 +54,7 @@ def _generic_build_config(folder: Path, kwargs: Optional[Dict[Any, Any]] = None)
             fortran_preprocessor(preprocessor=fpp, common_flags=fpp_flags),
 
             CPragmaInjector(),
-            c_preprocessor(source=CollectionGetter(PRAGMAD_C)),
+            c_preprocessor(source=CollectionGetter(PRAGMAD_C)),  # type: ignore # FIXME: c_preprocessor
 
             Analyse(find_programs=True),
 

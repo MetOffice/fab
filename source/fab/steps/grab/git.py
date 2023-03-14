@@ -6,16 +6,16 @@
 import warnings
 from abc import ABC
 from pathlib import Path
-from typing import Union, Dict
+from typing import Any, Union, Dict, Optional
 
 from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
 
-def current_commit(folder=None):
+def current_commit(folder: Optional[str] = None) -> str:
     folder = folder or '.'
     output = run_command(['git', 'log', '--oneline', '-n', '1'], cwd=folder)
-    commit = output.split()[0]
+    commit = output.split()[0]  # type: ignore # folder is a str
     return commit
 
 
@@ -24,7 +24,7 @@ class GrabGitBase(GrabSourceBase, ABC):
     Base class for Git operations.
 
     """
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         if not self.tool_available():
             raise RuntimeError("git command line tool not available")
         super().run(artefact_store, config)
@@ -45,7 +45,7 @@ class GrabGitBase(GrabSourceBase, ABC):
             return False
         return True
 
-    def fetch(self):
+    def fetch(self) -> None:
         # todo: allow shallow fetch with --depth 1
         command = ['git', 'fetch', self.src]
         if self.revision:
@@ -60,7 +60,7 @@ class GitCheckout(GrabGitBase):
     Checkout or update a Git repo.
 
     """
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
 
         # create folder?
@@ -68,7 +68,7 @@ class GitCheckout(GrabGitBase):
         if not self._dst.exists():
             self._dst.mkdir(parents=True)
             run_command(['git', 'init', '.'], cwd=self._dst)
-        elif not self.is_working_copy(self._dst):  # type: ignore
+        elif not self.is_working_copy(self._dst):
             raise ValueError(f"destination exists but is not a working copy: '{self._dst}'")
 
         self.fetch()
@@ -86,7 +86,7 @@ class GitMerge(GrabGitBase):
     Merge a git repo into a local working copy.
 
     """
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
         if not self._dst or not self.is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")

@@ -11,7 +11,7 @@ import logging
 import os
 from datetime import timedelta, datetime
 from pathlib import Path
-from typing import Dict, Optional, Iterable, Set
+from typing import Any, Dict, Optional, Iterable, Set
 
 from fab.constants import CURRENT_PREBUILDS
 from fab.steps import Step
@@ -27,7 +27,8 @@ class CleanupPrebuilds(Step):
     Assumes prebuild filenames follow the pattern: `<stem>.<hash>.<suffix>`.
 
     """
-    def __init__(self, older_than: Optional[timedelta] = None, n_versions: int = 0, all_unused: Optional[bool] = None):
+    def __init__(self, older_than: Optional[timedelta] = None,
+                 n_versions: int = 0, all_unused: Optional[bool] = None) -> None:
         """
         :param older_than:
             Delete prebuild artefacts which are *n seconds* older than the *last prebuild access time*.
@@ -55,7 +56,7 @@ class CleanupPrebuilds(Step):
         if self.all_unused and (n_versions or older_than):
             raise ValueError("n_versions or older_than should not be specified with all_unused")
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
 
         num_removed = 0
@@ -71,7 +72,7 @@ class CleanupPrebuilds(Step):
         else:
             # get the file access time for every artefact
             prebuilds_ts = \
-                dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time)))  # type: ignore
+                dict(zip(prebuild_files, self.run_mp(prebuild_files, get_access_time)))
 
             # work out what to delete
             to_delete = self.by_age(prebuilds_ts, current_files=artefact_store[CURRENT_PREBUILDS])
@@ -122,7 +123,7 @@ class CleanupPrebuilds(Step):
         return to_delete
 
 
-def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]):
+def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]) -> int:
     num_removed = 0
 
     for f in found_files:

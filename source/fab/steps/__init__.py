@@ -9,7 +9,7 @@ Predefined build steps with sensible defaults.
 """
 import multiprocessing
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Any, Callable, Dict, Iterable, Optional
 
 from fab.util import by_type
 
@@ -22,7 +22,7 @@ class Step(ABC):
 
     """
 
-    def __init__(self, name=None):
+    def __init__(self, name: Optional[str] = None) -> None:
         """
         :param name:
             Human friendly name for logger output. Steps generally provide a sensible default.
@@ -34,7 +34,7 @@ class Step(ABC):
         self._config = None
 
     @abstractmethod
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Process artefact collections from previous steps, creating a new artefact collection. Defined in the subclass.
 
@@ -51,7 +51,7 @@ class Step(ABC):
         """
         self._config = config
 
-    def run_mp(self, items, func, no_multiprocessing: bool = False):
+    def run_mp(self, items: Iterable[Any], func: Any, no_multiprocessing: bool = False) -> Iterable[Any]:
         """
         Called from Step.run() to process multiple items in parallel.
 
@@ -67,15 +67,16 @@ class Step(ABC):
             Overrides the config's multiprocessing flag, disabling multiprocessing for this call.
 
         """
-        if self._config.multiprocessing and not no_multiprocessing:
-            with multiprocessing.Pool(self._config.n_procs) as p:
+        if self._config.multiprocessing and not no_multiprocessing:  # type: ignore # config confusion
+            with multiprocessing.Pool(self._config.n_procs) as p:  # type: ignore # config confusion
                 results = p.map(func, items)
         else:
             results = [func(f) for f in items]
 
         return results
 
-    def run_mp_imap(self, items, func, result_handler):
+    def run_mp_imap(self, items: Iterable[Any], func: Callable[[Any], Any],
+                    result_handler: Callable[[Any], Any]) -> Any:
         """
         Like run_mp, but uses imap instead of map so that we can process each result as it happens.
 
@@ -90,16 +91,16 @@ class Step(ABC):
             A function to handle a single result. Must accept a single argument.
 
         """
-        if self._config.multiprocessing:
-            with multiprocessing.Pool(self._config.n_procs) as p:
+        if self._config.multiprocessing:  # type: ignore # config confusion
+            with multiprocessing.Pool(self._config.n_procs) as p:  # type: ignore # config confusion
                 analysis_results = p.imap_unordered(func, items)
                 result_handler(analysis_results)
         else:
-            analysis_results = (func(a) for a in items)  # generator
+            analysis_results = (func(a) for a in items)  # type: ignore # todo: fix typing # generator
             result_handler(analysis_results)
 
 
-def check_for_errors(results, caller_label=None):
+def check_for_errors(results: Iterable[Any], caller_label: Optional[str] = None) -> None:
     """
     Check an iterable of results for any exceptions and handle them gracefully.
 

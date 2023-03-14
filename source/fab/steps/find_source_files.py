@@ -8,7 +8,8 @@ Gather files from a source folder.
 
 """
 import logging
-from typing import Optional, Iterable
+from pathlib import Path
+from typing import Any, Dict, Optional, Iterable, Union
 
 from fab.steps import Step
 from fab.util import file_walk
@@ -31,7 +32,7 @@ class _PathFilter(object):
         self.filter_strings: Iterable[str] = filter_strings
         self.include = include
 
-    def check(self, path):
+    def check(self, path: Union[str, Path]) -> Optional[bool]:
         if any(str(i) in str(path) for i in self.filter_strings):
             return self.include
         return None
@@ -42,7 +43,7 @@ class Include(_PathFilter):
     A path filter which includes matching paths, this convenience class improves config readability.
 
     """
-    def __init__(self, *filter_strings):
+    def __init__(self, *filter_strings: str) -> None:
         """
         :param filter_strings:
             One or more strings to be used as pattern matches.
@@ -50,7 +51,7 @@ class Include(_PathFilter):
         """
         super().__init__(*filter_strings, include=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'Include({", ".join(self.filter_strings)})'
 
 
@@ -60,7 +61,7 @@ class Exclude(_PathFilter):
 
     """
 
-    def __init__(self, *filter_strings):
+    def __init__(self, *filter_strings: str) -> None:
         """
         :param filter_strings:
             One or more strings to be used as pattern matches.
@@ -68,7 +69,7 @@ class Exclude(_PathFilter):
         """
         super().__init__(*filter_strings, include=False)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'Exclude({", ".join(self.filter_strings)})'
 
 
@@ -96,8 +97,10 @@ class FindSourceFiles(Step):
     so the path *my_folder/my_file.F90* would match filters "my_folder", "my_file" and "er/my".
 
     """
-    def __init__(self, source_root=None, output_collection="all_source",
-                 name="Walk source", path_filters: Optional[Iterable[_PathFilter]] = None):
+    def __init__(self, source_root: Optional[str] = None,
+                 output_collection: str = "all_source",
+                 name: str = "Walk source",
+                 path_filters: Optional[Iterable[_PathFilter]] = None) -> None:
         """
         :param source_root:
             Optional path to source folder, with a sensible default.
@@ -114,7 +117,7 @@ class FindSourceFiles(Step):
         self.output_collection: str = output_collection
         self.path_filters: Iterable[_PathFilter] = path_filters or []
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Recursively get all files in the given folder, with filtering.
 

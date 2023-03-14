@@ -10,7 +10,7 @@ Common functionality for both Fortran and (sanitised) X90 processing.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Any, Optional, Union, Tuple, Type
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
@@ -25,7 +25,8 @@ from fab.util import log_or_dot, file_checksum
 logger = logging.getLogger(__name__)
 
 
-def iter_content(obj):
+# todo: replace Any with more correct definitions - see fparser
+def iter_content(obj: Any) -> Any:
     """
     Return a generator which yields every node in the tree.
     """
@@ -35,7 +36,7 @@ def iter_content(obj):
             yield child
 
 
-def _iter_content(content):
+def _iter_content(content: Any) -> Any:
     for obj in content:
         yield obj
         if hasattr(obj, "content"):
@@ -43,7 +44,7 @@ def _iter_content(content):
                 yield child
 
 
-def _has_ancestor_type(obj, obj_type):
+def _has_ancestor_type(obj: Any, obj_type: Any) -> bool:
     # Recursively check if an object has an ancestor of the given type.
     if not obj.parent:
         return False
@@ -54,7 +55,7 @@ def _has_ancestor_type(obj, obj_type):
     return _has_ancestor_type(obj.parent, obj_type)
 
 
-def _typed_child(parent, child_type, must_exist=False):
+def _typed_child(parent: Any, child_type: Any, must_exist: bool = False) -> Any:
     # Look for a child of a certain type.
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
@@ -78,7 +79,8 @@ class FortranAnalyserBase(ABC):
     """
     _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
 
-    def __init__(self, result_class, std=None):
+    def __init__(self, result_class: Type[Any],  # 'FortranAnalyserBase'],
+                 std: Optional[str] = None) -> None:
         """
         :param result_class:
             The type (class) of the analysis result. Defined by the subclass.
@@ -140,10 +142,11 @@ class FortranAnalyserBase(ABC):
 
         return analysed_file, analysis_fpath
 
-    def _get_analysis_fpath(self, fpath, file_hash) -> Path:
-        return Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+    def _get_analysis_fpath(self, fpath: Path, file_hash: int) -> Path:
+        return Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')  # type: ignore
 
-    def _parse_file(self, fpath):
+    # todo: fix type hinting
+    def _parse_file(self, fpath: Path) -> Any:
         """Get a node tree from a fortran file."""
         reader = FortranFileReader(str(fpath), ignore_comments=False)
         reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
@@ -160,7 +163,7 @@ class FortranAnalyserBase(ABC):
             return Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
 
     @abstractmethod
-    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedDependent:
+    def walk_nodes(self, fpath: Path, file_hash: int, node_tree: Any) -> AnalysedDependent:
         """
         Examine the nodes in the parse tree, recording things we're interested in.
 

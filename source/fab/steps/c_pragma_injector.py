@@ -9,7 +9,7 @@ Add custom pragmas to C code which identify user and system include regions.
 """
 import re
 from pathlib import Path
-from typing import Dict, Pattern, Optional, Match
+from typing import Any, Dict, Generator, Pattern, Optional, Match
 
 from fab import FabException
 from fab.constants import PRAGMAD_C
@@ -31,7 +31,9 @@ class CPragmaInjector(Step):
     including in paths relative to the c file.
 
     """
-    def __init__(self, source: Optional[ArtefactsGetter] = None, output_name=None, name="c pragmas"):
+    def __init__(self, source: Optional[ArtefactsGetter] = None,
+                 output_name: Optional[str] = None,
+                 name: str = "c pragmas") -> None:
         """
         :param source:
             An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
@@ -46,7 +48,7 @@ class CPragmaInjector(Step):
         self.source_getter = source or DEFAULT_SOURCE_GETTER
         self.output_name = output_name or PRAGMAD_C
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         :param artefact_store:
             Contains artefacts created by previous Steps, and where we add our new artefacts.
@@ -62,13 +64,13 @@ class CPragmaInjector(Step):
         results = self.run_mp(items=files, func=self._process_artefact)
         artefact_store[self.output_name] = list(results)
 
-    def _process_artefact(self, fpath: Path):
+    def _process_artefact(self, fpath: Path) -> Path:
         prag_output_fpath = fpath.with_suffix('.prag')
         prag_output_fpath.open('w').writelines(inject_pragmas(fpath))
         return prag_output_fpath
 
 
-def inject_pragmas(fpath):
+def inject_pragmas(fpath: Path) -> Generator[str, None, None]:
     """
     Reads a C source file but when encountering an #include
     preprocessor directive injects a special Fab-specific
@@ -77,10 +79,10 @@ def inject_pragmas(fpath):
     """
 
     _include_re: str = r'^\s*#include\s+(\S+)'
-    _include_pattern: Pattern = re.compile(_include_re)
+    _include_pattern: Pattern[str] = re.compile(_include_re)
 
     for line in open(fpath, 'rt', encoding='utf-8'):
-        include_match: Optional[Match] = _include_pattern.match(line)
+        include_match: Optional[Match[str]] = _include_pattern.match(line)
         if include_match:
             # For valid C the first character of the matched
             # part of the group will indicate whether this is

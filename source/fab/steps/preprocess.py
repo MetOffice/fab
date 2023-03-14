@@ -10,7 +10,7 @@ Fortran and C Preprocessing.
 import logging
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fab.build_config import FlagsConfig
 from fab.constants import PRAGMAD_C
@@ -20,6 +20,8 @@ from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, Timer
 from fab.tools import run_command
 from fab.steps import check_for_errors, Step
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
+from fab.build_config import AddFlags
+
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +38,12 @@ class PreProcessor(Step):
 
     def __init__(self,
                  preprocessor: str,
-                 source: Optional[ArtefactsGetter] = None, output_collection=None, output_suffix=None,
+                 source: Optional[ArtefactsGetter] = None,
+                 output_collection: Optional[str] = None,
+                 output_suffix: Optional[str] = None,
                  common_flags: Optional[List[str]] = None,
-                 path_flags: Optional[List] = None, name=None):
+                 path_flags: Optional[List[AddFlags]] = None,
+                 name: Optional[str] = None) -> None:
         """
         :param preprocessor:
             The preprocessor executable.
@@ -71,7 +76,7 @@ class PreProcessor(Step):
         self.output_collection = output_collection or self.DEFAULT_OUTPUT_NAME
         self.output_suffix = output_suffix or self.DEFAULT_OUTPUT_SUFFIX
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Uses multiprocessing, unless disabled in the *config*.
 
@@ -95,7 +100,7 @@ class PreProcessor(Step):
         log_or_dot_finish(logger)
         artefact_store[self.output_collection] = list(by_type(results, Path))
 
-    def _process_artefact(self, fpath):
+    def _process_artefact(self, fpath: Path) -> Path:
         """
         Expects an input file in the source folder.
         Writes the output file to the output folder, with a lower case extension.
@@ -104,7 +109,7 @@ class PreProcessor(Step):
         output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
 
         # already preprocessed?
-        if self._config.reuse_artefacts and output_fpath.exists():
+        if self._config.reuse_artefacts and output_fpath.exists():  # type: ignore # confused by _config
             log_or_dot(logger, f'Preprocessor skipping: {fpath}')
         else:
             with Timer() as timer:
@@ -126,9 +131,12 @@ class PreProcessor(Step):
         return output_fpath
 
 
-def fortran_preprocessor(preprocessor=None, source=None,
-                         output_collection='preprocessed_fortran', output_suffix='.f90',
-                         name='preprocess fortran', **pp_kwds):
+def fortran_preprocessor(preprocessor: Optional[str] = None,
+                         source: Optional[str] = None,
+                         output_collection: str = 'preprxocessed_fortran',
+                         output_suffix: str = '.f90',
+                         name: str = 'preprocess fortran',
+                         **pp_kwds: Any) -> PreProcessor:
     """
     Return a step to preprocess Fortran files with multiprocessing.
 
@@ -137,8 +145,8 @@ def fortran_preprocessor(preprocessor=None, source=None,
     """
     # todo: we want to add -P ... IF it's not already there
     return PreProcessor(
-        preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
-        source=source or SuffixFilter('all_source', '.F90'),
+        preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),  # type: ignore # mypy is confused
+        source=source or SuffixFilter('all_source', '.F90'),  # type: ignore # mypy is confused
         output_collection=output_collection,
         output_suffix=output_suffix,
         name=name,
@@ -153,7 +161,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
     This allows the step to work with or without a preceding pragma step.
 
     """
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: Dict[Any, Any]) -> Any:
         return CollectionGetter(PRAGMAD_C)(artefact_store) \
                or SuffixFilter('all_source', '.c')(artefact_store)
 
@@ -161,9 +169,12 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 DEFAULT_C_SOURCE_GETTER = DefaultCPreprocessorSource()
 
 
-def c_preprocessor(preprocessor=None, source=None,
-                   output_collection='preprocessed_c', output_suffix='.c',
-                   name='preprocess c', **pp_kwds):
+def c_preprocessor(preprocessor: Optional[str] = None,
+                   source: Optional[str] = None,
+                   output_collection: str = 'preprocessed_c',
+                   output_suffix: str = '.c',
+                   name: str = 'preprocess c',
+                   **pp_kwds: Any) -> PreProcessor:
     """
     Return a step to preprocess C files with multiprocessing.
 
@@ -171,8 +182,8 @@ def c_preprocessor(preprocessor=None, source=None,
 
     """
     return PreProcessor(
-        preprocessor=preprocessor or os.getenv('CPP', 'cpp'),
-        source=source or DEFAULT_C_SOURCE_GETTER,
+        preprocessor=preprocessor or os.getenv('CPP', 'cpp'),  # type: ignore # relates to previous todo?
+        source=source or DEFAULT_C_SOURCE_GETTER,  # type: ignore # relates to previous todo?
         output_collection=output_collection,
         output_suffix=output_suffix,
         name=name,

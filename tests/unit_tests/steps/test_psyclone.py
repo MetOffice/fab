@@ -24,7 +24,7 @@ class Test_gen_prebuild_hash(object):
         config._prep_output_folders()
 
         psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent])
-        psyclone_step._config = config
+        psyclone_step._config = config  # type: ignore # config confusion
 
         transformation_script_hash = 123
 

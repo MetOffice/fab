@@ -10,7 +10,7 @@ Object archive creation from a list of object files for use in static linking.
 
 import logging
 from string import Template
-from typing import Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import Step
@@ -68,8 +68,11 @@ class ArchiveObjects(Step):
 
     """
     # todo: the output path should not be an abs fpath, it should be relative to the proj folder
-    def __init__(self, source: Optional[ArtefactsGetter] = None, archiver='ar',
-                 output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
+    def __init__(self, source: Optional[ArtefactsGetter] = None,
+                 archiver: str = 'ar',
+                 output_fpath: Optional[str] = None,
+                 output_collection: str = OBJECT_ARCHIVES,
+                 name: str = 'archive objects') -> None:
         """
         :param source:
             An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of objects to archive.
@@ -94,7 +97,7 @@ class ArchiveObjects(Step):
         self.output_fpath = str(output_fpath) if output_fpath else None
         self.output_collection = output_collection
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         :param artefact_store:
             Contains artefacts created by previous Steps, and where we add our new artefacts.
@@ -125,6 +128,7 @@ class ArchiveObjects(Step):
                 output_fpath = Template(str(self.output_fpath)).substitute(
                     output=config.build_output)
 
+            # todo: something in this list upsets the type hinting
             command = [self.archiver]
             command.extend(['cr', output_fpath])
             command.extend(map(str, sorted(objects)))

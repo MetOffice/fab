@@ -12,12 +12,13 @@ import os
 import warnings
 import zlib
 from collections import defaultdict
-from typing import List, Dict, Optional
+from typing import Any, List, Dict, Optional, Union
 
 from fab import FabException
 from fab.artefacts import ArtefactsGetter, FilterBuildTrees
 from fab.build_config import FlagsConfig
 from fab.constants import OBJECT_FILES
+from fab.dep_tree import AnalysedDependent
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, Step
@@ -40,7 +41,8 @@ class CompileC(Step):
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
     def __init__(self, compiler: Optional[str] = None, common_flags: Optional[List[str]] = None,
-                 path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None, name="compile c"):
+                 path_flags: Optional[List[str]] = None, source: Optional[ArtefactsGetter] = None,
+                 name: str = "compile c") -> None:
         """
         :param compiler:
             The command line compiler to call. Defaults to `gcc -c`.
@@ -57,7 +59,7 @@ class CompileC(Step):
         """
         super().__init__(name=name)
 
-        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC', 'gcc -c'))  # type: ignore
+        self.compiler, compiler_flags = get_tool(compiler or os.getenv('CC', 'gcc -c'))
         self.compiler_version = get_compiler_version(self.compiler)
         logger.info(f'c compiler is {self.compiler} {self.compiler_version}')
 
@@ -70,10 +72,10 @@ class CompileC(Step):
             warnings.warn("Adding '-c' to C compiler flags")
             common_flags = ['-c'] + common_flags
 
-        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+        self.flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)  # type: ignore # check path_flags
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Uses multiprocessing, unless disabled in the *config*.
 
@@ -88,8 +90,8 @@ class CompileC(Step):
         super().run(artefact_store, config)
 
         # gather all the source to compile, for all build trees, into one big lump
-        build_lists: Dict = self.source_getter(artefact_store)
-        to_compile: list = sum(build_lists.values(), [])
+        build_lists: Dict[str, List[AnalysedDependent]] = self.source_getter(artefact_store)
+        to_compile: List[AnalysedDependent] = sum(build_lists.values(), [])
         logger.info(f"compiling {len(to_compile)} c files")
 
         # compile everything in one go
@@ -106,7 +108,9 @@ class CompileC(Step):
         self.store_artefacts(compiled_c, build_lists, artefact_store)
 
     # todo: very similar code in fortran compiler
-    def store_artefacts(self, compiled_files: List[CompiledFile], build_lists: Dict[str, List], artefact_store):
+    def store_artefacts(self, compiled_files: List[CompiledFile],
+                        build_lists: Dict[str, List[AnalysedDependent]],
+                        artefact_store: Dict[Any, Any]) -> None:
         """
         Create our artefact collection; object files for each compiled file, per root symbol.
 
@@ -118,12 +122,13 @@ class CompileC(Step):
             new_objects = [lookup[af.fpath].output_fpath for af in source_files]
             object_files[root].update(new_objects)
 
-    def _compile_file(self, analysed_file: AnalysedC):
+    def _compile_file(self, analysed_file: AnalysedC) -> Union[FabException, CompiledFile]:
 
         flags = self.flags.flags_for_path(path=analysed_file.fpath, config=self._config)
         obj_combo_hash = self._get_obj_combo_hash(analysed_file, flags)
 
-        obj_file_prebuild = self._config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+        obj_file_prebuild = (self._config.prebuild_folder  # type: ignore # config confusion
+                             / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o')
 
         # prebuild available?
         if obj_file_prebuild.exists():
@@ -132,7 +137,7 @@ class CompileC(Step):
             with Timer() as timer:
                 obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
 
-                command = self.compiler.split()  # type: ignore
+                command = self.compiler.split()
                 command.extend(flags)
                 command.append(str(analysed_file.fpath))
                 command.extend(['-o', str(obj_file_prebuild)])
@@ -147,7 +152,7 @@ class CompileC(Step):
 
         return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
-    def _get_obj_combo_hash(self, analysed_file, flags):
+    def _get_obj_combo_hash(self, analysed_file: AnalysedC, flags: List[str]) -> int:
         # get a combo hash of things which matter to the object file we define
         try:
             obj_combo_hash = sum([

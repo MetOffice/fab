@@ -4,7 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Union, Optional, Dict
+from typing import Any, Union, Optional, Dict
 
 from fab.steps.grab import GrabSourceBase, call_rsync
 
@@ -15,7 +15,8 @@ class GrabFolder(GrabSourceBase):
 
     """
 
-    def __init__(self, src: Union[Path, str], dst: Optional[str] = None, name=None):
+    def __init__(self, src: Union[Path, str], dst: Optional[str] = None,
+                 name: Optional[str] = None) -> None:
         """
         :param src:
             The source location to grab. The nature of this parameter is depends on the subclass.
@@ -28,7 +29,7 @@ class GrabFolder(GrabSourceBase):
         """
         super().__init__(src=str(src), dst=dst, name=name)
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
 
         self._dst.mkdir(parents=True, exist_ok=True)  # type: ignore

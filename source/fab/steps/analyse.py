@@ -38,7 +38,7 @@ import logging
 import sys
 import warnings
 from pathlib import Path
-from typing import Dict, List, Iterable, Set, Optional, Union
+from typing import Any, Dict, List, Iterable, Set, Optional, Tuple, Union
 
 from fab import FabException
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
@@ -85,7 +85,7 @@ class Analyse(Step):
                  special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
                  unreferenced_deps: Optional[Iterable[str]] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None,
-                 name='analyser'):
+                 name: str = 'analyser') -> None:
         """
         If no artefact getter is specified in *source*, a default is used which provides input files
         from multiple artefact collections, including the default C and Fortran preprocessor outputs
@@ -141,7 +141,7 @@ class Analyse(Step):
         self.fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
         self.c_analyser = CAnalyser()
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Creates the *build_trees* artefact from the files in `self.source_getter`.
 
@@ -203,7 +203,7 @@ class Analyse(Step):
         if self.root_symbols:
             build_trees = self._extract_build_trees(project_source_tree, symbol_table)
         else:
-            build_trees = {None: project_source_tree}
+            build_trees = {None: project_source_tree}  # type: ignore # todo: fix type mismatch
 
         # throw in any extra source we need, which Fab can't automatically detect
         for build_tree in build_trees.values():
@@ -212,7 +212,9 @@ class Analyse(Step):
 
         artefact_store[BUILD_TREES] = build_trees
 
-    def _analyse_dependencies(self, analysed_files: Iterable[AnalysedDependent]):
+    def _analyse_dependencies(self,
+                              analysed_files: Iterable[AnalysedDependent]) -> Tuple[Dict[Path, AnalysedDependent],
+                                                                                    Dict[str, Path]]:
         """
         Build a source dependency tree for the entire source.
 
@@ -230,7 +232,8 @@ class Analyse(Step):
 
         return source_tree, symbol_table
 
-    def _extract_build_trees(self, project_source_tree, symbol_table):
+    def _extract_build_trees(self, project_source_tree: Dict[Path, AnalysedDependent],
+                             symbol_table: Dict[str, Path]) -> Dict[str, Dict[Path, AnalysedDependent]]:
         """
         Find the subset of files needed to build each root symbol (executable).
 
@@ -288,14 +291,14 @@ class Analyse(Step):
 
         # record the artefacts as being current
         artefacts = by_type(fortran_artefacts + c_artefacts, Path)
-        self._config.add_current_prebuilds(artefacts)
+        self._config.add_current_prebuilds(artefacts)  # type: ignore # config confusion
 
         # ignore empty files
         analysed_files = by_type(analyses, AnalysedFile)
         non_empty = {af for af in analysed_files if not isinstance(af, EmptySourceFile)}
         return non_empty
 
-    def _add_manual_results(self, analysed_files: Set[AnalysedDependent]):
+    def _add_manual_results(self, analysed_files: Set[AnalysedDependent]) -> None:
         # add manual analysis results for files which could not be parsed
         if self.special_measure_analysis_results:
             warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
@@ -336,7 +339,8 @@ class Analyse(Step):
 
         return symbols
 
-    def _gen_file_deps(self, analysed_files: Iterable[AnalysedDependent], symbols: Dict[str, Path]):
+    def _gen_file_deps(self, analysed_files: Iterable[AnalysedDependent],
+                       symbols: Dict[str, Path]) -> None:
         """
         Use the symbol table to convert symbol dependencies into file dependencies.
 
@@ -360,7 +364,7 @@ class Analyse(Step):
 
     def _add_unreferenced_deps(self, symbol_table: Dict[str, Path],
                                all_analysed_files: Dict[Path, AnalysedDependent],
-                               build_tree: Dict[Path, AnalysedDependent]):
+                               build_tree: Dict[Path, AnalysedDependent]) -> None:
         """
         Add files to the build tree.
 

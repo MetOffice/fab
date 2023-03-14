@@ -11,7 +11,7 @@ import logging
 import os
 from abc import ABC
 from string import Template
-from typing import List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
 from fab.steps import Step
@@ -29,7 +29,7 @@ class DefaultLinkerSource(ArtefactsGetter):
     This allows a link step to work with or without a preceding object archive step.
 
     """
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: Dict[Any, Any]) -> Any:
         return CollectionGetter(OBJECT_ARCHIVES)(artefact_store) \
                or CollectionGetter(OBJECT_FILES)(artefact_store)
 
@@ -46,7 +46,9 @@ class LinkerBase(Step, ABC):
     compiler steps.
 
     """
-    def __init__(self, linker: Optional[str] = None, flags=None, source: Optional[ArtefactsGetter] = None, name='link'):
+    def __init__(self, linker: Optional[str] = None, flags: Optional[List[str]] = None,
+                 source: Optional[ArtefactsGetter] = None,
+                 name: str = 'link') -> None:
         """
         :param linker:
             E.g 'gcc' or 'ld'.
@@ -67,7 +69,7 @@ class LinkerBase(Step, ABC):
         self.flags: List[str] = flags or []
         self.source_getter = source or DEFAULT_SOURCE_GETTER
 
-    def _call_linker(self, filename, objects):
+    def _call_linker(self, filename: str, objects: Iterable[Any]) -> None:
         assert isinstance(self.linker, str)
         command = self.linker.split()
         command.extend(['-o', filename])
@@ -90,7 +92,7 @@ class LinkExe(LinkerBase):
     Expects one or more build targets from its artefact getter, of the form Dict[name, object_files].
 
     """
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
 
         target_objects = self.source_getter(artefact_store)
@@ -109,8 +111,10 @@ class LinkSharedObject(LinkExe):
     We can assume the list of object files is the entire project source, compiled.
 
     """
-    def __init__(self, output_fpath: str, linker: Optional[str] = None, flags=None,
-                 source: Optional[ArtefactsGetter] = None, name='link shared object'):
+    def __init__(self, output_fpath: str, linker: Optional[str] = None,
+                 flags: Optional[List[str]] = None,
+                 source: Optional[ArtefactsGetter] = None,
+                 name: str = 'link shared object') -> None:
         """
         Params are as for :class:`~fab.steps.link_exe.LinkerBase`, with the addition of:
 
@@ -127,7 +131,7 @@ class LinkSharedObject(LinkExe):
             if f not in self.flags:
                 self.flags.append(f)
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> Any:
         super().run(artefact_store, config)
 
         # We expect a single build target containing the whole codebase, with no name (as it's not a root symbol).

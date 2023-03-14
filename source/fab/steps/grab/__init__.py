@@ -11,7 +11,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Union, Optional
+from typing import Any, Dict, Union, Optional
 
 from fab.steps import Step
 from fab.tools import run_command
@@ -28,7 +28,9 @@ class GrabSourceBase(Step, ABC):
     At runtime, when the build config is available, the destination folder is stored into `self._dst`.
 
     """
-    def __init__(self, src: str, dst: Optional[str] = None, revision=None, name=None):
+    def __init__(self, src: str, dst: Optional[str] = None,
+                 revision: Optional[str] = None,  # todo: is revision always a str?
+                 name: Optional[str] = None):
         """
         :param src:
             The source url to grab.
@@ -50,7 +52,7 @@ class GrabSourceBase(Step, ABC):
         self._dst: Optional[Path] = None
 
     @abstractmethod
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Perform the source grab. Called by Fab at runtime.
 
@@ -69,7 +71,7 @@ class GrabSourceBase(Step, ABC):
         self._dst = config.source_root / self.dst_label
 
 
-def call_rsync(src: Union[str, Path], dst: Union[str, Path]):
+def call_rsync(src: Union[str, Path], dst: Union[str, Path]) -> Optional[str]:
     # we want the source folder to end with a / for rsync because we don't want it to create a sub folder
     src = os.path.expanduser(str(src))
     if not src.endswith('/'):

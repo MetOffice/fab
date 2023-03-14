@@ -15,7 +15,7 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union, Tuple
+from typing import Any, Dict, List, Match, Optional, Set, Union, Tuple
 
 from fab.tools import run_command
 
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 # todo: should this be part of the psyclone step?
-def psyclone_preprocessor(common_flags: Optional[List[str]] = None):
+def psyclone_preprocessor(common_flags: Optional[List[str]] = None) -> PreProcessor:
     common_flags = common_flags or []
 
     return PreProcessor(
@@ -81,7 +81,8 @@ class Psyclone(Step):
     Kernel files are just normal Fortran, and the standard Fortran analyser is used to analyse them
 
     """
-    def __init__(self, name=None, kernel_roots=None,
+    def __init__(self, name: Optional[str] = None,
+                 kernel_roots: Optional[List[Union[str, Path]]] = None,
                  transformation_script: Optional[Path] = None,
                  cli_args: Optional[List[str]] = None,
                  source_getter: Optional[ArtefactsGetter] = None,
@@ -121,7 +122,7 @@ class Psyclone(Step):
             return False
         return True
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store=artefact_store, config=config)
         x90s = self.source_getter(artefact_store)
 
@@ -155,7 +156,7 @@ class Psyclone(Step):
         # is this called psykal?
         # assert False
 
-    def _generate_mp_payload(self, x90s):
+    def _generate_mp_payload(self, x90s: Any) -> MpPayload:
         prebuild_analyses = self._analysis_for_prebuilds(x90s)
         transformation_script_hash, analysed_x90, all_kernel_hashes = prebuild_analyses
 
@@ -171,7 +172,7 @@ class Psyclone(Step):
         )
 
     # todo: test that we can run this step before or after the analysis step
-    def _analysis_for_prebuilds(self, x90s) -> Tuple:
+    def _analysis_for_prebuilds(self, x90s: Set[Path]) -> Tuple[int, Dict[Path, AnalysedX90], Dict[str, int]]:
         """
         Analysis for PSyclone prebuilds.
 
@@ -240,7 +241,7 @@ class Psyclone(Step):
         # parse
         x90_analyser = X90Analyser()
         x90_analyser._config = self._config
-        with TimerLogger(f"analysing {len(parsable_x90s)} parsable x90 files"):
+        with TimerLogger(f"analysing {len(parsable_x90s)} parsable x90 files"):  # type: ignore # todo: fixme
             x90_results = self.run_mp(items=parsable_x90s, func=x90_analyser.run)
         log_or_dot_finish(logger)
         x90_analyses, x90_artefacts = zip(*x90_results) if x90_results else ((), ())
@@ -248,7 +249,7 @@ class Psyclone(Step):
 
         # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
         prebuild_files = list(by_type(x90_artefacts, Path))
-        self._config.add_current_prebuilds(prebuild_files)
+        self._config.add_current_prebuilds(prebuild_files)  # type: ignore # config confusion
 
         # record the analysis results against the original x90 filenames (not the parsable versions we analysed)
         analysed_x90 = by_type(x90_analyses, AnalysedX90)
@@ -258,12 +259,13 @@ class Psyclone(Step):
         for p, r in analysed_x90.items():
             analysed_x90[p]._file_hash = file_checksum(p).file_hash
 
-        return analysed_x90
+        return analysed_x90  # type: ignore # todo: mypy says this is Any type
 
-    def _analyse_kernels(self, kernel_roots) -> Dict[str, int]:
+    def _analyse_kernels(self, kernel_roots: List[Union[str, Path]]) -> Dict[str, int]:
         # We want to hash the kernel metadata (type defs).
         # Ignore the prebuild folder. Todo: test the prebuild folder is ignored, in case someone breaks this.
-        file_lists = [file_walk(root, ignore_folders=[self._config.prebuild_folder]) for root in kernel_roots]
+        file_lists = [file_walk(root, ignore_folders=[self._config.prebuild_folder])  # type: ignore # config confusion
+                      for root in kernel_roots]
         all_kernel_files: Set[Path] = set(*chain(file_lists))
         kernel_files: List[Path] = suffix_filter(all_kernel_files, ['.f90'])
 
@@ -284,7 +286,7 @@ class Psyclone(Step):
 
         # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
         prebuild_files = list(by_type(fortran_artefacts, Path))
-        self._config.add_current_prebuilds(prebuild_files)
+        self._config.add_current_prebuilds(prebuild_files)  # type: ignore # config confusion
 
         analysed_fortran: List[AnalysedFortran] = list(by_type(fortran_analyses, AnalysedFortran))
 
@@ -297,7 +299,7 @@ class Psyclone(Step):
 
         return all_kernel_hashes
 
-    def do_one_file(self, arg):
+    def do_one_file(self, arg: Any) -> Tuple[Union[List[Path], Exception], Union[List[Path], None]]:
         x90_file, mp_payload = arg
         prebuild_hash = self._gen_prebuild_hash(x90_file, mp_payload)
 
@@ -352,17 +354,17 @@ class Psyclone(Step):
 
         return result, prebuild_result
 
-    def _gen_prebuild_hash(self, x90_file: Path, mp_payload: MpPayload):
+    def _gen_prebuild_hash(self, x90_file: Path, mp_payload: MpPayload) -> int:
         """
         Calculate the prebuild hash for this x90 file, based on all the things which should trigger reprocessing.
 
         """
         # We've analysed (a parsable version of) this x90.
-        analysis_result = mp_payload.analysed_x90[x90_file]  # type: ignore
+        analysis_result = mp_payload.analysed_x90[x90_file]
 
         # include the hashes of kernels used by this x90
         kernel_deps_hashes = {
-            mp_payload.all_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}  # type: ignore
+            mp_payload.all_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}
 
         # hash everything which should trigger re-processing
         # todo: hash the psyclone version in case the built-in kernels change?
@@ -383,15 +385,17 @@ class Psyclone(Step):
 
         return prebuild_hash
 
-    def _get_prebuild_paths(self, modified_alg, generated, prebuild_hash):
-        prebuilt_alg = Path(self._config.prebuild_folder / f'{modified_alg.stem}.{prebuild_hash}{modified_alg.suffix}')
-        prebuilt_gen = Path(self._config.prebuild_folder / f'{generated.stem}.{prebuild_hash}{generated.suffix}')
+    def _get_prebuild_paths(self, modified_alg: Path, generated: Path, prebuild_hash: int) -> Tuple[Path, Path]:
+        prebuilt_alg = Path(self._config.prebuild_folder  # type: ignore # config confusion
+                            / f'{modified_alg.stem}.{prebuild_hash}{modified_alg.suffix}')
+        prebuilt_gen = Path(self._config.prebuild_folder  # type: ignore # config confusion
+                            / f'{generated.stem}.{prebuild_hash}{generated.suffix}')
         return prebuilt_alg, prebuilt_gen
 
-    def run_psyclone(self, generated, modified_alg, x90_file):
+    def run_psyclone(self, generated: Path, modified_alg: Path, x90_file: Any) -> None:
 
         # -d specifies "a root directory structure containing kernel source"
-        kernel_args: Union[list[str], list] = sum([['-d', k] for k in self.kernel_roots], [])
+        kernel_args: Union[List[str], List[Any]] = sum([['-d', k] for k in self.kernel_roots], [])
 
         # transformation python script
         transform_options = ['-s', self.transformation_script] if self.transformation_script else []
@@ -409,7 +413,7 @@ class Psyclone(Step):
 
         run_command(command)
 
-    def _check_override(self, check_path: Path, override_files: List[str]):
+    def _check_override(self, check_path: Path, override_files: List[str]) -> Path:
         """
         Delete the file if there's an override for it.
 
@@ -474,7 +478,7 @@ def make_parsable_x90(x90_path: Path) -> Path:
 
     replaced = []
 
-    def repl(matchobj):
+    def repl(matchobj: Match[str]) -> str:
         # matchobj[0] contains the entire matching string, from "call" to the "," after the name keyword.
         # matchobj[1] contains the single group in the search pattern, which is defined in STRING.
         name = matchobj[1].replace('"', '').replace("'", "")

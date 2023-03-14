@@ -14,6 +14,7 @@ import logging
 import shutil
 import warnings
 from pathlib import Path
+from typing import Any, Dict
 
 from fab.constants import BUILD_OUTPUT
 from fab.steps import Step
@@ -24,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 class RootIncFiles(Step):
 
-    def __init__(self, name="root inc files"):
+    def __init__(self, name: str = "root inc files") -> None:
         super().__init__(name)
 
-    def run(self, artefact_store, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         """
         Copy inc files into the workspace output root.
 

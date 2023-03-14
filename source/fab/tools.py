@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 import subprocess
 import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from fab.util import string_checksum
 
@@ -23,7 +23,7 @@ class Compiler(object):
     A command-line compiler whose flags we wish to manage.
 
     """
-    def __init__(self, exe, compile_flag, module_folder_flag):
+    def __init__(self, exe: str, compile_flag: str, module_folder_flag: str) -> None:
         self.exe = exe
         self.compile_flag = compile_flag
         self.module_folder_flag = module_folder_flag
@@ -38,7 +38,7 @@ COMPILERS: Dict[str, Compiler] = {
 
 # todo: We're not sure we actually want to do modify incoming flags. Discuss...
 # todo: this is compiler specific, rename - and do we want similar functions for other steps?
-def remove_managed_flags(compiler, flags_in):
+def remove_managed_flags(compiler: str, flags_in: List[str]) -> List[str]:
     """
     Remove flags which Fab manages.
 
@@ -56,7 +56,7 @@ def remove_managed_flags(compiler, flags_in):
         This approach is due for discussion. It might not be desirable to modify user flags at all.
 
     """
-    def remove_flag(flags: List[str], flag: str, len):
+    def remove_flag(flags: List[str], flag: str, len: int) -> None:
         while flag in flags:
             warnings.warn(f'removing managed flag {flag} for compiler {compiler}')
             flag_index = flags.index(flag)
@@ -74,7 +74,7 @@ def remove_managed_flags(compiler, flags_in):
     return flags_out
 
 
-def flags_checksum(flags: List[str]):
+def flags_checksum(flags: List[str]) -> int:
     """
     Return a checksum of the flags.
 
@@ -82,7 +82,9 @@ def flags_checksum(flags: List[str]):
     return string_checksum(str(flags))
 
 
-def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = None, capture_output=True):
+def run_command(command: List[str], env: Optional[Any] = None,
+                cwd: Optional[Union[Path, str]] = None,
+                capture_output: bool = True) -> Optional[str]:
     """
     Run a CLI command.
 
@@ -107,6 +109,8 @@ def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = 
 
     if capture_output:
         return res.stdout.decode()
+
+    return None
 
 
 def get_tool(tool_str: Optional[str] = None) -> Tuple[str, List[str]]:
@@ -154,7 +158,7 @@ def get_compiler_version(compiler: str) -> str:
     # Pull the version string from the command output.
     # All the versions of gfortran and ifort we've tried follow the same pattern, it's after a ")".
     try:
-        version = res.split(')')[1].split()[0]
+        version = res.split(')')[1].split()[0]  # type: ignore # Output is captured by default
     except IndexError:
         logger.warning(f"Unexpected version response from compiler '{compiler}': {res}")
         return ''

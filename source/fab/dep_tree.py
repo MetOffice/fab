@@ -57,19 +57,21 @@ class AnalysedDependent(AnalysedFile, ABC):
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
 
-    def add_symbol_def(self, name):
+    def add_symbol_def(self, name: str) -> None:
         assert name and len(name)
         self.symbol_defs.add(name.lower())
 
-    def add_symbol_dep(self, name):
+    def add_symbol_dep(self, name: str) -> None:
         assert name and len(name)
         self.symbol_deps.add(name.lower())
 
-    def add_file_dep(self, name):
+    def add_file_dep(self, name: str) -> None:
         self.file_deps.add(Path(name))
 
     @classmethod
-    def field_names(cls):
+    def field_names(cls) -> Any:
+        # todo: consider updating function return type to List[Any]
+        # based on return type of field_names
         return super().field_names() + [
             'symbol_defs',
             'symbol_deps',
@@ -77,7 +79,7 @@ class AnalysedDependent(AnalysedFile, ABC):
         ]
 
     def to_dict(self) -> Dict[str, Any]:
-        result = super().to_dict()
+        result: Dict[str, Any] = super().to_dict()
         result.update({
             "symbol_defs": list(sorted(self.symbol_defs)),
             "symbol_deps": list(sorted(self.symbol_deps)),
@@ -86,7 +88,7 @@ class AnalysedDependent(AnalysedFile, ABC):
         return result
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: Dict[str, Any]) -> 'AnalysedDependent':
         result = cls(
             fpath=Path(d["fpath"]),
             file_hash=d["file_hash"],
@@ -98,7 +100,8 @@ class AnalysedDependent(AnalysedFile, ABC):
         return result
 
 
-def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, verbose=False)\
+def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path,
+                     verbose: bool = False) \
         -> Dict[Path, AnalysedDependent]:
     """
     Extract the subtree required to build the target, from the full source tree of all analysed source files.
@@ -123,7 +126,9 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, ver
 
 
 def _extract_sub_tree(src_tree: Dict[Path, AnalysedDependent], key: Path,
-                      dst_tree: Dict[Path, AnalysedDependent], missing: Set[Path], verbose: bool, indent: int = 0):
+                      dst_tree: Dict[Path, AnalysedDependent],
+                      missing: Set[Path],
+                      verbose: bool, indent: int = 0) -> None:
     # is this node already in the sub tree?
     if key in dst_tree:
         return
@@ -167,7 +172,7 @@ def filter_source_tree(source_tree: Dict[Path, AnalysedDependent], suffixes: Ite
     return [af for af in all_files if af.fpath.suffix in suffixes]
 
 
-def validate_dependencies(source_tree):
+def validate_dependencies(source_tree: Dict[Path, AnalysedDependent]) -> None:
     """
     If any dep is missing from the tree, then it's unknown code and we won't be able to compile.
 

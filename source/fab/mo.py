@@ -25,9 +25,11 @@ def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedDependent]) -> No
         The source tree of analysed files.
 
     """
-    # todo: this would be better if filtered by type, i,e, AnalysedFortran & AnalysedC
-    analysed_fortran: List[AnalysedFortran] = filter_source_tree(source_tree, '.f90')
-    analysed_c: List[AnalysedC] = filter_source_tree(source_tree, '.c')
+    # todo: Adding typing to source_tree breaks the following typing.  The answer is
+    # tody: either to ignore the problem altogether or to cast() the individual items
+    # tody: in each list to either AnalysedFortran or AnalysedC
+    analysed_fortran: List[AnalysedFortran] = filter_source_tree(source_tree, '.f90')  # type: ignore
+    analysed_c: List[AnalysedC] = filter_source_tree(source_tree, '.c')  # type: ignore
 
     lookup = {c.fpath.name: c for c in analysed_c}
     num_found = 0

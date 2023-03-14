@@ -104,24 +104,24 @@ class BuildConfig(object):
 
         # runtime
         self._artefact_store: Dict[str, Any] = {}
-        self.init_artefact_store()  # note: the artefact store is reset with every call to run()
+        self.init_artefact_store()  # note: the artefact store reset with every call to run()
 
     @property
-    def build_output(self):
+    def build_output(self) -> Path:
         return self.project_workspace / BUILD_OUTPUT
 
-    def init_artefact_store(self):
+    def init_artefact_store(self) -> None:
         # there's no point writing to this from a child process of Step.run_mp() because you'll be modifying a copy.
         self._artefact_store = {CURRENT_PREBUILDS: set()}
 
-    def add_current_prebuilds(self, artefacts: Iterable[Path]):
+    def add_current_prebuilds(self, artefacts: Iterable[Path]) -> None:
         """
         Mark the given file paths as being current prebuilds, not to be cleaned during housekeeping.
 
         """
         self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
 
-    def run(self):
+    def run(self) -> None:
         """
         Execute the build steps in order.
 
@@ -148,7 +148,7 @@ class BuildConfig(object):
             self._finalise_metrics(start_time, steps_timer)
             self._finalise_logging()
 
-    def _run_prep(self):
+    def _run_prep(self) -> None:
         self._init_logging()
 
         logger.info('')
@@ -170,11 +170,11 @@ class BuildConfig(object):
             logger.info("no housekeeping specified, adding a default hard cleanup")
             self.steps.append(CleanupPrebuilds(all_unused=True))
 
-    def _prep_output_folders(self):
+    def _prep_output_folders(self) -> None:
         self.build_output.mkdir(parents=True, exist_ok=True)
         self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
-    def _init_logging(self):
+    def _init_logging(self) -> None:
         # add a file logger for our run
         self.project_workspace.mkdir(parents=True, exist_ok=True)
         log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
@@ -188,7 +188,7 @@ class BuildConfig(object):
             logger.info(f'using n_procs = {self.n_procs}')
         logger.info(f"workspace is {self.project_workspace}")
 
-    def _finalise_logging(self):
+    def _finalise_logging(self) -> None:
         # remove our file logger
         fab_logger = logging.getLogger('fab')
         log_file_handlers = list(by_type(fab_logger.handlers, RotatingFileHandler))
@@ -196,7 +196,7 @@ class BuildConfig(object):
             warnings.warn(f'expected to find 1 RotatingFileHandler for removal, found {len(log_file_handlers)}')
         fab_logger.removeHandler(log_file_handlers[0])
 
-    def _finalise_metrics(self, start_time, steps_timer):
+    def _finalise_metrics(self, start_time: datetime, steps_timer: TimerLogger) -> None:
         send_metric('run', 'label', self.project_label)
         send_metric('run', 'datetime', start_time.isoformat())
         send_metric('run', 'time taken', steps_timer.taken)
@@ -241,7 +241,7 @@ class AddFlags(object):
         self.flags: List[str] = flags
 
     # todo: we don't need the project_workspace, we could just pass in the output folder
-    def run(self, fpath: Path, input_flags: List[str], config):
+    def run(self, fpath: Path, input_flags: List[str], config: Any) -> None:
         """
         Check if our filter matches a given file. If it does, add our flags.
 
@@ -285,7 +285,7 @@ class FlagsConfig(object):
 
     # todo: there's templating both in this method and the run method it calls.
     #       make sure it's all properly documented and rationalised.
-    def flags_for_path(self, path: Path, config):
+    def flags_for_path(self, path: Path, config: Any) -> List[str]:
         """
         Get all the flags for a given file, in a reproducible order.
 

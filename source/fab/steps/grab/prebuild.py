@@ -3,7 +3,7 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from typing import Dict
+from typing import Any, Dict
 
 from fab.steps import Step
 from fab.steps.grab import call_rsync, logger
@@ -14,19 +14,20 @@ class GrabPreBuild(Step):
     Copy the contents of another project's prebuild folder into our local prebuild folder.
 
     """
-    def __init__(self, path, objects=True, allow_fail=False):
+    def __init__(self, path: str, objects: bool = True, allow_fail: bool = False) -> None:
         super().__init__(name=f'GrabPreBuild {path}')
         self.src = path
         self.objects = objects
         self.allow_fail = allow_fail
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         dst = config.prebuild_folder
         try:
             res = call_rsync(src=self.src, dst=dst)
 
             # log the number of files transferred
-            to_print = [line for line in res.splitlines() if 'Number of' in line]
+            # todo: check res is not None first?
+            to_print = [line for line in res.splitlines() if 'Number of' in line]  # type: ignore
             logger.info('\n'.join(to_print))
 
         except RuntimeError as err:

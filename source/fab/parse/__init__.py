@@ -7,7 +7,7 @@ import json
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Union, Optional, Dict, Any, Set
+from typing import Union, Optional, Dict, Any, Set, List
 
 from fab.util import file_checksum
 
@@ -36,17 +36,17 @@ class AnalysedFile(ABC):
 
         """
         self.fpath = Path(fpath)
-        self._file_hash = file_hash
+        self._file_hash: Optional[int] = file_hash
 
     @property
-    def file_hash(self):
+    def file_hash(self) -> int:
         if self._file_hash is None:
             if not self.fpath.exists():
                 raise ValueError(f"analysed file '{self.fpath}' does not exist")
-            self._file_hash: int = file_checksum(self.fpath).file_hash
+            self._file_hash = file_checksum(self.fpath).file_hash
         return self._file_hash
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         # todo: better to use self.field_names() instead of vars(self) in order to evaluate any lazy attributes?
         return vars(self) == vars(other)
 
@@ -65,17 +65,19 @@ class AnalysedFile(ABC):
         }
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: Dict[Any, Any]) -> 'AnalysedFile':
+        # This could have a return type of NoReturn but this breaks
+        # type checking subclasses
         raise NotImplementedError
 
-    def save(self, fpath: Union[str, Path]):
+    def save(self, fpath: Union[str, Path]) -> None:
         # subclasses don't need to override this method
         d = self.to_dict()
         d["cls"] = self.__class__.__name__
         json.dump(d, open(fpath, 'wt'), indent=4)
 
     @classmethod
-    def load(cls, fpath: Union[str, Path]):
+    def load(cls, fpath: Union[str, Path]) -> 'AnalysedFile':
         # subclasses don't need to override this method
         d = json.load(open(fpath))
         found_class = d["cls"]
@@ -85,7 +87,7 @@ class AnalysedFile(ABC):
 
     # human readability
     @classmethod
-    def field_names(cls):
+    def field_names(cls) -> List[str]:
         """
         Defines the order in which we want fields to appear in str or repr strings.
 
@@ -95,18 +97,18 @@ class AnalysedFile(ABC):
         """
         return ['fpath', 'file_hash']
 
-    def __str__(self):
+    def __str__(self) -> str:
         # We use self.field_names() instead of vars(self) in order to evaluate any lazy attributes.
         values = [getattr(self, field_name) for field_name in self.field_names()]
         return f'{self.__class__.__name__} ' + ' '.join(map(str, values))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         params = ', '.join([f'{f}={repr(getattr(self, f))}' for f in self.field_names()])
         return f'{self.__class__.__name__}({params})'
 
     # We need to be hashable before we can go into a set, which is useful for our subclasses.
     # Note, the numerical result will change with each Python invocation.
-    def __hash__(self):
+    def __hash__(self) -> int:
         # Build up a list of things to hash, from our attributes.
         # We use self.field_names() rather than vars(self) because we want to evaluate any lazy attributes.
         # We turn dicts and sets into sorted tuples for hashing.
@@ -142,6 +144,6 @@ class EmptySourceFile(AnalysedFile):
         super().__init__(fpath=fpath)
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d: Dict[Any, Any]) -> 'AnalysedFile':
         # todo: load & save should be implemented here and used by the calling code, to save reanalysis.
         raise NotImplementedError

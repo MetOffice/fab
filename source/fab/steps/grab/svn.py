@@ -5,14 +5,14 @@
 # ##############################################################################
 from abc import ABC
 from pathlib import Path
-from typing import Union, Dict, Tuple
+from typing import Any, Union, Dict, List, Tuple, Optional
 import xml.etree.ElementTree as ET
 
 from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
 
-def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
+def _get_revision(src: str, revision: Optional[str] = None) -> Tuple[str, Union[str, None]]:
     """
     Pull out the revision if it's part of the url.
 
@@ -46,7 +46,8 @@ class GrabSvnBase(GrabSourceBase, ABC):
     """
     command = 'svn'
 
-    def __init__(self, src: str, dst: str, revision=None, name=None):
+    def __init__(self, src: str, dst: str, revision: Optional[str] = None,
+                 name: Optional[str] = None) -> None:
         """
         :param src:
             Such as `fcm:jules.xm_tr/src`. Can end with "@rev".
@@ -64,7 +65,7 @@ class GrabSvnBase(GrabSourceBase, ABC):
         name = name or f'{self.__class__.__name__} {dst} {revision}'.strip()
         super().__init__(src, dst, name=name, revision=revision)
 
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         if not self.tool_available():
             raise RuntimeError(f"command line tool not available: '{self.command}'")
         super().run(artefact_store, config)
@@ -78,7 +79,7 @@ class GrabSvnBase(GrabSourceBase, ABC):
             return False
         return True
 
-    def _cli_revision_parts(self):
+    def _cli_revision_parts(self) -> List[str]:
         # return the command line argument to specif the revision, if there is one
         return ['--revision', str(self.revision)] if self.revision is not None else []
 
@@ -96,7 +97,7 @@ class SvnExport(GrabSvnBase):
     Export an FCM repo folder to the project workspace.
 
     """
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
 
         run_command([
@@ -116,7 +117,7 @@ class SvnCheckout(GrabSvnBase):
         As such, the revision should be provided via the argument, not as part of the url.
 
     """
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
 
         # new folder?
@@ -132,7 +133,7 @@ class SvnCheckout(GrabSvnBase):
             if self.is_working_copy(self._dst):  # type: ignore
                 # update
                 # todo: ensure the existing checkout is from self.src?
-                run_command([self.command, 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
+                run_command([self.command, 'update', *self._cli_revision_parts()], cwd=self._dst)
             else:
                 # we can't deal with an existing folder that isn't a working copy
                 raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
@@ -143,7 +144,7 @@ class SvnMerge(GrabSvnBase):
     Merge an FCM repo into a local working copy.
 
     """
-    def run(self, artefact_store: Dict, config):
+    def run(self, artefact_store: Dict[Any, Any], config: Any) -> None:
         super().run(artefact_store, config)
         if not self._dst or not self.is_working_copy(self._dst):
             raise ValueError(f"destination is not a working copy: '{self._dst}'")
@@ -158,10 +159,10 @@ class SvnMerge(GrabSvnBase):
         run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
         self.check_conflict()
 
-    def check_conflict(self):
+    def check_conflict(self) -> bool:
         # check if there's a conflict
         xml_str = run_command([self.command, 'status', '--xml'], cwd=self._dst)
-        root = ET.fromstring(xml_str)
+        root = ET.fromstring(xml_str)  # type: ignore
 
         for target in root:
             if target.tag != 'target':
