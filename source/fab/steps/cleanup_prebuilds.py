@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Dict, Optional, Iterable, Set
 
 from fab.constants import CURRENT_PREBUILDS
-from fab.steps import run_mp, step
+from fab.steps import run_mp, step_timer
 from fab.util import file_walk, get_prebuild_file_groups
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 CLEANUP_COUNT = 'cleanup_count'
 
 
-@step
+@step_timer
 def cleanup_prebuilds(
         config, older_than: Optional[timedelta] = None, n_versions: int = 0, all_unused: Optional[bool] = None):
     """

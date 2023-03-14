@@ -10,7 +10,7 @@ Gather files from a source folder.
 import logging
 from typing import Optional, Iterable
 
-from fab.steps import Step, step
+from fab.steps import Step, step_timer
 from fab.util import file_walk
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class Exclude(_PathFilter):
         return f'Exclude({", ".join(self.filter_strings)})'
 
 
-@step
+@step_timer
 def find_source_files(config, source_root=None, output_collection="all_source",
                       path_filters: Optional[Iterable[_PathFilter]] = None):
     """

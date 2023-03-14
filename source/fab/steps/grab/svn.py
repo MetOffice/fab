@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional, Union, Tuple
 import xml.etree.ElementTree as ET
 
-from fab.steps import step
+from fab.steps import step_timer
 from fab.tools import run_command
 
 
@@ -70,7 +70,7 @@ def svn_prep_common(config, src: str, dst_label: str, revision: str) -> Tuple[st
     return src, dst, revision
 
 
-@step
+@step_timer
 def svn_export(config, src: str, dst_label: Optional[str] = None, revision=None, tool='svn'):
     # todo: params in docstrings
     """
@@ -87,7 +87,7 @@ def svn_export(config, src: str, dst_label: Optional[str] = None, revision=None,
     ])
 
 
-@step
+@step_timer
 def svn_checkout(config, src: str, dst_label: Optional[str] = None, revision=None, tool='svn'):
     """
     Checkout or update an FCM repo.

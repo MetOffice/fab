@@ -16,7 +16,7 @@ from fab.metrics import send_metric
 from fab.util import by_type, TimerLogger
 
 
-def step(func):
+def step_timer(func):
     """Function decorator for steps."""
 
     def wrapper(*args, **kwargs):

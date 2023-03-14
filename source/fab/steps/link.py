@@ -14,7 +14,7 @@ from string import Template
 from typing import List, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
-from fab.steps import Step, step
+from fab.steps import Step, step_timer
 from fab.util import log_or_dot
 from fab.tools import run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -50,7 +50,7 @@ def call_linker(linker, flags, filename, objects):
         raise Exception(f"error linking:\n{err}")
 
 
-@step
+@step_timer
 def link_exe(config, linker: Optional[str] = None, flags=None, source: Optional[ArtefactsGetter] = None):
     """
     Link object files into an executable for every build target.
@@ -87,7 +87,7 @@ def link_exe(config, linker: Optional[str] = None, flags=None, source: Optional[
 
 
 # todo: the bit about Dict[None, object_files] seems too obscure - try to rethink this.
-@step
+@step_timer
 def link_shared_object(config, output_fpath: str, linker: Optional[str] = None, flags=None,
                        source: Optional[ArtefactsGetter] = None):
     """

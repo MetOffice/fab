@@ -26,7 +26,7 @@ from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
-from fab.steps import check_for_errors, run_mp, step
+from fab.steps import check_for_errors, run_mp, step_timer
 from fab.tools import COMPILERS, remove_managed_flags, flags_checksum, run_command, get_tool, get_compiler_version
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \
     file_checksum
@@ -48,7 +48,7 @@ class MpCommonArgs(object):
     stage: int
 
 
-@step
+@step_timer
 def compile_fortran(config: BuildConfig, compiler: Optional[str] = None, common_flags: Optional[List[str]] = None,
                     path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None,
                     two_stage_flag=None):

@@ -11,7 +11,7 @@ import warnings
 from pathlib import Path
 
 from fab.build_config import BuildConfig
-from fab.steps import step
+from fab.steps import step_timer
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
@@ -26,7 +26,7 @@ from fab.util import common_arg_parser, suffix_filter
 logger = logging.getLogger('fab')
 
 
-@step
+@step_timer
 def root_inc_files(config):
 
     """
