@@ -68,7 +68,7 @@ def root_inc_files(config):
         inc_copied.add(fpath.name)
 
 
-def build_jules_6_3():
+if __name__ == '__main__':
 
     revision = 'vn6.3'
 
@@ -100,10 +100,3 @@ def build_jules_6_3():
         link_exe(config, linker='mpifort', flags=['-lm', '-lnetcdff', '-lnetcdf']),
 
         cleanup_prebuilds(config, n_versions=1)
-
-
-if __name__ == '__main__':
-
-    build_jules_6_3()
-
-    # todo: build more versions
