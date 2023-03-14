@@ -12,6 +12,7 @@ import logging
 from string import Template
 from typing import Dict, Optional
 
+from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import Step, step
 from fab.util import log_or_dot
@@ -29,7 +30,7 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(OBJECT_FILES)
 # todo: all this documentation for such a simple step - should we split it up somehow?
 
 @step
-def archive_objects(config, source: Optional[ArtefactsGetter] = None, archiver='ar',
+def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = None, archiver='ar',
                  output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
     """
     Create an object archive for every build target, from their object files.
@@ -94,14 +95,14 @@ def archive_objects(config, source: Optional[ArtefactsGetter] = None, archiver='
     output_fpath = str(output_fpath) if output_fpath else None
     output_collection = output_collection
 
-    target_objects = source_getter(config.artefact_store)
+    target_objects = source_getter(config._artefact_store)
     assert target_objects.keys()
     if output_fpath and list(target_objects.keys()) != [None]:
         raise ValueError("You must not specify an output path (library) when there are root symbols (exes)")
     if not output_fpath and list(target_objects.keys()) == [None]:
         raise ValueError("You must specify an output path when building a library.")
 
-    output_archives = config.artefact_store.setdefault(output_collection, {})
+    output_archives = config._artefact_store.setdefault(output_collection, {})
     for root, objects in target_objects.items():
 
         if root:

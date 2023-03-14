@@ -94,6 +94,9 @@ def analyse(
     This is how we create executable files. If no root symbol is specified, a single tree of the entire source
     is produced (with a root symbol of `None`). This is how we create shared and static libraries.
 
+    :param config:
+        The :class:`fab.build_config.BuildConfig` object where we can read settings
+        such as the project workspace folder or the multiprocessing flag.
     :param source:
         An :class:`~fab.util.ArtefactsGetter` to get the source files.
     :param find_programs:
