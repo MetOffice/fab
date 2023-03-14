@@ -293,8 +293,15 @@ def common_arg_parser() -> ArgumentParser:
     """
     # consider adding preprocessor, linker, optimisation, two-stage
     arg_parser = ArgumentParser()
-    arg_parser.add_argument('--compiler', default=None)
-    arg_parser.add_argument('--two-stage', action='store_true')
+    group = arg_parser.add_argument_group(
+        title='common arguments',
+        description='Common arguments which can be passed to the BuildConfig.')
+    group.add_argument(
+        '--verbose', action='store_true',
+        help='DEBUG level logging')
+    group.add_argument(
+        '--two-stage', action='store_true',
+        help='Compile .mod files first in a separate pass. Theoretically faster in some projects.')
     arg_parser.add_argument('--verbose', action='store_true')
 
     return arg_parser

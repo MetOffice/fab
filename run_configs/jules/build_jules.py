@@ -74,7 +74,7 @@ if __name__ == '__main__':
     args = arg_parser.parse_args()
 
     compiler, _ = get_fortran_compiler(args.compiler)
-    config = BuildConfig(project_label=f'jules {args.revision} {compiler} {int(args.two_stage)+1}stage')
+    config = BuildConfig(project_label=f'jules {args.revision} {compiler} {int(args.two_stage)+1}stage', verbose=args.verbose)
 
     logger.info(f'building jules {config.project_label}')
     logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")

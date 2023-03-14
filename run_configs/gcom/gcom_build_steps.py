@@ -25,7 +25,7 @@ def parse_args():
     return args
 
 
-def common_build_steps(revision, fortran_compiler, fpic=False) -> List[Step]:
+def common_build_steps(revision, fpic=False) -> List[Step]:
 
     fpp_flags = [
         '-P',
@@ -45,7 +45,7 @@ def common_build_steps(revision, fortran_compiler, fpic=False) -> List[Step]:
         fortran_preprocessor(common_flags=fpp_flags),
         Analyse(),
         CompileC(common_flags=['-c', '-std=c99'] + fpic),
-        CompileFortran(compiler=fortran_compiler, common_flags=fpic),
+        CompileFortran(common_flags=fpic),
     ]
 
     return steps
