@@ -13,7 +13,7 @@ from string import Template
 from typing import Dict, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
-from fab.steps import Step
+from fab.steps import Step, step
 from fab.util import log_or_dot
 from fab.tools import run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -28,7 +28,9 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(OBJECT_FILES)
 
 # todo: all this documentation for such a simple step - should we split it up somehow?
 
-class ArchiveObjects(Step):
+@step
+def archive_objects(config, source: Optional[ArtefactsGetter] = None, archiver='ar',
+                 output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
     """
     Create an object archive for every build target, from their object files.
 
@@ -66,73 +68,59 @@ class ArchiveObjects(Step):
     In this case you cannot specify an *output_fpath* path because they are automatically created from the
     target name.
 
+    :param config:
+        The :class:`fab.build_config.BuildConfig` object where we can read settings
+        such as the project workspace folder or the multiprocessing flag.
+    :param source:
+        An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of objects to archive.
+        The artefacts are expected to be of the form `Dict[root_symbol_name, list_of_object_files]`.
+    :param archiver:
+        The archiver executable. Defaults to 'ar'.
+    :param output_fpath:
+        The file path of the archive file to create.
+        This string can include templating, where "$output" is replaced with the output folder.
+
+        * Must be specified when building a library file (no build target name).
+        * Must not be specified when building linker input (one or more build target names).
+    :param output_collection:
+        The name of the artefact collection to create. Defaults to the name in
+        :const:`fab.constants.OBJECT_ARCHIVES`.
+
     """
     # todo: the output path should not be an abs fpath, it should be relative to the proj folder
-    def __init__(self, source: Optional[ArtefactsGetter] = None, archiver='ar',
-                 output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
-        """
-        :param source:
-            An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of objects to archive.
-            The artefacts are expected to be of the form `Dict[root_symbol_name, list_of_object_files]`.
-        :param archiver:
-            The archiver executable. Defaults to 'ar'.
-        :param output_fpath:
-            The file path of the archive file to create.
-            This string can include templating, where "$output" is replaced with the output folder.
 
-            * Must be specified when building a library file (no build target name).
-            * Must not be specified when building linker input (one or more build target names).
-        :param output_collection:
-            The name of the artefact collection to create. Defaults to the name in
-            :const:`fab.constants.OBJECT_ARCHIVES`.
+    source_getter = source or DEFAULT_SOURCE_GETTER
+    archiver = archiver
+    output_fpath = str(output_fpath) if output_fpath else None
+    output_collection = output_collection
 
-        """
-        super().__init__(name)
+    target_objects = source_getter(config.artefact_store)
+    assert target_objects.keys()
+    if output_fpath and list(target_objects.keys()) != [None]:
+        raise ValueError("You must not specify an output path (library) when there are root symbols (exes)")
+    if not output_fpath and list(target_objects.keys()) == [None]:
+        raise ValueError("You must specify an output path when building a library.")
 
-        self.source_getter = source or DEFAULT_SOURCE_GETTER
-        self.archiver = archiver
-        self.output_fpath = str(output_fpath) if output_fpath else None
-        self.output_collection = output_collection
+    output_archives = config.artefact_store.setdefault(output_collection, {})
+    for root, objects in target_objects.items():
 
-    def run(self, artefact_store: Dict, config):
-        """
-        :param artefact_store:
-            Contains artefacts created by previous Steps, and where we add our new artefacts.
-            This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
-        :param config:
-            The :class:`fab.build_config.BuildConfig` object where we can read settings
-            such as the project workspace folder or the multiprocessing flag.
+        if root:
+            # we're building an object archive for an exe
+            output_fpath = str(config.build_output / f'{root}.a')
+        else:
+            # we're building a single object archive with a given filename
+            assert len(target_objects) == 1, "unexpected root of None with multiple build targets"
+            output_fpath = Template(str(output_fpath)).substitute(
+                output=config.build_output)
 
-        """
-        super().run(artefact_store, config)
+        command = [archiver]
+        command.extend(['cr', output_fpath])
+        command.extend(map(str, sorted(objects)))
 
-        target_objects = self.source_getter(artefact_store)
-        assert target_objects.keys()
-        if self.output_fpath and list(target_objects.keys()) != [None]:
-            raise ValueError("You must not specify an output path (library) when there are root symbols (exes)")
-        if not self.output_fpath and list(target_objects.keys()) == [None]:
-            raise ValueError("You must specify an output path when building a library.")
+        log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
+        try:
+            run_command(command)
+        except Exception as err:
+            raise Exception(f"error creating object archive:\n{err}")
 
-        output_archives = artefact_store.setdefault(self.output_collection, {})
-        for root, objects in target_objects.items():
-
-            if root:
-                # we're building an object archive for an exe
-                output_fpath = str(config.build_output / f'{root}.a')
-            else:
-                # we're building a single object archive with a given filename
-                assert len(target_objects) == 1, "unexpected root of None with multiple build targets"
-                output_fpath = Template(str(self.output_fpath)).substitute(
-                    output=config.build_output)
-
-            command = [self.archiver]
-            command.extend(['cr', output_fpath])
-            command.extend(map(str, sorted(objects)))
-
-            log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
-            try:
-                run_command(command)
-            except Exception as err:
-                raise Exception(f"error creating object archive:\n{err}")
-
-            output_archives[root] = [output_fpath]
+        output_archives[root] = [output_fpath]
