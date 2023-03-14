@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import warnings
+from argparse import ArgumentParser
 from contextlib import contextmanager
 from datetime import datetime
 from fnmatch import fnmatch
@@ -23,11 +24,63 @@ from typing import List, Optional, Dict, Any, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.steps import Step
-from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
-from fab.util import TimerLogger, by_type, get_fab_workspace
+from fab.util import common_arg_parser, TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def build_config(project_label: str, arg_parser: Optional[ArgumentParser] = None, *args, **kwargs):
+    """
+    A context manager which creates a :class:`~fab.build_config.BuildConfig` from the given params.
+
+    :param project_label:
+        Name of the build project. Used to create a project workspace in the fab workspace.
+        The name of the fortran compiler will be automatically added to this label, in order to
+        separate build output from different compilers.
+    :param arg_parser:
+        Command line arguments will be placed in the config's `parsed_args` attribute.
+        If you want your script to accept custom arguments from the command line, you can call `common_arg_parser()`,
+        and add your own arguments.
+
+    All other params are passed through to the :class:`~fab.build_config.BuildConfig` constructor.
+
+    Example::
+
+        with build_config(project_label='my project') as config:
+            # call my steps
+
+    """
+    arg_parser = arg_parser or common_arg_parser()
+    parsed_args = vars(arg_parser.parse_args())
+
+    # todo: this is a circular import workaround
+    from fab.steps.compile_fortran import get_fortran_compiler
+    compiler, _ = get_fortran_compiler()
+    config = BuildConfig(project_label=f'project_label {compiler}', parsed_args=parsed_args, *args, **kwargs)
+
+    logger.info(f'building {project_label}')
+
+    start_time = datetime.now().replace(microsecond=0)
+    config._run_prep()
+
+    try:
+        with TimerLogger(f'running {project_label} build steps') as build_timer:
+
+            # this will return to the build script
+            yield config
+
+        # note: this won't run if an exception occurs in the build script
+        # do we need to run a cleanup?
+        # todo: this is a circular import workaround
+        from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
+        if CLEANUP_COUNT not in config._artefact_store:
+            logger.info("no housekeeping step was run, using a default hard cleanup")
+            cleanup_prebuilds(config=config, all_unused=True)
+
+    finally:
+        config._finalise_metrics(start_time, build_timer)
+        config._finalise_logging()
 
 
 class BuildConfig(object):
@@ -36,7 +89,7 @@ class BuildConfig(object):
 
     """
 
-    def __init__(self, project_label: str,
+    def __init__(self, project_label: str, parsed_args: Optional[Dict] = None,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
                  fab_workspace: Optional[Path] = None, verbose: bool = False):
         """
@@ -57,6 +110,7 @@ class BuildConfig(object):
 
         """
         self.project_label: str = project_label.replace(' ', '_')
+        self.parsed_args = parsed_args or {}
 
         logger.info('')
         logger.info('------------------------------------------------------------')
@@ -118,55 +172,6 @@ class BuildConfig(object):
 
         """
         self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
-
-    @contextmanager
-    def context_thingymabob(self):
-        start_time = datetime.now().replace(microsecond=0)
-        self._run_prep()
-
-        try:
-            with TimerLogger(f'running {self.project_label} build steps') as build_timer:
-
-                # this will return to the build script
-                yield "foo"
-
-            # note: this won't run if an exception occurs in the build script
-            # do we need to run a cleanup?
-            if CLEANUP_COUNT not in self._artefact_store:
-                logger.info("no housekeeping step was run, using a default hard cleanup")
-                cleanup_prebuilds(config=self, all_unused=True)
-
-        finally:
-            self._finalise_metrics(start_time, build_timer)
-            self._finalise_logging()
-
-    # def run(self, prep=True):
-    #     """
-    #     Execute the build steps in order.
-    #
-    #     This function also records metrics and creates a summary, including charts if matplotlib is installed.
-    #     The metrics can be found in the project workspace.
-    #
-    #     """
-    #     start_time = datetime.now().replace(microsecond=0)
-    #
-    #     if prep:
-    #         self._run_prep()
-    #
-    #     # run all the steps
-    #     try:
-    #         with TimerLogger(f'running {self.project_label} build steps') as steps_timer:
-    #             for step in self.steps:
-    #                 with TimerLogger(step.name) as step_timer:
-    #                     step.run(artefact_store=self._artefact_store, config=self)
-    #                 send_metric('steps', step.name, step_timer.taken)
-    #             logger.info('\nall steps complete')
-    #     except Exception as err:
-    #         logger.exception('\n\nError running build steps')
-    #         raise Exception(f'\n\nError running build steps:\n{err}')
-    #     finally:
-    #         self._finalise_metrics(start_time, steps_timer)
-    #         self._finalise_logging()
 
     def _run_prep(self):
         self._init_logging()

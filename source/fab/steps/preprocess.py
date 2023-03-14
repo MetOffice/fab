@@ -110,6 +110,7 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
     output_fpath = input_to_output_fpath(config=args.config, input_path=fpath).with_suffix(args.output_suffix)
 
     # already preprocessed?
+    # todo: remove reuse_artefacts eveywhere!
     if args.config.reuse_artefacts and output_fpath.exists():
         log_or_dot(logger, f'Preprocessor skipping: {fpath}')
     else:
@@ -134,20 +135,20 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
 
 # todo: rename preprocess_fortran
 @step_timer
-def fortran_preprocessor(config: BuildConfig, preprocessor=None, source=None, **kwargs):
+def fortran_preprocessor(config: BuildConfig, source=None, **kwargs):
     """
     Wrapper to pre_processor for Fortran files.
 
     Params as per :func:`~fab.steps.preprocess._pre_processor`.
 
-    If preprocessor is not provided, it's taken from the `FPP` environment, or falls back to `fpp -P`.
+    The preprocessor is taken from the `FPP` environment, or falls back to `fpp -P`.
 
     If source is not provided, it defaults to `SuffixFilter('all_source', '.F90')`.
 
     """
     return pre_processor(
         config,
-        preprocessor=preprocessor or os.getenv('FPP', 'fpp -P'),
+        preprocessor=os.getenv('FPP', 'fpp -P'),  # todo: call get_fortran_preprocessor() instead
         source_getter=source or SuffixFilter('all_source', '.F90'),
         output_collection='preprocessed_fortran', output_suffix='.f90',
         **kwargs,
@@ -167,20 +168,20 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 
 # todo: rename preprocess_c
 @step_timer
-def c_preprocessor(config: BuildConfig, preprocessor=None, source=None, **kwargs):
+def c_preprocessor(config: BuildConfig, source=None, **kwargs):
     """
     Wrapper to pre_processor for C files.
 
     Params as per :func:`~fab.steps.preprocess._pre_processor`.
 
-    If preprocessor is not provided, it's taken from the `CPP` environment, or falls back to `cpp`.
+    The preprocessor is taken from the `CPP` environment, or falls back to `cpp`.
 
     If source is not provided, it defaults to :class:`~fab.steps.preprocess.DefaultCPreprocessorSource`.
 
     """
     return pre_processor(
         config,
-        preprocessor=preprocessor or os.getenv('CPP', 'cpp'),
+        preprocessor=os.getenv('CPP', 'cpp'),
         source_getter=source or DefaultCPreprocessorSource(),
         output_collection='preprocessed_c', output_suffix='.c',
         **kwargs,

@@ -49,9 +49,8 @@ class MpCommonArgs(object):
 
 
 @step_timer
-def compile_fortran(config: BuildConfig, compiler: Optional[str] = None, common_flags: Optional[List[str]] = None,
-                    path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None,
-                    two_stage_flag=None):
+def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = None,
+                    path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None):
     """
     Compiles all Fortran files in all build trees, creating/extending a set of compiled files for each build target.
 
@@ -62,8 +61,6 @@ def compile_fortran(config: BuildConfig, compiler: Optional[str] = None, common_
     :param config:
         The :class:`fab.build_config.BuildConfig` object where we can read settings
         such as the project workspace folder or the multiprocessing flag.
-    :param compiler:
-        The command line compiler to call. Defaults to `gfortran -c`.
     :param common_flags:
         A list of strings to be included in the command line call, for all files.
     :param path_flags:
@@ -71,14 +68,14 @@ def compile_fortran(config: BuildConfig, compiler: Optional[str] = None, common_
         for selected files.
     :param source:
         An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
-    :param two_stage_flag:
-        Optionally supply a flag which enables the 'syntax checking' feature of the compiler.
+    :param two_stage:
+        Optionally enable the 'syntax checking' feature of the compiler.
         Fab uses this to quickly build all the mod files first, potentially shortening dependency bottlenecks.
         The slower object file compilation can then follow in a second stage, all at once.
 
     """
     # Command line tools are sometimes specified with flags attached.
-    compiler, compiler_flags = get_fortran_compiler(compiler)
+    compiler, compiler_flags = get_fortran_compiler()
     compiler_version = get_compiler_version(compiler)
     logger.info(f'fortran compiler is {compiler} {compiler_version}')
 
@@ -100,7 +97,11 @@ def compile_fortran(config: BuildConfig, compiler: Optional[str] = None, common_
     flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
 
     source_getter = source or DEFAULT_SOURCE_GETTER
-    two_stage_flag = two_stage_flag
+
+    # todo: move this to the known compiler flags?
+    two_stage_flag = None
+    if compiler == 'gfortran' and config.parsed_args['two_stage']:
+        two_stage_flag = '-fsyntax-only'
 
     stage: Optional[int] = None
     mod_hashes: Dict[str, int] = {}
@@ -360,6 +361,7 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
         value={'time_taken': timer.taken, 'start': timer.start})
 
 
+# todo: move this
 def get_fortran_preprocessor():
     """
     Identify the fortran preprocessor and any flags from the environment.

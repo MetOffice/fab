@@ -10,7 +10,7 @@ import shutil
 import warnings
 from pathlib import Path
 
-from fab.build_config import BuildConfig
+from fab.build_config import BuildConfig, build_config
 from fab.steps import step_timer
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
@@ -68,30 +68,14 @@ def root_inc_files(config):
         inc_copied.add(fpath.name)
 
 
-if __name__ == '__main__':
-    arg_parser = common_arg_parser()
-    arg_parser.add_argument('--revision', default=os.getenv('JULES_REVISION', 'vn6.3'))
-    args = arg_parser.parse_args()
+def build_jules_6_3():
 
-    compiler, _ = get_fortran_compiler(args.compiler)
-    config = BuildConfig(project_label=f'jules {args.revision} {compiler} {int(args.two_stage)+1}stage', verbose=args.verbose)
+    revision = 'vn6.3'
 
-    logger.info(f'building jules {config.project_label}')
-    logger.info(f"OMPI_FC is {os.environ.get('OMPI_FC') or 'not defined'}")
-
-    two_stage_flag = None
-    # todo: move this to the known compiler flags?
-    if compiler == 'gfortran':
-        if args.two_stage:
-            two_stage_flag = '-fsyntax-only'
-
-    # this contains some of the stuff that was in run(), which needs to come before the steps.
-    # todo: make this a standalone func which creates the config, and call it state
-    with config.context_thingymabob():
-
+    with build_config(project_label=f'jules {revision}') as config:
         # grab the source
-        fcm_export(config, src='fcm:jules.xm_tr/src', revision=args.revision, dst_label='src')
-        fcm_export(config, src='fcm:jules.xm_tr/utils', revision=args.revision, dst_label='utils')
+        fcm_export(config, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
+        fcm_export(config, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
 
         # find the source files
         find_source_files(config, path_filters=[
@@ -109,10 +93,17 @@ if __name__ == '__main__':
 
         analyse(config, root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
 
-        compile_fortran(config, compiler=args.compiler, two_stage_flag=two_stage_flag)
+        compile_fortran(config)
 
         archive_objects(config),
 
         link_exe(config, linker='mpifort', flags=['-lm', '-lnetcdff', '-lnetcdf']),
 
         cleanup_prebuilds(config, n_versions=1)
+
+
+if __name__ == '__main__':
+
+    build_jules_6_3()
+
+    # todo: build more versions
