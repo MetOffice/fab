@@ -10,7 +10,7 @@ Object archive creation from a list of object files for use in static linking.
 
 import logging
 from string import Template
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import Step
