@@ -1,5 +1,6 @@
 .. _Install:
 
+
 Installing Fab
 **************
 You can install the latest release of `Fab from PyPI <https://pypi.org/project/sci-fab/>`_:
@@ -11,6 +12,12 @@ You can install the latest release of `Fab from PyPI <https://pypi.org/project/s
 The minimum Python dependencies (e.g. `fparser <https://github.com/stfc/fparser>`_)
 will also be installed automatically.
 
+.. note::
+
+    When installing from PyPI, please be sure to install **sci-fab**, not *fab*.
+    There is already a package on PyPI called *fab*, which installs something else entirely.
+
+
 Extra features
 ==============
 You can install some extra Python packages to enable more features.
@@ -21,7 +28,6 @@ This will install `matplotlib <https://matplotlib.org/>`_ for producing metrics 
 
     $ pip install sci-fab[features]
 
-See also :ref:`Installation for Developers<development>`
 
 Configuration
 =============
@@ -32,3 +38,8 @@ This can be useful on systems where your home space is on a slower drive::
     export FAB_WORKSPACE=<fast_drive>/fab_workspace
 
 By default, Fab will create a project workspaces inside ``~/fab-workspace``.
+
+
+See also
+========
+:ref:`Install from source<Install from source>`

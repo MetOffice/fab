@@ -4,6 +4,88 @@ Advanced Config
 ***************
 
 
+.. _Overriding default collections:
+
+Overriding defaults
+===================
+preprocessor/tool cli args
+
+The CompileFortran step uses *gfortran* by default,
+and the LinkExe step uses *gcc* by default.
+They can be configured to use other compilers.
+
+.. _Advanced Flags:
+
+Flags
+=====
+We can add flags to our linker step::
+
+    flags=['-lm', '-lnetcdff', '-lnetcdf']
+
+For preprocessing and compilation, we sometimes need to specify flags *per-file*.
+These steps accept both common flags and *path specific* flags::
+
+    common_flags=['-O2'],
+    path_flags=[
+        AddFlags('$output/um/*', ['-I' + '/gcom'])
+    ],
+
+This will add `-O2` to every invocation of the tool, but only add the */gcom* include path when processing
+files in the *<project workspace>/build_output/um* folder.
+
+.. note::
+    This can require some understanding of where and when files are placed in the *build_output* folder:
+    It will generally match the structure you've created in *<project workspace>/source*, with your grab steps.
+    Early steps like preprocessors generally read files from *source* and write to *build_output*.
+    Later steps like compilers generally read files which are already in *build_output*.
+
+Path matching is done using Python's `fnmatch <https://docs.python.org/3.10/library/fnmatch.html#fnmatch.fnmatch>`_.
+We can currently only *add* flags for a path, using the :class:`~fab.build_config.AddFlags` class.
+If demand arises, Fab developers may add classes to remove or modify flags by path - please let us know!
+
+
+.. _Advanced C Code:
+
+C Code
+======
+The C pragma injector creates new C files with ".prag" file extensions, in the same folder as the original source.
+The C preprocessor looks for the output of this step by default.
+If not found, it will fall back to looking for .c files in the source listing.
+
+.. code-block::
+
+        steps = [
+            ...
+            CPragmaInjector(),
+            c_preprocessor(),
+            ...
+        ]
+
+The pragma injector may be merged into the preprocessor in the future,
+and the *.prag* files may be created in the build_output instead of the source folder.
+
+Psyclone
+========
+analyse also eats
+    SuffixFilter('psyclone_output', '.f90'),
+    'preprocessed_psyclone',
+    'configurator_output',
+
+
+more to put in
+==============
+multiple root symbols
+This argument is omitted when building a shared or static library.
+
+
+
+folder structure
+================
+source
+build output
+preubuilss
+
+
 Custom Steps
 ============
 If you need a custom build step, you can create a subclass of the :class:`~fab.steps.Step` class.
@@ -29,6 +111,14 @@ We do this using the `source` argument, which most Fab steps accept.
         CustomStep(),
         FabStep2(source=CollectionGetter('custom_artefacts')),
     ])
+
+Multiprocessing
+---------------
+
+Steps have access to multiprocessing methods.
+The Step class includes a multiprocessing helper method called :meth:`~fab.steps.Step.run_mp` which steps can call
+from their :meth:`~fab.steps.Step.run` method to process a collection of artefacts in parallel.
+
 
 
 Parser Workarounds

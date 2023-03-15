@@ -1,9 +1,12 @@
 .. _Development:
 
+
 Developer's guide
 *****************
 Information for developers.
 
+
+.. _Install from source:
 Install from source
 ===================
 The following commands will checkout the latest version of the code and create an
