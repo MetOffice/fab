@@ -4,15 +4,61 @@ Advanced Config
 ***************
 
 
+Managed arguments
+=================
+Fab manages some command line arguments for some tools.
+
+Preprocessors
+-------------
+Fab knows about some preprocessors (currently *fpp* and *cpp*).
+It will ensure the ``-P`` flag is present to disable line numbering directives in the output,
+which is currently required for fparser to parse the output.
+
+Compilers
+---------
+Fab knows about some compilers (currently *gfortran* or *ifort*).
+It will make sure the `-c` flag is present to compile only (not link).
+
+If set by the user, Fab will **remove** the flag which sets the modules folder.
+It uses this flag itself to control the output location.
+
+
 .. _Overriding default collections:
 
 Overriding defaults
 ===================
-preprocessor/tool cli args
+
+Command line tools
+------------------
+You can change the environment variables that Fab uses to determine which tool to call.
+For example, we can force Fab to use _cpp_ to preprocess Fortran as follows.
+
+.. code-block::
+
+    os.environ['FPP'] = 'cpp -traditional-cpp -P'
+
+Fab doesn't currently have parameters for telling individual steps which tool to use.
+This is because sometimes we need to this information *outside the step* too.
+If we accepted a tool parameter in the step, there is a greatly increased scope for mismatch and error.
+An example is adding the compiler name to the project workspace, which happens outside the compiler step.
+Fab uses the same environment variables as Make for tool configuration
+ * _FPP_
+ * _FC_, _FFLAGS_
+ * _CC_, _CFLAGS_
+ * _LD_, _LDFLAGS_
+
+Preprocessor/tool cli args
+--------------------------
 
 The CompileFortran step uses *gfortran* by default,
 and the LinkExe step uses *gcc* by default.
 They can be configured to use other compilers.
+
+Collection names
+----------------
+
+
+
 
 .. _Advanced Flags:
 
@@ -64,6 +110,7 @@ If not found, it will fall back to looking for .c files in the source listing.
 The pragma injector may be merged into the preprocessor in the future,
 and the *.prag* files may be created in the build_output instead of the source folder.
 
+
 Psyclone
 ========
 analyse also eats
@@ -112,13 +159,13 @@ We do this using the `source` argument, which most Fab steps accept.
         FabStep2(source=CollectionGetter('custom_artefacts')),
     ])
 
+
 Multiprocessing
 ---------------
 
 Steps have access to multiprocessing methods.
 The Step class includes a multiprocessing helper method called :meth:`~fab.steps.Step.run_mp` which steps can call
 from their :meth:`~fab.steps.Step.run` method to process a collection of artefacts in parallel.
-
 
 
 Parser Workarounds
@@ -235,8 +282,8 @@ and
 `build_gcom_so.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/build_gcom_so.py>`_.
 
 
-Separate Grabs
-==============
+Separate grab and build scripts
+===============================
 If you are building many versions of a project from the same source,
 you may wish to grab from your repo in a separate script.
 In this case your grab script might only contain a single step.

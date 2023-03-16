@@ -95,6 +95,8 @@ It filters just the (uppercase) ``.F90`` files.
 
     Uppercase ``.F90`` are preprocessed into lowercase ``.f90``.
 
+The Fortran preprocessor will read the ``FPP`` environment variable to determine which tool to call.
+
 
 .. code-block::
     :linenos:
@@ -214,7 +216,7 @@ Fab comes with C processing steps.
 The :func:`~fab.steps.preprocess.c_preprocessor` and :class:`~fab.steps.compile_c.CompileC` Steps
 behave like their Fortran equivalents.
 
-However, there is also a preceding step called the :class:`~fab.steps.c_pragma_injector.CPragmaInjector`.
+However, it currently requires a preceding step called the :class:`~fab.steps.c_pragma_injector.CPragmaInjector`.
 Fab needs to inject pragmas into C code before it is preprocessed in order to know which dependencies
 are for user code, and which are for system code to be ignored.
 
