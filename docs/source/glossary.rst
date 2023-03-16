@@ -62,6 +62,7 @@ Glossary
         The folder in which all Fab output is created. Defaults to *~/fab-workspace*, and can be overridden
         by the *FAB_WORKSPACE* environment variable or the `fab_workspace` argument to the
         :class:`~fab.build_config.BuildConfig` constructor.
+        See also :ref:`Configure the Fab Workspace <Configure Fab Workspace>`
 
     Project Workspace
         A folder inside the fab workspace, containing all output from (typically) a single build config.

@@ -30,8 +30,18 @@ Running fab
 ===========
  * how to :ref:`set up an environment<Environment>`
  * how to :ref:`install fab<Install>`
- * To run fab with :ref:`zero configuration<Zero Config>`,
-   type ``fab`` at the command line, within your project.
+
+Zero config
+-----------
+To run fab with :ref:`zero configuration<Zero Config>`, type ``fab`` at the command line, within your project.
+
+.. code-block:: console
+
+   $ cd <path-to-source>
+   $ fab
+
+The executable file can be found in the :ref:`Fab Workspace<Configure Fab Workspace>`.
+
 
 Config files
 ------------

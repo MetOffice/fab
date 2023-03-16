@@ -32,6 +32,11 @@ This will install `matplotlib <https://matplotlib.org/>`_ for producing metrics 
 Configuration
 =============
 
+.. _Configure Fab Workspace:
+
+Fab workspace
+-------------
+
 You can optionally tell Fab where it's workspace should live.
 This can be useful on systems where your home space is on a slower drive::
 
