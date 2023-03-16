@@ -3,6 +3,37 @@
 Advanced Config
 ***************
 
+Folder structure
+================
+Fab creates files in the :term:`Project Workspace`.
+
+| <fab_workspace>
+|    **<project workspace>**
+|       source
+|       build_output
+|          \*.f90 (preprocessed Fortran files)
+|          \*.mod (compiled module files)
+|          _prebuild
+|             \*.an (analysis results)
+|             \*.o (compiled object files)
+|             \*.mod (mod files)
+|       metrics
+|       my_program.exe
+|       log.txt
+|
+
+The *project workspace* folder takes its name from the project label passed in to the build config.
+
+The *source* folder is where grab steps place their files.
+
+The *build_output* folder is where steps put their processed files.
+For example, a preprocessor reads ``.F90`` from *source* and writes ``.f90`` to *build_output*.
+
+The *_prebuild* folder contains reusable output. Files in this folder include a hash value in their filenames.
+
+The *metrics* folder contains some useful stats and graphs. See :ref:`Metrics`.
+
+
 
 Managed arguments
 =================
@@ -19,8 +50,10 @@ Compilers
 Fab knows about some compilers (currently *gfortran* or *ifort*).
 It will make sure the `-c` flag is present to compile only (not link).
 
-If set by the user, Fab will **remove** the flag which sets the modules folder.
-It uses this flag itself to control the output location.
+If the compiler flag which sets the module folder is present,
+i.e. ``-J`` for gfortran or ``-module`` for ifort,
+Fab will **remove** the flag, with a notification,
+as it needs to use this flag to control the output location.
 
 
 .. _Overriding default collections:
@@ -30,54 +63,75 @@ Overriding defaults
 
 Command line tools
 ------------------
-You can change the environment variables that Fab uses to determine which tool to call.
-For example, we can force Fab to use _cpp_ to preprocess Fortran as follows.
-
-.. code-block::
-
-    os.environ['FPP'] = 'cpp -traditional-cpp -P'
-
-Fab doesn't currently have parameters for telling individual steps which tool to use.
-This is because sometimes we need to this information *outside the step* too.
-If we accepted a tool parameter in the step, there is a greatly increased scope for mismatch and error.
-An example is adding the compiler name to the project workspace, which happens outside the compiler step.
 Fab uses the same environment variables as Make for tool configuration
  * _FPP_
  * _FC_, _FFLAGS_
  * _CC_, _CFLAGS_
  * _LD_, _LDFLAGS_
 
-Preprocessor/tool cli args
---------------------------
+Fab doesn't currently have parameters for telling individual steps which tool to use.
+This is because sometimes we need this information *outside the step* too.
+If we accepted a tool parameter in the step, there is a greatly increased scope for mismatch and error.
+An example is adding the compiler name to the project workspace, which happens outside the compiler step.
 
-The CompileFortran step uses *gfortran* by default,
-and the LinkExe step uses *gcc* by default.
-They can be configured to use other compilers.
 
 Collection names
 ----------------
+You can change the collections which most steps read from and write to.
+Let's imagine we need to upgrade a build script, adding a custom step to prepare our Fortran files for preprocessing.
 
+.. code-block::
+    :linenos:
 
+    FindSourceFiles()  # this was already here
+
+    # instead of this
+    # fortran_preprocessor()
+
+    # we now do this
+    my_new_step(output_collection='my_new_collection')
+    fortran_preprocessor(source=CollectionGetter('my_new_collection'))
+
+    Analyse()  # this was already here
 
 
 .. _Advanced Flags:
 
 Flags
 =====
-We can add flags to our linker step::
+We can add flags to our linker step.
 
-    flags=['-lm', '-lnetcdff', '-lnetcdf']
+.. code-block::
+    :linenos:
+
+    steps=[
+        ...
+        LinkExe(flags=['-lm', '-lnetcdf']),
+    ]
 
 For preprocessing and compilation, we sometimes need to specify flags *per-file*.
-These steps accept both common flags and *path specific* flags::
+These steps accept both common flags and *path specific* flags.
 
-    common_flags=['-O2'],
-    path_flags=[
-        AddFlags('$output/um/*', ['-I' + '/gcom'])
-    ],
+.. code-block::
+
+    steps=[
+        ...
+        CompileFortran(
+            common_flags=['-O2'],
+            path_flags=[
+                AddFlags('$output/um/*', ['-I' + '/gcom'])
+            ],
+        ),
+    ]
 
 This will add `-O2` to every invocation of the tool, but only add the */gcom* include path when processing
 files in the *<project workspace>/build_output/um* folder.
+
+Path matching is done using Python's `fnmatch <https://docs.python.org/3.10/library/fnmatch.html#fnmatch.fnmatch>`_.
+The ``$output`` is a template, see :class:`~fab.build_config.AddFlags`.
+
+We can currently only *add* flags for a path.
+Future development could add capability to *remove* or *modify* flags by path.
 
 .. note::
     This can require some understanding of where and when files are placed in the *build_output* folder:
@@ -85,16 +139,12 @@ files in the *<project workspace>/build_output/um* folder.
     Early steps like preprocessors generally read files from *source* and write to *build_output*.
     Later steps like compilers generally read files which are already in *build_output*.
 
-Path matching is done using Python's `fnmatch <https://docs.python.org/3.10/library/fnmatch.html#fnmatch.fnmatch>`_.
-We can currently only *add* flags for a path, using the :class:`~fab.build_config.AddFlags` class.
-If demand arises, Fab developers may add classes to remove or modify flags by path - please let us know!
-
 
 .. _Advanced C Code:
 
 C Code
 ======
-The C pragma injector creates new C files with ".prag" file extensions, in the same folder as the original source.
+The C pragma injector creates new C files with ".prag" file extensions, in the source folder.
 The C preprocessor looks for the output of this step by default.
 If not found, it will fall back to looking for .c files in the source listing.
 
@@ -109,28 +159,6 @@ If not found, it will fall back to looking for .c files in the source listing.
 
 The pragma injector may be merged into the preprocessor in the future,
 and the *.prag* files may be created in the build_output instead of the source folder.
-
-
-Psyclone
-========
-analyse also eats
-    SuffixFilter('psyclone_output', '.f90'),
-    'preprocessed_psyclone',
-    'configurator_output',
-
-
-more to put in
-==============
-multiple root symbols
-This argument is omitted when building a shared or static library.
-
-
-
-folder structure
-================
-source
-build output
-preubuilss
 
 
 Custom Steps
@@ -148,7 +176,7 @@ We do this using the `source` argument, which most Fab steps accept.
 
 .. code-block::
 
-    class CustomStep(object):
+    class CustomStep(Step):
         def run(self, artefact_store: Dict, config):
             artefact_store['custom_artefacts'] = do_something(artefact_store['step 1 artefacts'])
 
@@ -160,12 +188,16 @@ We do this using the `source` argument, which most Fab steps accept.
     ])
 
 
-Multiprocessing
----------------
-
 Steps have access to multiprocessing methods.
 The Step class includes a multiprocessing helper method called :meth:`~fab.steps.Step.run_mp` which steps can call
 from their :meth:`~fab.steps.Step.run` method to process a collection of artefacts in parallel.
+
+.. code-block::
+
+    class CustomStep(Step):
+        def run(self, artefact_store: Dict, config):
+            input_files = artefact_store['custom_artefacts']
+            results = self.run_mp(items=input_files, func=do_something)
 
 
 Parser Workarounds
@@ -184,7 +216,6 @@ Fab will find the file containing this symbol and add it to the build.
 
 .. code-block::
     :linenos:
-    :emphasize-lines: 3
 
     config.steps = [
         ...
@@ -196,16 +227,15 @@ Unparsable Files
 ----------------
 If a language parser is not able to process a file at all,
 then Fab won't know about any of its symbols and dependencies.
-This can sometimes happen to *correct code* which compilers *are* able to process,
-for example if the language parser is still maturing and can't yet handle an unusual syntax.
-In this case we can manually give Fab the analysis results it should have got from the parser
+This can sometimes happen to *valid code* which compilers *are* able to process,
+for example if the language parser is still maturing and can't yet handle an uncommon syntax.
+In this case we can manually give Fab the analysis results
 using the `special_measure_analysis_results` argument to :class:`~fab.steps.analyse.Analyse`.
 
-Pass in a list of :class:`~fab.dep_tree.ParserWorkaround` objects, one for every file that can't be parsed.
+Pass in a list of :class:`~fab.parse.fortran.FortranParserWorkaround` objects, one for every file that can't be parsed.
 Each object contains the symbol definitions and dependencies found in one source file.
 
 .. code-block::
-    :emphasize-lines: 3-10
 
     config.steps = [
         ...
@@ -213,7 +243,7 @@ Each object contains the symbol definitions and dependencies found in one source
             root_symbol='my_prog',
             special_measure_analysis_results=[
                 ParserWorkaround(
-                    fpath=Path(config.build_output / "casim/lookup.f90"),
+                    fpath=Path(config.build_output / "path/to/file.f90"),
                     module_defs={'my_mod'}, symbol_defs={'my_func'},
                     module_deps={'other_mod'}, symbol_deps={'other_func'}),
             ])
@@ -225,14 +255,13 @@ Custom Step
 An alternative approach for some problems is to write a custom step to modify the source so that the language
 parser can process it. Here's a simple example, based on a
 `real workaround <https://github.com/metomi/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L268-L290>`_
-we use to build the UM. The parser gets confused by a variable called `NameListFile`. Our config copies the source
-into it's project folder first, so this step doesn't modify the developer's working code.
+where the parser gets confused by a variable called `NameListFile`.
 
 .. code-block::
 
     class MyCustomCodeFixes(Step):
         def run(self, artefact_store, config):
-            fpath = config.source_root / 'um/control/top_level/um_config.F90'
+            fpath = config.source_root / 'path/to/file.F90'
             in = open(fpath, "rt").read()
             out = in.replace("NameListFile", "MyRenamedVariable")
             open(fpath, "wt").write(out)
@@ -259,21 +288,18 @@ all the files twice. Some compilers might not have this capability.
 
 Two-stage compilation is configured with the `two_stage_flag` argument to the Fortran compiler.
 
+.. code-block::
 
-Multiple Configs
-================
+    CompileFortran(two_stage_flag=True)
+
+
+Config Reuse
+============
 If you find you have many build configs with duplicated code, it would be prudent to consider refactoring out
 the commonality into a shared module.
 
-.. note::
-
-    Fab comes with some example build configs which we regularly use to build some Met Office projects
-    and test Fab.
-
 In Fab's `example run configs <https://github.com/metomi/fab/tree/master/run_configs>`_,
-we have two build scripts to compile GCOM into a shared and static library.
-Much of the config for these two scripts is identical,
-with just a single compile flag and the final step being different.
+we have two build scripts to compile GCOM. Much of the config for these two scripts is identical.
 We extracted the common steps into
 `gcom_build_steps.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/gcom_build_steps.py>`_
 and used them in
@@ -284,61 +310,42 @@ and
 
 Separate grab and build scripts
 ===============================
-If you are building many versions of a project from the same source,
-you may wish to grab from your repo in a separate script.
+If you are running many builds from the same source,
+you may wish to grab your repo in a separate script and call it less frequently.
 In this case your grab script might only contain a single step.
 You could import your grab config to find out where it put the source.
 
 .. code-block::
     :caption: my_grab.py
 
-    #!/usr/bin/env python3
-
-    from fab.build_config import BuildConfig
-    from fab.steps.grab import GrabFcm
-
-    def my_grab_config(revision):
+    def my_grab_config():
         return BuildConfig(
-            project_label=f'my source {revision}',
-            steps=[GrabFcm(src=my_repo, revision=revision)],
+            project_label='my source',
+            steps=[
+                GrabFcm(src='my_repo')
+            ],
         )
 
-
     if __name__ == '__main__':
-        my_grab_config(revision='v1.0').run()
+        my_grab_config().run()
 
 
 .. code-block::
     :caption: my_build.py
-    :emphasize-lines: 18
-
-    #!/usr/bin/env python3
-
-    from fab.steps.analyse import Analyse
-    from fab.steps.compile_fortran import CompileFortran
-    from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import GrabFolder
-    from fab.steps.link import LinkExe
-    from fab.steps.preprocess import fortran_preprocessor
+    :emphasize-lines: 7
 
     from my_grab import my_grab_config
 
-    def my_ar_config(revision, compiler=None):
-        compiler, _ = get_fortran_compiler(compiler)
-
+    def my_config():
         config = BuildConfig(
-            project_label=f'my build {revision} {compiler}',
+            project_label='my build',
             steps=[
-                GrabFolder(src=my_grab_config(revision=revision).source_root),
-                FindSourceFiles(),
-                fortran_preprocessor(),
-                Analyse(),
-                CompileFortran(),
-                LinkExe(),
+                GrabFolder(src=my_grab_config().source_root),
+                ...
             ],
         )
 
         return config
 
     if __name__ == '__main__':
-        my_build_config(revision='v1.0').run()
+        my_build_config().run()

@@ -10,6 +10,7 @@ from fab.tools import run_command
 logger = logging.getLogger('fab')
 
 
+# todo: the output from this step is required by the psyclone step, therefore this should be part of fab?
 class Configurator(Step):
 
     def __init__(self, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):

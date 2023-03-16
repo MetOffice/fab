@@ -11,8 +11,6 @@ and determines the dependency hierarchy / Fortran compile order.
 You don't need to manually specify and maintain an ordered list of files,
 which can become problematic in a large project.
 
-automatic discovery of source files
-
 
 Incremental Build
 =================
@@ -43,6 +41,8 @@ Git, SVN and FCM
 ================
 Fab can fetch and merge source from remote repositories.
 
+
+.. _Metrics:
 
 Metrics
 =======

@@ -65,7 +65,7 @@ Glossary
         See also :ref:`Configure the Fab Workspace <Configure Fab Workspace>`
 
     Project Workspace
-        A folder inside the fab workspace, containing all output from (typically) a single build config.
+        A folder inside the :term:`Fab Workspace`, containing all output from (typically) a single build config.
 
     Incremental Build
         This term refers to Fab's ability to avoid reprocessing an artefact if the output is already available.
