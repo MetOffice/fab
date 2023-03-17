@@ -3,7 +3,7 @@
 
 Developer's guide
 *****************
-Information for developers.
+Information for developers of Fab.
 
 
 .. _Install from source:
@@ -49,15 +49,8 @@ Dev versions are not for release and cover multiple commits.
 * ...
 * 1.0.1
 
+The version number is defined in ``source/fab/__init_.py``.
 
-Version bumping
-===============
-The version number needs to be updated in two places
-
-* source/fab/__init_.py
-* docs/source/conf.py
-
-Consider adding a developers' tool like `BumpVer <https://pypi.org/project/bumpver>`_.
 
 Source code Analysis
 ====================
@@ -71,19 +64,20 @@ and the file dependencies into which they are converted.
     :width: 95%
     :align: center
     :alt: Analysis results class hierarchy
+|
 
 
 Incremental & Prebuilds
 =======================
 See :term:`Incremental Build` and :term:`Prebuild` for definitions.
 
-Prebuild artefacts are stored in a flat *_prebuild* folder underneath the *build_output* folder.
+Prebuilt artefacts are stored in a flat *_prebuild* folder underneath the *build_output* folder.
 They include a checksum in their filename to distinguish between different builds of the same artefact.
 All prebuild files are named: `<stem>.<hash>.<suffix>`, e.g: *my_mod.123.o*.
 
 Checksums
 ---------
-Fab inserts a checksum in the filenames of prebuild artefacts. This checksum is derived from
+Fab inserts a checksum in the names of prebuild files. This checksum is derived from
 everything which should trigger a rebuild if changed. Before an artefact is created, Fab will
 calculate the checksum and search for an existing artefact so it can avoid reprocessing the inputs.
 
@@ -117,23 +111,39 @@ Github Actions
 
 Testing a PR
 ------------
-todo
+The github action defined in ``.github\workflows\build.yml`` automatically runs the unit and system tests,
+plus flake8 and mypy, and adds green ticks to pull requests.
 
 Build these docs
 ----------------
-todo
-
+The github action to build the docs is defined in ``.github\workflows\build_docs.yml``.
+It is manually triggered and can be run from any branch in the metomi repo.
+You can also run it on your fork to produce a separate build, for viewing work in progress.
 
 .. _Build Singularity:
 
 Build singularity image
 -----------------------
+**(For Met Office users)**
+
 The config file in envs/picasso defines the contents of a Singularity image which is built by the
-experimental Picasso app. We can build this image using a GitHub action, defined in .github/workflows/picasso_build.yml.
-This action is currently manually triggered. You'll have to push a branch to the metomi repo, not a fork,
+experimental Picasso app. We can build this image using a GitHub action,
+defined in ``.github/workflows/picasso_build.yml``.
+This action is manually triggered. You have to push a branch to the metomi repo, not a fork,
 then you can trigger the action from your branch. Please remember to clean up the branch when you're finished.
 
-You can see the image in artefactory `here <https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/metomi/fab/MyImage>`_.
+You can see the image in artefactory
+`here <https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/metomi/fab/MyImage>`_.
 
-See also `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_.
 
+See also
+ * :ref:`Run Singularity<Run Singularity>`
+ * `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
+
+
+Acceptance tests
+================
+For extra confidence, we have acceptance tests in the ``run_configs`` folder which are not run as part of our
+automated github testing. You can run them on the VDI using ``build_all.py``. However, this will choke your machine
+for some time. There's a (misnamed) cron you can run nightly, ``run_configs\_cron\cron_system_tests.sh``.
+There's also a rose suite which runs them on spice in ``run_configs\_rose_all``.

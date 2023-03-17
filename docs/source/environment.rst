@@ -70,6 +70,8 @@ Various configs for building projects using Rose on SPICE can be found in
 `run_configs <https://github.com/metomi/fab/tree/master/run_configs>`_.
 
 
+.. _Run Singularity:
+
 Singularity
 -----------
 You can run Fab in a singularity container as follows::
