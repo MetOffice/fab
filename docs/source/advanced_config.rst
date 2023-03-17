@@ -349,3 +349,27 @@ You could import your grab config to find out where it put the source.
 
     if __name__ == '__main__':
         my_build_config().run()
+
+
+Housekeeping
+============
+Fab will remove old files from the prebuilds folder.
+By default, it will remove all prebuild files that are not part of the current build.
+If you add a :class:`~fab.steps.cleanup_prebuilds.CleanupPrebuilds` step, you can keep prebuild files for longer.
+This may be useful, for example, if you often switch between two versions of your code and want to keep the prebuild
+speed benefits when building both.
+
+
+Shared prebuilds
+================
+You can copy the contents of someone else's prebuilds folder into your own.
+Fab uses hashes to keep track of the correct prebuilt files, and will find and use them.
+There's also a helper step called :class:`~fab.steps.grab.prebuild.GrabPreBuild` you can add to your configs.
+
+
+Psykalite (Psyclone overrides)
+==============================
+If you need to override a PSyclone output file with a handcrafted version,
+you can add an overrides folder to your source. This is just a normal folder of source files.
+Point the :class:`~fab.steps.psyclone.Psyclone` class to this folder using the ``overrides_folder`` argument.
+The step will delete any files it creates if there's a matching filename in the overrides folder.
