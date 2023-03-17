@@ -12,7 +12,7 @@ from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab.fcm import FcmExport
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
+from fab.steps.preprocess import preprocess_fortran, c_preprocessor
 from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
@@ -94,7 +94,7 @@ def atm_config(two_stage=False, verbose=False):
             ],
         ),
 
-        fortran_preprocessor(
+        preprocess_fortran(
             preprocessor='cpp -traditional-cpp -P',
             common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED', '-DUSE_MPI=YES'],
             path_flags=[

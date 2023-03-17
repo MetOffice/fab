@@ -13,7 +13,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 
 
 def make_config(fab_workspace, fpp_flags=None):
@@ -24,7 +24,7 @@ def make_config(fab_workspace, fpp_flags=None):
         steps=[
             GrabFolder(Path(__file__).parent / 'project-source'),
             FindSourceFiles(),
-            fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=fpp_flags),
+            preprocess_fortran(preprocessor='cpp -traditional-cpp', common_flags=fpp_flags),
             Analyse(root_symbol=['stay_or_go_now']),
             CompileFortran(compiler='gfortran', common_flags=['-c']),
             LinkExe(linker='gcc', flags=['-lgfortran']),

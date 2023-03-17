@@ -16,7 +16,7 @@ from fab.build_config import BuildConfig
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor
 from fab.util import file_checksum
 
@@ -136,7 +136,7 @@ class TestPsyclone(object):
         config.steps = [
             GrabFolder(here / 'skeleton'),
             FindSourceFiles(),
-            fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
+            preprocess_fortran(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
             psyclone_preprocessor(),
             # todo: it's easy to forget that we need to find the f90 not the F90.

@@ -10,7 +10,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab.prebuild import GrabPreBuild
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 from fab.util import file_walk
 from fab.steps.find_source_files import FindSourceFiles
 
@@ -33,7 +33,7 @@ class TestFortranPrebuild(object):
                 # insert a prebuild grab step or don't insert anything
                 *([GrabPreBuild(grab_prebuild_folder)] if grab_prebuild_folder else []),
                 FindSourceFiles(),
-                fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
+                preprocess_fortran(preprocessor='cpp -traditional-cpp -P'),
                 Analyse(root_symbol='my_prog'),
                 CompileFortran(compiler='gfortran -c'),
                 LinkExe(linker='gcc', flags=['-lgfortran']),

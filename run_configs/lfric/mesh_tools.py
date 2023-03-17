@@ -9,7 +9,7 @@ from fab.steps.archive_objects import ArchiveObjects
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
@@ -54,7 +54,7 @@ def mesh_tools_config(two_stage=False, verbose=False):
             Exclude('unit-test', '/test/'),
         ]),
 
-        fortran_preprocessor(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
+        preprocess_fortran(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
         psyclone_preprocessor(common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 

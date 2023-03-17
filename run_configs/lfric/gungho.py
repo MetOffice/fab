@@ -15,7 +15,7 @@ from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
@@ -60,7 +60,7 @@ def gungho_config(two_stage=False, verbose=False):
 
         FindSourceFiles(path_filters=[Exclude('unit-test', '/test/')]),
 
-        fortran_preprocessor(
+        preprocess_fortran(
             preprocessor='cpp -traditional-cpp',
             common_flags=[
                 '-P',

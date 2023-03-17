@@ -20,7 +20,7 @@ from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.prebuild import GrabPreBuild
 from fab.steps.link import link_exe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 from fab.util import common_arg_parser, suffix_filter
 
 logger = logging.getLogger('fab')
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 
     revision = 'vn6.3'
 
-    with build_config(project_label=f'jules {revision}') as config:
+    with build_config(project_label=f'jules {revision} $compiler') as config:
         # grab the source
         fcm_export(config, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
         fcm_export(config, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         # move inc files to the root for easy tool use
         root_inc_files(config)
 
-        fortran_preprocessor(config, common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output'])
+        preprocess_fortran(config, common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output'])
 
         analyse(config, root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
 

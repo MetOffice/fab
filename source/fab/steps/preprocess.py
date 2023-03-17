@@ -135,7 +135,7 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
 
 # todo: rename preprocess_fortran
 @step_timer
-def fortran_preprocessor(config: BuildConfig, source=None, **kwargs):
+def preprocess_fortran(config: BuildConfig, source=None, **kwargs):
     """
     Wrapper to pre_processor for Fortran files.
 

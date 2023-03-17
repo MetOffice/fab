@@ -12,7 +12,7 @@ from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.git import GrabGit
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 from fab.util import common_arg_parser
 
 logger = logging.getLogger('fab')
@@ -32,7 +32,7 @@ def config():
 
         FindSourceFiles(),
 
-        fortran_preprocessor(preprocessor='fpp -P'),
+        preprocess_fortran(preprocessor='fpp -P'),
 
         Analyse(root_symbol='my_prog'),
 

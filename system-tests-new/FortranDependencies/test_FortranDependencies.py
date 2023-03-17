@@ -15,7 +15,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 
 
 def test_FortranDependencies(tmp_path):
@@ -28,7 +28,7 @@ def test_FortranDependencies(tmp_path):
         steps=[
             GrabFolder(src=Path(__file__).parent / 'project-source'),
             FindSourceFiles(),
-            fortran_preprocessor(),  # nothing to preprocess, actually, it's all little f90 files
+            preprocess_fortran(),  # nothing to preprocess, actually, it's all little f90 files
             Analyse(root_symbol=['first', 'second']),
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
             CompileFortran(compiler='gfortran', common_flags=['-c']),

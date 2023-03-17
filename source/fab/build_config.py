@@ -38,10 +38,17 @@ def build_config(project_label: str, arg_parser: Optional[ArgumentParser] = None
         Name of the build project. Used to create a project workspace in the fab workspace.
         The name of the fortran compiler will be automatically added to this label, in order to
         separate build output from different compilers.
+
+        .. note::
+
+            The project label can include the template string ``$compiler``,
+            which will be substituted with a result from :func:`~fab.steps.compile_fortran.get_fortran_compiler`.
+            This is recommended if your config includes the :func:`~fab.steps.compile_fortran.compile_fortran` step.
+
     :param arg_parser:
         Command line arguments will be placed in the config's `parsed_args` attribute.
-        If you want your script to accept custom arguments from the command line, you can call `common_arg_parser()`,
-        and add your own arguments.
+        If you want your script to accept custom arguments from the command line, please call `common_arg_parser()`,
+        and add your own arguments, passing the parser into this function.
 
     All other params are passed through to the :class:`~fab.build_config.BuildConfig` constructor.
 
@@ -57,7 +64,8 @@ def build_config(project_label: str, arg_parser: Optional[ArgumentParser] = None
     # todo: this import is a circular import workaround
     from fab.steps.compile_fortran import get_fortran_compiler
     compiler, _ = get_fortran_compiler()
-    config = BuildConfig(project_label=f'project_label {compiler}', parsed_args=parsed_args, *args, **kwargs)
+    project_label = Template(project_label).substitute(compiler=compiler)
+    config = BuildConfig(project_label=f'{project_label}', parsed_args=parsed_args, *args, **kwargs)
 
     logger.info(f'building {config.project_label}')
     start_time = datetime.now().replace(microsecond=0)
@@ -85,15 +93,20 @@ class BuildConfig(object):
     """
     Contains and runs a list of build steps.
 
-    """
+    The user is not expected to instantiate this class directly,
+    but rather through the build_config() context manager.
 
+    """
     def __init__(self, project_label: str, parsed_args: Optional[Dict] = None,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
-                 fab_workspace: Optional[Path] = None, verbose: bool = False):
+                 fab_workspace: Optional[Path] = None):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
+        :param parsed_args:
+            Command line arguments. Expected to be passed in from the build_config() context manager.
+            Expected to include common arguments from common_arg_parser().
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
@@ -147,7 +160,7 @@ class BuildConfig(object):
 
         self.reuse_artefacts = reuse_artefacts
 
-        if verbose:
+        if parsed_args['verbose']:
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
         # todo: should probably pull the artefact store out of the config

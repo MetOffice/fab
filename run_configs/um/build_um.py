@@ -27,7 +27,7 @@ from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab.fcm import FcmExport
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
+from fab.steps.preprocess import c_preprocessor, preprocess_fortran
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 
@@ -119,7 +119,7 @@ def um_atmos_safe_config(revision, two_stage=False, verbose=False):
         ),
 
         # todo: explain fnmatch
-        fortran_preprocessor(
+        preprocess_fortran(
             common_flags=['-P'],
             path_flags=[
                 AddFlags("$source/jules/*", ['-DUM_JULES']),

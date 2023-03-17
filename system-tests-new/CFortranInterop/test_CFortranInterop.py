@@ -15,7 +15,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor, c_preprocessor
+from fab.steps.preprocess import preprocess_fortran, c_preprocessor
 
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
@@ -35,7 +35,7 @@ def test_CFortranInterop(tmp_path):
 
             CPragmaInjector(),
             c_preprocessor(),
-            fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
+            preprocess_fortran(preprocessor='cpp -traditional-cpp -P'),
 
             Analyse(root_symbol='main'),
 

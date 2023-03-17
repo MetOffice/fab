@@ -18,7 +18,7 @@ from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler, get_
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
+from fab.steps.preprocess import c_preprocessor, preprocess_fortran
 from fab.steps.root_inc_files import RootIncFiles
 
 
@@ -51,7 +51,7 @@ def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildC
 
             RootIncFiles(),  # JULES helper, get rid of this eventually
 
-            fortran_preprocessor(preprocessor=fpp, common_flags=fpp_flags),
+            preprocess_fortran(preprocessor=fpp, common_flags=fpp_flags),
 
             CPragmaInjector(),
             c_preprocessor(source=CollectionGetter(PRAGMAD_C)),

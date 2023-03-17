@@ -13,7 +13,7 @@ from fab.steps.compile_fortran import CompileFortran
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
@@ -29,7 +29,7 @@ def test_MinimalFortran(tmp_path):
         steps=[
             GrabFolder(PROJECT_SOURCE),
             FindSourceFiles(),
-            fortran_preprocessor(),
+            preprocess_fortran(),
             Analyse(root_symbol='test'),
             CompileFortran(compiler='gfortran', common_flags=['-c']),
             LinkExe(linker='gcc', flags=['-lgfortran']),

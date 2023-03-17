@@ -6,26 +6,18 @@
 import os
 from typing import List
 
+from fab.build_config import build_config
 from fab.steps import Step
-from fab.steps.analyse import Analyse
-from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran
-from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab.folder import GrabFolder
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
+from fab.steps.analyse import analyse
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.preprocess import preprocess_fortran, preprocess_c
 from fab.util import common_arg_parser
 
 from grab_gcom import gcom_grab_config
 
 
-def parse_args():
-    arg_parser = common_arg_parser()
-    arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
-    args = arg_parser.parse_args()
-    return args
-
-
-def common_build_steps(revision, fpic=False) -> List[Step]:
+def common_build_steps(fpic=False):
 
     fpp_flags = [
         '-P',
@@ -38,14 +30,13 @@ def common_build_steps(revision, fpic=False) -> List[Step]:
 
     fpic = ['-fPIC'] if fpic else []
 
-    steps = [
-        GrabFolder(src=gcom_grab_config(revision=revision).source_root),
-        FindSourceFiles(),
-        c_preprocessor(),
-        fortran_preprocessor(common_flags=fpp_flags),
-        Analyse(),
-        CompileC(common_flags=['-c', '-std=c99'] + fpic),
-        CompileFortran(common_flags=fpic),
-    ]
+    with gcom_grab_config as grab_config:
+        source_root = grab_config.source_root
 
-    return steps
+    grab_folder(src=source_root),
+    find_source_files(),
+    preprocess_c(),
+    preprocess_fortran(common_flags=fpp_flags),
+    analyse(),
+    compile_c(common_flags=['-c', '-std=c99'] + fpic),
+    compile_fortran(common_flags=fpic),

@@ -15,7 +15,7 @@ from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.steps.compile_fortran import CompileFortran
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.preprocess import preprocess_fortran
 from fab.steps.find_source_files import FindSourceFiles
 from fab.util import file_walk, get_prebuild_file_groups
 
@@ -58,7 +58,7 @@ class TestIncremental(object):
             fab_workspace=tmp_path,
             steps=[
                 FindSourceFiles(),
-                fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
+                preprocess_fortran(preprocessor='cpp -traditional-cpp -P'),
                 Analyse(root_symbol='my_prog'),
                 CompileFortran(compiler='gfortran -c'),
                 LinkExe(linker='gcc', flags=['-lgfortran']),

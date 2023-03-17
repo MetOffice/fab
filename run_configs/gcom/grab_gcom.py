@@ -4,30 +4,25 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-import os
+from contextlib import contextmanager
 
-from fab.build_config import BuildConfig
-from fab.steps.grab.fcm import FcmExport
-from fab.util import common_arg_parser
+from fab.build_config import build_config
+from fab.steps.grab.fcm import fcm_export
 
 
-def gcom_grab_config(revision=None, verbose=False):
-    """
-    Grab the gcom source.
+revision = 'vn7.6'
 
-    """
-    return BuildConfig(
-        project_label=f'gcom_source_{revision}',
-        steps=[
-            FcmExport(src='fcm:gcom.xm_tr/build', revision=revision, dst="gcom"),
-        ],
-        verbose=verbose,
-    )
+
+# This is a context manager because we want to return just the config, for use in the two build scripts.
+# They use this to get the source folder, rather than having to work it out.
+# Since build_config is itself a context manager, so must this be.
+@contextmanager
+def gcom_grab_config():
+    with build_config(project_label=F'gcom_source {revision}') as config:
+        yield config
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
-    arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
-    args = arg_parser.parse_args()
 
-    gcom_grab_config(revision=args.revision, verbose=args.verbose).run()
+    with gcom_grab_config() as config:
+        fcm_export(config, src='fcm:gcom.xm_tr/build', revision=revision, dst_label="gcom")
