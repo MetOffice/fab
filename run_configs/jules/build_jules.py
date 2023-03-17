@@ -5,23 +5,22 @@
 # which you should have received as part of this distribution
 ##############################################################################
 import logging
-import os
 import shutil
 import warnings
 from pathlib import Path
 
-from fab.build_config import BuildConfig, build_config
+from fab.build_config import BuildConfig
 from fab.steps import step_timer
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
-from fab.steps.compile_fortran import compile_fortran, get_fortran_compiler
+from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.prebuild import GrabPreBuild
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
-from fab.util import common_arg_parser, suffix_filter
+from fab.util import suffix_filter
 
 logger = logging.getLogger('fab')
 
@@ -72,7 +71,7 @@ if __name__ == '__main__':
 
     revision = 'vn6.3'
 
-    with build_config(project_label=f'jules {revision} $compiler') as config:
+    with BuildConfig(project_label=f'jules {revision} $compiler') as config:
         # grab the source
         fcm_export(config, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
         fcm_export(config, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')

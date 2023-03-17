@@ -4,47 +4,24 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-import logging
-
 from fab.build_config import BuildConfig
-from fab.steps.analyse import Analyse
-from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab.git import GrabGit
-from fab.steps.link import LinkExe
+from fab.steps.analyse import analyse
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
-from fab.util import common_arg_parser
-
-logger = logging.getLogger('fab')
-
-
-def config():
-
-    # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_fortran_compiler()
-    config = BuildConfig(project_label=f'tiny_fortran {compiler}')
-
-    logger.info(f'building tiny fortran {config.project_label}')
-
-    config.steps = [
-
-        GrabGit(src='https://github.com/metomi/fab-test-data.git', revision='main', dst='src'),
-
-        FindSourceFiles(),
-
-        preprocess_fortran(preprocessor='fpp -P'),
-
-        Analyse(root_symbol='my_prog'),
-
-        CompileFortran(),
-        LinkExe(linker='mpifort'),
-    ]
-
-    return config
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
-    args = arg_parser.parse_args()
 
-    config().run()
+    with BuildConfig(project_label=f'tiny_fortran $compiler') as config:
+        grab_git(src='https://github.com/metomi/fab-test-data.git', revision='main', dst='src'),
+
+        find_source_files(),
+
+        preprocess_fortran(preprocessor='fpp -P'),
+
+        analyse(root_symbol='my_prog'),
+
+        compile_fortran(),
+        link_exe(linker='mpifort'),

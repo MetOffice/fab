@@ -8,6 +8,7 @@ from abc import ABC
 from pathlib import Path
 from typing import Union, Dict
 
+from fab.steps import step_timer
 from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
@@ -45,40 +46,40 @@ class GrabGitBase(GrabSourceBase, ABC):
             return False
         return True
 
-    def fetch(self):
-        # todo: allow shallow fetch with --depth 1
-        command = ['git', 'fetch', self.src]
-        if self.revision:
-            command.append(self.revision)
+def fetch(src, revision, dst):
+    # todo: allow shallow fetch with --depth 1
+    command = ['git', 'fetch', src]
+    if revision:
+        command.append(revision)
 
-        run_command(command, cwd=str(self._dst))
+    run_command(command, cwd=str(dst))
 
 
 # todo: allow cli args, e.g to set the depth
-class GitCheckout(GrabGitBase):
+@step_timer
+def git_checkout(config, src: str, dst_label: str = '', revision=None):
     """
     Checkout or update a Git repo.
 
     """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
+    _dst = config.source_root / dst_label
 
-        # create folder?
-        assert self._dst  # for mypy
-        if not self._dst.exists():
-            self._dst.mkdir(parents=True)
-            run_command(['git', 'init', '.'], cwd=self._dst)
-        elif not self.is_working_copy(self._dst):  # type: ignore
-            raise ValueError(f"destination exists but is not a working copy: '{self._dst}'")
+    # create folder?
+    if not _dst.exists():
+        _dst.mkdir(parents=True)
+        run_command(['git', 'init', '.'], cwd=_dst)
 
-        self.fetch()
-        run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=self._dst)
+    elif not is_working_copy(self._dst):  # type: ignore
+        raise ValueError(f"destination exists but is not a working copy: '{_dst}'")
 
-        try:
-            self._dst.relative_to(config.project_workspace)
-            run_command(['git', 'clean', '-f'], cwd=self._dst)
-        except ValueError:
-            warnings.warn(f'not safe to clean git source in {self._dst}')
+    fetch()
+    run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=_dst)
+
+    try:
+        _dst.relative_to(config.project_workspace)
+        run_command(['git', 'clean', '-f'], cwd=_dst)
+    except ValueError:
+        warnings.warn(f'not safe to clean git source in {_dst}')
 
 
 class GitMerge(GrabGitBase):

@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import warnings
+from argparse import ArgumentParser
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -35,13 +36,16 @@ class BuildConfig(object):
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str,
+    def __init__(self, project_label: str, arg_parser: Optional[ArgumentParser] = None,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
                  fab_workspace: Optional[Path] = None,):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
+        :param arg_parser:
+            If you want to add arguments to your script, please call common_arg_parser() and pass in in here.
+            That ensures Fab gets any command line arguments it needs too.
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
@@ -55,12 +59,15 @@ class BuildConfig(object):
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
 
         """
+        arg_parser = arg_parser or common_arg_parser()
+        self.parsed_args = vars(arg_parser.parse_args())
+
         from fab.steps.compile_fortran import get_fortran_compiler
         compiler, _ = get_fortran_compiler()
-        project_label = Template(project_label).substitute(compiler=compiler)
+        project_label = Template(project_label).substitute(
+            compiler=compiler, two_stage=int(self.parsed_args['two_stage'])+1)
 
         self.project_label: str = project_label.replace(' ', '_')
-        self.arg_parser = common_arg_parser()  # user can access this and add args
 
         logger.info('')
         logger.info('------------------------------------------------------------')
@@ -106,8 +113,6 @@ class BuildConfig(object):
         self.init_artefact_store()  # note: the artefact store is reset with every call to run()
 
     def __enter__(self):
-        # todo: might not be desirable to parse the args so long after main...
-        self.parsed_args = vars(self.arg_parser.parse_args())
 
         # we've finished with this, and as it's not pickleable, it stops us being sent to run_mp
         # smells a little hackey.

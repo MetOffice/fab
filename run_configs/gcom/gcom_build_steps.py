@@ -28,7 +28,7 @@ def common_build_steps(config, fpic=False):
 
     grab_folder(config, src=grab_config.source_root),
     find_source_files(config),
-    preprocess_c(config),
+    preprocess_c(config),  # todo: there's no c! :)
     preprocess_fortran(config, common_flags=fpp_flags),
     analyse(config),
     compile_c(config, common_flags=['-c', '-std=c99'] + fpic),
