@@ -12,8 +12,6 @@ import logging
 import os
 import sys
 import warnings
-from argparse import ArgumentParser
-from contextlib import contextmanager
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -29,66 +27,6 @@ from fab.util import common_arg_parser, TimerLogger, by_type, get_fab_workspace
 logger = logging.getLogger(__name__)
 
 
-@contextmanager
-def build_config(project_label: str, arg_parser: Optional[ArgumentParser] = None, *args, **kwargs):
-    """
-    A context manager which creates a :class:`~fab.build_config.BuildConfig` from the given params.
-
-    :param project_label:
-        Name of the build project. Used to create a project workspace in the fab workspace.
-        The name of the fortran compiler will be automatically added to this label, in order to
-        separate build output from different compilers.
-
-        .. note::
-
-            The project label can include the template string ``$compiler``,
-            which will be substituted with a result from :func:`~fab.steps.compile_fortran.get_fortran_compiler`.
-            This is recommended if your config includes the :func:`~fab.steps.compile_fortran.compile_fortran` step.
-
-    :param arg_parser:
-        Command line arguments will be placed in the config's `parsed_args` attribute.
-        If you want your script to accept custom arguments from the command line, please call `common_arg_parser()`,
-        and add your own arguments, passing the parser into this function.
-
-    All other params are passed through to the :class:`~fab.build_config.BuildConfig` constructor.
-
-    Example::
-
-        with build_config(project_label='my project') as config:
-            # call my steps
-
-    """
-    arg_parser = arg_parser or common_arg_parser()
-    parsed_args = vars(arg_parser.parse_args())
-
-    # todo: this import is a circular import workaround
-    from fab.steps.compile_fortran import get_fortran_compiler
-    compiler, _ = get_fortran_compiler()
-    project_label = Template(project_label).substitute(compiler=compiler)
-    config = BuildConfig(project_label=f'{project_label}', parsed_args=parsed_args, *args, **kwargs)
-
-    logger.info(f'building {config.project_label}')
-    start_time = datetime.now().replace(microsecond=0)
-    config._run_prep()
-
-    try:
-        with TimerLogger(f'running {project_label} build steps') as build_timer:
-            # this will return to the build script
-            yield config
-
-        # do we need to run a cleanup?
-        # note: this won't run if an exception occurs in the build script
-        # todo: this import is a circular import workaround
-        from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
-        if CLEANUP_COUNT not in config._artefact_store:
-            logger.info("no housekeeping step was run, using a default hard cleanup")
-            cleanup_prebuilds(config=config, all_unused=True)
-
-    finally:
-        config._finalise_metrics(start_time, build_timer)
-        config._finalise_logging()
-
-
 class BuildConfig(object):
     """
     Contains and runs a list of build steps.
@@ -97,16 +35,13 @@ class BuildConfig(object):
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str, parsed_args: Optional[Dict] = None,
+    def __init__(self, project_label: str,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
-                 fab_workspace: Optional[Path] = None):
+                 fab_workspace: Optional[Path] = None,):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
-        :param parsed_args:
-            Command line arguments. Expected to be passed in from the build_config() context manager.
-            Expected to include common arguments from common_arg_parser().
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
@@ -120,8 +55,12 @@ class BuildConfig(object):
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
 
         """
+        from fab.steps.compile_fortran import get_fortran_compiler
+        compiler, _ = get_fortran_compiler()
+        project_label = Template(project_label).substitute(compiler=compiler)
+
         self.project_label: str = project_label.replace(' ', '_')
-        self.parsed_args = parsed_args or {}
+        self.arg_parser = common_arg_parser()  # user can access this and add args
 
         logger.info('')
         logger.info('------------------------------------------------------------')
@@ -160,14 +99,44 @@ class BuildConfig(object):
 
         self.reuse_artefacts = reuse_artefacts
 
-        if parsed_args['verbose']:
-            logging.getLogger('fab').setLevel(logging.DEBUG)
-
         # todo: should probably pull the artefact store out of the config
         # runtime
         # todo: either make this public, add get/setters, or extract into a class.
         self._artefact_store: Dict[str, Any] = {}
         self.init_artefact_store()  # note: the artefact store is reset with every call to run()
+
+    def __enter__(self):
+        # todo: might not be desirable to parse the args so long after main...
+        self.parsed_args = vars(self.arg_parser.parse_args())
+
+        # we've finished with this, and as it's not pickleable, it stops us being sent to run_mp
+        # smells a little hackey.
+        self.arg_parser = None
+
+        if self.parsed_args['verbose']:
+            logging.getLogger('fab').setLevel(logging.DEBUG)
+
+        logger.info(f'building {self.project_label}')
+        self._start_time = datetime.now().replace(microsecond=0)
+        self._run_prep()
+
+        with TimerLogger(f'running {self.project_label} build steps') as build_timer:
+            # this will return to the build script
+            self._build_timer = build_timer
+            return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+
+        # not if there's an error...is that what we want?
+        if not exc_type:
+            from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
+            if CLEANUP_COUNT not in self._artefact_store:
+                logger.info("no housekeeping step was run, using a default hard cleanup")
+                cleanup_prebuilds(config=self, all_unused=True)
+
+        # always
+        self._finalise_metrics(self._start_time, self._build_timer)
+        self._finalise_logging()
 
     @property
     def build_output(self):

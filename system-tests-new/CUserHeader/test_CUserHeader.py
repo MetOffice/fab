@@ -14,7 +14,7 @@ from fab.steps.compile_c import CompileC
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import c_preprocessor
+from fab.steps.preprocess import preprocess_c
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
@@ -33,7 +33,7 @@ def test_CUseHeader(tmp_path):
             FindSourceFiles(),
 
             CPragmaInjector(),
-            c_preprocessor(),
+            preprocess_c(),
             Analyse(root_symbol='main'),
             CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
 

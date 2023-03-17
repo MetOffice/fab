@@ -12,7 +12,7 @@ from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab.fcm import FcmExport
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import preprocess_fortran, c_preprocessor
+from fab.steps.preprocess import preprocess_fortran, preprocess_c
 from fab.steps.psyclone import Psyclone, psyclone_preprocessor
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
@@ -84,7 +84,7 @@ def atm_config(two_stage=False, verbose=False):
         # todo: bundle this in with the preprocessor, for a better ux?
         CPragmaInjector(),
 
-        c_preprocessor(
+        preprocess_c(
             path_flags=[
                 AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
                 AddFlags(match="$source/science/shumlib/*", flags=['-I$source/science/shumlib/common/src']),

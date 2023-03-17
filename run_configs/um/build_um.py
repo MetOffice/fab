@@ -27,7 +27,7 @@ from fab.steps.compile_c import CompileC
 from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.grab.fcm import FcmExport
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import c_preprocessor, preprocess_fortran
+from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.steps.root_inc_files import RootIncFiles
 from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
 
@@ -100,7 +100,7 @@ def um_atmos_safe_config(revision, two_stage=False, verbose=False):
 
         CPragmaInjector(),
 
-        c_preprocessor(
+        preprocess_c(
             source=CollectionGetter(PRAGMAD_C),
             path_flags=[
                 # todo: this is a bit "codey" - can we safely give longer strings and split later?

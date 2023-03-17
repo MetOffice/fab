@@ -168,7 +168,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 
 # todo: rename preprocess_c
 @step_timer
-def c_preprocessor(config: BuildConfig, source=None, **kwargs):
+def preprocess_c(config: BuildConfig, source=None, **kwargs):
     """
     Wrapper to pre_processor for C files.
 
