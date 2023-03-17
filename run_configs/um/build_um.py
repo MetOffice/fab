@@ -218,7 +218,7 @@ if __name__ == '__main__':
             # ]
         )
 
-        compile_c(config, compiler='gcc', common_flags=['-c', '-std=c99'])
+        compile_c(config, common_flags=['-c', '-std=c99'])
 
         # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
         gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(os.path.expanduser(
@@ -231,7 +231,6 @@ if __name__ == '__main__':
             common_flags=[
                 *compiler_specific_flags,
             ],
-            two_stage_flag='-fsyntax-only' if config.parsed_args['two_stage'] else None,
             path_flags=[
                 # mpl include - todo: just add this for everything?
                 AddFlags("$output/um/*", ['-I' + gcom_build]),

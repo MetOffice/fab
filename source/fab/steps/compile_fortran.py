@@ -74,6 +74,9 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
         The slower object file compilation can then follow in a second stage, all at once.
 
     """
+
+    # todo: two_stage is now in the parsed args - say what it does with the flag
+
     # Command line tools are sometimes specified with flags attached.
     compiler, compiler_flags = get_fortran_compiler()
     compiler_version = get_compiler_version(compiler)
