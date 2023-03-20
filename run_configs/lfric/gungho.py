@@ -16,7 +16,7 @@ from fab.steps.find_source_files import FindSourceFiles, Exclude
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import Psyclone, psyclone_preprocessor
+from fab.steps.psyclone import Psyclone, preprocess_x90
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import Configurator, FparserWorkaround_StopConcatenation
@@ -67,7 +67,7 @@ def gungho_config(two_stage=False, verbose=False):
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
             ]),
 
-        psyclone_preprocessor(common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
+        preprocess_x90(common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED']),
 
         Psyclone(
             kernel_roots=[config.build_output],

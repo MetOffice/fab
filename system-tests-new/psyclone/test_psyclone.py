@@ -17,7 +17,7 @@ from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import make_parsable_x90, Psyclone, psyclone_preprocessor
+from fab.steps.psyclone import make_parsable_x90, Psyclone, preprocess_x90
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
@@ -138,7 +138,7 @@ class TestPsyclone(object):
             FindSourceFiles(),
             preprocess_fortran(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
 
-            psyclone_preprocessor(),
+            preprocess_x90(),
             # todo: it's easy to forget that we need to find the f90 not the F90.
             #       it manifests as an error, a missing kernel hash.
             #       Perhaps add validation, warn if it's not in the build_output folder?
