@@ -65,7 +65,7 @@ class BuildConfig(object):
         from fab.steps.compile_fortran import get_fortran_compiler
         compiler, _ = get_fortran_compiler()
         project_label = Template(project_label).substitute(
-            compiler=compiler, two_stage=int(self.parsed_args['two_stage'])+1)
+            compiler=compiler, two_stage=f'{int(self.parsed_args["two_stage"])+1}stage')
 
         self.project_label: str = project_label.replace(' ', '_')
 
