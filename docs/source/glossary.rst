@@ -17,28 +17,15 @@ Glossary
     Artefact Collection
         A collection of :term:`Artefacts<Artefact>` in the :term:`Artefact Store`.
 
-        These entries are usually a list of file paths or objects, or a :term:`Source Tree`,
+        These entries are usually a list of file paths or objects, sometimes a :term:`Source Tree`,
         but could be anything created by one step and consumed by another.
 
         As an example, a Fortran preprocessing step might create a list of output paths
         as ``artefact_store['preprocessed fortran'] = my_results``.
         A subsequent step could read this list.
 
-    Artefact Store
-        The artefact store holds collections which are created by build steps.
-
-        An :term:`Artefact Collection` is a mapping from a name string
-        to, usually, a collection of :term:`Artefact` - but can be anything.
-
-        Fab passes the growing artefact store to each step in turn,
-        where they typically read an :term:`Artefact Collection` and create a new one for subsequent steps to read.
-
-    Step
-        A build step which typically reads from, and adds to, an in-memory :term:`Artefact` repository called
-        the :term:`Artefact Store`. Steps are derived from the :class:`~fab.steps.Step` base class.
-
     Artefacts Getter
-        A helper class which a :term:`Step` uses to get artefacts from the :term:`Artefact Store`.
+        A helper class which a :term:`Step` uses to find artefacts in the :term:`Artefact Store`.
         Fab's built-in steps come with sensible defaults so the user doesn't have to write unnecessary config.
 
         As an example, the Fortran preprocessor has a default artefact getter which reads *".F90"* files
@@ -46,26 +33,17 @@ Glossary
 
         Artefact getters are derived from :class:`~fab.artefacts.ArtefactsGetter`.
 
-    Source Tree
-        The :class:`~fab.steps.analyse.Analyse` step produces a dependency tree of the entire project source.
-        This is represented as a mapping from Path to :class:`~fab.dep_tree.AnalysedDependent`.
-        The tree structure is defined as the AnalysedFiles' file dependencies are Paths, i.e other entries in the tree.
+    Artefact Store
+        The artefact store holds :term:`collections<Artefact Collection>` created and used by build steps.
 
-        When building executables, a sub-tree is extracted from the :term:`Source Tree`, for each executable
-        we want to build. Each build tree contains only the files needed to build that target.
-        When building a library, all source code is included in a single build tree.
-
-        Fab's source code uses the term *source tree* for everything that's been analysed,
-        and *build trees* for sub-trees extracted for each target exe.
+        Fab passes the growing store to each step in turn,
+        where they typically read a collection and create a new one for the next step.
 
     Fab Workspace
-        The folder in which all Fab output is created. Defaults to *~/fab-workspace*, and can be overridden
-        by the *FAB_WORKSPACE* environment variable or the `fab_workspace` argument to the
-        :class:`~fab.build_config.BuildConfig` constructor.
+        The folder in which all Fab output is created, for all build projects.
+        Defaults to *~/fab-workspace*, and can be overridden by the *FAB_WORKSPACE* environment variable
+        or the `fab_workspace` argument to the :class:`~fab.build_config.BuildConfig` constructor.
         See also :ref:`Configure the Fab Workspace <Configure Fab Workspace>`
-
-    Project Workspace
-        A folder inside the :term:`Fab Workspace`, containing all output from (typically) a single build config.
 
     Incremental Build
         This term refers to Fab's ability to avoid reprocessing an artefact if the output is already available.
@@ -76,3 +54,22 @@ Glossary
         This term has much overlap with the term :term:`Incremental Build`. It refers to artefacts that were built by
         another user, which can be copied to avoid reprocessing artefacts.
         Technical details on how this works can be found in :ref:`development:Incremental & Prebuilds`.
+
+    Project Workspace
+        A folder inside the :term:`Fab Workspace`, containing all source and output from a build config.
+
+    Source Tree
+        The :class:`~fab.steps.analyse.Analyse` step produces a dependency tree of the entire project source.
+        This is represented as a mapping from Path to :class:`~fab.dep_tree.AnalysedDependent`.
+        These the AnalysedDependent's file dependencies are Paths, which refer to other entries in the mapping,
+        and which define the tree structure. This is called the source tree.
+
+        When building executables, a sub-tree is extracted from the :term:`Source Tree`, for each executable
+        we want to build. Called a "build tree", this contains only the files needed to build that target.
+        When building a library, all source code is included in a single build tree.
+
+    Step
+        A step performs a function in the build process.
+
+        Each step typically reads from, and adds to, an in-memory :term:`Artefact` repository called
+        the :term:`Artefact Store`. Steps are derived from the :class:`~fab.steps.Step` base class.
