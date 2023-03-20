@@ -239,6 +239,7 @@ class Analyse(Step):
 
         """
         build_trees = {}
+        assert self.root_symbols is not None
         for root in self.root_symbols:
             with TimerLogger(f"extracting build tree for root '{root}'"):
                 build_tree = extract_sub_tree(project_source_tree, symbol_table[root], verbose=False)
