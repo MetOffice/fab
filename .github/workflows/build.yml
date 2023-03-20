@@ -47,4 +47,4 @@ jobs:
     - name: System tests with Pytest
       run: |
         pip install .[tests]
-        python -m pytest --cov=fab tests/system-tests
+        python -m pytest --cov=fab tests/system_tests
