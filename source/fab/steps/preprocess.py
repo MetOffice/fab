@@ -148,7 +148,6 @@ def preprocess_fortran(config: BuildConfig, source=None, **kwargs):
     """
     return pre_processor(
         config,
-        preprocessor=os.getenv('FPP', 'fpp -P'),  # todo: call get_fortran_preprocessor() instead
         source_getter=source or SuffixFilter('all_source', '.F90'),
         output_collection='preprocessed_fortran', output_suffix='.f90',
         **kwargs,

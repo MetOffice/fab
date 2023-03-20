@@ -30,21 +30,21 @@ class GrabGitBase(GrabSourceBase, ABC):
             raise RuntimeError("git command line tool not available")
         super().run(artefact_store, config)
 
-    def tool_available(self) -> bool:
-        """Is the command line git tool available?"""
-        try:
-            run_command(['git', 'help'])
-        except FileNotFoundError:
-            return False
-        return True
+def tool_available() -> bool:
+    """Is the command line git tool available?"""
+    try:
+        run_command(['git', 'help'])
+    except FileNotFoundError:
+        return False
+    return True
 
-    def is_working_copy(self, dst: Union[str, Path]) -> bool:
-        """Is the given path is a working copy?"""
-        try:
-            run_command(['git', 'status'], cwd=dst)
-        except RuntimeError:
-            return False
-        return True
+def is_working_copy(dst: Union[str, Path]) -> bool:
+    """Is the given path is a working copy?"""
+    try:
+        run_command(['git', 'status'], cwd=dst)
+    except RuntimeError:
+        return False
+    return True
 
 def fetch(src, revision, dst):
     # todo: allow shallow fetch with --depth 1
@@ -69,10 +69,10 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
         _dst.mkdir(parents=True)
         run_command(['git', 'init', '.'], cwd=_dst)
 
-    elif not is_working_copy(self._dst):  # type: ignore
+    elif not is_working_copy(_dst):  # type: ignore
         raise ValueError(f"destination exists but is not a working copy: '{_dst}'")
 
-    fetch()
+    fetch(src, revision, _dst)
     run_command(['git', 'checkout', 'FETCH_HEAD'], cwd=_dst)
 
     try:
