@@ -141,9 +141,33 @@ See also
  * `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
 
 
+Running the tests
+=================
+You'll need to install from source, and a full :ref:`[dev] install<Install from source>` to get the testing dependencies.
+
+Unit and system tests
+---------------------
+From the fab folder, type:
+
+.. code-block:: console
+
+    pytest tests/unit_tests
+    pytest tests/system-tests
+
 Acceptance tests
-================
+----------------
 For extra confidence, we have acceptance tests in the ``run_configs`` folder which are not run as part of our
 automated github testing. You can run them on the VDI using ``build_all.py``. However, this will choke your machine
 for some time. There's a (misnamed) cron you can run nightly, ``run_configs\_cron\cron_system_tests.sh``.
 There's also a rose suite which runs them on spice in ``run_configs\_rose_all``.
+
+Flake8 and mypy
+---------------
+When making a PR, you might want to run all the checks which give us green ticks.
+You can see the commands we run in ``.github\workflows\build.yml``.
+To run flake8 and mypy, type:
+
+.. code-block:: console
+
+    flake8 .
+    mypy setup.py source tests
