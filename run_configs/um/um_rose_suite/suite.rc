@@ -12,7 +12,6 @@
             module load environment/lfric/gnu
             conda init bash
             conda activate sci-fab
-            PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
         """
         
     [[common]]
