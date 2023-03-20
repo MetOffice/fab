@@ -152,7 +152,7 @@ From the fab folder, type:
 .. code-block:: console
 
     pytest tests/unit_tests
-    pytest tests/system-tests
+    pytest tests/system_tests
 
 Acceptance tests
 ----------------
