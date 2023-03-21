@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 import warnings
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -36,16 +36,16 @@ class BuildConfig(object):
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str, arg_parser: Optional[ArgumentParser] = None,
+    def __init__(self, project_label: str, parsed_args: Optional[Namespace] = None,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
                  fab_workspace: Optional[Path] = None,):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
-        :param arg_parser:
-            If you want to add arguments to your script, please call common_arg_parser() and pass in in here.
-            That ensures Fab gets any command line arguments it needs too.
+        :param parsed_args:
+            If you want to add arguments to your script, please use common_arg_parser() and add arguements.
+            This pararmeter is the result of running :func:`ArgumentParser.parse_args`.
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
@@ -59,13 +59,13 @@ class BuildConfig(object):
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
 
         """
-        arg_parser = arg_parser or common_arg_parser()
-        self.parsed_args = vars(arg_parser.parse_args())
+        self.parsed_args = vars(parsed_args) if parsed_args else {}
 
         from fab.steps.compile_fortran import get_fortran_compiler
         compiler, _ = get_fortran_compiler()
         project_label = Template(project_label).substitute(
-            compiler=compiler, two_stage=f'{int(self.parsed_args["two_stage"])+1}stage')
+            compiler=compiler,
+            two_stage=f'{int(self.parsed_args.get("two_stage", 0))+1}stage')
 
         self.project_label: str = project_label.replace(' ', '_')
 
@@ -114,7 +114,7 @@ class BuildConfig(object):
         logger.info('------------------------------------------------------------')
         logger.info('')
 
-        if self.parsed_args['verbose']:
+        if self.parsed_args.get('verbose'):
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
         logger.info(f'building {self.project_label}')
@@ -169,12 +169,6 @@ class BuildConfig(object):
 
         # note: initialising here gives a new set of artefacts each run
         self.init_artefact_store()
-
-        # # if the user hasn't specified any cleanup of the incremental/prebuild folder,
-        # # then we add a default, hard cleanup leaving only cutting-edge artefacts.
-        # if not list(by_type(self.steps, CleanupPrebuilds)):
-        #     logger.info("no housekeeping specified, adding a default hard cleanup")
-        #     self.steps.append(CleanupPrebuilds(all_unused=True))
 
     def _prep_output_folders(self):
         self.build_output.mkdir(parents=True, exist_ok=True)

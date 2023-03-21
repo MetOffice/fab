@@ -5,8 +5,9 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
-from fab.parse.fortran import FortranParserWorkaround, AnalysedFortran
-from fab.steps.analyse import Analyse
+from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround
+from fab.steps.analyse import _add_manual_results, _add_unreferenced_deps, _gen_file_deps, _gen_symbol_table, \
+    _parse_files
 from fab.util import HashedFile
 
 
@@ -29,8 +30,7 @@ class Test_gen_symbol_table(object):
                 AnalysedDependent(fpath=Path('bar.c'), symbol_defs=['bar_1', 'bar_2'], file_hash=0)]
 
     def test_vanilla(self, analysed_files):
-        analyser = Analyse(root_symbol=None)
-        result = analyser._gen_symbol_table(analysed_files=analysed_files)
+        result = _gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -42,10 +42,9 @@ class Test_gen_symbol_table(object):
     def test_duplicate_symbol(self, analysed_files):
         # duplicate a symbol from the first file in the second file
         analysed_files[1].symbol_defs.add('foo_1')
-        analyser = Analyse(root_symbol=None)
 
         with pytest.warns(UserWarning):
-            result = analyser._gen_symbol_table(analysed_files=analysed_files)
+            result = _gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
             'foo_1': Path('foo.c'),
@@ -57,7 +56,7 @@ class Test_gen_symbol_table(object):
 
 class Test_gen_file_deps(object):
 
-    def test_vanilla(self, analyser):
+    def test_vanilla(self):
 
         my_file = Path('my_file.f90')
         symbols = {
@@ -72,7 +71,7 @@ class Test_gen_file_deps(object):
                 spec=AnalysedDependent, fpath=my_file, symbol_deps={'my_func', 'dep1_mod', 'dep2'}, file_deps=set()),
         ]
 
-        analyser._gen_file_deps(analysed_files=analysed_files, symbols=symbols)
+        _gen_file_deps(analysed_files=analysed_files, symbols=symbols)
 
         assert analysed_files[0].file_deps == {symbols['dep1_mod'], symbols['dep2']}
 
@@ -81,7 +80,7 @@ class Test_gen_file_deps(object):
 class Test_add_unreferenced_deps(object):
 
     def test_vanilla(self):
-        analyser = Analyse(root_symbol=None)
+        # analyser = Analyse(root_symbol=None)
 
         # we analysed the source folder and found these symbols
         symbol_table = {
@@ -98,7 +97,7 @@ class Test_add_unreferenced_deps(object):
         }
 
         # we want to force this symbol into the build (because it's not used via modules)
-        analyser.unreferenced_deps = ['util']
+        unreferenced_deps = ['util']
 
         # the stuff to add to the build tree will be found in here
         all_analysed_files = {
@@ -107,7 +106,8 @@ class Test_add_unreferenced_deps(object):
             Path('util_dep.f90'): AnalysedFortran(fpath=Path('util_dep.f90'), file_hash=0),
         }
 
-        analyser._add_unreferenced_deps(
+        _add_unreferenced_deps(
+            unreferenced_deps=unreferenced_deps,
             symbol_table=symbol_table, all_analysed_files=all_analysed_files, build_tree=build_tree)
 
         assert Path('util.f90') in build_tree
@@ -126,11 +126,11 @@ class Test_parse_files(object):
 
     def test_exceptions(self, tmp_path):
         # make sure parse exceptions do not stop the build
-        with mock.patch('fab.steps.Step.run_mp', return_value=[(Exception('foo'), None)]):
-            analyse_step = Analyse(root_symbol=None)
-            analyse_step._config = BuildConfig('proj', fab_workspace=tmp_path)
+        with mock.patch('fab.steps.run_mp', return_value=[(Exception('foo'), None)]):
+            config = BuildConfig('proj', fab_workspace=tmp_path)
 
-            analyse_step._parse_files(files=[])
+            # the exception should be suppressed (and logged) and this step should run to completion
+            _parse_files(config, files=[], fortran_analyser=mock.Mock(), c_analyser=mock.Mock())
 
 
 class Test_add_manual_results(object):
@@ -138,13 +138,10 @@ class Test_add_manual_results(object):
 
     def test_vanilla(self):
         # test normal usage of manual analysis results
-        input = FortranParserWorkaround(fpath=Path('foo.f'), symbol_defs={'foo', })
-        expect = AnalysedFortran(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })
-
-        analyser = Analyse(special_measure_analysis_results=[input])
+        workaround = FortranParserWorkaround(fpath=Path('foo.f'), symbol_defs={'foo', })
         analysed_files = set()
 
         with mock.patch('fab.parse.fortran.file_checksum', return_value=HashedFile(None, 123)):
-            analyser._add_manual_results(analysed_files=analysed_files)
+            _add_manual_results(special_measure_analysis_results=[workaround], analysed_files=analysed_files)
 
-        assert analysed_files == {expect}
+        assert analysed_files == {AnalysedFortran(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })}

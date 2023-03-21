@@ -7,12 +7,17 @@
 from fab.build_config import BuildConfig
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.link import link_shared_object
+from fab.util import common_arg_parser
 from gcom_build_steps import common_build_steps
 
 
 if __name__ == '__main__':
 
-    with BuildConfig(project_label='gcom shared library $compiler') as config:
+    arg_parser = common_arg_parser()
+    # we can add our own arguments here
+    parsed_args = arg_parser.parse_args()
+
+    with BuildConfig(project_label='gcom shared library $compiler', parsed_args=parsed_args) as config:
         common_build_steps(config, fpic=True)
         link_shared_object(config, output_fpath='$output/libgcom.so'),
         cleanup_prebuilds(config, all_unused=True)

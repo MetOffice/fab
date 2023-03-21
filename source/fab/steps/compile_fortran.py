@@ -103,7 +103,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
 
     # todo: move this to the known compiler flags?
     two_stage_flag = None
-    if compiler == 'gfortran' and config.parsed_args['two_stage']:
+    if compiler == 'gfortran' and config.parsed_args.get('two_stage'):
         two_stage_flag = '-fsyntax-only'
 
     stage: Optional[int] = None
