@@ -70,46 +70,33 @@ class Test_CompileC(object):
 
 class Test_get_obj_combo_hash(object):
 
-    def test_vanilla(self, content):
-        config, analysed_file, expect_hash = content
-        flags_config = FlagsConfig(path_flags=[AddFlags(match='$source/*', flags=['-I', 'foo/include', '-Dhello'])])
-        flags = flags_config.flags_for_path(analysed_file.fpath, config)
-        result = _get_obj_combo_hash('foo_cc', '1.2.3', analysed_file, flags)
+    @pytest.fixture
+    def flags(self):
+        return ['-c', '-Denv_flag', '-I', 'foo/include', '-Dhello']
 
+    def test_vanilla(self, content, flags):
+        _, analysed_file, expect_hash = content
+        result = _get_obj_combo_hash('foo_cc', '1.2.3', analysed_file, flags)
         assert result == expect_hash
 
-    def test_change_file(self, content):
-        config, artefact_store, compiler, analysed_file, expect_hash = content
+    def test_change_file(self, content, flags):
+        _, analysed_file, expect_hash = content
         analysed_file._file_hash += 1
-
-        flags = compiler.flags.flags_for_path(analysed_file.fpath, config)
-        result = compiler._get_obj_combo_hash(analysed_file, flags)
-
+        result = _get_obj_combo_hash('foo_cc', '1.2.3', analysed_file, flags)
         assert result == expect_hash + 1
 
-    def test_change_flags(self, content):
-        config, artefact_store, compiler, analysed_file, expect_hash = content
-        compiler.flags.common_flags.append('-Dfoo')
-
-        flags = compiler.flags.flags_for_path(analysed_file.fpath, config)
-        result = compiler._get_obj_combo_hash(analysed_file, flags)
-
+    def test_change_flags(self, content, flags):
+        _, analysed_file, expect_hash = content
+        flags = ['-Dfoo'] + flags
+        result = _get_obj_combo_hash('foo_cc', '1.2.3', analysed_file, flags)
         assert result != expect_hash
 
-    def test_change_compiler(self, content):
-        config, artefact_store, compiler, analysed_file, expect_hash = content
-        compiler.compiler = 'ooh_cc'
-
-        flags = compiler.flags.flags_for_path(analysed_file.fpath, config)
-        result = compiler._get_obj_combo_hash(analysed_file, flags)
-
+    def test_change_compiler(self, content, flags):
+        _, analysed_file, expect_hash = content
+        result = _get_obj_combo_hash('ooh_cc', '1.2.3', analysed_file, flags)
         assert result != expect_hash
 
-    def test_change_compiler_version(self, content):
-        config, artefact_store, compiler, analysed_file, expect_hash = content
-        compiler.compiler_version = '1.2.4'
-
-        flags = compiler.flags.flags_for_path(analysed_file.fpath, config)
-        result = compiler._get_obj_combo_hash(analysed_file, flags)
-
+    def test_change_compiler_version(self, content, flags):
+        _, analysed_file, expect_hash = content
+        result = _get_obj_combo_hash('foo_cc', '1.2.4', analysed_file, flags)
         assert result != expect_hash

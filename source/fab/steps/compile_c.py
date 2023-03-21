@@ -32,7 +32,7 @@ DEFAULT_OUTPUT_ARTEFACT = ''
 
 
 @dataclass
-class MpPayload(object):
+class MpCommonArgs(object):
     config: BuildConfig
     flags: FlagsConfig
     compiler: str
@@ -87,7 +87,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     to_compile: list = sum(build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
 
-    mp_payload = MpPayload(config=config, flags=flags, compiler=compiler, compiler_version=compiler_version)
+    mp_payload = MpCommonArgs(config=config, flags=flags, compiler=compiler, compiler_version=compiler_version)
     mp_items = [(fpath, mp_payload) for fpath in to_compile]
 
     # compile everything in one go
@@ -118,7 +118,7 @@ def store_artefacts(compiled_files: List[CompiledFile], build_lists: Dict[str, L
         object_files[root].update(new_objects)
 
 
-def _compile_file(arg: Tuple[AnalysedC, MpPayload]):
+def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
 

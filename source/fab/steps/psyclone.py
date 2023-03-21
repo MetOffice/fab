@@ -62,7 +62,7 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
 
 
 @dataclass
-class MpPayload:
+class MpCommonArgs:
     """
     Runtime data for child processes to read.
 
@@ -172,7 +172,7 @@ def _generate_mp_payload(config, prebuild_analyses, overrides_folder, kernel_roo
     if overrides_folder:
         override_files = [f.name for f in file_walk(overrides_folder)]
 
-    return MpPayload(
+    return MpCommonArgs(
         config=config,
         transformation_script_hash=transformation_script_hash,
         kernel_roots=kernel_roots,
@@ -315,7 +315,7 @@ def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
     return all_kernel_hashes
 
 
-def do_one_file(arg: Tuple[Path, MpPayload]):
+def do_one_file(arg: Tuple[Path, MpCommonArgs]):
     x90_file, mp_payload = arg
     prebuild_hash = _gen_prebuild_hash(x90_file, mp_payload)
 
@@ -373,7 +373,7 @@ def do_one_file(arg: Tuple[Path, MpPayload]):
     return result, prebuild_result
 
 
-def _gen_prebuild_hash(x90_file: Path, mp_payload: MpPayload):
+def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
     """
     Calculate the prebuild hash for this x90 file, based on all the things which should trigger reprocessing.
 
@@ -433,7 +433,7 @@ def run_psyclone(generated, modified_alg, x90_file, kernel_roots, transformation
     run_command(command)
 
 
-def _check_override(check_path: Path, mp_payload: MpPayload):
+def _check_override(check_path: Path, mp_payload: MpCommonArgs):
     """
     Delete the file if there's an override for it.
 

@@ -10,7 +10,7 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.parse.x90 import AnalysedX90
-from fab.steps.psyclone import MpPayload, Psyclone
+from fab.steps.psyclone import MpCommonArgs, Psyclone
 
 
 class Test_gen_prebuild_hash(object):
@@ -19,7 +19,7 @@ class Test_gen_prebuild_hash(object):
 
     """
     @pytest.fixture
-    def data(self, tmp_path) -> Tuple[Psyclone, MpPayload, Path, int]:
+    def data(self, tmp_path) -> Tuple[Psyclone, MpCommonArgs, Path, int]:
         config = BuildConfig('proj', fab_workspace=tmp_path)
         config._prep_output_folders()
 
@@ -43,7 +43,7 @@ class Test_gen_prebuild_hash(object):
 
         expect_hash = 223133615
 
-        mp_payload = MpPayload(
+        mp_payload = MpCommonArgs(
             transformation_script_hash=transformation_script_hash,
             analysed_x90=analysed_x90,
             all_kernel_hashes=all_kernel_hashes,
