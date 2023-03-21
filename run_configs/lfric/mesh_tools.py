@@ -48,7 +48,7 @@ if __name__ == '__main__':
                 Exclude('unit-test', '/test/'),
             ])
 
-        preprocess_fortran(config, preprocessor='cpp -traditional-cpp', common_flags=['-P'])
+        preprocess_fortran(config)
 
         preprocess_x90(config, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
 

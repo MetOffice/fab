@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
         find_source_files(config),
 
-        preprocess_fortran(config, preprocessor='fpp -P'),
+        preprocess_fortran(config),
 
         analyse(config, root_symbol='my_prog'),
 

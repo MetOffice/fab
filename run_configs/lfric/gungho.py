@@ -54,9 +54,7 @@ if __name__ == '__main__':
 
         preprocess_fortran(
             config,
-            preprocessor='cpp -traditional-cpp',
             common_flags=[
-                '-P',
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
             ])
 

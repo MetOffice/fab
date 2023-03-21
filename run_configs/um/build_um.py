@@ -26,7 +26,7 @@ from fab.steps.grab.fcm import fcm_export
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.steps.find_source_files import find_source_files, Exclude, Include
-from run_configs.jules.build_jules import root_inc_files
+from fab.steps.root_inc_files import root_inc_files
 
 logger = logging.getLogger('fab')
 

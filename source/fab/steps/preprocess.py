@@ -17,9 +17,10 @@ from typing import Dict, List, Optional, Tuple
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import PRAGMAD_C
 from fab.metrics import send_metric
+from fab.steps.compile_fortran import logger
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, Timer, by_type
-from fab.tools import run_command
+from fab.tools import get_tool, run_command
 from fab.steps import check_for_errors, run_mp, Step, step_timer
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
@@ -65,13 +66,7 @@ def pre_processor(config: BuildConfig, preprocessor: str,
         Human friendly name for logger output, with sensible default.
 
     """
-    # todo: should we manage known preprocessors like we do compilers, so we can ensure the -P flag is added?
-
-    # Command line tools are sometimes specified with flags attached, e.g 'cpp -traditional-cpp'
-    preprocessor_split = preprocessor.split()
-    preprocessor = preprocessor_split[0]
-
-    common_flags = preprocessor_split[1:] + (common_flags or [])
+    common_flags = common_flags or []
     flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
 
     logger.info(f'preprocessor is {preprocessor}')
@@ -133,6 +128,55 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
     return output_fpath
 
 
+def get_fortran_preprocessor():
+    """
+    Identify the fortran preprocessor and any flags from the environment.
+
+    Initially looks for the `FPP` environment variable, then tries to call the `fpp` and `cpp` command line tools.
+
+    Returns the executable and flags.
+
+    The returned flags will always include `-P` to suppress line numbers.
+    This fparser ticket requests line number handling https://github.com/stfc/fparser/issues/390 .
+
+    """
+    fpp: Optional[str] = None
+    fpp_flags: Optional[List[str]] = None
+
+    try:
+        fpp, fpp_flags = get_tool(os.getenv('FPP'))
+        logger.info(f"The environment defined FPP as '{fpp}'")
+    except ValueError:
+        pass
+
+    if not fpp:
+        try:
+            run_command(['which', 'fpp'])
+            fpp, fpp_flags = 'fpp', ['-P']
+            logger.info('detected fpp')
+        except RuntimeError:
+            # fpp not available
+            pass
+
+    if not fpp:
+        try:
+            run_command(['which', 'cpp'])
+            fpp, fpp_flags = 'cpp', ['-traditional-cpp', '-P']
+            logger.info('detected cpp')
+        except RuntimeError:
+            # fpp not available
+            pass
+
+    if not fpp:
+        raise RuntimeError('no fortran preprocessor specified or discovered')
+
+    assert fpp_flags is not None
+    if '-P' not in fpp_flags:
+        fpp_flags.append('-P')
+
+    return fpp, fpp_flags
+
+
 # todo: rename preprocess_fortran
 @step_timer
 def preprocess_fortran(config: BuildConfig, source=None, **kwargs):
@@ -146,8 +190,22 @@ def preprocess_fortran(config: BuildConfig, source=None, **kwargs):
     If source is not provided, it defaults to `SuffixFilter('all_source', '.F90')`.
 
     """
-    return pre_processor(
+    # get the tool from FPP
+    fpp, fpp_flags = get_fortran_preprocessor()
+
+    # make sure any flags from FPP are included in any common flags specified by the config
+    try:
+        common_flags = kwargs.pop('common_flags')
+    except KeyError:
+        common_flags = []
+    for fpp_flag in fpp_flags:
+        if fpp_flag not in common_flags:
+            common_flags.append(fpp_flag)
+
+    pre_processor(
         config,
+        preprocessor=fpp,
+        common_flags=common_flags,
         source_getter=source or SuffixFilter('all_source', '.F90'),
         output_collection='preprocessed_fortran', output_suffix='.f90',
         **kwargs,
@@ -178,7 +236,7 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
     If source is not provided, it defaults to :class:`~fab.steps.preprocess.DefaultCPreprocessorSource`.
 
     """
-    return pre_processor(
+    pre_processor(
         config,
         preprocessor=os.getenv('CPP', 'cpp'),
         source_getter=source or DefaultCPreprocessorSource(),

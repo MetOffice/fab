@@ -69,12 +69,6 @@ class BuildConfig(object):
 
         self.project_label: str = project_label.replace(' ', '_')
 
-        logger.info('')
-        logger.info('------------------------------------------------------------')
-        logger.info(f'initialising {self.project_label}')
-        logger.info('------------------------------------------------------------')
-        logger.info('')
-
         # workspace folder
         if not fab_workspace:
             fab_workspace = get_fab_workspace()
@@ -114,9 +108,11 @@ class BuildConfig(object):
 
     def __enter__(self):
 
-        # we've finished with this, and as it's not pickleable, it stops us being sent to run_mp
-        # smells a little hackey.
-        self.arg_parser = None
+        logger.info('')
+        logger.info('------------------------------------------------------------')
+        logger.info(f'initialising {self.project_label}')
+        logger.info('------------------------------------------------------------')
+        logger.info('')
 
         if self.parsed_args['verbose']:
             logging.getLogger('fab').setLevel(logging.DEBUG)

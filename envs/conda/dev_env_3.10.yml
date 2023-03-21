@@ -7,5 +7,4 @@ dependencies:
   - python-clang>=8.0.1
   - pip:
       - jinja2
-      - psyclone==2.1.0
-      - svn
+      - psyclone==2.3.1

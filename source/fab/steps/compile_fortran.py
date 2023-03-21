@@ -365,53 +365,6 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
 
 
 # todo: move this
-def get_fortran_preprocessor():
-    """
-    Identify the fortran preprocessor and any flags from the environment.
-
-    Initially looks for the `FPP` environment variable, then tries to call the `fpp` and `cpp` command line tools.
-
-    Returns the executable and flags.
-
-    The returned flags will always include `-P` to suppress line numbers.
-    This fparser ticket requests line number handling https://github.com/stfc/fparser/issues/390 .
-
-    """
-    fpp: Optional[str] = None
-    fpp_flags: Optional[List[str]] = None
-
-    try:
-        fpp, fpp_flags = get_tool(os.getenv('FPP'))
-        logger.info(f"The environment defined FPP as '{fpp}'")
-    except ValueError:
-        pass
-
-    if not fpp:
-        try:
-            run_command(['which', 'fpp'])
-            fpp, fpp_flags = 'fpp', ['-P']
-            logger.info('detected fpp')
-        except RuntimeError:
-            # fpp not available
-            pass
-
-    if not fpp:
-        try:
-            run_command(['which', 'cpp'])
-            fpp, fpp_flags = 'cpp', ['-traditional-cpp', '-P']
-            logger.info('detected cpp')
-        except RuntimeError:
-            # fpp not available
-            pass
-
-    if not fpp:
-        raise RuntimeError('no fortran preprocessor specified or discovered')
-
-    assert fpp_flags is not None
-    if '-P' not in fpp_flags:
-        fpp_flags.append('-P')
-
-    return fpp, fpp_flags
 
 
 def get_fortran_compiler(compiler: Optional[str] = None):

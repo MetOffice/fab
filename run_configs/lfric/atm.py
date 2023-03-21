@@ -626,7 +626,6 @@ if __name__ == '__main__':
 
         preprocess_fortran(
             config,
-            preprocessor='cpp -traditional-cpp -P',
             common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED', '-DUSE_MPI=YES'],
             path_flags=[
                 AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),

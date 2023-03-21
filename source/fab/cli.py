@@ -14,11 +14,11 @@ from fab.constants import PRAGMAD_C
 from fab.steps.analyse import Analyse
 from fab.steps.c_pragma_injector import CPragmaInjector
 from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler, get_fortran_preprocessor
+from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
 from fab.steps.find_source_files import FindSourceFiles
 from fab.steps.grab.folder import GrabFolder
 from fab.steps.link import LinkExe
-from fab.steps.preprocess import preprocess_c, preprocess_fortran
+from fab.steps.preprocess import get_fortran_preprocessor, preprocess_c, preprocess_fortran
 from fab.steps.root_inc_files import RootIncFiles
 
 

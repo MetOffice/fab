@@ -24,7 +24,7 @@ from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step_timer
-from fab.steps.preprocess import pre_processor
+from fab.steps.preprocess import get_fortran_preprocessor, pre_processor
 from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \
     string_checksum, suffix_filter, by_type, log_or_dot_finish
 
@@ -44,17 +44,20 @@ def tool_available() -> bool:
 def preprocess_x90(config, common_flags: Optional[List[str]] = None):
     common_flags = common_flags or []
 
+    # get the tool from FPP
+    fpp, fpp_flags = get_fortran_preprocessor()
+    for fpp_flag in fpp_flags:
+        if fpp_flag not in common_flags:
+            common_flags.append(fpp_flag)
+
     pre_processor(
         config,
-        # todo: use env vars and param
-        preprocessor='cpp -traditional-cpp',
-
+        preprocessor=fpp,
         source_getter=SuffixFilter('all_source', '.X90'),
         output_collection='preprocessed_x90',
-
         output_suffix='.x90',
         name='preprocess x90',
-        common_flags=common_flags + ['-P'],
+        common_flags=common_flags,
     )
 
 

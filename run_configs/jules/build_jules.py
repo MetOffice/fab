@@ -5,66 +5,19 @@
 # which you should have received as part of this distribution
 ##############################################################################
 import logging
-import shutil
-import warnings
-from pathlib import Path
 
 from fab.build_config import BuildConfig
-from fab.steps import step_timer
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.grab.fcm import fcm_export
-from fab.steps.grab.prebuild import GrabPreBuild
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
-from fab.util import suffix_filter
+from fab.steps.root_inc_files import root_inc_files
 
 logger = logging.getLogger('fab')
-
-
-@step_timer
-def root_inc_files(config):
-
-    """
-    Copy inc files into the workspace output root.
-
-    Checks for name clash. This step does not create any artefacts.
-    It's up to the user to configure other tools to find these files.
-
-    :param artefact_store:
-        Artefacts created by previous Steps.
-        This is where we find the artefacts to process.
-    :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
-
-    """
-
-    # todo: make the build output path a getter calculated in the config?
-    build_output: Path = config.build_output
-    build_output.mkdir(parents=True, exist_ok=True)
-
-    warnings.warn("RootIncFiles is deprecated as .inc files are due to be removed.", DeprecationWarning)
-
-    # inc files all go in the root - they're going to be removed altogether, soon
-    inc_copied = set()
-    for fpath in suffix_filter(config._artefact_store["all_source"], [".inc"]):
-
-        # don't copy from the output root to the output root!
-        # this is currently unlikely to happen but did in the past, and caused problems.
-        if fpath.parent == build_output:
-            continue
-
-        # check for name clash
-        if fpath.name in inc_copied:
-            raise FileExistsError(f"name clash for inc file: {fpath}")
-
-        logger.debug(f"copying inc file {fpath}")
-        shutil.copy(fpath, build_output)
-        inc_copied.add(fpath.name)
 
 
 if __name__ == '__main__':
@@ -72,7 +25,7 @@ if __name__ == '__main__':
     revision = 'vn6.3'
 
     with BuildConfig(project_label=f'jules {revision} $compiler') as config:
-        # grab the source
+        # grab the source. todo: use some checkouts instead of exports in these configs.
         fcm_export(config, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
         fcm_export(config, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
 
