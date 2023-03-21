@@ -44,7 +44,7 @@ class MpCommonArgs(object):
     compiler: str
     compiler_version: str
     mod_hashes: Dict[str, int]
-    two_stage_flag: bool
+    two_stage_flag: Optional[str]
     stage: int
 
 
@@ -77,27 +77,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
 
     # todo: two_stage is now in the parsed args - say what it does with the flag
 
-    # Command line tools are sometimes specified with flags attached.
-    compiler, compiler_flags = get_fortran_compiler()
-    compiler_version = get_compiler_version(compiler)
-    logger.info(f'fortran compiler is {compiler} {compiler_version}')
-
-    # collate the flags from 1) compiler env, 2) flags env and 3) params
-    env_flags = os.getenv('FFLAGS', '').split()
-    common_flags = compiler_flags + env_flags + (common_flags or [])
-
-    # Do we know this compiler? If so we can manage the flags a little, to avoid duplication or misconfiguration.
-    # todo: This has been raised for discussion - we might never want to modify incoming flags...
-    known_compiler = COMPILERS.get(compiler)
-    if known_compiler:
-        common_flags = remove_managed_flags(compiler, common_flags)
-    else:
-        logger.warning(f"Unknown compiler {compiler}. Fab cannot control certain flags."
-                       "Please ensure you specify the flag `-c` equivalent flag to only compile."
-                       "Please ensure the module output folder is set to your config's build_output folder."
-                       "or please extend fab.tools.COMPILERS in your build script.")
-
-    flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+    compiler, compiler_version, flags_config = handle_compiler_args(common_flags, path_flags)
 
     source_getter = source or DEFAULT_SOURCE_GETTER
 
@@ -114,7 +94,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
 
     # build the arguments passed to the multiprocessing function
     mp_common_args = MpCommonArgs(
-        config=config, flags=flags, compiler=compiler, compiler_version=compiler_version,
+        config=config, flags=flags_config, compiler=compiler, compiler_version=compiler_version,
         mod_hashes=mod_hashes, two_stage_flag=two_stage_flag, stage=stage)
 
     # compile everything in multiple passes
@@ -146,6 +126,34 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
 
     # record the compilation results for the next step
     store_artefacts(compiled, build_lists, config._artefact_store)
+
+
+def handle_compiler_args(common_flags=None, path_flags=None):
+
+    # Command line tools are sometimes specified with flags attached.
+    compiler, compiler_flags = get_fortran_compiler()
+
+    compiler_version = get_compiler_version(compiler)
+    logger.info(f'fortran compiler is {compiler} {compiler_version}')
+
+    # collate the flags from 1) compiler env, 2) flags env and 3) params
+    env_flags = os.getenv('FFLAGS', '').split()
+    common_flags = compiler_flags + env_flags + (common_flags or [])
+
+    # Do we know this compiler? If so we can manage the flags a little, to avoid duplication or misconfiguration.
+    # todo: This has been raised for discussion - we might never want to modify incoming flags...
+    known_compiler = COMPILERS.get(compiler)
+    if known_compiler:
+        common_flags = remove_managed_flags(compiler, common_flags)
+    else:
+        logger.warning(f"Unknown compiler {compiler}. Fab cannot control certain flags."
+                       "Please ensure you specify the flag `-c` equivalent flag to only compile."
+                       "Please ensure the module output folder is set to your config's build_output folder."
+                       "or please extend fab.tools.COMPILERS in your build script.")
+
+    flags_config = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+
+    return compiler, compiler_version, flags_config
 
 
 def compile_pass(config, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran],
