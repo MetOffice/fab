@@ -3,7 +3,6 @@ import os
 import zlib
 from datetime import timedelta, datetime
 from pathlib import Path
-from typing import List, Dict, Set, Tuple
 from unittest import mock
 
 import pytest
@@ -20,11 +19,6 @@ from fab.steps.find_source_files import FindSourceFiles
 from fab.util import file_walk, get_prebuild_file_groups
 
 PROJECT_LABEL = 'tiny_project'
-
-
-def suffix_filter(data: Dict, suffixes: List[str]) -> Set[Tuple]:
-    filtered = set(filter(lambda i: i[0].suffix in suffixes, data.items()))
-    return filtered
 
 
 class TestIncremental(object):

@@ -93,7 +93,7 @@ class Test_analysis_for_prebuilds(object):
 
     @pytest.fixture
     def psyclone_step(self, tmp_path) -> Psyclone:
-        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent], transformation_script=__file__)
+        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent], transformation_script=Path(__file__))
         psyclone_step._config = BuildConfig('proj', fab_workspace=tmp_path)
         psyclone_step._config._prep_output_folders()
         return psyclone_step
