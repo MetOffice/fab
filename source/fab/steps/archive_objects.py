@@ -31,7 +31,7 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(OBJECT_FILES)
 
 @step_timer
 def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = None, archiver='ar',
-                 output_fpath=None, output_collection=OBJECT_ARCHIVES, name='archive objects'):
+                    output_fpath=None, output_collection=OBJECT_ARCHIVES):
     """
     Create an object archive for every build target, from their object files.
 

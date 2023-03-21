@@ -62,7 +62,8 @@ def cleanup_prebuilds(
         logger.info('no prebuild files found')
 
     elif all_unused:
-        num_removed = remove_all_unused(found_files=prebuild_files, current_files=config._artefact_store[CURRENT_PREBUILDS])
+        num_removed = remove_all_unused(
+            found_files=prebuild_files, current_files=config._artefact_store[CURRENT_PREBUILDS])
 
     else:
         # get the file access time for every artefact

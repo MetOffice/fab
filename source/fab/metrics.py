@@ -29,6 +29,7 @@ stop
 import datetime
 import json
 import logging
+import warnings
 from collections import defaultdict
 from multiprocessing import Process, Pipe
 from multiprocessing.connection import Connection
@@ -135,6 +136,9 @@ def send_metric(group: str, name: str, value):
         Value of the metric.
 
     """
+    if not _metric_send_conn:
+        warnings.warn('_metric_send_conn not set, cannot send metrics')
+        return
     _metric_send_conn.send([group, name, value])  # type: ignore
 
 
