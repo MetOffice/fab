@@ -37,7 +37,7 @@ The *metrics* folder contains some useful stats and graphs. See :ref:`Metrics`.
 
 Managed arguments
 =================
-Fab manages some command line arguments for some tools.
+Fab manages some command line arguments for a few of the tools it uses.
 
 Preprocessors
 -------------
@@ -64,10 +64,10 @@ Overriding defaults
 Command line tools
 ------------------
 Fab uses the same environment variables as Make for tool configuration
- * _FPP_
- * _FC_, _FFLAGS_
- * _CC_, _CFLAGS_
- * _LD_, _LDFLAGS_
+ * **FPP**
+ * **FC**, **FFLAGS**
+ * **CC**, **CFLAGS**
+ * **LD**, **LDFLAGS**
 
 Fab doesn't currently have parameters for telling individual steps which tool to use.
 This is because sometimes we need this information *outside the step* too.

@@ -7,6 +7,7 @@ Information for developers of Fab.
 
 
 .. _Install from source:
+
 Install from source
 ===================
 The following commands will checkout the latest version of the code and create an
@@ -15,7 +16,7 @@ This lets you edit the code without needing to reinstall fab after every change.
 
 .. code-block:: console
 
-    $ git clone https://github.com/metomi/fab.git
+    $ git clone https://github.com/metomi/fab.git <fab-folder>
     $ pip install -e <fab-folder>
 
 
@@ -25,31 +26,6 @@ You can install extra features by using [test], [docs] or [dev], as defined in s
 
     $ pip install -e <fab-folder>[dev]
 
-
-
-Version numbering
-=================
-We use a `PEP 440 compliant <https://peps.python.org/pep-0440/#examples-of-compliant-version-schemes>`_
-semantic versioning, of the form ``{major}.{minor}.{patch}[{a|b|rc}N]``
-
-* 0.9.5
-* 1.0.0a1
-* 1.0.0a2
-* 1.0.0b1
-* 1.0.0rc1
-* 1.0.0
-* 1.0.1
-* 1.1.0a1
-
-Dev versions are not for release and cover multiple commits.
-* 1.0.dev0
-* ...
-* 1.0.0
-* 1.0.dev1
-* ...
-* 1.0.1
-
-The version number is defined in ``source/fab/__init_.py``.
 
 
 Source code Analysis
@@ -64,8 +40,6 @@ and the file dependencies into which they are converted.
     :width: 95%
     :align: center
     :alt: Analysis results class hierarchy
-|
-
 
 Incremental & Prebuilds
 =======================
@@ -89,7 +63,7 @@ Note: this can change with different preprocessor flags.
 
 Fortran module files
 --------------------
-When creating an module file from a Fortran source file, the prebuild checksum is created from hashes of:
+When creating a module file from a Fortran source file, the prebuild checksum is created from hashes of:
 
  - source file
  - compiler
@@ -97,7 +71,7 @@ When creating an module file from a Fortran source file, the prebuild checksum i
 
 Fortran object files
 --------------------
-When creating a object file from a Fortran source file, the prebuild checksum is created from hashes of:
+When creating an object file from a Fortran source file, the prebuild checksum is created from hashes of:
 
  - source file
  - compiler
@@ -105,18 +79,37 @@ When creating a object file from a Fortran source file, the prebuild checksum is
  - compiler flags
  - modules on which the source depends
 
+Running the tests
+=================
+You'll need to install from source, and a full :ref:`[dev] install<Install from source>` to get the testing dependencies.
+
+Unit and system tests
+---------------------
+From the fab folder, type:
+
+.. code-block:: console
+
+    pytest tests/unit_tests
+    pytest tests/system_tests
+
+Acceptance tests
+----------------
+For extra confidence, we have acceptance tests in the ``run_configs`` folder which are not run as part of our
+automated github testing. You can run them on the VDI using ``build_all.py``. However, this will choke your machine
+for some time. There's a (misnamed) cron you can run nightly, ``run_configs\_cron\cron_system_tests.sh``.
+There's also a rose suite which runs them on spice in ``run_configs\_rose_all``.
 
 Github Actions
 ==============
 
 Testing a PR
 ------------
-The github action defined in ``.github\workflows\build.yml`` automatically runs the unit and system tests,
+The github action defined in ``.github/workflows/build.yml`` automatically runs the unit and system tests,
 plus flake8 and mypy, and adds green ticks to pull requests.
 
 Build these docs
 ----------------
-The github action to build the docs is defined in ``.github\workflows\build_docs.yml``.
+The github action to build the docs is defined in ``.github/workflows/build_docs.yml``.
 It is manually triggered and can be run from any branch in the metomi repo.
 You can also run it on your fork to produce a separate build, for viewing work in progress.
 
@@ -141,25 +134,6 @@ See also
  * `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
 
 
-Running the tests
-=================
-You'll need to install from source, and a full :ref:`[dev] install<Install from source>` to get the testing dependencies.
-
-Unit and system tests
----------------------
-From the fab folder, type:
-
-.. code-block:: console
-
-    pytest tests/unit_tests
-    pytest tests/system_tests
-
-Acceptance tests
-----------------
-For extra confidence, we have acceptance tests in the ``run_configs`` folder which are not run as part of our
-automated github testing. You can run them on the VDI using ``build_all.py``. However, this will choke your machine
-for some time. There's a (misnamed) cron you can run nightly, ``run_configs\_cron\cron_system_tests.sh``.
-There's also a rose suite which runs them on spice in ``run_configs\_rose_all``.
 
 Flake8 and mypy
 ---------------
@@ -169,5 +143,29 @@ To run flake8 and mypy, type:
 
 .. code-block:: console
 
-    flake8 .
-    mypy setup.py source tests
+    $ flake8 .
+    $ mypy setup.py source tests
+
+Version numbering
+=================
+We use a `PEP 440 compliant <https://peps.python.org/pep-0440/#examples-of-compliant-version-schemes>`_
+semantic versioning, of the form ``{major}.{minor}.{patch}[{a|b|rc}N]``
+
+* 0.9.5
+* 1.0.0a1
+* 1.0.0a2
+* 1.0.0b1
+* 1.0.0rc1
+* 1.0.0
+* 1.0.1
+* 1.1.0a1
+
+Dev versions are not for release and cover multiple commits.
+* 1.0.dev0
+* ...
+* 1.0.0
+* 1.0.dev1
+* ...
+* 1.0.1
+
+The version number is defined in ``source/fab/__init_.py``.

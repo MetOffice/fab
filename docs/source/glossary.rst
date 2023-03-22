@@ -61,7 +61,7 @@ Glossary
     Source Tree
         The :class:`~fab.steps.analyse.Analyse` step produces a dependency tree of the entire project source.
         This is represented as a mapping from Path to :class:`~fab.dep_tree.AnalysedDependent`.
-        These the AnalysedDependent's file dependencies are Paths, which refer to other entries in the mapping,
+        The AnalysedDependent's file dependencies are Paths, which refer to other entries in the mapping,
         and which define the tree structure. This is called the source tree.
 
         When building executables, a sub-tree is extracted from the :term:`Source Tree`, for each executable
