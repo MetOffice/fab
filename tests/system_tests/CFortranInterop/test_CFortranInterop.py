@@ -8,13 +8,13 @@ from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
-from fab.steps.analyse import Analyse
-from fab.steps.c_pragma_injector import CPragmaInjector
-from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran
-from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab.folder import GrabFolder
-from fab.steps.link import LinkExe
+from fab.steps.analyse import analyse
+from fab.steps.c_pragma_injector import c_pragma_injector
+from fab.steps.compile_c import compile_c
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran, preprocess_c
 
 
@@ -24,32 +24,26 @@ PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 def test_CFortranInterop(tmp_path):
 
     # build
-    config = BuildConfig(
-        fab_workspace=tmp_path,
-        project_label='foo',
-        multiprocessing=False,
+    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config:
 
-        steps=[
-            GrabFolder(src=PROJECT_SOURCE),
-            FindSourceFiles(),
+        grab_folder(config, src=PROJECT_SOURCE),
+        find_source_files(config),
 
-            CPragmaInjector(),
-            preprocess_c(),
-            preprocess_fortran(preprocessor='cpp -traditional-cpp -P'),
+        c_pragma_injector(config),
+        preprocess_c(config),
+        preprocess_fortran(config),
 
-            Analyse(root_symbol='main'),
+        analyse(config, root_symbol='main'),
 
-            CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
-            CompileFortran(compiler='gfortran', common_flags=['-c']),
-            LinkExe(linker='gcc', flags=['-lgfortran']),
-            # todo: on an ubuntu vm, we needed these before the object files - investigate further
-            # [
-            #     '/lib/x86_64-linux-gnu/libc.so.6',
-            #     '/lib/x86_64-linux-gnu/libgfortran.so.5',
-            # ]
-        ],
-    )
-    config.run()
+        compile_c(config, common_flags=['-c', '-std=c99']),
+        compile_fortran(config, common_flags=['-c']),
+        link_exe(config, linker='gcc', flags=['-lgfortran']),
+        # todo: on an ubuntu vm, we needed these before the object files - investigate further
+        # [
+        #     '/lib/x86_64-linux-gnu/libc.so.6',
+        #     '/lib/x86_64-linux-gnu/libgfortran.so.5',
+        # ]
+
     assert len(config._artefact_store[EXECUTABLES]) == 1
 
     # run

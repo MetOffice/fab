@@ -9,34 +9,27 @@ from pathlib import Path
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
 from fab.parse.fortran import AnalysedFortran
-from fab.steps.analyse import Analyse
-from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran
-from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab.folder import GrabFolder
-from fab.steps.link import LinkExe
+from fab.steps.analyse import analyse
+from fab.steps.compile_c import compile_c
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 
 
 def test_FortranDependencies(tmp_path):
 
     # build
-    config = BuildConfig(
-        fab_workspace=tmp_path,
-        project_label='foo',
-        multiprocessing=False,
-        steps=[
-            GrabFolder(src=Path(__file__).parent / 'project-source'),
-            FindSourceFiles(),
-            preprocess_fortran(),  # nothing to preprocess, actually, it's all little f90 files
-            Analyse(root_symbol=['first', 'second']),
-            CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
-            CompileFortran(compiler='gfortran', common_flags=['-c']),
-            LinkExe(linker='gcc', flags=['-lgfortran']),
-        ],
-        verbose=True,
-    )
-    config.run()
+    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config:
+        grab_folder(config, src=Path(__file__).parent / 'project-source'),
+        find_source_files(config),
+        preprocess_fortran(config),  # nothing to preprocess, actually, it's all little f90 files
+        analyse(config, root_symbol=['first', 'second']),
+        compile_c(config, common_flags=['-c', '-std=c99']),
+        compile_fortran(config, common_flags=['-c']),
+        link_exe(config, linker='gcc', flags=['-lgfortran']),
+
     assert len(config._artefact_store[EXECUTABLES]) == 2
 
     # run both exes

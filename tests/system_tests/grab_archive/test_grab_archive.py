@@ -6,14 +6,13 @@
 from pathlib import Path
 from unittest import mock
 
-from fab.steps.grab.archive import GrabArchive
+from fab.steps.grab.archive import grab_archive
 
 
 class TestGrabArchive(object):
 
     def test(self, tmp_path):
         tar_file = Path(__file__).parent / '../git/tiny_fortran.tar'
-        grab = GrabArchive(src=tar_file)
-        grab.run(artefact_store={}, config=mock.Mock(source_root=tmp_path))
+        grab_archive(config=mock.Mock(source_root=tmp_path), src=tar_file)
 
         assert (tmp_path / 'tiny_fortran/src/my_mod.F90').exists()

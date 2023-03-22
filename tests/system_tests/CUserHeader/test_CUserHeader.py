@@ -8,12 +8,12 @@ from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
-from fab.steps.analyse import Analyse
-from fab.steps.c_pragma_injector import CPragmaInjector
-from fab.steps.compile_c import CompileC
-from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab.folder import GrabFolder
-from fab.steps.link import LinkExe
+from fab.steps.analyse import analyse
+from fab.steps.c_pragma_injector import c_pragma_injector
+from fab.steps.compile_c import compile_c
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
@@ -22,25 +22,19 @@ PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 def test_CUseHeader(tmp_path):
 
     # build
-    config = BuildConfig(
-        fab_workspace=tmp_path,
-        project_label='foo',
-        multiprocessing=False,
+    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config:
 
-        steps=[
-            GrabFolder(PROJECT_SOURCE),
+        grab_folder(config, PROJECT_SOURCE),
 
-            FindSourceFiles(),
+        find_source_files(config),
 
-            CPragmaInjector(),
-            preprocess_c(),
-            Analyse(root_symbol='main'),
-            CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
+        c_pragma_injector(config),
+        preprocess_c(config),
+        analyse(config, root_symbol='main'),
+        compile_c(config, common_flags=['-c', '-std=c99']),
 
-            LinkExe(linker='gcc', flags=['-lgfortran']),
-        ],
-    )
-    config.run()
+        link_exe(config, linker='gcc', flags=['-lgfortran']),
+
     assert len(config._artefact_store[EXECUTABLES]) == 1
 
     # run

@@ -48,7 +48,7 @@ def test_make_parsable_x90(tmp_path):
     # the point of this function is to make the file parsable by fparser
     x90_analyser = X90Analyser()
     x90_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
-    x90_analyser._config._prep_output_folders()
+    x90_analyser._config._prep_folders()
     x90_analyser.run(parsable_x90_path)
 
     # ensure the files are as expected
@@ -72,7 +72,7 @@ class TestX90Analyser(object):
         parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
         x90_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
-        x90_analyser._config._prep_output_folders()
+        x90_analyser._config._prep_folders()
         return x90_analyser.run(parsable_x90_path)  # type: ignore
 
     def test_vanilla(self, tmp_path):
@@ -95,7 +95,7 @@ class Test_analysis_for_prebuilds(object):
     def psyclone_step(self, tmp_path) -> Psyclone:
         psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent], transformation_script=Path(__file__))
         psyclone_step._config = BuildConfig('proj', fab_workspace=tmp_path)
-        psyclone_step._config._prep_output_folders()
+        psyclone_step._config._prep_folders()
         return psyclone_step
 
     def test_analyse(self, psyclone_step):

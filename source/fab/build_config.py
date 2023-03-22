@@ -163,14 +163,15 @@ class BuildConfig(object):
         logger.info('------------------------------------------------------------')
         logger.info('')
 
-        self._prep_output_folders()
+        self._prep_folders()
 
         init_metrics(metrics_folder=self.metrics_folder)
 
         # note: initialising here gives a new set of artefacts each run
         self.init_artefact_store()
 
-    def _prep_output_folders(self):
+    def _prep_folders(self):
+        self.source_root.mkdir(parents=True, exist_ok=True)
         self.build_output.mkdir(parents=True, exist_ok=True)
         self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
