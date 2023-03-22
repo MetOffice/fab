@@ -20,7 +20,7 @@ from fab.constants import PRAGMAD_C
 from fab.steps.compile_fortran import compile_fortran, get_fortran_compiler
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
-from fab.steps.preprocess import get_fortran_preprocessor, preprocess_c, preprocess_fortran
+from fab.steps.preprocess import preprocess_c, preprocess_fortran
 
 
 def _generic_build_config(folder: Path, kwargs: Optional[Dict] = None) -> BuildConfig:

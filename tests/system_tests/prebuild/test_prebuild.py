@@ -100,6 +100,7 @@ class TestFortranPrebuild(object):
 
     def test_deleted_original(self, tmp_path):
         # Ensure we compile the files in our source folder and not those specified in analysis prebuilds.
+        # (We could have copied the analysis prebuilds from another user/location).
         # We do this by deleting the source folder from the first build.
         # We also delete the compiler prebuilds to get the compiler to run a second time.
         first_project = self.build_config(fab_workspace=tmp_path / 'first_workspace')
@@ -116,10 +117,11 @@ class TestFortranPrebuild(object):
                 os.remove(f)
 
         # This should now recompile but not reanalyse.
-        # If we're don't "fixup" the analysis results paths as we load them,
+        # If we don't "fixup" the analysis results paths as we load them,
         # then the compiler will try to compile the original, deleted source.
-        second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
-                                           grab_prebuild_folder=first_project.prebuild_folder)
+        # If this runs, the test passes.
+        self.build_config(fab_workspace=tmp_path / 'second_workspace',
+                          grab_prebuild_folder=first_project.prebuild_folder)
 
 
 def files_identical(a, b):

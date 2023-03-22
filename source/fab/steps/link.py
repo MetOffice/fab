@@ -9,12 +9,11 @@ Link an executable.
 """
 import logging
 import os
-from abc import ABC
 from string import Template
 from typing import List, Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
-from fab.steps import Step, step_timer
+from fab.steps import step_timer
 from fab.util import log_or_dot
 from fab.tools import run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -76,7 +75,7 @@ def link_exe(config, linker: Optional[str] = None, flags=None, source: Optional[
     linker = linker or os.getenv('LD', 'ld')
     logger.info(f'linker is {linker}')
 
-    flags: List[str] = flags or []
+    flags = flags or []
     source_getter = source or DefaultLinkerSource()
 
     target_objects = source_getter(config._artefact_store)
@@ -115,7 +114,7 @@ def link_shared_object(config, output_fpath: str, linker: Optional[str] = None, 
     linker = linker or os.getenv('LD', 'ld')
     logger.info(f'linker is {linker}')
 
-    flags: List[str] = flags or []
+    flags = flags or []
     source_getter = source or DefaultLinkerSource()
 
     ensure_flags = ['-fPIC', '-shared']

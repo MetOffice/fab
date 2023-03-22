@@ -68,7 +68,7 @@ class TestX90Analyser(object):
         file_hash=3906123776,
         kernel_deps={'kernel_one_type', 'kernel_two_type'})
 
-    def run(self, tmp_path) -> Tuple[AnalysedX90, Path]:
+    def run(self, tmp_path):
         parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
         with BuildConfig('proj', fab_workspace=tmp_path) as config:

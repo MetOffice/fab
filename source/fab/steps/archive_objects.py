@@ -10,11 +10,11 @@ Object archive creation from a list of object files for use in static linking.
 
 import logging
 from string import Template
-from typing import Dict, Optional
+from typing import Optional
 
 from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
-from fab.steps import Step, step_timer
+from fab.steps import step_timer
 from fab.util import log_or_dot
 from fab.tools import run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter

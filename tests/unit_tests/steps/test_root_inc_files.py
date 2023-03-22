@@ -4,7 +4,6 @@ from unittest import mock
 import pytest
 
 from fab.build_config import BuildConfig
-from fab.constants import BUILD_OUTPUT
 from fab.steps.root_inc_files import root_inc_files
 
 

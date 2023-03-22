@@ -5,7 +5,7 @@
 # ##############################################################################
 import shutil
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from fab.steps import step_timer
 

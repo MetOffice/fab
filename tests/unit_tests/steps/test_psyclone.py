@@ -41,7 +41,8 @@ class Test_gen_prebuild_hash(object):
             all_kernel_hashes=all_kernel_hashes,
             transformation_script_hash=123,
             cli_args=[],
-            config=None, kernel_roots=None, transformation_script=None, overrides_folder=None, override_files=None,
+            config=None, kernel_roots=None, transformation_script=None,  # type: ignore[arg-type]
+            overrides_folder=None, override_files=None,  # type: ignore[arg-type]
         )
         return mp_payload, x90_file, expect_hash
 

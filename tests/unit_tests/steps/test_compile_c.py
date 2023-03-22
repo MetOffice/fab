@@ -5,7 +5,7 @@ from unittest.mock import DEFAULT
 
 import pytest
 
-from fab.build_config import AddFlags, BuildConfig, FlagsConfig
+from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c

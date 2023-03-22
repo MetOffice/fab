@@ -125,7 +125,7 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     kernel_roots = kernel_roots or []
 
     # "the gross switch which turns off MPI usage is a command-line argument"
-    cli_args: List[str] = cli_args or []
+    cli_args = cli_args or []
 
     source_getter = source_getter or DEFAULT_SOURCE_GETTER
     overrides_folder = overrides_folder

@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 import warnings
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -23,7 +23,7 @@ from typing import List, Optional, Dict, Any, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.util import common_arg_parser, TimerLogger, by_type, get_fab_workspace
+from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
 

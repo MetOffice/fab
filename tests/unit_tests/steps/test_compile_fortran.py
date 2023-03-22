@@ -9,7 +9,7 @@ import pytest
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
-from fab.steps.compile_fortran import compile_fortran, compile_pass, get_compile_next, get_fortran_compiler, \
+from fab.steps.compile_fortran import compile_pass, get_compile_next, get_fortran_compiler, \
     get_mod_hashes, handle_compiler_args, MpCommonArgs, process_file, store_artefacts
 from fab.steps.preprocess import get_fortran_preprocessor
 from fab.util import CompiledFile
@@ -144,8 +144,6 @@ class Test_process_file(object):
         obj_combo_hash = '1eb0c2d19'
         mods_combo_hash = '1747a9a0f'
 
-
-
         mp_common_args = MpCommonArgs(
             config=BuildConfig('proj', fab_workspace=Path('/fab')),
             flags=flags_config,
@@ -155,8 +153,6 @@ class Test_process_file(object):
             two_stage_flag=False,
             stage=None,
         )
-
-
 
         return mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash
 

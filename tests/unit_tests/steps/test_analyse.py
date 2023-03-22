@@ -11,17 +11,6 @@ from fab.steps.analyse import _add_manual_results, _add_unreferenced_deps, _gen_
 from fab.util import HashedFile
 
 
-@pytest.fixture
-def analyser(tmp_path):
-    analyser = Analyse()
-    analyser._config = BuildConfig(
-        'proj',
-        fab_workspace=Path('tmp_path'),
-        multiprocessing=False,
-    )
-    return analyser
-
-
 class Test_gen_symbol_table(object):
 
     @pytest.fixture

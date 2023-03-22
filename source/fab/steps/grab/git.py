@@ -4,9 +4,8 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 import warnings
-from abc import ABC
 from pathlib import Path
-from typing import Union, Dict
+from typing import Union
 
 from fab.steps import step_timer
 from fab.tools import run_command

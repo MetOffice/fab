@@ -61,7 +61,8 @@ def is_working_copy(tool, dst: Union[str, Path]) -> bool:
     return True
 
 
-def svn_prep_common(config, src: str, dst_label: str, revision: str) -> Tuple[str, Path, Optional[str]]:
+def svn_prep_common(config, src: str, dst_label: Optional[str], revision: Optional[str]) -> \
+        Tuple[str, Path, Optional[str]]:
     src, revision = _get_revision(src, revision)
     if not config.source_root.exists():
         config.source_root.mkdir(parents=True, exist_ok=True)

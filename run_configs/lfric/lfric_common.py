@@ -2,9 +2,8 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Dict
 
-from fab.steps import Step, step_timer
+from fab.steps import step_timer
 from fab.tools import run_command
 
 logger = logging.getLogger('fab')

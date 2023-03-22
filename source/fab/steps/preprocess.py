@@ -10,18 +10,16 @@ Fortran and C Preprocessing.
 import logging
 import os
 from dataclasses import dataclass
-from functools import partial
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import PRAGMAD_C
 from fab.metrics import send_metric
-from fab.steps.compile_fortran import logger
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, Timer, by_type
 from fab.tools import get_tool, run_command
-from fab.steps import check_for_errors, run_mp, Step, step_timer
+from fab.steps import check_for_errors, run_mp, step_timer
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -39,8 +37,8 @@ class MpCommonArgs(object):
 
 def pre_processor(config: BuildConfig, preprocessor: str,
                   source_getter: ArtefactsGetter, output_collection, output_suffix,
-                  common_flags: List[str] = None,
-                  path_flags: List = None,
+                  common_flags: Optional[List[str]] = None,
+                  path_flags: Optional[List] = None,
                   name="preprocess"):
     """
     Preprocess Fortran or C files.
@@ -222,6 +220,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
     def __call__(self, artefact_store):
         return CollectionGetter(PRAGMAD_C)(artefact_store) \
                or SuffixFilter('all_source', '.c')(artefact_store)
+
 
 # todo: rename preprocess_c
 @step_timer

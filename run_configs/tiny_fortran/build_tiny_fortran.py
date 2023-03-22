@@ -15,7 +15,7 @@ from fab.steps.preprocess import preprocess_fortran
 
 if __name__ == '__main__':
 
-    with BuildConfig(project_label=f'tiny_fortran $compiler') as config:
+    with BuildConfig(project_label='tiny_fortran $compiler') as config:
         git_checkout(config, src='https://github.com/metomi/fab-test-data.git', revision='main', dst_label='src'),
 
         find_source_files(config),

@@ -3,7 +3,6 @@ import os
 import zlib
 from datetime import timedelta, datetime
 from pathlib import Path
-from unittest import mock
 
 import pytest
 

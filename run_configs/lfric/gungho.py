@@ -29,7 +29,7 @@ if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
-    with BuildConfig(project_label=f'gungho $compiler $two_stage') as config:
+    with BuildConfig(project_label='gungho $compiler $two_stage') as config:
         grab_folder(config, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'components/driver/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='')

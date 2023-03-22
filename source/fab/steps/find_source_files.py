@@ -10,7 +10,7 @@ Gather files from a source folder.
 import logging
 from typing import Optional, Iterable
 
-from fab.steps import Step, step_timer
+from fab.steps import step_timer
 from fab.util import file_walk
 
 logger = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ def find_source_files(config, source_root=None, output_collection="all_source",
         Human friendly name for logger output, with sensible default.
 
     """
-    path_filters: Iterable[_PathFilter] = path_filters or []
+    path_filters = path_filters or []
 
     """
     Recursively get all files in the given folder, with filtering.

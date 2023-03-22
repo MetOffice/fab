@@ -48,7 +48,7 @@ from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
 from fab.parse.c import AnalysedC, CAnalyser
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
-from fab.steps import run_mp, Step
+from fab.steps import run_mp
 from fab.util import TimerLogger, by_type
 
 logger = logging.getLogger(__name__)
@@ -131,9 +131,8 @@ def analyse(
 
     source_getter = source or DEFAULT_SOURCE_GETTER
     root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
-    special_measure_analysis_results: List[FortranParserWorkaround] = \
-        list(special_measure_analysis_results or [])
-    unreferenced_deps: List[str] = list(unreferenced_deps or [])
+    special_measure_analysis_results = list(special_measure_analysis_results or [])
+    unreferenced_deps = list(unreferenced_deps or [])
 
     # todo: these seem more like functions
     fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)

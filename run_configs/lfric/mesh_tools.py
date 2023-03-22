@@ -23,7 +23,7 @@ if __name__ == '__main__':
     # this folder just contains previous output, for testing the overrides mechanism.
     psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
 
-    with BuildConfig(project_label=f'mesh tools $compiler $two_stage') as config:
+    with BuildConfig(project_label='mesh tools $compiler $two_stage') as config:
         grab_folder(config, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'mesh_tools/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='')

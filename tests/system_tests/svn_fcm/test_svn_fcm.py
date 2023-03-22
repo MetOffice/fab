@@ -9,6 +9,7 @@ Test svn and fcm steps, if their underlying cli tools are available.
 """
 import shutil
 from pathlib import Path
+from typing import Callable, List
 from unittest import mock
 import warnings
 
@@ -23,7 +24,7 @@ from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge, tool_availab
 # Which tools are available?
 export_funcs = []
 checkout_funcs = []
-merge_funcs = []
+merge_funcs: List[Callable] = []
 
 if tool_available('svn'):
     export_funcs.append(svn_export)

@@ -6,7 +6,7 @@ from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
-from fab.steps.compile_fortran import compile_fortran, get_fortran_compiler
+from fab.steps.compile_fortran import compile_fortran
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
@@ -563,12 +563,11 @@ def file_filtering_40984(config):
     ]
 
 
-
 if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
-    with BuildConfig(project_label=f'atm $compiler $two_stage') as config:
+    with BuildConfig(project_label='atm $compiler $two_stage') as config:
 
         # todo: use different dst_labels because they all go into the same folder,
         #       making it hard to see what came from where?

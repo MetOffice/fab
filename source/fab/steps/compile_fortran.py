@@ -45,7 +45,7 @@ class MpCommonArgs(object):
     compiler_version: str
     mod_hashes: Dict[str, int]
     two_stage_flag: Optional[str]
-    stage: int
+    stage: Optional[int]
 
 
 @step_timer
@@ -82,11 +82,11 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
     source_getter = source or DEFAULT_SOURCE_GETTER
 
     # todo: move this to the known compiler flags?
+    # todo: this is a misleading name
     two_stage_flag = None
     if compiler == 'gfortran' and config.parsed_args.get('two_stage'):
         two_stage_flag = '-fsyntax-only'
 
-    stage: Optional[int] = None
     mod_hashes: Dict[str, int] = {}
 
     # get all the source to compile, for all build trees, into one big lump
@@ -95,7 +95,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
     # build the arguments passed to the multiprocessing function
     mp_common_args = MpCommonArgs(
         config=config, flags=flags_config, compiler=compiler, compiler_version=compiler_version,
-        mod_hashes=mod_hashes, two_stage_flag=two_stage_flag, stage=stage)
+        mod_hashes=mod_hashes, two_stage_flag=two_stage_flag, stage=None)
 
     # compile everything in multiple passes
     compiled: Dict[Path, CompiledFile] = {}
@@ -104,7 +104,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
 
     if two_stage_flag:
         logger.info("Starting two-stage compile: mod files, multiple passes")
-        _stage = 1
+        mp_common_args.stage = 1
 
     while uncompiled:
         uncompiled = compile_pass(config=config, compiled=compiled, uncompiled=uncompiled,
@@ -113,7 +113,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
 
     if two_stage_flag:
         logger.info("Finalising two-stage compile: object files, single pass")
-        _stage = 2
+        mp_common_args.stage = 2
 
         # a single pass should now compile all the object files in one go
         uncompiled = set(sum(build_lists.values(), []))  # todo: order by last compile duration
