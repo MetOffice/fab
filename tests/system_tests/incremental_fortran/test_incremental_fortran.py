@@ -274,11 +274,9 @@ class TestCleanupPrebuilds(object):
             path.touch(exist_ok=False)
             os.utime(path, (t.timestamp(), t.timestamp()))
 
-        # config.run()
-        with config:
-            cleanup_prebuilds(config, **kwargs)
+        cleanup_prebuilds(config, **kwargs)
 
         remaining_artefacts = file_walk(config.prebuild_folder)
         # pull out just the filenames so we can parameterise the tests without knowing tmp_path
         remaining_artefacts = [str(f.name) for f in remaining_artefacts]
-        return config, remaining_artefacts
+        return remaining_artefacts

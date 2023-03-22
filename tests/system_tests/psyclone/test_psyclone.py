@@ -14,10 +14,11 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.parse.x90 import X90Analyser, AnalysedX90
-from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab.folder import GrabFolder
+from fab.steps.cleanup_prebuilds import cleanup_prebuilds
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import make_parsable_x90, Psyclone, preprocess_x90
+from fab.steps.psyclone import _analysis_for_prebuilds, make_parsable_x90, preprocess_x90, psyclone, tool_available
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
@@ -45,11 +46,10 @@ def test_make_parsable_x90(tmp_path):
 
     parsable_x90_path = make_parsable_x90(input_x90_path)
 
-    # the point of this function is to make the file parsable by fparser
     x90_analyser = X90Analyser()
-    x90_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
-    x90_analyser._config._prep_folders()
-    x90_analyser.run(parsable_x90_path)
+    with BuildConfig('proj', fab_workspace=tmp_path) as config:
+        x90_analyser._config = config  # todo: code smell
+        x90_analyser.run(parsable_x90_path)
 
     # ensure the files are as expected
     assert filecmp.cmp(parsable_x90_path, EXPECT_PARSABLE_X90)
@@ -71,12 +71,16 @@ class TestX90Analyser(object):
     def run(self, tmp_path) -> Tuple[AnalysedX90, Path]:
         parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
-        x90_analyser._config = BuildConfig('proj', fab_workspace=tmp_path)
-        x90_analyser._config._prep_folders()
-        return x90_analyser.run(parsable_x90_path)  # type: ignore
+        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+            x90_analyser._config = config
+            analysed_x90, _ = x90_analyser.run(parsable_x90_path)  # type: ignore
+            # don't delete the prebuild
+            cleanup_prebuilds(config, n_versions=999)
+
+        return analysed_x90
 
     def test_vanilla(self, tmp_path):
-        analysed_x90, _ = self.run(tmp_path)
+        analysed_x90 = self.run(tmp_path)
         assert analysed_x90 == self.expected_analysis_result
 
     def test_prebuild(self, tmp_path):
@@ -84,24 +88,22 @@ class TestX90Analyser(object):
 
         # Run it a second time, ensure it's not re-processed and still gives the correct result
         with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_walk:
-            analysed_x90, _ = self.run(tmp_path)
+            analysed_x90 = self.run(tmp_path)
         mock_walk.assert_not_called()
         assert analysed_x90 == self.expected_analysis_result
 
 
 class Test_analysis_for_prebuilds(object):
 
-    @pytest.fixture
-    def psyclone_step(self, tmp_path) -> Psyclone:
-        psyclone_step = Psyclone(kernel_roots=[Path(__file__).parent], transformation_script=Path(__file__))
-        psyclone_step._config = BuildConfig('proj', fab_workspace=tmp_path)
-        psyclone_step._config._prep_folders()
-        return psyclone_step
+    def test_analyse(self, tmp_path):
 
-    def test_analyse(self, psyclone_step):
-
-        prebuild_analyses = psyclone_step._analysis_for_prebuilds(x90s=[SAMPLE_X90])
-        transformation_script_hash, analysed_x90, all_kernel_hashes = prebuild_analyses
+        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+            transformation_script_hash, analysed_x90, all_kernel_hashes = \
+                _analysis_for_prebuilds(config,
+                                        x90s=[SAMPLE_X90],
+                                        kernel_roots=[Path(__file__).parent],
+                                        # the script is just hashed, so any one will do - use this file!
+                                        transformation_script=Path(__file__))
 
         # transformation_script_hash
         assert transformation_script_hash == file_checksum(__file__).file_hash
@@ -122,7 +124,7 @@ class Test_analysis_for_prebuilds(object):
         }
 
 
-@pytest.mark.skipif(not Psyclone.tool_available(), reason="psyclone cli tool not available")
+@pytest.mark.skipif(not tool_available(), reason="psyclone cli tool not available")
 class TestPsyclone(object):
     """
     Basic run of the psyclone step.
@@ -130,22 +132,20 @@ class TestPsyclone(object):
     """
     @pytest.fixture
     def config(self, tmp_path):
-        here = Path(__file__).parent
-
-        config = BuildConfig('proj', fab_workspace=tmp_path, verbose=True, multiprocessing=False)
-        config.steps = [
-            GrabFolder(here / 'skeleton'),
-            FindSourceFiles(),
-            preprocess_fortran(preprocessor='cpp -traditional-cpp', common_flags=['-P']),
-
-            preprocess_x90(),
-            # todo: it's easy to forget that we need to find the f90 not the F90.
-            #       it manifests as an error, a missing kernel hash.
-            #       Perhaps add validation, warn if it's not in the build_output folder?
-            Psyclone(kernel_roots=[config.build_output / 'kernel']),
-        ]
-
+        config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False)
         return config
+
+    def steps(self, config):
+        here = Path(__file__).parent
+        grab_folder(config, here / 'skeleton')
+        find_source_files(config)
+        preprocess_fortran(config, common_flags=['-P'])
+
+        preprocess_x90(config)
+        # todo: it's easy to forget that we need to find the f90 not the F90.
+        #       it manifests as an error, a missing kernel hash.
+        #       Perhaps add validation, warn if it's not in the build_output folder?
+        psyclone(config, kernel_roots=[config.build_output / 'kernel'])
 
     def test_run(self, config):
         # if these files exist after the run then we know:
@@ -165,17 +165,20 @@ class TestPsyclone(object):
         ]
 
         assert all(not f.exists() for f in expect_files)
-        config.run()
+        with config:
+            self.steps(config)
         assert all(f.exists() for f in expect_files)
 
     def test_prebuild(self, tmp_path, config):
-        config.run()
+        with config:
+            self.steps(config)
 
         # make sure no work gets done the second time round
         with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk:
             with mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk:
-                with mock.patch('fab.steps.psyclone.Psyclone.run_psyclone') as mock_run:
-                    config.run()
+                with mock.patch('fab.steps.psyclone.run_psyclone') as mock_run:
+                    with config:
+                        self.steps(config)
 
         mock_x90_walk.assert_not_called()
         mock_fortran_walk.assert_not_called()

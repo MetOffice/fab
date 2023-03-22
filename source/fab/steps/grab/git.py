@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Union, Dict
 
 from fab.steps import step_timer
-from fab.steps.grab import GrabSourceBase
 from fab.tools import run_command
 
 
@@ -20,15 +19,16 @@ def current_commit(folder=None):
     return commit
 
 
-class GrabGitBase(GrabSourceBase, ABC):
-    """
-    Base class for Git operations.
+# class GrabGitBase(GrabSourceBase, ABC):
+#     """
+#     Base class for Git operations.
+#
+#     """
+#     def run(self, artefact_store: Dict, config):
+#         if not self.tool_available():
+#             raise RuntimeError("git command line tool not available")
+#         super().run(artefact_store, config)
 
-    """
-    def run(self, artefact_store: Dict, config):
-        if not self.tool_available():
-            raise RuntimeError("git command line tool not available")
-        super().run(artefact_store, config)
 
 def tool_available() -> bool:
     """Is the command line git tool available?"""
@@ -38,6 +38,7 @@ def tool_available() -> bool:
         return False
     return True
 
+
 def is_working_copy(dst: Union[str, Path]) -> bool:
     """Is the given path is a working copy?"""
     try:
@@ -45,6 +46,7 @@ def is_working_copy(dst: Union[str, Path]) -> bool:
     except RuntimeError:
         return False
     return True
+
 
 def fetch(src, revision, dst):
     # todo: allow shallow fetch with --depth 1
@@ -82,20 +84,21 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
         warnings.warn(f'not safe to clean git source in {_dst}')
 
 
-class GitMerge(GrabGitBase):
+@step_timer
+def git_merge(config, src: str, dst_label: str = '', revision=None):
     """
     Merge a git repo into a local working copy.
 
     """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
-        if not self._dst or not self.is_working_copy(self._dst):
-            raise ValueError(f"destination is not a working copy: '{self._dst}'")
+    _dst = config.source_root / dst_label
 
-        self.fetch()
+    if not _dst or not is_working_copy(_dst):
+        raise ValueError(f"destination is not a working copy: '{_dst}'")
 
-        try:
-            run_command(['git', 'merge', 'FETCH_HEAD'], cwd=self._dst)
-        except RuntimeError as err:
-            run_command(['git', 'merge', '--abort'], cwd=self._dst)
-            raise RuntimeError(f"Error merging {self.revision}. Merge aborted.\n{err}")
+    fetch(src=src, revision=revision, dst=_dst)
+
+    try:
+        run_command(['git', 'merge', 'FETCH_HEAD'], cwd=_dst)
+    except RuntimeError as err:
+        run_command(['git', 'merge', '--abort'], cwd=_dst)
+        raise RuntimeError(f"Error merging {revision}. Merge aborted.\n{err}")
