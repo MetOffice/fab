@@ -10,7 +10,7 @@ Link an executable.
 import logging
 import os
 from string import Template
-from typing import List, Optional
+from typing import Optional
 
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
 from fab.steps import step_timer

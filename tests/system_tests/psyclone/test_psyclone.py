@@ -7,7 +7,6 @@ import filecmp
 import shutil
 from os import unlink
 from pathlib import Path
-from typing import Tuple
 from unittest import mock
 
 import pytest
