@@ -21,7 +21,7 @@ with open(os.path.join(_here, 'source', 'fab', '__init__.py'),
         raise RuntimeError('Cannot determine package version.')
 
 tests = ['pytest', 'pytest-cov', 'pytest-mock', 'flake8', 'mypy']
-docs = ['sphinx', 'sphinx_rtd_theme', 'sphinx-autodoc-typehints', 'sphinx-copybutton']
+docs = ['sphinx', 'sphinx-material', 'sphinx-autodoc-typehints', 'sphinx-copybutton']
 features = ['matplotlib', 'jinja2', 'psyclone']
 
 setuptools.setup(
