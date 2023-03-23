@@ -5,6 +5,8 @@ Environment
 This page describes the environments in which Fab can be run.
 
 
+.. _Requirements:
+
 Requirements
 ============
 The minimum dependencies for Fab to build a project are:
@@ -24,19 +26,28 @@ Running Fab at The Met Office
 
 VDI
 ---
+
+Without clang
+^^^^^^^^^^^^^
+If you don't need to build C, you can use this modules command::
+
+    $ module load fab/0.11.0/python/3.7.0
+
+
+With clang
+^^^^^^^^^^
 This is currently a little awkward but will hopefully become simpler soon.
 We use a combination of *module* commands and *conda* to get Fab running at The Met Office.
 If you don't need to compile C code, you may not need conda.
 We create the conda environment as follows::
 
     $ conda env create -f envs/conda/dev_env.yml
+    $ conda activate sci-fab
 
+Then :ref:`install fab<Install>`.
 
-.. note::
-
-    We do this in a new terminal, before any module commands.
-
-We then set up our environment *in a new terminal* as follows.
+We do this in a before any module commands.
+Then we set up our environment *in a new terminal* as follows.
 
 For use with gfortran::
 
@@ -54,8 +65,6 @@ For use with ifort::
 
 The PYTHONPATH line gives us access to a newer version of fparser in the conda environment.
 Otherwise we get the older one from the modules commands.
-
-Then :ref:`install fab<Install>`.
 
 PyCharm
 ^^^^^^^
@@ -88,29 +97,18 @@ If you need to use git from within the container, you'll need to set a couple of
 
 See also :ref:`Instructions for building the image<Build Singularity>`.
 
+Authentication
+^^^^^^^^^^^^^^
+You'll need to authenticate if it's your first time::
+
+    $ singularity remote login -u firstname.surname@metoffice.gov.uk docker://metoffice-docker-local.jfrog.io
+
+You will be asked for your
+`access token <https://metoffice.sharepoint.com/sites/TechnologyCommsSite/SitePages/Tooling/Artifactory/Artifactory-Cloud.aspx#using-api-keys>`_.
+
 
 Outside The Met Office
 ======================
-
-Using Python venv
------------------
-Create an environment using Python's builtin `venv`
-
-.. code-block:: console
-
-    $ python -m venv <env name>
-    $ cd <env name>
-    $ . bin/activate
-
-Then install fab
-
-.. code-block:: console
-
-    $ pip install sci-fab
-
-!!!!! needs module loads !!!!!
-
-
 
 Docker
 ------
@@ -131,3 +129,22 @@ Run the image, replacing ``<path_to_fab>`` with the path on your host machine an
 Other
 -----
 You may need to ask your system administrator to install the above requirements.
+
+
+Using Python venv
+=================
+Create an environment using Python's builtin `venv`
+
+.. code-block:: console
+
+    $ python -m venv <env name>
+    $ cd <env name>
+    $ . bin/activate
+
+Then install fab
+
+.. code-block:: console
+
+    $ pip install sci-fab
+
+You'll have to make sure the non-Python :ref:`requirements<Requirements>` are installed.

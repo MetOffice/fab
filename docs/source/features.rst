@@ -33,7 +33,7 @@ It's easy to add custom steps to your build script, e.g manipulating code, calli
 
 Zero Config
 ===========
-It's possible to run `fab` from the command line, in your source folder, for a default build operation.
+It's possible to run ``fab`` from the command line, in your source folder, for a default build operation.
 For more complicated builds you may write a build script.
 
 
@@ -70,24 +70,12 @@ showing a compilation bottleneck.
 Limitations
 ===========
 
-Single line IF calls
---------------------
-Whilst fab can automatically determine dependencies from module use statements,
+Fortran single-line IF calls
+----------------------------
+Whilst fab can automatically determine Fortran dependencies from module use statements,
 and from standalone call statements, it doesn't currently detect a dependency from a call statement on a
-single-line if statement: `IF (x .GT. 0) CALL foo()`.
-
-We can pass the analyser any symbol dependencies which Fab can't detect.
-The files which contain them, *and their dependencies*, will make their way through to the compile and link stages.
-This is done using the `unreferenced_deps` argument to the :class:`~fab.steps.analyse.Analyse` step.
-Here's how we do this for JULES.
-
-.. code-block::
-
-    steps = [
-        ...
-        Analyse(root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
-        ...
-    ]
+single-line if statement: `IF (x .GT. 0) CALL foo()`. Please see here for
+:ref:`the workaround<Unrecognised Deps Workaround>`.
 
 
 Name Clash

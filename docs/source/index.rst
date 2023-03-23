@@ -37,7 +37,7 @@ To run fab with :ref:`zero configuration<Zero Config>`, type ``fab`` at the comm
 
 .. code-block:: console
 
-   $ cd <path-to-source>
+   $ cd /path/to/your/source
    $ fab
 
 The executable file can be found in the :ref:`Fab Workspace<Configure Fab Workspace>`.

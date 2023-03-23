@@ -7,17 +7,17 @@ Folder structure
 ================
 Fab creates files in the :term:`Project Workspace`.
 
-| <fab_workspace>
+| <your $FAB_WORKSPACE>
 |    **<project workspace>**
-|       source
-|       build_output
+|       source/
+|       build_output/
 |          \*.f90 (preprocessed Fortran files)
 |          \*.mod (compiled module files)
-|          _prebuild
+|          _prebuild/
 |             \*.an (analysis results)
 |             \*.o (compiled object files)
 |             \*.mod (mod files)
-|       metrics
+|       metrics/
 |       my_program.exe
 |       log.txt
 |
@@ -37,17 +37,17 @@ The *metrics* folder contains some useful stats and graphs. See :ref:`Metrics`.
 
 Managed arguments
 =================
-Fab manages some command line arguments for a few of the tools it uses.
+Fab manages a few command line arguments for some of the tools it uses.
 
-Preprocessors
--------------
-Fab knows about some preprocessors (currently *fpp* and *cpp*).
+Fortran Preprocessors
+---------------------
+Fab knows about some preprocessors which are used with Fortran, currently *fpp* and *cpp*.
 It will ensure the ``-P`` flag is present to disable line numbering directives in the output,
 which is currently required for fparser to parse the output.
 
-Compilers
----------
-Fab knows about some compilers (currently *gfortran* or *ifort*).
+Fortran Compilers
+-----------------
+Fab knows about some Fortran compilers (currently *gfortran* or *ifort*).
 It will make sure the `-c` flag is present to compile only (not link).
 
 If the compiler flag which sets the module folder is present,
@@ -63,16 +63,27 @@ Overriding defaults
 
 Command line tools
 ------------------
-Fab uses the same environment variables as Make for tool configuration
- * **FPP**
- * **FC**, **FFLAGS**
- * **CC**, **CFLAGS**
- * **LD**, **LDFLAGS**
+Fab uses well-known environment variables for tool configuration.
 
-Fab doesn't currently have parameters for telling individual steps which tool to use.
-This is because sometimes we need this information *outside the step* too.
-If we accepted a tool parameter in the step, there is a greatly increased scope for mismatch and error.
-An example is adding the compiler name to the project workspace, which happens outside the compiler step.
+.. list-table:: Environment variables
+   :widths: 10 25
+
+   * - FPP
+     - Fortran preprocessor, e.g ``fpp`` or `cpp -traditional-cpp -P`.
+       Fab ensures the -P is present.
+   * - FC
+     - Fortran compiler, e.g ``gfortran`` or ``ifort -c``.
+       Fab ensures the -c is present.
+   * - FFLAGS
+     - Fortran compiler flags.
+   * - CC
+     - C compiler.
+   * - CFLAGS
+     - C compiler flags.
+   * - LD
+     - Linker, e.g ``ld``.
+   * - LFLAGS
+     - Linker flags.
 
 
 Collection names
@@ -99,6 +110,9 @@ Let's imagine we need to upgrade a build script, adding a custom step to prepare
 
 Flags
 =====
+
+Linker flags
+------------
 We can add flags to our linker step.
 
 .. code-block::
@@ -109,6 +123,8 @@ We can add flags to our linker step.
         LinkExe(flags=['-lm', '-lnetcdf']),
     ]
 
+Path-specific flags
+-------------------
 For preprocessing and compilation, we sometimes need to specify flags *per-file*.
 These steps accept both common flags and *path specific* flags.
 
@@ -157,9 +173,6 @@ If not found, it will fall back to looking for .c files in the source listing.
             ...
         ]
 
-The pragma injector may be merged into the preprocessor in the future,
-and the *.prag* files may be created in the build_output instead of the source folder.
-
 
 Custom Steps
 ============
@@ -203,6 +216,8 @@ from their :meth:`~fab.steps.Step.run` method to process a collection of artefac
 Parser Workarounds
 ==================
 
+.. _Unrecognised Deps Workaround:
+
 Unrecognised Dependencies
 -------------------------
 If a language parser is not able to recognise a dependency within a file,
@@ -212,7 +227,7 @@ In this case we can manually add the dependency using the `unreferenced_deps` ar
 :class:`~fab.steps.analyse.Analyse`.
 
 Pass in the name of the called function.
-Fab will find the file containing this symbol and add it to the build.
+Fab will find the file containing this symbol and add it, *and all its dependencies*, to the build.
 
 .. code-block::
     :linenos:
@@ -242,7 +257,7 @@ Each object contains the symbol definitions and dependencies found in one source
         Analyse(
             root_symbol='my_prog',
             special_measure_analysis_results=[
-                ParserWorkaround(
+                FortranParserWorkaround(
                     fpath=Path(config.build_output / "path/to/file.f90"),
                     module_defs={'my_mod'}, symbol_defs={'my_func'},
                     module_deps={'other_mod'}, symbol_deps={'other_func'}),
@@ -370,6 +385,6 @@ There's also a helper step called :class:`~fab.steps.grab.prebuild.GrabPreBuild`
 Psykalite (Psyclone overrides)
 ==============================
 If you need to override a PSyclone output file with a handcrafted version,
-you can add an overrides folder to your source. This is just a normal folder of source files.
-Point the :class:`~fab.steps.psyclone.Psyclone` class to this folder using the ``overrides_folder`` argument.
+you can use the ``overrides_folder`` argument to the :class:`~fab.steps.psyclone.Psyclone` step.
+This is just a normal folder containing source files.
 The step will delete any files it creates if there's a matching filename in the overrides folder.

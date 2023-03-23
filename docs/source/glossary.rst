@@ -29,7 +29,7 @@ Glossary
         Fab's built-in steps come with sensible defaults so the user doesn't have to write unnecessary config.
 
         As an example, the Fortran preprocessor has a default artefact getter which reads *".F90"* files
-        from the :term:`Artefact Collection` called _"all_source"_.
+        from the :term:`Artefact Collection` called ``"all_source"``.
 
         Artefact getters are derived from :class:`~fab.artefacts.ArtefactsGetter`.
 
@@ -39,9 +39,15 @@ Glossary
         Fab passes the growing store to each step in turn,
         where they typically read a collection and create a new one for the next step.
 
+    Build Tree
+        A mapping of filenames to Analysis results.
+        This subset of the :term:`Source Tree` contains only the files needed to build one target (:term:`Root Symbol`).
+        It's created in the analysis step and used by the Fortran compilation step.
+        When building a library, there is no root symbol and the entire source tree is included in a single build tree.
+
     Fab Workspace
         The folder in which all Fab output is created, for all build projects.
-        Defaults to *~/fab-workspace*, and can be overridden by the *FAB_WORKSPACE* environment variable
+        Defaults to *~/fab-workspace*, and can be overridden by the ``$FAB_WORKSPACE`` environment variable
         or the `fab_workspace` argument to the :class:`~fab.build_config.BuildConfig` constructor.
         See also :ref:`Configure the Fab Workspace <Configure Fab Workspace>`
 
@@ -58,15 +64,14 @@ Glossary
     Project Workspace
         A folder inside the :term:`Fab Workspace`, containing all source and output from a build config.
 
+    Root Symbol
+        The name of a Fortran PROGRAM, or ``"main"`` for C code. Fab builds an exe for every root symbol it's given.
+
     Source Tree
         The :class:`~fab.steps.analyse.Analyse` step produces a dependency tree of the entire project source.
         This is represented as a mapping from Path to :class:`~fab.dep_tree.AnalysedDependent`.
         The AnalysedDependent's file dependencies are Paths, which refer to other entries in the mapping,
         and which define the tree structure. This is called the source tree.
-
-        When building executables, a sub-tree is extracted from the :term:`Source Tree`, for each executable
-        we want to build. Called a "build tree", this contains only the files needed to build that target.
-        When building a library, all source code is included in a single build tree.
 
     Step
         A step performs a function in the build process.

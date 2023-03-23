@@ -23,6 +23,11 @@ configurable steps for you to use, and it's easy to create your own custom steps
             LinkExe(),
         ])
 
+.. note::
+
+    The ``root_symbol`` is the name of the Fortran PROGRAM you wish to build,
+    or ``"main"`` if it's in C.
+
 Fab is designed to minimise user input by by providing sensible defaults.
 By default it knows to use the build tree created by the preceding step.
 Build steps can read and create named collections in the :term:`Artefact Store`.

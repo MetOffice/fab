@@ -20,7 +20,7 @@ This lets you edit the code without needing to reinstall fab after every change.
     $ pip install -e <fab-folder>
 
 
-You can install extra features by using [test], [docs] or [dev], as defined in setup.py.
+You can install extra features by using [test], [docs], [features] or [dev], as defined in setup.py.
 
 .. code-block:: console
 
@@ -89,15 +89,28 @@ From the fab folder, type:
 
 .. code-block:: console
 
-    pytest tests/unit_tests
-    pytest tests/system_tests
+    $ pytest tests/unit_tests
+    $ pytest tests/system_tests
+
+Flake8 and mypy
+---------------
+When making a PR, you might want to run all the checks which give us green ticks.
+You can see the commands we run in ``.github\workflows\build.yml``.
+To run flake8 and mypy, type:
+
+.. code-block:: console
+
+    $ flake8 .
+    $ mypy setup.py source tests
 
 Acceptance tests
 ----------------
+**(For Met Office users)**
+
 For extra confidence, we have acceptance tests in the ``run_configs`` folder which are not run as part of our
 automated github testing. You can run them on the VDI using ``build_all.py``. However, this will choke your machine
-for some time. There's a (misnamed) cron you can run nightly, ``run_configs\_cron\cron_system_tests.sh``.
-There's also a rose suite which runs them on spice in ``run_configs\_rose_all``.
+for some time. There's a (misnamed) cron you can run nightly, ``run_configs/_cron/cron_system_tests.sh``.
+There's also a rose suite which runs them on spice in ``run_configs/_rose_all``.
 
 Github Actions
 ==============
@@ -134,17 +147,6 @@ See also
  * `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
 
 
-
-Flake8 and mypy
----------------
-When making a PR, you might want to run all the checks which give us green ticks.
-You can see the commands we run in ``.github\workflows\build.yml``.
-To run flake8 and mypy, type:
-
-.. code-block:: console
-
-    $ flake8 .
-    $ mypy setup.py source tests
 
 Version numbering
 =================

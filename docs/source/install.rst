@@ -3,7 +3,8 @@
 
 Installing Fab
 **************
-You can install the latest release of `Fab from PyPI <https://pypi.org/project/sci-fab/>`_:
+Once you've :ref:`setup an environment<Environment>`,
+you can install the latest release of `Fab from PyPI <https://pypi.org/project/sci-fab/>`_:
 
 .. code-block:: console
 
@@ -21,8 +22,9 @@ will also be installed automatically.
 Extra features
 ==============
 You can install some extra Python packages to enable more features.
-This will install `matplotlib <https://matplotlib.org/>`_ for producing metrics graphs after a run,
-`psyclone <https://github.com/stfc/PSyclone>`_ for building LFRic, and more.
+This will install
+ * `matplotlib <https://matplotlib.org/>`_ for producing metrics graphs after a run
+ * `psyclone <https://github.com/stfc/PSyclone>`_ for building LFRic, and more
 
 .. code-block:: console
 
@@ -38,7 +40,8 @@ Fab workspace
 -------------
 
 You can optionally tell Fab where it's workspace should live.
-This can be useful on systems where your home space is on a slower drive::
+This can be useful on systems where your home space is on a slower drive,
+or when you like your build to be next to your source::
 
     $ export FAB_WORKSPACE=<fast_drive>/fab_workspace
 

@@ -52,7 +52,7 @@ A grab step will copy files from a folder or remote repo into into a folder call
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import FcmExport
+    from fab.steps.grab import GrabFolder
 
     config = BuildConfig(
         project_label='<project label>',
@@ -163,7 +163,8 @@ The Analyse step looks for source to analyse in several collections:
 
     config.run()
 
-We tell the analyser which `root_symbol` we want to build into an executable.
+Here we tell the analyser which :term:`Root Symbol` we want to build into an executable.
+Alternatively, we can use the ``find_programs`` flag for Fab to discover and build all programs.
 
 After the Analyse step, there will be a collection called ``"build_trees"``, in the artefact store.
 
