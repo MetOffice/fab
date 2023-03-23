@@ -22,9 +22,10 @@ will also be installed automatically.
 Extra features
 ==============
 You can install some extra Python packages to enable more features.
-This will install
- * `matplotlib <https://matplotlib.org/>`_ for producing metrics graphs after a run
- * `psyclone <https://github.com/stfc/PSyclone>`_ for building LFRic, and more
+This will install.
+
+* `matplotlib <https://matplotlib.org/>`_ for producing metrics graphs after a run
+* `psyclone <https://github.com/stfc/PSyclone>`_ for building LFRic, and more
 
 .. code-block:: console
 

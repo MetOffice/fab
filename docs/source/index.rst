@@ -19,17 +19,17 @@ Fab can analyse your code to determine dependencies, including those between C a
 It can work out which files need to be compiled, in which order, to create an executable
 or library. Features include:
 
- * dependency analysis / compile order
- * extensible with arbitrary tools, e.g. PSYclone
- * incremental operation, process what's changed
- * zero-config capability
+* dependency analysis / compile order
+* extensible with arbitrary tools, e.g. PSYclone
+* incremental operation, process what's changed
+* zero-config capability
 
 For more, please see the :ref:`features<Features>` page.
 
 Running fab
 ===========
- * how to :ref:`set up an environment<Environment>`
- * how to :ref:`install fab<Install>`
+* how to :ref:`set up an environment<Environment>`
+* how to :ref:`install fab<Install>`
 
 Zero config
 -----------
@@ -45,16 +45,16 @@ The executable file can be found in the :ref:`Fab Workspace<Configure Fab Worksp
 
 Config files
 ------------
- * intro to :ref:`config files<Config Intro>`
- * guide to :ref:`writing config files<Writing Config>`
- * :ref:`advanced config<Advanced Config>`
+* intro to :ref:`config files<Config Intro>`
+* guide to :ref:`writing config files<Writing Config>`
+* :ref:`advanced config<Advanced Config>`
 
 See also
 ========
- * `Project wiki <https://github.com/metomi/fab/wiki>`_
- * `Fab on PyPI <https://pypi.org/project/sci-fab/>`_
- * `Fab on Github <https://github.com/metomi/fab>`_
- * :ref:`Developers guide<Development>`
+* `Project wiki <https://github.com/metomi/fab/wiki>`_
+* `Fab on PyPI <https://pypi.org/project/sci-fab/>`_
+* `Fab on Github <https://github.com/metomi/fab>`_
+* :ref:`Developers guide<Development>`
 
 
 

@@ -11,14 +11,14 @@ Requirements
 ============
 The minimum dependencies for Fab to build a project are:
 
- * Python >= 3.7
- * Compiler
- * Linker (or archiver, if building libraries)
+* Python >= 3.7
+* Compiler
+* Linker (or archiver, if building libraries)
 
 If your project includes C code:
 
- * libclang
- * python-clang
+* libclang
+* python-clang
 
 
 Running Fab at The Met Office

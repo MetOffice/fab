@@ -40,6 +40,7 @@ and the file dependencies into which they are converted.
     :width: 95%
     :align: center
     :alt: Analysis results class hierarchy
+|
 
 Incremental & Prebuilds
 =======================
@@ -95,7 +96,7 @@ From the fab folder, type:
 Flake8 and mypy
 ---------------
 When making a PR, you might want to run all the checks which give us green ticks.
-You can see the commands we run in ``.github\workflows\build.yml``.
+You can see the commands we run in ``.github/workflows/build.yml``.
 To run flake8 and mypy, type:
 
 .. code-block:: console
@@ -143,8 +144,8 @@ You can see the image in artefactory
 
 
 See also
- * :ref:`Run Singularity<Run Singularity>`
- * `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
+* :ref:`Run Singularity<Run Singularity>`
+* `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
 
 
 

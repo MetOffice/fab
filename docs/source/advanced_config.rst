@@ -66,14 +66,14 @@ Command line tools
 Fab uses well-known environment variables for tool configuration.
 
 .. list-table:: Environment variables
-   :widths: 10 25
+   :widths: 10 30
 
    * - FPP
-     - Fortran preprocessor, e.g ``fpp`` or `cpp -traditional-cpp -P`.
-       Fab ensures the -P is present.
+     - Fortran preprocessor, e.g ``fpp`` or ``cpp -traditional-cpp -P``.
+       Fab ensures the ``-P`` is present.
    * - FC
      - Fortran compiler, e.g ``gfortran`` or ``ifort -c``.
-       Fab ensures the -c is present.
+       Fab ensures the ``-c`` is present.
    * - FFLAGS
      - Fortran compiler flags.
    * - CC

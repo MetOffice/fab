@@ -107,7 +107,7 @@ The Fortran preprocessor will read the ``FPP`` environment variable to determine
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import FcmExport
+    from fab.steps.grab import GrabFolder
     from fab.steps.preprocess import fortran_preprocessor
 
     config = BuildConfig(
@@ -134,9 +134,9 @@ and in which order.
 
 The Analyse step looks for source to analyse in several collections:
 
- * ``.f90`` found in the source
- * ``.F90`` we pre-processed into ``.f90``
- * preprocessed c
+* ``.f90`` found in the source
+* ``.F90`` we pre-processed into ``.f90``
+* preprocessed c
 
 .. code-block::
     :linenos:
@@ -148,7 +148,7 @@ The Analyse step looks for source to analyse in several collections:
     from fab.steps.analyse import Analyse
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import FcmExport
+    from fab.steps.grab import GrabFolder
     from fab.steps.preprocess import fortran_preprocessor
 
     config = BuildConfig(
@@ -185,7 +185,7 @@ The :class:`~fab.steps.link.LinkExe` step then creates the executable.
     from fab.steps.compile_fortran import CompileFortran
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import FindSourceFiles
-    from fab.steps.grab import FcmExport
+    from fab.steps.grab import GrabFolder
     from fab.steps.link import LinkExe
     from fab.steps.preprocess import fortran_preprocessor
 
