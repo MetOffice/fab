@@ -40,7 +40,7 @@ Fab workspace
 You can optionally tell Fab where it's workspace should live.
 This can be useful on systems where your home space is on a slower drive::
 
-    export FAB_WORKSPACE=<fast_drive>/fab_workspace
+    $ export FAB_WORKSPACE=<fast_drive>/fab_workspace
 
 By default, Fab will create a project workspaces inside ``~/fab-workspace``.
 

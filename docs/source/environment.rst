@@ -29,9 +29,8 @@ We use a combination of *module* commands and *conda* to get Fab running at The 
 If you don't need to compile C code, you may not need conda.
 We create the conda environment as follows::
 
-    conda env create -f envs/conda/dev_env.yml
+    $ conda env create -f envs/conda/dev_env.yml
 
-Then :ref:`install fab<Install>`.
 
 .. note::
 
@@ -41,20 +40,22 @@ We then set up our environment *in a new terminal* as follows.
 
 For use with gfortran::
 
-    module use /data/users/lfric/modules/modulefiles.rhel7
-    module load environment/lfric/gnu
-    conda activate sci-fab
-    PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
+    $ module use /data/users/lfric/modules/modulefiles.rhel7
+    $ module load environment/lfric/gnu
+    $ conda activate sci-fab
+    $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
 
 For use with ifort::
 
-    module use /data/users/lfric/modules/modulefiles.rhel7
-    module load environment/lfric/ifort
-    conda activate sci-fab
-    PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
+    $ module use /data/users/lfric/modules/modulefiles.rhel7
+    $ module load environment/lfric/ifort
+    $ conda activate sci-fab
+    $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
 
 The PYTHONPATH line gives us access to a newer version of fparser in the conda environment.
 Otherwise we get the older one from the modules commands.
+
+Then :ref:`install fab<Install>`.
 
 PyCharm
 ^^^^^^^
@@ -80,9 +81,9 @@ You can run Fab in a singularity container as follows::
 
 If you need to use git from within the container, you'll need to set a couple of environment variables first::
 
-    export SINGULARITY_BIND="/etc/pki/ca-trust/extracted/pem:/pem"
-    export SINGULARITYENV_GIT_SSL_CAPATH="/pem"
-    singularity shell oras://metoffice-docker-local.jfrog.io/picasso/metomi/fab/MyImage:latest
+    $ export SINGULARITY_BIND="/etc/pki/ca-trust/extracted/pem:/pem"
+    $ export SINGULARITYENV_GIT_SSL_CAPATH="/pem"
+    $ singularity shell oras://metoffice-docker-local.jfrog.io/picasso/metomi/fab/MyImage:latest
 
 
 See also :ref:`Instructions for building the image<Build Singularity>`.
@@ -90,6 +91,26 @@ See also :ref:`Instructions for building the image<Build Singularity>`.
 
 Outside The Met Office
 ======================
+
+Using Python venv
+-----------------
+Create an environment using Python's builtin `venv`
+
+.. code-block:: console
+
+    $ python -m venv <env name>
+    $ cd <env name>
+    $ . bin/activate
+
+Then install fab
+
+.. code-block:: console
+
+    $ pip install sci-fab
+
+!!!!! needs module loads !!!!!
+
+
 
 Docker
 ------
@@ -99,12 +120,12 @@ This work-in-progress solution was tested on Windows, running Ubuntu in WSL.
 
 Build the image::
 
-    docker build -t fab envs/docker
+    $ docker build -t fab envs/docker
 
 
 Run the image, replacing ``<path_to_fab>`` with the path on your host machine and ``<user>`` with using your username::
 
-    docker run --env PYTHONPATH=/fab -v <path_to_fab>/source:/fab -v /home/<user>:/home/<user> -it fab bash
+    $ docker run --env PYTHONPATH=/fab -v <path_to_fab>/source:/fab -v /home/<user>:/home/<user> -it fab bash
 
 
 Other

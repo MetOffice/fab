@@ -4,10 +4,11 @@
 Introduction to Config
 **********************
 
-Use Fab to build your Fortran and C project using a series of *build steps*.
+Use Fab to build your Fortran and C project using a series of *build steps* which
+are written in Python.
 
-Here is an example of a build config. They are written in Python.
-It provides some ready made, configurable steps for you to use, and it's easy to create your own.
+Here is an example of a build configuration. It provides some ready made
+configurable steps for you to use, and it's easy to create your own custom steps.
 
 .. code-block::
 
@@ -23,8 +24,9 @@ It provides some ready made, configurable steps for you to use, and it's easy to
         ])
 
 Fab is designed to minimise user input by by providing sensible defaults.
+By default it knows to use the build tree created by the preceding step.
 Build steps can read and create named collections in the :term:`Artefact Store`.
 For example, in the snippet above we don't tell the compiler which files to compile.
-By default it knows to use the build tree created by the preceding step.
+
 
 More details about steps can be found in the :ref:`guide to writing config<Writing Config>`.

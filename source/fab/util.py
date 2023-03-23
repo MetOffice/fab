@@ -302,6 +302,5 @@ def common_arg_parser() -> ArgumentParser:
     group.add_argument(
         '--two-stage', action='store_true',
         help='Compile .mod files first in a separate pass. Theoretically faster in some projects.')
-    arg_parser.add_argument('--verbose', action='store_true')
 
     return arg_parser
