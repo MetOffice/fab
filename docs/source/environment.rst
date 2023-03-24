@@ -51,14 +51,14 @@ Then we set up our environment *in a new terminal* as follows.
 
 For use with gfortran::
 
-    $ module use /data/users/lfric/modules/modulefiles.rhel7
+    $ module use $LFRIC_MODULES
     $ module load environment/lfric/gnu
     $ conda activate sci-fab
     $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
 
 For use with ifort::
 
-    $ module use /data/users/lfric/modules/modulefiles.rhel7
+    $ module use $LFRIC_MODULES
     $ module load environment/lfric/ifort
     $ conda activate sci-fab
     $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH

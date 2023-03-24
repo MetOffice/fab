@@ -13,16 +13,26 @@ What is fab?
 An open source build system for Fortran and C projects.
 Initially designed to build the Met Office's major scientific applications, LFRic and the UM.
 
-Why use fab?
-============
-Fab can analyse your code to determine dependencies, including those between C and Fortran.
-It can work out which files need to be compiled, in which order, to create an executable
-or library. Features include:
+Why a New Build Tool?
+=====================
 
-* dependency analysis / compile order
-* extensible with arbitrary tools, e.g. PSYclone
-* incremental operation, process what's changed
-* zero-config capability
+There are several existing build tools, such as Make, and many more build system
+builders such as CMake out there. So why muddy these already turgid waters?
+
+A number of popular solutions to the problem of building software were examined and
+it became apparent that there was a fundamental mismatch in requirements.
+
+Most build systems are designed from the position that the executable is the product. The
+source files needed to create that executable are listed because they change infrequently
+and are merely a means to the end of creating an executable.
+
+Scientific software can be rather different. In this paradigm the source is the product and
+the executable merely a handy means to access it's power. When building is viewed from
+this point-of-view maintaining lists of source is restricting because it changes so often.
+
+In this light it makes sense to develop a new build tool which gives primacy to the source
+rather than the executable. The ultimate goal is to support science developers in their
+work.
 
 For more, please see the :ref:`features<Features>` page.
 

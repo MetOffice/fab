@@ -5,22 +5,23 @@ Advanced Config
 
 Folder structure
 ================
-Fab creates files in the :term:`Project Workspace`.
+Fab creates files in the :term:`Project Workspace`
 
-| <your $FAB_WORKSPACE>
-|    **<project workspace>**
-|       source/
-|       build_output/
-|          \*.f90 (preprocessed Fortran files)
-|          \*.mod (compiled module files)
-|          _prebuild/
-|             \*.an (analysis results)
-|             \*.o (compiled object files)
-|             \*.mod (mod files)
-|       metrics/
-|       my_program.exe
-|       log.txt
-|
+.. code-block::
+
+    <your $FAB_WORKSPACE>
+       <project workspace>
+          source/
+          build_output/
+             *.f90 (preprocessed Fortran files)
+             *.mod (compiled module files)
+             _prebuild/
+                *.an (analysis results)
+                *.o (compiled object files)
+                *.mod (mod files)
+          metrics/
+          my_program.exe
+          log.txt
 
 The *project workspace* folder takes its name from the project label passed in to the build config.
 
@@ -227,7 +228,7 @@ In this case we can manually add the dependency using the `unreferenced_deps` ar
 :class:`~fab.steps.analyse.Analyse`.
 
 Pass in the name of the called function.
-Fab will find the file containing this symbol and add it, *and all its dependencies*, to the build.
+Fab will find the file containing this symbol and add it, *and all its dependencies*, to every :term:`Build Tree`.
 
 .. code-block::
     :linenos:
@@ -264,6 +265,9 @@ Each object contains the symbol definitions and dependencies found in one source
             ])
         ...
     ]
+
+In the above snippet we tell Fab that ``file.f90`` defines a module called ``my_mod`` and a function called ``my_func``,
+and depends on a module called ``other_mod`` and a function called ``other_func``.
 
 Custom Step
 ^^^^^^^^^^^

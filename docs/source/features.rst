@@ -6,11 +6,12 @@ Fab is an open source Python project. Feel free to get involved.
 
 Dependency Analysis
 ===================
-Fab automatically discovers your C and Fortran source files,
-and determines the dependency hierarchy / Fortran compile order.
+Fab automatically discovers your C and Fortran source files.
 You don't need to manually specify and maintain an ordered list of files,
 which can become problematic in a large project.
 
+Fab determines the dependency hierarchy, including through C-Fortran interfacing,
+and thus determines the Fortran compile order. C is compiled in a single pass.
 
 Incremental Build
 =================
