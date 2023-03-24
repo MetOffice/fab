@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 def tool_available() -> bool:
-    """Check if tje psyclone tool is available at the command line."""
+    """Check if the psyclone tool is available at the command line."""
     try:
         run_command(['psyclone', '-h'])
     except (RuntimeError, FileNotFoundError):

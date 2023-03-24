@@ -61,7 +61,7 @@ def is_working_copy(tool, dst: Union[str, Path]) -> bool:
     return True
 
 
-def svn_prep_common(config, src: str, dst_label: Optional[str], revision: Optional[str]) -> \
+def _svn_prep_common(config, src: str, dst_label: Optional[str], revision: Optional[str]) -> \
         Tuple[str, Path, Optional[str]]:
     src, revision = _get_revision(src, revision)
     if not config.source_root.exists():
@@ -78,7 +78,7 @@ def svn_export(config, src: str, dst_label: Optional[str] = None, revision=None,
     Export an FCM repo folder to the project workspace.
 
     """
-    src, dst, revision = svn_prep_common(config, src, dst_label, revision)
+    src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     run_command([
         tool, 'export', '--force',
@@ -98,7 +98,7 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None, revision=Non
         As such, the revision should be provided via the argument, not as part of the url.
 
     """
-    src, dst, revision = svn_prep_common(config, src, dst_label, revision)
+    src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     # new folder?
     if not dst.exists():  # type: ignore
@@ -124,7 +124,7 @@ def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None, 
     Merge an FCM repo into a local working copy.
 
     """
-    src, dst, revision = svn_prep_common(config, src, dst_label, revision)
+    src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     if not dst or not is_working_copy(tool, dst):
         raise ValueError(f"destination is not a working copy: '{dst}'")

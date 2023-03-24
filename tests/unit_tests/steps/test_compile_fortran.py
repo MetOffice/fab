@@ -15,13 +15,6 @@ from fab.steps.preprocess import get_fortran_preprocessor
 from fab.util import CompiledFile
 
 
-# @pytest.fixture()
-# def compiler():
-#     with mock.patch('fab.steps.compile_fortran.get_compiler_version', return_value='1.2.3'):
-#         compiler = CompileFortran(compiler="foo_cc")
-#     return compiler
-
-
 @pytest.fixture
 def analysed_files():
     a = AnalysedFortran(fpath=Path('a.f90'), file_deps={Path('b.f90')}, file_hash=0)
@@ -127,9 +120,6 @@ class Test_store_artefacts(object):
 class Test_process_file(object):
 
     def content(self, flags=None):
-
-        # with mock.patch('fab.steps.compile_fortran.get_compiler_version', return_value='1.2.3'):
-        #     compiler = CompileFortran(compiler="foo_cc")
 
         flags = flags or ['flag1', 'flag2']
         flags_config = mock.Mock()

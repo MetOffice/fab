@@ -18,17 +18,6 @@ def current_commit(folder=None):
     return commit
 
 
-# class GrabGitBase(GrabSourceBase, ABC):
-#     """
-#     Base class for Git operations.
-#
-#     """
-#     def run(self, artefact_store: Dict, config):
-#         if not self.tool_available():
-#             raise RuntimeError("git command line tool not available")
-#         super().run(artefact_store, config)
-
-
 def tool_available() -> bool:
     """Is the command line git tool available?"""
     try:

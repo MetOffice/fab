@@ -68,14 +68,9 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
         for selected files.
     :param source:
         An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
-    :param two_stage:
-        Optionally enable the 'syntax checking' feature of the compiler.
-        Fab uses this to quickly build all the mod files first, potentially shortening dependency bottlenecks.
-        The slower object file compilation can then follow in a second stage, all at once.
 
     """
-
-    # todo: two_stage is now in the parsed args - say what it does with the flag
+    # todo: two_stage is now in the parsed args - say what it does with the flag - and find a better place for it?
 
     compiler, compiler_version, flags_config = handle_compiler_args(common_flags, path_flags)
 

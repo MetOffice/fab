@@ -128,8 +128,7 @@ class BuildConfig(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
 
-        # not if there's an error...is that what we want?
-        if not exc_type:
+        if not exc_type:  # None if there's no error.
             from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
             if CLEANUP_COUNT not in self._artefact_store:
                 logger.info("no housekeeping step was run, using a default hard cleanup")
