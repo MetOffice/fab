@@ -23,7 +23,7 @@ from pathlib import Path
 import pytest
 
 from fab.build_config import BuildConfig
-from fab.steps.grab.git import current_commit, GitCheckout, GitMerge
+from fab.steps.grab.git import current_commit, git_checkout, git_merge
 
 
 @pytest.fixture
@@ -38,25 +38,20 @@ class TestGitCheckout(object):
         return 'https://github.com/metomi/fab-test-data.git'
 
     def test_checkout_url(self, tmp_path, url, config):
-        checkout = GitCheckout(src=url, dst='tiny_fortran')
-        checkout.run(artefact_store=None, config=config)
+        git_checkout(config, src=url, dst_label='tiny_fortran')
         # todo: The commit will keep changing. Perhaps make a non-changing branch
         assert current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
 
     def test_checkout_branch(self, tmp_path, url, config):
-        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='main')
-        checkout.run(artefact_store=None, config=config)
-        # todo: The commit will keep changing. Perhaps make a non-changing branch
+        git_checkout(config, src=url, dst_label='tiny_fortran', revision='main')
         assert current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
 
     def test_checkout_tag(self, tmp_path, url, config):
-        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='early')
-        checkout.run(artefact_store=None, config=config)
+        git_checkout(config, src=url, dst_label='tiny_fortran', revision='early')
         assert current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
 
     def test_checkout_commit(self, tmp_path, url, config):
-        checkout = GitCheckout(src=url, dst='tiny_fortran', revision='ee5648928893701c5dbccdbf0561c0038352a5ff')
-        checkout.run(artefact_store=None, config=config)
+        git_checkout(config, src=url, dst_label='tiny_fortran', revision='ee5648928893701c5dbccdbf0561c0038352a5ff')
         assert current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
 
 
@@ -73,18 +68,15 @@ class TestGitMerge(object):
     def test_vanilla(self, repo_url, config):
 
         # checkout master
-        checkout_master = GitCheckout(src=repo_url, dst='tiny_fortran', revision='master')
-        checkout_master.run(artefact_store=None, config=config)
-        check_file = checkout_master._dst / 'file1.txt'
+        git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='master')
+        check_file = config.source_root / 'tiny_fortran/file1.txt'
         assert 'This is sentence one in file one.' in open(check_file).read()
 
-        merge_a = GitMerge(src=repo_url, dst='tiny_fortran', revision='experiment_a')
-        merge_a.run(artefact_store=None, config=config)
+        git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_a')
         assert 'This is sentence one, with Experiment A modification.' in open(check_file).read()
 
-        merge_b = GitMerge(src=repo_url, dst='tiny_fortran', revision='experiment_b')
         with pytest.raises(RuntimeError):
-            merge_b.run(artefact_store=None, config=config)
+            git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_b')
 
-        # The conflicted merge must have been aborted, check that we can do another checkout
-        checkout_master.run(artefact_store=None, config=config)
+        # The conflicted merge must have been aborted, check that we can do another checkout of master
+        git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='master')

@@ -3,12 +3,11 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from abc import ABC
 from pathlib import Path
-from typing import Union, Dict, Tuple
+from typing import Optional, Union, Tuple
 import xml.etree.ElementTree as ET
 
-from fab.steps.grab import GrabSourceBase
+from fab.steps import step_timer
 from fab.tools import run_command
 
 
@@ -39,75 +38,58 @@ def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
     return src, revision or url_revision
 
 
-class GrabSvnBase(GrabSourceBase, ABC):
-    """
-    Base class for SVN or FCM operations.
-
-    """
-    command = 'svn'
-
-    def __init__(self, src: str, dst: str, revision=None, name=None):
-        """
-        :param src:
-            Such as `fcm:jules.xm_tr/src`. Can end with "@rev".
-        :param dst:
-            The name of a sub folder, in the project workspace, in which to put the source.
-            If not specified, the code is copied into the root of the source folder.
-        :param revision:
-            E.g 'vn6.3'.
-        :param name:
-            Human friendly name for logger output, with sensible default.
-
-        """
-        # pull the revision out of the url, if it's in there
-        src, revision = _get_revision(src, revision)
-        name = name or f'{self.__class__.__name__} {dst} {revision}'.strip()
-        super().__init__(src, dst, name=name, revision=revision)
-
-    def run(self, artefact_store: Dict, config):
-        if not self.tool_available():
-            raise RuntimeError(f"command line tool not available: '{self.command}'")
-        super().run(artefact_store, config)
-
-    @classmethod
-    def tool_available(cls) -> bool:
-        """Is the command line tool available?"""
-        try:
-            run_command([cls.command, 'help'])
-        except FileNotFoundError:
-            return False
-        return True
-
-    def _cli_revision_parts(self):
-        # return the command line argument to specif the revision, if there is one
-        return ['--revision', str(self.revision)] if self.revision is not None else []
-
-    def is_working_copy(self, dst: Union[str, Path]) -> bool:
-        # is the given path is a working copy?
-        try:
-            run_command([self.command, 'info'], cwd=dst)
-        except RuntimeError:
-            return False
-        return True
+def tool_available(command) -> bool:
+    """Is the command line tool available?"""
+    try:
+        run_command([command, 'help'])
+    except FileNotFoundError:
+        return False
+    return True
 
 
-class SvnExport(GrabSvnBase):
+def _cli_revision_parts(revision):
+    # return the command line argument to specif the revision, if there is one
+    return ['--revision', str(revision)] if revision is not None else []
+
+
+def is_working_copy(tool, dst: Union[str, Path]) -> bool:
+    # is the given path is a working copy?
+    try:
+        run_command([tool, 'info'], cwd=dst)
+    except RuntimeError:
+        return False
+    return True
+
+
+def _svn_prep_common(config, src: str, dst_label: Optional[str], revision: Optional[str]) -> \
+        Tuple[str, Path, Optional[str]]:
+    src, revision = _get_revision(src, revision)
+    if not config.source_root.exists():
+        config.source_root.mkdir(parents=True, exist_ok=True)
+    dst: Path = config.source_root / (dst_label or '')
+
+    return src, dst, revision
+
+
+@step_timer
+def svn_export(config, src: str, dst_label: Optional[str] = None, revision=None, tool='svn'):
+    # todo: params in docstrings
     """
     Export an FCM repo folder to the project workspace.
 
     """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
+    src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
-        run_command([
-            self.command, 'export', '--force',
-            *self._cli_revision_parts(),
-            self.src,
-            str(self._dst)
-        ])
+    run_command([
+        tool, 'export', '--force',
+        *_cli_revision_parts(revision),
+        src,
+        str(dst)
+    ])
 
 
-class SvnCheckout(GrabSvnBase):
+@step_timer
+def svn_checkout(config, src: str, dst_label: Optional[str] = None, revision=None, tool='svn'):
     """
     Checkout or update an FCM repo.
 
@@ -116,60 +98,60 @@ class SvnCheckout(GrabSvnBase):
         As such, the revision should be provided via the argument, not as part of the url.
 
     """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
+    src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
-        # new folder?
-        if not self._dst.exists():  # type: ignore
-            run_command([
-                self.command, 'checkout',
-                *self._cli_revision_parts(),
-                self.src, str(self._dst)
-            ])
+    # new folder?
+    if not dst.exists():  # type: ignore
+        run_command([
+            tool, 'checkout',
+            *_cli_revision_parts(revision),
+            src, str(dst)
+        ])
 
+    else:
+        # working copy?
+        if is_working_copy(tool, dst):  # type: ignore
+            # update
+            # todo: ensure the existing checkout is from self.src?
+            run_command([tool, 'update', *_cli_revision_parts(revision)], cwd=dst)  # type: ignore
         else:
-            # working copy?
-            if self.is_working_copy(self._dst):  # type: ignore
-                # update
-                # todo: ensure the existing checkout is from self.src?
-                run_command([self.command, 'update', *self._cli_revision_parts()], cwd=self._dst)  # type: ignore
-            else:
-                # we can't deal with an existing folder that isn't a working copy
-                raise ValueError(f"destination exists but is not an fcm working copy: '{self._dst}'")
+            # we can't deal with an existing folder that isn't a working copy
+            raise ValueError(f"destination exists but is not an fcm working copy: '{dst}'")
 
 
-class SvnMerge(GrabSvnBase):
+def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None, tool='svn'):
     """
     Merge an FCM repo into a local working copy.
 
     """
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
-        if not self._dst or not self.is_working_copy(self._dst):
-            raise ValueError(f"destination is not a working copy: '{self._dst}'")
+    src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
-        # We seem to need the url and version combined for this operation.
-        # The help for fcm merge says it accepts the --revision param, like other commands,
-        # but it doesn't seem to be recognised.
-        rev_url = f'{self.src}'
-        if self.revision is not None:
-            rev_url += f'@{self.revision}'
+    if not dst or not is_working_copy(tool, dst):
+        raise ValueError(f"destination is not a working copy: '{dst}'")
 
-        run_command([self.command, 'merge', '--non-interactive', rev_url], cwd=self._dst)
-        self.check_conflict()
+    # We seem to need the url and version combined for this operation.
+    # The help for fcm merge says it accepts the --revision param, like other commands,
+    # but it doesn't seem to be recognised.
+    rev_url = f'{src}'
+    if revision is not None:
+        rev_url += f'@{revision}'
 
-    def check_conflict(self):
-        # check if there's a conflict
-        xml_str = run_command([self.command, 'status', '--xml'], cwd=self._dst)
-        root = ET.fromstring(xml_str)
+    run_command([tool, 'merge', '--non-interactive', rev_url], cwd=dst)
+    check_conflict(tool, dst)
 
-        for target in root:
-            if target.tag != 'target':
+
+def check_conflict(tool, dst):
+    # check if there's a conflict
+    xml_str = run_command([tool, 'status', '--xml'], cwd=dst)
+    root = ET.fromstring(xml_str)
+
+    for target in root:
+        if target.tag != 'target':
+            continue
+        for entry in target:
+            if entry.tag != 'entry':
                 continue
-            for entry in target:
-                if entry.tag != 'entry':
-                    continue
-                for element in entry:
-                    if element.tag == 'wc-status' and element.attrib['item'] == 'conflicted':
-                        raise RuntimeError(f'{self.command} merge encountered a conflict:\n{xml_str}')
-        return False
+            for element in entry:
+                if element.tag == 'wc-status' and element.attrib['item'] == 'conflicted':
+                    raise RuntimeError(f'{tool} merge encountered a conflict:\n{xml_str}')
+    return False

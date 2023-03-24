@@ -13,168 +13,22 @@ import os
 import re
 import warnings
 
-from fab.util import common_arg_parser
-
-
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import PRAGMAD_C
-from fab.steps import Step
-from fab.steps.analyse import Analyse
-from fab.steps.archive_objects import ArchiveObjects
-from fab.steps.c_pragma_injector import CPragmaInjector
-from fab.steps.compile_c import CompileC
-from fab.steps.compile_fortran import CompileFortran, get_fortran_compiler
-from fab.steps.grab.fcm import FcmExport
-from fab.steps.link import LinkExe
-from fab.steps.preprocess import c_preprocessor, fortran_preprocessor
-from fab.steps.root_inc_files import RootIncFiles
-from fab.steps.find_source_files import FindSourceFiles, Exclude, Include
+from fab.steps import step_timer
+from fab.steps.analyse import analyse
+from fab.steps.archive_objects import archive_objects
+from fab.steps.c_pragma_injector import c_pragma_injector
+from fab.steps.compile_c import compile_c
+from fab.steps.compile_fortran import compile_fortran, get_fortran_compiler
+from fab.steps.grab.fcm import fcm_export
+from fab.steps.link import link_exe
+from fab.steps.preprocess import preprocess_c, preprocess_fortran
+from fab.steps.find_source_files import find_source_files, Exclude, Include
+from fab.steps.root_inc_files import root_inc_files
 
 logger = logging.getLogger('fab')
-
-
-# todo: fail fast, check gcom exists
-
-
-def um_atmos_safe_config(revision, two_stage=False, verbose=False):
-    um_revision = revision.replace('vn', 'um')
-
-    # We want a separate project folder for each compiler. Find out which compiler we'll be using.
-    compiler, _ = get_fortran_compiler()
-
-    # compiler-specific flags
-    if compiler == 'gfortran':
-        compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
-    elif compiler == 'ifort':
-        # compiler_specific_flags = ['-r8']
-        compiler_specific_flags = [
-            '-i8', '-r8', '-mcmodel=medium',
-            '-no-vec', '-fp-model precise',
-            '-std08',
-            '-fpscomp logicals',
-            '-g',
-            '-diag-disable 6477',
-            '-fpic',
-            '-assume nosource_include,protect_parens',
-        ]
-    else:
-        compiler_specific_flags = []
-
-    config = BuildConfig(
-        project_label=f'um atmos safe {revision} {compiler} {int(two_stage)+1}stage',
-        verbose=verbose,
-    )
-
-    # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
-    gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(os.path.expanduser(
-        config.project_workspace / f"../gcom_object_archive_vn7.6_{compiler}/build_output"))
-    if not os.path.exists(gcom_build):
-        raise RuntimeError(f'gcom not found at {gcom_build}')
-
-    config.steps = [
-
-        # todo: these repo defs could make a good set of reusable variables
-
-        # UM 12.1, 16th November 2021
-        FcmExport(src='fcm:um.xm_tr/src', dst='um', revision=revision),
-
-        # JULES 6.2, for UM 12.1
-        FcmExport(src='fcm:jules.xm_tr/src', dst='jules', revision=um_revision),
-
-        # SOCRATES 21.11, for UM 12.1
-        FcmExport(src='fcm:socrates.xm_tr/src', dst='socrates', revision=um_revision),
-
-        # SHUMLIB, for UM 12.1
-        FcmExport(src='fcm:shumlib.xm_tr/', dst='shumlib', revision=um_revision),
-
-        # CASIM, for UM 12.1
-        FcmExport(src='fcm:casim.xm_tr/src', dst='casim', revision=um_revision),
-
-
-        MyCustomCodeFixes(name="my custom code fixes"),
-
-        FindSourceFiles(path_filters=file_filtering),
-
-        RootIncFiles(),
-
-        CPragmaInjector(),
-
-        c_preprocessor(
-            source=CollectionGetter(PRAGMAD_C),
-            path_flags=[
-                # todo: this is a bit "codey" - can we safely give longer strings and split later?
-                AddFlags(match="$source/um/*", flags=[
-                    '-I$source/um/include/other',
-                    '-I$source/shumlib/common/src',
-                    '-I$source/shumlib/shum_thread_utils/src']),
-
-                AddFlags(match="$source/shumlib/*", flags=[
-                    '-I$source/shumlib/common/src',
-                    '-I$source/shumlib/shum_thread_utils/src']),
-
-                # todo: just 3 folders use this
-                AddFlags("$source/um/*", ['-DC95_2A', '-I$source/shumlib/shum_byteswap/src']),
-            ],
-        ),
-
-        # todo: explain fnmatch
-        fortran_preprocessor(
-            common_flags=['-P'],
-            path_flags=[
-                AddFlags("$source/jules/*", ['-DUM_JULES']),
-                AddFlags("$source/um/*", ['-I$relative/include']),
-
-                # coupling defines
-                AddFlags("$source/um/control/timer/*", ['-DC97_3A']),
-                AddFlags("$source/um/io_services/client/stash/*", ['-DC96_1C']),
-            ],
-        ),
-
-        Analyse(
-            root_symbol='um_main',
-
-            # # fparser2 fails to parse this file, but it does compile.
-            # special_measure_analysis_results=[
-            #     FortranParserWorkaround(
-            #         fpath=Path(config.build_output / "casim/lookup.f90"),
-            #         symbol_defs={'lookup'},
-            #         symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-            #                      'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
-            #     )
-            # ]
-        ),
-
-        CompileC(compiler='gcc', common_flags=['-c', '-std=c99']),
-
-        CompileFortran(
-            common_flags=[
-                *compiler_specific_flags,
-            ],
-            two_stage_flag='-fsyntax-only' if two_stage else None,
-            path_flags=[
-                # mpl include - todo: just add this for everything?
-                AddFlags("$output/um/*", ['-I' + gcom_build]),
-                AddFlags("$output/jules/*", ['-I' + gcom_build]),
-
-                # required for newer compilers
-                # # todo: allow multiple filters per instance?
-                # *[AddFlags(*i) for i in ALLOW_MISMATCH_FLAGS]
-            ]
-        ),
-
-        # this step just makes linker error messages more manageable
-        ArchiveObjects(),
-
-        LinkExe(
-            linker='mpifort',
-            flags=[
-                '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
-                '-L', gcom_build, '-l', 'gcom'
-            ],
-        )
-    ]
-    return config
 
 
 file_filtering = [
@@ -232,71 +86,28 @@ file_filtering = [
 ]
 
 
-# required for newer compilers
-
-# # todo: allow a list of filters?
-# ALLOW_MISMATCH_FLAGS = [
-#     ('*/acumps.f90', ['-fallow-argument-mismatch']),
-#     ('*/diagopr.f90', ['-fallow-argument-mismatch']),
-#     ('*/eg_bi_linear_h.f90', ['-fallow-argument-mismatch']),
-#     ('*/eg_sl_helmholtz_inc.f90', ['-fallow-argument-mismatch']),
-#     ('*/emiss_io_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/fastjx_specs.f90', ['-fallow-argument-mismatch']),
-#     ('*/glomap_clim_netcdf_io_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/halo_exchange_ddt_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/halo_exchange_mpi_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/halo_exchange_os_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/hardware_topology_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/history_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/imbnd_hill_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/io.f90', ['-fallow-argument-mismatch']),
-#     ('*/io_configuration_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/io_server_listener.f90', ['-fallow-argument-mismatch']),
-#     ('*/io_server_writer.f90', ['-fallow-argument-mismatch']),
-#     ('*/ios.f90', ['-fallow-argument-mismatch']),
-#     ('*/ios_client_queue.f90', ['-fallow-argument-mismatch']),
-#     ('*/ios_comms.f90', ['-fallow-argument-mismatch']),
-#     ('*/ios_init.f90', ['-fallow-argument-mismatch']),
-#     ('*/ios_stash_server.f90', ['-fallow-argument-mismatch']),
-#     ('*/lustre_control_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/mcica_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/mg_field_norm.f90', ['-fallow-argument-mismatch']),
-#     ('*/nlstcall_nc_namelist_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/nlstcall_pp_namelist_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/num_obs.f90', ['-fallow-argument-mismatch']),
-#     ('*/ppxlook_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/rdbasis.f90', ['-fallow-argument-mismatch']),
-#     ('*/read_land_sea.f90', ['-fallow-argument-mismatch']),
-#     ('*/regrid_alloc_calc_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/routedbl_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/setup_spectra_mod.f90', ['-fallow-argument-mismatch']),
-#     ('*/ukca_scenario_rcp_mod.f90', ['-fallow-argument-mismatch']),
-# ]
-
-
-class MyCustomCodeFixes(Step):
+@step_timer
+def my_custom_code_fixes(config):
     """
     An example of a custom step to fix some source code which fparser2 can't parse.
 
     """
-
-    def run(self, artefact_store, config):
-        warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
-        self.replace_in_file(
-            config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-            config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-            r'(\W)NameListFile', r'\g<1>FabNameListFile')
-
-        warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
-        self.replace_in_file(
-            config.project_workspace / 'source/um/control/top_level/um_config.F90',
-            config.project_workspace / 'source/um/control/top_level/um_config.F90',
-            r'(\W)NameListFile', r'\g<1>FabNameListFile')
-
-    def replace_in_file(self, inpath, outpath, find, replace):
+    def replace_in_file(inpath, outpath, find, replace):
         orig = open(os.path.expanduser(inpath), "rt").read()
         open(os.path.expanduser(outpath), "wt").write(
             case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
+
+    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
+    replace_in_file(
+        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
+        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
+        r'(\W)NameListFile', r'\g<1>FabNameListFile')
+
+    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
+    replace_in_file(
+        config.project_workspace / 'source/um/control/top_level/um_config.F90',
+        config.project_workspace / 'source/um/control/top_level/um_config.F90',
+        r'(\W)NameListFile', r'\g<1>FabNameListFile')
 
 
 def case_insensitive_replace(in_str: str, find: str, replace_with: str):
@@ -309,8 +120,136 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
-    arg_parser.add_argument('--revision', default=os.getenv('UM_REVISION', 'vn12.1'))
-    args = arg_parser.parse_args()
 
-    um_atmos_safe_config(revision=args.revision, two_stage=args.two_stage, verbose=args.verbose).run()
+    revision = 'vn12.1'
+    um_revision = revision.replace('vn', 'um')
+
+    # compiler-specific flags
+    compiler, _ = get_fortran_compiler()
+    if compiler == 'gfortran':
+        compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
+    elif compiler == 'ifort':
+        # compiler_specific_flags = ['-r8']
+        compiler_specific_flags = [
+            '-i8', '-r8', '-mcmodel=medium',
+            '-no-vec', '-fp-model precise',
+            '-std08',
+            '-fpscomp logicals',
+            '-g',
+            '-diag-disable 6477',
+            '-fpic',
+            '-assume nosource_include,protect_parens',
+        ]
+    else:
+        compiler_specific_flags = []
+
+    # todo: document: if you're changing compilers, put $compiler in your label
+    with BuildConfig(project_label=f'um atmos safe {revision} $compiler $two_stage') as config:
+
+        # todo: these repo defs could make a good set of reusable variables
+
+        # UM 12.1, 16th November 2021
+        fcm_export(config, src='fcm:um.xm_tr/src', dst_label='um', revision=revision)
+
+        # JULES 6.2, for UM 12.1
+        fcm_export(config, src='fcm:jules.xm_tr/src', dst_label='jules', revision=um_revision)
+
+        # SOCRATES 21.11, for UM 12.1
+        fcm_export(config, src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=um_revision)
+
+        # SHUMLIB, for UM 12.1
+        fcm_export(config, src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=um_revision)
+
+        # CASIM, for UM 12.1
+        fcm_export(config, src='fcm:casim.xm_tr/src', dst_label='casim', revision=um_revision)
+
+        my_custom_code_fixes(config)
+
+        find_source_files(config, path_filters=file_filtering)
+
+        root_inc_files(config)
+
+        c_pragma_injector(config)
+
+        preprocess_c(
+            config,
+            source=CollectionGetter(PRAGMAD_C),
+            path_flags=[
+                # todo: this is a bit "codey" - can we safely give longer strings and split later?
+                AddFlags(match="$source/um/*", flags=[
+                    '-I$source/um/include/other',
+                    '-I$source/shumlib/common/src',
+                    '-I$source/shumlib/shum_thread_utils/src']),
+
+                AddFlags(match="$source/shumlib/*", flags=[
+                    '-I$source/shumlib/common/src',
+                    '-I$source/shumlib/shum_thread_utils/src']),
+
+                # todo: just 3 folders use this
+                AddFlags("$source/um/*", ['-DC95_2A', '-I$source/shumlib/shum_byteswap/src']),
+            ],
+        )
+
+        # todo: explain fnmatch
+        preprocess_fortran(
+            config,
+            common_flags=['-P'],
+            path_flags=[
+                AddFlags("$source/jules/*", ['-DUM_JULES']),
+                AddFlags("$source/um/*", ['-I$relative/include']),
+
+                # coupling defines
+                AddFlags("$source/um/control/timer/*", ['-DC97_3A']),
+                AddFlags("$source/um/io_services/client/stash/*", ['-DC96_1C']),
+            ],
+        )
+
+        analyse(
+            config, root_symbol='um_main',
+
+            # # fparser2 fails to parse this file, but it does compile.
+            # special_measure_analysis_results=[
+            #     FortranParserWorkaround(
+            #         fpath=Path(config.build_output / "casim/lookup.f90"),
+            #         symbol_defs={'lookup'},
+            #         symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
+            #                      'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
+            #     )
+            # ]
+        )
+
+        compile_c(config, common_flags=['-c', '-std=c99'])
+
+        # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
+        gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(os.path.expanduser(
+            config.project_workspace / f"../gcom_object_archive_{compiler}/build_output"))
+        if not os.path.exists(gcom_build):
+            raise RuntimeError(f'gcom not found at {gcom_build}')
+
+        compile_fortran(
+            config,
+            common_flags=[
+                *compiler_specific_flags,
+            ],
+            path_flags=[
+                # mpl include - todo: just add this for everything?
+                AddFlags("$output/um/*", ['-I' + gcom_build]),
+                AddFlags("$output/jules/*", ['-I' + gcom_build]),
+
+                # required for newer compilers
+                # # todo: allow multiple filters per instance?
+                # *[AddFlags(*i) for i in ALLOW_MISMATCH_FLAGS]
+            ]
+        )
+
+        # this step just makes linker error messages more manageable
+        archive_objects(config),
+
+        link_exe(
+            config,
+            linker='mpifort',
+            flags=[
+                '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
+                '-L', gcom_build, '-l', 'gcom'
+            ],
+        )
