@@ -1,7 +1,7 @@
 .. _Advanced Config:
 
-Advanced Config
-***************
+Advanced Configuration
+**********************
 
 Folder structure
 ================
@@ -23,7 +23,7 @@ Fab creates files in the :term:`Project Workspace`
           my_program.exe
           log.txt
 
-The *project workspace* folder takes its name from the project label passed in to the build config.
+The *project workspace* folder takes its name from the project label passed in to the build configuration.
 
 The *source* folder is where grab steps place their files.
 
@@ -312,13 +312,13 @@ Two-stage compilation is configured with the `two_stage_flag` argument to the Fo
     CompileFortran(two_stage_flag=True)
 
 
-Config Reuse
-============
-If you find you have many build configs with duplicated code, it would be prudent to consider refactoring out
+Configuration Reuse
+===================
+If you find you have multiple build configurations with duplicated code, it could be helpful to refactor out
 the commonality into a shared module.
 
 In Fab's `example run configs <https://github.com/metomi/fab/tree/master/run_configs>`_,
-we have two build scripts to compile GCOM. Much of the config for these two scripts is identical.
+we have two build scripts to compile GCOM. Much of the configuration for these two scripts is identical.
 We extracted the common steps into
 `gcom_build_steps.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/gcom_build_steps.py>`_
 and used them in
@@ -332,7 +332,7 @@ Separate grab and build scripts
 If you are running many builds from the same source,
 you may wish to grab your repo in a separate script and call it less frequently.
 In this case your grab script might only contain a single step.
-You could import your grab config to find out where it put the source.
+You could import your grab configuration to find out where it put the source.
 
 .. code-block::
     :caption: my_grab.py
@@ -383,7 +383,7 @@ Shared prebuilds
 ================
 You can copy the contents of someone else's prebuilds folder into your own.
 Fab uses hashes to keep track of the correct prebuilt files, and will find and use them.
-There's also a helper step called :class:`~fab.steps.grab.prebuild.GrabPreBuild` you can add to your configs.
+There's also a helper step called :class:`~fab.steps.grab.prebuild.GrabPreBuild` you can add to your build configurations.
 
 
 Psykalite (Psyclone overrides)

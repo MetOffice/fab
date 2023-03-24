@@ -1,8 +1,8 @@
 .. _Config Intro:
 
 
-Introduction to Config
-**********************
+Introduction to Configuration
+*****************************
 
 Use Fab to build your Fortran and C project using a series of *build steps* which
 are written in Python.
@@ -35,4 +35,4 @@ Build steps can read and create named collections in the :term:`Artefact Store`.
 For example, in the snippet above we don't tell the compiler which files to compile.
 
 
-More details about steps can be found in the :ref:`guide to writing config<Writing Config>`.
+More details about steps can be found in the :ref:`guide to writing configuration<Writing Config>`.

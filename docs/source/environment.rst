@@ -31,6 +31,7 @@ Without clang
 ^^^^^^^^^^^^^
 If you don't need to build C, you can use this modules command::
 
+    $ module use $EXTRA_SOFTWARE
     $ module load fab/0.11.0/python/3.7.0
 
 
