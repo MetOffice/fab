@@ -8,14 +8,14 @@ Predefined build steps with sensible defaults.
 
 """
 import multiprocessing
-
 from fab.metrics import send_metric
 from fab.util import by_type, TimerLogger
+from functools import wraps
 
 
 def step_timer(func):
     """Function decorator for steps."""
-
+    @wraps(func)
     def wrapper(*args, **kwargs):
 
         name = func.__name__

@@ -58,6 +58,7 @@ as it needs to use this flag to control the output location.
 
 
 .. _Overriding default collections:
+.. _env_vars:
 
 Overriding defaults
 ===================
@@ -65,6 +66,7 @@ Overriding defaults
 Command line tools
 ------------------
 Fab uses well-known environment variables for tool configuration.
+
 
 .. list-table:: Environment variables
    :widths: 10 30
