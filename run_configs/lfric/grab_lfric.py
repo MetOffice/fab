@@ -12,6 +12,7 @@ LFRIC_REVISION = 40984
 
 
 # these configs are interrogated by the build scripts
+# todo: doesn't need two separate configs, they use the same project workspace
 lfric_source_config = BuildConfig(project_label=f'lfric source {LFRIC_REVISION}')
 gpl_utils_source_config = BuildConfig(project_label=f'lfric source {LFRIC_REVISION}')
 
