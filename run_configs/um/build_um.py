@@ -253,5 +253,3 @@ if __name__ == '__main__':
                 '-L', gcom_build, '-l', 'gcom'
             ],
         )
-
-
