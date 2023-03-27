@@ -31,6 +31,94 @@ from fab.steps.root_inc_files import root_inc_files
 logger = logging.getLogger('fab')
 
 
+def case_insensitive_replace(in_str: str, find: str, replace_with: str):
+    """
+    Replace, for example, NameListFile *or* NAMELISTFILE with the given string.
+
+    """
+    compiled_re = re.compile(find, re.IGNORECASE)
+    return compiled_re.sub(replace_with, in_str)
+
+
+@step_timer
+def my_custom_code_fixes(config):
+    """
+    An example of a custom step to fix some source code which fparser2 can't parse.
+
+    """
+    def replace_in_file(inpath, outpath, find, replace):
+        orig = open(os.path.expanduser(inpath), "rt").read()
+        open(os.path.expanduser(outpath), "wt").write(
+            case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
+
+    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
+    replace_in_file(
+        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
+        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
+        r'(\W)NameListFile', r'\g<1>FabNameListFile')
+
+    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
+    replace_in_file(
+        config.project_workspace / 'source/um/control/top_level/um_config.F90',
+        config.project_workspace / 'source/um/control/top_level/um_config.F90',
+        r'(\W)NameListFile', r'\g<1>FabNameListFile')
+
+
+file_filtering = [
+    Exclude('unit-test', 'unit_test', '/test/'),
+
+    Exclude('/um/utility/'),
+    Include('/um/utility/qxreconf/'),
+
+    Exclude('/um/atmosphere/convection/comorph/interface/'),
+    Include('/um/atmosphere/convection/comorph/interface/um/'),
+
+    Exclude('/um/atmosphere/convection/comorph/unit_tests/'),
+
+    Exclude('/um/scm/'),
+    Include('/um/scm/stub/',
+            '/um/scm/modules/s_scmop_mod.F90',
+            '/um/scm/modules/scmoptype_defn.F90'),
+
+    Exclude('/jules/'),
+    Include('/jules/control/shared/',
+            '/jules/control/um/',
+            '/jules/control/rivers-standalone/',
+            '/jules/initialisation/shared/',
+            '/jules/initialisation/um/',
+            '/jules/initialisation/rivers-standalone/',
+            '/jules/params/um/',
+            '/jules/science/',
+            '/jules/util/shared/'),
+
+    Exclude('/socrates/'),
+    Include('/socrates/nlte/',
+            '/socrates/radiance_core/'),
+
+    # the shummlib config in fcm config doesn't seem to do anything,
+    # perhaps there used to be extra files we needed to exclude
+    Exclude('/shumlib/'),
+    Include('/shumlib/shum_wgdos_packing/src',
+            '/shumlib/shum_string_conv/src',
+            '/shumlib/shum_latlon_eq_grids/src',
+            '/shumlib/shum_horizontal_field_interp/src',
+            '/shumlib/shum_spiral_search/src',
+            '/shumlib/shum_constants/src',
+            '/shumlib/shum_thread_utils/src',
+            '/shumlib/shum_data_conv/src',
+            '/shumlib/shum_number_tools/src',
+            '/shumlib/shum_byteswap/src',
+            '/shumlib/common/src'),
+    Exclude('/shumlib/common/src/shumlib_version.c'),
+
+    Exclude('/casim/mphys_die.F90',
+            '/casim/mphys_casim.F90'),
+
+    Exclude('.xml'),
+    Exclude('.sh'),
+]
+
+
 if __name__ == '__main__':
 
     revision = 'vn12.1'
@@ -167,89 +255,3 @@ if __name__ == '__main__':
         )
 
 
-file_filtering = [
-    Exclude('unit-test', 'unit_test', '/test/'),
-
-    Exclude('/um/utility/'),
-    Include('/um/utility/qxreconf/'),
-
-    Exclude('/um/atmosphere/convection/comorph/interface/'),
-    Include('/um/atmosphere/convection/comorph/interface/um/'),
-
-    Exclude('/um/atmosphere/convection/comorph/unit_tests/'),
-
-    Exclude('/um/scm/'),
-    Include('/um/scm/stub/',
-            '/um/scm/modules/s_scmop_mod.F90',
-            '/um/scm/modules/scmoptype_defn.F90'),
-
-    Exclude('/jules/'),
-    Include('/jules/control/shared/',
-            '/jules/control/um/',
-            '/jules/control/rivers-standalone/',
-            '/jules/initialisation/shared/',
-            '/jules/initialisation/um/',
-            '/jules/initialisation/rivers-standalone/',
-            '/jules/params/um/',
-            '/jules/science/',
-            '/jules/util/shared/'),
-
-    Exclude('/socrates/'),
-    Include('/socrates/nlte/',
-            '/socrates/radiance_core/'),
-
-    # the shummlib config in fcm config doesn't seem to do anything,
-    # perhaps there used to be extra files we needed to exclude
-    Exclude('/shumlib/'),
-    Include('/shumlib/shum_wgdos_packing/src',
-            '/shumlib/shum_string_conv/src',
-            '/shumlib/shum_latlon_eq_grids/src',
-            '/shumlib/shum_horizontal_field_interp/src',
-            '/shumlib/shum_spiral_search/src',
-            '/shumlib/shum_constants/src',
-            '/shumlib/shum_thread_utils/src',
-            '/shumlib/shum_data_conv/src',
-            '/shumlib/shum_number_tools/src',
-            '/shumlib/shum_byteswap/src',
-            '/shumlib/common/src'),
-    Exclude('/shumlib/common/src/shumlib_version.c'),
-
-    Exclude('/casim/mphys_die.F90',
-            '/casim/mphys_casim.F90'),
-
-    Exclude('.xml'),
-    Exclude('.sh'),
-]
-
-
-@step_timer
-def my_custom_code_fixes(config):
-    """
-    An example of a custom step to fix some source code which fparser2 can't parse.
-
-    """
-    def replace_in_file(inpath, outpath, find, replace):
-        orig = open(os.path.expanduser(inpath), "rt").read()
-        open(os.path.expanduser(outpath), "wt").write(
-            case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
-
-    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
-    replace_in_file(
-        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-        r'(\W)NameListFile', r'\g<1>FabNameListFile')
-
-    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
-    replace_in_file(
-        config.project_workspace / 'source/um/control/top_level/um_config.F90',
-        config.project_workspace / 'source/um/control/top_level/um_config.F90',
-        r'(\W)NameListFile', r'\g<1>FabNameListFile')
-
-
-def case_insensitive_replace(in_str: str, find: str, replace_with: str):
-    """
-    Replace, for example, NameListFile *or* NAMELISTFILE with the given string.
-
-    """
-    compiled_re = re.compile(find, re.IGNORECASE)
-    return compiled_re.sub(replace_with, in_str)
