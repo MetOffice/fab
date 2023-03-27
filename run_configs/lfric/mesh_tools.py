@@ -28,8 +28,6 @@ if __name__ == '__main__':
         grab_folder(config, src=lfric_source / 'mesh_tools/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='')
 
-        grab_folder(config, src=lfric_source / 'gungho/source/', dst_label='')
-
         # grab the psyclone overrides folder into the source folder
         grab_folder(config, src=psyclone_overrides, dst_label='mesh_tools_overrides')
 
