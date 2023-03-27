@@ -1,12 +1,17 @@
+.. _Features:
+
 Features
 ********
+Fab is an open source Python project. Feel free to get involved.
 
-Dynamic Source Tree Detection
-=============================
-Fab identifies the dependencies in your C and Fortran source code.
-It will determine the Fortran compile order, which means you don't have to manually specify and maintain
-the compile order, which can become problematic in a large project.
+Dependency Analysis
+===================
+Fab automatically discovers your C and Fortran source files.
+You don't need to manually specify and maintain an ordered list of files,
+which can become problematic in a large project.
 
+Fab determines the dependency hierarchy, including through C-Fortran interfacing,
+and thus determines the Fortran compile order. C is compiled in a single pass.
 
 Incremental Build
 =================
@@ -19,6 +24,26 @@ Sharing Prebuilds
 Artefacts from previous builds can be shared between users,
 either by copying the prebuild folder or using the :class:`~fab.steps.grab.GrabPreBuild` step.
 
+
+Extensible
+==========
+It's easy to add custom steps to your build script, e.g manipulating code, calling new tools, etc.
+
+
+.. _Zero Config:
+
+Zero Config
+===========
+It's possible to run ``fab`` from the command line, in your source folder, for a default build operation.
+For more complicated builds you may write a build script.
+
+
+Git, SVN and FCM
+================
+Fab can fetch and merge source from remote repositories.
+
+
+.. _Metrics:
 
 Metrics
 =======
@@ -46,24 +71,12 @@ showing a compilation bottleneck.
 Limitations
 ===========
 
-Dependency detection
---------------------
-Whilst fab can automatically determine dependencies from module use statements,
+Fortran single-line IF calls
+----------------------------
+Whilst fab can automatically determine Fortran dependencies from module use statements,
 and from standalone call statements, it doesn't currently detect a dependency from a call statement on a
-single-line if statement: `IF (x .GT. 0) CALL foo()`.
-
-We can pass the analyser any symbol dependencies which Fab can't detect.
-The files which contain them, *and their dependencies*, will make their way through to the compile and link stages.
-This is done using the `unreferenced_deps` argument to the :class:`~fab.steps.analyse.Analyse` step.
-Here's how we do this for JULES.
-
-.. code-block::
-
-    steps = [
-        ...
-        Analyse(root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
-        ...
-    ]
+single-line if statement: `IF (x .GT. 0) CALL foo()`. Please see here for
+:ref:`the workaround<Unrecognised Deps Workaround>`.
 
 
 Name Clash
@@ -91,10 +104,3 @@ It will *not* notice if a Fortran `*.mod` changes in an include folder elsewhere
 
 An example is the UM build which uses GCom's mpl.mod.
 This issue is raised in `#192 <https://github.com/metomi/fab/issues/192>`_.
-
-
-File Access Times
------------------
-Fab's housekeeping code depends on the file system's ability to report a file's last access time
-via the `os.stat_result.st_atime <https://docs.python.org/3/library/os.html#os.stat_result.st_atime>`_
-returned by `Path.stat <https://docs.python.org/3/library/pathlib.html#pathlib.Path.stat>`_.
