@@ -60,7 +60,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 
     # todo: this is lfric stuff so might be better placed elsewhere
     SuffixFilter('psyclone_output', '.f90'),
-    'preprocessed_psyclone',
+    'preprocessed_psyclone',  # todo: this is no longer a collection, remove
     'configurator_output',
 ])
 
