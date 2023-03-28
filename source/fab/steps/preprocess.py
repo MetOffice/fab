@@ -220,12 +220,13 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter]=No
 
     # todo: parallel copy?
     # copy little f90s from source to output folder
+    logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
     for f90 in f90s:
         output_path = input_to_output_fpath(config, input_path=f90)
         if output_path != f90:
             if not output_path.parent.exists():
                 output_path.parent.mkdir(parents=True)
-            log_or_dot(logger, f'PreProcessor copying {f90} to build_output')
+            log_or_dot(logger, f'copying {f90}')
             shutil.copyfile(str(f90), str(output_path))
 
 
