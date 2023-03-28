@@ -218,10 +218,13 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter]=No
         **kwargs,
     )
 
+    # todo: parallel copy?
     # copy little f90s from source to output folder
     for f90 in f90s:
         output_path = input_to_output_fpath(config, input_path=f90)
         if output_path != f90:
+            if not output_path.parent.exists():
+                output_path.parent.mkdir(parents=True)
             shutil.copyfile(str(f90), str(output_path))
 
 
