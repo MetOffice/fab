@@ -119,39 +119,6 @@ file_filtering = [
 ]
 
 
-@step_timer
-def my_custom_code_fixes(config):
-    """
-    An example of a custom step to fix some source code which fparser2 can't parse.
-
-    """
-    def replace_in_file(inpath, outpath, find, replace):
-        orig = open(os.path.expanduser(inpath), "rt").read()
-        open(os.path.expanduser(outpath), "wt").write(
-            case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
-
-    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
-    replace_in_file(
-        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-        r'(\W)NameListFile', r'\g<1>FabNameListFile')
-
-    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
-    replace_in_file(
-        config.project_workspace / 'source/um/control/top_level/um_config.F90',
-        config.project_workspace / 'source/um/control/top_level/um_config.F90',
-        r'(\W)NameListFile', r'\g<1>FabNameListFile')
-
-
-def case_insensitive_replace(in_str: str, find: str, replace_with: str):
-    """
-    Replace, for example, NameListFile *or* NAMELISTFILE with the given string.
-
-    """
-    compiled_re = re.compile(find, re.IGNORECASE)
-    return compiled_re.sub(replace_with, in_str)
-
-
 if __name__ == '__main__':
 
     revision = 'vn12.1'

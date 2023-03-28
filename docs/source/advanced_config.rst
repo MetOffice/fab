@@ -97,16 +97,16 @@ Let's imagine we need to upgrade a build script, adding a custom step to prepare
 .. code-block::
     :linenos:
 
-    FindSourceFiles()  # this was already here
+    find_source_files(config)  # this was already here
 
     # instead of this
-    # fortran_preprocessor()
+    # preprocess_fortran(config)
 
     # we now do this
-    my_new_step(output_collection='my_new_collection')
-    fortran_preprocessor(source=CollectionGetter('my_new_collection'))
+    my_new_step(config, output_collection='my_new_collection')
+    preprocess_fortran(config, source=CollectionGetter('my_new_collection'))
 
-    Analyse()  # this was already here
+    analyse(config)  # this was already here
 
 
 .. _Advanced Flags:
@@ -121,10 +121,7 @@ We can add flags to our linker step.
 .. code-block::
     :linenos:
 
-    steps=[
-        ...
-        LinkExe(flags=['-lm', '-lnetcdf']),
-    ]
+    link_exe(config, flags=['-lm', '-lnetcdf'])
 
 Path-specific flags
 -------------------
@@ -132,16 +129,15 @@ For preprocessing and compilation, we sometimes need to specify flags *per-file*
 These steps accept both common flags and *path specific* flags.
 
 .. code-block::
+    :linenos:
 
-    steps=[
-        ...
-        CompileFortran(
-            common_flags=['-O2'],
-            path_flags=[
-                AddFlags('$output/um/*', ['-I' + '/gcom'])
-            ],
-        ),
-    ]
+    ...
+    compile_fortran(
+        common_flags=['-O2'],
+        path_flags=[
+            AddFlags('$output/um/*', ['-I' + '/gcom'])
+        ],
+    )
 
 This will add `-O2` to every invocation of the tool, but only add the */gcom* include path when processing
 files in the *<project workspace>/build_output/um* folder.
@@ -168,21 +164,19 @@ The C preprocessor looks for the output of this step by default.
 If not found, it will fall back to looking for .c files in the source listing.
 
 .. code-block::
+    :linenos:
 
-        steps = [
-            ...
-            CPragmaInjector(),
-            c_preprocessor(),
-            ...
-        ]
-
+    ...
+    c_pragma_injector(config)
+    preprocess_c(config)
+    ...
 
 Custom Steps
 ============
-If you need a custom build step, you can create a subclass of the :class:`~fab.steps.Step` class.
+If you need a custom build step, you can create a function with the @step_timer decorator.
 
 Fab includes some examples of a custom step. A simple example was created for building JULES.
-The :class:`~fab.steps.root_inc_files.RootIncFiles` step copies all `.inc` files in the source tree
+The :func:`~fab.steps.root_inc_files.root_inc_files` step copies all `.inc` files in the source tree
 into the root of the source tree, to make subsequent preprocessing flags easier to configure.
 
 That was a simple example that didn't need to interact with the :term:`Artefact Store`.
@@ -191,29 +185,30 @@ steps. We can tell a subsequent step to read our new artefacts, instead of using
 We do this using the `source` argument, which most Fab steps accept.
 
 .. code-block::
+    :linenos:
 
-    class CustomStep(Step):
-        def run(self, artefact_store: Dict, config):
-            artefact_store['custom_artefacts'] = do_something(artefact_store['step 1 artefacts'])
+    @step_timer
+    def custom_step(config):
+            config._artefact_store['custom_artefacts'] = do_something(config._artefact_store['step 1 artefacts'])
 
 
-    config = BuildConfig('my_proj', steps=[
-        FabStep1(),
-        CustomStep(),
-        FabStep2(source=CollectionGetter('custom_artefacts')),
-    ])
+    with BuildConfig(project_label='<project label>') as config:
+        fab_step1(config)
+        custom_step(config)
+        fab_step2(config, source=CollectionGetter('custom_artefacts'))
 
 
 Steps have access to multiprocessing methods.
-The Step class includes a multiprocessing helper method called :meth:`~fab.steps.Step.run_mp` which steps can call
-from their :meth:`~fab.steps.Step.run` method to process a collection of artefacts in parallel.
+The Step class includes a multiprocessing helper function called :func:`~fab.steps.run_mp` which steps can call
+to process a collection of artefacts in parallel.
 
 .. code-block::
+    :linenos:
 
-    class CustomStep(Step):
-        def run(self, artefact_store: Dict, config):
-            input_files = artefact_store['custom_artefacts']
-            results = self.run_mp(items=input_files, func=do_something)
+    @step_timer
+    def custom_step(config):
+        input_files = artefact_store['custom_artefacts']
+        results = run_mp(config, items=input_files, func=do_something)
 
 
 Parser Workarounds
@@ -227,7 +222,7 @@ If a language parser is not able to recognise a dependency within a file,
 then Fab won't know the dependency needs to be compiled.
 For example, some versions of fparser don't recognise a call on a one-line if statement.
 In this case we can manually add the dependency using the `unreferenced_deps` argument to
-:class:`~fab.steps.analyse.Analyse`.
+:func:`~fab.steps.analyse.analyse`.
 
 Pass in the name of the called function.
 Fab will find the file containing this symbol and add it, *and all its dependencies*, to every :term:`Build Tree`.
@@ -235,11 +230,9 @@ Fab will find the file containing this symbol and add it, *and all its dependenc
 .. code-block::
     :linenos:
 
-    config.steps = [
-        ...
-        Analyse(root_symbol='my_prog', unreferenced_deps=['my_func'])
-        ...
-    ]
+    ...
+    analyse(config, root_symbol='my_prog', unreferenced_deps=['my_func'])
+    ...
 
 Unparsable Files
 ----------------
@@ -248,25 +241,25 @@ then Fab won't know about any of its symbols and dependencies.
 This can sometimes happen to *valid code* which compilers *are* able to process,
 for example if the language parser is still maturing and can't yet handle an uncommon syntax.
 In this case we can manually give Fab the analysis results
-using the `special_measure_analysis_results` argument to :class:`~fab.steps.analyse.Analyse`.
+using the `special_measure_analysis_results` argument to :func:`~fab.steps.analyse.analyse`.
 
 Pass in a list of :class:`~fab.parse.fortran.FortranParserWorkaround` objects, one for every file that can't be parsed.
 Each object contains the symbol definitions and dependencies found in one source file.
 
 .. code-block::
+    :linenos:
 
-    config.steps = [
-        ...
-        Analyse(
-            root_symbol='my_prog',
-            special_measure_analysis_results=[
-                FortranParserWorkaround(
-                    fpath=Path(config.build_output / "path/to/file.f90"),
-                    module_defs={'my_mod'}, symbol_defs={'my_func'},
-                    module_deps={'other_mod'}, symbol_deps={'other_func'}),
-            ])
-        ...
-    ]
+    ...
+    analyse(
+        config,
+        root_symbol='my_prog',
+        special_measure_analysis_results=[
+            FortranParserWorkaround(
+                fpath=Path(config.build_output / "path/to/file.f90"),
+                module_defs={'my_mod'}, symbol_defs={'my_func'},
+                module_deps={'other_mod'}, symbol_deps={'other_func'}),
+        ])
+    ...
 
 In the above snippet we tell Fab that ``file.f90`` defines a module called ``my_mod`` and a function called ``my_func``,
 and depends on a module called ``other_mod`` and a function called ``other_func``.
@@ -275,28 +268,28 @@ Custom Step
 ^^^^^^^^^^^
 An alternative approach for some problems is to write a custom step to modify the source so that the language
 parser can process it. Here's a simple example, based on a
-`real workaround <https://github.com/metomi/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L268-L290>`_
+`real workaround <https://github.com/metomi/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L42-L65>`_
 where the parser gets confused by a variable called `NameListFile`.
 
 .. code-block::
+    :linenos:
 
-    class MyCustomCodeFixes(Step):
-        def run(self, artefact_store, config):
-            fpath = config.source_root / 'path/to/file.F90'
-            in = open(fpath, "rt").read()
-            out = in.replace("NameListFile", "MyRenamedVariable")
-            open(fpath, "wt").write(out)
+    @step_timer
+    def my_custom_code_fixes(config):
+        fpath = config.source_root / 'path/to/file.F90'
+        in = open(fpath, "rt").read()
+        out = in.replace("NameListFile", "MyRenamedVariable")
+        open(fpath, "wt").write(out)
 
-    config = BuildConfig(steps=[
+    with BuildConfig(project_label='<project_label>') as config:
         # grab steps first
-        MyCustomCodeFixes()
-        # FindSourceFiles, preprocess, etc, afterwards
-    ])
+        my_custom_code_fixes(config)
+        # find_source_files, preprocess, etc, afterwards
 
 
 Two-Stage Compilation
 =====================
-The :class:`~fab.steps.compile_fortran.CompileFortran` step compiles files in passes,
+The :class:`~fab.steps.compile_fortran.compile_fortran` step compiles files in passes,
 with each pass identifying all the files which can be compiled next, and compiling them with parallel processing.
 
 Some projects have bottlenecks in their compile order, where lots of files are stuck behind a single file
@@ -310,8 +303,9 @@ all the files twice. Some compilers might not have this capability.
 Two-stage compilation is configured with the `two_stage_flag` argument to the Fortran compiler.
 
 .. code-block::
+    :linenos:
 
-    CompileFortran(two_stage_flag=True)
+    compile_fortran(config, two_stage_flag=True)
 
 
 Configuration Reuse
@@ -337,46 +331,34 @@ In this case your grab script might only contain a single step.
 You could import your grab configuration to find out where it put the source.
 
 .. code-block::
+    :linenos:
     :caption: my_grab.py
 
-    def my_grab_config():
-        return BuildConfig(
-            project_label='my source',
-            steps=[
-                GrabFcm(src='my_repo')
-            ],
-        )
+    my_grab_config = BuildConfig(project_label='<project_label>')
 
     if __name__ == '__main__':
-        my_grab_config().run()
+        with my_grab_config:
+            fcm_export(my_grab_config, src='my_repo')
 
 
 .. code-block::
+    :linenos:
     :caption: my_build.py
-    :emphasize-lines: 7
+    :emphasize-lines: 6
 
-    from my_grab import my_grab_config
+        from my_grab import my_grab_config
 
-    def my_config():
-        config = BuildConfig(
-            project_label='my build',
-            steps=[
-                GrabFolder(src=my_grab_config().source_root),
-                ...
-            ],
-        )
-
-        return config
 
     if __name__ == '__main__':
-        my_build_config().run()
+        with BuildConfig(project_label='<project_label>') as config:
+            grab_folder(config, src=grab_config.source_root),
 
 
 Housekeeping
 ============
 Fab will remove old files from the prebuilds folder.
 By default, it will remove all prebuild files that are not part of the current build.
-If you add a :class:`~fab.steps.cleanup_prebuilds.CleanupPrebuilds` step, you can keep prebuild files for longer.
+If you add a :class:`~fab.steps.cleanup_prebuilds.cleanup_prebuilds` step, you can keep prebuild files for longer.
 This may be useful, for example, if you often switch between two versions of your code and want to keep the prebuild
 speed benefits when building both.
 
@@ -385,12 +367,12 @@ Shared prebuilds
 ================
 You can copy the contents of someone else's prebuilds folder into your own.
 Fab uses hashes to keep track of the correct prebuilt files, and will find and use them.
-There's also a helper step called :class:`~fab.steps.grab.prebuild.GrabPreBuild` you can add to your build configurations.
+There's also a helper step called :func:`~fab.steps.grab.prebuild.grab_pre_build` you can add to your build configurations.
 
 
 Psykalite (Psyclone overrides)
 ==============================
 If you need to override a PSyclone output file with a handcrafted version,
-you can use the ``overrides_folder`` argument to the :class:`~fab.steps.psyclone.Psyclone` step.
+you can use the ``overrides_folder`` argument to the :func:`~fab.steps.psyclone.psyclone` step.
 This is just a normal folder containing source files.
 The step will delete any files it creates if there's a matching filename in the overrides folder.

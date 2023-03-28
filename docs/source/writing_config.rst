@@ -48,9 +48,8 @@ a folder called "source" within the project workspace.
     #!/usr/bin/env python3
 
     from fab.build_config import BuildConfig
-    from fab.steps.find_source_files import find_source_files, Exclude
-
-    logger = logging.getLogger('fab')
+    from fab.steps.find_source_files import find_source_files
+    from fab.steps.grab import GrabFolder
 
     if __name__ == '__main__':
 
@@ -65,14 +64,15 @@ a folder called "source" within the project workspace.
     The grab and find_source_files steps already know what to do by default.
     Sensible defaults can be overridden.
 
-Please see the documentation for :func:`~fab.steps.find_source_files.find_source_files` for more information,
+Please see the documentation for :class:`~fab.steps.find_source_files.find_source_files` for more information,
 including how to exclude certain source code from the build. More grab steps can be found in the :mod:`~fab.steps.grab`
 module.
 
 After the find_source_files step, there will be a collection called ``"all_source"``, in the artefact store.
 
-.. [1] See :func:`~fab.steps.c_pragma_injector.c_pragma_injector` for an example of a step which
-creates artefacts in the source folder.
+.. [1] See :class:`~fab.steps.c_pragma_injector.c_pragma_injector` for an example of a step which
+    creates artefacts in the source folder.
+
 
 
 Preprocess
@@ -144,6 +144,7 @@ The Analyse step looks for source to analyse in several collections:
     from fab.steps.analyse import analyse
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import find_source_files
+    from fab.steps.grab import GrabFolder
     from fab.steps.preprocess import preprocess_fortran
 
     logger = logging.getLogger('fab')
@@ -180,6 +181,7 @@ The :class:`~fab.steps.link.link_exe` step then creates the executable.
     from fab.build_config import BuildConfig
     from fab.steps.compile_fortran import compile_fortran
     from fab.steps.find_source_files import find_source_files
+    from fab.steps.grab import GrabFolder
     from fab.steps.link import link_exe
     from fab.steps.preprocess import preprocess_fortran
 

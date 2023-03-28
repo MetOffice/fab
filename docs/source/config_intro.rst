@@ -11,6 +11,7 @@ Here is an example of a build configuration. It provides some ready made
 configurable steps for you to use, and it's easy to create your own custom steps.
 
 .. code-block::
+    :linenos:
 
         with BuildConfig(project_label='<project label') as config:
             grab_folder(config, src='<path to source folder>')

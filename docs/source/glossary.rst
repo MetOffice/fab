@@ -68,7 +68,7 @@ Glossary
         The name of a Fortran PROGRAM, or ``"main"`` for C code. Fab builds an exe for every root symbol it's given.
 
     Source Tree
-        The :class:`~fab.steps.analyse.Analyse` step produces a dependency tree of the entire project source.
+        The :class:`~fab.steps.analyse.analyse` step produces a dependency tree of the entire project source.
         This is represented as a mapping from Path to :class:`~fab.dep_tree.AnalysedDependent`.
         The AnalysedDependent's file dependencies are Paths, which refer to other entries in the mapping,
         and which define the tree structure. This is called the source tree.
