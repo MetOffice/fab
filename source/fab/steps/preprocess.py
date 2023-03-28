@@ -225,6 +225,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter]=No
         if output_path != f90:
             if not output_path.parent.exists():
                 output_path.parent.mkdir(parents=True)
+            log_or_dot(logger, f'PreProcessor copying {f90} to build_output')
             shutil.copyfile(str(f90), str(output_path))
 
 
