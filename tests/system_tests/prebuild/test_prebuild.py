@@ -5,14 +5,14 @@ from pathlib import Path
 from unittest import mock
 
 from fab.build_config import BuildConfig
-from fab.steps.analyse import Analyse
-from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab.prebuild import GrabPreBuild
-from fab.steps.grab.folder import GrabFolder
-from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.analyse import analyse
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
+from fab.steps.grab.prebuild import grab_pre_build
+from fab.steps.link import link_exe
+from fab.steps.preprocess import preprocess_fortran
 from fab.util import file_walk
-from fab.steps.find_source_files import FindSourceFiles
 
 
 @mock.patch.dict(os.environ)
@@ -25,23 +25,19 @@ class TestFortranPrebuild(object):
 
         logging.getLogger('fab').setLevel(logging.WARNING)
 
-        build_config = BuildConfig(
-            project_label='test_prebuild',
-            fab_workspace=fab_workspace,
-            steps=[
-                GrabFolder(Path(__file__).parent / 'project-source', dst='src'),
-                # insert a prebuild grab step or don't insert anything
-                *([GrabPreBuild(grab_prebuild_folder)] if grab_prebuild_folder else []),
-                FindSourceFiles(),
-                fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
-                Analyse(root_symbol='my_prog'),
-                CompileFortran(compiler='gfortran -c'),
-                LinkExe(linker='gcc', flags=['-lgfortran']),
-            ],
-            multiprocessing=False,
-        )
+        with BuildConfig(
+                project_label='test_prebuild', fab_workspace=fab_workspace, multiprocessing=False) as config:
+            grab_folder(config, Path(__file__).parent / 'project-source', dst_label='src'),
+            # insert a prebuild grab step or don't insert anything
+            if grab_prebuild_folder:
+                grab_pre_build(config, grab_prebuild_folder)
+            find_source_files(config),
+            preprocess_fortran(config),
+            analyse(config, root_symbol='my_prog'),
+            compile_fortran(config),
+            link_exe(config, linker='gcc', flags=['-lgfortran']),
 
-        return build_config
+        return config
 
     def test_repeatable_fmod_hashes(self, tmp_path):
         # Make sure we get the SAME FORTRAN MODULE HASHES in DIFFERENT FOLDERS.
@@ -54,14 +50,10 @@ class TestFortranPrebuild(object):
         # and that the prebuild filenames are the same.
 
         config1 = self.build_config(fab_workspace=tmp_path / 'first_workspace')
-        config1.run()
-
         pb_files1 = set(file_walk(config1.prebuild_folder))
         pb_hashes1 = {f.relative_to(config1.build_output): zlib.crc32(open(f, 'rb').read()) for f in pb_files1}
 
         config2 = self.build_config(fab_workspace=tmp_path / 'second_workspace')
-        config2.run()
-
         pb_files2 = set(file_walk(config2.prebuild_folder))
         pb_hashes2 = {f.relative_to(config2.build_output): zlib.crc32(open(f, 'rb').read()) for f in pb_files2}
 
@@ -83,14 +75,12 @@ class TestFortranPrebuild(object):
 
         # build the project in "some other fab workspace", from where we'll share its prebuild
         first_project = self.build_config(fab_workspace=tmp_path / 'first_workspace')
-        first_project.run()
 
         # now build the project in our workspace.
-        second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
-                                           grab_prebuild_folder=first_project.prebuild_folder)
         with mock.patch('fab.parse.fortran.FortranAnalyser._parse_file') as mock_parse_fortran:
-            with mock.patch('fab.steps.compile_fortran.CompileFortran.compile_file') as mock_compile_file:
-                second_project.run()
+            with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
+                second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
+                                                   grab_prebuild_folder=first_project.prebuild_folder)
 
         # make sure we didn't call the analyser or compiler
         mock_parse_fortran.assert_not_called()
@@ -110,10 +100,10 @@ class TestFortranPrebuild(object):
 
     def test_deleted_original(self, tmp_path):
         # Ensure we compile the files in our source folder and not those specified in analysis prebuilds.
+        # (We could have copied the analysis prebuilds from another user/location).
         # We do this by deleting the source folder from the first build.
         # We also delete the compiler prebuilds to get the compiler to run a second time.
         first_project = self.build_config(fab_workspace=tmp_path / 'first_workspace')
-        first_project.run()
 
         # Delete the original source that was analysed and compiled.
         # This is not the source folder, it's the preprocessing results in the build output.
@@ -127,11 +117,11 @@ class TestFortranPrebuild(object):
                 os.remove(f)
 
         # This should now recompile but not reanalyse.
-        # If we're don't "fixup" the analysis results paths as we load them,
+        # If we don't "fixup" the analysis results paths as we load them,
         # then the compiler will try to compile the original, deleted source.
-        second_project = self.build_config(fab_workspace=tmp_path / 'second_workspace',
-                                           grab_prebuild_folder=first_project.prebuild_folder)
-        second_project.run()
+        # If this runs, the test passes.
+        self.build_config(fab_workspace=tmp_path / 'second_workspace',
+                          grab_prebuild_folder=first_project.prebuild_folder)
 
 
 def files_identical(a, b):

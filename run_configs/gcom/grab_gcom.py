@@ -4,30 +4,20 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-import os
-
 from fab.build_config import BuildConfig
-from fab.steps.grab.fcm import FcmExport
-from fab.util import common_arg_parser
+from fab.steps.grab.fcm import fcm_export
 
 
-def gcom_grab_config(revision=None, verbose=False):
-    """
-    Grab the gcom source.
+revision = 'vn7.6'
 
-    """
-    return BuildConfig(
-        project_label=f'gcom_source_{revision}',
-        steps=[
-            FcmExport(src='fcm:gcom.xm_tr/build', revision=revision, dst="gcom"),
-        ],
-        verbose=verbose,
-    )
+# we put this here so the two build configs can read its source_root
+grab_config = BuildConfig(project_label=f'gcom_source {revision}')
 
 
 if __name__ == '__main__':
-    arg_parser = common_arg_parser()
-    arg_parser.add_argument('--revision', default=os.getenv('GCOM_REVISION', 'vn7.6'))
-    args = arg_parser.parse_args()
 
-    gcom_grab_config(revision=args.revision, verbose=args.verbose).run()
+    # note: we can add arguments to grab_config.arg_parser here
+    # todo: do a real example of this in one of the configs, or at least in the docs.
+
+    with grab_config:
+        fcm_export(grab_config, src='fcm:gcom.xm_tr/build', revision=revision, dst_label="gcom")

@@ -5,33 +5,26 @@
 # ##############################################################################
 import shutil
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Union
 
-from fab.steps.grab import GrabSourceBase
+from fab.steps import step_timer
 
 
-class GrabArchive(GrabSourceBase):
+@step_timer
+def grab_archive(config, src: Union[Path, str], dst_label: str = ''):
     """
     Copy source from an archive into the project folder.
 
+    :param src:
+        The source archive to grab from.
+    :param dst_label:
+        The name of a sub folder, in the project workspace, in which to put the source.
+        If not specified, the code is copied into the root of the source folder.
+    :param name:
+        Human friendly name for logger output, with sensible default.
+
     """
-    def __init__(self, src: Union[Path, str], dst: Optional[str] = None, name=None):
-        """
-        :param src:
-            The source archive to grab from.
-        :param dst:
-            The name of a sub folder, in the project workspace, in which to put the source.
-            If not specified, the code is copied into the root of the source folder.
-        :param name:
-            Human friendly name for logger output, with sensible default.
+    dst: Path = config.source_root / dst_label
+    dst.mkdir(parents=True, exist_ok=True)
 
-        """
-        super().__init__(src=str(src), dst=dst, name=name)
-
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
-
-        dst: Path = config.source_root / self.dst_label
-        dst.mkdir(parents=True, exist_ok=True)
-
-        shutil.unpack_archive(self.src, dst)
+    shutil.unpack_archive(src, dst)

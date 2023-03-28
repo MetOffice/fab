@@ -5,34 +5,24 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from fab.build_config import BuildConfig
-from fab.steps.grab.fcm import FcmExport
+from fab.steps.grab.fcm import fcm_export
+
 
 LFRIC_REVISION = 40984
 
 
-def lfric_source_config(revision=LFRIC_REVISION):
-    return BuildConfig(
-        project_label=f'lfric source {revision}',
-        steps=[FcmExport(src='fcm:lfric.xm_tr', revision=revision, dst='lfric')]
-    )
-
-
-def gpl_utils_source_config(revision=LFRIC_REVISION):
-    return BuildConfig(
-        project_label=f'lfric source {revision}',
-        steps=[
-            # SVN commands are failing from cron, there's probably a workaround somewhere.
-            # GrabSvn(
-            #     src='https://code.metoffice.gov.uk/svn/lfric/GPL-utilities/trunk',
-            #     revision=revision, dst='gpl_utils'),
-            FcmExport(
-                src='fcm:lfric_gpl_utils.xm-tr',
-                revision=revision, dst='gpl_utils'),
-        ]
-    )
+# these configs are interrogated by the build scripts
+# todo: doesn't need two separate configs, they use the same project workspace
+lfric_source_config = BuildConfig(project_label=f'lfric source {LFRIC_REVISION}')
+gpl_utils_source_config = BuildConfig(project_label=f'lfric source {LFRIC_REVISION}')
 
 
 if __name__ == '__main__':
 
-    lfric_source_config().run()
-    gpl_utils_source_config().run()
+    with lfric_source_config:
+        fcm_export(
+            lfric_source_config, src='fcm:lfric.xm_tr', revision=LFRIC_REVISION, dst_label='lfric')
+
+    with gpl_utils_source_config:
+        fcm_export(
+            gpl_utils_source_config, src='fcm:lfric_gpl_utils.xm-tr', revision=LFRIC_REVISION, dst_label='gpl_utils')

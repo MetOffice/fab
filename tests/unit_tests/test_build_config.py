@@ -3,14 +3,9 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from textwrap import dedent
-from unittest import mock
-
-
 from fab.build_config import BuildConfig
-from fab.parse.fortran import AnalysedFortran
-from fab.steps.cleanup_prebuilds import CleanupPrebuilds
-from fab.steps.compile_fortran import CompileFortran
+from fab.steps import step_timer
+from fab.steps.cleanup_prebuilds import CLEANUP_COUNT
 
 
 class TestBuildConfig(object):
@@ -18,28 +13,18 @@ class TestBuildConfig(object):
     def test_error_newlines(self, tmp_path):
         # Check cli tool errors have newlines displayed correctly.
         # v0.9.0a1 displayed then as `\\n` (see #164).
-        # It's up to the various steps to insert newlines *between* their message and the tool error.
-        # We're testing the general reporting mechanism here, once they get back to the top,
-        # that the newlines *within* the tool error are displayed correctly.
-
-        mock_source = {None: [AnalysedFortran('foo.f90', file_hash=0)]}
-
-        with mock.patch('fab.steps.compile_fortran.get_compiler_version', return_value='1.2.3'):
-            with mock.patch('fab.steps.compile_fortran.DEFAULT_SOURCE_GETTER', return_value=mock_source):
-                config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False, steps=[
-                    CompileFortran(compiler='foofc')])
-
-        run_command = 'fab.steps.compile_fortran.run_command'
-        err = dedent("foo error\n1\n2\n3")
+        @step_timer
+        def simple_step(config):
+            raise RuntimeError("foo error\n1\n2\n3")
 
         try:
-            with mock.patch(run_command, side_effect=RuntimeError(err)):
-                config.run()
+            simple_step(None)
         except Exception as err:
             assert '1\n2\n3' in str(err)
 
-    def test_run_prep(self):
+    def test_add_cleanup(self):
         # ensure the cleanup step is added
-        config = BuildConfig('proj')
-        config._run_prep()
-        assert isinstance(config.steps[0], CleanupPrebuilds)
+        with BuildConfig('proj') as config:
+            assert CLEANUP_COUNT not in config._artefact_store
+            pass
+        assert CLEANUP_COUNT in config._artefact_store

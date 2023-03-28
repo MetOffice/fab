@@ -8,12 +8,12 @@ from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.constants import EXECUTABLES
-from fab.steps.analyse import Analyse
-from fab.steps.compile_fortran import CompileFortran
-from fab.steps.find_source_files import FindSourceFiles
-from fab.steps.grab.folder import GrabFolder
-from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
+from fab.steps.analyse import analyse
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
+from fab.steps.preprocess import preprocess_fortran
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
@@ -21,21 +21,14 @@ PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 def test_MinimalFortran(tmp_path):
 
     # build
-    config = BuildConfig(
-        fab_workspace=tmp_path,
-        project_label='foo',
-        multiprocessing=False,
+    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config:
+        grab_folder(config, PROJECT_SOURCE),
+        find_source_files(config),
+        preprocess_fortran(config),
+        analyse(config, root_symbol='test'),
+        compile_fortran(config, common_flags=['-c']),
+        link_exe(config, linker='gcc', flags=['-lgfortran']),
 
-        steps=[
-            GrabFolder(PROJECT_SOURCE),
-            FindSourceFiles(),
-            fortran_preprocessor(),
-            Analyse(root_symbol='test'),
-            CompileFortran(compiler='gfortran', common_flags=['-c']),
-            LinkExe(linker='gcc', flags=['-lgfortran']),
-        ],
-    )
-    config.run()
     assert len(config._artefact_store[EXECUTABLES]) == 1
 
     # run

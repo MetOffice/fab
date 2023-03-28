@@ -12,6 +12,7 @@ import logging
 import os
 import sys
 import warnings
+from argparse import Namespace
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -22,8 +23,6 @@ from typing import List, Optional, Dict, Any, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.steps import Step
-from fab.steps.cleanup_prebuilds import CleanupPrebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
@@ -33,17 +32,20 @@ class BuildConfig(object):
     """
     Contains and runs a list of build steps.
 
-    """
+    The user is not expected to instantiate this class directly,
+    but rather through the build_config() context manager.
 
-    def __init__(self, project_label: str, steps: Optional[List[Step]] = None,
+    """
+    def __init__(self, project_label: str, parsed_args: Optional[Namespace] = None,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
-                 fab_workspace: Optional[Path] = None, verbose: bool = False):
+                 fab_workspace: Optional[Path] = None,):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
-        :param steps:
-            The list of build steps to run.
+        :param parsed_args:
+            If you want to add arguments to your script, please use common_arg_parser() and add arguements.
+            This pararmeter is the result of running :func:`ArgumentParser.parse_args`.
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
@@ -57,13 +59,15 @@ class BuildConfig(object):
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
 
         """
-        self.project_label: str = project_label.replace(' ', '_')
+        self.parsed_args = vars(parsed_args) if parsed_args else {}
 
-        logger.info('')
-        logger.info('------------------------------------------------------------')
-        logger.info(f'initialising {self.project_label}')
-        logger.info('------------------------------------------------------------')
-        logger.info('')
+        from fab.steps.compile_fortran import get_fortran_compiler
+        compiler, _ = get_fortran_compiler()
+        project_label = Template(project_label).substitute(
+            compiler=compiler,
+            two_stage=f'{int(self.parsed_args.get("two_stage", 0))+1}stage')
+
+        self.project_label: str = project_label.replace(' ', '_')
 
         # workspace folder
         if not fab_workspace:
@@ -76,9 +80,6 @@ class BuildConfig(object):
         # source config
         self.source_root: Path = self.project_workspace / SOURCE_ROOT
         self.prebuild_folder: Path = self.build_output / PREBUILD
-
-        # build steps
-        self.steps: List[Step] = steps or []
 
         # multiprocessing config
         self.multiprocessing = multiprocessing
@@ -99,12 +100,41 @@ class BuildConfig(object):
 
         self.reuse_artefacts = reuse_artefacts
 
-        if verbose:
-            logging.getLogger('fab').setLevel(logging.DEBUG)
-
+        # todo: should probably pull the artefact store out of the config
         # runtime
+        # todo: either make this public, add get/setters, or extract into a class.
         self._artefact_store: Dict[str, Any] = {}
         self.init_artefact_store()  # note: the artefact store is reset with every call to run()
+
+    def __enter__(self):
+
+        logger.info('')
+        logger.info(f'initialising {self.project_label}')
+        logger.info('')
+
+        if self.parsed_args.get('verbose'):
+            logging.getLogger('fab').setLevel(logging.DEBUG)
+
+        logger.info(f'building {self.project_label}')
+        self._start_time = datetime.now().replace(microsecond=0)
+        self._run_prep()
+
+        with TimerLogger(f'running {self.project_label} build steps') as build_timer:
+            # this will return to the build script
+            self._build_timer = build_timer
+            return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+
+        if not exc_type:  # None if there's no error.
+            from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
+            if CLEANUP_COUNT not in self._artefact_store:
+                logger.info("no housekeeping step was run, using a default hard cleanup")
+                cleanup_prebuilds(config=self, all_unused=True)
+
+        # always
+        self._finalise_metrics(self._start_time, self._build_timer)
+        self._finalise_logging()
 
     @property
     def build_output(self):
@@ -121,56 +151,22 @@ class BuildConfig(object):
         """
         self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
 
-    def run(self):
-        """
-        Execute the build steps in order.
-
-        This function also records metrics and creates a summary, including charts if matplotlib is installed.
-        The metrics can be found in the project workspace.
-
-        """
-        start_time = datetime.now().replace(microsecond=0)
-
-        self._run_prep()
-
-        # run all the steps
-        try:
-            with TimerLogger(f'running {self.project_label} build steps') as steps_timer:
-                for step in self.steps:
-                    with TimerLogger(step.name) as step_timer:
-                        step.run(artefact_store=self._artefact_store, config=self)
-                    send_metric('steps', step.name, step_timer.taken)
-                logger.info('\nall steps complete')
-        except Exception as err:
-            logger.exception('\n\nError running build steps')
-            raise Exception(f'\n\nError running build steps:\n{err}')
-        finally:
-            self._finalise_metrics(start_time, steps_timer)
-            self._finalise_logging()
-
     def _run_prep(self):
         self._init_logging()
 
         logger.info('')
-        logger.info('------------------------------------------------------------')
         logger.info(f'running {self.project_label}')
-        logger.info('------------------------------------------------------------')
         logger.info('')
 
-        self._prep_output_folders()
+        self._prep_folders()
 
         init_metrics(metrics_folder=self.metrics_folder)
 
         # note: initialising here gives a new set of artefacts each run
         self.init_artefact_store()
 
-        # if the user hasn't specified any cleanup of the incremental/prebuild folder,
-        # then we add a default, hard cleanup leaving only cutting-edge artefacts.
-        if not list(by_type(self.steps, CleanupPrebuilds)):
-            logger.info("no housekeeping specified, adding a default hard cleanup")
-            self.steps.append(CleanupPrebuilds(all_unused=True))
-
-    def _prep_output_folders(self):
+    def _prep_folders(self):
+        self.source_root.mkdir(parents=True, exist_ok=True)
         self.build_output.mkdir(parents=True, exist_ok=True)
         self.prebuild_folder.mkdir(parents=True, exist_ok=True)
 

@@ -4,32 +4,27 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Union, Optional, Dict
+from typing import Union
 
-from fab.steps.grab import GrabSourceBase, call_rsync
+from fab.steps import step_timer
+from fab.steps.grab import call_rsync
 
 
-class GrabFolder(GrabSourceBase):
+@step_timer
+def grab_folder(config, src: Union[Path, str], dst_label: str = ''):
     """
     Copy a source folder to the project workspace.
 
+    :param config:
+        The :class:`fab.build_config.BuildConfig` object where we can read settings
+        such as the project workspace folder or the multiprocessing flag.
+    :param src:
+        The source location to grab. The nature of this parameter is depends on the subclass.
+    :param dst_label:
+        The name of a sub folder, in the project workspace, in which to put the source.
+        If not specified, the code is copied into the root of the source folder.
+
     """
-
-    def __init__(self, src: Union[Path, str], dst: Optional[str] = None, name=None):
-        """
-        :param src:
-            The source location to grab. The nature of this parameter is depends on the subclass.
-        :param dst:
-            The name of a sub folder, in the project workspace, in which to put the source.
-            If not specified, the code is copied into the root of the source folder.
-        :param name:
-            Human friendly name for logger output, with sensible default.
-
-        """
-        super().__init__(src=str(src), dst=dst, name=name)
-
-    def run(self, artefact_store: Dict, config):
-        super().run(artefact_store, config)
-
-        self._dst.mkdir(parents=True, exist_ok=True)  # type: ignore
-        call_rsync(src=self.src, dst=self._dst)  # type: ignore
+    _dst = config.source_root / dst_label
+    _dst.mkdir(parents=True, exist_ok=True)
+    call_rsync(src=src, dst=_dst)

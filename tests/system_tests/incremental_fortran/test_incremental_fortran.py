@@ -3,19 +3,18 @@ import os
 import zlib
 from datetime import timedelta, datetime
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
 from fab.build_config import BuildConfig
 from fab.constants import PREBUILD, CURRENT_PREBUILDS, BUILD_OUTPUT
-from fab.steps.analyse import Analyse
-from fab.steps.cleanup_prebuilds import CleanupPrebuilds
-from fab.steps.compile_fortran import CompileFortran
-from fab.steps.grab.folder import GrabFolder
-from fab.steps.link import LinkExe
-from fab.steps.preprocess import fortran_preprocessor
-from fab.steps.find_source_files import FindSourceFiles
+from fab.steps.analyse import analyse
+from fab.steps.cleanup_prebuilds import cleanup_prebuilds
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
+from fab.steps.preprocess import preprocess_fortran
 from fab.util import file_walk, get_prebuild_file_groups
 
 PROJECT_LABEL = 'tiny_project'
@@ -37,39 +36,29 @@ class TestIncremental(object):
     def config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
         logging.getLogger('fab').setLevel(logging.WARNING)
 
-        grab_config = BuildConfig(
-            project_label=PROJECT_LABEL,
-            fab_workspace=tmp_path,
-            steps=[
-                GrabFolder(Path(__file__).parent / 'project-source', dst='src'),
-            ],
-            multiprocessing=False,
-        )
-        grab_config.run()
+        with BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False) as grab_config:
+            grab_folder(grab_config, Path(__file__).parent / 'project-source', dst_label='src')
 
-        build_config = BuildConfig(
-            project_label=PROJECT_LABEL,
-            fab_workspace=tmp_path,
-            steps=[
-                FindSourceFiles(),
-                fortran_preprocessor(preprocessor='cpp -traditional-cpp -P'),
-                Analyse(root_symbol='my_prog'),
-                CompileFortran(compiler='gfortran -c'),
-                LinkExe(linker='gcc', flags=['-lgfortran']),
-                # Add a permissive cleanup step because we want to know about every file which is created,
-                # across multiple runs of the build. Otherwise, an aggressive cleanup will be automatically added.
-                CleanupPrebuilds(older_than=timedelta(weeks=1))
-            ],
-            multiprocessing=False,
-        )
+        build_config = BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False)
 
         return build_config
+
+    def run_steps(self, build_config):
+        find_source_files(build_config),
+        preprocess_fortran(build_config),
+        analyse(build_config, root_symbol='my_prog'),
+        compile_fortran(build_config),
+        link_exe(build_config, linker='gcc', flags=['-lgfortran']),
+        # Add a permissive cleanup step because we want to know about every file which is created,
+        # across multiple runs of the build. Otherwise, an aggressive cleanup will be automatically added.
+        cleanup_prebuilds(build_config, older_than=timedelta(weeks=1))
 
     def test_clean_build(self, config):
         # just make sure an exe appears
         assert not (config.project_workspace / 'my_prog.exe').exists()
 
-        config.run()
+        with config:
+            self.run_steps(config)
 
         # check it built ok
         assert (config.project_workspace / 'my_prog.exe').exists()
@@ -183,7 +172,9 @@ class TestIncremental(object):
 
     def build(self, build_config):
         # build the project and return the timestamps and hashes
-        build_config.run()
+        with build_config:
+            self.run_steps(build_config)
+
         all_files = set(file_walk(build_config.build_output))
 
         timestamps = {f: f.stat().st_mtime_ns for f in all_files}
@@ -246,34 +237,29 @@ class TestCleanupPrebuilds(object):
 
     @pytest.mark.parametrize("kwargs,expect", in_out)
     def test_clean(self, tmp_path, kwargs, expect):
-        config, remaining = self._prune(tmp_path, kwargs=kwargs)
+
+        with BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False) as config:
+            remaining = self._prune(config, kwargs=kwargs)
+
         assert sorted(remaining) == expect
 
-    # pruning everything not current
     def test_prune_unused(self, tmp_path):
+        # pruning everything not current
 
-        def mock_init_artefact_store(self):
-            self._artefact_store = {CURRENT_PREBUILDS: {
+        with BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False) as config:
+            config._artefact_store = {CURRENT_PREBUILDS: {
                 tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.123.foo',
                 tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.456.foo',
             }}
 
-        with mock.patch('fab.build_config.BuildConfig.init_artefact_store', mock_init_artefact_store):
-            config, remaining = self._prune(tmp_path, kwargs={'all_unused': True})
+            remaining = self._prune(config, kwargs={'all_unused': True})
+
         assert sorted(remaining) == [
             'a.123.foo',
             'a.456.foo',
         ]
 
-    def _prune(self, tmp_path, kwargs):
-
-        config = BuildConfig(
-            project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False,
-            steps=[
-                CleanupPrebuilds(**kwargs)
-            ],
-        )
-        config.prebuild_folder.mkdir(parents=True)
+    def _prune(self, config, kwargs):
 
         # create several versions of the same artefact
         artefacts = [
@@ -287,8 +273,9 @@ class TestCleanupPrebuilds(object):
             path.touch(exist_ok=False)
             os.utime(path, (t.timestamp(), t.timestamp()))
 
-        config.run()
+        cleanup_prebuilds(config, **kwargs)
+
         remaining_artefacts = file_walk(config.prebuild_folder)
         # pull out just the filenames so we can parameterise the tests without knowing tmp_path
         remaining_artefacts = [str(f.name) for f in remaining_artefacts]
-        return config, remaining_artefacts
+        return remaining_artefacts

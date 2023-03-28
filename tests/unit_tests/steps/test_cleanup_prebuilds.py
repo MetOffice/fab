@@ -9,63 +9,60 @@ from unittest import mock
 from unittest.mock import call
 
 import pytest
-from fab.util import get_prebuild_file_groups
 
-from fab.steps.cleanup_prebuilds import CleanupPrebuilds, remove_all_unused
+from fab.constants import CURRENT_PREBUILDS
+from fab.steps.cleanup_prebuilds import by_age, by_version_age, cleanup_prebuilds, remove_all_unused
+from fab.util import get_prebuild_file_groups
 
 
 class TestCleanupPrebuilds(object):
 
     def test_init_no_args(self):
-        c = CleanupPrebuilds()
-        assert not c.older_than
-        assert not c.n_versions
-        assert c.all_unused
+        with mock.patch('fab.steps.cleanup_prebuilds.file_walk', return_value=[Path('foo.o')]):
+            with mock.patch('fab.steps.cleanup_prebuilds.remove_all_unused') as mock_remove_all_unused:
+                cleanup_prebuilds(config=mock.Mock(_artefact_store={CURRENT_PREBUILDS: [Path('bar.o')]}))
+        mock_remove_all_unused.assert_called_once_with(found_files=[Path('foo.o')], current_files=[Path('bar.o')])
 
     def test_init_bad_args(self):
         with pytest.raises(ValueError):
-            CleanupPrebuilds(all_unused=False)
+            cleanup_prebuilds(config=None, all_unused=False)
 
     def test_by_age(self):
-        c = CleanupPrebuilds(older_than=timedelta(days=15))
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = c.by_age(prebuilds_ts=prebuilds_ts, current_files=[])
+        result = by_age(older_than=timedelta(days=15), prebuilds_ts=prebuilds_ts, current_files=[])
         assert result == {Path('foo.234.o'), }
 
     def test_by_age_current(self):
         # same as test_by_age except all files are current so won't be deleted
-        c = CleanupPrebuilds(older_than=timedelta(days=15))
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = c.by_age(prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
+        result = by_age(older_than=timedelta(days=15), prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
         assert result == set()
 
     def test_by_version_age(self):
-        c = CleanupPrebuilds(n_versions=1)
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = c.by_version_age(prebuilds_ts, current_files=[])
+        result = by_version_age(n_versions=1, prebuilds_ts=prebuilds_ts, current_files=[])
         assert result == {Path('foo.234.o'), }
 
     def test_by_version_age_current(self):
         # same as test_by_age except all files are current so won't be deleted
-        c = CleanupPrebuilds(n_versions=1)
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = c.by_version_age(prebuilds_ts, current_files=prebuilds_ts.keys())
+        result = by_version_age(n_versions=1, prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
         assert result == set()
 
 
@@ -83,7 +80,7 @@ def test_remove_all_unused():
         Path('eric.1943.o'),
     ]
 
-    # using autospec makes our mock receive the self param, which we want to check
+    # using autospec makes our mock recieve the self param, which we want to check
     with mock.patch('os.remove', autospec=True) as mock_remove:
         num_removed = remove_all_unused(found_files, current_files)
 
