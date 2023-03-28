@@ -109,9 +109,7 @@ class BuildConfig(object):
     def __enter__(self):
 
         logger.info('')
-        logger.info('------------------------------------------------------------')
         logger.info(f'initialising {self.project_label}')
-        logger.info('------------------------------------------------------------')
         logger.info('')
 
         if self.parsed_args.get('verbose'):
@@ -157,9 +155,7 @@ class BuildConfig(object):
         self._init_logging()
 
         logger.info('')
-        logger.info('------------------------------------------------------------')
         logger.info(f'running {self.project_label}')
-        logger.info('------------------------------------------------------------')
         logger.info('')
 
         self._prep_folders()

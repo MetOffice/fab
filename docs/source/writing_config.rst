@@ -46,7 +46,6 @@ a folder called "source" within the project workspace.
     :emphasize-lines: 4,5,10,11
 
     #!/usr/bin/env python3
-    import logging
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import find_source_files, Exclude
