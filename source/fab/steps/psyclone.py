@@ -282,8 +282,8 @@ def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
 def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
     # We want to hash the kernel metadata (type defs).
     # Ignore the prebuild folder. Todo: test the prebuild folder is ignored, in case someone breaks this.
-    file_lists = [file_walk(root, ignore_folders=[config.prebuild_folder]) for root in kernel_roots]
-    all_kernel_files: Set[Path] = set(*chain(file_lists))
+    file_lists = [list(file_walk(root, ignore_folders=[config.prebuild_folder])) for root in kernel_roots]
+    all_kernel_files: Set[Path] = set(sum(file_lists, []))
     kernel_files: List[Path] = suffix_filter(all_kernel_files, ['.f90'])
 
     # We use the normal Fortran analyser, which records psyclone kernel metadata.
