@@ -12,7 +12,7 @@ from fab.steps.preprocess import preprocess_fortran
 
 class Test_preprocess_fortran(object):
 
-    def test_vanilla(self, tmp_path):
+    def test_big_little(self, tmp_path):
         # ensure big F90s are preprocessed and little f90s are copied
 
         config = BuildConfig('proj', fab_workspace=tmp_path)
