@@ -346,7 +346,7 @@ You could import your grab configuration to find out where it put the source.
     :caption: my_build.py
     :emphasize-lines: 6
 
-        from my_grab import my_grab_config
+    from my_grab import my_grab_config
 
 
     if __name__ == '__main__':
