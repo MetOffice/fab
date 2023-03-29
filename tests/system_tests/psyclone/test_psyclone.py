@@ -144,7 +144,11 @@ class TestPsyclone(object):
         # todo: it's easy to forget that we need to find the f90 not the F90.
         #       it manifests as an error, a missing kernel hash.
         #       Perhaps add validation, warn if it's not in the build_output folder?
-        psyclone(config, kernel_roots=[config.build_output / 'kernel'])
+        psyclone(config, kernel_roots=[
+            config.build_output / 'kernel',
+            # this second folder is just to test the multiple folders code, which was bugged. There's no kernels there.
+            Path(__file__).parent / 'skeleton/algorithm',
+        ])
 
     def test_run(self, config):
         # if these files exist after the run then we know:
