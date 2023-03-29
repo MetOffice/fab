@@ -32,7 +32,7 @@ Source Code
 ===========
 Let's tell Fab where our source code is.
 
-We use the :class:`~fab.steps.find_source_files.find_source_files` step for this.
+We use the :func:`~fab.steps.find_source_files.find_source_files` step for this.
 We can point this step to a source folder, which is a valid way to use this step.
 However, because Fab can sometimes create artefacts alongside the source [1]_,
 we usually copy the source into the project workspace first using a :mod:`~fab.steps.grab` step.
@@ -64,13 +64,13 @@ a folder called "source" within the project workspace.
     The grab and find_source_files steps already know what to do by default.
     Sensible defaults can be overridden.
 
-Please see the documentation for :class:`~fab.steps.find_source_files.find_source_files` for more information,
+Please see the documentation for :func:`~fab.steps.find_source_files.find_source_files` for more information,
 including how to exclude certain source code from the build. More grab steps can be found in the :mod:`~fab.steps.grab`
 module.
 
 After the find_source_files step, there will be a collection called ``"all_source"``, in the artefact store.
 
-.. [1] See :class:`~fab.steps.c_pragma_injector.c_pragma_injector` for an example of a step which
+.. [1] See :func:`~fab.steps.c_pragma_injector.c_pragma_injector` for an example of a step which
     creates artefacts in the source folder.
 
 
@@ -124,7 +124,7 @@ After the fortran_preprocessor step, there will be a collection called ``"prepro
 
 Analyse
 =======
-We must :class:`~fab.steps.analyse.analyse` the source code to determine which Fortran files to compile,
+We must :func:`~fab.steps.analyse.analyse` the source code to determine which Fortran files to compile,
 and in which order.
 
 The Analyse step looks for source to analyse in several collections:
@@ -166,8 +166,8 @@ After the Analyse step, there will be a collection called ``"build_trees"``, in 
 
 Compile and Link
 ================
-The :class:`~fab.steps.compile_fortran.compile_fortran` step compiles files in the ``"build_trees"`` collection.
-The :class:`~fab.steps.link.link_exe` step then creates the executable.
+The :func:`~fab.steps.compile_fortran.compile_fortran` step compiles files in the ``"build_trees"`` collection.
+The :func:`~fab.steps.link.link_exe` step then creates the executable.
 
 .. code-block::
     :linenos:
@@ -198,7 +198,7 @@ The :class:`~fab.steps.link.link_exe` step then creates the executable.
             link_exe(config)
 
 
-After the :class:`~fab.steps.link.link_exe` step, the executable name can be found in a collection called ``"executables"``.
+After the :func:`~fab.steps.link.link_exe` step, the executable name can be found in a collection called ``"executables"``.
 
 
 Flags
@@ -211,10 +211,10 @@ See also :ref:`Advanced Flags<Advanced Flags>`.
 C Code
 ======
 Fab comes with C processing steps.
-The :func:`~fab.steps.preprocess.preprocess_c` and :class:`~fab.steps.compile_c.compile_c` Steps
+The :func:`~fab.steps.preprocess.preprocess_c` and :func:`~fab.steps.compile_c.compile_c` Steps
 behave like their Fortran equivalents.
 
-However, it currently requires a preceding step called the :class:`~fab.steps.c_pragma_injector.c_pragma_injector`.
+However, it currently requires a preceding step called the :func:`~fab.steps.c_pragma_injector.c_pragma_injector`.
 Fab needs to inject pragmas into C code before it is preprocessed in order to know which dependencies
 are for user code, and which are for system code to be ignored.
 

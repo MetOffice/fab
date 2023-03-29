@@ -199,7 +199,7 @@ We do this using the `source` argument, which most Fab steps accept.
 
 
 Steps have access to multiprocessing methods.
-The Step class includes a multiprocessing helper function called :func:`~fab.steps.run_mp` which steps can call
+The Steps module includes a multiprocessing helper function called :func:`~fab.steps.run_mp` which steps can call
 to process a collection of artefacts in parallel.
 
 .. code-block::
@@ -289,7 +289,7 @@ where the parser gets confused by a variable called `NameListFile`.
 
 Two-Stage Compilation
 =====================
-The :class:`~fab.steps.compile_fortran.compile_fortran` step compiles files in passes,
+The :func:`~fab.steps.compile_fortran.compile_fortran` step compiles files in passes,
 with each pass identifying all the files which can be compiled next, and compiling them with parallel processing.
 
 Some projects have bottlenecks in their compile order, where lots of files are stuck behind a single file
@@ -358,7 +358,7 @@ Housekeeping
 ============
 Fab will remove old files from the prebuilds folder.
 By default, it will remove all prebuild files that are not part of the current build.
-If you add a :class:`~fab.steps.cleanup_prebuilds.cleanup_prebuilds` step, you can keep prebuild files for longer.
+If you add a :func:`~fab.steps.cleanup_prebuilds.cleanup_prebuilds` step, you can keep prebuild files for longer.
 This may be useful, for example, if you often switch between two versions of your code and want to keep the prebuild
 speed benefits when building both.
 
