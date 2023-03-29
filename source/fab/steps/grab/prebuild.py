@@ -3,11 +3,11 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from fab.steps import step_timer
+from fab.steps import step
 from fab.steps.grab import call_rsync, logger
 
 
-@step_timer
+@step
 def grab_pre_build(config, path, objects=True, allow_fail=False):
     """
     Copy the contents of another project's prebuild folder into our local prebuild folder.
