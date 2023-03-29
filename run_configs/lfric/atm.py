@@ -18,7 +18,7 @@ from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import configurator, fparser_workaround_stop_concatenation
 
 logger = logging.getLogger('fab')
-
+#logger.setLevel(logging.DEBUG)
 
 # todo: optimisation path stuff
 
@@ -159,8 +159,7 @@ def file_filtering(config):
         Include(science_root / 'ukca/control/core'),
         Include(science_root / 'ukca/control/glomap_clim/interface'),
 
-        Include(science_root / 'shumlib/common/src'),
-        Exclude(science_root / 'shumlib/common/src/shumlib_version.c'),
+        Exclude(science_root / 'shumlib')
 
     ]
 
@@ -190,12 +189,12 @@ if __name__ == '__main__':
         grab_folder(config, src=lfric_source / 'jules/source/', dst_label='lfric')
 
         # UM physics - versions as required by the LFRIC_REVISION in grab_lfric.py
-        fcm_export(config, src='fcm:um.xm_tr/src', dst_label='science/um', revision=116114)
-        fcm_export(config, src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=25084)
-        fcm_export(config, src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='1277')
+        fcm_export(config, src='fcm:um.xm_tr/src', dst_label='science/um', revision=116568)
+        fcm_export(config, src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=25146)
+        fcm_export(config, src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='1331')
         fcm_export(config, src='fcm:shumlib.xm_tr/', dst_label='science/shumlib', revision='um13.1')
         fcm_export(config, src='fcm:casim.xm_tr/src', dst_label='science/casim', revision='10024')
-        fcm_export(config, src='fcm:ukca.xm_tr/src', dst_label='science/ukca', revision='um13.1')
+        fcm_export(config, src='fcm:ukca.xm_tr/src', dst_label='science/ukca', revision='1179')
 
         # lfric_atm
         grab_folder(config, src=lfric_source / 'lfric_atm/source/', dst_label='lfric')
@@ -238,7 +237,8 @@ if __name__ == '__main__':
 
         psyclone(
             config,
-            kernel_roots=[config.build_output],
+            kernel_roots=[config.source_root / 'lfric' / 'kernel',
+                          config.build_output / 'lfric' / 'kernel'],
             transformation_script=lfric_source / 'lfric_atm/optimisation/meto-spice/global.py',
             cli_args=[],
         )
