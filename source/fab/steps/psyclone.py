@@ -50,10 +50,12 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
         if fpp_flag not in common_flags:
             common_flags.append(fpp_flag)
 
+    source_files = SuffixFilter('all_source', '.X90')(config._artefact_store)
+
     pre_processor(
         config,
         preprocessor=fpp,
-        source_getter=SuffixFilter('all_source', '.X90'),
+        files=source_files,
         output_collection='preprocessed_x90',
         output_suffix='.x90',
         name='preprocess x90',
