@@ -12,7 +12,7 @@ import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Collection, Iterable, List, Optional, Tuple
+from typing import Collection, List, Optional, Tuple
 
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import PRAGMAD_C
@@ -177,7 +177,7 @@ def get_fortran_preprocessor():
 
 # todo: rename preprocess_fortran
 @step_timer
-def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter]=None, **kwargs):
+def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = None, **kwargs):
     """
     Wrapper to pre_processor for Fortran files.
 
