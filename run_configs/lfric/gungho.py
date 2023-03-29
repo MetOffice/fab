@@ -29,54 +29,54 @@ if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
-    with BuildConfig(project_label='gungho $compiler $two_stage') as config:
-        grab_folder(config, src=lfric_source / 'infrastructure/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'components/driver/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'components/lfric-xios/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'gungho/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'um_physics/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'um_physics/source/', dst_label='')
+    with BuildConfig(project_label='gungho $compiler $two_stage') as state:
+        grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'components/lfric-xios/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'gungho/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'um_physics/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'um_physics/source/', dst_label='')
 
-        grab_folder(config, src=lfric_source / 'jules/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'socrates/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'miniapps/gungho_model/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'jules/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'socrates/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'miniapps/gungho_model/source/', dst_label='')
 
         # generate more source files in source and source/configuration
         configurator(
-            config,
+            state,
             lfric_source=lfric_source,
             gpl_utils_source=gpl_utils_source,
             rose_meta_conf=lfric_source / 'gungho/rose-meta/lfric-gungho/HEAD/rose-meta.conf',
         )
 
-        find_source_files(config, path_filters=[Exclude('unit-test', '/test/')])
+        find_source_files(state, path_filters=[Exclude('unit-test', '/test/')])
 
         preprocess_fortran(
-            config,
+            state,
             common_flags=[
                 '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
             ])
 
-        preprocess_x90(config, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
+        preprocess_x90(state, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
 
         psyclone(
-            config,
-            kernel_roots=[config.build_output],
+            state,
+            kernel_roots=[state.build_output],
             transformation_script=lfric_source / 'miniapps/gungho_model/optimisation/meto-spice/global.py',
             cli_args=[],
         )
 
-        fparser_workaround_stop_concatenation(config)
+        fparser_workaround_stop_concatenation(state)
 
         analyse(
-            config,
+            state,
             root_symbol='gungho_model',
             ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         )
 
         compile_fortran(
-            config,
+            state,
             common_flags=[
                 '-c',
                 '-ffree-line-length-none', '-fopenmp',
@@ -91,10 +91,10 @@ if __name__ == '__main__':
             ],
         )
 
-        archive_objects(config)
+        archive_objects(state)
 
         link_exe(
-            config,
+            state,
             linker='mpifort',
             flags=[
                 '-fopenmp',

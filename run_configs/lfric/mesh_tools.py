@@ -23,55 +23,55 @@ if __name__ == '__main__':
     # this folder just contains previous output, for testing the overrides mechanism.
     psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
 
-    with BuildConfig(project_label='mesh tools $compiler $two_stage') as config:
-        grab_folder(config, src=lfric_source / 'infrastructure/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'mesh_tools/source/', dst_label='')
-        grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='')
+    with BuildConfig(project_label='mesh tools $compiler $two_stage') as state:
+        grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'mesh_tools/source/', dst_label='')
+        grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='')
 
         # grab the psyclone overrides folder into the source folder
-        grab_folder(config, src=psyclone_overrides, dst_label='mesh_tools_overrides')
+        grab_folder(state, src=psyclone_overrides, dst_label='mesh_tools_overrides')
 
         # generate more source files in source and source/configuration
         configurator(
-            config,
+            state,
             lfric_source=lfric_source,
             gpl_utils_source=gpl_utils_source,
             rose_meta_conf=lfric_source / 'mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf',
         )
 
         find_source_files(
-            config,
+            state,
             path_filters=[
                 # todo: allow a single string
                 Exclude('unit-test', '/test/'),
             ])
 
-        preprocess_fortran(config)
+        preprocess_fortran(state)
 
-        preprocess_x90(config, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
+        preprocess_x90(state, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
 
         psyclone(
-            config,
-            kernel_roots=[config.build_output],
+            state,
+            kernel_roots=[state.build_output],
             cli_args=['--config', Path(__file__).parent / 'psyclone.cfg'],
-            overrides_folder=config.source_root / 'mesh_tools_overrides',
+            overrides_folder=state.source_root / 'mesh_tools_overrides',
         )
 
-        fparser_workaround_stop_concatenation(config)
+        fparser_workaround_stop_concatenation(state)
 
         analyse(
-            config,
+            state,
             root_symbol=['cubedsphere_mesh_generator', 'planar_mesh_generator', 'summarise_ugrid'],
             # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         )
 
-        compile_fortran(config, common_flags=['-c'])
+        compile_fortran(state, common_flags=['-c'])
 
-        archive_objects(config)
+        archive_objects(state)
 
         # link the 3 trees' objects
         link_exe(
-            config,
+            state,
             linker='mpifort',
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
