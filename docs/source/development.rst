@@ -40,7 +40,7 @@ and the file dependencies into which they are converted.
     :width: 95%
     :align: center
     :alt: Analysis results class hierarchy
-|
+
 
 Incremental & Prebuilds
 =======================
