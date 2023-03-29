@@ -13,7 +13,7 @@ configurable steps for you to use, and it's easy to create your own custom steps
 .. code-block::
     :linenos:
 
-        with BuildConfig(project_label='<project label') as config:
+        with BuildConfig(project_label='<project label>') as config:
             grab_folder(config, src='<path to source folder>')
             find_source_files(config)
             preprocess_fortran(config)
@@ -27,7 +27,7 @@ configurable steps for you to use, and it's easy to create your own custom steps
     or ``"main"`` if it's in C. You can ask Fab to discover and build everything
     with the :func:`find_programs<fab.steps.analyse.analyse>` flag instead.
 
-Fab is designed to minimise user input by by providing sensible defaults.
+Fab is designed to minimise user input by providing sensible defaults.
 By default it knows to use the build tree created by the preceding step.
 Build steps can read and create named collections in the :term:`Artefact Store`.
 For example, in the snippet above we don't tell the compiler which files to compile.
