@@ -22,7 +22,7 @@ Subsequent builds avoid reprocessing by searching for watermarks in the prebuild
 Sharing Prebuilds
 =================
 Artefacts from previous builds can be shared between users,
-either by copying the prebuild folder or using the :class:`~fab.steps.grab.GrabPreBuild` step.
+either by copying the prebuild folder or using the :func:`~fab.steps.grab.grab_pre_build` step.
 
 
 Extensible
@@ -93,7 +93,7 @@ Fab currently assumes there are no name clashes in your project by the time we r
 
 There may be duplicates earlier in the build process. For example, there may two versions of a module,
 each wrapped in a `#ifdef` so that one of them is empty after preprocessing (empty files are ignored during analysis).
-Another approach is to use file filtering in the :class:`~fab.steps.find_source_files.FindSourceFiles` step.
+Another approach is to use file filtering in the :class:`~fab.steps.find_source_files.find_source_files` step.
 
 
 Fortran Include Folders and Incremental Build
