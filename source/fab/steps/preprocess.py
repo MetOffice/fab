@@ -9,15 +9,16 @@ Fortran and C Preprocessing.
 """
 import logging
 import os
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Collection, List, Optional, Tuple
 
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import PRAGMAD_C
 from fab.metrics import send_metric
 
-from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, Timer, by_type
+from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, suffix_filter, Timer, by_type
 from fab.tools import get_tool, run_command
 from fab.steps import check_for_errors, run_mp, step_timer
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
@@ -36,7 +37,7 @@ class MpCommonArgs(object):
 
 
 def pre_processor(config: BuildConfig, preprocessor: str,
-                  source_getter: ArtefactsGetter, output_collection, output_suffix,
+                  files: Collection[Path], output_collection, output_suffix,
                   common_flags: Optional[List[str]] = None,
                   path_flags: Optional[List] = None,
                   name="preprocess"):
@@ -50,8 +51,8 @@ def pre_processor(config: BuildConfig, preprocessor: str,
         such as the project workspace folder or the multiprocessing flag.
     :param preprocessor:
         The preprocessor executable.
-    :param source_getter:
-        Defines the files to preprocess.
+    :param files:
+        The files to preprocess.
     :param output_collection:
         The name of the output artefact collection.
     :param output_suffix:
@@ -69,7 +70,6 @@ def pre_processor(config: BuildConfig, preprocessor: str,
 
     logger.info(f'preprocessor is {preprocessor}')
 
-    files = list(source_getter(config._artefact_store))
     logger.info(f'preprocessing {len(files)} files')
 
     # common args for the child process
@@ -177,9 +177,12 @@ def get_fortran_preprocessor():
 
 # todo: rename preprocess_fortran
 @step_timer
-def preprocess_fortran(config: BuildConfig, source=None, **kwargs):
+def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = None, **kwargs):
     """
     Wrapper to pre_processor for Fortran files.
+
+    Ensures all preprocessed files are in the build output.
+    This means *copying* already preprocessed files from source to build output.
 
     Params as per :func:`~fab.steps.preprocess._pre_processor`.
 
@@ -188,6 +191,11 @@ def preprocess_fortran(config: BuildConfig, source=None, **kwargs):
     If source is not provided, it defaults to `SuffixFilter('all_source', '.F90')`.
 
     """
+    source_getter = source or SuffixFilter('all_source', ['.F90', '.f90'])
+    source_files = source_getter(config._artefact_store)
+    F90s = suffix_filter(source_files, '.F90')
+    f90s = suffix_filter(source_files, '.f90')
+
     # get the tool from FPP
     fpp, fpp_flags = get_fortran_preprocessor()
 
@@ -200,14 +208,26 @@ def preprocess_fortran(config: BuildConfig, source=None, **kwargs):
         if fpp_flag not in common_flags:
             common_flags.append(fpp_flag)
 
+    # preprocess big F90s
     pre_processor(
         config,
         preprocessor=fpp,
         common_flags=common_flags,
-        source_getter=source or SuffixFilter('all_source', '.F90'),
+        files=F90s,
         output_collection='preprocessed_fortran', output_suffix='.f90',
         **kwargs,
     )
+
+    # todo: parallel copy?
+    # copy little f90s from source to output folder
+    logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
+    for f90 in f90s:
+        output_path = input_to_output_fpath(config, input_path=f90)
+        if output_path != f90:
+            if not output_path.parent.exists():
+                output_path.parent.mkdir(parents=True)
+            log_or_dot(logger, f'copying {f90}')
+            shutil.copyfile(str(f90), str(output_path))
 
 
 class DefaultCPreprocessorSource(ArtefactsGetter):
@@ -235,10 +255,13 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
     If source is not provided, it defaults to :class:`~fab.steps.preprocess.DefaultCPreprocessorSource`.
 
     """
+    source_getter = source or DefaultCPreprocessorSource()
+    source_files = source_getter(config._artefact_store)
+
     pre_processor(
         config,
         preprocessor=os.getenv('CPP', 'cpp'),
-        source_getter=source or DefaultCPreprocessorSource(),
+        files=source_files,
         output_collection='preprocessed_c', output_suffix='.c',
         **kwargs,
     )
