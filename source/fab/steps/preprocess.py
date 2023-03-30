@@ -215,6 +215,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         common_flags=common_flags,
         files=F90s,
         output_collection='preprocessed_fortran', output_suffix='.f90',
+        name='preprocess fortran',
         **kwargs,
     )
 
@@ -263,5 +264,6 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
         preprocessor=os.getenv('CPP', 'cpp'),
         files=source_files,
         output_collection='preprocessed_c', output_suffix='.c',
+        name='preprocess c',
         **kwargs,
     )
