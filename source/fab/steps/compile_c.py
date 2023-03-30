@@ -132,18 +132,18 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
         if obj_file_prebuild.exists():
             log_or_dot(logger, f'CompileC using prebuild: {analysed_file.fpath}')
         else:
-                obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
+            obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
 
-                command = mp_payload.compiler.split()  # type: ignore
-                command.extend(flags)
-                command.append(str(analysed_file.fpath))
-                command.extend(['-o', str(obj_file_prebuild)])
+            command = mp_payload.compiler.split()  # type: ignore
+            command.extend(flags)
+            command.append(str(analysed_file.fpath))
+            command.extend(['-o', str(obj_file_prebuild)])
 
-                log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
-                try:
-                    run_command(command)
-                except Exception as err:
-                    return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
+            log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
+            try:
+                run_command(command)
+            except Exception as err:
+                return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
 
     send_metric(
         group="compile c",
