@@ -99,30 +99,30 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
     """
     fpath, args = arg
 
-    # output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
-    output_fpath = input_to_output_fpath(config=args.config, input_path=fpath).with_suffix(args.output_suffix)
+    with Timer() as timer:
 
-    # already preprocessed?
-    # todo: remove reuse_artefacts eveywhere!
-    if args.config.reuse_artefacts and output_fpath.exists():
-        log_or_dot(logger, f'Preprocessor skipping: {fpath}')
-    else:
-        with Timer() as timer:
-            output_fpath.parent.mkdir(parents=True, exist_ok=True)
+        # output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
+        output_fpath = input_to_output_fpath(config=args.config, input_path=fpath).with_suffix(args.output_suffix)
 
-            command = [args.preprocessor]
-            command.extend(args.flags.flags_for_path(path=fpath, config=args.config))
-            command.append(str(fpath))
-            command.append(str(output_fpath))
+        # already preprocessed?
+        # todo: remove reuse_artefacts eveywhere!
+        if args.config.reuse_artefacts and output_fpath.exists():
+            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+        else:
+                output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
-            try:
-                run_command(command)
-            except Exception as err:
-                raise Exception(f"error preprocessing {fpath}:\n{err}")
+                command = [args.preprocessor]
+                command.extend(args.flags.flags_for_path(path=fpath, config=args.config))
+                command.append(str(fpath))
+                command.append(str(output_fpath))
 
-        send_metric(args.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
+                log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
+                try:
+                    run_command(command)
+                except Exception as err:
+                    raise Exception(f"error preprocessing {fpath}:\n{err}")
 
+    send_metric(args.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
     return output_fpath
 
 

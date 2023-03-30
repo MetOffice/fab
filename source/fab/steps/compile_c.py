@@ -122,31 +122,33 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
 
-    flags = mp_payload.flags.flags_for_path(path=analysed_file.fpath, config=mp_payload.config)
-    obj_combo_hash = _get_obj_combo_hash(mp_payload.compiler, mp_payload.compiler_version, analysed_file, flags)
+    with Timer() as timer:
+        flags = mp_payload.flags.flags_for_path(path=analysed_file.fpath, config=mp_payload.config)
+        obj_combo_hash = _get_obj_combo_hash(mp_payload.compiler, mp_payload.compiler_version, analysed_file, flags)
 
-    obj_file_prebuild = mp_payload.config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+        obj_file_prebuild = mp_payload.config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
 
-    # prebuild available?
-    if obj_file_prebuild.exists():
-        log_or_dot(logger, f'CompileC using prebuild: {analysed_file.fpath}')
-    else:
-        with Timer() as timer:
-            obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
+        # prebuild available?
+        if obj_file_prebuild.exists():
+            log_or_dot(logger, f'CompileC using prebuild: {analysed_file.fpath}')
+        else:
+                obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
 
-            command = mp_payload.compiler.split()  # type: ignore
-            command.extend(flags)
-            command.append(str(analysed_file.fpath))
-            command.extend(['-o', str(obj_file_prebuild)])
+                command = mp_payload.compiler.split()  # type: ignore
+                command.extend(flags)
+                command.append(str(analysed_file.fpath))
+                command.extend(['-o', str(obj_file_prebuild)])
 
-            log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
-            try:
-                run_command(command)
-            except Exception as err:
-                return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
+                log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
+                try:
+                    run_command(command)
+                except Exception as err:
+                    return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
 
-        send_metric("compile c", str(analysed_file.fpath), timer.taken)
-
+    send_metric(
+        group="compile c",
+        name=str(analysed_file.fpath),
+        value={'time_taken': timer.taken, 'start': timer.start})
     return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
 
