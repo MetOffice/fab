@@ -14,7 +14,7 @@ from typing import Optional
 
 from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
-from fab.steps import step_timer
+from fab.steps import step
 from fab.util import log_or_dot
 from fab.tools import run_command
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -29,7 +29,7 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(OBJECT_FILES)
 
 # todo: all this documentation for such a simple step - should we split it up somehow?
 
-@step_timer
+@step
 def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = None, archiver='ar',
                     output_fpath=None, output_collection=OBJECT_ARCHIVES):
     """

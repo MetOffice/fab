@@ -6,11 +6,11 @@
 from pathlib import Path
 from typing import Union
 
-from fab.steps import step_timer
+from fab.steps import step
 from fab.steps.grab import call_rsync
 
 
-@step_timer
+@step
 def grab_folder(config, src: Union[Path, str], dst_label: str = ''):
     """
     Copy a source folder to the project workspace.

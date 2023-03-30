@@ -23,7 +23,7 @@ from fab.tools import run_command
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
-from fab.steps import run_mp, check_for_errors, step_timer
+from fab.steps import run_mp, check_for_errors, step
 from fab.steps.preprocess import get_fortran_preprocessor, pre_processor
 from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \
     string_checksum, suffix_filter, by_type, log_or_dot_finish
@@ -90,7 +90,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 ])
 
 
-@step_timer
+@step
 def psyclone(config, kernel_roots: Optional[List[Path]] = None,
              transformation_script: Optional[Path] = None,
              cli_args: Optional[List[str]] = None,

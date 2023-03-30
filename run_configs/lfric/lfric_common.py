@@ -3,14 +3,14 @@ import os
 import shutil
 from pathlib import Path
 
-from fab.steps import step_timer
+from fab.steps import step
 from fab.tools import run_command
 
 logger = logging.getLogger('fab')
 
 
 # todo: is this part of psyclone? if so, put  it in the psyclone step module?
-@step_timer
+@step
 def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):
 
     rose_picker_tool = gpl_utils_source / 'rose_picker/rose_picker'
@@ -80,7 +80,7 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
     ]
 
 
-@step_timer
+@step
 def fparser_workaround_stop_concatenation(config):
     """
     fparser can't handle string concat in a stop statement. This step is a workaround.

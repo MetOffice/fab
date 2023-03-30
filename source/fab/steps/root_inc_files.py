@@ -15,13 +15,13 @@ import shutil
 import warnings
 from pathlib import Path
 
-from fab.steps import step_timer
+from fab.steps import step
 from fab.util import suffix_filter
 
 logger = logging.getLogger(__name__)
 
 
-@step_timer
+@step
 def root_inc_files(config):
 
     """
