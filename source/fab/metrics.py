@@ -194,7 +194,8 @@ def metrics_summary(metrics_folder: Path):
 
     metric_names = [
         'preprocess fortran', 'preprocess c',
-        'compile fortran', 'compile fortran stage 1', 'compile fortran stage 2'
+        'compile fortran', 'compile fortran stage 1', 'compile fortran stage 2',
+        'compile c',
     ]
 
     # histogram
