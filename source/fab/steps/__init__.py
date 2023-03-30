@@ -14,7 +14,7 @@ from fab.util import by_type, TimerLogger
 from functools import wraps
 
 
-def step_timer(func):
+def step(func):
     """Function decorator for steps."""
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -22,10 +22,10 @@ def step_timer(func):
         name = func.__name__
 
         # call the function
-        with TimerLogger(name) as step_timer:
+        with TimerLogger(name) as step:
             func(*args, **kwargs)
 
-        send_metric('steps', name, step_timer.taken)
+        send_metric('steps', name, step.taken)
 
     return wrapper
 

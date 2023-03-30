@@ -48,7 +48,7 @@ from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
 from fab.parse.c import AnalysedC, CAnalyser
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
-from fab.steps import run_mp, step_timer
+from fab.steps import run_mp, step
 from fab.util import TimerLogger, by_type
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 # todo: split out c and fortran? this class is still a bit big
 # This has all been done as a single step, for now, because we don't have a simple mp pattern
 # (i.e we don't have a list of artefacts and a function to feed them through).
-@step_timer
+@step
 def analyse(
         config,
         source: Optional[ArtefactsGetter] = None,
