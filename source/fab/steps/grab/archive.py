@@ -7,10 +7,10 @@ import shutil
 from pathlib import Path
 from typing import Union
 
-from fab.steps import step_timer
+from fab.steps import step
 
 
-@step_timer
+@step
 def grab_archive(config, src: Union[Path, str], dst_label: str = ''):
     """
     Copy source from an archive into the project folder.

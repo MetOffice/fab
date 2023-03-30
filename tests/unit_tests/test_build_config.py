@@ -4,7 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from fab.build_config import BuildConfig
-from fab.steps import step_timer
+from fab.steps import step
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT
 
 
@@ -13,7 +13,7 @@ class TestBuildConfig(object):
     def test_error_newlines(self, tmp_path):
         # Check cli tool errors have newlines displayed correctly.
         # v0.9.0a1 displayed then as `\\n` (see #164).
-        @step_timer
+        @step
         def simple_step(config):
             raise RuntimeError("foo error\n1\n2\n3")
 

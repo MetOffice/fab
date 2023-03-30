@@ -20,7 +20,7 @@ from fab.metrics import send_metric
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, suffix_filter, Timer, by_type
 from fab.tools import get_tool, run_command
-from fab.steps import check_for_errors, run_mp, step_timer
+from fab.steps import check_for_errors, run_mp, step
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -176,7 +176,7 @@ def get_fortran_preprocessor():
 
 
 # todo: rename preprocess_fortran
-@step_timer
+@step
 def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = None, **kwargs):
     """
     Wrapper to pre_processor for Fortran files.
@@ -243,7 +243,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 
 
 # todo: rename preprocess_c
-@step_timer
+@step
 def preprocess_c(config: BuildConfig, source=None, **kwargs):
     """
     Wrapper to pre_processor for C files.

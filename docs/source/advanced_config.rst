@@ -173,7 +173,7 @@ If not found, it will fall back to looking for .c files in the source listing.
 
 Custom Steps
 ============
-If you need a custom build step, you can create a function with the @step_timer decorator.
+If you need a custom build step, you can create a function with the @step decorator.
 
 Fab includes some examples of a custom step. A simple example was created for building JULES.
 The :func:`~fab.steps.root_inc_files.root_inc_files` step copies all `.inc` files in the source tree
@@ -187,7 +187,7 @@ We do this using the `source` argument, which most Fab steps accept.
 .. code-block::
     :linenos:
 
-    @step_timer
+    @step
     def custom_step(state):
             state._artefact_store['custom_artefacts'] = do_something(state._artefact_store['step 1 artefacts'])
 
@@ -205,7 +205,7 @@ to process a collection of artefacts in parallel.
 .. code-block::
     :linenos:
 
-    @step_timer
+    @step
     def custom_step(state):
         input_files = artefact_store['custom_artefacts']
         results = run_mp(state, items=input_files, func=do_something)
@@ -274,7 +274,7 @@ where the parser gets confused by a variable called `NameListFile`.
 .. code-block::
     :linenos:
 
-    @step_timer
+    @step
     def my_custom_code_fixes(state):
         fpath = state.source_root / 'path/to/file.F90'
         in = open(fpath, "rt").read()

@@ -7,7 +7,7 @@ import warnings
 from pathlib import Path
 from typing import Union
 
-from fab.steps import step_timer
+from fab.steps import step
 from fab.tools import run_command
 
 
@@ -46,7 +46,7 @@ def fetch(src, revision, dst):
 
 
 # todo: allow cli args, e.g to set the depth
-@step_timer
+@step
 def git_checkout(config, src: str, dst_label: str = '', revision=None):
     """
     Checkout or update a Git repo.
@@ -72,7 +72,7 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
         warnings.warn(f'not safe to clean git source in {_dst}')
 
 
-@step_timer
+@step
 def git_merge(config, src: str, dst_label: str = '', revision=None):
     """
     Merge a git repo into a local working copy.
