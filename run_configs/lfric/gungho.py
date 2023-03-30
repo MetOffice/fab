@@ -47,7 +47,9 @@ if __name__ == '__main__':
             state,
             lfric_source=lfric_source,
             gpl_utils_source=gpl_utils_source,
-            rose_meta_conf=lfric_source / 'miniapps' / 'gungho_model' / 'rose-meta' / 'lfric-gungho_model' / 'HEAD' / 'rose-meta.conf',
+            rose_meta_conf=lfric_source / 'miniapps' / 'gungho_model'
+                                        / 'rose-meta' / 'lfric-gungho_model'
+                                        / 'HEAD' / 'rose-meta.conf',
         )
 
         find_source_files(state, path_filters=[Exclude('unit-test', '/test/')])
