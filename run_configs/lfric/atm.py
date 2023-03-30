@@ -19,7 +19,6 @@ from lfric_common import configurator, fparser_workaround_stop_concatenation
 
 logger = logging.getLogger('fab')
 
-
 # todo: optimisation path stuff
 
 
@@ -159,8 +158,7 @@ def file_filtering(config):
         Include(science_root / 'ukca/control/core'),
         Include(science_root / 'ukca/control/glomap_clim/interface'),
 
-        Include(science_root / 'shumlib/common/src'),
-        Exclude(science_root / 'shumlib/common/src/shumlib_version.c'),
+        Exclude(science_root / 'shumlib')
 
     ]
 
@@ -176,6 +174,7 @@ if __name__ == '__main__':
         # internal dependencies
         grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='lfric')
         grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')
         grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='lfric')
         grab_folder(state, src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric', )
 
@@ -190,12 +189,13 @@ if __name__ == '__main__':
         grab_folder(state, src=lfric_source / 'jules/source/', dst_label='lfric')
 
         # UM physics - versions as required by the LFRIC_REVISION in grab_lfric.py
-        fcm_export(state, src='fcm:um.xm_tr/src', dst_label='science/um', revision=116114)
-        fcm_export(state, src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=25084)
-        fcm_export(state, src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='1277')
+
+        fcm_export(state, src='fcm:um.xm_tr/src', dst_label='science/um', revision=116568)
+        fcm_export(state, src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=25146)
+        fcm_export(state, src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='1331')
         fcm_export(state, src='fcm:shumlib.xm_tr/', dst_label='science/shumlib', revision='um13.1')
         fcm_export(state, src='fcm:casim.xm_tr/src', dst_label='science/casim', revision='10024')
-        fcm_export(state, src='fcm:ukca.xm_tr/src', dst_label='science/ukca', revision='um13.1')
+        fcm_export(state, src='fcm:ukca.xm_tr/src', dst_label='science/ukca', revision='1179')
 
         # lfric_atm
         grab_folder(state, src=lfric_source / 'lfric_atm/source/', dst_label='lfric')
@@ -238,7 +238,7 @@ if __name__ == '__main__':
 
         psyclone(
             state,
-            kernel_roots=[state.build_output],
+            kernel_roots=[state.build_output / 'lfric' / 'kernel'],
             transformation_script=lfric_source / 'lfric_atm/optimisation/meto-spice/global.py',
             cli_args=[],
         )
@@ -261,7 +261,7 @@ if __name__ == '__main__':
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
-                '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
+                '-fcheck=all', '-ffpe-trap=invalid,zero,overflow',
 
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
