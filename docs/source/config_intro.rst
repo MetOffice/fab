@@ -11,17 +11,15 @@ Here is an example of a build configuration. It provides some ready made
 configurable steps for you to use, and it's easy to create your own custom steps.
 
 .. code-block::
+    :linenos:
 
-    config = Config(
-        project_label='my project',
-        steps=[
-            GrabFolder(src='~/my_repo'),
-            FindSourceFiles(),
-            fortran_preprocessor(),
-            Analyse(root_symbol='my_program'),
-            CompileFortran(),
-            LinkExe(),
-        ])
+        with BuildConfig(project_label='<project label') as config:
+            grab_folder(config, src='<path to source folder>')
+            find_source_files(config)
+            preprocess_fortran(config)
+            analyse(config, root_symbol='<program>')
+            compile_fortran(config)
+            link_exe(config)
 
 .. note::
 

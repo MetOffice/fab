@@ -21,7 +21,7 @@ from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
-from fab.steps import check_for_errors, run_mp, step_timer
+from fab.steps import check_for_errors, run_mp, step
 from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
@@ -39,7 +39,7 @@ class MpCommonArgs(object):
     compiler_version: str
 
 
-@step_timer
+@step
 def compile_c(config, common_flags: Optional[List[str]] = None,
               path_flags: Optional[List] = None, source: Optional[ArtefactsGetter] = None):
     """

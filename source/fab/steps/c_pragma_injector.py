@@ -13,14 +13,14 @@ from typing import Pattern, Optional, Match
 
 from fab import FabException
 from fab.constants import PRAGMAD_C
-from fab.steps import run_mp, step_timer
+from fab.steps import run_mp, step
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 
 DEFAULT_SOURCE_GETTER = SuffixFilter('all_source', '.c')
 
 
 # todo: test
-@step_timer
+@step
 def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None, output_name=None):
     """
     A build step to inject custom pragmas to mark blocks of user and system include statements.

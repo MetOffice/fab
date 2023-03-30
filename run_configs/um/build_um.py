@@ -16,7 +16,7 @@ import warnings
 from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import PRAGMAD_C
-from fab.steps import step_timer
+from fab.steps import step
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
 from fab.steps.c_pragma_injector import c_pragma_injector
@@ -40,7 +40,7 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
     return compiled_re.sub(replace_with, in_str)
 
 
-@step_timer
+@step
 def my_custom_code_fixes(config):
     """
     An example of a custom step to fix some source code which fparser2 can't parse.
