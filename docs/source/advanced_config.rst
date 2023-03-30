@@ -97,16 +97,16 @@ Let's imagine we need to upgrade a build script, adding a custom step to prepare
 .. code-block::
     :linenos:
 
-    find_source_files(config)  # this was already here
+    find_source_files(state)  # this was already here
 
     # instead of this
-    # preprocess_fortran(config)
+    # preprocess_fortran(state)
 
     # we now do this
-    my_new_step(config, output_collection='my_new_collection')
-    preprocess_fortran(config, source=CollectionGetter('my_new_collection'))
+    my_new_step(state, output_collection='my_new_collection')
+    preprocess_fortran(state, source=CollectionGetter('my_new_collection'))
 
-    analyse(config)  # this was already here
+    analyse(state)  # this was already here
 
 
 .. _Advanced Flags:
@@ -121,7 +121,7 @@ We can add flags to our linker step.
 .. code-block::
     :linenos:
 
-    link_exe(config, flags=['-lm', '-lnetcdf'])
+    link_exe(state, flags=['-lm', '-lnetcdf'])
 
 Path-specific flags
 -------------------
@@ -167,8 +167,8 @@ If not found, it will fall back to looking for .c files in the source listing.
     :linenos:
 
     ...
-    c_pragma_injector(config)
-    preprocess_c(config)
+    c_pragma_injector(state)
+    preprocess_c(state)
     ...
 
 Custom Steps
@@ -188,14 +188,14 @@ We do this using the `source` argument, which most Fab steps accept.
     :linenos:
 
     @step
-    def custom_step(config):
-            config._artefact_store['custom_artefacts'] = do_something(config._artefact_store['step 1 artefacts'])
+    def custom_step(state):
+            state._artefact_store['custom_artefacts'] = do_something(state._artefact_store['step 1 artefacts'])
 
 
-    with BuildConfig(project_label='<project label>') as config:
-        fab_step1(config)
-        custom_step(config)
-        fab_step2(config, source=CollectionGetter('custom_artefacts'))
+    with BuildConfig(project_label='<project label>') as state:
+        fab_step1(state)
+        custom_step(state)
+        fab_step2(state, source=CollectionGetter('custom_artefacts'))
 
 
 Steps have access to multiprocessing methods.
@@ -206,9 +206,9 @@ to process a collection of artefacts in parallel.
     :linenos:
 
     @step
-    def custom_step(config):
+    def custom_step(state):
         input_files = artefact_store['custom_artefacts']
-        results = run_mp(config, items=input_files, func=do_something)
+        results = run_mp(state, items=input_files, func=do_something)
 
 
 Parser Workarounds
@@ -231,7 +231,7 @@ Fab will find the file containing this symbol and add it, *and all its dependenc
     :linenos:
 
     ...
-    analyse(config, root_symbol='my_prog', unreferenced_deps=['my_func'])
+    analyse(state, root_symbol='my_prog', unreferenced_deps=['my_func'])
     ...
 
 Unparsable Files
@@ -255,7 +255,7 @@ Each object contains the symbol definitions and dependencies found in one source
         root_symbol='my_prog',
         special_measure_analysis_results=[
             FortranParserWorkaround(
-                fpath=Path(config.build_output / "path/to/file.f90"),
+                fpath=Path(state.build_output / "path/to/file.f90"),
                 module_defs={'my_mod'}, symbol_defs={'my_func'},
                 module_deps={'other_mod'}, symbol_deps={'other_func'}),
         ])
@@ -275,15 +275,15 @@ where the parser gets confused by a variable called `NameListFile`.
     :linenos:
 
     @step
-    def my_custom_code_fixes(config):
-        fpath = config.source_root / 'path/to/file.F90'
+    def my_custom_code_fixes(state):
+        fpath = state.source_root / 'path/to/file.F90'
         in = open(fpath, "rt").read()
         out = in.replace("NameListFile", "MyRenamedVariable")
         open(fpath, "wt").write(out)
 
-    with BuildConfig(project_label='<project_label>') as config:
+    with BuildConfig(project_label='<project_label>') as state:
         # grab steps first
-        my_custom_code_fixes(config)
+        my_custom_code_fixes(state)
         # find_source_files, preprocess, etc, afterwards
 
 
@@ -305,7 +305,7 @@ Two-stage compilation is configured with the `two_stage_flag` argument to the Fo
 .. code-block::
     :linenos:
 
-    compile_fortran(config, two_stage_flag=True)
+    compile_fortran(state, two_stage_flag=True)
 
 
 Configuration Reuse
@@ -350,8 +350,8 @@ You could import your grab configuration to find out where it put the source.
 
 
     if __name__ == '__main__':
-        with BuildConfig(project_label='<project_label>') as config:
-            grab_folder(config, src=grab_config.source_root),
+        with BuildConfig(project_label='<project_label>') as state:
+            grab_folder(state, src=grab_config.source_root),
 
 
 Housekeeping

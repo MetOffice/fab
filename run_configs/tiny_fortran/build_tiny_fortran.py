@@ -15,14 +15,14 @@ from fab.steps.preprocess import preprocess_fortran
 
 if __name__ == '__main__':
 
-    with BuildConfig(project_label='tiny_fortran $compiler') as config:
-        git_checkout(config, src='https://github.com/metomi/fab-test-data.git', revision='main', dst_label='src'),
+    with BuildConfig(project_label='tiny_fortran $compiler') as state:
+        git_checkout(state, src='https://github.com/metomi/fab-test-data.git', revision='main', dst_label='src'),
 
-        find_source_files(config),
+        find_source_files(state),
 
-        preprocess_fortran(config),
+        preprocess_fortran(state),
 
-        analyse(config, root_symbol='my_prog'),
+        analyse(state, root_symbol='my_prog'),
 
-        compile_fortran(config),
-        link_exe(config, linker='mpifort'),
+        compile_fortran(state),
+        link_exe(state, linker='mpifort'),
