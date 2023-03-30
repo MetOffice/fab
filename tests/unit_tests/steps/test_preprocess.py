@@ -34,6 +34,7 @@ class Test_preprocess_fortran(object):
             files=[big_f90],
             output_collection=mock.ANY,
             output_suffix='.f90',
+            name='preprocess fortran',
         )
 
         mock_copy.assert_called_once_with(str(little_f90), mock.ANY)
