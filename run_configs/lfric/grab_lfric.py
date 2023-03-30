@@ -8,7 +8,7 @@ from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import fcm_export
 
 
-LFRIC_REVISION = 41631
+LFRIC_REVISION = 41709
 
 
 # these configs are interrogated by the build scripts

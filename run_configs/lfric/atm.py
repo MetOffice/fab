@@ -18,7 +18,6 @@ from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import configurator, fparser_workaround_stop_concatenation
 
 logger = logging.getLogger('fab')
-#logger.setLevel(logging.DEBUG)
 
 # todo: optimisation path stuff
 
