@@ -32,6 +32,7 @@ if __name__ == '__main__':
     with BuildConfig(project_label='gungho $compiler $two_stage') as config:
         grab_folder(config, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'components/driver/source/', dst_label='')
+        grab_folder(config, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')
         grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'components/lfric-xios/source/', dst_label='')
         grab_folder(config, src=lfric_source / 'gungho/source/', dst_label='')

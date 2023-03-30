@@ -175,6 +175,7 @@ if __name__ == '__main__':
         # internal dependencies
         grab_folder(config, src=lfric_source / 'infrastructure/source/', dst_label='lfric')
         grab_folder(config, src=lfric_source / 'components/driver/source/', dst_label='lfric')
+        grab_folder(config, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')
         grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='lfric')
         grab_folder(config, src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric',)
 
@@ -237,8 +238,7 @@ if __name__ == '__main__':
 
         psyclone(
             config,
-            kernel_roots=[config.source_root / 'lfric' / 'kernel',
-                          config.build_output / 'lfric' / 'kernel'],
+            kernel_roots=[config.build_output / 'lfric' / 'kernel'],
             transformation_script=lfric_source / 'lfric_atm/optimisation/meto-spice/global.py',
             cli_args=[],
         )
@@ -261,7 +261,7 @@ if __name__ == '__main__':
                 '-ffree-line-length-none', '-fopenmp',
                 '-g',
                 '-finit-integer=31173', '-finit-real=snan', '-finit-logical=true', '-finit-character=85',
-                '-fcheck=all,no-bounds', '-ffpe-trap=invalid,zero,overflow',
+                '-fcheck=all', '-ffpe-trap=invalid,zero,overflow',
 
                 '-Wall', '-Werror=character-truncation', '-Werror=unused-value', '-Werror=tabs',
 
