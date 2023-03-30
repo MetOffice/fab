@@ -12,7 +12,7 @@ from gcom_build_steps import common_build_steps
 
 if __name__ == '__main__':
 
-    with BuildConfig(project_label='gcom object archive $compiler') as config:
-        common_build_steps(config)
-        archive_objects(config, output_fpath='$output/libgcom.a')
-        cleanup_prebuilds(config, all_unused=True)
+    with BuildConfig(project_label='gcom object archive $compiler') as state:
+        common_build_steps(state)
+        archive_objects(state, output_fpath='$output/libgcom.a')
+        cleanup_prebuilds(state, all_unused=True)

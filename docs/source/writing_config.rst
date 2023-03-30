@@ -17,7 +17,7 @@ Here's a simple config without any steps.
 
     from fab.build_config import BuildConfig
 
-    with BuildConfig(project_label='<project label>') as config:
+    with BuildConfig(project_label='<project label>') as state:
         pass
 
 If we want to run the build script from the command line,
@@ -53,9 +53,9 @@ a folder called "source" within the project workspace.
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as config:
-            grab_folder(config, src='<path to source folder>')
-            find_source_files(config)
+        with BuildConfig(project_label='<project label') as state:
+            grab_folder(state, src='<path to source folder>')
+            find_source_files(state)
 
 
 .. note::
@@ -110,10 +110,10 @@ The Fortran preprocessor will read the :ref:`FPP<env_vars>` environment variable
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as config:
-            grab_folder(config, src='<path to source folder>')
-            find_source_files(config)
-            preprocess_fortran(config)
+        with BuildConfig(project_label='<project label') as state:
+            grab_folder(state, src='<path to source folder>')
+            find_source_files(state)
+            preprocess_fortran(state)
 
 
 Preprocessed files are created in the `'build_output'` folder, inside the project workspace.
@@ -151,11 +151,11 @@ The Analyse step looks for source to analyse in several collections:
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as config:
-            grab_folder(config, src='<path to source folder>')
-            find_source_files(config)
-            preprocess_fortran(config)
-            analyse(config, root_symbol='<program>')
+        with BuildConfig(project_label='<project label') as state:
+            grab_folder(state, src='<path to source folder>')
+            find_source_files(state)
+            preprocess_fortran(state)
+            analyse(state, root_symbol='<program>')
 
 
 Here we tell the analyser which :term:`Root Symbol` we want to build into an executable.
@@ -189,13 +189,13 @@ The :func:`~fab.steps.link.link_exe` step then creates the executable.
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as config:
-            grab_folder(config, src='<path to source folder>')
-            find_source_files(config)
-            preprocess_fortran(config)
-            analyse(config, root_symbol='<program>')
-            compile_fortran(config)
-            link_exe(config)
+        with BuildConfig(project_label='<project label') as state:
+            grab_folder(state, src='<path to source folder>')
+            find_source_files(state)
+            preprocess_fortran(state)
+            analyse(state, root_symbol='<program>')
+            compile_fortran(state)
+            link_exe(state)
 
 
 After the :func:`~fab.steps.link.link_exe` step, the executable name can be found in a collection called ``"executables"``.

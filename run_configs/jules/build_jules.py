@@ -25,16 +25,16 @@ if __name__ == '__main__':
 
     revision = 'vn6.3'
 
-    with BuildConfig(project_label=f'jules {revision} $compiler') as config:
+    with BuildConfig(project_label=f'jules {revision} $compiler') as state:
         # grab the source. todo: use some checkouts instead of exports in these configs.
-        fcm_export(config, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
-        fcm_export(config, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
+        fcm_export(state, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
+        fcm_export(state, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
 
         #
-        grab_pre_build(config, path='/not/a/real/folder', allow_fail=True),
+        grab_pre_build(state, path='/not/a/real/folder', allow_fail=True),
 
         # find the source files
-        find_source_files(config, path_filters=[
+        find_source_files(state, path_filters=[
             Exclude('src/control/um/'),
             Exclude('src/initialisation/um/'),
             Exclude('src/control/rivers-standalone/'),
@@ -43,16 +43,16 @@ if __name__ == '__main__':
         ])
 
         # move inc files to the root for easy tool use
-        root_inc_files(config)
+        root_inc_files(state)
 
-        preprocess_fortran(config, common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output'])
+        preprocess_fortran(state, common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output'])
 
-        analyse(config, root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
+        analyse(state, root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
 
-        compile_fortran(config)
+        compile_fortran(state)
 
-        archive_objects(config),
+        archive_objects(state),
 
-        link_exe(config, linker='mpifort', flags=['-lm', '-lnetcdff', '-lnetcdf']),
+        link_exe(state, linker='mpifort', flags=['-lm', '-lnetcdff', '-lnetcdf']),
 
-        cleanup_prebuilds(config, n_versions=1)
+        cleanup_prebuilds(state, n_versions=1)

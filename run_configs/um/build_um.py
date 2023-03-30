@@ -144,35 +144,35 @@ if __name__ == '__main__':
         compiler_specific_flags = []
 
     # todo: document: if you're changing compilers, put $compiler in your label
-    with BuildConfig(project_label=f'um atmos safe {revision} $compiler $two_stage') as config:
+    with BuildConfig(project_label=f'um atmos safe {revision} $compiler $two_stage') as state:
 
         # todo: these repo defs could make a good set of reusable variables
 
         # UM 12.1, 16th November 2021
-        fcm_export(config, src='fcm:um.xm_tr/src', dst_label='um', revision=revision)
+        fcm_export(state, src='fcm:um.xm_tr/src', dst_label='um', revision=revision)
 
         # JULES 6.2, for UM 12.1
-        fcm_export(config, src='fcm:jules.xm_tr/src', dst_label='jules', revision=um_revision)
+        fcm_export(state, src='fcm:jules.xm_tr/src', dst_label='jules', revision=um_revision)
 
         # SOCRATES 21.11, for UM 12.1
-        fcm_export(config, src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=um_revision)
+        fcm_export(state, src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=um_revision)
 
         # SHUMLIB, for UM 12.1
-        fcm_export(config, src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=um_revision)
+        fcm_export(state, src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=um_revision)
 
         # CASIM, for UM 12.1
-        fcm_export(config, src='fcm:casim.xm_tr/src', dst_label='casim', revision=um_revision)
+        fcm_export(state, src='fcm:casim.xm_tr/src', dst_label='casim', revision=um_revision)
 
-        my_custom_code_fixes(config)
+        my_custom_code_fixes(state)
 
-        find_source_files(config, path_filters=file_filtering)
+        find_source_files(state, path_filters=file_filtering)
 
-        root_inc_files(config)
+        root_inc_files(state)
 
-        c_pragma_injector(config)
+        c_pragma_injector(state)
 
         preprocess_c(
-            config,
+            state,
             source=CollectionGetter(PRAGMAD_C),
             path_flags=[
                 # todo: this is a bit "codey" - can we safely give longer strings and split later?
@@ -192,7 +192,7 @@ if __name__ == '__main__':
 
         # todo: explain fnmatch
         preprocess_fortran(
-            config,
+            state,
             common_flags=['-P'],
             path_flags=[
                 AddFlags("$source/jules/*", ['-DUM_JULES']),
@@ -205,12 +205,12 @@ if __name__ == '__main__':
         )
 
         analyse(
-            config, root_symbol='um_main',
+            state, root_symbol='um_main',
 
             # # fparser2 fails to parse this file, but it does compile.
             # special_measure_analysis_results=[
             #     FortranParserWorkaround(
-            #         fpath=Path(config.build_output / "casim/lookup.f90"),
+            #         fpath=Path(state.build_output / "casim/lookup.f90"),
             #         symbol_defs={'lookup'},
             #         symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
             #                      'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
@@ -218,16 +218,16 @@ if __name__ == '__main__':
             # ]
         )
 
-        compile_c(config, common_flags=['-c', '-std=c99'])
+        compile_c(state, common_flags=['-c', '-std=c99'])
 
         # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
         gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(os.path.expanduser(
-            config.project_workspace / f"../gcom_object_archive_{compiler}/build_output"))
+            state.project_workspace / f"../gcom_object_archive_{compiler}/build_output"))
         if not os.path.exists(gcom_build):
             raise RuntimeError(f'gcom not found at {gcom_build}')
 
         compile_fortran(
-            config,
+            state,
             common_flags=[
                 *compiler_specific_flags,
             ],
@@ -243,10 +243,10 @@ if __name__ == '__main__':
         )
 
         # this step just makes linker error messages more manageable
-        archive_objects(config),
+        archive_objects(state),
 
         link_exe(
-            config,
+            state,
             linker='mpifort',
             flags=[
                 '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',

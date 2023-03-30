@@ -169,51 +169,51 @@ if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
-    with BuildConfig(project_label='atm $compiler $two_stage') as config:
+    with BuildConfig(project_label='atm $compiler $two_stage') as state:
 
         # todo: use different dst_labels because they all go into the same folder,
         #       making it hard to see what came from where?
         # internal dependencies
-        grab_folder(config, src=lfric_source / 'infrastructure/source/', dst_label='lfric')
-        grab_folder(config, src=lfric_source / 'components/driver/source/', dst_label='lfric')
-        grab_folder(config, src=lfric_source / 'components/science/source/', dst_label='lfric')
-        grab_folder(config, src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric',)
+        grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'components/lfric-xios/source/', dst_label='lfric', )
 
         # coupler - oasis component
-        grab_folder(config, src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'components/coupler-oasis/source/', dst_label='lfric')
 
         # gungho dynamical core
-        grab_folder(config, src=lfric_source / 'gungho/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'gungho/source/', dst_label='lfric')
 
-        grab_folder(config, src=lfric_source / 'um_physics/source/', dst_label='lfric')
-        grab_folder(config, src=lfric_source / 'socrates/source/', dst_label='lfric')
-        grab_folder(config, src=lfric_source / 'jules/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'um_physics/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'socrates/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'jules/source/', dst_label='lfric')
 
         # UM physics - versions as required by the LFRIC_REVISION in grab_lfric.py
-        fcm_export(config, src='fcm:um.xm_tr/src', dst_label='science/um', revision=116114)
-        fcm_export(config, src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=25084)
-        fcm_export(config, src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='1277')
-        fcm_export(config, src='fcm:shumlib.xm_tr/', dst_label='science/shumlib', revision='um13.1')
-        fcm_export(config, src='fcm:casim.xm_tr/src', dst_label='science/casim', revision='10024')
-        fcm_export(config, src='fcm:ukca.xm_tr/src', dst_label='science/ukca', revision='um13.1')
+        fcm_export(state, src='fcm:um.xm_tr/src', dst_label='science/um', revision=116114)
+        fcm_export(state, src='fcm:jules.xm_tr/src', dst_label='science/jules', revision=25084)
+        fcm_export(state, src='fcm:socrates.xm_tr/src', dst_label='science/socrates', revision='1277')
+        fcm_export(state, src='fcm:shumlib.xm_tr/', dst_label='science/shumlib', revision='um13.1')
+        fcm_export(state, src='fcm:casim.xm_tr/src', dst_label='science/casim', revision='10024')
+        fcm_export(state, src='fcm:ukca.xm_tr/src', dst_label='science/ukca', revision='um13.1')
 
         # lfric_atm
-        grab_folder(config, src=lfric_source / 'lfric_atm/source/', dst_label='lfric')
+        grab_folder(state, src=lfric_source / 'lfric_atm/source/', dst_label='lfric')
 
         # generate more source files in source and source/configuration
-        configurator(config,
+        configurator(state,
                      lfric_source=lfric_source,
                      gpl_utils_source=gpl_utils_source,
                      rose_meta_conf=lfric_source / 'lfric_atm/rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf',
-                     config_dir=config.source_root / 'lfric/configuration'),
+                     config_dir=state.source_root / 'lfric/configuration'),
 
-        find_source_files(config, path_filters=file_filtering(config))
+        find_source_files(state, path_filters=file_filtering(state))
 
         # todo: bundle this in with the preprocessor, for a better ux?
-        c_pragma_injector(config)
+        c_pragma_injector(state)
 
         preprocess_c(
-            config,
+            state,
             path_flags=[
                 AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
                 AddFlags(match="$source/science/shumlib/*", flags=['-I$source/science/shumlib/common/src']),
@@ -224,7 +224,7 @@ if __name__ == '__main__':
         )
 
         preprocess_fortran(
-            config,
+            state,
             common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DUM_PHYSICS', '-DCOUPLED', '-DUSE_MPI=YES'],
             path_flags=[
                 AddFlags(match="$source/science/um/*", flags=['-I$relative/include']),
@@ -234,28 +234,28 @@ if __name__ == '__main__':
         )
 
         # todo: put this inside the psyclone step, no need for it to be separate, there's nothing required between them
-        preprocess_x90(config, common_flags=['-DUM_PHYSICS', '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
+        preprocess_x90(state, common_flags=['-DUM_PHYSICS', '-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
 
         psyclone(
-            config,
-            kernel_roots=[config.build_output],
+            state,
+            kernel_roots=[state.build_output],
             transformation_script=lfric_source / 'lfric_atm/optimisation/meto-spice/global.py',
             cli_args=[],
         )
 
         # todo: do we need this one in here?
-        fparser_workaround_stop_concatenation(config)
+        fparser_workaround_stop_concatenation(state)
 
         analyse(
-            config,
+            state,
             root_symbol='lfric_atm',
             ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
         )
 
-        compile_c(config, common_flags=['-c', '-std=c99'])
+        compile_c(state, common_flags=['-c', '-std=c99'])
 
         compile_fortran(
-            config,
+            state,
             common_flags=[
                 '-c',
                 '-ffree-line-length-none', '-fopenmp',
@@ -271,10 +271,10 @@ if __name__ == '__main__':
             ]
         )
 
-        archive_objects(config)
+        archive_objects(state)
 
         link_exe(
-            config,
+            state,
             linker='mpifort',
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
