@@ -7,7 +7,7 @@ Fab requires a suitible Python environment in which to run. This page outlines
 some routes to achieving such an environment.
 
 This page contains general instructions, there are additional instructions for
-:ref:`Met Office<metoffice>` users elsewhere.
+:ref:`Met Office<MetOffice>` users elsewhere.
 
 
 .. _Requirements:
@@ -74,7 +74,7 @@ If you want to compile C you will need to add the prerequisites for that:
 
     $ pip install python-clang
 
-Not that this requires a suitible `libclang` to be installed on your system
+Note that this requires a suitible `libclang` to be installed on your system
 which may require system administrator internvention.
 
 Finally, to get plots from the metrics you will need:
@@ -89,8 +89,8 @@ Finally, to get plots from the metrics you will need:
 Using Anaconda
 --------------
 
-Anaconda can be used in a similar way to the build in Python virtual
-environemnts:
+Anaconda can be used in a similar way to the built in Python virtual
+environemnt but can also handle your C needs:
 
 .. code-block:: console
 

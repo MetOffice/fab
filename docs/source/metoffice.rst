@@ -1,3 +1,5 @@
+.. _MetOffice:
+
 Using Fab at the Met Office
 ===========================
 
@@ -15,7 +17,7 @@ Fortran Only
 ------------
 
 If you don't need to build C, you can use this the modules in the "extra
-software" collection::
+software" collection:
 
 .. code-block:: console
 
@@ -29,7 +31,7 @@ Fortran and C
 -------------
 
 If you need to build C, or you use conda environments anyway you can use the
-:ref:`Conda<environment>` route to Fab-ulousness.
+:ref:`Conda<Anaconda>` route to Fab-ulousness.
 
 You will need to authenticate with Artifactory the first time you use Conda.
 There is information regarding this on MetNet or ask Science I.T.
@@ -44,14 +46,14 @@ You can run Fab in a singularity container as follows::
 
     singularity run oras://$URL/metomi/fab/MyImage:latest
 
+The necessary URL is that normally used with singularity. Ask Science I.T. for
+details.
+
 If you need to use git from within the container, you'll need to set a couple of environment variables first::
 
     $ export SINGULARITY_BIND="/etc/pki/ca-trust/extracted/pem:/pem"
     $ export SINGULARITYENV_GIT_SSL_CAPATH="/pem"
     $ singularity shell oras://$URL/fab/MyImage:latest
-
-The necessary URL is that normally used with singularity. Ask Science I.T. for
-details.
 
 See also :ref:`Instructions for building the image<Build Singularity>`.
 
@@ -63,30 +65,83 @@ If you want to develop Fab then there are some additional steps which may be
 needed.
 
 
+Mixing Virtual Environment and Environment Modules
+--------------------------------------------------
+
+If you prefer to use the built-in Python virtual environment tool for
+development you can combine it with the "extra software" modules. The
+complication comes because they already make use of such an environment.
+
+First load the environment you want to use to compile your software. The LFRic
+environment is used as an example.
+
+.. code-block:: console
+
+    $ module use $EXTRA_SOFTWARE
+    $ module use $LFRIC_SOFTWARE
+    $ module load environment/lfric/ifort
+
+Then create a new virtual environment, unload the existing one and activate
+the new.
+
+.. code-block:: console
+
+    $ python3 -m venv $VENV_DIR/fab_dev
+    $ module unload python/3.7.0
+    $ source $VENV_DIR/fab_dev/bin/activate
+
+Install all the bits needed to install PSyclone and other parts of the build
+process.
+
+.. code-block:: console
+
+    $ pip install --upgrade pip
+    $ pip install Jinja2
+    $ pip install six
+    $ pip install fparser
+    $ pip install pyparsing
+    $ pip install sympy
+    $ pip install jsonschema==3.0.2
+    $ pip install configparser
+
+Finally install the Fab in your working copy. This is done in "editable" mode
+so that changes you make are immediately available through the environment.
+
+.. code-block:: console
+
+    $ pip install --editable $FAB_WORKING_COPY
+
+
 Mixing Conda and Environemnt Modules
 ------------------------------------
 
 In order to have both an environment capable of building C files and modern
 Fortran compilers and the LFRic library stack you will need an awkward
-amalgimation of conda environment and environment modules.
+amalgemation of conda environment and environment modules.
 
-The conda environment is created as follows::
+The conda environment is created as follows:
+
+.. code-block:: console
 
     $ conda env create -f envs/conda/dev_env.yml
     $ conda activate sci-fab
 
 Then :ref:`install fab<Install>`. This is done before any module commands.
 
-Then the environment is set up *in a new terminal* as follows:
+The environment is set up *in a new terminal* as follows:
 
-For use with gfortran::
+For use with gfortran:
+
+.. code-block:: console
 
     $ module use $LFRIC_MODULES
     $ module load environment/lfric/gnu
     $ conda activate sci-fab
     $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
 
-For use with ifort::
+For use with ifort:
+
+.. code-block:: console
 
     $ module use $LFRIC_MODULES
     $ module load environment/lfric/ifort
