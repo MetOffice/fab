@@ -99,15 +99,16 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
     """
     fpath, args = arg
 
-    # output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
-    output_fpath = input_to_output_fpath(config=args.config, input_path=fpath).with_suffix(args.output_suffix)
+    with Timer() as timer:
 
-    # already preprocessed?
-    # todo: remove reuse_artefacts eveywhere!
-    if args.config.reuse_artefacts and output_fpath.exists():
-        log_or_dot(logger, f'Preprocessor skipping: {fpath}')
-    else:
-        with Timer() as timer:
+        # output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
+        output_fpath = input_to_output_fpath(config=args.config, input_path=fpath).with_suffix(args.output_suffix)
+
+        # already preprocessed?
+        # todo: remove reuse_artefacts eveywhere!
+        if args.config.reuse_artefacts and output_fpath.exists():
+            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+        else:
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
             command = [args.preprocessor]
@@ -121,8 +122,7 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
             except Exception as err:
                 raise Exception(f"error preprocessing {fpath}:\n{err}")
 
-        send_metric(args.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
-
+    send_metric(args.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
     return output_fpath
 
 
@@ -215,6 +215,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         common_flags=common_flags,
         files=F90s,
         output_collection='preprocessed_fortran', output_suffix='.f90',
+        name='preprocess fortran',
         **kwargs,
     )
 
@@ -263,5 +264,6 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
         preprocessor=os.getenv('CPP', 'cpp'),
         files=source_files,
         output_collection='preprocessed_c', output_suffix='.c',
+        name='preprocess c',
         **kwargs,
     )

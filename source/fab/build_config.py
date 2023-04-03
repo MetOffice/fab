@@ -132,6 +132,8 @@ class BuildConfig(object):
                 logger.info("no housekeeping step was run, using a default hard cleanup")
                 cleanup_prebuilds(config=self, all_unused=True)
 
+        logger.info(f"Building '{self.project_label}' took {datetime.now() - self._start_time}")
+
         # always
         self._finalise_metrics(self._start_time, self._build_timer)
         self._finalise_logging()

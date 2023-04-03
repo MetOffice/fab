@@ -243,50 +243,58 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
     Returns a compilation result, regardless of whether it was compiled or prebuilt.
 
     """
-    analysed_file, mp_common_args = arg
+    with Timer() as timer:
+        analysed_file, mp_common_args = arg
 
-    flags = mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=mp_common_args.config)
-    mod_combo_hash = _get_mod_combo_hash(analysed_file, mp_common_args=mp_common_args)
-    obj_combo_hash = _get_obj_combo_hash(analysed_file, mp_common_args=mp_common_args, flags=flags)
+        flags = mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=mp_common_args.config)
+        mod_combo_hash = _get_mod_combo_hash(analysed_file, mp_common_args=mp_common_args)
+        obj_combo_hash = _get_obj_combo_hash(analysed_file, mp_common_args=mp_common_args, flags=flags)
 
-    # calculate the incremental/prebuild artefact filenames
-    obj_file_prebuild = mp_common_args.config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
-    mod_file_prebuilds = [
-        mp_common_args.config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
-        for mod_def in analysed_file.module_defs
-    ]
+        # calculate the incremental/prebuild artefact filenames
+        obj_file_prebuild = mp_common_args.config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+        mod_file_prebuilds = [
+            mp_common_args.config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod'
+            for mod_def in analysed_file.module_defs
+        ]
 
-    # have we got all the prebuilt artefacts we need to avoid a recompile?
-    prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds))
-    if not all(prebuilds_exist):
-        # compile
-        try:
-            logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
-            compile_file(analysed_file, flags, output_fpath=obj_file_prebuild, mp_common_args=mp_common_args)
-        except Exception as err:
-            return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
+        # have we got all the prebuilt artefacts we need to avoid a recompile?
+        prebuilds_exist = list(map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds))
+        if not all(prebuilds_exist):
+            # compile
+            try:
+                logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
+                compile_file(analysed_file, flags, output_fpath=obj_file_prebuild, mp_common_args=mp_common_args)
+            except Exception as err:
+                return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
 
-        # copy the mod files to the prebuild folder as artefacts for reuse
-        # note: perhaps we could sometimes avoid these copies because mods can change less frequently than obj
-        for mod_def in analysed_file.module_defs:
-            shutil.copy2(
-                mp_common_args.config.build_output / f'{mod_def}.mod',
-                mp_common_args.config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
-            )
+            # copy the mod files to the prebuild folder as artefacts for reuse
+            # note: perhaps we could sometimes avoid these copies because mods can change less frequently than obj
+            for mod_def in analysed_file.module_defs:
+                shutil.copy2(
+                    mp_common_args.config.build_output / f'{mod_def}.mod',
+                    mp_common_args.config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
+                )
 
-    else:
-        log_or_dot(logger, f'CompileFortran using prebuild: {analysed_file.fpath}')
+        else:
+            log_or_dot(logger, f'CompileFortran using prebuild: {analysed_file.fpath}')
 
-        # copy the prebuilt mod files from the prebuild folder
-        for mod_def in analysed_file.module_defs:
-            shutil.copy2(
-                mp_common_args.config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
-                mp_common_args.config.build_output / f'{mod_def}.mod',
-            )
+            # copy the prebuilt mod files from the prebuild folder
+            for mod_def in analysed_file.module_defs:
+                shutil.copy2(
+                    mp_common_args.config.prebuild_folder / f'{mod_def}.{mod_combo_hash:x}.mod',
+                    mp_common_args.config.build_output / f'{mod_def}.mod',
+                )
 
-    # return the results
-    compiled_file = CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
-    artefacts = [obj_file_prebuild] + mod_file_prebuilds
+        # return the results
+        compiled_file = CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
+        artefacts = [obj_file_prebuild] + mod_file_prebuilds
+
+    # todo: probably better to record both mod and obj metrics
+    metric_name = "compile fortran" + (f' stage {mp_common_args.stage}' if mp_common_args.stage else '')
+    send_metric(
+        group=metric_name,
+        name=str(analysed_file.fpath),
+        value={'time_taken': timer.taken, 'start': timer.start})
 
     return compiled_file, artefacts
 
@@ -331,40 +339,32 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
     which would cause them to have different checksums depending on where they live.
 
     """
-    with Timer() as timer:
-        output_fpath.parent.mkdir(parents=True, exist_ok=True)
+    output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-        # tool
-        command = [mp_common_args.compiler]
-        known_compiler = COMPILERS.get(mp_common_args.compiler)
+    # tool
+    command = [mp_common_args.compiler]
+    known_compiler = COMPILERS.get(mp_common_args.compiler)
 
-        # Compile flag.
-        # If it's an unknown compiler, we rely on the user config to specify this.
-        if known_compiler:
-            command.append(known_compiler.compile_flag)
+    # Compile flag.
+    # If it's an unknown compiler, we rely on the user config to specify this.
+    if known_compiler:
+        command.append(known_compiler.compile_flag)
 
-        # flags
-        command.extend(flags)
-        if mp_common_args.two_stage_flag and mp_common_args.stage == 1:
-            command.append(mp_common_args.two_stage_flag)
+    # flags
+    command.extend(flags)
+    if mp_common_args.two_stage_flag and mp_common_args.stage == 1:
+        command.append(mp_common_args.two_stage_flag)
 
-        # Module folder.
-        # If it's an unknown compiler, we rely on the user config to specify this.
-        if known_compiler:
-            command.extend([known_compiler.module_folder_flag, str(mp_common_args.config.build_output)])
+    # Module folder.
+    # If it's an unknown compiler, we rely on the user config to specify this.
+    if known_compiler:
+        command.extend([known_compiler.module_folder_flag, str(mp_common_args.config.build_output)])
 
-        # files
-        command.append(analysed_file.fpath.name)
-        command.extend(['-o', str(output_fpath)])
+    # files
+    command.append(analysed_file.fpath.name)
+    command.extend(['-o', str(output_fpath)])
 
-        run_command(command, cwd=analysed_file.fpath.parent)
-
-    # todo: probably better to record both mod and obj metrics
-    metric_name = "compile_fortran" + (f' stage {mp_common_args.stage}' if mp_common_args.stage else '')
-    send_metric(
-        group=metric_name,
-        name=str(analysed_file.fpath),
-        value={'time_taken': timer.taken, 'start': timer.start})
+    run_command(command, cwd=analysed_file.fpath.parent)
 
 
 # todo: move this
