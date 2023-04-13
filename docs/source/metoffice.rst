@@ -135,7 +135,7 @@ For use with gfortran:
 .. code-block:: console
 
     $ module use $LFRIC_MODULES
-    $ module load environment/lfric/gnu
+    $ module load environment/lfric/gcc
     $ conda activate sci-fab
     $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
 
