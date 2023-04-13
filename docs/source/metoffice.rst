@@ -9,7 +9,7 @@ prove useful.
 Using Fab
 ~~~~~~~~~
 
-If you just want to use Fab to build some source then there are a number of
+If you just want to use Fab to build your source then there are a number of
 fairly simple approaches.
 
 
@@ -21,8 +21,8 @@ software" collection:
 
 .. code-block:: console
 
-    $ module use $EXTRA_SOFTWARE
-    $ module load python/3.7.0 support/fparser/0.16.0/python/3.7.0 fab/0.11.0/python/3.7.0
+    $ module use $EXTRA_SOFTWARE_MODULE_DIR
+    $ module load python/3.7.0 support/fparser/0.0.16/python/3.7.0 fab/1.0.0/python/3.7.0
 
 The Science I.T. group can provide the `EXTRA_SOFTWARE` path.
 
@@ -104,7 +104,7 @@ process.
     $ pip install jsonschema==3.0.2
     $ pip install configparser
 
-Finally install the Fab in your working copy. This is done in "editable" mode
+Finally, install Fab in your working copy. This is done in "editable" mode
 so that changes you make are immediately available through the environment.
 
 .. code-block:: console
