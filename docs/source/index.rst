@@ -76,6 +76,7 @@ See also
 
    install
    environment
+   metoffice
    config_intro
    writing_config
    advanced_config

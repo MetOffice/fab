@@ -49,6 +49,14 @@ or when you like your build to be next to your source::
 By default, Fab will create a project workspaces inside ``~/fab-workspace``.
 
 
-See also
-========
+Development
+===========
+
+People looking to develop Fab will likely want to
 :ref:`Install from source<Install from source>`
+
+Met Office Users
+================
+
+There are instructions specific to people wanting to
+:ref:`use Fab at the Met Office<MetOfficeUsage>`.
