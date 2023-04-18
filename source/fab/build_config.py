@@ -23,7 +23,7 @@ from typing import List, Optional, Dict, Any, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.util import TimerLogger, by_type, get_fab_workspace
+from fab.util import TimerLogger, by_type, get_fab_workspace, common_arg_parser
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +38,13 @@ class BuildConfig(object):
     """
     def __init__(self, project_label: str, parsed_args: Optional[Namespace] = None,
                  multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
-                 fab_workspace: Optional[Path] = None,):
+                 fab_workspace: Optional[Path] = None):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
         :param parsed_args:
-            If you want to add arguments to your script, please use common_arg_parser() and add arguements.
+            If you want to add arguments to your script, please use common_arg_parser() and add arguments.
             This pararmeter is the result of running :func:`ArgumentParser.parse_args`.
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
@@ -59,7 +59,15 @@ class BuildConfig(object):
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
 
         """
-        self.parsed_args = vars(parsed_args) if parsed_args else {}
+        self.parsed_args = {}
+        if parsed_args:
+            self.parsed_args = vars(parsed_args)
+            logger.info(f'Arguments: {self.parsed_args}')
+            logger.info('')
+        else:
+            arg_parser = common_arg_parser()
+            self.parsed_args = vars(arg_parser.parse_args())
+            project_label = self.parsed_args.get("project_label") or project_label or "project_label"
 
         from fab.steps.compile_fortran import get_fortran_compiler
         compiler, _ = get_fortran_compiler()
@@ -82,9 +90,11 @@ class BuildConfig(object):
         self.prebuild_folder: Path = self.build_output / PREBUILD
 
         # multiprocessing config
-        self.multiprocessing = multiprocessing
+        self.multiprocessing = self.parsed_args.get('multiprocessing', None) or multiprocessing
+        logger.info(f'Multiprocessing: {self.multiprocessing}')
+
         # turn off multiprocessing when debugging
-        # todo: turn off multiprocessing when running tests, as a good test runner will run use mp
+        # todo: turn off multiprocessing when running tests, as a good test runner will run using mp
         if 'pydevd' in str(sys.gettrace()):
             logger.info('debugger detected, running without multiprocessing')
             self.multiprocessing = False
