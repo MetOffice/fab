@@ -16,7 +16,7 @@ fairly simple approaches.
 Fortran Only
 ------------
 
-If you don't need to build C, you can use this the modules in the "extra
+If you don't need to build C, you can use the modules in the "extra
 software" collection:
 
 .. code-block:: console
@@ -25,6 +25,9 @@ software" collection:
     $ module load python/3.7.0 support/fparser/0.0.16/python/3.7.0 fab/1.0.0/python/3.7.0
 
 The Science I.T. group can provide the `EXTRA_SOFTWARE` path.
+
+With the "fab" module loaded the `fab` command will be available and Fab based
+build scripts will function.
 
 
 Fortran and C
