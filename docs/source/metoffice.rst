@@ -1,4 +1,4 @@
-.. _MetOffice:
+.. _MetOfficeUsage:
 
 Using Fab at the Met Office
 ===========================
@@ -163,3 +163,42 @@ Rose
 ----
 Various configs for building projects using Rose on SPICE can be found in
 `run_configs <https://github.com/metomi/fab/tree/master/run_configs>`_.
+
+
+.. _MetOfficeDevelopment:
+
+Developing Fab at the Met Office
+================================
+
+A few special notes for Met Office developers.
+
+Acceptance tests
+~~~~~~~~~~~~~~~~
+
+For extra confidence, we have acceptance tests in the ``run_configs`` folder
+which are not run as part of our automated github testing. You can run them on
+the VDI using ``build_all.py``. However, this will choke your machine for some
+time. There's a (misnamed) cron you can run nightly, ``run_configs/_cron/cron_system_tests.sh``.
+
+There's also a rose suite which runs them on spice in ``run_configs/_rose_all``.
+
+Build singularity image
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The config file in envs/picasso defines the contents of a Singularity image
+which is built by the experimental Picasso app. We can build this image using a
+GitHub action, defined in ``.github/workflows/picasso_build.yml``.
+
+This action is manually triggered. You have to push a branch to the metomi repo,
+not a fork, then you can trigger the action from your branch. Please remember
+to clean up the branch when you're finished.
+
+You can see the image in artefactory
+`here <https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/metomi/fab/MyImage>`_.
+
+
+See also
+* :ref:`Run Singularity<Run Singularity>`
+* `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
+
+

@@ -121,18 +121,6 @@ To run flake8 and mypy, type:
     $ flake8 .
     $ mypy setup.py source tests
 
-Acceptance tests
-----------------
-
-**(For Met Office users)**
-
-For extra confidence, we have acceptance tests in the ``run_configs`` folder
-which are not run as part of our automated github testing. You can run them on
-the VDI using ``build_all.py``. However, this will choke your machine for some
-time. There's a (misnamed) cron you can run nightly, ``run_configs/_cron/cron_system_tests.sh``.
-
-There's also a rose suite which runs them on spice in ``run_configs/_rose_all``.
-
 Github Actions
 ==============
 
@@ -156,28 +144,6 @@ You can also run it on your fork to produce a separate build, for viewing work
 in progress.
 
 .. _Build Singularity:
-
-Build singularity image
------------------------
-
-**(For Met Office users)**
-
-The config file in envs/picasso defines the contents of a Singularity image
-which is built by the experimental Picasso app. We can build this image using a
-GitHub action, defined in ``.github/workflows/picasso_build.yml``.
-
-This action is manually triggered. You have to push a branch to the metomi repo,
-not a fork, then you can trigger the action from your branch. Please remember
-to clean up the branch when you're finished.
-
-You can see the image in artefactory
-`here <https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/metomi/fab/MyImage>`_.
-
-
-See also
-* :ref:`Run Singularity<Run Singularity>`
-* `Picasso <https://metoffice.sharepoint.com/sites/scienceitteam/SitePages/Picasso.aspx>`_
-
 
 Version numbering
 =================
@@ -203,3 +169,9 @@ Dev versions are not for release and cover multiple commits.
 * 1.0.1
 
 The version number is defined in ``source/fab/__init_.py``.
+
+Developing at the Met Office
+============================
+
+There are special notes for
+:ref:`developers working at the Met Office<MetOfficeDevelopment>`.
