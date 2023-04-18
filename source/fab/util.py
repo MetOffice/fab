@@ -303,7 +303,7 @@ def common_arg_parser() -> ArgumentParser:
     arg_parser.add_argument('folder', nargs='?', default='.', type=Path, help='Source path')
     group.add_argument('--project_label', default=None, help='Project Label')
     group.add_argument('--fab_workspace', nargs='?', default=None, help='Fab working directory')
-    group.add_argument('--multiprocessing', help='Turns OFF multiprocessing.')
+    group.add_argument('--multiprocessing', default=True, help='Turns OFF multiprocessing.')
     group.add_argument('--two-stage', action='store_true',
                        help='Compile .mod files first in a separate pass. Theoretically faster in some projects.')
     return arg_parser
