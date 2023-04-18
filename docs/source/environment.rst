@@ -2,150 +2,131 @@
 
 Environment
 ***********
-This page describes the environments in which Fab can be run.
+
+Fab requires a suitible Python environment in which to run. This page outlines
+some routes to achieving such an environment.
+
+This page contains general instructions, there are additional instructions for
+:ref:`Met Office<MetOffice>` users elsewhere.
 
 
 .. _Requirements:
 
 Requirements
 ============
+
 The minimum dependencies for Fab to build a project are:
 
 * Python >= 3.7
-* Compiler
-* Linker (or archiver, if building libraries)
+* fParser >= 0.16.0
+* Fortran compiler
+* Linker
 
-If your project includes C code:
+If you intend to compile C you will need a C compiler and linker but also:
 
 * libclang
 * python-clang
 
+If you want pretty charts to be plotted from the build metrics you will need:
 
-Running Fab at The Met Office
-=============================
-
-VDI
----
-
-Without clang
-^^^^^^^^^^^^^
-If you don't need to build C, you can use this modules command::
-
-    $ module use $EXTRA_SOFTWARE
-    $ module load fab/0.11.0/python/3.7.0
+* matplotlib
 
 
-With clang
-^^^^^^^^^^
-This is currently a little awkward but will hopefully become simpler soon.
-We use a combination of *module* commands and *conda* to get Fab running at The Met Office.
-If you don't need to compile C code, you may not need conda.
-We create the conda environment as follows::
+Obtaining Fab
+=============
 
-    $ conda env create -f envs/conda/dev_env.yml
-    $ conda activate sci-fab
+Although you can install the tool from a copy of the `source`_ it is usually
+preferable to use one of the managed packages.
 
-Then :ref:`install fab<Install>`.
+Packages are made available through `PyPI`_ and `Conda forge`_ and are installed
+in the usual way for these services. Some examples follow.
 
-We do this in a before any module commands.
-Then we set up our environment *in a new terminal* as follows.
-
-For use with gfortran::
-
-    $ module use $LFRIC_MODULES
-    $ module load environment/lfric/gnu
-    $ conda activate sci-fab
-    $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
-
-For use with ifort::
-
-    $ module use $LFRIC_MODULES
-    $ module load environment/lfric/ifort
-    $ conda activate sci-fab
-    $ PYTHONPATH=~/.conda/envs/sci-fab/lib/python3.7/site-packages:$PYTHONPATH
-
-The PYTHONPATH line gives us access to a newer version of fparser in the conda environment.
-Otherwise we get the older one from the modules commands.
-
-PyCharm
-^^^^^^^
-If you run ``pycharm-community`` from the command line, after the above commands,
-PyCharm will be able to run Fab, the tests, etc.
-You can `set the project interpreter <https://www.jetbrains.com/help/pycharm/configuring-python-interpreter.html>`_
-to be that in the conda environment.
+.. _source: https://github.com/metomi/fab
+.. _PyPI: https://pypi.org/project/sci-fab/
+.. _Conda forge: https://anaconda.org/conda-forge/sci-fab
 
 
-Rose
-----
-Various configs for building projects using Rose on SPICE can be found in
-`run_configs <https://github.com/metomi/fab/tree/master/run_configs>`_.
+Somebody Elses Problem
+----------------------
+
+Some of the prerequisites may require system administrator intervention. If they
+are feeling benevolent your administrator may even be prevailed upon to install
+the whole lot.
 
 
-.. _Run Singularity:
+Using a Python Virtual Environment
+----------------------------------
 
-Singularity
------------
-You can run Fab in a singularity container as follows::
-
-    singularity run oras://metoffice-docker-local.jfrog.io/picasso/metomi/fab/MyImage:latest
-
-If you need to use git from within the container, you'll need to set a couple of environment variables first::
-
-    $ export SINGULARITY_BIND="/etc/pki/ca-trust/extracted/pem:/pem"
-    $ export SINGULARITYENV_GIT_SSL_CAPATH="/pem"
-    $ singularity shell oras://metoffice-docker-local.jfrog.io/picasso/metomi/fab/MyImage:latest
-
-
-See also :ref:`Instructions for building the image<Build Singularity>`.
-
-Authentication
-^^^^^^^^^^^^^^
-You'll need to authenticate if it's your first time::
-
-    $ singularity remote login -u firstname.surname@metoffice.gov.uk docker://metoffice-docker-local.jfrog.io
-
-You will be asked for your
-`access token <https://metoffice.sharepoint.com/sites/TechnologyCommsSite/SitePages/Tooling/Artifactory/Artifactory-Cloud.aspx#using-api-keys>`_.
-
-
-Outside The Met Office
-======================
-
-Docker
-------
-The dockerfile in `envs/docker <https://github.com/metomi/fab/tree/master/envs/docker>`_
-can be used to create a container in which to run Fab.
-This work-in-progress solution was tested on Windows, running Ubuntu in WSL.
-
-Build the image::
-
-    $ docker build -t fab envs/docker
-
-
-Run the image, replacing ``<path_to_fab>`` with the path on your host machine and ``<user>`` with using your username::
-
-    $ docker run --env PYTHONPATH=/fab -v <path_to_fab>/source:/fab -v /home/<user>:/home/<user> -it fab bash
-
-
-Other
------
-You may need to ask your system administrator to install the above requirements.
-
-
-Using Python venv
-=================
-Create an environment using Python's builtin `venv`
+A virtual environment is created in the normal way and `pip` used to install
+Fab:
 
 .. code-block:: console
 
-    $ python -m venv <env name>
-    $ cd <env name>
-    $ . bin/activate
-
-Then install fab
-
-.. code-block:: console
-
+    $ python -m venv $ENV_PATH
+    $ . $ENV_PATH/bin/activate
     $ pip install sci-fab
 
-You'll have to make sure the non-Python :ref:`requirements<Requirements>` are installed.
+Where `$ENV_PATH` is the location for the new environment.
+
+If you want to compile C you will need to add the prerequisites for that:
+
+.. code-block:: console
+
+    $ pip install python-clang
+
+Note that this requires a suitible `libclang` to be installed on your system
+which may require system administrator internvention.
+
+Finally, to get plots from the metrics you will need:
+
+.. code-block:: console
+
+    $ pip install matplotlib
+
+
+.. _Anaconda:
+
+Using Anaconda
+--------------
+
+Anaconda can be used in a similar way to the built in Python virtual
+environemnt but can also handle your C needs:
+
+.. code-block:: console
+
+    $ conda create -n FabEnv sci-fab
+
+Or you can add Fab to an existing environment:
+
+.. code-block:: console
+
+    $ conda install -n ExistingEnv sci-fab
+
+If you want to compile C then you will need to add the prerequisites for that:
+
+.. code-block:: console
+
+    $ conda install -n FabEnv python-clang
+
+And again, if you want to plot the build metrics:
+
+.. code-block:: console
+
+    $ conda install -n FabEnv matplotlib
+
+
+Using Containers
+----------------
+
+The dockerfile in `envs/docker`_ can be used to create a suitible container for
+running Fab:
+
+.. code-block:: console
+
+    $ docker build -t fab $FAB_WC/envs/docker
+    $ docker run --env PYTHONPATH=/fab -v $FAB_WC/source:/fab -v /home/$USER:/home/$USER -it fab bash
+
+This was tested on Windows, running Ubuntu in WSL but is not regularly tested
+so can not be guaranteed.
+
+.. _envs/docker: https://github.com/metomi/fab/tree/master/envs/docker

@@ -107,4 +107,5 @@ venv.bak/
 .pstats
 
 # apidoc generated output
+docs/build
 docs/source/apidoc
