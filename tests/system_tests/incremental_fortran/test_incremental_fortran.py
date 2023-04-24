@@ -55,13 +55,13 @@ class TestIncremental(object):
 
     def test_clean_build(self, config):
         # just make sure an exe appears
-        assert not (config.project_workspace / 'my_prog.exe').exists()
+        assert not (config.project_workspace / 'my_prog').exists()
 
         with config:
             self.run_steps(config)
 
         # check it built ok
-        assert (config.project_workspace / 'my_prog.exe').exists()
+        assert (config.project_workspace / 'my_prog').exists()
 
     def test_no_change_rebuild(self, config):
         # ensure a rebuild with no change does not recreate our prebuild artefacts

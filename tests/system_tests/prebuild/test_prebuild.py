@@ -87,7 +87,7 @@ class TestFortranPrebuild(object):
         mock_compile_file.assert_not_called()
 
         # make sure the exe was built
-        exe = second_project.project_workspace / 'my_prog.exe'
+        exe = second_project.project_workspace / 'my_prog'
         assert exe.exists()
 
         # make sure the prebuild files are the same
