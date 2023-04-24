@@ -12,7 +12,6 @@ import logging
 import os
 import sys
 import warnings
-from argparse import Namespace
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
@@ -23,7 +22,7 @@ from typing import List, Optional, Dict, Any, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.util import TimerLogger, by_type, get_fab_workspace, common_arg_parser
+from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +35,8 @@ class BuildConfig(object):
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str, parsed_args: Optional[Namespace] = None,
-                 multiprocessing: bool = True, n_procs: Optional[int] = None, reuse_artefacts: bool = False,
-                 fab_workspace: Optional[Path] = None):
+    def __init__(self, project_label: str, multiprocessing: bool = True, n_procs: Optional[int] = None,
+                 reuse_artefacts: bool = False, fab_workspace: Optional[Path] = None, two_stage=False, verbose=False):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
@@ -57,23 +55,19 @@ class BuildConfig(object):
         :param fab_workspace:
             Overrides the FAB_WORKSPACE environment variable.
             If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
+        :param two_stage:
+            Compile .mod files first in a separate pass. Theoretically faster in some projects..
+        :param verbose:
+            DEBUG level logging.
 
         """
-        self.parsed_args = {}
-        if parsed_args:
-            self.parsed_args = vars(parsed_args)
-            logger.info(f'Arguments: {self.parsed_args}')
-            logger.info('')
-        else:
-            arg_parser = common_arg_parser()
-            self.parsed_args = vars(arg_parser.parse_args())
-            project_label = self.parsed_args.get("project_label") or project_label or "project_label"
-
+        self.two_stage = two_stage
+        self.verbose = verbose
         from fab.steps.compile_fortran import get_fortran_compiler
         compiler, _ = get_fortran_compiler()
-        project_label = Template(project_label).substitute(
+        project_label = Template(project_label).safe_substitute(
             compiler=compiler,
-            two_stage=f'{int(self.parsed_args.get("two_stage", 0))+1}stage')
+            two_stage=f'{int(two_stage)+1}stage')
 
         self.project_label: str = project_label.replace(' ', '_')
 
@@ -90,8 +84,7 @@ class BuildConfig(object):
         self.prebuild_folder: Path = self.build_output / PREBUILD
 
         # multiprocessing config
-        self.multiprocessing = self.parsed_args.get('multiprocessing', None) or multiprocessing
-        logger.info(f'Multiprocessing: {self.multiprocessing}')
+        self.multiprocessing = multiprocessing
 
         # turn off multiprocessing when debugging
         # todo: turn off multiprocessing when running tests, as a good test runner will run using mp
@@ -122,7 +115,7 @@ class BuildConfig(object):
         logger.info(f'initialising {self.project_label}')
         logger.info('')
 
-        if self.parsed_args.get('verbose'):
+        if self.verbose:
             logging.getLogger('fab').setLevel(logging.DEBUG)
 
         logger.info(f'building {self.project_label}')

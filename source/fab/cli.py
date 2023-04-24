@@ -3,8 +3,9 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+import sys
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Optional
 
 from fab.steps.analyse import analyse
 from fab.steps.c_pragma_injector import c_pragma_injector
@@ -21,23 +22,15 @@ from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.util import common_arg_parser
 
 
-def _generic_build_config(folder: Optional[Path] = None, kwargs: Optional[Any] = None) -> BuildConfig:
-    if folder:
-        folder = folder.resolve()
-
+def _generic_build_config(folder: str = '.', kwargs=None) -> BuildConfig:
+    project_label = 'zero_config_build'
     if kwargs:
-        parsed_args = None
-        project_label = f'zero_config/{kwargs.pop("project_label", "zero_config/build")}'
-    else:
-        arg_parser = common_arg_parser()
-        parsed_args = arg_parser.parse_args()
-        project_label = f'zero_config/{vars(parsed_args).get("project_label") or "build"}'
+        project_label = kwargs.pop('project_label', 'zero_config_build') or project_label
 
     # Within the fab workspace, we'll create a project workspace.
     # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
     linker, linker_flags = calc_linker_flags()
-
-    with BuildConfig(project_label=project_label, parsed_args=parsed_args, **kwargs) as config:
+    with BuildConfig(project_label=project_label, **kwargs) as config:
         grab_folder(config, folder),
         find_source_files(config),
 
@@ -76,7 +69,7 @@ def calc_linker_flags():
     return linker, linker_flags
 
 
-def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
+def cli_fab(folder: str = '.', kwargs: Optional[Dict] = None):
     """
     Running Fab from the command line will attempt to build the project in the current or given folder.
     The following params are used for testing. When run normally any parameters will be caught
@@ -89,6 +82,11 @@ def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
 
     """
     kwargs = kwargs or {}
+    if Path(sys.argv[0]).parts[-1] == 'fab':
+        arg_parser = common_arg_parser()
+        kwargs = vars(arg_parser.parse_args())
+
+    folder = folder or kwargs.pop('folder', '.')
 
     config = _generic_build_config(folder, kwargs)
     return config
