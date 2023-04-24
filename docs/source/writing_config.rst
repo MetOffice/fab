@@ -1,55 +1,65 @@
 .. _Writing Config:
 
 
-How to Write a Build Config
-***************************
+How to Write a Build Configuration
+**********************************
+
 This page walks through the process of writing a build script.
 
-Config File
-===========
-Here's a simple config without any steps.
+Configuration File
+==================
+
+Here's a simple configuration without any steps.
 
 .. code-block::
     :linenos:
-    :caption: build_it.py
+    :caption: build_it
 
     #!/usr/bin/env python3
+    from logging import getLogger
 
     from fab.build_config import BuildConfig
 
-    with BuildConfig(project_label='<project label>') as state:
-        pass
+    logger = getLogger('fab')
+
+    if __name__ == '__main__':
+        with BuildConfig(project_label='<project label>') as state:
+            pass
 
 If we want to run the build script from the command line,
-we give it executable permission with the command `chmod +x build_it.py`.
+we give it executable permission with the command ``chmod +x build_it``.
 We also add the `shebang <https://en.wikipedia.org/wiki/Shebang_(Unix)>`_ directive on line 1,
 telling our computer it's a Python script.
 
-Pick a project label. Fab creates a project workspace with this name (see :term:`Project Workspace`).
+Pick a project label. Fab creates a :term:`project workspace` with this name.
 
 
 Source Code
 ===========
+
 Let's tell Fab where our source code is.
 
 We use the :func:`~fab.steps.find_source_files.find_source_files` step for this.
-We can point this step to a source folder, which is a valid way to use this step.
-However, because Fab can sometimes create artefacts alongside the source [1]_,
-we usually copy the source into the project workspace first using a :mod:`~fab.steps.grab` step.
+We can point this step to a source folder, however, because Fab can sometimes
+create artefacts alongside the source [1]_, we usually copy the source into the
+project workspace first using a :mod:`~fab.steps.grab` step.
 
-A grab step will copy files from a folder or remote repo into
-a folder called "source" within the project workspace.
+A grab step will copy files from a folder or remote repo into a folder called
+"source" within the project workspace.
 
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 4,5,10,11
+    :emphasize-lines: 5,6,13,14
 
     #!/usr/bin/env python3
+    from logging import getLogger
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import find_source_files
     from fab.steps.grab import GrabFolder
+
+    logger = getLogger('fab')
 
     if __name__ == '__main__':
 
@@ -74,9 +84,9 @@ After the find_source_files step, there will be a collection called ``"all_sourc
     creates artefacts in the source folder.
 
 
-
 Preprocess
 ==========
+
 Next we want to preprocess our source code.
 Preprocessing resolves any `#include` and `#ifdef` directives in the code,
 which must happen before we analyse it.
@@ -97,16 +107,16 @@ The Fortran preprocessor will read the :ref:`FPP<env_vars>` environment variable
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 6,13
+    :emphasize-lines: 6,15
 
     #!/usr/bin/env python3
-    import logging
+    from logging getLogger
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import find_source_files
     from fab.steps.preprocess import preprocess_fortran
 
-    logger = logging.getLogger('fab')
+    logger = getLogger('fab')
 
     if __name__ == '__main__':
 
@@ -124,8 +134,9 @@ After the fortran_preprocessor step, there will be a collection called ``"prepro
 
 Analyse
 =======
-We must :func:`~fab.steps.analyse.analyse` the source code to determine which Fortran files to compile,
-and in which order.
+
+We must :func:`~fab.steps.analyse.analyse` the source code to determine which
+Fortran files to compile, and in which order.
 
 The Analyse step looks for source to analyse in several collections:
 
@@ -136,10 +147,10 @@ The Analyse step looks for source to analyse in several collections:
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 3,15
+    :emphasize-lines: 4,18
 
     #!/usr/bin/env python3
-    import logging
+    from logging import getLogger
 
     from fab.steps.analyse import analyse
     from fab.build_config import BuildConfig
@@ -147,7 +158,7 @@ The Analyse step looks for source to analyse in several collections:
     from fab.steps.grab import GrabFolder
     from fab.steps.preprocess import preprocess_fortran
 
-    logger = logging.getLogger('fab')
+    logger = getLogger('fab')
 
     if __name__ == '__main__':
 
@@ -166,16 +177,18 @@ After the Analyse step, there will be a collection called ``"build_trees"``, in 
 
 Compile and Link
 ================
-The :func:`~fab.steps.compile_fortran.compile_fortran` step compiles files in the ``"build_trees"`` collection.
-The :func:`~fab.steps.link.link_exe` step then creates the executable.
+
+The :func:`~fab.steps.compile_fortran.compile_fortran` step compiles files in
+the ``"build_trees"`` collection. The :func:`~fab.steps.link.link_exe` step
+then creates the executable.
 
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 4,8,18,19
+    :emphasize-lines: 6,9,21,22
 
     #!/usr/bin/env python3
-    import logging
+    from logging import getLogger
 
     from fab.steps.analyse import analyse
     from fab.build_config import BuildConfig
@@ -203,9 +216,11 @@ After the :func:`~fab.steps.link.link_exe` step, the executable name can be foun
 
 Flags
 =====
-Preprocess, compile and link steps usually need configuration to specify command-line arguments
-to the underlying tool, such as symbol definitions, include paths, optimisation flags, etc.
-See also :ref:`Advanced Flags<Advanced Flags>`.
+
+Preprocess, compile and link steps usually need configuration to specify
+command-line arguments to the underlying tool, such as symbol definitions,
+include paths, optimisation flags, etc. See also
+:ref:`Advanced Flags<Advanced Flags>`.
 
 
 C Code
@@ -214,16 +229,19 @@ Fab comes with C processing steps.
 The :func:`~fab.steps.preprocess.preprocess_c` and :func:`~fab.steps.compile_c.compile_c` Steps
 behave like their Fortran equivalents.
 
-However, it currently requires a preceding step called the :func:`~fab.steps.c_pragma_injector.c_pragma_injector`.
-Fab needs to inject pragmas into C code before it is preprocessed in order to know which dependencies
-are for user code, and which are for system code to be ignored.
+However preprocessing C currently requires a preceding step called the
+:func:`~fab.steps.c_pragma_injector.c_pragma_injector`. This injects markers
+into the C code so Fab is able to deduce which inclusions are user code and
+which are system code. This allows system dependencies to be ignored.
 
 See also :ref:`Advanced C Code<Advanced C Code>`
 
 
 Further Reading
 ===============
-More advanced config topics are discussed in :ref:`Advanced Config`.
 
-You can see more complicated configs in Fab's
-`example run configs <https://github.com/metomi/fab/tree/master/run_configs>`_.
+More advanced configuration topics are discussed in
+:ref:`Advanced Configuration`.
+
+You can see more complicated configurations in the
+`developer testing directory <https://github.com/metomi/fab/tree/master/run_configs>`_.
