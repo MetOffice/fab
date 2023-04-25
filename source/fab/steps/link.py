@@ -80,7 +80,7 @@ def link_exe(config, linker: Optional[str] = None, flags=None, source: Optional[
 
     target_objects = source_getter(config._artefact_store)
     for root, objects in target_objects.items():
-        exe_path = config.project_workspace / f'{root}.exe'
+        exe_path = config.project_workspace / f'{root}'
         call_linker(linker=linker, flags=flags, filename=str(exe_path), objects=objects)
         config._artefact_store.setdefault(EXECUTABLES, []).append(exe_path)
 

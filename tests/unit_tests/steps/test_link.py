@@ -25,7 +25,7 @@ class TestLinkExe(object):
                 link_exe(config, linker='foolink', flags=['-fooflag', '-barflag'])
 
         mock_run.assert_called_with([
-            'foolink', '-o', 'workspace/foo.exe',
+            'foolink', '-o', 'workspace/foo',
             *sorted(['foo.o', 'bar.o']),
             '-L/foo1/lib', '-L/foo2/lib',
             '-fooflag', '-barflag',
