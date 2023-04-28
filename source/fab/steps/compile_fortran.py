@@ -70,7 +70,6 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
         An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
 
     """
-    # todo: two_stage is now in the parsed args - say what it does with the flag - and find a better place for it?
 
     compiler, compiler_version, flags_config = handle_compiler_args(common_flags, path_flags)
 
@@ -79,7 +78,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
     # todo: move this to the known compiler flags?
     # todo: this is a misleading name
     two_stage_flag = None
-    if compiler == 'gfortran' and config.parsed_args.get('two_stage'):
+    if compiler == 'gfortran' and config.two_stage:
         two_stage_flag = '-fsyntax-only'
 
     mod_hashes: Dict[str, int] = {}
