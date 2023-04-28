@@ -22,7 +22,7 @@ from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.util import common_arg_parser
 
 
-def _generic_build_config(folder: str = '.', kwargs=None) -> BuildConfig:
+def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     project_label = 'zero_config_build'
     if kwargs:
         project_label = kwargs.pop('project_label', 'zero_config_build') or project_label
@@ -69,7 +69,7 @@ def calc_linker_flags():
     return linker, linker_flags
 
 
-def cli_fab(folder: str = '.', kwargs: Optional[Dict] = None):
+def cli_fab(folder: Path, kwargs: Optional[Dict] = None):
     """
     Running Fab from the command line will attempt to build the project in the current or given folder.
     The following params are used for testing. When run normally any parameters will be caught
