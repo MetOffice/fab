@@ -82,6 +82,9 @@ def cli_fab(folder: Path, kwargs: Optional[Dict] = None):
 
     """
     kwargs = kwargs or {}
+
+    # We check if 'fab' was called directly. As it can be called by other things like 'pytest', the cli arguments
+    # may not apply to 'fab' which will cause arg_parser to fail with an invalid argument message.
     if Path(sys.argv[0]).parts[-1] == 'fab':
         arg_parser = common_arg_parser()
         kwargs = vars(arg_parser.parse_args())
