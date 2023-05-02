@@ -1,0 +1,47 @@
+[project]
+name = "sci-fab"
+description = "Build system for scientific software"
+authors = [
+    {name = "SciFab Developers", email = 'metomi@metoffice.gov.uk'}
+]
+license = {file = 'LICENSE.txt'}
+dynamic = ['version', 'readme']
+requires-python = '>=3.7, <4'
+dependencies = ['fparser']
+classifiers = [
+    'Development Status :: 1 - Planning',
+    'Environment :: Console',
+    'License :: OSI Approved :: BSD License',
+    'Operating System :: POSIX',
+    'Programming Language :: Python :: 3',
+    'Topic :: Scientific/Engineering',
+    'Topic :: Software Development :: Build Tools'
+]
+
+[project.optional-dependencies]
+c-language = ['python-clang']
+plots = ['matplotlib']
+tests = ['pytest', 'pytest-cov', 'pytest-mock']
+checks = ['flake8', 'mypy']
+docs = ['sphinx', 'sphinx-material', 'sphinx-autodoc-typehints', 'sphinx-copybutton']
+dev = ['sci-fab[plots, tests, checks, docs]']
+
+[project.scripts]
+fab = 'fab.cli:cli_fab'
+
+[project.urls]
+homepage = 'https://github.com/Metomi/fab'
+documentation = 'https://metomi.github.io/fab/'
+repository = 'https://github.com/metomi/fab'
+'Bug Reports' = 'https://github.com/metomi/fab/issues'
+
+[tool.setuptools.packages.find]
+where = ['source']
+
+[tool.setuptools.dynamic]
+readme = {file = 'README.md'}
+version = {attr = 'fab.__version__'}
+
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
