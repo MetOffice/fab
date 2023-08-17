@@ -48,7 +48,7 @@ def _has_ancestor_type(obj, obj_type):
     if not obj.parent:
         return False
 
-    if type(obj.parent) == obj_type:
+    if isinstance(obj.parent, obj_type):
         return True
 
     return _has_ancestor_type(obj.parent, obj_type)
@@ -59,7 +59,7 @@ def _typed_child(parent, child_type, must_exist=False):
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
 
-    children = list(filter(lambda child: type(child) == child_type, parent.children))
+    children = list(filter(lambda child: isinstance(child, child_type), parent.children))
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
 

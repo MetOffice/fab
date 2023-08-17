@@ -227,7 +227,10 @@ class FortranAnalyser(FortranAnalyserBase):
                         spec_list = _typed_child(stmt, Type_Attr_Spec_List)
                         type_spec = _typed_child(spec_list, Type_Attr_Spec)
                         if type_spec.children[0] == 'EXTENDS':
-                            if isinstance(type_spec.children[1], Name) and type_spec.children[1].string == 'kernel_type':
+                            if (
+                                    isinstance(type_spec.children[1], Name)
+                                    and type_spec.children[1].string == 'kernel_type'
+                            ):
 
                                 # We've found a psyclone kernel metadata. What's it called?
                                 kernel_name = _typed_child(stmt, Type_Name).string
@@ -314,9 +317,9 @@ class FortranAnalyser(FortranAnalyserBase):
         # not bound, just record the presence of the fortran symbol
         # we don't need to record stuff in modules (we think!)
         elif not _has_ancestor_type(obj, Module) and not _has_ancestor_type(obj, Interface_Block):
-            if type(obj) == Subroutine_Stmt:
+            if isinstance(obj, Subroutine_Stmt):
                 analysed_file.add_symbol_def(str(obj.get_name()))
-            if type(obj) == Function_Stmt:
+            if isinstance(obj, Function_Stmt):
                 _, name, _, _ = obj.items
                 analysed_file.add_symbol_def(name.string)
 
