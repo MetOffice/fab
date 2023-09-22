@@ -10,7 +10,7 @@ Common functionality for both Fortran and (sanitised) X90 processing.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union, Tuple, Type
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
@@ -54,12 +54,12 @@ def _has_ancestor_type(obj, obj_type):
     return _has_ancestor_type(obj.parent, obj_type)
 
 
-def _typed_child(parent, child_type, must_exist=False):
+def _typed_child(parent, child_type: Type, must_exist=False):
     # Look for a child of a certain type.
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
-
     children = list(filter(lambda child: isinstance(child, child_type), parent.children))
+    print(children)
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
 
