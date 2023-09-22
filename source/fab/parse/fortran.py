@@ -12,13 +12,13 @@ from pathlib import Path
 from typing import Union, Optional, Iterable, Dict, Any, Set
 
 from fparser.two.Fortran2003 import (  # type: ignore
-    Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
+    Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
     Type_Attr_Spec_List, Type_Attr_Spec, Type_Name)
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
 from fparser.two.Fortran2008 import (  # type: ignore
-    Type_Declaration_Stmt, Attr_Spec_List, Entity_Decl_List)
+    Type_Declaration_Stmt, Attr_Spec_List)
 
 from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran_common import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
@@ -227,7 +227,10 @@ class FortranAnalyser(FortranAnalyserBase):
                         spec_list = _typed_child(stmt, Type_Attr_Spec_List)
                         type_spec = _typed_child(spec_list, Type_Attr_Spec)
                         if type_spec.children[0] == 'EXTENDS':
-                            if type(type_spec.children[1]) == Name and type_spec.children[1].string == 'kernel_type':
+                            if (
+                                    isinstance(type_spec.children[1], Name)
+                                    and type_spec.children[1].string == 'kernel_type'
+                            ):
 
                                 # We've found a psyclone kernel metadata. What's it called?
                                 kernel_name = _typed_child(stmt, Type_Name).string
@@ -314,9 +317,9 @@ class FortranAnalyser(FortranAnalyserBase):
         # not bound, just record the presence of the fortran symbol
         # we don't need to record stuff in modules (we think!)
         elif not _has_ancestor_type(obj, Module) and not _has_ancestor_type(obj, Interface_Block):
-            if type(obj) == Subroutine_Stmt:
+            if isinstance(obj, Subroutine_Stmt):
                 analysed_file.add_symbol_def(str(obj.get_name()))
-            if type(obj) == Function_Stmt:
+            if isinstance(obj, Function_Stmt):
                 _, name, _, _ = obj.items
                 analysed_file.add_symbol_def(name.string)
 
