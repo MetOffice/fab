@@ -230,7 +230,7 @@ def metrics_summary(metrics_folder: Path):
         # taller plot after 500 files
         # todo: we should also increase the width when lots of quick files become sub-pixel
         size = max(10.0, 10 * len(values) / 500)
-        plt.figure(figsize=[10, size])
+        plt.figure(figsize=(10, size))
 
         plt.barh(
             y=list(range(len(values))),
