@@ -110,7 +110,7 @@ class Test_process_variable_binding(object):
         tree = f2008_parser(reader)
 
         # find the tree node representing the variable binding
-        var_decl = next(obj for obj in iter_content(tree) if type(obj) == Type_Declaration_Stmt)
+        var_decl = next(obj for obj in iter_content(tree) if isinstance(obj, Type_Declaration_Stmt))
 
         # run our handler
         fpath = Path('foo')
