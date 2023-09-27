@@ -23,6 +23,7 @@ Here's a simple configuration without any steps.
     logger = getLogger('fab')
 
     if __name__ == '__main__':
+
         with BuildConfig(project_label='<project label>') as state:
             pass
 
@@ -57,7 +58,7 @@ A grab step will copy files from a folder or remote repo into a folder called
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab import GrabFolder
+    from fab.steps.grab.folder import grab_folder
 
     logger = getLogger('fab')
 
@@ -107,13 +108,14 @@ The Fortran preprocessor will read the :ref:`FPP<env_vars>` environment variable
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 6,15
+    :emphasize-lines: 7,16
 
     #!/usr/bin/env python3
-    from logging getLogger
+    from logging import getLogger
 
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import find_source_files
+    from fab.steps.grab.folder import grab_folder
     from fab.steps.preprocess import preprocess_fortran
 
     logger = getLogger('fab')
@@ -155,7 +157,7 @@ The Analyse step looks for source to analyse in several collections:
     from fab.steps.analyse import analyse
     from fab.build_config import BuildConfig
     from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab import GrabFolder
+    from fab.steps.grab.folder import grab_folder
     from fab.steps.preprocess import preprocess_fortran
 
     logger = getLogger('fab')
@@ -194,11 +196,11 @@ then creates the executable.
     from fab.build_config import BuildConfig
     from fab.steps.compile_fortran import compile_fortran
     from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab import GrabFolder
+    from fab.steps.grab.folder import grab_folder
     from fab.steps.link import link_exe
     from fab.steps.preprocess import preprocess_fortran
 
-    logger = logging.getLogger('fab')
+    logger = getLogger('fab')
 
     if __name__ == '__main__':
 
