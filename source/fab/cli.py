@@ -6,6 +6,7 @@
 import sys
 from pathlib import Path
 from typing import Dict, Optional
+import os
 
 from fab.steps.analyse import analyse
 from fab.steps.c_pragma_injector import c_pragma_injector
@@ -20,6 +21,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.util import common_arg_parser
+from fab.tools import get_tool
 
 
 def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
@@ -61,15 +63,19 @@ def calc_linker_flags():
         # todo: test this and get it running
         # 'ifort': (..., [...])
     }
+
     try:
-        linker, linker_flags = linkers[fc]
-    except KeyError:
-        raise NotImplementedError(f"Fab's zero configuration mode does not yet work with compiler '{fc}'")
+        linker, linker_flags = get_tool(os.environ.get("LD", None))
+    except ValueError:
+        try:
+            linker, linker_flags = linkers[fc]
+        except KeyError:
+            raise NotImplementedError(f"Fab's zero configuration mode does not yet work with compiler '{fc}'")
 
     return linker, linker_flags
 
 
-def cli_fab(folder: Path, kwargs: Optional[Dict] = None):
+def cli_fab(folder: Path = None, kwargs: Optional[Dict] = None):
     """
     Running Fab from the command line will attempt to build the project in the current or given folder.
     The following params are used for testing. When run normally any parameters will be caught
