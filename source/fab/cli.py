@@ -65,12 +65,11 @@ def calc_linker_flags():
     }
 
     try:
+        # Get linker from $LD
         linker, linker_flags = get_tool(os.environ.get("LD", None))
     except ValueError:
-        try:
-            linker, linker_flags = linkers[fc]
-        except KeyError:
-            raise NotImplementedError(f"Fab's zero configuration mode does not yet work with compiler '{fc}'")
+        # Get linker from linkers, or else just use $FC
+        linker, linker_flags = linkers.get(os.path.basename(fc), (fc, []))
 
     return linker, linker_flags
 
