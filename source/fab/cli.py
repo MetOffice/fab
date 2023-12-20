@@ -74,7 +74,7 @@ def calc_linker_flags():
     return linker, linker_flags
 
 
-def cli_fab(folder: Path = None, kwargs: Optional[Dict] = None):
+def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
     """
     Running Fab from the command line will attempt to build the project in the current or given folder.
     The following params are used for testing. When run normally any parameters will be caught
