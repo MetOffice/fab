@@ -93,8 +93,11 @@ def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
     if Path(sys.argv[0]).parts[-1] == 'fab':
         arg_parser = common_arg_parser()
         kwargs = vars(arg_parser.parse_args())
+        _folder = kwargs.pop('folder')
+    else:
+        # Required when testing
+        assert folder is not None
+        _folder = folder
 
-    folder = folder or kwargs.pop('folder', '.')
-
-    config = _generic_build_config(folder, kwargs)
+    config = _generic_build_config(_folder, kwargs)
     return config
