@@ -24,7 +24,6 @@ from fab.artefacts import ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
-from fab.steps.compile_fortran import get_fortran_compiler
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
@@ -72,6 +71,9 @@ class BuildConfig():
         """
         self.two_stage = two_stage
         self.verbose = verbose
+        # Avoid circular import
+        # pylint: disable=import-outside-toplevel
+        from fab.steps.compile_fortran import get_fortran_compiler
         compiler, _ = get_fortran_compiler()
         project_label = Template(project_label).safe_substitute(
             compiler=compiler,
