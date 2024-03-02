@@ -63,7 +63,7 @@ def cleanup_prebuilds(
 
     elif all_unused:
         num_removed = remove_all_unused(
-            found_files=prebuild_files, current_files=config._artefact_store[CURRENT_PREBUILDS])
+            found_files=prebuild_files, current_files=config.artefact_store[CURRENT_PREBUILDS])
 
     else:
         # get the file access time for every artefact
@@ -71,15 +71,15 @@ def cleanup_prebuilds(
             dict(zip(prebuild_files, run_mp(config, prebuild_files, get_access_time)))  # type: ignore
 
         # work out what to delete
-        to_delete = by_age(older_than, prebuilds_ts, current_files=config._artefact_store[CURRENT_PREBUILDS])
-        to_delete |= by_version_age(n_versions, prebuilds_ts, current_files=config._artefact_store[CURRENT_PREBUILDS])
+        to_delete = by_age(older_than, prebuilds_ts, current_files=config.artefact_store[CURRENT_PREBUILDS])
+        to_delete |= by_version_age(n_versions, prebuilds_ts, current_files=config.artefact_store[CURRENT_PREBUILDS])
 
         # delete them all
         run_mp(config, to_delete, os.remove)
         num_removed = len(to_delete)
 
     logger.info(f'removed {num_removed} prebuild files')
-    config._artefact_store[CLEANUP_COUNT] = num_removed
+    config.artefact_store[CLEANUP_COUNT] = num_removed
 
 
 def by_age(older_than: Optional[timedelta],

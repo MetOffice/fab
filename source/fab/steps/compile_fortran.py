@@ -84,7 +84,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
     mod_hashes: Dict[str, int] = {}
 
     # get all the source to compile, for all build trees, into one big lump
-    build_lists: Dict[str, List] = source_getter(config._artefact_store)
+    build_lists: Dict[str, List] = source_getter(config.artefact_store)
 
     # build the arguments passed to the multiprocessing function
     mp_common_args = MpCommonArgs(
@@ -119,7 +119,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
         logger.info(f"stage 2 compiled {len(compiled_this_pass)} files")
 
     # record the compilation results for the next step
-    store_artefacts(compiled, build_lists, config._artefact_store)
+    store_artefacts(compiled, build_lists, config.artefact_store)
 
 
 def handle_compiler_args(common_flags=None, path_flags=None):

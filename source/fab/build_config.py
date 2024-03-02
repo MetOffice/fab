@@ -18,16 +18,19 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Dict, Any, Iterable
+from typing import List, Optional, Iterable
 
+from fab.artefacts import ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
+from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
+from fab.steps.compile_fortran import get_fortran_compiler
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
 
 
-class BuildConfig(object):
+class BuildConfig():
     """
     Contains and runs a list of build steps.
 
@@ -35,26 +38,32 @@ class BuildConfig(object):
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str, multiprocessing: bool = True, n_procs: Optional[int] = None,
-                 reuse_artefacts: bool = False, fab_workspace: Optional[Path] = None, two_stage=False, verbose=False):
+    # pylint: disable=too-many-arguments, too-many-instance-attributes
+    def __init__(self, project_label: str, multiprocessing: bool = True,
+                 n_procs: Optional[int] = None, reuse_artefacts: bool = False,
+                 fab_workspace: Optional[Path] = None, two_stage=False,
+                 verbose=False):
         """
         :param project_label:
-            Name of the build project. The project workspace folder is created from this name, with spaces replaced
-            by underscores.
+            Name of the build project. The project workspace folder is created
+            from this name, with spaces replaced by underscores.
         :param parsed_args:
-            If you want to add arguments to your script, please use common_arg_parser() and add arguments.
-            This pararmeter is the result of running :func:`ArgumentParser.parse_args`.
+            If you want to add arguments to your script, please use common_arg_parser() and add
+            arguments. This pararmeter is the result of running :func:`ArgumentParser.parse_args`.
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
-            The number of cores to use for multiprocessing operations. Defaults to the number of available cores.
+            The number of cores to use for multiprocessing operations. Defaults to the number of
+            available cores.
         :param reuse_artefacts:
             A flag to avoid reprocessing certain files on subsequent runs.
             WARNING: Currently unsophisticated, this flag should only be used by Fab developers.
-            The logic behind flag will soon be improved, in a work package called "incremental build".
+            The logic behind flag will soon be improved, in a work package called
+            "incremental build".
         :param fab_workspace:
             Overrides the FAB_WORKSPACE environment variable.
-            If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to *~/fab-workspace*.
+            If not set, and FAB_WORKSPACE is not set, the fab workspace defaults to
+            *~/fab-workspace*.
         :param two_stage:
             Compile .mod files first in a separate pass. Theoretically faster in some projects..
         :param verbose:
@@ -63,7 +72,6 @@ class BuildConfig(object):
         """
         self.two_stage = two_stage
         self.verbose = verbose
-        from fab.steps.compile_fortran import get_fortran_compiler
         compiler, _ = get_fortran_compiler()
         project_label = Template(project_label).safe_substitute(
             compiler=compiler,
@@ -105,9 +113,11 @@ class BuildConfig(object):
 
         # todo: should probably pull the artefact store out of the config
         # runtime
-        # todo: either make this public, add get/setters, or extract into a class.
-        self._artefact_store: Dict[str, Any] = {}
-        self.init_artefact_store()  # note: the artefact store is reset with every call to run()
+        self._artefact_store: ArtefactStore = ArtefactStore()
+
+        # Declare this attribute here to make pylint happy
+        self._build_timer = None
+        self._start_time = None
 
     def __enter__(self):
 
@@ -130,8 +140,7 @@ class BuildConfig(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
 
         if not exc_type:  # None if there's no error.
-            from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
-            if CLEANUP_COUNT not in self._artefact_store:
+            if CLEANUP_COUNT not in self.artefact_store:
                 logger.info("no housekeeping step was run, using a default hard cleanup")
                 cleanup_prebuilds(config=self, all_unused=True)
 
@@ -142,19 +151,23 @@ class BuildConfig(object):
         self._finalise_logging()
 
     @property
-    def build_output(self):
-        return self.project_workspace / BUILD_OUTPUT
+    def artefact_store(self) -> ArtefactStore:
+        ''':returns: the Artefact instance for this configuration.
+        '''
+        return self._artefact_store
 
-    def init_artefact_store(self):
-        # there's no point writing to this from a child process of Step.run_mp() because you'll be modifying a copy.
-        self._artefact_store = {CURRENT_PREBUILDS: set()}
+    @property
+    def build_output(self) -> Path:
+        ''':returns: the build output path.
+        '''
+        return self.project_workspace / BUILD_OUTPUT
 
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """
         Mark the given file paths as being current prebuilds, not to be cleaned during housekeeping.
 
         """
-        self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
+        self.artefact_store[CURRENT_PREBUILDS].update(artefacts)
 
     def _run_prep(self):
         self._init_logging()
@@ -168,7 +181,7 @@ class BuildConfig(object):
         init_metrics(metrics_folder=self.metrics_folder)
 
         # note: initialising here gives a new set of artefacts each run
-        self.init_artefact_store()
+        self.artefact_store.reset()
 
     def _prep_folders(self):
         self.source_root.mkdir(parents=True, exist_ok=True)
@@ -178,7 +191,8 @@ class BuildConfig(object):
     def _init_logging(self):
         # add a file logger for our run
         self.project_workspace.mkdir(parents=True, exist_ok=True)
-        log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt', backupCount=5, delay=True)
+        log_file_handler = RotatingFileHandler(self.project_workspace / 'log.txt',
+                                               backupCount=5, delay=True)
         log_file_handler.doRollover()
         logging.getLogger('fab').addHandler(log_file_handler)
 
@@ -194,7 +208,8 @@ class BuildConfig(object):
         fab_logger = logging.getLogger('fab')
         log_file_handlers = list(by_type(fab_logger.handlers, RotatingFileHandler))
         if len(log_file_handlers) != 1:
-            warnings.warn(f'expected to find 1 RotatingFileHandler for removal, found {len(log_file_handlers)}')
+            warnings.warn(f'expected to find 1 RotatingFileHandler for '
+                          f'removal, found {len(log_file_handlers)}')
         fab_logger.removeHandler(log_file_handlers[0])
 
     def _finalise_metrics(self, start_time, steps_timer):
@@ -210,12 +225,13 @@ class BuildConfig(object):
 
 
 # todo: better name? perhaps PathFlags?
-class AddFlags(object):
+class AddFlags():
     """
     Add command-line flags when our path filter matches.
     Generally used inside a :class:`~fab.build_config.FlagsConfig`.
 
     """
+    # pylint: disable=too-few-public-methods
     def __init__(self, match: str, flags: List[str]):
         """
         :param match:
@@ -254,7 +270,8 @@ class AddFlags(object):
             Contains the folders for templating `$source` and `$output`.
 
         """
-        params = {'relative': fpath.parent, 'source': config.source_root, 'output': config.build_output}
+        params = {'relative': fpath.parent, 'source': config.source_root,
+                  'output': config.build_output}
 
         # does the file path match our filter?
         if not self.match or fnmatch(str(fpath), Template(self.match).substitute(params)):
@@ -265,20 +282,22 @@ class AddFlags(object):
             input_flags += add_flags
 
 
-class FlagsConfig(object):
+class FlagsConfig():
     """
     Return command-line flags for a given path.
 
     Simply allows appending flags but may evolve to also replace and remove flags.
 
     """
-
-    def __init__(self, common_flags: Optional[List[str]] = None, path_flags: Optional[List[AddFlags]] = None):
+    # pylint: disable=too-few-public-methods
+    def __init__(self, common_flags: Optional[List[str]] = None,
+                 path_flags: Optional[List[AddFlags]] = None):
         """
         :param common_flags:
             List of flags to apply to all files. E.g `['-O2']`.
         :param path_flags:
-            List of :class:`~fab.build_config.AddFlags` objects which apply flags to selected paths.
+            List of :class:`~fab.build_config.AddFlags` objects which apply
+            flags to selected paths.
 
         """
         self.common_flags = common_flags or []
