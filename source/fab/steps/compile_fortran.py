@@ -363,7 +363,7 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
     command.append(str(analysed_file.fpath))
     command.extend(['-o', str(output_fpath)])
 
-    run_command(command, cwd=analysed_file.fpath.parent)
+    run_command(command)
 
 
 # todo: move this
