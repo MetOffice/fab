@@ -134,8 +134,6 @@ class FortranAnalyserBase(ABC):
 
         # find things in the node tree
         analysed_file = self.walk_nodes(fpath=fpath, file_hash=file_hash, node_tree=node_tree)
-
-        analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
         analysed_file.save(analysis_fpath)
 
         return analysed_file, analysis_fpath
