@@ -88,7 +88,7 @@ def pre_processor(config: BuildConfig, preprocessor: str,
     check_for_errors(results, caller_label=name)
 
     log_or_dot_finish(logger)
-    config._artefact_store[output_collection] = list(by_type(results, Path))
+    config.artefact_store[output_collection] = list(by_type(results, Path))
 
 
 def process_artefact(arg: Tuple[Path, MpCommonArgs]):
@@ -192,7 +192,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
 
     """
     source_getter = source or SuffixFilter('all_source', ['.F90', '.f90'])
-    source_files = source_getter(config._artefact_store)
+    source_files = source_getter(config.artefact_store)
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
@@ -219,6 +219,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
+    config.artefact_store
     # todo: parallel copy?
     # copy little f90s from source to output folder
     logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
@@ -257,7 +258,7 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
 
     """
     source_getter = source or DefaultCPreprocessorSource()
-    source_files = source_getter(config._artefact_store)
+    source_files = source_getter(config.artefact_store)
 
     pre_processor(
         config,
