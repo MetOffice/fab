@@ -1,6 +1,9 @@
 from pathlib import Path
 
 from fab.cli import cli_fab
+import shutil
+import os
+from unittest import mock
 
 
 class TestZeroConfig(object):
@@ -23,5 +26,19 @@ class TestZeroConfig(object):
         config = cli_fab(
             folder=Path(__file__).parent.parent / 'CFortranInterop',
             kwargs=kwargs)
+
+        assert (config.project_workspace / 'main').exists()
+
+    def test_fortran_explicit_gfortran(self, tmp_path):
+        # test the sample project in the fortran dependencies system test
+        kwargs = {'project_label': 'fortran explicit gfortran', 'fab_workspace': tmp_path, 'multiprocessing': False}
+
+        cc = shutil.which('gcc')
+        fc = shutil.which('gfortran')
+
+        with mock.patch.dict(os.environ, CC=cc, FC=fc, LD=fc):
+            config = cli_fab(
+                folder=Path(__file__).parent.parent / 'CFortranInterop',
+                kwargs=kwargs)
 
         assert (config.project_workspace / 'main').exists()

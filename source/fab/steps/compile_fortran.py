@@ -136,7 +136,7 @@ def handle_compiler_args(common_flags=None, path_flags=None):
 
     # Do we know this compiler? If so we can manage the flags a little, to avoid duplication or misconfiguration.
     # todo: This has been raised for discussion - we might never want to modify incoming flags...
-    known_compiler = COMPILERS.get(compiler)
+    known_compiler = COMPILERS.get(os.path.basename(compiler))
     if known_compiler:
         common_flags = remove_managed_flags(compiler, common_flags)
     else:
@@ -342,7 +342,7 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
 
     # tool
     command = [mp_common_args.compiler]
-    known_compiler = COMPILERS.get(mp_common_args.compiler)
+    known_compiler = COMPILERS.get(os.path.basename(mp_common_args.compiler))
 
     # Compile flag.
     # If it's an unknown compiler, we rely on the user config to specify this.
