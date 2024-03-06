@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab import FabException
-from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
+from fab.artefacts import ArtefactsGetter, ArtefactStore, CollectionConcat, SuffixFilter
 from fab.constants import BUILD_TREES
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
@@ -54,10 +54,8 @@ from fab.util import TimerLogger, by_type
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = CollectionConcat([
-    SuffixFilter('all_source', '.f90'),
-    'preprocessed_c',
-    'preprocessed_fortran',
-
+    ArtefactStore.FORTRAN_BUILD_FILES,
+    ArtefactStore.C_BUILD_FILES,
     # todo: this is lfric stuff so might be better placed elsewhere
     SuffixFilter('psyclone_output', '.f90'),
     'preprocessed_psyclone',  # todo: this is no longer a collection, remove

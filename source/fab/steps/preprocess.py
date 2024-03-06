@@ -219,7 +219,9 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
-    config.artefact_store
+    all_preprocessed_files = config.artefact_store["preprocessed_fortran"]
+    config.artefact_store.add_fortran_build_files(all_preprocessed_files)
+
     # todo: parallel copy?
     # copy little f90s from source to output folder
     logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
@@ -230,6 +232,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
                 output_path.parent.mkdir(parents=True)
             log_or_dot(logger, f'copying {f90}')
             shutil.copyfile(str(f90), str(output_path))
+            config.artefact_store.add_fortran_build_files(output_path)
 
 
 class DefaultCPreprocessorSource(ArtefactsGetter):
@@ -268,3 +271,6 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
         name='preprocess c',
         **kwargs,
     )
+
+    all_preprocessed_files = config.artefact_store["preprocessed_c"]
+    config.artefact_store.add_c_build_files(all_preprocessed_files)
