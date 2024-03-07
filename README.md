@@ -24,3 +24,9 @@ You may simply use `pip install sci-fab`.
 Although Fab is in its initial development phases right now and much of the
 functionality is yet to be added, the command line interface to the tool is 
 in place and can be run using the command `fab` 
+
+## Testing
+
+The fab test suite and documentation can be tested using tox.  Install
+the command with `pip install tox` and then run the `tox` command to
+test and lint your working copy.
