@@ -105,3 +105,10 @@ venv.bak/
 
 # Profiler stats
 .pstats
+
+# Sphinx documentation
+docs/build
+docs/source/apidoc
+
+# Psyclone test output
+tests/system_tests/psyclone/algorithm.parsable_x90
