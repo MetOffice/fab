@@ -360,10 +360,10 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
         command.extend([known_compiler.module_folder_flag, str(mp_common_args.config.build_output)])
 
     # files
-    command.append(str(analysed_file.fpath))
+    command.append(analysed_file.fpath.name)
     command.extend(['-o', str(output_fpath)])
 
-    run_command(command)
+    run_command(command, cwd=analysed_file.fpath.parent)
 
 
 # todo: move this
