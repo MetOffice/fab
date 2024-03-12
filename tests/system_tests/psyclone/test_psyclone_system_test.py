@@ -168,10 +168,10 @@ class TestPsyclone(object):
             config.prebuild_folder / 'algorithm_mod_psy.*.f90',  # prebuild
         ]
 
-        assert all(not any(glob.glob(str(f))) for f in expect_files)
+        assert all((glob.glob(str(f)) == []) for f in expect_files)
         with config:
             self.steps(config)
-        assert all(any(glob.glob(str(f))) for f in expect_files)
+        assert all((glob.glob(str(f)) != []) for f in expect_files)
 
     def test_prebuild(self, tmp_path, config):
         with config:
