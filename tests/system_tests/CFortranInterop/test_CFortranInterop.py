@@ -25,7 +25,8 @@ PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 def test_CFortranInterop(tmp_path):
 
     # build
-    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config, pytest.warns(UserWarning, match="removing managed flag"):
+    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config, \
+         pytest.warns(UserWarning, match="removing managed flag"):
 
         grab_folder(config, src=PROJECT_SOURCE),
         find_source_files(config),

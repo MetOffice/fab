@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 
+
 class TestZeroConfig(object):
 
     def test_fortran_dependencies(self, tmp_path):
@@ -39,7 +40,8 @@ class TestZeroConfig(object):
         cc = shutil.which('gcc')
         fc = shutil.which('gfortran')
 
-        with mock.patch.dict(os.environ, CC=cc, FC=fc, LD=fc), pytest.warns(DeprecationWarning, match="RootIncFiles is deprecated as .inc files are due to be removed."):
+        with mock.patch.dict(os.environ, CC=cc, FC=fc, LD=fc), \
+             pytest.warns(DeprecationWarning, match="RootIncFiles is deprecated as .inc files are due to be removed."):
             config = cli_fab(
                 folder=Path(__file__).parent.parent / 'CFortranInterop',
                 kwargs=kwargs)

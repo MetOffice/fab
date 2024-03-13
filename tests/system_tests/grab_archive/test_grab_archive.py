@@ -10,6 +10,7 @@ from fab.steps.grab.archive import grab_archive
 
 import pytest
 
+
 class TestGrabArchive(object):
 
     def test(self, tmp_path):

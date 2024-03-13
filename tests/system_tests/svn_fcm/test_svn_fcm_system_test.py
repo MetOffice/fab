@@ -110,7 +110,10 @@ class TestExport(object):
 
     # Run the test twice, once with SvnExport and once with FcmExport - depending on which tools are available.
     @pytest.mark.parametrize('export_func', export_funcs)
-    @pytest.mark.filterwarnings("ignore: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.")
+    @pytest.mark.filterwarnings("ignore: Python 3.14 will, "
+                                "by default, filter extracted tar archives "
+                                "and reject files or modify their metadata. "
+                                "Use the filter argument to control this behavior.")
     def test_export(self, file2_experiment, config, export_func):
         # Export the "file 2 experiment" branch, which has different sentence from trunk in r1 and r2
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
@@ -123,7 +126,11 @@ class TestExport(object):
             export_func(config, src=file2_experiment, dst_label='proj', revision=8)
             assert confirm_file2_experiment_r8(config)
 
-@pytest.mark.filterwarnings("ignore: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.")
+
+@pytest.mark.filterwarnings("ignore: Python 3.14 will, "
+                            "by default, filter extracted tar archives "
+                            "and reject files or modify their metadata. "
+                            "Use the filter argument to control this behavior.")
 class TestCheckout(object):
 
     @pytest.mark.parametrize('checkout_func', checkout_funcs)
@@ -147,7 +154,8 @@ class TestCheckout(object):
         else:
             assert False
 
-        with mock.patch('fab.steps.grab.svn.run_command', wraps=fab.steps.grab.svn.run_command) as wrap, pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with mock.patch('fab.steps.grab.svn.run_command', wraps=fab.steps.grab.svn.run_command) as wrap, \
+             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
 
             checkout_func(config, src=file2_experiment, dst_label='proj', revision='7')
             assert confirm_file2_experiment_r7(config)
@@ -168,10 +176,15 @@ class TestCheckout(object):
             export_func(config, src=trunk, dst_label='proj')
 
         # if we try to checkout into that folder, it should fail
-        with pytest.raises(ValueError), pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.raises(ValueError), \
+             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             checkout_func(config, src=trunk, dst_label='proj')
 
-@pytest.mark.filterwarnings("ignore: Python 3.14 will, by default, filter extracted tar archives and reject files or modify their metadata. Use the filter argument to control this behavior.")
+
+@pytest.mark.filterwarnings("ignore: Python 3.14 will, "
+                            "by default, filter extracted tar archives "
+                            "and reject files or modify their metadata. "
+                            "Use the filter argument to control this behavior.")
 class TestMerge(object):
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
@@ -202,7 +215,8 @@ class TestMerge(object):
             export_func(config, src=trunk, dst_label='proj')
 
         # try to merge into an export
-        with pytest.raises(ValueError), pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.raises(ValueError), \
+             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
@@ -212,7 +226,8 @@ class TestMerge(object):
             confirm_file1_experiment_a(config)
 
         # this branch modifies the same line of text
-        with pytest.raises(RuntimeError), pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.raises(RuntimeError), \
+             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             merge_func(config, src=file1_experiment_b, dst_label='proj')
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))

@@ -17,8 +17,10 @@ from fab.steps.preprocess import preprocess_fortran
 
 import pytest
 
+
 def build(fab_workspace, fpp_flags=None):
-    with BuildConfig(fab_workspace=fab_workspace, project_label='foo', multiprocessing=False) as config, pytest.warns(UserWarning, match="removing managed flag"):
+    with BuildConfig(fab_workspace=fab_workspace, project_label='foo', multiprocessing=False) as config, \
+         pytest.warns(UserWarning, match="removing managed flag"):
         grab_folder(config, Path(__file__).parent / 'project-source'),
         find_source_files(config),
         preprocess_fortran(config, common_flags=fpp_flags),

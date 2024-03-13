@@ -7,6 +7,7 @@ from fab.steps.archive_objects import archive_objects
 
 import pytest
 
+
 class Test_archive_objects(object):
 
     def test_for_exes(self):
@@ -16,7 +17,8 @@ class Test_archive_objects(object):
         config = BuildConfig('proj')
         config._artefact_store = {OBJECT_FILES: {target: [f'{target}.o', 'util.o'] for target in targets}}
 
-        with mock.patch('fab.steps.archive_objects.run_command') as mock_run_command, pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with mock.patch('fab.steps.archive_objects.run_command') as mock_run_command, \
+             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             archive_objects(config=config)
 
         # ensure the correct command line calls were made
@@ -37,7 +39,8 @@ class Test_archive_objects(object):
         config = BuildConfig('proj')
         config._artefact_store = {OBJECT_FILES: {None: ['util1.o', 'util2.o']}}
 
-        with mock.patch('fab.steps.archive_objects.run_command') as mock_run_command, pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with mock.patch('fab.steps.archive_objects.run_command') as mock_run_command, \
+             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             archive_objects(config=config, output_fpath=config.build_output / 'mylib.a')
 
         # ensure the correct command line calls were made
