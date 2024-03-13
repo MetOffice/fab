@@ -46,7 +46,7 @@ contains
     ! Set the new field to a constant value and compute the divergence of it
     divergence => get_div()
     s = 2.0_r_def
-    call invoke( name = "Compute divergence",  &
+    call invoke( name = "Compute_divergence",  &
                  setval_c(field_2, s        ), &
                  setval_c(field_1, 0.0_r_def), &
                  my_kernel_type(field_1, field_2, divergence) )
