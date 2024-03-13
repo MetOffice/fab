@@ -85,8 +85,7 @@ class TestGitMerge(object):
             git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_a')
             assert 'This is sentence one, with Experiment A modification.' in open(check_file).read()
 
-        with pytest.raises(RuntimeError), \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.raises(RuntimeError):
             git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_b')
 
         # The conflicted merge must have been aborted, check that we can do another checkout of master

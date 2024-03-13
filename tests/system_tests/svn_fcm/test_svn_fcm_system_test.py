@@ -176,8 +176,7 @@ class TestCheckout(object):
             export_func(config, src=trunk, dst_label='proj')
 
         # if we try to checkout into that folder, it should fail
-        with pytest.raises(ValueError), \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.raises(ValueError):
             checkout_func(config, src=trunk, dst_label='proj')
 
 
@@ -215,8 +214,7 @@ class TestMerge(object):
             export_func(config, src=trunk, dst_label='proj')
 
         # try to merge into an export
-        with pytest.raises(ValueError), \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.raises(ValueError):
             merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
@@ -226,8 +224,7 @@ class TestMerge(object):
             confirm_file1_experiment_a(config)
 
         # this branch modifies the same line of text
-        with pytest.raises(RuntimeError), \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.raises(RuntimeError):
             merge_func(config, src=file1_experiment_b, dst_label='proj')
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
