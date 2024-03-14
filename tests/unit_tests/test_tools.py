@@ -15,12 +15,14 @@ class Test_remove_managed_flags(object):
 
     def test_gfortran(self):
         flags = ['--foo', '-J', 'nope', '--bar']
-        result = remove_managed_flags('gfortran', flags)
+        with pytest.warns(UserWarning, match="removing managed flag"):
+            result = remove_managed_flags('gfortran', flags)
         assert result == ['--foo', '--bar']
 
     def test_ifort(self):
         flags = ['--foo', '-module', 'nope', '--bar']
-        result = remove_managed_flags('ifort', flags)
+        with pytest.warns(UserWarning, match="removing managed flag"):
+            result = remove_managed_flags('ifort', flags)
         assert result == ['--foo', '--bar']
 
     def test_unknown_compiler(self):

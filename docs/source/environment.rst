@@ -3,11 +3,11 @@
 Environment
 ***********
 
-Fab requires a suitible Python environment in which to run. This page outlines
+Fab requires a suitable Python environment in which to run. This page outlines
 some routes to achieving such an environment.
 
 This page contains general instructions, there are additional instructions for
-:ref:`Met Office<MetOffice>` users elsewhere.
+:ref:`Met Office<MetOfficeUsage>` users elsewhere.
 
 
 .. _Requirements:

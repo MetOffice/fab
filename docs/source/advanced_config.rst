@@ -82,18 +82,20 @@ import your grab configuration to find out where it put the source.
 
     if __name__ == '__main__':
         with BuildConfig(project_label='<project_label>') as state:
-            grab_folder(state, src=grab_config.source_root),
+            grab_folder(state, src=my_grab_config.source_root),
 
 
 Housekeeping
 ============
 
-Fab will remove old files from the prebuilds folder. It will remove all prebuild files that are not part of the current build by default.
-
-If you add a :func:`~fab.steps.cleanup_prebuilds.cleanup_prebuilds` step, you
-can keep prebuild files for longer. This may be useful, for example, if you
-often switch between two versions of your code and want to keep the prebuild
-speed benefits when building both.
+You can add a :func:`~fab.steps.cleanup_prebuilds.cleanup_prebuilds`
+step, where you can explicitly control how long to keep prebuild files.
+This may be useful, for example, if you often switch between two versions
+of your code and want to keep the prebuild speed benefits when building
+both. If you do not add your own cleanup_prebuild step, Fab will
+automatically run a default step which will remove old files from the
+prebuilds folder. It will remove all prebuild files that are not part of
+the current build by default.
 
 
 Sharing Prebuilds
