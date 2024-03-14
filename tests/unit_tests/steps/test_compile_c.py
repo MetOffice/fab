@@ -36,7 +36,8 @@ class Test_CompileC(object):
                 send_metric=DEFAULT,
                 get_compiler_version=mock.Mock(return_value='1.2.3')) as values:
             with mock.patch('pathlib.Path.mkdir'):
-                with mock.patch.dict(os.environ, {'CC': 'foo_cc', 'CFLAGS': '-Denv_flag'}):
+                with mock.patch.dict(os.environ, {'CC': 'foo_cc', 'CFLAGS': '-Denv_flag'}), \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     compile_c(
                         config=config, path_flags=[AddFlags(match='$source/*', flags=['-I', 'foo/include', '-Dhello'])])
 
