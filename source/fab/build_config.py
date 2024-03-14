@@ -109,7 +109,6 @@ class BuildConfig():
         # runtime
         self._artefact_store: ArtefactStore = ArtefactStore()
 
-        # Declare this attribute here to make pylint happy
         self._build_timer = None
         self._start_time = None
 
@@ -279,7 +278,6 @@ class FlagsConfig():
     Simply allows appending flags but may evolve to also replace and remove flags.
 
     """
-    # pylint: disable=too-few-public-methods
     def __init__(self, common_flags: Optional[List[str]] = None, path_flags: Optional[List[AddFlags]] = None):
         """
         :param common_flags:
