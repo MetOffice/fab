@@ -5,7 +5,6 @@
 # ##############################################################################
 import filecmp
 import shutil
-import glob
 from os import unlink
 from pathlib import Path
 from unittest import mock
@@ -168,10 +167,12 @@ class TestPsyclone(object):
             config.prebuild_folder / 'algorithm_mod_psy.*.f90',  # prebuild
         ]
 
-        assert all((glob.glob(str(f)) == []) for f in expect_files)
+        # Glob returns a generator, which can't simply be tested if it's empty.
+        # So use a list instead:
+        assert all(list(f.parent.glob(f.name)) == [] for f in expect_files)
         with config:
             self.steps(config)
-        assert all((glob.glob(str(f)) != []) for f in expect_files)
+        assert all(list(f.parent.glob(f.name)) != [] for f in expect_files)
 
     def test_prebuild(self, tmp_path, config):
         with config:
