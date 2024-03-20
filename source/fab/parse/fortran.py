@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 from typing import Union, Optional, Iterable, Dict, Any, Set
 
+from fparser.common.readfortran import FortranStringReader
 from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
@@ -284,7 +285,8 @@ class FortranAnalyser(FortranAnalyserBase):
         # TODO: error handling in case we catch a genuine comment
         # TODO: separate this project-specific code from the generic f analyser?
         depends_str = "DEPENDS ON:"
-        if depends_str in obj.items[0]:
+        comment = obj.items[0].strip()
+        if depends_str in comment:
             self.depends_on_comment_found = True
             dep = obj.items[0].split(depends_str)[-1].strip()
             # with .o means a c file
@@ -293,6 +295,26 @@ class FortranAnalyser(FortranAnalyserBase):
             # without .o means a fortran symbol
             else:
                 analysed_file.add_symbol_dep(dep)
+        if comment[:2] == "!$":
+            # Check if it is a use statement with an OpenMP sentinel:
+            # Use fparser's string reader to discard potential comments
+            reader = FortranStringReader(comment[2:])
+            line = reader.next()
+            try:
+                # match returns a 5-tuple, the third one being the module name
+                module_name = Use_Stmt.match(line.strline)[2]
+                module_name = module_name.string
+            except Exception:
+                # Not a use statement in a sentinel, ignore:
+                return
+
+            # Register the module name
+            if module_name in self.ignore_mod_deps:
+                logger.debug(f"ignoring use of {module_name}")
+                return
+            if module_name.lower() not in self._intrinsic_modules:
+                # found a dependency on fortran
+                analysed_file.add_module_dep(module_name)
 
     def _process_subroutine_or_function(self, analysed_file, fpath, obj):
         # binding?
