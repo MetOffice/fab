@@ -288,7 +288,7 @@ class FortranAnalyser(FortranAnalyserBase):
         comment = obj.items[0].strip()
         if depends_str in comment:
             self.depends_on_comment_found = True
-            dep = obj.items[0].split(depends_str)[-1].strip()
+            dep = comment.split(depends_str)[-1].strip()
             # with .o means a c file
             if dep.endswith(".o"):
                 analysed_file.mo_commented_file_deps.add(dep.replace(".o", ".c"))
