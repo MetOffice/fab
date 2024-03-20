@@ -31,11 +31,11 @@ def module_fpath():
 def module_expected(module_fpath):
     return AnalysedFortran(
         fpath=module_fpath,
-        file_hash=4039845747,
+        file_hash=1344519263,
         module_defs={'foo_mod'},
         symbol_defs={'external_sub', 'external_func', 'foo_mod'},
-        module_deps={'bar_mod'},
-        symbol_deps={'monty_func', 'bar_mod'},
+        module_deps={'bar_mod', 'compute_chunk_size_mod'},
+        symbol_deps={'monty_func', 'bar_mod', 'compute_chunk_size_mod'},
         file_deps=set(),
         mo_commented_file_deps={'some_file.c'},
     )
@@ -72,10 +72,10 @@ class Test_Analyser(object):
                 analysis, artefact = fortran_analyser.run(fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)
-            module_expected._file_hash = 768896775
+            module_expected._file_hash = 731743441
             module_expected.program_defs = {'foo_mod'}
             module_expected.module_defs = set()
-            module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
+            module_expected.symbol_defs.update({'internal_sub', 'openmp_sentinel', 'internal_func'})
 
             assert analysis == module_expected
             assert artefact == fortran_analyser._config.prebuild_folder \
