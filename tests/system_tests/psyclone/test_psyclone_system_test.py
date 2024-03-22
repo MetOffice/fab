@@ -177,7 +177,7 @@ class TestPsyclone(object):
             self.steps(config)
         assert all(list(config.prebuild_folder.glob(f)) != [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) != [] for f in expect_build_files)
-      
+
     def test_prebuild(self, tmp_path, config):
         with config:
             self.steps(config)
