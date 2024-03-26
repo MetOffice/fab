@@ -92,7 +92,9 @@ You can add a :func:`~fab.steps.cleanup_prebuilds.cleanup_prebuilds`
 step, where you can explicitly control how long to keep prebuild files.
 This may be useful, for example, if you often switch between two versions
 of your code and want to keep the prebuild speed benefits when building
-both. If you do not add your own cleanup_prebuild step, Fab will
+both.
+
+If you do not add your own cleanup_prebuild step, Fab will
 automatically run a default step which will remove old files from the
 prebuilds folder. It will remove all prebuild files that are not part of
 the current build by default.
