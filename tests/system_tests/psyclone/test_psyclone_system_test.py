@@ -5,7 +5,6 @@
 # ##############################################################################
 import filecmp
 import shutil
-import glob
 from os import unlink
 from pathlib import Path
 from unittest import mock
