@@ -5,7 +5,6 @@
 # ##############################################################################
 import filecmp
 import shutil
-import glob
 from os import unlink
 from pathlib import Path
 from unittest import mock
@@ -155,23 +154,29 @@ class TestPsyclone(object):
         # if these files exist after the run then we know:
         #   a) the expected files were created
         #   b) the prebuilds were protected from automatic cleanup
-        expect_files = [
-            # there should be an f90 and a _psy.f90 built from the x90
-            config.build_output / 'algorithm/algorithm_mod.f90',
-            config.build_output / 'algorithm/algorithm_mod_psy.f90',
-
+        expect_prebuild_files = [
             # Expect these prebuild files
             # The kernel hash differs between fpp and cpp, so just use wildcards.
-            config.prebuild_folder / 'algorithm_mod.*.an',  # x90 analysis result
-            config.prebuild_folder / 'my_kernel_mod.*.an',  # kernel analysis results
-            config.prebuild_folder / 'algorithm_mod.*.f90',  # prebuild
-            config.prebuild_folder / 'algorithm_mod_psy.*.f90',  # prebuild
+            'algorithm_mod.*.an',  # x90 analysis result
+            'my_kernel_mod.*.an',  # kernel analysis results
+            'algorithm_mod.*.f90',  # prebuild
+            'algorithm_mod_psy.*.f90',  # prebuild
         ]
 
-        assert all((glob.glob(str(f)) == []) for f in expect_files)
+        expect_build_files = [
+            # there should be an f90 and a _psy.f90 built from the x90
+            'algorithm/algorithm_mod.f90',
+            'algorithm/algorithm_mod_psy.f90',
+        ]
+
+        # Glob returns a generator, which can't simply be tested if it's empty.
+        # So use a list instead:
+        assert all(list(config.prebuild_folder.glob(f)) == [] for f in expect_prebuild_files)
+        assert all(list(config.build_output.glob(f)) == [] for f in expect_build_files)
         with config, pytest.warns(UserWarning, match="no transformation script specified"):
             self.steps(config)
-        assert all((glob.glob(str(f)) != []) for f in expect_files)
+        assert all(list(config.prebuild_folder.glob(f)) != [] for f in expect_prebuild_files)
+        assert all(list(config.build_output.glob(f)) != [] for f in expect_build_files)
 
     def test_prebuild(self, tmp_path, config):
         with config, pytest.warns(UserWarning, match="no transformation script specified"):
