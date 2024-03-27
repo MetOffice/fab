@@ -236,14 +236,14 @@ However preprocessing C currently requires a preceding step called the
 into the C code so Fab is able to deduce which inclusions are user code and
 which are system code. This allows system dependencies to be ignored.
 
-See also :ref:`Advanced C Code<Advanced C Code>`
+See also :ref:`Advanced C Code<C Pragma Injector>`
 
 
 Further Reading
 ===============
 
 More advanced configuration topics are discussed in
-:ref:`Advanced Configuration`.
+:ref:`Advanced Config`.
 
 You can see more complicated configurations in the
 `developer testing directory <https://github.com/metomi/fab/tree/master/run_configs>`_.
