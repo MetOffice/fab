@@ -18,16 +18,18 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Dict, Any, Iterable
+from typing import List, Optional, Iterable
 
+from fab.artefacts import ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
+from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
 
 
-class BuildConfig(object):
+class BuildConfig():
     """
     Contains and runs a list of build steps.
 
@@ -105,9 +107,10 @@ class BuildConfig(object):
 
         # todo: should probably pull the artefact store out of the config
         # runtime
-        # todo: either make this public, add get/setters, or extract into a class.
-        self._artefact_store: Dict[str, Any] = {}
-        self.init_artefact_store()  # note: the artefact store is reset with every call to run()
+        self._artefact_store: ArtefactStore = ArtefactStore()
+
+        self._build_timer = None
+        self._start_time = None
 
     def __enter__(self):
 
@@ -130,8 +133,7 @@ class BuildConfig(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
 
         if not exc_type:  # None if there's no error.
-            from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
-            if CLEANUP_COUNT not in self._artefact_store:
+            if CLEANUP_COUNT not in self.artefact_store:
                 logger.info("no housekeeping step was run, using a default hard cleanup")
                 cleanup_prebuilds(config=self, all_unused=True)
 
@@ -142,19 +144,23 @@ class BuildConfig(object):
         self._finalise_logging()
 
     @property
-    def build_output(self):
-        return self.project_workspace / BUILD_OUTPUT
+    def artefact_store(self) -> ArtefactStore:
+        ''':returns: the Artefact instance for this configuration.
+        '''
+        return self._artefact_store
 
-    def init_artefact_store(self):
-        # there's no point writing to this from a child process of Step.run_mp() because you'll be modifying a copy.
-        self._artefact_store = {CURRENT_PREBUILDS: set()}
+    @property
+    def build_output(self) -> Path:
+        ''':returns: the build output path.
+        '''
+        return self.project_workspace / BUILD_OUTPUT
 
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """
         Mark the given file paths as being current prebuilds, not to be cleaned during housekeeping.
 
         """
-        self._artefact_store[CURRENT_PREBUILDS].update(artefacts)
+        self.artefact_store[CURRENT_PREBUILDS].update(artefacts)
 
     def _run_prep(self):
         self._init_logging()
@@ -168,7 +174,7 @@ class BuildConfig(object):
         init_metrics(metrics_folder=self.metrics_folder)
 
         # note: initialising here gives a new set of artefacts each run
-        self.init_artefact_store()
+        self.artefact_store.reset()
 
     def _prep_folders(self):
         self.source_root.mkdir(parents=True, exist_ok=True)
@@ -210,7 +216,7 @@ class BuildConfig(object):
 
 
 # todo: better name? perhaps PathFlags?
-class AddFlags(object):
+class AddFlags():
     """
     Add command-line flags when our path filter matches.
     Generally used inside a :class:`~fab.build_config.FlagsConfig`.
@@ -265,14 +271,13 @@ class AddFlags(object):
             input_flags += add_flags
 
 
-class FlagsConfig(object):
+class FlagsConfig():
     """
     Return command-line flags for a given path.
 
     Simply allows appending flags but may evolve to also replace and remove flags.
 
     """
-
     def __init__(self, common_flags: Optional[List[str]] = None, path_flags: Optional[List[AddFlags]] = None):
         """
         :param common_flags:

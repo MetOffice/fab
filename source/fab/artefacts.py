@@ -15,7 +15,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Iterable, Union, Dict, List
 
-from fab.constants import BUILD_TREES
+from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
 
@@ -32,7 +32,6 @@ class ArtefactsGetter(ABC):
             The artefact store from which to retrieve.
 
         """
-        pass
 
 
 class CollectionGetter(ArtefactsGetter):
@@ -158,3 +157,18 @@ class FilterBuildTrees(ArtefactsGetter):
             build_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
 
         return build_lists
+
+
+class ArtefactStore(dict):
+    '''This object stores artefacts (which can be of any type). Each artefact
+    is indexed by a string.
+    '''
+    def __init__(self):
+        super().__init__()
+        self.reset()
+
+    def reset(self):
+        '''Clears the artefact store (but does not delete any files).
+        '''
+        self.clear()
+        self[CURRENT_PREBUILDS] = set()

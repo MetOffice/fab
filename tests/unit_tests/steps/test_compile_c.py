@@ -14,7 +14,6 @@ from fab.steps.compile_c import _get_obj_combo_hash, compile_c
 @pytest.fixture
 def content(tmp_path):
     config = BuildConfig('proj', multiprocessing=False, fab_workspace=tmp_path)
-    config.init_artefact_store()
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
     config._artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
