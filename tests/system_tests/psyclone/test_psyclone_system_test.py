@@ -173,20 +173,20 @@ class TestPsyclone(object):
         # So use a list instead:
         assert all(list(config.prebuild_folder.glob(f)) == [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) == [] for f in expect_build_files)
-        with config:
+        with config, pytest.warns(UserWarning, match="no transformation script specified"):
             self.steps(config)
         assert all(list(config.prebuild_folder.glob(f)) != [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) != [] for f in expect_build_files)
 
     def test_prebuild(self, tmp_path, config):
-        with config:
+        with config, pytest.warns(UserWarning, match="no transformation script specified"):
             self.steps(config)
 
         # make sure no work gets done the second time round
         with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk:
             with mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk:
                 with mock.patch('fab.steps.psyclone.run_psyclone') as mock_run:
-                    with config:
+                    with config, pytest.warns(UserWarning, match="no transformation script specified"):
                         self.steps(config)
 
         mock_x90_walk.assert_not_called()
