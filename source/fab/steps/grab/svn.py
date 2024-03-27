@@ -12,7 +12,8 @@ from fab.steps import step
 from fab.tools import run_command
 
 
-def split_repo_url(url: str, revision: str = None) -> Tuple[str, Optional[str]]:
+def split_repo_url(url: str,
+                   revision: Optional[str] = None) -> Tuple[str, Optional[str]]:
     """
     Separates revision from a repository URL.
 
