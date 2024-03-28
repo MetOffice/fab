@@ -182,7 +182,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', return_value=False):  # no output files exist
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         # check we got the expected compilation result
@@ -210,7 +211,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', return_value=True):  # mod def files and obj file all exist
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -238,7 +240,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -262,7 +265,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -290,7 +294,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -317,7 +322,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -344,7 +350,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -367,7 +374,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[False, True, True]):  # one mod file missing
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -390,7 +398,8 @@ class Test_process_file(object):
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # object file missing
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
-                with mock.patch('shutil.copy2') as mock_copy:
+                with mock.patch('shutil.copy2') as mock_copy, \
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
@@ -426,14 +435,16 @@ class Test_constructor(object):
 
     def test_gfortran_managed_flags(self):
         with mock.patch.dict(os.environ, FC='gfortran -c', FFLAGS='-J /mods'):
-            with mock.patch('fab.steps.compile_fortran.get_compiler_version'):
+            with mock.patch('fab.steps.compile_fortran.get_compiler_version'), \
+                 pytest.warns(UserWarning, match="removing managed flag"):
                 compiler, compiler_version, flags = handle_compiler_args()
         assert compiler == 'gfortran'
         assert flags.common_flags == []
 
     def test_ifort_managed_flags(self):
         with mock.patch.dict(os.environ, FC='ifort -c', FFLAGS='-module /mods'):
-            with mock.patch('fab.steps.compile_fortran.get_compiler_version'):
+            with mock.patch('fab.steps.compile_fortran.get_compiler_version'), \
+                 pytest.warns(UserWarning, match="removing managed flag"):
                 compiler, compiler_version, flags = handle_compiler_args()
         assert compiler == 'ifort'
         assert flags.common_flags == []

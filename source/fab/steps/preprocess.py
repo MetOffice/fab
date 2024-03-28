@@ -219,6 +219,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
+    # Add all pre-processed files to the set of files to compile
     all_preprocessed_files = config.artefact_store["preprocessed_fortran"]
     config.artefact_store.add_fortran_build_files(all_preprocessed_files)
 

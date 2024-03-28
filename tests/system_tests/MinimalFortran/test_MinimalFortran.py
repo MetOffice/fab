@@ -15,13 +15,16 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 
+import pytest
+
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
 
 def test_MinimalFortran(tmp_path):
 
     # build
-    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config:
+    with BuildConfig(fab_workspace=tmp_path, project_label='foo', multiprocessing=False) as config, \
+         pytest.warns(UserWarning, match="removing managed flag"):
         grab_folder(config, PROJECT_SOURCE),
         find_source_files(config),
         preprocess_fortran(config),
