@@ -33,11 +33,11 @@ def test_FortranDependencies(tmp_path):
         compile_fortran(config, common_flags=['-c']),
         link_exe(config, linker='gcc', flags=['-lgfortran']),
 
-    assert len(config._artefact_store[EXECUTABLES]) == 2
+    assert len(config.artefact_store[EXECUTABLES]) == 2
 
     # run both exes
     output = set()
-    for exe in config._artefact_store[EXECUTABLES]:
+    for exe in config.artefact_store[EXECUTABLES]:
         res = subprocess.run(str(exe), capture_output=True)
         output.add(res.stdout.decode())
 
