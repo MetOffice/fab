@@ -4,10 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from sys import version_info as sys_version_info
 from textwrap import dedent
-
-import pytest
 
 from fab.steps.c_pragma_injector import inject_pragmas
 
@@ -20,9 +17,9 @@ class TestInjectPragmas(object):
             dedent(
                 """
                 // hi there, ignore me
-                
+
                 #include <foo>
-                
+
                 #include "bar.h"
                 """
             )
@@ -33,11 +30,11 @@ class TestInjectPragmas(object):
 
         assert output == dedent("""
             // hi there, ignore me
-            
+
             #pragma FAB SysIncludeStart
             #include <foo>
             #pragma FAB SysIncludeEnd
-            
+
             #pragma FAB UsrIncludeStart
             #include "bar.h"
             #pragma FAB UsrIncludeEnd
