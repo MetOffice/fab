@@ -6,11 +6,10 @@
 from pathlib import Path
 from subprocess import Popen, run
 import time
-from typing import List, Tuple
+from typing import Tuple
 
 from pytest import fixture, mark, raises
 
-from fab import FabException
 from fab.build_config import BuildConfig
 from fab.steps.grab.svn import split_repo_url, svn_export
 
