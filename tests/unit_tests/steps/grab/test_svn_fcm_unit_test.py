@@ -88,7 +88,7 @@ class TestSubversion:
         config = BuildConfig('bar', fab_workspace=tmp_path)
         for retry in range(3, 0, -1):
             try:
-                svn_export(config, 'svn://localhost/trunk')
+                svn_export(config, 'svn://127.0.0.1/trunk')
             except FabException as ex:
                 if range == 0:
                     raise ex
