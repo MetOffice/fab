@@ -2,18 +2,16 @@
 Test CAnalyser.
 
 """
+from pathlib import Path
+from typing import List, Tuple
+from unittest import mock
+from unittest.mock import Mock
+
+from fab.build_config import BuildConfig
+from fab.parse.c import CAnalyser, AnalysedC
+
 from pytest import importorskip
-importorskip("clang")
-
-from pathlib import Path  # noqa: E402
-from typing import List, Tuple  # noqa: E402
-from unittest import mock  # noqa: E402
-from unittest.mock import Mock  # noqa: E402
-
-import clang  # noqa: E402  # type: ignore
-
-from fab.build_config import BuildConfig  # noqa: E402
-from fab.parse.c import CAnalyser, AnalysedC  # noqa: E402
+clang = importorskip("clang")
 
 
 def test_simple_result(tmp_path):
