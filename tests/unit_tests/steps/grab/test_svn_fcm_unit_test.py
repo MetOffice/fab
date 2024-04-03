@@ -70,36 +70,32 @@ class TestSubversion:
         file_tree_compare(workspace.tree_path, source_path)
         assert not (source_path / '.svn').exists()
 
-    def test_extract_from_svn(self, workspace, tmp_path: Path) -> None:
+    @fixture(scope='class')
+    def server(self, workspace):
+        command = ['svnserve', '-r', str(workspace.repo_path), '-X']
+        process = Popen(command)
+        #
+        # It seems there can be a delay between the server starting and the
+        # listen socket opening. Thus we have a sleep.
+        #
+        # Todo: Is there a better solution such that we know for certain when
+        # the socket is open?
+        #
+        time.sleep(3.0)
+        yield workspace
+        process.wait(timeout=1)
+        assert process.returncode == 0
+
+    def test_extract_from_svn(self, server, tmp_path: Path) -> None:
         """
         Checks that a source tree can be extracted from a Subversion
         repository accessed through its own protocol.
         """
-        command: List[str] = ['svnserve', '-r', str(workspace.repo_path), '-X']
-        process = Popen(command)
-        #
-        # It seems there can be a delay between the server starting and the
-        # listen socket opening. Thus we have a number of retries.
-        #
-        # TODO: Is there a better solution such that we don't try to connect
-        #       until the socket is open?
-        #
         source_path = tmp_path / 'bar' / 'source'
         config = BuildConfig('bar', fab_workspace=tmp_path)
-        for retry in range(3, 0, -1):
-            try:
-                svn_export(config, 'svn://127.0.0.1/trunk')
-            except FabException as ex:
-                if range == 0:
-                    raise ex
-                time.sleep(1.0)
-            else:
-                break
-        file_tree_compare(workspace.tree_path, source_path)
+        svn_export(config, 'svn://127.0.0.1/trunk')
+        file_tree_compare(server.tree_path, source_path)
         assert not (source_path / '.svn').exists()
-
-        process.wait(timeout=1)
-        assert process.returncode == 0
 
     @mark.skip(reason="Too hard to test at the moment.")
     def test_extract_from_http(self, repo: Tuple[Path, Path], tmp_path: Path):
