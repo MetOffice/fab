@@ -23,7 +23,10 @@ c-language = ['python-clang']
 plots = ['matplotlib']
 tests = ['pytest', 'pytest-cov', 'pytest-mock']
 checks = ['flake8', 'mypy']
-docs = ['sphinx', 'pydata-sphinx-theme>=0.15.2', 'sphinx-autodoc-typehints', 'sphinx-copybutton']
+docs = ['sphinx',
+        'pydata-sphinx-theme>=0.13.3',
+        'sphinx-autodoc-typehints',
+        'sphinx-copybutton']
 dev = ['sci-fab[plots, tests, checks, docs]']
 
 [project.scripts]
