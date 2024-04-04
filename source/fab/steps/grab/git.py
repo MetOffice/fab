@@ -13,7 +13,7 @@ from fab.steps import step
 from fab.tools import run_command
 
 
-def __current_commit(folder=None):
+def current_commit(folder=None):
     folder = folder or '.'
     output = run_command(['git', 'log', '--oneline', '-n', '1'], cwd=folder)
     commit = output.split()[0]
