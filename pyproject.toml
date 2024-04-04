@@ -22,7 +22,7 @@ classifiers = [
 c-language = ['python-clang']
 plots = ['matplotlib']
 tests = ['pytest', 'pytest-cov', 'pytest-mock']
-checks = ['flake8', 'mypy']
+checks = ['flake8>=7.0.0', 'mypy']
 docs = ['sphinx',
         'pydata-sphinx-theme>=0.13.3',
         'sphinx-autodoc-typehints',
