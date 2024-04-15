@@ -7,7 +7,7 @@
 '''This file contains the ToolRepository class.
 '''
 
-from fab.newtools import Categories, Gcc, Gfortran, Icc, Ifort
+from fab.newtools import Categories, Cpp, Fpp, Gcc, Gfortran, Icc, Ifort
 
 
 class ToolRepository(dict):
@@ -36,6 +36,7 @@ class ToolRepository(dict):
         # The first entry is the default
         self[Categories.C_COMPILER] = [Gcc(), Icc()]
         self[Categories.FORTRAN_COMPILER] = [Gfortran(), Ifort()]
+        self[Categories.FORTRAN_PREPROCESSOR] = [Fpp(), Cpp()]
 
     def get_tool(self, category: Categories, name: str):
         '''Returns the tool with a given name in the specified category.

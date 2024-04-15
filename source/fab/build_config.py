@@ -35,8 +35,12 @@ class BuildConfig(object):
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str, multiprocessing: bool = True, n_procs: Optional[int] = None,
-                 reuse_artefacts: bool = False, fab_workspace: Optional[Path] = None, two_stage=False, verbose=False):
+    def __init__(self, project_label: str,
+                 tool_box: ToolBox,
+                 multiprocessing: bool = True, n_procs: Optional[int] = None,
+                 reuse_artefacts: bool = False,
+                 fab_workspace: Optional[Path] = None, two_stage=False,
+                 verbose=False):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
@@ -61,6 +65,7 @@ class BuildConfig(object):
             DEBUG level logging.
 
         """
+        self._tool_box = tool_box
         self.two_stage = two_stage
         self.verbose = verbose
         from fab.steps.compile_fortran import get_fortran_compiler

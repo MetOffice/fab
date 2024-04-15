@@ -18,6 +18,10 @@ class ToolBox:
     def __init__(self):
         self._all_tools = {}
 
+    def __getitem__(self, category: Categories):
+        '''A convenience function for get_tool.'''
+        return self.get_tool(category)
+
     def add_tool(self, tool: Tool):
         '''Adds a tool for a given category.
 
@@ -39,6 +43,6 @@ class ToolBox:
             return self._all_tools[category]
 
         # No tool was specified for this category, get the default tool
-        # from the ToolRepository
+        # from the ToolRepository:
         tr = ToolRepository.get()
         return tr.get_default(category)
