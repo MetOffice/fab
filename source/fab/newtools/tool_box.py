@@ -7,7 +7,7 @@
 '''This file contains the ToolBox class.
 '''
 
-from fab.newtools import Tool, ToolRepository
+from fab.newtools import Categories, Tool, ToolRepository
 
 
 class ToolBox:
@@ -18,7 +18,7 @@ class ToolBox:
     def __init__(self):
         self._all_tools = {}
 
-    def add_tool(self, category: str, tool: Tool):
+    def add_tool(self, category: Categories, tool: Tool):
         '''Adds a tool for a given category.
 
         :param category: the category for which to add a tool
@@ -26,7 +26,7 @@ class ToolBox:
         '''
         self._all_tools[category] = tool
 
-    def get_tool(self, category: str):
+    def get_tool(self, category: Categories):
         '''Returns the tool for the specified category.
 
         :param category: the name of the category in which to look

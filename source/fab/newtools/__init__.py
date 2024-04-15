@@ -7,6 +7,7 @@
 '''A simple init file to make it shorter to import tools.
 '''
 
+from fab.newtools.categories import Categories
 from fab.newtools.compiler import Compiler, Gcc, Gfortran, Icc, Ifort
 from fab.newtools.flags import Flags
 from fab.newtools.tool import Tool

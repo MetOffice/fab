@@ -7,16 +7,13 @@
 '''This file contains the ToolRepository class.
 '''
 
-from fab.newtools import Gcc, Gfortran, Icc, Ifort
+from fab.newtools import Categories, Gcc, Gfortran, Icc, Ifort
 
 
 class ToolRepository(dict):
     '''This class implements the tool repository. It stores a list of
     tools for various categories.
     '''
-
-    C_COMPILER = "c-compiler"
-    FORTRAN_COMPILER = "fortran-compiler"
 
     _singleton = None
 
@@ -37,10 +34,10 @@ class ToolRepository(dict):
                                "the singleton instance.")
         super().__init__()
         # The first entry is the default
-        self[self.C_COMPILER] = [Gcc(), Icc()]
-        self[self.FORTRAN_COMPILER] = [Gfortran(), Ifort()]
+        self[Categories.C_COMPILER] = [Gcc(), Icc()]
+        self[Categories.FORTRAN_COMPILER] = [Gfortran(), Ifort()]
 
-    def get_tool(self, category: str, name: str):
+    def get_tool(self, category: Categories, name: str):
         '''Returns the tool with a given name in the specified category.
 
         :param category: the name of the category in which to look
@@ -62,7 +59,7 @@ class ToolRepository(dict):
         raise KeyError(f"Unknown tool '{name}' in category '{category}' "
                        f"in ToolRepository.")
 
-    def get_default(self, category: str):
+    def get_default(self, category: Categories):
         '''Returns the default tool for a given category, which is just
         the first tool in the category.
 
@@ -70,7 +67,8 @@ class ToolRepository(dict):
 
         :raises KeyError: if the category does not exist.
         '''
-        if category not in self:
-            raise KeyError(f"Unknown category '{category}' in "
-                           f"ToolRepository.get_default.")
+
+        if not isinstance(category, Categories):
+            raise RuntimeError(f"Invalid category type "
+                               f"'{type(category).__name__}'.")
         return self[category][0]
