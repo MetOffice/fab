@@ -18,7 +18,23 @@ class ToolRepository(dict):
     C_COMPILER = "c-compiler"
     FORTRAN_COMPILER = "fortran-compiler"
 
+    _singleton = None
+
+    @staticmethod
+    def get():
+        '''Singleton access. Changes the value of _singleton so that the
+        constructor can verify that it is indeed called from here.
+        '''
+        if ToolRepository._singleton is None:
+            ToolRepository._singleton = "FROM_GET"
+            ToolRepository._singleton = ToolRepository()
+        return ToolRepository._singleton
+
     def __init__(self):
+        # Check if the constuctor is called from 'get':
+        if ToolRepository._singleton != "FROM_GET":
+            raise RuntimeError("You must use 'ToolRepository.get()' to get "
+                               "the singleton instance.")
         super().__init__()
         # The first entry is the default
         self[self.C_COMPILER] = [Gcc(), Icc()]
