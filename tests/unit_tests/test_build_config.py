@@ -3,9 +3,11 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT
+from fab.newtools import ToolBox
 
 
 class TestBuildConfig(object):
@@ -24,7 +26,7 @@ class TestBuildConfig(object):
 
     def test_add_cleanup(self):
         # ensure the cleanup step is added
-        with BuildConfig('proj') as config:
+        with BuildConfig('proj', ToolBox()) as config:
             assert CLEANUP_COUNT not in config._artefact_store
             pass
         assert CLEANUP_COUNT in config._artefact_store

@@ -22,6 +22,7 @@ from typing import List, Optional, Dict, Any, Iterable
 
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
+from fab.newtools import Categories, ToolBox
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)
@@ -45,9 +46,7 @@ class BuildConfig(object):
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
-        :param parsed_args:
-            If you want to add arguments to your script, please use common_arg_parser() and add arguments.
-            This pararmeter is the result of running :func:`ArgumentParser.parse_args`.
+        :param tool_box: The ToolBox with all tools to use in the build.
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
@@ -68,10 +67,9 @@ class BuildConfig(object):
         self._tool_box = tool_box
         self.two_stage = two_stage
         self.verbose = verbose
-        from fab.steps.compile_fortran import get_fortran_compiler
-        compiler, _ = get_fortran_compiler()
+        compiler = tool_box[Categories.FORTRAN_COMPILER]
         project_label = Template(project_label).safe_substitute(
-            compiler=compiler,
+            compiler=compiler.name,
             two_stage=f'{int(two_stage)+1}stage')
 
         self.project_label: str = project_label.replace(' ', '_')

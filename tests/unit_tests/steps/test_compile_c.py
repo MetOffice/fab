@@ -9,11 +9,13 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
+from fab.newtools import ToolBox
 
 
 @pytest.fixture
 def content(tmp_path):
-    config = BuildConfig('proj', multiprocessing=False, fab_workspace=tmp_path)
+    config = BuildConfig('proj', ToolBox(), multiprocessing=False,
+                         fab_workspace=tmp_path)
     config.init_artefact_store()
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)

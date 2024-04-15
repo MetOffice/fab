@@ -15,6 +15,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
+from fab.newtools import ToolBox
 from fab.util import file_walk, get_prebuild_file_groups
 
 PROJECT_LABEL = 'tiny_project'
@@ -36,10 +37,14 @@ class TestIncremental(object):
     def config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
         logging.getLogger('fab').setLevel(logging.WARNING)
 
-        with BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False) as grab_config:
+        with BuildConfig(project_label=PROJECT_LABEL,
+                         tool_box=ToolBox(), fab_workspace=tmp_path,
+                         multiprocessing=False) as grab_config:
             grab_folder(grab_config, Path(__file__).parent / 'project-source', dst_label='src')
 
-        build_config = BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False)
+        build_config = BuildConfig(project_label=PROJECT_LABEL,
+                                   tool_box=ToolBox(), fab_workspace=tmp_path,
+                                   multiprocessing=False)
 
         return build_config
 
@@ -238,7 +243,9 @@ class TestCleanupPrebuilds(object):
     @pytest.mark.parametrize("kwargs,expect", in_out)
     def test_clean(self, tmp_path, kwargs, expect):
 
-        with BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False) as config:
+        with BuildConfig(project_label=PROJECT_LABEL,
+                         tool_box=ToolBox(),
+                         fab_workspace=tmp_path, multiprocessing=False) as config:
             remaining = self._prune(config, kwargs=kwargs)
 
         assert sorted(remaining) == expect
@@ -246,7 +253,9 @@ class TestCleanupPrebuilds(object):
     def test_prune_unused(self, tmp_path):
         # pruning everything not current
 
-        with BuildConfig(project_label=PROJECT_LABEL, fab_workspace=tmp_path, multiprocessing=False) as config:
+        with BuildConfig(project_label=PROJECT_LABEL,
+                         tool_box=ToolBox(), fab_workspace=tmp_path,
+                         multiprocessing=False) as config:
             config._artefact_store = {CURRENT_PREBUILDS: {
                 tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.123.foo',
                 tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.456.foo',

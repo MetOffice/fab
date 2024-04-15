@@ -18,6 +18,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import _analysis_for_prebuilds, make_parsable_x90, preprocess_x90, psyclone, tool_available
+from fab.newtools import ToolBox
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
@@ -46,7 +47,7 @@ def test_make_parsable_x90(tmp_path):
     parsable_x90_path = make_parsable_x90(input_x90_path)
 
     x90_analyser = X90Analyser()
-    with BuildConfig('proj', fab_workspace=tmp_path) as config:
+    with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
         x90_analyser._config = config  # todo: code smell
         x90_analyser.run(parsable_x90_path)
 
@@ -70,7 +71,7 @@ class TestX90Analyser(object):
     def run(self, tmp_path):
         parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
-        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+        with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
             x90_analyser._config = config
             analysed_x90, _ = x90_analyser.run(parsable_x90_path)  # type: ignore
             # don't delete the prebuild
@@ -96,7 +97,7 @@ class Test_analysis_for_prebuilds(object):
 
     def test_analyse(self, tmp_path):
 
-        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+        with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
             transformation_script_hash, analysed_x90, all_kernel_hashes = \
                 _analysis_for_prebuilds(config,
                                         x90s=[SAMPLE_X90],
@@ -131,7 +132,8 @@ class TestPsyclone(object):
     """
     @pytest.fixture
     def config(self, tmp_path):
-        config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False)
+        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path,
+                             multiprocessing=False)
         return config
 
     def steps(self, config):

@@ -20,8 +20,9 @@ from fab.steps.compile_fortran import compile_fortran, get_fortran_compiler
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
-from fab.util import common_arg_parser
+from fab.newtools import ToolBox
 from fab.tools import get_tool
+from fab.util import common_arg_parser
 
 
 def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
@@ -32,7 +33,8 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     # Within the fab workspace, we'll create a project workspace.
     # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
     linker, linker_flags = calc_linker_flags()
-    with BuildConfig(project_label=project_label, **kwargs) as config:
+    with BuildConfig(project_label=project_label,
+                     tool_box=ToolBox(), **kwargs) as config:
         grab_folder(config, folder),
         find_source_files(config),
 

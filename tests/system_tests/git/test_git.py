@@ -24,11 +24,12 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.steps.grab.git import current_commit, git_checkout, git_merge
+from fab.newtools import ToolBox
 
 
 @pytest.fixture
 def config(tmp_path):
-    return BuildConfig('proj', fab_workspace=tmp_path)
+    return BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
 
 
 class TestGitCheckout(object):

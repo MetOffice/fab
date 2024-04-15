@@ -4,6 +4,7 @@ from unittest.mock import call
 from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps.archive_objects import archive_objects
+from fab.newtools import ToolBox
 
 import pytest
 
@@ -14,7 +15,7 @@ class Test_archive_objects(object):
         # as used when archiving before linking exes
         targets = ['prog1', 'prog2']
 
-        config = BuildConfig('proj')
+        config = BuildConfig('proj', ToolBox())
         config._artefact_store = {OBJECT_FILES: {target: [f'{target}.o', 'util.o'] for target in targets}}
 
         with mock.patch('fab.steps.archive_objects.run_command') as mock_run_command, \
@@ -36,7 +37,7 @@ class Test_archive_objects(object):
         # as used when building an object archive or archiving before linking a shared library
         pass
 
-        config = BuildConfig('proj')
+        config = BuildConfig('proj', ToolBox())
         config._artefact_store = {OBJECT_FILES: {None: ['util1.o', 'util2.o']}}
 
         with mock.patch('fab.steps.archive_objects.run_command') as mock_run_command, \

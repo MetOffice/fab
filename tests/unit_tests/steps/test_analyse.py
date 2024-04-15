@@ -8,6 +8,7 @@ from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround
 from fab.steps.analyse import _add_manual_results, _add_unreferenced_deps, _gen_file_deps, _gen_symbol_table, \
     _parse_files
+from fab.newtools import ToolBox
 from fab.util import HashedFile
 
 
@@ -119,7 +120,7 @@ class Test_parse_files(object):
              pytest.warns(UserWarning, match="deprecated 'DEPENDS ON:'"):
             # The warning "deprecated 'DEPENDS ON:' comment found in fortran code"
             # is in "def _parse_files" in "source/steps/analyse.py"
-            config = BuildConfig('proj', fab_workspace=tmp_path)
+            config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
 
             # the exception should be suppressed (and logged) and this step should run to completion
             _parse_files(config, files=[], fortran_analyser=mock.Mock(), c_analyser=mock.Mock())

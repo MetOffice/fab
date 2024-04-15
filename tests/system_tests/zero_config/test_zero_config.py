@@ -8,7 +8,7 @@ from unittest import mock
 import pytest
 
 
-class TestZeroConfig(object):
+class TestZeroConfig():
 
     def test_fortran_dependencies(self, tmp_path):
         # test the sample project in the fortran dependencies system test

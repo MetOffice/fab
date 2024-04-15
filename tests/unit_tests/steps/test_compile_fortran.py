@@ -12,6 +12,7 @@ from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, get_fortran_compiler, \
     get_mod_hashes, handle_compiler_args, MpCommonArgs, process_file, store_artefacts
 from fab.steps.preprocess import get_fortran_preprocessor
+from fab.newtools import ToolBox
 from fab.util import CompiledFile
 
 
@@ -48,7 +49,7 @@ class Test_compile_pass(object):
         # this gets filled in
         mod_hashes: Dict[str, int] = {}
 
-        config = BuildConfig('proj')
+        config = BuildConfig('proj', ToolBox())
         with mock.patch('fab.steps.compile_fortran.run_mp', return_value=run_mp_results):
             with mock.patch('fab.steps.compile_fortran.get_mod_hashes'):
                 uncompiled_result = compile_pass(config=config, compiled=compiled, uncompiled=uncompiled,
@@ -135,7 +136,7 @@ class Test_process_file(object):
         mods_combo_hash = '1747a9a0f'
 
         mp_common_args = MpCommonArgs(
-            config=BuildConfig('proj', fab_workspace=Path('/fab')),
+            config=BuildConfig('proj', ToolBox(), fab_workspace=Path('/fab')),
             flags=flags_config,
             compiler='foo_cc',
             compiler_version='1.2.3',
@@ -473,7 +474,8 @@ class Test_get_mod_hashes(object):
             mock.Mock(module_defs=['foo', 'bar']),
         }
 
-        config = BuildConfig('proj', fab_workspace=Path('/fab_workspace'))
+        config = BuildConfig('proj', ToolBox(),
+                             fab_workspace=Path('/fab_workspace'))
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
             with mock.patch(
