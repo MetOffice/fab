@@ -24,6 +24,6 @@ def test_tool_box_get_tool():
     assert default_compiler is tr.get_default(Categories.FORTRAN_COMPILER)
 
     tr_gfortran = tr.get_tool(Categories.FORTRAN_COMPILER, "gfortran")
-    tb.add_tool(Categories.FORTRAN_COMPILER, tr_gfortran)
+    tb.add_tool(tr_gfortran)
     gfortran = tb.get_tool(Categories.FORTRAN_COMPILER)
     assert gfortran is tr_gfortran

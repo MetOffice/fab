@@ -18,13 +18,13 @@ class ToolBox:
     def __init__(self):
         self._all_tools = {}
 
-    def add_tool(self, category: Categories, tool: Tool):
+    def add_tool(self, tool: Tool):
         '''Adds a tool for a given category.
 
         :param category: the category for which to add a tool
         :param tool: the tool to add.
         '''
-        self._all_tools[category] = tool
+        self._all_tools[tool.category] = tool
 
     def get_tool(self, category: Categories):
         '''Returns the tool for the specified category.
