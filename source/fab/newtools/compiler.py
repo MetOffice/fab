@@ -9,6 +9,7 @@ classes for gfortran and ifort
 
 """
 
+from fab.newtools.categories import Categories
 from fab.newtools.tool import Tool
 
 
@@ -16,8 +17,8 @@ class Compiler(Tool):
     '''This is the base class for any compiler.
     '''
 
-    def __init__(self, name: str, exec_name: str):
-        super().__init__(name, exec_name)
+    def __init__(self, name: str, exec_name: str, category: Categories):
+        super().__init__(name, exec_name, category)
         self._version = None
 
     def get_version(self):
@@ -34,8 +35,8 @@ class Compiler(Tool):
 
         try:
             res = self.run("--version", capture_output=True)
-        except FileNotFoundError:
-            raise ValueError(f'Compiler not found: {self.name}')
+        except FileNotFoundError as err:
+            raise ValueError(f'Compiler not found: {self.name}') from err
         except RuntimeError as err:
             self.logger.warning(f"Error asking for version of compiler "
                                 f"'{self.name}': {err}")
@@ -73,7 +74,7 @@ class Gcc(Compiler):
     '''Class for GNU's gcc compiler.
     '''
     def __init__(self):
-        super().__init__("gcc", "gcc")
+        super().__init__("gcc", "gcc", Categories.C_COMPILER)
 
 
 # ============================================================================
@@ -81,7 +82,7 @@ class Gfortran(Compiler):
     '''Class for GNU's gfortran compiler.
     '''
     def __init__(self):
-        super().__init__("gfortran", "gfortran")
+        super().__init__("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
 
 
 # ============================================================================
@@ -89,7 +90,7 @@ class Icc(Compiler):
     '''Class for the Intel's icc compiler.
     '''
     def __init__(self):
-        super().__init__("icc", "icc")
+        super().__init__("icc", "icc", Categories.C_COMPILER)
 
 
 # ============================================================================
@@ -97,4 +98,4 @@ class Ifort(Compiler):
     '''Class for Intel's ifort compiler.
     '''
     def __init__(self):
-        super().__init__("ifort", "ifort")
+        super().__init__("ifort", "ifort", Categories.FORTRAN_COMPILER)

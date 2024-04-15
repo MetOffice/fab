@@ -12,11 +12,11 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import Compiler, Gcc, Gfortran, Icc, Ifort
+from fab.newtools import Categories, Compiler, Gcc, Gfortran, Icc, Ifort
 
 
 def test_compiler():
-    c = Compiler("gfortran", "gfortran")
+    c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
     c.get_version = mock.Mock(return_value="123")
     assert c.get_version() == "123"
 
@@ -28,7 +28,7 @@ class TestGetCompilerVersion:
         '''Checks if the correct version is extracted from the
         given full_version_string.
         '''
-        c = Compiler("gfortran", "gfortran")
+        c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
         c.run = mock.Mock(return_value=full_version_string)
         assert c.get_version() == expected
         # Now let the run method raise an exception, to make sure
@@ -39,7 +39,7 @@ class TestGetCompilerVersion:
     def test_command_failure(self):
         # if the command fails, we must return an empty string,
         # not None, so it can still be hashed
-        c = Compiler("gfortran", "gfortran")
+        c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
         c.run = mock.Mock()
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
             assert c.get_version() == '', 'expected empty string'
@@ -174,21 +174,25 @@ def test_gcc():
     '''Tests the gcc class.'''
     gcc = Gcc()
     assert gcc.name == "gcc"
+    assert gcc.category == Categories.C_COMPILER
 
 
 def test_gfortran():
     '''Tests the gfortran class.'''
     gfortran = Gfortran()
     assert gfortran.name == "gfortran"
+    assert gfortran.category == Categories.FORTRAN_COMPILER
 
 
 def test_icc():
     '''Tests the icc class.'''
     icc = Icc()
     assert icc.name == "icc"
+    assert icc.category == Categories.C_COMPILER
 
 
 def test_ifort():
     '''Tests the ifort class.'''
     ifort = Ifort()
     assert ifort.name == "ifort"
+    assert ifort.category == Categories.FORTRAN_COMPILER

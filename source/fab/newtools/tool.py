@@ -13,6 +13,7 @@ from pathlib import Path
 import subprocess
 from typing import Optional, Union
 
+from fab.newtools.categories import Categories
 from fab.newtools.flags import Flags
 
 
@@ -21,23 +22,28 @@ class Tool:
     the name of the executable, and provides a `run` method.
     '''
 
-    def __init__(self, name: str, exec_name: str):
+    def __init__(self, name: str, exec_name: str, category: Categories):
         self._name = name
         self._exec_name = exec_name
         self._flags = Flags()
         self._logger = logging.getLogger(__name__)
+        self._category = category
 
     @property
     def exec_name(self) -> str:
         return self._exec_name
 
     @property
-    def logger(self):
-        return self._logger
-
-    @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def category(self) -> Categories:
+        return self._category
+
+    @property
+    def logger(self):
+        return self._logger
 
     def __str__(self):
         return f"{type(self).__name__} - {self._name}: {self._exec_name}"
