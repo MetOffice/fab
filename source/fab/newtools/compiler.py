@@ -9,6 +9,8 @@ classes for gfortran and ifort
 
 """
 
+from typing import List
+
 from fab.newtools.categories import Categories
 from fab.newtools.tool import Tool
 
@@ -17,9 +19,75 @@ class Compiler(Tool):
     '''This is the base class for any compiler.
     '''
 
-    def __init__(self, name: str, exec_name: str, category: Categories):
+    def __init__(self, name: str, exec_name: str, category: Categories,
+                 compile_flag="-c", output_flag="-o", module_folder_flag=None,
+                 omp_flag=None, syntax_only_flag=None):
         super().__init__(name, exec_name, category)
         self._version = None
+        self._compile_flag = compile_flag
+        self._output_flag = output_flag
+        self._module_folder_flag = module_folder_flag
+        self._omp_flag = omp_flag
+        self._syntax_only_flag = syntax_only_flag
+        self._module_output_path: List[str] = []
+
+    @property
+    def has_syntax_only(self):
+        return self._syntax_only_flag is not None
+
+    def set_module_output_path(self, path):
+        path = str(path)
+        self._module_output_path = path
+
+    def _remove_managed_flags(self, flags: List[str]):
+        '''Removes all flags in `flags` that will be managed by FAB.
+        This is atm only the module output path. The list will be
+        modified in-place.
+
+        :param flags: the list of flags from which to remove managed flags.
+        '''
+        i = 0
+        flag_len = len(self._module_output_path)
+        while i < len(flags):
+            flag = flags[i]
+            # E.g. "-J/tmp" and "-J /tmp" are both accepted.
+            # First check for two parameter, i.e. with space after the flag
+            if flag == self._module_folder_flag:
+                if i + 1 == len(flags):
+                    # We have a flag, but no path. Issue a warning:
+                    self.logger.warning(f"Flags '{' '. join(flags)} contain "
+                                        f"module path "
+                                        f"'{self._module_folder_flag}' but "
+                                        f"no path.")
+                    break
+                del flag[i:i+2]
+                continue
+
+            if flag[:flag_len] == self._module_output_path:
+                del flag[i]
+                continue
+            i += 1
+
+    def compile_file(self, input_file, output_file, add_flags=None,
+                     syntax_only=False):
+        # Do we need to remove compile flag or module_folder_flag from
+        # add_flags??
+        params = [input_file.fpath.name, self._compile_flag,
+                  self._output_flag, str(output_file)]
+        if syntax_only and self._syntax_only_flag:
+            params.append(self._syntax_only_flag)
+        if add_flags:
+            # Don't modify the user's list:
+            new_flags = add_flags[:]
+            self._remove_managed_flags(new_flags)
+            params += new_flags
+
+        # Append module output path
+        params.append(self._module_folder_flag)
+        params.append(self._module_output_path)
+
+        return self.run(cwd=input_file.fpath.parent,
+                        additional_parameters=params)
 
     def get_version(self):
         """
@@ -82,7 +150,10 @@ class Gfortran(Compiler):
     '''Class for GNU's gfortran compiler.
     '''
     def __init__(self):
-        super().__init__("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
+        super().__init__("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
+                         module_folder_flag="-J",
+                         omp_flag="-fopenmp",
+                         syntax_only_flag="-fsyntax-only")
 
 
 # ============================================================================
@@ -98,4 +169,7 @@ class Ifort(Compiler):
     '''Class for Intel's ifort compiler.
     '''
     def __init__(self):
-        super().__init__("ifort", "ifort", Categories.FORTRAN_COMPILER)
+        super().__init__("ifort", "ifort", Categories.FORTRAN_COMPILER,
+                         module_folder_flag="-module",
+                         omp_flag="-qopenmp",
+                         syntax_only_flag="-syntax-only")

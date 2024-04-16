@@ -145,6 +145,10 @@ class BuildConfig(object):
         self._finalise_logging()
 
     @property
+    def tool_box(self):
+        return self._tool_box
+
+    @property
     def build_output(self):
         return self.project_workspace / BUILD_OUTPUT
 
