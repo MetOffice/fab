@@ -9,6 +9,7 @@ classes for gfortran and ifort
 
 """
 
+from pathlib import Path
 from typing import List
 
 from fab.newtools.categories import Categories
@@ -29,7 +30,7 @@ class Compiler(Tool):
         self._module_folder_flag = module_folder_flag
         self._omp_flag = omp_flag
         self._syntax_only_flag = syntax_only_flag
-        self._module_output_path: List[str] = []
+        self._module_output_path = ""
 
     @property
     def has_syntax_only(self):
@@ -47,10 +48,10 @@ class Compiler(Tool):
         :param flags: the list of flags from which to remove managed flags.
         '''
         i = 0
-        flag_len = len(self._module_output_path)
+        flag_len = len(self._module_folder_flag)
         while i < len(flags):
             flag = flags[i]
-            # E.g. "-J/tmp" and "-J /tmp" are both accepted.
+            # "-J/tmp" and "-J /tmp" are both accepted.
             # First check for two parameter, i.e. with space after the flag
             if flag == self._module_folder_flag:
                 if i + 1 == len(flags):
@@ -60,19 +61,21 @@ class Compiler(Tool):
                                         f"'{self._module_folder_flag}' but "
                                         f"no path.")
                     break
-                del flag[i:i+2]
+                # Delete the two arguments: flag and path
+                del flags[i:i+2]
                 continue
-
-            if flag[:flag_len] == self._module_output_path:
-                del flag[i]
+            if flag[:flag_len] == self._module_folder_flag:
+                # No space between flag and path, remove this one argument
+                del flags[i]
                 continue
             i += 1
 
-    def compile_file(self, input_file, output_file, add_flags=None,
-                     syntax_only=False):
+    def compile_file(self, input_file: Path, output_file: Path,
+                     add_flags: List[str] = None,
+                     syntax_only: bool = False):
         # Do we need to remove compile flag or module_folder_flag from
         # add_flags??
-        params = [input_file.fpath.name, self._compile_flag,
+        params = [input_file.name, self._compile_flag,
                   self._output_flag, str(output_file)]
         if syntax_only and self._syntax_only_flag:
             params.append(self._syntax_only_flag)
@@ -83,10 +86,11 @@ class Compiler(Tool):
             params += new_flags
 
         # Append module output path
-        params.append(self._module_folder_flag)
-        params.append(self._module_output_path)
+        if self._module_folder_flag:
+            params.append(self._module_folder_flag)
+            params.append(self._module_output_path)
 
-        return self.run(cwd=input_file.fpath.parent,
+        return self.run(cwd=input_file.parent,
                         additional_parameters=params)
 
     def get_version(self):

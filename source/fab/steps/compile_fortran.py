@@ -249,7 +249,9 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
             # compile
             try:
                 logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
-                compile_file(analysed_file, flags, output_fpath=obj_file_prebuild, mp_common_args=mp_common_args)
+                compile_file(analysed_file.fpath, flags,
+                             output_fpath=obj_file_prebuild,
+                             mp_common_args=mp_common_args)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
 

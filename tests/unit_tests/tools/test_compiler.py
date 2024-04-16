@@ -7,6 +7,7 @@
 '''Tests the compiler implementation.
 '''
 
+from pathlib import Path, PosixPath
 from textwrap import dedent
 from unittest import mock
 
@@ -16,9 +17,71 @@ from fab.newtools import Categories, Compiler, Gcc, Gfortran, Icc, Ifort
 
 
 def test_compiler():
-    c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
-    c.get_version = mock.Mock(return_value="123")
-    assert c.get_version() == "123"
+    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
+    fc.get_version = mock.Mock(return_value="123")
+    assert fc.get_version() == "123"
+
+
+def test_compiler_syntax_only():
+    '''Tests handling of syntax only flags.'''
+    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
+    assert not fc.has_syntax_only
+    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
+                  syntax_only_flag=None)
+    assert not fc.has_syntax_only
+
+    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
+                  syntax_only_flag="-fsyntax-only")
+    assert fc.has_syntax_only
+    assert fc._syntax_only_flag == "-fsyntax-only"
+    fc.run = mock.MagicMock()
+    fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
+    fc.run.assert_called_with(cwd=PosixPath('.'),
+                              additional_parameters=['a.f90', '-c', '-o',
+                                                     'a.o', '-fsyntax-only'])
+
+
+def test_compiler_module_output():
+    '''Tests handling of module output_flags.'''
+    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
+                  module_folder_flag="-J")
+    fc.set_module_output_path("/module_out")
+    assert fc._module_output_path == "/module_out"
+    fc.run = mock.MagicMock()
+    fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
+    fc.run.assert_called_with(cwd=PosixPath('.'),
+                              additional_parameters=['a.f90', '-c', '-o',
+                                                     'a.o',
+                                                     '-J', '/module_out'])
+
+
+def test_managed_flags():
+    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
+                  module_folder_flag="-J")
+    for flags, expected in [(["a", "b"], ["a", "b"]),
+                            (["-J", "b"], []),
+                            (["-Jb"], []),
+                            (["a", "-J", "c"], ["a"]),
+                            (["a", "-Jc"], ["a"]),
+                            (["a", "-J"], ["a", "-J"]),
+                            ]:
+        fc._remove_managed_flags(flags)
+        assert flags == expected
+
+
+def test_compile_with_add_args():
+    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
+                  module_folder_flag="-J")
+    fc.set_module_output_path("/module_out")
+    assert fc._module_output_path == "/module_out"
+    fc.run = mock.MagicMock()
+    fc.compile_file(Path("a.f90"), "a.o", add_flags=["-J/b", "-O3"],
+                    syntax_only=True)
+    # Notice that "-J/b" has been removed
+    fc.run.assert_called_with(cwd=PosixPath('.'),
+                              additional_parameters=['a.f90', '-c', '-o',
+                                                     'a.o', "-O3",
+                                                     '-J', '/module_out'])
 
 
 class TestGetCompilerVersion:
