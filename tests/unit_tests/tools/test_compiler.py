@@ -19,13 +19,13 @@ from fab.newtools import (Categories, CCompiler, Compiler, FortranCompiler,
 
 def test_compiler():
     cc = CCompiler("gcc", "gcc")
-    cc.get_version = mock.Mock(return_value="123")
-    assert cc.get_version() == "123"
     assert cc.category == Categories.C_COMPILER
+    assert cc._compile_flag == "-c"
+    assert cc._output_flag == "-o"
 
     fc = FortranCompiler("gfortran", "gfortran", "-J")
-    fc.get_version = mock.Mock(return_value="123")
-    assert fc.get_version() == "123"
+    assert fc._compile_flag == "-c"
+    assert fc._output_flag == "-o"
     assert fc.category == Categories.FORTRAN_COMPILER
 
 
@@ -41,7 +41,7 @@ def test_compiler_syntax_only():
     fc.set_module_output_path("/tmp")
     assert fc.has_syntax_only
     assert fc._syntax_only_flag == "-fsyntax-only"
-    fc.run = mock.MagicMock()
+    fc.run = mock.Mock()
     fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
     fc.run.assert_called_with(cwd=Path('.'),
                               additional_parameters=['a.f90', '-c', '-o',
@@ -62,26 +62,14 @@ def test_compiler_module_output():
                                                      '-J', '/module_out'])
 
 
-def test_managed_flags():
-    fc = FortranCompiler("gfortran", "gfortran", "-J")
-    for flags, expected in [(["a", "b"], ["a", "b"]),
-                            (["-J", "b"], []),
-                            (["-Jb"], []),
-                            (["a", "-J", "c"], ["a"]),
-                            (["a", "-Jc"], ["a"]),
-                            (["a", "-J"], ["a", "-J"]),
-                            ]:
-        fc._remove_managed_flags(flags)
-        assert flags == expected
-
-
 def test_compile_with_add_args():
     fc = FortranCompiler("gfortran", "gfortran", module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
-    fc.compile_file(Path("a.f90"), "a.o", add_flags=["-J/b", "-O3"],
-                    syntax_only=True)
+    with pytest.warns(UserWarning, match="removing managed flag"):
+        fc.compile_file(Path("a.f90"), "a.o", add_flags=["-J/b", "-O3"],
+                        syntax_only=True)
     # Notice that "-J/b" has been removed
     fc.run.assert_called_with(cwd=PosixPath('.'),
                               additional_parameters=['a.f90', '-c', '-o',

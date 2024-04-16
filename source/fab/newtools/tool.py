@@ -42,6 +42,10 @@ class Tool:
         return self._category
 
     @property
+    def flags(self) -> Flags:
+        return self._flags
+
+    @property
     def logger(self):
         return self._logger
 
@@ -69,7 +73,7 @@ class Tool:
         :raises RuntimeError: if the return code of the executable is not 0.
         """
 
-        command = [self.exec_name] + self._flags.get()
+        command = [self.exec_name] + self.flags
         if additional_parameters:
             if isinstance(additional_parameters, str):
                 command.append(additional_parameters)

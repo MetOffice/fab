@@ -13,11 +13,15 @@ from pathlib import Path
 from typing import List, Union
 
 from fab.newtools.categories import Categories
+from fab.newtools.flags import Flags
 from fab.newtools.tool import Tool
 
 
 class Compiler(Tool):
-    '''This is the base class for any compiler.
+    '''This is the base class for any compiler. It provides flags for
+    - compilation only (-c),
+    - naming the output file (-o),
+    - OpenMP
     '''
 
     def __init__(self, name: str, exec_name: str, category: Categories,
@@ -123,45 +127,14 @@ class FortranCompiler(Compiler):
         path = str(path)
         self._module_output_path = path
 
-    def _remove_managed_flags(self, flags: List[str]):
-        '''Removes all flags in `flags` that will be managed by FAB.
-        This is atm only the module output path. The list will be
-        modified in-place.
-
-        :param flags: the list of flags from which to remove managed flags.
-        '''
-        i = 0
-        flag_len = len(self._module_folder_flag)
-        while i < len(flags):
-            flag = flags[i]
-            # "-J/tmp" and "-J /tmp" are both accepted.
-            # First check for two parameter, i.e. with space after the flag
-            if flag == self._module_folder_flag:
-                if i + 1 == len(flags):
-                    # We have a flag, but no path. Issue a warning:
-                    self.logger.warning(f"Flags '{' '. join(flags)} contain "
-                                        f"module path "
-                                        f"'{self._module_folder_flag}' but "
-                                        f"no path.")
-                    break
-                # Delete the two arguments: flag and path
-                del flags[i:i+2]
-                continue
-            if flag[:flag_len] == self._module_folder_flag:
-                # No space between flag and path, remove this one argument
-                del flags[i]
-                continue
-            i += 1
-
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None,
                      syntax_only: bool = False):
         params = []
         if add_flags:
-            # Don't modify the user's list:
-            new_flags = add_flags[:]
-            # Remove any module output path that the user might specify
-            self._remove_managed_flags(new_flags)
+            new_flags = Flags(add_flags)
+            new_flags.remove_flag(self._module_folder_flag, has_parameter=True)
+            new_flags.remove_flag(self._compile_flag, has_parameter=False)
             params += new_flags
 
         if syntax_only and self._syntax_only_flag:
