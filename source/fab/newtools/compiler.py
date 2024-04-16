@@ -10,7 +10,7 @@ classes for gfortran and ifort
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Union
 
 from fab.newtools.categories import Categories
 from fab.newtools.tool import Tool
@@ -29,9 +29,7 @@ class Compiler(Tool):
         self._omp_flag = omp_flag
 
     def compile_file(self, input_file: Path, output_file: Path,
-                     add_flags: List[str] = None):
-        # Do we need to remove compile flag or module_folder_flag from
-        # add_flags??
+                     add_flags: Union[None, List[str]] = None):
         params = [input_file.name, self._compile_flag,
                   self._output_flag, str(output_file)]
         if add_flags:
@@ -156,7 +154,7 @@ class FortranCompiler(Compiler):
             i += 1
 
     def compile_file(self, input_file: Path, output_file: Path,
-                     add_flags: List[str] = None,
+                     add_flags: Union[None, List[str]] = None,
                      syntax_only: bool = False):
         params = []
         if add_flags:
