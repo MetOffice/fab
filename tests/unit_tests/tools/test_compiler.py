@@ -13,38 +13,45 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import Categories, Compiler, Gcc, Gfortran, Icc, Ifort
+from fab.newtools import (Categories, CCompiler, Compiler, FortranCompiler,
+                          Gcc, Gfortran, Icc, Ifort)
 
 
 def test_compiler():
-    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
+    cc = CCompiler("gcc", "gcc")
+    cc.get_version = mock.Mock(return_value="123")
+    assert cc.get_version() == "123"
+    assert cc.category == Categories.C_COMPILER
+
+    fc = FortranCompiler("gfortran", "gfortran", "-J")
     fc.get_version = mock.Mock(return_value="123")
     assert fc.get_version() == "123"
+    assert fc.category == Categories.FORTRAN_COMPILER
 
 
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
-    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
+    fc = FortranCompiler("gfortran", "gfortran", "-J")
     assert not fc.has_syntax_only
-    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
-                  syntax_only_flag=None)
+    fc = FortranCompiler("gfortran", "gfortran", "-J", syntax_only_flag=None)
     assert not fc.has_syntax_only
 
-    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
-                  syntax_only_flag="-fsyntax-only")
+    fc = FortranCompiler("gfortran", "gfortran", "-J",
+                         syntax_only_flag="-fsyntax-only")
+    fc.set_module_output_path("/tmp")
     assert fc.has_syntax_only
     assert fc._syntax_only_flag == "-fsyntax-only"
     fc.run = mock.MagicMock()
     fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
-    fc.run.assert_called_with(cwd=PosixPath('.'),
+    fc.run.assert_called_with(cwd=Path('.'),
                               additional_parameters=['a.f90', '-c', '-o',
-                                                     'a.o', '-fsyntax-only'])
+                                                     'a.o', '-fsyntax-only',
+                                                     "-J", "/tmp"])
 
 
 def test_compiler_module_output():
     '''Tests handling of module output_flags.'''
-    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
-                  module_folder_flag="-J")
+    fc = FortranCompiler("gfortran", "gfortran", module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
@@ -56,8 +63,7 @@ def test_compiler_module_output():
 
 
 def test_managed_flags():
-    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
-                  module_folder_flag="-J")
+    fc = FortranCompiler("gfortran", "gfortran", "-J")
     for flags, expected in [(["a", "b"], ["a", "b"]),
                             (["-J", "b"], []),
                             (["-Jb"], []),
@@ -70,8 +76,7 @@ def test_managed_flags():
 
 
 def test_compile_with_add_args():
-    fc = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER,
-                  module_folder_flag="-J")
+    fc = FortranCompiler("gfortran", "gfortran", module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
@@ -237,6 +242,7 @@ def test_gcc():
     '''Tests the gcc class.'''
     gcc = Gcc()
     assert gcc.name == "gcc"
+    assert isinstance(gcc, CCompiler)
     assert gcc.category == Categories.C_COMPILER
 
 
@@ -244,6 +250,7 @@ def test_gfortran():
     '''Tests the gfortran class.'''
     gfortran = Gfortran()
     assert gfortran.name == "gfortran"
+    assert isinstance(gfortran, FortranCompiler)
     assert gfortran.category == Categories.FORTRAN_COMPILER
 
 
@@ -251,6 +258,7 @@ def test_icc():
     '''Tests the icc class.'''
     icc = Icc()
     assert icc.name == "icc"
+    assert isinstance(icc, CCompiler)
     assert icc.category == Categories.C_COMPILER
 
 
@@ -258,4 +266,5 @@ def test_ifort():
     '''Tests the ifort class.'''
     ifort = Ifort()
     assert ifort.name == "ifort"
+    assert isinstance(ifort, FortranCompiler)
     assert ifort.category == Categories.FORTRAN_COMPILER

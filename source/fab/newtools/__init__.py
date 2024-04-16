@@ -8,7 +8,8 @@
 '''
 
 from fab.newtools.categories import Categories
-from fab.newtools.compiler import Compiler, Gcc, Gfortran, Icc, Ifort
+from fab.newtools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
+                                   Gfortran, Icc, Ifort)
 from fab.newtools.flags import Flags
 from fab.newtools.preprocessor import Cpp, Fpp
 from fab.newtools.tool import Tool
