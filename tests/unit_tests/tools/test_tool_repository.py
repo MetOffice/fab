@@ -19,8 +19,8 @@ import pytest
 # test_tool_repository.py:35: note: By default the bodies of untyped functions
 # are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 
-from fab.newtools import (Categories, Gcc, Gfortran, Ifort,
-                          ToolRepository)  # type: ignore
+from fab.newtools import (Categories, Gcc, Gfortran, Ifort,   # type: ignore
+                          ToolRepository)
 
 
 def test_tool_repository_get_singleton():
