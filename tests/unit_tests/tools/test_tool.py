@@ -26,6 +26,14 @@ def test_tool_constructor():
     assert isinstance(tool.logger, logging.Logger)
 
 
+def test_tool_is_available():
+    '''Test that is_available works as expected.'''
+    tool = Tool("gnu", "gfortran", Categories.FORTRAN_COMPILER)
+    assert tool.is_available
+    tool.is_available = False
+    assert not tool.is_available
+
+
 class TestToolRun():
     '''Test the run method of Tool.'''
 

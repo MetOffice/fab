@@ -131,7 +131,7 @@ class FortranCompiler(Compiler):
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None,
                      syntax_only: bool = False):
-        params = []
+        params: List[str] = []
         if add_flags:
             new_flags = Flags(add_flags)
             new_flags.remove_flag(self._module_folder_flag, has_parameter=True)

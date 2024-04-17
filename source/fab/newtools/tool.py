@@ -23,30 +23,50 @@ class Tool:
     '''
 
     def __init__(self, name: str, exec_name: str, category: Categories):
+        self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_name = exec_name
         self._flags = Flags()
-        self._logger = logging.getLogger(__name__)
         self._category = category
+        # TODO: check if a tool actually works
+        self._is_available = True
+
+    @property
+    def is_available(self) -> bool:
+        ''':returns: whether the tool is available (i.e. installed and
+        working)'''
+        return self._is_available
+
+    @is_available.setter
+    def is_available(self, value: bool):
+        '''Sets a tool to be available (i.e. installed and working)
+        or not.
+        :param value: if the tool is available or not.'''
+        self._is_available = value
 
     @property
     def exec_name(self) -> str:
+        ''':returns: the name of the executable.'''
         return self._exec_name
 
     @property
     def name(self) -> str:
+        ''':returns: the name of the tool.'''
         return self._name
 
     @property
     def category(self) -> Categories:
+        ''':returns: the category of this tool.'''
         return self._category
 
     @property
     def flags(self) -> Flags:
+        ''':returns: the flags to be used with this tool.'''
         return self._flags
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
+        ''':returns: a logger object for convenience.'''
         return self._logger
 
     def __str__(self):

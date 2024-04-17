@@ -7,6 +7,13 @@
 '''This file contains the ToolRepository class.
 '''
 
+# We can't declare _singleton and get() using ToolRepository, but
+# it is allowed if we use this import:
+from __future__ import annotations
+
+import logging
+from typing import Any, Type
+
 from fab.newtools import Categories, Cpp, Fpp, Gcc, Gfortran, Icc, Ifort
 
 
@@ -15,10 +22,10 @@ class ToolRepository(dict):
     tools for various categories.
     '''
 
-    _singleton = None
+    _singleton: None | ToolRepository = None
 
     @staticmethod
-    def get():
+    def get() -> ToolRepository | Any:
         '''Singleton access. Changes the value of _singleton so that the
         constructor can verify that it is indeed called from here.
         '''
@@ -28,15 +35,35 @@ class ToolRepository(dict):
         return ToolRepository._singleton
 
     def __init__(self):
-        # Check if the constuctor is called from 'get':
+        # Check if the constructor is called from 'get':
         if ToolRepository._singleton != "FROM_GET":
             raise RuntimeError("You must use 'ToolRepository.get()' to get "
                                "the singleton instance.")
+        self._logger = logging.getLogger(__name__)
         super().__init__()
-        # The first entry is the default
-        self[Categories.C_COMPILER] = [Gcc(), Icc()]
-        self[Categories.FORTRAN_COMPILER] = [Gfortran(), Ifort()]
-        self[Categories.FORTRAN_PREPROCESSOR] = [Fpp(), Cpp()]
+
+        # Add the FAB default tools:
+        for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp]:
+            self.add_tool(cls)
+
+    def add_tool(self, cls: Type[Any]):
+        '''Creates an instance of the specified class and adds it
+        to the tool repository.
+        :param cls: the tool to instantiate.
+        '''
+
+        # Note that we cannot declare `cls` to be `Type[Tool]`, since the
+        # Tool constructor requires arguments, but the classes used here are
+        # derived from Tool which do not require any arguments (e.g. Ifort)
+
+        tool = cls()
+        if not tool.is_available:
+            self._logger.debug(f"Tool {tool.name} is not available - ignored.")
+            return
+        if tool.category in self:
+            self[tool.category].append(tool)
+        else:
+            self[tool.category] = [tool]
 
     def get_tool(self, category: Categories, name: str):
         '''Returns the tool with a given name in the specified category.

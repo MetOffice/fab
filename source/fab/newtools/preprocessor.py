@@ -36,3 +36,5 @@ class Fpp(Preprocessor):
     '''
     def __init__(self):
         super().__init__("fpp", "fpp", Categories.FORTRAN_PREPROCESSOR)
+        # TODO: Proper check to be done
+        self.is_available = False
