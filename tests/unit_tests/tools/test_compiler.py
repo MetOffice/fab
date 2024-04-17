@@ -7,6 +7,7 @@
 '''Tests the compiler implementation.
 '''
 
+import os
 from pathlib import Path, PosixPath
 from textwrap import dedent
 from unittest import mock
@@ -18,15 +19,27 @@ from fab.newtools import (Categories, CCompiler, Compiler, FortranCompiler,
 
 
 def test_compiler():
+    '''Test the compiler constructor.'''
     cc = CCompiler("gcc", "gcc")
     assert cc.category == Categories.C_COMPILER
     assert cc._compile_flag == "-c"
     assert cc._output_flag == "-o"
+    assert cc.flags == []
 
     fc = FortranCompiler("gfortran", "gfortran", "-J")
     assert fc._compile_flag == "-c"
     assert fc._output_flag == "-o"
     assert fc.category == Categories.FORTRAN_COMPILER
+    assert fc.flags == []
+
+
+def test_compiler_with_env_fflags():
+    '''Test that content of FFLAGS is added to the compiler flags.'''
+    with mock.patch.dict(os.environ, FFLAGS='--foo --bar'):
+        cc = CCompiler("gcc", "gcc")
+        fc = FortranCompiler("gfortran", "gfortran", "-J")
+    assert cc.flags == ["--foo", "--bar"]
+    assert fc.flags == ["--foo", "--bar"]
 
 
 def test_compiler_syntax_only():
@@ -62,7 +75,8 @@ def test_compiler_module_output():
                                                      '-J', '/module_out'])
 
 
-def test_compile_with_add_args():
+def test_compiler_with_add_args():
+    '''Tests that additional arguments are handled as expected.'''
     fc = FortranCompiler("gfortran", "gfortran", module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
@@ -93,8 +107,8 @@ class TestGetCompilerVersion:
         assert c.get_version() == expected
 
     def test_command_failure(self):
-        # if the command fails, we must return an empty string,
-        # not None, so it can still be hashed
+        '''If the command fails, we must return an empty string, not None,
+        so it can still be hashed.'''
         c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
         c.run = mock.Mock()
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
@@ -131,6 +145,7 @@ class TestGetCompilerVersion:
     # Note: different sources, e.g conda, change the output slightly...
 
     def test_gfortran_4(self):
+        '''Test gfortran 4.8.5 version detection.'''
         full_version_string = dedent("""
             GNU Fortran (GCC) 4.8.5 20150623 (Red Hat 4.8.5-44)
             Copyright (C) 2015 Free Software Foundation, Inc.
@@ -145,6 +160,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='4.8.5')
 
     def test_gfortran_6(self):
+        '''Test gfortran 6.1.0 version detection.'''
         full_version_string = dedent("""
             GNU Fortran (GCC) 6.1.0
             Copyright (C) 2016 Free Software Foundation, Inc.
@@ -156,6 +172,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='6.1.0')
 
     def test_gfortran_8(self):
+        '''Test gfortran 8.5.0 version detection.'''
         full_version_string = dedent("""
             GNU Fortran (conda-forge gcc 8.5.0-16) 8.5.0
             Copyright (C) 2018 Free Software Foundation, Inc.
@@ -167,6 +184,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='8.5.0')
 
     def test_gfortran_10(self):
+        '''Test gfortran 10.4.0 version detection.'''
         full_version_string = dedent("""
             GNU Fortran (conda-forge gcc 10.4.0-16) 10.4.0
             Copyright (C) 2020 Free Software Foundation, Inc.
@@ -178,6 +196,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='10.4.0')
 
     def test_gfortran_12(self):
+        '''Test gfortran 12.1.0 version detection.'''
         full_version_string = dedent("""
             GNU Fortran (conda-forge gcc 12.1.0-16) 12.1.0
             Copyright (C) 2022 Free Software Foundation, Inc.
@@ -189,6 +208,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='12.1.0')
 
     def test_ifort_14(self):
+        '''Test ifort 14.0.3 version detection.'''
         full_version_string = dedent("""
             ifort (IFORT) 14.0.3 20140422
             Copyright (C) 1985-2014 Intel Corporation.  All rights reserved.
@@ -198,6 +218,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='14.0.3')
 
     def test_ifort_15(self):
+        '''Test ifort 15.0.2 version detection.'''
         full_version_string = dedent("""
             ifort (IFORT) 15.0.2 20150121
             Copyright (C) 1985-2015 Intel Corporation.  All rights reserved.
@@ -207,6 +228,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='15.0.2')
 
     def test_ifort_17(self):
+        '''Test ifort 17.0.7 version detection.'''
         full_version_string = dedent("""
             ifort (IFORT) 17.0.7 20180403
             Copyright (C) 1985-2018 Intel Corporation.  All rights reserved.
@@ -216,6 +238,7 @@ class TestGetCompilerVersion:
         self._check(full_version_string=full_version_string, expected='17.0.7')
 
     def test_ifort_19(self):
+        '''Test ifort 19.0.0.117 version detection.'''
         full_version_string = dedent("""
             ifort (IFORT) 19.0.0.117 20180804
             Copyright (C) 1985-2018 Intel Corporation.  All rights reserved.

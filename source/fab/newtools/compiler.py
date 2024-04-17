@@ -4,11 +4,11 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the base class for any compiler, and two derived
-classes for gfortran and ifort
-
+"""This file contains the base class for any compiler, and derived
+classes for gcc, gfortran, icc, ifort
 """
 
+import os
 from pathlib import Path
 from typing import List, Union
 
@@ -31,6 +31,7 @@ class Compiler(Tool):
         self._compile_flag = compile_flag if compile_flag else "-c"
         self._output_flag = output_flag if output_flag else "-o"
         self._omp_flag = omp_flag
+        self.flags.extend(os.getenv("FFLAGS", "").split())
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
