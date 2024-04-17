@@ -25,13 +25,13 @@ def test_MinimalFortran(tmp_path):
 
     # build
     with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
-                     project_label='foo', multiprocessing=False) as config, \
-         pytest.warns(UserWarning, match="removing managed flag"):
+                     project_label='foo', multiprocessing=False) as config:
         grab_folder(config, PROJECT_SOURCE),
         find_source_files(config),
         preprocess_fortran(config),
         analyse(config, root_symbol='test'),
-        compile_fortran(config, common_flags=['-c']),
+        with pytest.warns(UserWarning, match="Removing managed flag"):
+            compile_fortran(config, common_flags=['-c']),
         link_exe(config, linker='gcc', flags=['-lgfortran']),
 
     assert len(config._artefact_store[EXECUTABLES]) == 1

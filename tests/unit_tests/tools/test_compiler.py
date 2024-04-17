@@ -67,7 +67,7 @@ def test_compile_with_add_args():
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
-    with pytest.warns(UserWarning, match="removing managed flag"):
+    with pytest.warns(UserWarning, match="Removing managed flag"):
         fc.compile_file(Path("a.f90"), "a.o", add_flags=["-J/b", "-O3"],
                         syntax_only=True)
     # Notice that "-J/b" has been removed

@@ -22,13 +22,13 @@ import pytest
 
 def build(fab_workspace, fpp_flags=None):
     with BuildConfig(fab_workspace=fab_workspace, tool_box=ToolBox(),
-                     project_label='foo', multiprocessing=False) as config, \
-         pytest.warns(UserWarning, match="removing managed flag"):
+                     project_label='foo', multiprocessing=False) as config:
         grab_folder(config, Path(__file__).parent / 'project-source'),
         find_source_files(config),
         preprocess_fortran(config, common_flags=fpp_flags),
         analyse(config, root_symbol=['stay_or_go_now']),
-        compile_fortran(config, common_flags=['-c']),
+        with pytest.warns(UserWarning, match="Removing managed flag"):
+            compile_fortran(config, common_flags=['-c']),
         link_exe(config, linker='gcc', flags=['-lgfortran']),
 
     return config

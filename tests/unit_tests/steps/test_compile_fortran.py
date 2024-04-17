@@ -10,9 +10,9 @@ from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, get_fortran_compiler, \
-    get_mod_hashes, handle_compiler_args, MpCommonArgs, process_file, store_artefacts
+    get_mod_hashes, MpCommonArgs, process_file, store_artefacts
 from fab.steps.preprocess import get_fortran_preprocessor
-from fab.newtools import ToolBox
+from fab.newtools import FortranCompiler, ToolBox
 from fab.util import CompiledFile
 
 
@@ -133,16 +133,18 @@ class Test_process_file(object):
         analysed_file.add_module_def('mod_def_2')
 
         obj_combo_hash = '1eb0c2d19'
-        mods_combo_hash = '1747a9a0f'
+        mods_combo_hash = 'f5136bdb'
 
+        # Create a dummy compiler, and set a version number so FAB doesn't
+        # try to call foo_cc --version
+        compiler = FortranCompiler("foo_cc", "foo_cc", "-J")
+        compiler._version = "1.2.3"
         mp_common_args = MpCommonArgs(
             config=BuildConfig('proj', ToolBox(), fab_workspace=Path('/fab')),
             flags=flags_config,
-            compiler='foo_cc',
-            compiler_version='1.2.3',
+            compiler=compiler,
             mod_hashes={'mod_dep_1': 12345, 'mod_dep_2': 23456},
-            two_stage_flag=False,
-            stage=None,
+            syntax_only=False,
         )
 
         return mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash
@@ -193,7 +195,7 @@ class Test_process_file(object):
 
         # check we called the tool correctly
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
 
         # check the correct mod files were copied to the prebuild folder
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
@@ -248,7 +250,7 @@ class Test_process_file(object):
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
         # check the correct artefacts were returned
@@ -273,7 +275,7 @@ class Test_process_file(object):
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
         # check the correct artefacts were returned
@@ -301,7 +303,7 @@ class Test_process_file(object):
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
@@ -317,9 +319,8 @@ class Test_process_file(object):
         # changing the compiler must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, _, _ = self.content()
 
-        mp_common_args.compiler = 'bar_cc'
-        obj_combo_hash = '16c5a5a06'
-        mods_combo_hash = 'f5c8c6fc'
+        obj_combo_hash = '1eb0c2d19'
+        mods_combo_hash = 'f5136bdb'
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -330,7 +331,7 @@ class Test_process_file(object):
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
         # check the correct artefacts were returned
@@ -345,9 +346,8 @@ class Test_process_file(object):
         # changing the compiler version must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
 
-        mp_common_args.compiler_version = '1.2.4'
-        obj_combo_hash = '17927b778'
-        mods_combo_hash = '10296246e'
+        obj_combo_hash = '1eb0c2d19'
+        mods_combo_hash = 'f5136bdb'
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -358,7 +358,7 @@ class Test_process_file(object):
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
         # check the correct artefacts were returned
@@ -382,7 +382,7 @@ class Test_process_file(object):
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
         # check the correct artefacts were returned
@@ -406,7 +406,7 @@ class Test_process_file(object):
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
         assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
         mock_compile_file.assert_called_once_with(
-            analysed_file, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
         # check the correct artefacts were returned
@@ -416,54 +416,6 @@ class Test_process_file(object):
             pb / f'mod_def_2.{mods_combo_hash}.mod',
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
-
-
-class Test_constructor(object):
-
-    def test_bare(self):
-        with mock.patch.dict(os.environ, FC='foofc', clear=True):
-            with mock.patch('fab.steps.compile_fortran.get_compiler_version'):
-                compiler, compiler_version, flags = handle_compiler_args()
-        assert compiler == 'foofc'
-        assert flags.common_flags == []
-
-    def test_with_flags(self):
-        with mock.patch.dict(os.environ, FC='foofc -monty', FFLAGS='--foo --bar'):
-            with mock.patch('fab.steps.compile_fortran.get_compiler_version'):
-                compiler, compiler_version, flags = handle_compiler_args()
-        assert compiler == 'foofc'
-        assert flags.common_flags == ['-monty', '--foo', '--bar']
-
-    def test_gfortran_managed_flags(self):
-        with mock.patch.dict(os.environ, FC='gfortran -c', FFLAGS='-J /mods'):
-            with mock.patch('fab.steps.compile_fortran.get_compiler_version'), \
-                 pytest.warns(UserWarning, match="removing managed flag"):
-                compiler, compiler_version, flags = handle_compiler_args()
-        assert compiler == 'gfortran'
-        assert flags.common_flags == []
-
-    def test_ifort_managed_flags(self):
-        with mock.patch.dict(os.environ, FC='ifort -c', FFLAGS='-module /mods'):
-            with mock.patch('fab.steps.compile_fortran.get_compiler_version'), \
-                 pytest.warns(UserWarning, match="removing managed flag"):
-                compiler, compiler_version, flags = handle_compiler_args()
-        assert compiler == 'ifort'
-        assert flags.common_flags == []
-
-    def test_no_compiler(self):
-        with mock.patch.dict(os.environ, clear=True):
-            with mock.patch('fab.steps.compile_fortran.run_command', side_effect=RuntimeError):
-                with pytest.raises(RuntimeError):
-                    handle_compiler_args()
-
-    def test_unknown_compiler(self):
-        with mock.patch.dict(os.environ, FC='foofc -c', FFLAGS='-J /mods'):
-            with mock.patch('fab.steps.compile_fortran.get_compiler_version'):
-                compiler, compiler_version, flags = handle_compiler_args()
-        assert compiler == 'foofc'
-        assert flags.common_flags == ['-c', '-J', '/mods']
-
-    # todo: test with args - handle_compiler_args(common_flags, path_flags)
 
 
 class Test_get_mod_hashes(object):

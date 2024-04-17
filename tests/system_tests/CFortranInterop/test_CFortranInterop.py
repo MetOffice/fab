@@ -27,9 +27,7 @@ def test_CFortranInterop(tmp_path):
 
     # build
     with BuildConfig(fab_workspace=tmp_path, project_label='foo',
-                     tool_box=ToolBox(), multiprocessing=False) as config, \
-         pytest.warns(UserWarning, match="removing managed flag"):
-
+                     tool_box=ToolBox(), multiprocessing=False) as config:
         grab_folder(config, src=PROJECT_SOURCE),
         find_source_files(config),
 
@@ -40,7 +38,8 @@ def test_CFortranInterop(tmp_path):
         analyse(config, root_symbol='main'),
 
         compile_c(config, common_flags=['-c', '-std=c99']),
-        compile_fortran(config, common_flags=['-c']),
+        with pytest.warns(UserWarning, match="Removing managed flag"):
+            compile_fortran(config, common_flags=['-c']),
         link_exe(config, linker='gcc', flags=['-lgfortran']),
         # todo: on an ubuntu vm, we needed these before the object files - investigate further
         # [
