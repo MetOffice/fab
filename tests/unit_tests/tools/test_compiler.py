@@ -110,7 +110,6 @@ class TestGetCompilerVersion:
         '''If the command fails, we must return an empty string, not None,
         so it can still be hashed.'''
         c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
-        c.run = mock.Mock()
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
             assert c.get_version() == '', 'expected empty string'
         with mock.patch.object(c, 'run', side_effect=FileNotFoundError()):
