@@ -14,7 +14,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Type
 
-from fab.newtools import Categories, Cpp, Fpp, Gcc, Gfortran, Icc, Ifort
+from fab.newtools import (Categories, Cpp, CppFortran, Fpp, Gcc, Gfortran,
+                          Icc, Ifort)
 
 
 class ToolRepository(dict):
@@ -43,7 +44,7 @@ class ToolRepository(dict):
         super().__init__()
 
         # Add the FAB default tools:
-        for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp]:
+        for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp, CppFortran]:
             self.add_tool(cls)
 
     def add_tool(self, cls: Type[Any]):

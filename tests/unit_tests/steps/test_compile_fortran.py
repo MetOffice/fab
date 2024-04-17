@@ -11,7 +11,6 @@ from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, get_fortran_compiler, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
-from fab.steps.preprocess import get_fortran_preprocessor
 from fab.newtools import FortranCompiler, ToolBox
 from fab.util import CompiledFile
 
@@ -31,7 +30,7 @@ def artefact_store(analysed_files):
     return artefact_store
 
 
-class Test_compile_pass(object):
+class Test_compile_pass():
 
     def test_vanilla(self, analysed_files):
         # make sure it compiles b only
@@ -60,7 +59,7 @@ class Test_compile_pass(object):
         assert list(uncompiled_result)[0].fpath == Path('a.f90')
 
 
-class Test_get_compile_next(object):
+class Test_get_compile_next():
 
     def test_vanilla(self, analysed_files):
         a, b, c = analysed_files
@@ -81,7 +80,7 @@ class Test_get_compile_next(object):
             get_compile_next(already_compiled_files, to_compile)
 
 
-class Test_store_artefacts(object):
+class Test_store_artefacts():
 
     def test_vanilla(self):
 
@@ -118,7 +117,7 @@ class Test_store_artefacts(object):
         }
 
 
-class Test_process_file(object):
+class Test_process_file():
 
     def content(self, flags=None):
 
@@ -418,7 +417,7 @@ class Test_process_file(object):
         }
 
 
-class Test_get_mod_hashes(object):
+class Test_get_mod_hashes():
 
     def test_vanilla(self):
         # get a hash value for every module in the analysed file
@@ -438,43 +437,7 @@ class Test_get_mod_hashes(object):
         assert result == {'foo': 123, 'bar': 456}
 
 
-class Test_get_fortran_preprocessor(object):
-
-    def test_from_env(self):
-        with mock.patch.dict(os.environ, values={'FPP': 'foo_pp --foo'}):
-            fpp, fpp_flags = get_fortran_preprocessor()
-
-        assert fpp == 'foo_pp'
-        assert fpp_flags == ['--foo', '-P']
-
-    def test_empty_env_fpp(self):
-        # test with an empty FPP env var, and only fpp available at the command line
-        def mock_run_command(command):
-            if 'fpp' not in command:
-                raise RuntimeError('foo')
-
-        with mock.patch.dict(os.environ, clear=True):
-            with mock.patch('fab.steps.preprocess.run_command', side_effect=mock_run_command):
-                fpp, fpp_flags = get_fortran_preprocessor()
-
-        assert fpp == 'fpp'
-        assert fpp_flags == ['-P']
-
-    def test_empty_env_cpp(self):
-        # test with an empty FPP env var, and only cpp available at the command line
-        def mock_run_command(command):
-            if 'cpp' not in command:
-                raise RuntimeError('foo')
-
-        with mock.patch.dict(os.environ, clear=True):
-            with mock.patch('fab.steps.preprocess.run_command', side_effect=mock_run_command):
-                fpp, fpp_flags = get_fortran_preprocessor()
-
-        assert fpp == 'cpp'
-        assert fpp_flags == ['-traditional-cpp', '-P']
-
-
-class Test_get_fortran_compiler(object):
+class Test_get_fortran_compiler():
 
     def test_from_env(self):
         with mock.patch.dict(os.environ, values={'FC': 'foo_c --foo'}):

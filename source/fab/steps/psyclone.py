@@ -24,7 +24,8 @@ from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
-from fab.steps.preprocess import get_fortran_preprocessor, pre_processor
+from fab.steps.preprocess import pre_processor
+from fab.newtools import Categories
 from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \
     string_checksum, suffix_filter, by_type, log_or_dot_finish
 
@@ -45,11 +46,7 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
     common_flags = common_flags or []
 
     # get the tool from FPP
-    fpp, fpp_flags = get_fortran_preprocessor()
-    for fpp_flag in fpp_flags:
-        if fpp_flag not in common_flags:
-            common_flags.append(fpp_flag)
-
+    fpp = config.tool_box[Categories.FORTRAN_PREPROCESSOR]
     source_files = SuffixFilter('all_source', '.X90')(config._artefact_store)
 
     pre_processor(
@@ -130,8 +127,6 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     cli_args = cli_args or []
 
     source_getter = source_getter or DEFAULT_SOURCE_GETTER
-    overrides_folder = overrides_folder
-
     x90s = source_getter(config._artefact_store)
 
     # get the data for child processes to calculate prebuild hashes
