@@ -9,6 +9,7 @@
 
 
 import logging
+from pathlib import Path
 
 from unittest import mock
 
@@ -60,8 +61,15 @@ def test_preprocessor_cppfortran():
     mock_run = mock.Mock(return_value=mock_result)
 
     with mock.patch("subprocess.run", mock_run):
-        cppf.run("--version")
+        # First test calling without additional flags:
+        cppf.preprocess(Path("a.in"), Path("a.out"))
         mock_run.assert_called_with(["cpp", "-traditional-cpp", "-P",
-                                     "--version"],
+                                     "a.in", "a.out"],
+                                    capture_output=True, env=None, cwd=None,
+                                    check=False)
+        # Then test with added flags:
+        cppf.preprocess(Path("a.in"), Path("a.out"), ["-DDO_SOMETHING"])
+        mock_run.assert_called_with(["cpp", "-traditional-cpp", "-P",
+                                     "-DDO_SOMETHING", "a.in", "a.out"],
                                     capture_output=True, env=None, cwd=None,
                                     check=False)

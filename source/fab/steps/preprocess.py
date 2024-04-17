@@ -26,11 +26,11 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class MpCommonArgs(object):
+class MpCommonArgs():
     """Common args for calling process_artefact() using multiprocessing."""
     config: BuildConfig
     output_suffix: str
-    preprocessor: str
+    preprocessor: Preprocessor
     flags: FlagsConfig
     name: str
 
@@ -96,31 +96,30 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
     Writes the output file to the output folder, with a lower case extension.
 
     """
-    fpath, args = arg
+    input_fpath, args = arg
 
     with Timer() as timer:
-
-        # output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
-        output_fpath = input_to_output_fpath(config=args.config, input_path=fpath).with_suffix(args.output_suffix)
+        output_fpath = (input_to_output_fpath(config=args.config,
+                                              input_path=input_fpath)
+                        .with_suffix(args.output_suffix))
 
         # already preprocessed?
         # todo: remove reuse_artefacts everywhere!
         if args.config.reuse_artefacts and output_fpath.exists():
-            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+            log_or_dot(logger, f'Preprocessor skipping: {input_fpath}')
         else:
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            params = args.flags.flags_for_path(path=fpath, config=args.config)
-            params.append(str(fpath))
-            params.append(str(output_fpath))
+            params = args.flags.flags_for_path(path=input_fpath, config=args.config)
 
-            log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(params))
+            log_or_dot(logger, f"PreProcessor running with parameters: "
+                               f"'{' '.join(params)}'.'")
             try:
-                args.preprocessor.run(params)
+                args.preprocessor.preprocess(input_fpath, output_fpath, params)
             except Exception as err:
-                raise Exception(f"error preprocessing {fpath}:\n{err}")
+                raise Exception(f"error preprocessing {input_fpath}:\n{err}")
 
-    send_metric(args.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
+    send_metric(args.name, str(input_fpath), {'time_taken': timer.taken, 'start': timer.start})
     return output_fpath
 
 
