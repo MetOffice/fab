@@ -1,0 +1,11 @@
+{# Crown copyright is displayed differently to normal. #}
+{# Configured from conf.py as per usual. #}
+{% if show_copyright and copyright %}
+<p class="copyright">
+    {% if hasdoc('copyright') %}
+    {% trans path=pathto('copyright'), copyright=copyright|e %}© <a href="{{ path }}">Copyright</a> {{ copyright }}.{% endtrans %}
+    {% else %}
+    {% trans copyright=copyright|e %}© Crown Copyright {{ copyright }}.{% endtrans %}
+    {% endif %}
+</p>
+{% endif %}
