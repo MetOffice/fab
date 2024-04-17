@@ -31,6 +31,15 @@ class Cpp(Preprocessor):
 
 
 # ============================================================================
+class CppFortran(Preprocessor):
+    '''Class for cpp when used as a Fortran preprocessor
+    '''
+    def __init__(self):
+        super().__init__("cpp", "cpp", Categories.FORTRAN_PREPROCESSOR)
+        self.flags.extend(["-traditional-cpp", "-P"])
+
+
+# ============================================================================
 class Fpp(Preprocessor):
     '''Class for the Fortran-specific preprocessor.
     '''
