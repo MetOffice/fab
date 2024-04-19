@@ -9,48 +9,55 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
-from fab.newtools import ToolBox
+from fab.newtools import Categories, Compiler, Gcc, ToolBox
 
 
 @pytest.fixture
 def content(tmp_path):
-    config = BuildConfig('proj', ToolBox(), multiprocessing=False,
+    tool_box = ToolBox()
+    mock_compiler = Compiler("mock_compiler", "mock_exec",
+                             Categories.C_COMPILER)
+    mock_compiler.run = mock.Mock()
+    mock_compiler._version="1.2.3"
+    tool_box.add_tool(mock_compiler)
+
+    config = BuildConfig('proj', tool_box, multiprocessing=False,
                          fab_workspace=tmp_path)
     config.init_artefact_store()
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
     config._artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
-    expect_hash = 9120682468
+    expect_hash = 6169392749
     return config, analysed_file, expect_hash
 
 
 # This is more of an integration test than a unit test
-class Test_CompileC(object):
+class Test_CompileC():
 
     def test_vanilla(self, content):
         # ensure the command is formed correctly
         config, analysed_file, expect_hash = content
+        compiler = config.tool_box[Categories.C_COMPILER]
 
         # run the step
-        with mock.patch.multiple(
-                'fab.steps.compile_c',
-                run_command=DEFAULT,
-                send_metric=DEFAULT,
-                get_compiler_version=mock.Mock(return_value='1.2.3')) as values:
+        with mock.patch("fab.steps.compile_c.send_metric") as send_metric:
             with mock.patch('pathlib.Path.mkdir'):
-                with mock.patch.dict(os.environ, {'CC': 'foo_cc', 'CFLAGS': '-Denv_flag'}), \
+                with mock.patch.dict(os.environ, {'CFLAGS': '-Denv_flag'}), \
                      pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                     compile_c(
                         config=config, path_flags=[AddFlags(match='$source/*', flags=['-I', 'foo/include', '-Dhello'])])
 
         # ensure it made the correct command-line call from the child process
-        values['run_command'].assert_called_with([
-            'foo_cc', '-c', '-Denv_flag', '-I', 'foo/include', '-Dhello',
-            f'{config.source_root}/foo.c', '-o', str(config.prebuild_folder / f'foo.{expect_hash:x}.o'),
-        ])
+        compiler.run.assert_called_with(
+            cwd=Path(config.source_root),
+            additional_parameters=['-c', '-Denv_flag', '-I', 'foo/include',
+                                   '-Dhello', 'foo.c',
+                                   '-o', str(config.prebuild_folder /
+                                             f'foo.{expect_hash:x}.o')],
+        )
 
         # ensure it sent a metric from the child process
-        values['send_metric'].assert_called_once()
+        send_metric.assert_called_once()
 
         # ensure it created the correct artefact collection
         assert config._artefact_store[OBJECT_FILES] == {
@@ -59,10 +66,10 @@ class Test_CompileC(object):
 
     def test_exception_handling(self, content):
         config, _, _ = content
-
-        # mock the run command to raise
+        compiler = config.tool_box[Categories.C_COMPILER]
+        # mock the run command to raise an exception
         with pytest.raises(RuntimeError):
-            with mock.patch('fab.steps.compile_c.run_command', side_effect=Exception):
+            with mock.patch.object(compiler, "run", side_effect=Exception):
                 with mock.patch('fab.steps.compile_c.send_metric') as mock_send_metric:
                     with mock.patch('pathlib.Path.mkdir'):
                         compile_c(config=config)
@@ -71,35 +78,42 @@ class Test_CompileC(object):
         mock_send_metric.assert_not_called()
 
 
-class Test_get_obj_combo_hash(object):
+class Test_get_obj_combo_hash():
 
     @pytest.fixture
     def flags(self):
-        return ['-c', '-Denv_flag', '-I', 'foo/include', '-Dhello']
+        return ['-Denv_flag', '-I', 'foo/include', '-Dhello']
 
     def test_vanilla(self, content, flags):
-        _, analysed_file, expect_hash = content
-        result = _get_obj_combo_hash('foo_cc', '1.2.3', analysed_file, flags)
+        config, analysed_file, expect_hash = content
+        compiler = config.tool_box[Categories.C_COMPILER]
+        result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result == expect_hash
 
     def test_change_file(self, content, flags):
-        _, analysed_file, expect_hash = content
+        config, analysed_file, expect_hash = content
+        compiler = config.tool_box[Categories.C_COMPILER]
         analysed_file._file_hash += 1
-        result = _get_obj_combo_hash('foo_cc', '1.2.3', analysed_file, flags)
+        result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result == expect_hash + 1
 
     def test_change_flags(self, content, flags):
-        _, analysed_file, expect_hash = content
+        config, analysed_file, expect_hash = content
+        compiler = config.tool_box[Categories.C_COMPILER]
         flags = ['-Dfoo'] + flags
-        result = _get_obj_combo_hash('foo_cc', '1.2.3', analysed_file, flags)
+        result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result != expect_hash
 
     def test_change_compiler(self, content, flags):
-        _, analysed_file, expect_hash = content
-        result = _get_obj_combo_hash('ooh_cc', '1.2.3', analysed_file, flags)
+        config, analysed_file, expect_hash = content
+        result = _get_obj_combo_hash(Gcc(), analysed_file, flags)
         assert result != expect_hash
 
     def test_change_compiler_version(self, content, flags):
-        _, analysed_file, expect_hash = content
-        result = _get_obj_combo_hash('foo_cc', '1.2.4', analysed_file, flags)
+        '''Test that a change in the name of the compiler changes
+        the hash.'''
+        config, analysed_file, expect_hash = content
+        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler._version = "9.8.7"
+        result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result != expect_hash
