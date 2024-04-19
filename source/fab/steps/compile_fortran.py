@@ -14,7 +14,6 @@ Fortran file compilation.
 import logging
 import os
 import shutil
-import zlib
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import chain
@@ -300,8 +299,7 @@ def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs, flags):
             analysed_file.file_hash,
             flags_checksum(flags),
             sum(mod_deps_hashes.values()),
-            zlib.crc32(mp_common_args.compiler.name.encode()),
-            zlib.crc32(mp_common_args.compiler.get_version().encode()),
+            mp_common_args.compiler.get_hash(),
         ])
     except TypeError:
         raise ValueError("could not generate combo hash for object file")
@@ -313,8 +311,7 @@ def _get_mod_combo_hash(analysed_file, compiler: Compiler):
     try:
         mod_combo_hash = sum([
             analysed_file.file_hash,
-            zlib.crc32(compiler.name.encode()),
-            zlib.crc32(compiler.get_version().encode()),
+            compiler.get_hash(),
         ])
     except TypeError:
         raise ValueError("could not generate combo hash for mod files")

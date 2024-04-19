@@ -33,6 +33,20 @@ def test_compiler():
     assert fc.flags == []
 
 
+def test_compiler_hash():
+    '''Test the hash functionality.'''
+    cc = CCompiler("gcc", "gcc")
+    assert cc.get_hash() == 3584447629
+    # A change in the version number must change the hash:
+    cc._version = "-123"
+    new_hash = cc.get_hash()
+    assert new_hash != 3584447629
+
+    # A change in the name must change the hash, again:
+    cc._name = "new_name"
+    assert cc.get_hash() != new_hash
+
+
 def test_compiler_with_env_fflags():
     '''Test that content of FFLAGS is added to the compiler flags.'''
     with mock.patch.dict(os.environ, FFLAGS='--foo --bar'):

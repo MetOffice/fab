@@ -9,7 +9,6 @@ C file compilation.
 """
 import logging
 import os
-import zlib
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
@@ -147,8 +146,7 @@ def _get_obj_combo_hash(compiler, analysed_file, flags):
         obj_combo_hash = sum([
             analysed_file.file_hash,
             flags_checksum(flags),
-            zlib.crc32(compiler.name.encode()),
-            zlib.crc32(str(compiler.get_version()).encode()),
+            compiler.get_hash(),
         ])
     except TypeError:
         raise ValueError("could not generate combo hash for object file")

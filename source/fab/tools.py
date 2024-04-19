@@ -10,68 +10,11 @@ Known command line tools whose flags we wish to manage.
 import logging
 from pathlib import Path
 import subprocess
-import warnings
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from fab.util import string_checksum
 
 logger = logging.getLogger(__name__)
-
-
-class Compiler(object):
-    """
-    A command-line compiler whose flags we wish to manage.
-
-    """
-    def __init__(self, exe, compile_flag, module_folder_flag):
-        self.exe = exe
-        self.compile_flag = compile_flag
-        self.module_folder_flag = module_folder_flag
-        # We should probably extend this for fPIC, two-stage and optimisation levels.
-
-
-COMPILERS: Dict[str, Compiler] = {
-    'gfortran': Compiler(exe='gfortran', compile_flag='-c', module_folder_flag='-J'),
-    'ifort': Compiler(exe='ifort', compile_flag='-c', module_folder_flag='-module'),
-}
-
-
-# todo: We're not sure we actually want to do modify incoming flags. Discuss...
-# todo: this is compiler specific, rename - and do we want similar functions for other steps?
-def remove_managed_flags(compiler, flags_in):
-    """
-    Remove flags which Fab manages.
-
-    Fab prefers to specify a few compiler flags itself.
-    For example, Fab wants to place module files in the `build_output` folder.
-    The flag to do this differs with compiler.
-
-    We don't want duplicate, possibly conflicting flags in our tool invocation so this function is used
-    to remove any flags which Fab wants to manage.
-
-    If the compiler is not known to Fab, we rely on the user to specify these flags in their config.
-
-    .. note::
-
-        This approach is due for discussion. It might not be desirable to modify user flags at all.
-
-    """
-    def remove_flag(flags: List[str], flag: str, len):
-        while flag in flags:
-            warnings.warn(f'removing managed flag {flag} for compiler {compiler}')
-            flag_index = flags.index(flag)
-            for _ in range(len):
-                flags.pop(flag_index)
-
-    known_compiler = COMPILERS.get(compiler)
-    if not known_compiler:
-        logger.warning('Unable to remove managed flags for unknown compiler. User config must specify managed flags.')
-        return flags_in
-
-    flags_out = [*flags_in]
-    remove_flag(flags_out, known_compiler.compile_flag, 1)
-    remove_flag(flags_out, known_compiler.module_folder_flag, 2)
-    return flags_out
 
 
 def flags_checksum(flags: List[str]):
@@ -127,47 +70,3 @@ def get_tool(tool_str: Optional[str] = None) -> Tuple[str, List[str]]:
     if not tool_split:
         raise ValueError(f"Tool not specified in '{tool_str}'. Cannot continue.")
     return tool_split[0], tool_split[1:]
-
-
-# todo: add more compilers and test with more versions of compilers
-def get_compiler_version(compiler: str) -> str:
-    """
-    Try to get the version of the given compiler.
-
-    Expects a version in a certain part of the --version output,
-    which must adhere to the n.n.n format, with at least 2 parts.
-
-    Returns a version string, e.g '6.10.1', or empty string.
-
-    :param compiler:
-        The command line tool for which we want a version.
-
-    """
-    try:
-        res = run_command([compiler, '--version'])
-    except FileNotFoundError:
-        raise ValueError(f'Compiler not found: {compiler}')
-    except RuntimeError as err:
-        logger.warning(f"Error asking for version of compiler '{compiler}': {err}")
-        return ''
-
-    # Pull the version string from the command output.
-    # All the versions of gfortran and ifort we've tried follow the same pattern, it's after a ")".
-    try:
-        version = res.split(')')[1].split()[0]
-    except IndexError:
-        logger.warning(f"Unexpected version response from compiler '{compiler}': {res}")
-        return ''
-
-    # expect major.minor[.patch, ...]
-    # validate - this may be overkill
-    split = version.split('.')
-    if len(split) < 2:
-        logger.warning(f"unhandled compiler version format for compiler '{compiler}' is not <n.n[.n, ...]>: {version}")
-        return ''
-
-    # todo: do we care if the parts are integers? Not all will be, but perhaps major and minor?
-
-    logger.info(f'Found compiler version for {compiler} = {version}')
-
-    return version

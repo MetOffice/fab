@@ -11,6 +11,7 @@ classes for gcc, gfortran, icc, ifort
 import os
 from pathlib import Path
 from typing import List, Union
+import zlib
 
 from fab.newtools.categories import Categories
 from fab.newtools.flags import Flags
@@ -32,6 +33,12 @@ class Compiler(Tool):
         self._output_flag = output_flag if output_flag else "-o"
         self._omp_flag = omp_flag
         self.flags.extend(os.getenv("FFLAGS", "").split())
+
+    def get_hash(self) -> int:
+        ''':returns: a hash based on the compiler name and version.
+        '''
+        return (zlib.crc32(self.name.encode()) +
+                zlib.crc32(str(self.get_version()).encode()))
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
