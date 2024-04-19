@@ -67,7 +67,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
         A list of :class:`~fab.build_config.AddFlags`, defining flags to be included in the command line call
         for selected files.
     :param source:
-        An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
+        An :class:`~fab.artefacts.ArtefactsGetter` which gives us our Fortran files to process.
 
     """
 
