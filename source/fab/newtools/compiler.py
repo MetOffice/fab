@@ -35,10 +35,12 @@ class Compiler(Tool):
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
-        params = [input_file.name, self._compile_flag,
-                  self._output_flag, str(output_file)]
+        params = [self._compile_flag]
         if add_flags:
             params += add_flags
+
+        params.extend([input_file.name,
+                      self._output_flag, str(output_file)])
 
         return self.run(cwd=input_file.parent,
                         additional_parameters=params)

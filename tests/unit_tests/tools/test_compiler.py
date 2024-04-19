@@ -57,9 +57,9 @@ def test_compiler_syntax_only():
     fc.run = mock.Mock()
     fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
     fc.run.assert_called_with(cwd=Path('.'),
-                              additional_parameters=['a.f90', '-c', '-o',
-                                                     'a.o', '-fsyntax-only',
-                                                     "-J", "/tmp"])
+                              additional_parameters=['-c', '-fsyntax-only',
+                                                     "-J", '/tmp', 'a.f90',
+                                                     '-o', 'a.o', ])
 
 
 def test_compiler_module_output():
@@ -70,9 +70,8 @@ def test_compiler_module_output():
     fc.run = mock.MagicMock()
     fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
     fc.run.assert_called_with(cwd=PosixPath('.'),
-                              additional_parameters=['a.f90', '-c', '-o',
-                                                     'a.o',
-                                                     '-J', '/module_out'])
+                              additional_parameters=['-c', '-J', '/module_out',
+                                                     'a.f90', '-o', 'a.o'])
 
 
 def test_compiler_with_add_args():
@@ -86,9 +85,9 @@ def test_compiler_with_add_args():
                         syntax_only=True)
     # Notice that "-J/b" has been removed
     fc.run.assert_called_with(cwd=PosixPath('.'),
-                              additional_parameters=['a.f90', '-c', '-o',
-                                                     'a.o', "-O3",
-                                                     '-J', '/module_out'])
+                              additional_parameters=['-c', "-O3",
+                                                     '-J', '/module_out',
+                                                     'a.f90', '-o', 'a.o'])
 
 
 class TestGetCompilerVersion:
