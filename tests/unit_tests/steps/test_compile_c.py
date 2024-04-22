@@ -16,7 +16,7 @@ def content(tmp_path):
     config = BuildConfig('proj', multiprocessing=False, fab_workspace=tmp_path)
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
-    config._artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
+    config.artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
     expect_hash = 9120682468
     return config, analysed_file, expect_hash
 
@@ -50,7 +50,7 @@ class Test_CompileC(object):
         values['send_metric'].assert_called_once()
 
         # ensure it created the correct artefact collection
-        assert config._artefact_store[OBJECT_FILES] == {
+        assert config.artefact_store[OBJECT_FILES] == {
             None: {config.prebuild_folder / f'foo.{expect_hash:x}.o', }
         }
 
