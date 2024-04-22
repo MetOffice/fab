@@ -136,7 +136,6 @@ def fixture_content(tool_box):
     mp_common_args = MpCommonArgs(
         config=BuildConfig('proj', tool_box, fab_workspace=Path('/fab')),
         flags=flags_config,
-        compiler=mock_fortran_compiler,
         mod_hashes={'mod_dep_1': 12345, 'mod_dep_2': 23456},
         syntax_only=False,
     )
@@ -318,7 +317,8 @@ class TestProcessFile():
     def test_compiler_hash(self, content):
         # changing the compiler must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
-        mp_common_args.compiler._name += "xx"
+        compiler = mp_common_args.config.tool_box[Categories.FORTRAN_COMPILER]
+        compiler._name += "xx"
 
         obj_combo_hash = '19dfa6c83'
         mods_combo_hash = '12768d979'
@@ -348,7 +348,8 @@ class TestProcessFile():
     def test_compiler_version_hash(self, content):
         # changing the compiler version must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
-        mp_common_args.compiler._version = "9.8.7"
+        compiler = mp_common_args.config.tool_box[Categories.FORTRAN_COMPILER]
+        compiler._version = "9.8.7"
 
         obj_combo_hash = '1a87f4e07'
         mods_combo_hash = '131edbafd'

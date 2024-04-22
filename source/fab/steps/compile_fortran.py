@@ -37,11 +37,10 @@ DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
 
 @dataclass
-class MpCommonArgs(object):
+class MpCommonArgs():
     """Arguments to be passed into the multiprocessing function, alongside the filenames."""
     config: BuildConfig
     flags: FlagsConfig
-    compiler: Compiler
     mod_hashes: Dict[str, int]
     syntax_only: bool
 
@@ -83,7 +82,7 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
     syntax_only = compiler.has_syntax_only and config.two_stage
     # build the arguments passed to the multiprocessing function
     mp_common_args = MpCommonArgs(
-        config=config, flags=flags_config, compiler=compiler,
+        config=config, flags=flags_config,
         mod_hashes=mod_hashes, syntax_only=syntax_only)
 
     # compile everything in multiple passes
@@ -233,7 +232,9 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
         flags = mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=config)
 
         mod_combo_hash = _get_mod_combo_hash(analysed_file, compiler=compiler)
-        obj_combo_hash = _get_obj_combo_hash(analysed_file, mp_common_args=mp_common_args, flags=flags)
+        obj_combo_hash = _get_obj_combo_hash(analysed_file,
+                                             mp_common_args=mp_common_args,
+                                             compiler=compiler, flags=flags)
 
         # calculate the incremental/prebuild artefact filenames
         obj_file_prebuild = mp_common_args.config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
@@ -289,7 +290,8 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
     return compiled_file, artefacts
 
 
-def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs, flags):
+def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs,
+                        compiler: Compiler, flags):
     # get a combo hash of things which matter to the object file we define
     # todo: don't just silently use 0 for a missing dep hash
     mod_deps_hashes = {
@@ -299,7 +301,7 @@ def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs, flags):
             analysed_file.file_hash,
             flags_checksum(flags),
             sum(mod_deps_hashes.values()),
-            mp_common_args.compiler.get_hash(),
+            compiler.get_hash(),
         ])
     except TypeError:
         raise ValueError("could not generate combo hash for object file")
