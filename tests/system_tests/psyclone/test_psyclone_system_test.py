@@ -173,7 +173,7 @@ class TestPsyclone(object):
         # So use a list instead:
         assert all(list(config.prebuild_folder.glob(f)) == [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) == [] for f in expect_build_files)
-        with config:
+        with config, pytest.warns(UserWarning, match="no transformation script specified"):
             self.steps(config)
         assert all(list(config.prebuild_folder.glob(f)) != [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) != [] for f in expect_build_files)

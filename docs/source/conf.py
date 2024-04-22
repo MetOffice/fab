@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.abspath('../../source'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'fab'
-copyright = '2023'
+project = 'Fab'
+copyright = '2024 Met Office. All rights reserved.'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
@@ -52,24 +52,35 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 
+# -- Autodoc -----------------------------------------------------------------
+
+autodoc_default_options = {
+    'members': True,
+    'show-inheritane': True
+}
+
+autoclass_content = 'both'
+
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+html_theme = 'pydata_sphinx_theme'
 
-# ugly
-# html_theme = "classic"
-
-# poor contrast between title, h1 & h2
-# html_theme = "sphinxdoc"
-# html_theme = "sphinx_rtd_theme"
-# html_theme = 'python_docs_theme'
-
-# good contrast between title, h1 & h2
-# html_theme = 'alabaster'
-html_theme = 'sphinx_material'
-
+html_theme_options = {
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/metomi/fab",
+            "icon": "fa-brands fa-github"
+        }
+    ],
+    "footer_start": ["crown-copyright"],
+    "footer_center": ["sphinx-version"],
+    "footer_end": ["theme-version"],
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -93,12 +104,3 @@ autosectionlabel_prefix_document = True
 
 # include default values in argument descriptions
 typehints_defaults = 'braces-after'
-
-# needed when using material theme
-html_sidebars = {
-    "**": ["logo-text.html", "globaltoc.html", "localtoc.html", "searchbox.html"]
-}
-# needed when not using material theme
-# html_sidebars = {
-#     "**": ["globaltoc.html", "searchbox.html"]
-# }
