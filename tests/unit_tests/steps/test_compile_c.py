@@ -9,17 +9,13 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
-from fab.newtools import Categories, Compiler, Gcc, ToolBox
+from fab.newtools import Categories, ToolBox
 
 
 @pytest.fixture
-def content(tmp_path):
+def content(tmp_path, mock_c_compiler):
     tool_box = ToolBox()
-    mock_compiler = Compiler("mock_compiler", "mock_exec",
-                             Categories.C_COMPILER)
-    mock_compiler.run = mock.Mock()
-    mock_compiler._version="1.2.3"
-    tool_box.add_tool(mock_compiler)
+    tool_box.add_tool(mock_c_compiler)
 
     config = BuildConfig('proj', tool_box, multiprocessing=False,
                          fab_workspace=tmp_path)
@@ -106,7 +102,10 @@ class Test_get_obj_combo_hash():
 
     def test_change_compiler(self, content, flags):
         config, analysed_file, expect_hash = content
-        result = _get_obj_combo_hash(Gcc(), analysed_file, flags)
+        compiler = config.tool_box[Categories.C_COMPILER]
+        # Change the name of the compiler
+        compiler._name = compiler.name + "XX"
+        result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result != expect_hash
 
     def test_change_compiler_version(self, content, flags):
