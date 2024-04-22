@@ -22,8 +22,11 @@ classifiers = [
 c-language = ['python-clang']
 plots = ['matplotlib']
 tests = ['pytest', 'pytest-cov', 'pytest-mock']
-checks = ['flake8', 'mypy']
-docs = ['sphinx', 'sphinx-material', 'sphinx-autodoc-typehints', 'sphinx-copybutton']
+checks = ['flake8>=5.0.4', 'mypy']
+docs = ['sphinx',
+        'pydata-sphinx-theme>=0.13.3',
+        'sphinx-autodoc-typehints',
+        'sphinx-copybutton']
 dev = ['sci-fab[plots, tests, checks, docs]']
 
 [project.scripts]
