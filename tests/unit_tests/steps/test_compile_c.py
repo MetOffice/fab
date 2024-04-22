@@ -1,7 +1,15 @@
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+
+'''Tests the compile_c.py step.
+'''
+
 import os
 from pathlib import Path
 from unittest import mock
-from unittest.mock import DEFAULT
 
 import pytest
 
@@ -9,13 +17,14 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
-from fab.newtools import Categories, ToolBox
+from fab.newtools import Categories
 
 
-@pytest.fixture
-def content(tmp_path, mock_c_compiler):
-    tool_box = ToolBox()
-    tool_box.add_tool(mock_c_compiler)
+# This avoids pylint warnings about Redefining names from outer scope
+@pytest.fixture(name="content")
+def fixture_content(tmp_path, tool_box):
+    '''Provides a test environment consisting of a config instance,
+    analysed file and expected hash.'''
 
     config = BuildConfig('proj', tool_box, multiprocessing=False,
                          fab_workspace=tmp_path)
@@ -23,25 +32,28 @@ def content(tmp_path, mock_c_compiler):
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
     config._artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
-    expect_hash = 6169392749
+    expect_hash = 7435424994
     return config, analysed_file, expect_hash
 
 
 # This is more of an integration test than a unit test
-class Test_CompileC():
+class TestCompileC():
+    '''Test various functionalities of the C compilation step.'''
 
     def test_vanilla(self, content):
-        # ensure the command is formed correctly
-        config, analysed_file, expect_hash = content
+        '''Ensure the command is formed correctly.'''
+        config, _, expect_hash = content
         compiler = config.tool_box[Categories.C_COMPILER]
 
         # run the step
         with mock.patch("fab.steps.compile_c.send_metric") as send_metric:
             with mock.patch('pathlib.Path.mkdir'):
                 with mock.patch.dict(os.environ, {'CFLAGS': '-Denv_flag'}), \
-                     pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-                    compile_c(
-                        config=config, path_flags=[AddFlags(match='$source/*', flags=['-I', 'foo/include', '-Dhello'])])
+                     pytest.warns(UserWarning, match="_metric_send_conn not set, "
+                                                     "cannot send metrics"):
+                    compile_c(config=config,
+                              path_flags=[AddFlags(match='$source/*',
+                                                   flags=['-I', 'foo/include', '-Dhello'])])
 
         # ensure it made the correct command-line call from the child process
         compiler.run.assert_called_with(
@@ -61,6 +73,7 @@ class Test_CompileC():
         }
 
     def test_exception_handling(self, content):
+        '''Test exception handling if the compiler fails.'''
         config, _, _ = content
         compiler = config.tool_box[Categories.C_COMPILER]
         # mock the run command to raise an exception
@@ -74,19 +87,24 @@ class Test_CompileC():
         mock_send_metric.assert_not_called()
 
 
-class Test_get_obj_combo_hash():
+class TestGetObjComboHash():
+    '''Tests the object combo hash functionality.'''
 
     @pytest.fixture
     def flags(self):
+        '''Returns the flag for these tests.'''
         return ['-Denv_flag', '-I', 'foo/include', '-Dhello']
 
     def test_vanilla(self, content, flags):
+        '''Test that we get the expected hashes in this test setup.'''
         config, analysed_file, expect_hash = content
         compiler = config.tool_box[Categories.C_COMPILER]
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result == expect_hash
 
     def test_change_file(self, content, flags):
+        '''Check that a change in the file (simulated by changing
+        the hash) changes the obj combo hash.'''
         config, analysed_file, expect_hash = content
         compiler = config.tool_box[Categories.C_COMPILER]
         analysed_file._file_hash += 1
@@ -94,6 +112,7 @@ class Test_get_obj_combo_hash():
         assert result == expect_hash + 1
 
     def test_change_flags(self, content, flags):
+        '''Test that changing the flags changes the hash.'''
         config, analysed_file, expect_hash = content
         compiler = config.tool_box[Categories.C_COMPILER]
         flags = ['-Dfoo'] + flags
@@ -101,6 +120,8 @@ class Test_get_obj_combo_hash():
         assert result != expect_hash
 
     def test_change_compiler(self, content, flags):
+        '''Test that a change in the name of the compiler changes
+        the hash.'''
         config, analysed_file, expect_hash = content
         compiler = config.tool_box[Categories.C_COMPILER]
         # Change the name of the compiler
@@ -109,8 +130,8 @@ class Test_get_obj_combo_hash():
         assert result != expect_hash
 
     def test_change_compiler_version(self, content, flags):
-        '''Test that a change in the name of the compiler changes
-        the hash.'''
+        '''Test that a change in the version number of the compiler
+        changes the hash.'''
         config, analysed_file, expect_hash = content
         compiler = config.tool_box[Categories.C_COMPILER]
         compiler._version = "9.8.7"

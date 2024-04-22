@@ -11,28 +11,29 @@ from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, get_fortran_compiler, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
-from fab.newtools import FortranCompiler, ToolBox
+from fab.newtools import Categories
 from fab.util import CompiledFile
 
 
-@pytest.fixture
-def analysed_files():
+# This avoids pylint warnings about Redefining names from outer scope
+@pytest.fixture(name="analysed_files")
+def fixture_analysed_files():
     a = AnalysedFortran(fpath=Path('a.f90'), file_deps={Path('b.f90')}, file_hash=0)
     b = AnalysedFortran(fpath=Path('b.f90'), file_deps={Path('c.f90')}, file_hash=0)
     c = AnalysedFortran(fpath=Path('c.f90'), file_hash=0)
     return a, b, c
 
 
-@pytest.fixture
-def artefact_store(analysed_files):
+@pytest.fixture(name="artefact_store")
+def fixture_artefact_store(analysed_files):
     build_tree = {af.fpath: af for af in analysed_files}
     artefact_store = {BUILD_TREES: {None: build_tree}}
     return artefact_store
 
 
-class Test_compile_pass():
+class TestCompilePass():
 
-    def test_vanilla(self, analysed_files):
+    def test_vanilla(self, analysed_files, tool_box):
         # make sure it compiles b only
         a, b, c = analysed_files
         uncompiled = {a, b}
@@ -48,7 +49,7 @@ class Test_compile_pass():
         # this gets filled in
         mod_hashes: Dict[str, int] = {}
 
-        config = BuildConfig('proj', ToolBox())
+        config = BuildConfig('proj', tool_box)
         with mock.patch('fab.steps.compile_fortran.run_mp', return_value=run_mp_results):
             with mock.patch('fab.steps.compile_fortran.get_mod_hashes'):
                 uncompiled_result = compile_pass(config=config, compiled=compiled, uncompiled=uncompiled,
@@ -59,7 +60,7 @@ class Test_compile_pass():
         assert list(uncompiled_result)[0].fpath == Path('a.f90')
 
 
-class Test_get_compile_next():
+class TestGetCompileNext():
 
     def test_vanilla(self, analysed_files):
         a, b, c = analysed_files
@@ -72,7 +73,7 @@ class Test_get_compile_next():
 
     def test_unable_to_compile_anything(self, analysed_files):
         # like vanilla, except c hasn't been compiled
-        a, b, c = analysed_files
+        a, b, _ = analysed_files
         to_compile = {a, b}
         already_compiled_files = {}
 
@@ -80,7 +81,7 @@ class Test_get_compile_next():
             get_compile_next(already_compiled_files, to_compile)
 
 
-class Test_store_artefacts():
+class TestStoreArtefacts():
 
     def test_vanilla(self):
 
@@ -116,37 +117,35 @@ class Test_store_artefacts():
             }
         }
 
+# This avoids pylint warnings about Redefining names from outer scope
+@pytest.fixture(name="content")
+def fixture_content(tool_box):
+    flags = ['flag1', 'flag2']
+    flags_config = mock.Mock()
+    flags_config.flags_for_path.return_value = flags
 
-class Test_process_file():
+    analysed_file = AnalysedFortran(fpath=Path('foofile'), file_hash=34567)
+    analysed_file.add_module_dep('mod_dep_1')
+    analysed_file.add_module_dep('mod_dep_2')
+    analysed_file.add_module_def('mod_def_1')
+    analysed_file.add_module_def('mod_def_2')
 
-    def content(self, flags=None):
+    obj_combo_hash = '17ef947fd'
+    mods_combo_hash = '10867b4f3'
+    mock_fortran_compiler = tool_box[Categories.FORTRAN_COMPILER]
+    mp_common_args = MpCommonArgs(
+        config=BuildConfig('proj', tool_box, fab_workspace=Path('/fab')),
+        flags=flags_config,
+        compiler=mock_fortran_compiler,
+        mod_hashes={'mod_dep_1': 12345, 'mod_dep_2': 23456},
+        syntax_only=False,
+    )
 
-        flags = flags or ['flag1', 'flag2']
-        flags_config = mock.Mock()
-        flags_config.flags_for_path.return_value = flags
+    return (mp_common_args, flags, analysed_file, obj_combo_hash,
+            mods_combo_hash)
 
-        analysed_file = AnalysedFortran(fpath=Path('foofile'), file_hash=34567)
-        analysed_file.add_module_dep('mod_dep_1')
-        analysed_file.add_module_dep('mod_dep_2')
-        analysed_file.add_module_def('mod_def_1')
-        analysed_file.add_module_def('mod_def_2')
 
-        obj_combo_hash = '1eb0c2d19'
-        mods_combo_hash = 'f5136bdb'
-
-        # Create a dummy compiler, and set a version number so FAB doesn't
-        # try to call foo_cc --version
-        compiler = FortranCompiler("foo_cc", "foo_cc", "-J")
-        compiler._version = "1.2.3"
-        mp_common_args = MpCommonArgs(
-            config=BuildConfig('proj', ToolBox(), fab_workspace=Path('/fab')),
-            flags=flags_config,
-            compiler=compiler,
-            mod_hashes={'mod_dep_1': 12345, 'mod_dep_2': 23456},
-            syntax_only=False,
-        )
-
-        return mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash
+class TestProcessFile():
 
     # Developer's note: If the "mods combo hash" changes you'll get an unhelpful message from pytest.
     # It'll come from this function but pytest won't tell you that.
@@ -175,9 +174,9 @@ class Test_process_file():
             any_order=True,
         )
 
-    def test_without_prebuild(self):
+    def test_without_prebuild(self, content):
         # call compile_file() and return a CompiledFile
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
+        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = content
 
         flags_config = mock.Mock()
         flags_config.flags_for_path.return_value = flags
@@ -207,9 +206,9 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_with_prebuild(self):
+    def test_with_prebuild(self, content):
         # If the mods and obj are prebuilt, don't compile.
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
+        mp_common_args, _, analysed_file, obj_combo_hash, mods_combo_hash = content
 
         with mock.patch('pathlib.Path.exists', return_value=True):  # mod def files and obj file all exist
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -230,11 +229,11 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_file_hash(self):
+    def test_file_hash(self, content):
         # Changing the source hash must change the combo hash for the mods and obj.
         # Note: This test adds 1 to the analysed files hash. We're using checksums so
         #       the resulting object file and mod file combo hashes can be expected to increase by 1 too.
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
+        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = content
 
         analysed_file._file_hash += 1
         obj_combo_hash = f'{int(obj_combo_hash, 16) + 1:x}'
@@ -260,10 +259,12 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_flags_hash(self):
+    def test_flags_hash(self, content):
         # changing the flags must change the object combo hash, but not the mods combo hash
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content(flags=['flag1', 'flag3'])
-        obj_combo_hash = '1ebce92ee'
+        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = content
+        flags = ['flag1', 'flag3']
+        mp_common_args.flags.flags_for_path.return_value = flags
+        obj_combo_hash = '17fbbadd2'
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -285,11 +286,11 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_deps_hash(self):
+    def test_deps_hash(self, content):
         # Changing the checksums of any mod dependency must change the object combo hash but not the mods combo hash.
         # Note the difference between mods we depend on and mods we define.
         # The mods we define are not affected by the mods we depend on.
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
+        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = content
 
         mp_common_args.mod_hashes['mod_dep_1'] += 1
         obj_combo_hash = f'{int(obj_combo_hash, 16) + 1:x}'
@@ -314,12 +315,15 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_compiler_hash(self):
+    def test_compiler_hash(self, content):
         # changing the compiler must change the combo hash for the mods and obj
-        mp_common_args, flags, analysed_file, _, _ = self.content()
+        mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
+        mp_common_args.compiler._name += "xx"
 
-        obj_combo_hash = '1eb0c2d19'
-        mods_combo_hash = 'f5136bdb'
+        obj_combo_hash = '19dfa6c83'
+        mods_combo_hash = '12768d979'
+        assert obj_combo_hash != orig_obj_hash
+        assert mods_combo_hash != orig_mods_hash
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -341,12 +345,15 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_compiler_version_hash(self):
+    def test_compiler_version_hash(self, content):
         # changing the compiler version must change the combo hash for the mods and obj
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
+        mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
+        mp_common_args.compiler._version = "9.8.7"
 
-        obj_combo_hash = '1eb0c2d19'
-        mods_combo_hash = 'f5136bdb'
+        obj_combo_hash = '1a87f4e07'
+        mods_combo_hash = '131edbafd'
+        assert orig_obj_hash != obj_combo_hash
+        assert orig_mods_hash != mods_combo_hash
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # mod files exist, obj file doesn't
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -368,9 +375,9 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_mod_missing(self):
+    def test_mod_missing(self, content):
         # if one of the mods we define is not present, we must recompile
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
+        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = content
 
         with mock.patch('pathlib.Path.exists', side_effect=[False, True, True]):  # one mod file missing
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -392,9 +399,9 @@ class Test_process_file():
             pb / f'mod_def_1.{mods_combo_hash}.mod'
         }
 
-    def test_obj_missing(self):
+    def test_obj_missing(self, content):
         # the object file we define is not present, so we must recompile
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = self.content()
+        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = content
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True, False]):  # object file missing
             with mock.patch('fab.steps.compile_fortran.compile_file') as mock_compile_file:
@@ -417,15 +424,15 @@ class Test_process_file():
         }
 
 
-class Test_get_mod_hashes():
+class TestGetModHashes():
 
-    def test_vanilla(self):
+    def test_vanilla(self, tool_box):
         # get a hash value for every module in the analysed file
         analysed_files = {
             mock.Mock(module_defs=['foo', 'bar']),
         }
 
-        config = BuildConfig('proj', ToolBox(),
+        config = BuildConfig('proj', tool_box,
                              fab_workspace=Path('/fab_workspace'))
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
@@ -437,7 +444,7 @@ class Test_get_mod_hashes():
         assert result == {'foo': 123, 'bar': 456}
 
 
-class Test_get_fortran_compiler():
+class TestGetFortranCompiler():
 
     def test_from_env(self):
         with mock.patch.dict(os.environ, values={'FC': 'foo_c --foo'}):
