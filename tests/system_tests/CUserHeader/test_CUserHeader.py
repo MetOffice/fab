@@ -35,10 +35,10 @@ def test_CUseHeader(tmp_path):
 
         link_exe(config, linker='gcc', flags=['-lgfortran']),
 
-    assert len(config._artefact_store[EXECUTABLES]) == 1
+    assert len(config.artefact_store[EXECUTABLES]) == 1
 
     # run
-    command = [str(config._artefact_store[EXECUTABLES][0])]
+    command = [str(config.artefact_store[EXECUTABLES][0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
     assert output == ''.join(open(PROJECT_SOURCE / 'expected.exec.txt').readlines())
