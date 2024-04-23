@@ -26,16 +26,13 @@ def test_CUseHeader(tmp_path):
     with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
                      project_label='foo', multiprocessing=False) as config:
 
-        grab_folder(config, PROJECT_SOURCE),
-
-        find_source_files(config),
-
-        c_pragma_injector(config),
-        preprocess_c(config),
-        analyse(config, root_symbol='main'),
-        compile_c(config, common_flags=['-c', '-std=c99']),
-
-        link_exe(config, linker='gcc', flags=['-lgfortran']),
+        grab_folder(config, PROJECT_SOURCE)
+        find_source_files(config)
+        c_pragma_injector(config)
+        preprocess_c(config)
+        analyse(config, root_symbol='main')
+        compile_c(config, common_flags=['-c', '-std=c99'])
+        link_exe(config, flags=['-lgfortran'])
 
     assert len(config._artefact_store[EXECUTABLES]) == 1
 

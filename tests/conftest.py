@@ -11,7 +11,7 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import Categories, Compiler, ToolBox
+from fab.newtools import Categories, Compiler, Linker, ToolBox
 
 
 # This avoids pylint warnings about Redefining names from outer scope
@@ -22,6 +22,8 @@ def fixture_mock_c_compiler():
                              Categories.C_COMPILER)
     mock_compiler.run = mock.Mock()
     mock_compiler._version = "1.2.3"
+    mock_compiler._name = "mock_c_compiler"
+    mock_compiler._exec_name = "mock_c_compiler.exe"
     return mock_compiler
 
 
@@ -31,14 +33,27 @@ def fixture_mock_fortran_compiler():
     mock_compiler = Compiler("mock_fortran_compiler", "mock_exec",
                              Categories.FORTRAN_COMPILER)
     mock_compiler.run = mock.Mock()
+    mock_compiler._name = "mock_fortran_compiler"
+    mock_compiler._exec_name = "mock_fortran_compiler.exe"
     mock_compiler._version = "1.2.3"
     return mock_compiler
 
 
+@pytest.fixture(name="mock_linker")
+def fixture_mock_linker():
+    '''Provides a mock linker.'''
+    mock_linker = Linker("mock_linker", "mock_linker.exe",
+                         Categories.FORTRAN_COMPILER)
+    mock_linker.run = mock.Mock()
+    mock_linker._version = "1.2.3"
+    return mock_linker
+
+
 @pytest.fixture(name="tool_box")
-def fixture_tool_box(mock_c_compiler, mock_fortran_compiler):
+def fixture_tool_box(mock_c_compiler, mock_fortran_compiler, mock_linker):
     '''Provides a tool box with a mock Fortran and a mock C compiler.'''
     tool_box = ToolBox()
     tool_box.add_tool(mock_c_compiler)
     tool_box.add_tool(mock_fortran_compiler)
+    tool_box.add_tool(mock_linker)
     return tool_box

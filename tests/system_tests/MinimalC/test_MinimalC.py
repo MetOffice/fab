@@ -20,21 +20,19 @@ from fab.newtools import ToolBox
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
 
-def test_MinimalC(tmp_path):
+def test_minimal_c(tmp_path):
 
     # build
     with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
                      project_label='foo', multiprocessing=False) as config:
 
-        grab_folder(config, PROJECT_SOURCE),
-        find_source_files(config),
-
-        c_pragma_injector(config),
-        preprocess_c(config),
-        analyse(config, root_symbol='main'),
-        compile_c(config, common_flags=['-c', '-std=c99']),
-
-        link_exe(config, linker='gcc'),
+        grab_folder(config, PROJECT_SOURCE)
+        find_source_files(config)
+        c_pragma_injector(config)
+        preprocess_c(config)
+        analyse(config, root_symbol='main')
+        compile_c(config, common_flags=['-c', '-std=c99'])
+        link_exe(config)
 
     assert len(config._artefact_store[EXECUTABLES]) == 1
 

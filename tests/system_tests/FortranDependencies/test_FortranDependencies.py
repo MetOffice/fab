@@ -21,19 +21,19 @@ from fab.newtools import ToolBox
 import pytest
 
 
-def test_FortranDependencies(tmp_path):
+def test_fortran_dependencies(tmp_path):
 
     # build
     with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
                      project_label='foo', multiprocessing=False) as config:
-        grab_folder(config, src=Path(__file__).parent / 'project-source'),
-        find_source_files(config),
-        preprocess_fortran(config),  # nothing to preprocess, actually, it's all little f90 files
-        analyse(config, root_symbol=['first', 'second']),
-        compile_c(config, common_flags=['-c', '-std=c99']),
+        grab_folder(config, src=Path(__file__).parent / 'project-source')
+        find_source_files(config)
+        preprocess_fortran(config)  # nothing to preprocess, actually, it's all little f90 files
+        analyse(config, root_symbol=['first', 'second'])
+        compile_c(config, common_flags=['-c', '-std=c99'])
         with pytest.warns(UserWarning, match="Removing managed flag"):
-            compile_fortran(config, common_flags=['-c']),
-        link_exe(config, linker='gcc', flags=['-lgfortran']),
+            compile_fortran(config, common_flags=['-c'])
+        link_exe(config, flags=['-lgfortran'])
 
     assert len(config._artefact_store[EXECUTABLES]) == 2
 

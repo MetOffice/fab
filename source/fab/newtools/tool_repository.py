@@ -15,7 +15,7 @@ import logging
 from typing import Any, Type
 
 from fab.newtools import (Categories, Cpp, CppFortran, Fpp, Gcc, Gfortran,
-                          Icc, Ifort)
+                          Icc, Ifort, Linker)
 
 
 class ToolRepository(dict):
@@ -46,6 +46,8 @@ class ToolRepository(dict):
         # Add the FAB default tools:
         for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp, CppFortran]:
             self.add_tool(cls)
+        self[Categories.LINKER] = [
+            Linker(compiler=self.get_default(Categories.FORTRAN_COMPILER))]
 
     def add_tool(self, cls: Type[Any]):
         '''Creates an instance of the specified class and adds it

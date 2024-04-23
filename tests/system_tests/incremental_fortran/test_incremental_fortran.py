@@ -49,11 +49,11 @@ class TestIncremental(object):
         return build_config
 
     def run_steps(self, build_config):
-        find_source_files(build_config),
-        preprocess_fortran(build_config),
-        analyse(build_config, root_symbol='my_prog'),
-        compile_fortran(build_config),
-        link_exe(build_config, linker='gcc', flags=['-lgfortran']),
+        find_source_files(build_config)
+        preprocess_fortran(build_config)
+        analyse(build_config, root_symbol='my_prog')
+        compile_fortran(build_config)
+        link_exe(build_config, flags=['-lgfortran'])
         # Add a permissive cleanup step because we want to know about every file which is created,
         # across multiple runs of the build. Otherwise, an aggressive cleanup will be automatically added.
         cleanup_prebuilds(build_config, older_than=timedelta(weeks=1))

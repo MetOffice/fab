@@ -28,19 +28,16 @@ def test_CFortranInterop(tmp_path):
     # build
     with BuildConfig(fab_workspace=tmp_path, project_label='foo',
                      tool_box=ToolBox(), multiprocessing=False) as config:
-        grab_folder(config, src=PROJECT_SOURCE),
-        find_source_files(config),
-
-        c_pragma_injector(config),
-        preprocess_c(config),
-        preprocess_fortran(config),
-
-        analyse(config, root_symbol='main'),
-
-        compile_c(config, common_flags=['-c', '-std=c99']),
+        grab_folder(config, src=PROJECT_SOURCE)
+        find_source_files(config)
+        c_pragma_injector(config)
+        preprocess_c(config)
+        preprocess_fortran(config)
+        analyse(config, root_symbol='main')
+        compile_c(config, common_flags=['-c', '-std=c99'])
         with pytest.warns(UserWarning, match="Removing managed flag"):
-            compile_fortran(config, common_flags=['-c']),
-        link_exe(config, linker='gcc', flags=['-lgfortran']),
+            compile_fortran(config, common_flags=['-c'])
+        link_exe(config, flags=['-lgfortran'])
         # todo: on an ubuntu vm, we needed these before the object files - investigate further
         # [
         #     '/lib/x86_64-linux-gnu/libc.so.6',

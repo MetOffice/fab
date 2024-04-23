@@ -11,6 +11,7 @@ from fab.newtools.categories import Categories
 from fab.newtools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
                                    Gfortran, Icc, Ifort)
 from fab.newtools.flags import Flags
+from fab.newtools.linker import Linker
 from fab.newtools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
 from fab.newtools.tool import Tool
 # Order here is important to avoid a circular import
