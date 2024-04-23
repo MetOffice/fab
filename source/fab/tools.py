@@ -10,7 +10,7 @@ Known command line tools whose flags we wish to manage.
 import logging
 from pathlib import Path
 import subprocess
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 from fab.util import string_checksum
 
@@ -50,23 +50,3 @@ def run_command(command: List[str], env=None, cwd: Optional[Union[Path, str]] = 
 
     if capture_output:
         return res.stdout.decode()
-
-
-def get_tool(tool_str: Optional[str] = None) -> Tuple[str, List[str]]:
-    """
-    Get the compiler, preprocessor, etc, from the given string.
-
-    Separate the tool and flags for the sort of value we see in environment variables, e.g. `gfortran -c`.
-
-    Returns the tool and a list of flags.
-
-    :param env_var:
-        The environment variable from which to find the tool.
-
-    """
-    tool_str = tool_str or ''
-
-    tool_split = tool_str.split()
-    if not tool_split:
-        raise ValueError(f"Tool not specified in '{tool_str}'. Cannot continue.")
-    return tool_split[0], tool_split[1:]
