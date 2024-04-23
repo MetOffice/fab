@@ -21,8 +21,13 @@ def test_artefacts_getter():
 
     with pytest.raises(TypeError) as err:
         _ = MyClass()
-    assert ("Can't instantiate abstract class MyClass with abstract method "
-            "__call_" in str(err.value))
+    # The actual error messages changes slightly from python
+    # version to version:
+    # 3.7: ... with abstract methods
+    # 3.8: ... with abstract method
+    # 3.12: ... without an implementation for abstract
+    # so we only test for the begin which is identical:
+    assert "Can't instantiate abstract class MyClass with" in str(err.value)
 
     # Now test that we can raise the NotImplementedError
     # --------------------------------------------------
