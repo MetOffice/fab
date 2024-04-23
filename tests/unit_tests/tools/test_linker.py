@@ -15,7 +15,7 @@ import pytest
 from fab.newtools import (Categories, Linker)
 
 
-def test_compiler(mock_c_compiler, mock_fortran_compiler):
+def test_linker(mock_c_compiler, mock_fortran_compiler):
     '''Test the linker constructor.'''
 
     linker = Linker(name="my_linker", exec_name="my_linker.exe")
@@ -48,7 +48,7 @@ def test_compiler(mock_c_compiler, mock_fortran_compiler):
             "Linker." in str(err.value))
 
 
-def test_link_c(mock_c_compiler):
+def test_linker_c(mock_c_compiler):
     '''Test the link command line.'''
     linker = Linker(compiler=mock_c_compiler)
     with mock.patch.object(linker, "run") as link_run:
@@ -58,3 +58,24 @@ def test_link_c(mock_c_compiler):
     with mock.patch.object(linker, "run") as link_run:
         linker.link([Path("a.o")], Path("a.out"), add_libs=["-L", "/tmp"])
     link_run.assert_called_with(['a.o', '-L', '/tmp', '-o', 'a.out'])
+
+
+def test_linker_add_compiler_flag(mock_c_compiler):
+    '''Test that a flag added to the compiler will be automatically
+    added to the link line (even if the flags are modified after
+    creating the linker ... in case that the user specifies additional
+    flags after creating the linker).'''
+
+    linker = Linker(compiler=mock_c_compiler)
+    mock_c_compiler.flags.append("-my-flag")
+    with mock.patch.object(linker, "run") as link_run:
+        linker.link([Path("a.o")], Path("a.out"))
+    link_run.assert_called_with(['-my-flag', 'a.o', '-o', 'a.out'])
+
+    # Make also sure the code works if a linker is created without
+    # a compiler:
+    linker = Linker("no-compiler", "no-compiler.exe")
+    linker.flags.append("-some-other-flag")
+    with mock.patch.object(linker, "run") as link_run:
+        linker.link([Path("a.o")], Path("a.out"))
+    link_run.assert_called_with(['a.o', '-some-other-flag', '-o', 'a.out'])

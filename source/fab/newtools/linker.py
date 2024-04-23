@@ -43,7 +43,13 @@ class Linker(Tool):
         :param output_file: output file.
         :param add_libs: additional linker flags.
         '''
-        params = sorted(map(str, input_files))
+        if self._compiler:
+            # Create a copy:
+            params = self._compiler.flags[:]
+        else:
+            params = []
+        # TODO: why are the .o files sorted? That shouldn't matter
+        params.extend(sorted(map(str, input_files)))
         if add_libs:
             params += add_libs
         params.extend(self.flags)
