@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Dict
 from unittest import mock
@@ -9,7 +8,7 @@ import pytest
 from fab.build_config import BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
-from fab.steps.compile_fortran import compile_pass, get_compile_next, get_fortran_compiler, \
+from fab.steps.compile_fortran import compile_pass, get_compile_next, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
 from fab.newtools import Categories
 from fab.util import CompiledFile
@@ -117,6 +116,7 @@ class TestStoreArtefacts():
             }
         }
 
+
 # This avoids pylint warnings about Redefining names from outer scope
 @pytest.fixture(name="content")
 def fixture_content(tool_box):
@@ -132,7 +132,6 @@ def fixture_content(tool_box):
 
     obj_combo_hash = '17ef947fd'
     mods_combo_hash = '10867b4f3'
-    mock_fortran_compiler = tool_box[Categories.FORTRAN_COMPILER]
     mp_common_args = MpCommonArgs(
         config=BuildConfig('proj', tool_box, fab_workspace=Path('/fab')),
         flags=flags_config,
@@ -443,37 +442,3 @@ class TestGetModHashes():
                 result = get_mod_hashes(analysed_files=analysed_files, config=config)
 
         assert result == {'foo': 123, 'bar': 456}
-
-
-class TestGetFortranCompiler():
-
-    def test_from_env(self):
-        with mock.patch.dict(os.environ, values={'FC': 'foo_c --foo'}):
-            fc, fc_flags = get_fortran_compiler()
-
-        assert fc == 'foo_c'
-        assert fc_flags == ['--foo']
-
-    def test_empty_env_gfortran(self):
-        def mock_run_command(command):
-            if 'gfortran' not in command:
-                raise RuntimeError('foo')
-
-        with mock.patch.dict(os.environ, clear=True):
-            with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
-                fc, fc_flags = get_fortran_compiler()
-
-        assert fc == 'gfortran'
-        assert fc_flags == []
-
-    def test_empty_env_ifort(self):
-        def mock_run_command(command):
-            if 'ifort' not in command:
-                raise RuntimeError('foo')
-
-        with mock.patch.dict(os.environ, clear=True):
-            with mock.patch('fab.steps.compile_fortran.run_command', side_effect=mock_run_command):
-                fc, fc_flags = get_fortran_compiler()
-
-        assert fc == 'ifort'
-        assert fc_flags == []

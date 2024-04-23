@@ -26,7 +26,7 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import flags_checksum, run_command, get_tool
+from fab.tools import flags_checksum
 from fab.newtools import Categories, Compiler
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \
     file_checksum
@@ -339,53 +339,8 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
                           add_flags=flags,
                           syntax_only=mp_common_args.syntax_only)
 
+
 # todo: move this
-
-
-def get_fortran_compiler(compiler: Optional[str] = None):
-    """
-    Get the fortran compiler specified by the `$FC` environment variable,
-    or overridden by the optional `compiler` argument.
-
-    Separates the tool and flags for the sort of value we see in environment variables, e.g. `gfortran -c`.
-
-    :param compiler:
-        Use this string instead of the $FC environment variable.
-
-    Returns the tool and a list of flags.
-
-    """
-    fortran_compiler = None
-    try:
-        fortran_compiler = get_tool(compiler or os.getenv('FC', ''))  # type: ignore
-    except ValueError:
-        # tool not specified
-        pass
-
-    if not fortran_compiler:
-        try:
-            run_command(['gfortran', '--help'])
-            fortran_compiler = 'gfortran', []
-            logger.info('detected gfortran')
-        except RuntimeError:
-            # gfortran not available
-            pass
-
-    if not fortran_compiler:
-        try:
-            run_command(['ifort', '--help'])
-            fortran_compiler = 'ifort', []
-            logger.info('detected ifort')
-        except RuntimeError:
-            # gfortran not available
-            pass
-
-    if not fortran_compiler:
-        raise RuntimeError('no fortran compiler specified or discovered')
-
-    return fortran_compiler
-
-
 def get_mod_hashes(analysed_files: Set[AnalysedFortran], config) -> Dict[str, int]:
     """
     Get the hash of every module file defined in the list of analysed files.
