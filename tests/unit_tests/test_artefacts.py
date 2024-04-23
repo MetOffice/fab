@@ -6,6 +6,7 @@ import pytest
 from fab.artefacts import ArtefactStore, ArtefactsGetter, FilterBuildTrees
 from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 
+
 def test_artefacts_getter():
     '''Test that ArtefactsGetter is a proper AbstractClass
     and that a NotImplemented error is raised if a derived
@@ -45,11 +46,11 @@ class TestFilterBuildTrees():
         artefact_store = ArtefactStore()
         artefact_store[BUILD_TREES] = {'tree1': {'a.foo': None,
                                                  'b.foo': None,
-                                                 'c.bar': None, }, 
+                                                 'c.bar': None, },
                                        'tree2': {'d.foo': None,
                                                  'e.foo': None,
-                                                 'f.bar': None, }, 
-                                      }
+                                                 'f.bar': None, },
+                                       }
         return artefact_store
 
     def test_single_suffix(self, artefact_store):
