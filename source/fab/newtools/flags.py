@@ -44,7 +44,7 @@ class Flags(list):
                 if has_parameter and i + 1 == len(self):
                     # We have a flag which takes a parameter, but there is no
                     # parameter. Issue a warning:
-                    self._logger.warning(f"Flags '{' '. join(self)} contain "
+                    self._logger.warning(f"Flags '{' '. join(self)}' contain "
                                          f"'{remove_flag}' but no parameter.")
                     del self[i]
                 else:
