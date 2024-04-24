@@ -20,22 +20,24 @@ from fab.newtools import (Categories, CCompiler, Compiler, FortranCompiler,
 
 def test_compiler():
     '''Test the compiler constructor.'''
-    cc = CCompiler("gcc", "gcc")
+    cc = CCompiler("gcc", "gcc", "gnu")
     assert cc.category == Categories.C_COMPILER
     assert cc._compile_flag == "-c"
     assert cc._output_flag == "-o"
     assert cc.flags == []
+    assert cc.vendor == "gnu"
 
-    fc = FortranCompiler("gfortran", "gfortran", "-J")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert fc._compile_flag == "-c"
     assert fc._output_flag == "-o"
     assert fc.category == Categories.FORTRAN_COMPILER
+    assert fc.vendor == "gnu"
     assert fc.flags == []
 
 
 def test_compiler_hash():
     '''Test the hash functionality.'''
-    cc = CCompiler("gcc", "gcc")
+    cc = CCompiler("gcc", "gcc", "gnu")
     assert cc.get_hash() == 3584447629
     # A change in the version number must change the hash:
     cc._version = "-123"
@@ -50,20 +52,21 @@ def test_compiler_hash():
 def test_compiler_with_env_fflags():
     '''Test that content of FFLAGS is added to the compiler flags.'''
     with mock.patch.dict(os.environ, FFLAGS='--foo --bar'):
-        cc = CCompiler("gcc", "gcc")
-        fc = FortranCompiler("gfortran", "gfortran", "-J")
+        cc = CCompiler("gcc", "gcc", "gnu")
+        fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert cc.flags == ["--foo", "--bar"]
     assert fc.flags == ["--foo", "--bar"]
 
 
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", "-J")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert not fc.has_syntax_only
-    fc = FortranCompiler("gfortran", "gfortran", "-J", syntax_only_flag=None)
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J",
+                         syntax_only_flag=None)
     assert not fc.has_syntax_only
 
-    fc = FortranCompiler("gfortran", "gfortran", "-J",
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J",
                          syntax_only_flag="-fsyntax-only")
     fc.set_module_output_path("/tmp")
     assert fc.has_syntax_only
@@ -78,7 +81,8 @@ def test_compiler_syntax_only():
 
 def test_compiler_module_output():
     '''Tests handling of module output_flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", module_folder_flag="-J")
+    fc = FortranCompiler("gfortran", "gfortran", vendor="gnu",
+                         module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
@@ -90,7 +94,8 @@ def test_compiler_module_output():
 
 def test_compiler_with_add_args():
     '''Tests that additional arguments are handled as expected.'''
-    fc = FortranCompiler("gfortran", "gfortran", module_folder_flag="-J")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu",
+                         module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
@@ -111,7 +116,8 @@ class TestGetCompilerVersion:
         '''Checks if the correct version is extracted from the
         given full_version_string.
         '''
-        c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
+        c = Compiler("gfortran", "gfortran", "gnu",
+                     Categories.FORTRAN_COMPILER)
         c.run = mock.Mock(return_value=full_version_string)
         assert c.get_version() == expected
         # Now let the run method raise an exception, to make sure
@@ -122,7 +128,8 @@ class TestGetCompilerVersion:
     def test_command_failure(self):
         '''If the command fails, we must return an empty string, not None,
         so it can still be hashed.'''
-        c = Compiler("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
+        c = Compiler("gfortran", "gfortran", "gnu",
+                     Categories.FORTRAN_COMPILER)
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
             assert c.get_version() == '', 'expected empty string'
         with mock.patch.object(c, 'run', side_effect=FileNotFoundError()):

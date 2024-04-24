@@ -13,7 +13,7 @@ from fab.newtools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
 from fab.newtools.flags import Flags
 from fab.newtools.linker import Linker
 from fab.newtools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
-from fab.newtools.tool import Tool
+from fab.newtools.tool import Tool, VendorTool
 # Order here is important to avoid a circular import
 from fab.newtools.tool_repository import ToolRepository
 from fab.newtools.tool_box import ToolBox

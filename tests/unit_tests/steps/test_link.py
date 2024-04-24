@@ -26,7 +26,7 @@ class TestLinkExe():
 
         with mock.patch('os.getenv', return_value='-L/foo1/lib -L/foo2/lib'):
             # We need to create a linker here to pick up the env var:
-            linker = Linker("mock_link", "mock_link.exe")
+            linker = Linker("mock_link", "mock_link.exe", "mock-vendor")
             tool_box.add_tool(linker)
             with mock.patch.object(linker, "run") as mock_run, \
                  pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):

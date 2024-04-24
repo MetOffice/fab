@@ -13,7 +13,7 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import Categories, Tool
+from fab.newtools import Categories, Tool, VendorTool
 
 
 def test_tool_constructor():
@@ -24,6 +24,15 @@ def test_tool_constructor():
     assert tool.name == "gnu"
     assert tool.category == Categories.FORTRAN_COMPILER
     assert isinstance(tool.logger, logging.Logger)
+    assert tool.is_compiler
+
+    linker = Tool("gnu", "gfortran", Categories.LINKER)
+    assert str(linker) == "Tool - gnu: gfortran"
+    assert linker.exec_name == "gfortran"
+    assert linker.name == "gnu"
+    assert linker.category == Categories.LINKER
+    assert isinstance(linker.logger, logging.Logger)
+    assert not linker.is_compiler
 
 
 def test_tool_is_available():
@@ -32,6 +41,7 @@ def test_tool_is_available():
     assert tool.is_available
     tool.is_available = False
     assert not tool.is_available
+    assert tool.is_compiler
 
 
 class TestToolRun():
@@ -79,3 +89,14 @@ class TestToolRun():
                 tool.run()
             assert mocked_error_message in str(err.value)
             assert "Command failed with return code 1" in str(err.value)
+
+
+def test_vendor_tool():
+    '''Test the constructor.'''
+    tool = VendorTool("gnu", "gfortran", "gnu", Categories.FORTRAN_COMPILER)
+    assert str(tool) == "VendorTool - gnu: gfortran"
+    assert tool.exec_name == "gfortran"
+    assert tool.name == "gnu"
+    assert tool.vendor == "gnu"
+    assert tool.category == Categories.FORTRAN_COMPILER
+    assert isinstance(tool.logger, logging.Logger)

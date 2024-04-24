@@ -15,19 +15,21 @@ import zlib
 
 from fab.newtools.categories import Categories
 from fab.newtools.flags import Flags
-from fab.newtools.tool import Tool
+from fab.newtools.tool import VendorTool
 
 
-class Compiler(Tool):
+class Compiler(VendorTool):
     '''This is the base class for any compiler. It provides flags for
     - compilation only (-c),
     - naming the output file (-o),
     - OpenMP
     '''
 
-    def __init__(self, name: str, exec_name: str, category: Categories,
-                 compile_flag=None, output_flag=None, omp_flag=None):
-        super().__init__(name, exec_name, category)
+    # pylint: disable=too-many-arguments
+    def __init__(self, name: str, exec_name: str, vendor: str,
+                 category: Categories, compile_flag=None,
+                 output_flag=None, omp_flag=None):
+        super().__init__(name, exec_name, vendor, category)
         self._version = None
         self._compile_flag = compile_flag if compile_flag else "-c"
         self._output_flag = output_flag if output_flag else "-o"
@@ -106,9 +108,9 @@ class CCompiler(Compiler):
     of the compiler as convenience.
     '''
 
-    def __init__(self, name: str, exec_name: str, compile_flag=None,
-                 output_flag=None, omp_flag=None):
-        super().__init__(name, exec_name, Categories.C_COMPILER,
+    def __init__(self, name: str, exec_name: str, vendor: str,
+                 compile_flag=None, output_flag=None, omp_flag=None):
+        super().__init__(name, exec_name, vendor, Categories.C_COMPILER,
                          compile_flag, output_flag, omp_flag)
 
 
@@ -119,11 +121,11 @@ class FortranCompiler(Compiler):
     compilation (which will only generate the .mod files).
     '''
 
-    def __init__(self, name: str, exec_name: str,
+    def __init__(self, name: str, exec_name: str, vendor: str,
                  module_folder_flag: str, syntax_only_flag=None,
                  compile_flag=None, output_flag=None, omp_flag=None):
 
-        super().__init__(name, exec_name, Categories.FORTRAN_COMPILER,
+        super().__init__(name, exec_name, vendor, Categories.FORTRAN_COMPILER,
                          compile_flag, output_flag, omp_flag)
         self._module_folder_flag = module_folder_flag
         self._module_output_path = ""
@@ -162,7 +164,7 @@ class Gcc(CCompiler):
     '''Class for GNU's gcc compiler.
     '''
     def __init__(self):
-        super().__init__("gcc", "gcc", omp_flag="-fopenmp")
+        super().__init__("gcc", "gcc", "gnu", omp_flag="-fopenmp")
 
 
 # ============================================================================
@@ -170,7 +172,7 @@ class Gfortran(FortranCompiler):
     '''Class for GNU's gfortran compiler.
     '''
     def __init__(self):
-        super().__init__("gfortran", "gfortran",
+        super().__init__("gfortran", "gfortran", "gnu",
                          module_folder_flag="-J",
                          omp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
@@ -181,7 +183,7 @@ class Icc(CCompiler):
     '''Class for the Intel's icc compiler.
     '''
     def __init__(self):
-        super().__init__("icc", "icc", omp_flag="-qopenmp")
+        super().__init__("icc", "icc", "intel", omp_flag="-qopenmp")
 
 
 # ============================================================================
@@ -189,7 +191,7 @@ class Ifort(FortranCompiler):
     '''Class for Intel's ifort compiler.
     '''
     def __init__(self):
-        super().__init__("ifort", "ifort",
+        super().__init__("ifort", "ifort", "intel",
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")

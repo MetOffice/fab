@@ -19,17 +19,22 @@ from fab.newtools.tool import Tool
 class Linker(Tool):
     '''This is the base class for any Linker.
     '''
+
+    # pylint: disable=too-many-arguments
     def __init__(self, name: Optional[str] = None,
                  exec_name: Optional[str] = None,
+                 vendor: Optional[str] = None,
                  compiler: Optional[Compiler] = None,
                  output_flag: str = "-o"):
-        if (not name or not exec_name) and not compiler:
-            raise RuntimeError("Either specify name and exec name, or a "
-                               "compiler when creating Linker.")
+        if (not name or not exec_name or not vendor) and not compiler:
+            raise RuntimeError("Either specify name, exec name, and vendor "
+                               "or a compiler when creating Linker.")
         if not name and compiler:
             name = compiler.name
         if not exec_name and compiler:
             exec_name = compiler.exec_name
+        if not vendor and compiler:
+            vendor = compiler.vendor
         self._output_flag = output_flag
         super().__init__(name, exec_name, Categories.LINKER)
         self._compiler = compiler

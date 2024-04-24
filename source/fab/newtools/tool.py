@@ -119,3 +119,18 @@ class Tool:
         if capture_output:
             return res.stdout.decode()
         return ""
+
+
+class VendorTool(Tool):
+    '''A tool that has a vendor attached to it (typically compiler
+    and linker).
+    '''
+    def __init__(self, name: str, exec_name: str, vendor: str,
+                 category: Categories):
+        super().__init__(name, exec_name, category)
+        self._vendor = vendor
+
+    @property
+    def vendor(self):
+        '''Returns the vendor of this compiler.'''
+        return self._vendor

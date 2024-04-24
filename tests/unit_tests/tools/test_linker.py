@@ -18,7 +18,8 @@ from fab.newtools import (Categories, Linker)
 def test_linker(mock_c_compiler, mock_fortran_compiler):
     '''Test the linker constructor.'''
 
-    linker = Linker(name="my_linker", exec_name="my_linker.exe")
+    linker = Linker(name="my_linker", exec_name="my_linker.exe",
+                    vendor="vendor")
     assert linker.category == Categories.LINKER
     assert linker.name == "my_linker"
     assert linker.exec_name == "my_linker.exe"
@@ -44,8 +45,8 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
 
     with pytest.raises(RuntimeError) as err:
         linker = Linker(name="no-exec-given")
-    assert ("Either specify name and exec name, or a compiler when creating "
-            "Linker." in str(err.value))
+    assert ("Either specify name, exec name, and vendor or a compiler when "
+            "creating Linker." in str(err.value))
 
 
 def test_linker_c(mock_c_compiler):
@@ -74,7 +75,7 @@ def test_linker_add_compiler_flag(mock_c_compiler):
 
     # Make also sure the code works if a linker is created without
     # a compiler:
-    linker = Linker("no-compiler", "no-compiler.exe")
+    linker = Linker("no-compiler", "no-compiler.exe", "vendor")
     linker.flags.append("-some-other-flag")
     with mock.patch.object(linker, "run") as link_run:
         linker.link([Path("a.o")], Path("a.out"))
