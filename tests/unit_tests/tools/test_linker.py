@@ -23,18 +23,21 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
     assert linker.category == Categories.LINKER
     assert linker.name == "my_linker"
     assert linker.exec_name == "my_linker.exe"
+    assert linker.vendor == "vendor"
     assert linker.flags == []
 
     linker = Linker(name="my_linker", compiler=mock_c_compiler)
     assert linker.category == Categories.LINKER
     assert linker.name == "my_linker"
     assert linker.exec_name == mock_c_compiler.exec_name
+    assert linker.vendor == mock_c_compiler.vendor
     assert linker.flags == []
 
     linker = Linker(compiler=mock_c_compiler)
     assert linker.category == Categories.LINKER
     assert linker.name == mock_c_compiler.name
     assert linker.exec_name == mock_c_compiler.exec_name
+    assert linker.vendor == mock_c_compiler.vendor
     assert linker.flags == []
 
     linker = Linker(compiler=mock_fortran_compiler)

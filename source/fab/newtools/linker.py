@@ -13,10 +13,10 @@ from typing import List, Optional
 
 from fab.newtools.categories import Categories
 from fab.newtools.compiler import Compiler
-from fab.newtools.tool import Tool
+from fab.newtools.tool import VendorTool
 
 
-class Linker(Tool):
+class Linker(VendorTool):
     '''This is the base class for any Linker.
     '''
 
@@ -36,7 +36,7 @@ class Linker(Tool):
         if not vendor and compiler:
             vendor = compiler.vendor
         self._output_flag = output_flag
-        super().__init__(name, exec_name, Categories.LINKER)
+        super().__init__(name, exec_name, vendor, Categories.LINKER)
         self._compiler = compiler
         self.flags.extend(os.getenv("LDFLAGS", "").split())
 
