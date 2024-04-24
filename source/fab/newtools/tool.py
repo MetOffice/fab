@@ -45,6 +45,11 @@ class Tool:
         self._is_available = value
 
     @property
+    def is_compiler(self) -> bool:
+        '''Returns whether this tool is a (Fortran or C) compiler or not.'''
+        return self._category.is_compiler
+
+    @property
     def exec_name(self) -> str:
         ''':returns: the name of the executable.'''
         return self._exec_name

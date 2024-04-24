@@ -20,7 +20,7 @@ import pytest
 # are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 
 from fab.newtools import (Categories, Gcc, Gfortran, Ifort,   # type: ignore
-                          ToolRepository)
+                          Linker, ToolRepository)
 
 
 def test_tool_repository_get_singleton():
@@ -74,6 +74,10 @@ def test_tool_repository_get_default():
     tr = ToolRepository.get()
     gfortran = tr.get_default(Categories.FORTRAN_COMPILER)
     assert isinstance(gfortran, Gfortran)
+
+    gcc_linker = tr.get_default(Categories.LINKER)
+    assert isinstance(gcc_linker, Linker)
+    assert gcc_linker.name == "linker-gcc"
 
     gcc = tr.get_default(Categories.C_COMPILER)
     assert isinstance(gcc, Gcc)

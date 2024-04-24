@@ -16,3 +16,12 @@ def test_categories():
     # useful for error messages).
     for cat in list(Categories):
         assert str(cat) == cat.name
+
+
+def test_is_compiler():
+    '''Tests that compiler correctly sets the `is_compiler` property.'''
+    for cat in Categories:
+        if cat in [Categories.FORTRAN_COMPILER, Categories.C_COMPILER]:
+            assert cat.is_compiler
+        else:
+            assert not cat.is_compiler

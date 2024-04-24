@@ -20,10 +20,12 @@ from fab.newtools import (Categories, Cpp, CppFortran, Fpp, Gcc, Gfortran,
 
 class ToolRepository(dict):
     '''This class implements the tool repository. It stores a list of
-    tools for various categories.
+    tools for various categories. For each compiler, it will automatically
+    create a tool called "linker-{compiler-name}" which can be used for
+    linking with the specified compiler.
     '''
 
-    _singleton: None | ToolRepository = None
+    _singleton: None | str | ToolRepository = None
 
     @staticmethod
     def get() -> ToolRepository | Any:
@@ -43,11 +45,13 @@ class ToolRepository(dict):
         self._logger = logging.getLogger(__name__)
         super().__init__()
 
+        # Create the list that stores all tools for each category:
+        for category in Categories:
+            self[category] = []
+
         # Add the FAB default tools:
         for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp, CppFortran]:
             self.add_tool(cls)
-        self[Categories.LINKER] = [
-            Linker(compiler=self.get_default(Categories.FORTRAN_COMPILER))]
 
     def add_tool(self, cls: Type[Any]):
         '''Creates an instance of the specified class and adds it
@@ -63,10 +67,12 @@ class ToolRepository(dict):
         if not tool.is_available:
             self._logger.debug(f"Tool {tool.name} is not available - ignored.")
             return
-        if tool.category in self:
-            self[tool.category].append(tool)
-        else:
-            self[tool.category] = [tool]
+        self[tool.category].append(tool)
+
+        # If we have a compiler, add the compiler as linker as well
+        if tool.is_compiler:
+            linker = Linker(name=f"linker-{tool.name}", compiler=tool)
+            self[linker.category].append(linker)
 
     def get_tool(self, category: Categories, name: str):
         '''Returns the tool with a given name in the specified category.

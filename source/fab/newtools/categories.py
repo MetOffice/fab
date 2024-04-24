@@ -24,3 +24,8 @@ class Categories(Enum):
         '''Simplify the str output by using only the name (e.g. `C_COMPILER`
         instead of `Categories.C_COMPILER)`.'''
         return str(self.name)
+
+    @property
+    def is_compiler(self):
+        '''Returns if the category is either a C or a Fortran compiler.'''
+        return self in [Categories.FORTRAN_COMPILER, Categories.C_COMPILER]
