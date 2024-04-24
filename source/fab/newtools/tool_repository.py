@@ -96,6 +96,23 @@ class ToolRepository(dict):
         raise KeyError(f"Unknown tool '{name}' in category '{category}' "
                        f"in ToolRepository.")
 
+    def set_default_vendor(self, vendor: str):
+        '''Sets the default for linker and compilers to be of the
+        given vendor.
+        :param vendor: the vendor name.
+        '''
+        for category in [Categories.FORTRAN_COMPILER, Categories.C_COMPILER,
+                         Categories.LINKER]:
+            all_vendor = [tool for tool in self[category]
+                          if tool.vendor == vendor]
+            if len(all_vendor) == 0:
+                raise RuntimeError(f"Cannot find '{category}' "
+                                   f"with vendor '{vendor}'.")
+            tool = all_vendor[0]
+            if tool != self[category][0]:
+                self[category].remove(tool)
+                self[category].insert(0, tool)
+
     def get_default(self, category: Categories):
         '''Returns the default tool for a given category, which is just
         the first tool in the category.

@@ -89,3 +89,23 @@ def test_tool_repository_get_default_error():
     with pytest.raises(RuntimeError) as err:
         tr.get_default("unknown-category")
     assert "Invalid category type 'str'." in str(err.value)
+
+
+def test_tool_repository_default_vendor():
+    '''Tests the setting of default vendor for compiler and linker.'''
+    tr = ToolRepository.get()
+    tr.set_default_vendor("gnu")
+    for cat in [Categories.C_COMPILER, Categories.FORTRAN_COMPILER,
+                Categories.LINKER]:
+        def_tool = tr.get_default(cat)
+        assert def_tool.vendor == "gnu"
+
+    tr.set_default_vendor("intel")
+    for cat in [Categories.C_COMPILER, Categories.FORTRAN_COMPILER,
+                Categories.LINKER]:
+        def_tool = tr.get_default(cat)
+        assert def_tool.vendor == "intel"
+    with pytest.raises(RuntimeError) as err:
+        tr.set_default_vendor("does-not-exist")
+    assert ("Cannot find 'FORTRAN_COMPILER' with vendor 'does-not-exist'"
+            in str(err.value))
