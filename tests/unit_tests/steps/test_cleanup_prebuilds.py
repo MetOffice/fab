@@ -21,7 +21,7 @@ class TestCleanupPrebuilds(object):
         with mock.patch('fab.steps.cleanup_prebuilds.file_walk', return_value=[Path('foo.o')]), \
              pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             with mock.patch('fab.steps.cleanup_prebuilds.remove_all_unused') as mock_remove_all_unused:
-                cleanup_prebuilds(config=mock.Mock(_artefact_store={CURRENT_PREBUILDS: [Path('bar.o')]}))
+                cleanup_prebuilds(config=mock.Mock(artefact_store={CURRENT_PREBUILDS: [Path('bar.o')]}))
         mock_remove_all_unused.assert_called_once_with(found_files=[Path('foo.o')], current_files=[Path('bar.o')])
 
     def test_init_bad_args(self):

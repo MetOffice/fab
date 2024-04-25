@@ -50,7 +50,7 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
         if fpp_flag not in common_flags:
             common_flags.append(fpp_flag)
 
-    source_files = SuffixFilter('all_source', '.X90')(config._artefact_store)
+    source_files = SuffixFilter('all_source', '.X90')(config.artefact_store)
 
     pre_processor(
         config,
@@ -132,7 +132,7 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     source_getter = source_getter or DEFAULT_SOURCE_GETTER
     overrides_folder = overrides_folder
 
-    x90s = source_getter(config._artefact_store)
+    x90s = source_getter(config.artefact_store)
 
     # get the data for child processes to calculate prebuild hashes
     prebuild_analyses = _analysis_for_prebuilds(config, x90s, transformation_script, kernel_roots)
@@ -153,7 +153,7 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     prebuild_files: List[Path] = list(chain(*by_type(prebuilds, List)))
 
     # record the output files in the artefact store for further processing
-    config._artefact_store['psyclone_output'] = output_files
+    config.artefact_store['psyclone_output'] = output_files
     outputs_str = "\n".join(map(str, output_files))
     logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 

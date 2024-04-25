@@ -29,7 +29,7 @@ class Test_archive_objects(object):
         mock_run_command.assert_has_calls(expected_calls)
 
         # ensure the correct artefacts were created
-        assert config._artefact_store[OBJECT_ARCHIVES] == {
+        assert config.artefact_store[OBJECT_ARCHIVES] == {
             target: [str(config.build_output / f'{target}.a')] for target in targets}
 
     def test_for_library(self):
@@ -48,5 +48,5 @@ class Test_archive_objects(object):
             'ar', 'cr', str(config.build_output / 'mylib.a'), 'util1.o', 'util2.o'])
 
         # ensure the correct artefacts were created
-        assert config._artefact_store[OBJECT_ARCHIVES] == {
+        assert config.artefact_store[OBJECT_ARCHIVES] == {
             None: [str(config.build_output / 'mylib.a')]}

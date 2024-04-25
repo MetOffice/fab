@@ -167,7 +167,7 @@ def analyse(
     c_analyser._config = config
 
     # parse
-    files: List[Path] = source_getter(config._artefact_store)
+    files: List[Path] = source_getter(config.artefact_store)
     analysed_files = _parse_files(config, files=files, fortran_analyser=fortran_analyser, c_analyser=c_analyser)
     _add_manual_results(special_measure_analysis_results, analysed_files)
 
@@ -206,7 +206,7 @@ def analyse(
         _add_unreferenced_deps(unreferenced_deps, symbol_table, project_source_tree, build_tree)
         validate_dependencies(build_tree)
 
-    config._artefact_store[BUILD_TREES] = build_trees
+    config.artefact_store[BUILD_TREES] = build_trees
 
 
 def _analyse_dependencies(analysed_files: Iterable[AnalysedDependent]):

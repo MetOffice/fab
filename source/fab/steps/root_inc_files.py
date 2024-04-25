@@ -47,7 +47,7 @@ def root_inc_files(config):
 
     # inc files all go in the root - they're going to be removed altogether, soon
     inc_copied = set()
-    for fpath in suffix_filter(config._artefact_store["all_source"], [".inc"]):
+    for fpath in suffix_filter(config.artefact_store["all_source"], [".inc"]):
 
         # don't copy from the output root to the output root!
         # this is currently unlikely to happen but did in the past, and caused problems.
