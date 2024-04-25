@@ -32,10 +32,10 @@ def test_MinimalFortran(tmp_path):
         compile_fortran(config, common_flags=['-c']),
         link_exe(config, linker='gcc', flags=['-lgfortran']),
 
-    assert len(config._artefact_store[EXECUTABLES]) == 1
+    assert len(config.artefact_store[EXECUTABLES]) == 1
 
     # run
-    command = [str(config._artefact_store[EXECUTABLES][0])]
+    command = [str(config.artefact_store[EXECUTABLES][0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
     assert output.strip() == 'Hello world!'

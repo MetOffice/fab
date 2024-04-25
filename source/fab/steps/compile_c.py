@@ -83,7 +83,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     source_getter = source or DEFAULT_SOURCE_GETTER
 
     # gather all the source to compile, for all build trees, into one big lump
-    build_lists: Dict = source_getter(config._artefact_store)
+    build_lists: Dict = source_getter(config.artefact_store)
     to_compile: list = sum(build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
 
@@ -101,7 +101,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     config.add_current_prebuilds(prebuild_files)
 
     # record the compilation results for the next step
-    store_artefacts(compiled_c, build_lists, config._artefact_store)
+    store_artefacts(compiled_c, build_lists, config.artefact_store)
 
 
 # todo: very similar code in fortran compiler
