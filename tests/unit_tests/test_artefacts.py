@@ -86,6 +86,6 @@ class TestFilterBuildTrees():
 def test_artefact_store():
     '''Tests the ArtefactStore class.'''
     artefact_store = ArtefactStore()
-    assert len(artefact_store) == 1
+    assert len(artefact_store) == 4
     assert isinstance(artefact_store, dict)
     assert CURRENT_PREBUILDS in artefact_store
