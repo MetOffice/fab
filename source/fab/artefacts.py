@@ -32,6 +32,8 @@ class ArtefactsGetter(ABC):
             The artefact store from which to retrieve.
 
         """
+        raise NotImplementedError(f"__call__ must be implemented for "
+                                  f"'{type(self).__name__}'.")
 
 
 class CollectionGetter(ArtefactsGetter):
@@ -52,7 +54,6 @@ class CollectionGetter(ArtefactsGetter):
         self.collection_name = collection_name
 
     def __call__(self, artefact_store):
-        super().__call__(artefact_store)
         return artefact_store.get(self.collection_name, [])
 
 
@@ -83,7 +84,6 @@ class CollectionConcat(ArtefactsGetter):
 
     # todo: ensure the labelled values are iterables
     def __call__(self, artefact_store: Dict):
-        super().__call__(artefact_store)
         # todo: this should be a set, in case a file appears in multiple collections
         result = []
         for collection in self.collections:
@@ -117,7 +117,6 @@ class SuffixFilter(ArtefactsGetter):
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store):
-        super().__call__(artefact_store)
         # todo: returning an empty list is probably "dishonest" if the collection doesn't exist - return None instead?
         fpaths: Iterable[Path] = artefact_store.get(self.collection_name, [])
         return suffix_filter(fpaths, self.suffixes)
@@ -148,7 +147,6 @@ class FilterBuildTrees(ArtefactsGetter):
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store):
-        super().__call__(artefact_store)
 
         build_trees = artefact_store[self.collection_name]
 

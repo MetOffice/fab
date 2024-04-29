@@ -107,7 +107,7 @@ class BuildConfig():
 
         # todo: should probably pull the artefact store out of the config
         # runtime
-        self._artefact_store: ArtefactStore = ArtefactStore()
+        self._artefact_store = ArtefactStore()
 
         self._build_timer = None
         self._start_time = None
