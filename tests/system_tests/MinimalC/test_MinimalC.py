@@ -34,10 +34,10 @@ def test_minimal_c(tmp_path):
         compile_c(config, common_flags=['-c', '-std=c99'])
         link_exe(config)
 
-    assert len(config._artefact_store[EXECUTABLES]) == 1
+    assert len(config.artefact_store[EXECUTABLES]) == 1
 
     # run
-    command = [str(config._artefact_store[EXECUTABLES][0])]
+    command = [str(config.artefact_store[EXECUTABLES][0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
     assert output == 'Hello world!'

@@ -28,7 +28,6 @@ def fixture_content(tmp_path, tool_box):
 
     config = BuildConfig('proj', tool_box, multiprocessing=False,
                          fab_workspace=tmp_path)
-    config.init_artefact_store()
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
     config._artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
@@ -68,7 +67,7 @@ class TestCompileC():
         send_metric.assert_called_once()
 
         # ensure it created the correct artefact collection
-        assert config._artefact_store[OBJECT_FILES] == {
+        assert config.artefact_store[OBJECT_FILES] == {
             None: {config.prebuild_folder / f'foo.{expect_hash:x}.o', }
         }
 

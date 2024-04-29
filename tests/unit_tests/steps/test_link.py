@@ -20,7 +20,7 @@ class TestLinkExe():
 
         config = SimpleNamespace(
             project_workspace=Path('workspace'),
-            _artefact_store={OBJECT_FILES: {'foo': {'foo.o', 'bar.o'}}},
+            artefact_store={OBJECT_FILES: {'foo': {'foo.o', 'bar.o'}}},
             tool_box=tool_box
         )
 

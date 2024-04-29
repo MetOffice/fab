@@ -60,11 +60,11 @@ def link_exe(config, flags=None, source: Optional[ArtefactsGetter] = None):
     flags = flags or []
     source_getter = source or DefaultLinkerSource()
 
-    target_objects = source_getter(config._artefact_store)
+    target_objects = source_getter(config.artefact_store)
     for root, objects in target_objects.items():
         exe_path = config.project_workspace / f'{root}'
         linker.link(objects, exe_path, flags)
-        config._artefact_store.setdefault(EXECUTABLES, []).append(exe_path)
+        config.artefact_store.setdefault(EXECUTABLES, []).append(exe_path)
 
 
 # todo: the bit about Dict[None, object_files] seems too obscure - try to rethink this.
@@ -103,7 +103,7 @@ def link_shared_object(config, output_fpath: str, flags=None,
             flags.append(f)
 
     # We expect a single build target containing the whole codebase, with no name (as it's not a root symbol).
-    target_objects = source_getter(config._artefact_store)
+    target_objects = source_getter(config.artefact_store)
     assert list(target_objects.keys()) == [None]
 
     objects = target_objects[None]

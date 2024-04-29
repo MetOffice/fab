@@ -25,7 +25,7 @@ def test_run(tool_box):
     config = SimpleNamespace(
         project_workspace=Path('workspace'),
         build_output=Path("workspace"),
-        _artefact_store={OBJECT_FILES: {None: {'foo.o', 'bar.o'}}},
+        artefact_store={OBJECT_FILES: {None: {'foo.o', 'bar.o'}}},
         tool_box=tool_box
     )
 
