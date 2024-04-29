@@ -131,6 +131,6 @@ class VendorTool(Tool):
         self._vendor = vendor
 
     @property
-    def vendor(self):
+    def vendor(self) -> str:
         '''Returns the vendor of this compiler.'''
         return self._vendor

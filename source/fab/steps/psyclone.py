@@ -162,7 +162,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     # assert False
 
 
-def _generate_mp_payload(config, prebuild_analyses, overrides_folder, kernel_roots, transformation_script, cli_args):
+def _generate_mp_payload(config, prebuild_analyses, overrides_folder,
+                         kernel_roots, transformation_script, cli_args) -> MpCommonArgs:
     transformation_script_hash, analysed_x90, all_kernel_hashes = prebuild_analyses
 
     override_files: List[str] = []
@@ -408,7 +409,8 @@ def _get_prebuild_paths(prebuild_folder, modified_alg, generated, prebuild_hash)
     return prebuilt_alg, prebuilt_gen
 
 
-def run_psyclone(generated, modified_alg, x90_file, kernel_roots, transformation_script, cli_args):
+def run_psyclone(generated, modified_alg, x90_file, kernel_roots,
+                 transformation_script, cli_args) -> None:
 
     # -d specifies "a root directory structure containing kernel source"
     kernel_args: Union[List[str], list] = sum([['-d', k] for k in kernel_roots], [])

@@ -9,7 +9,7 @@
 
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import cast, List, Optional
 
 from fab.newtools.categories import Categories
 from fab.newtools.compiler import Compiler
@@ -29,11 +29,14 @@ class Linker(VendorTool):
         if (not name or not exec_name or not vendor) and not compiler:
             raise RuntimeError("Either specify name, exec name, and vendor "
                                "or a compiler when creating Linker.")
-        if not name and compiler:
+        # Make mypy happy, since it can't work out otherwise if these string
+        # variables might still be None :(
+        compiler = cast(Compiler, compiler)
+        if not name:
             name = compiler.name
-        if not exec_name and compiler:
+        if not exec_name:
             exec_name = compiler.exec_name
-        if not vendor and compiler:
+        if not vendor:
             vendor = compiler.vendor
         self._output_flag = output_flag
         super().__init__(name, exec_name, vendor, Categories.LINKER)
