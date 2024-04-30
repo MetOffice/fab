@@ -383,10 +383,11 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
         mp_payload.all_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}  # type: ignore
 
     # calculate the transformation script hash for this file
-    if mp_payload.transformation_script and mp_payload.transformation_script(fpath=x90_file):
-        transformation_script_hash = file_checksum(mp_payload.transformation_script(fpath=x90_file)).file_hash
-    else:
-        transformation_script_hash = 0
+    transformation_script_hash = 0
+    if mp_payload.transformation_script:
+        transformation_script_return_path = mp_payload.transformation_script(x90_file)
+        if transformation_script_return_path:
+            transformation_script_hash = file_checksum(transformation_script_return_path).file_hash
 
     # hash everything which should trigger re-processing
     # todo: hash the psyclone version in case the built-in kernels change?
@@ -420,10 +421,11 @@ def run_psyclone(generated, modified_alg, x90_file, kernel_roots, transformation
     kernel_args: Union[List[str], list] = sum([['-d', k] for k in kernel_roots], [])
 
     # transformation python script
-    if transformation_script and transformation_script(fpath=x90_file):
-        transform_options = ['-s', transformation_script(fpath=x90_file)] 
-    else:
-        transform_options = []
+    transform_options = []
+    if transformation_script:
+        transformation_script_return_path = transformation_script(x90_file)
+        if transformation_script_return_path:
+            transform_options = ['-s', transformation_script_return_path]
 
     command = [
         'psyclone', '-api', 'dynamo0.3',
