@@ -23,32 +23,27 @@ from fab.newtools import (Categories, Gcc, Gfortran, Ifort,   # type: ignore
                           Linker, ToolRepository)
 
 
-def test_tool_repository_get_singleton():
+def test_tool_repository_get_singleton_new():
     '''Tests the singleton behaviour.'''
     ToolRepository._singleton = None
-    with pytest.raises(RuntimeError) as err:
-        ToolRepository()
-    assert ("You must use 'ToolRepository.get()' to get the singleton "
-            "instance." in str(err.value))
-    tr1 = ToolRepository.get()
-    tr2 = ToolRepository.get()
-    assert tr1 is tr2
-
+    tr1 = ToolRepository()
+    tr2 = ToolRepository()
+    assert tr1 == tr2
     ToolRepository._singleton = None
-    tr3 = ToolRepository.get()
+    tr3 = ToolRepository()
     assert tr1 is not tr3
 
 
 def test_tool_repository_constructor():
     '''Tests the ToolRepository constructor.'''
-    tr = ToolRepository.get()
+    tr = ToolRepository()
     assert Categories.C_COMPILER in tr
     assert Categories.FORTRAN_COMPILER in tr
 
 
 def test_tool_repository_get_tool():
     '''Tests get_tool.'''
-    tr = ToolRepository.get()
+    tr = ToolRepository()
     gfortran = tr.get_tool(Categories.FORTRAN_COMPILER, "gfortran")
     assert isinstance(gfortran, Gfortran)
 
@@ -58,7 +53,7 @@ def test_tool_repository_get_tool():
 
 def test_tool_repository_get_tool_error():
     '''Tests error handling during tet_tool.'''
-    tr = ToolRepository.get()
+    tr = ToolRepository()
     with pytest.raises(KeyError) as err:
         tr.get_tool("unknown-category", "something")
     assert "Unknown category 'unknown-category'" in str(err.value)
@@ -71,7 +66,7 @@ def test_tool_repository_get_tool_error():
 
 def test_tool_repository_get_default():
     '''Tests get_default.'''
-    tr = ToolRepository.get()
+    tr = ToolRepository()
     gfortran = tr.get_default(Categories.FORTRAN_COMPILER)
     assert isinstance(gfortran, Gfortran)
 
@@ -85,7 +80,7 @@ def test_tool_repository_get_default():
 
 def test_tool_repository_get_default_error():
     '''Tests error handling in get_default.'''
-    tr = ToolRepository.get()
+    tr = ToolRepository()
     with pytest.raises(RuntimeError) as err:
         tr.get_default("unknown-category")
     assert "Invalid category type 'str'." in str(err.value)
@@ -93,7 +88,7 @@ def test_tool_repository_get_default_error():
 
 def test_tool_repository_default_vendor():
     '''Tests the setting of default vendor for compiler and linker.'''
-    tr = ToolRepository.get()
+    tr = ToolRepository()
     tr.set_default_vendor("gnu")
     for cat in [Categories.C_COMPILER, Categories.FORTRAN_COMPILER,
                 Categories.LINKER]:

@@ -132,12 +132,15 @@ class FortranCompiler(Compiler):
         self._syntax_only_flag = syntax_only_flag
 
     @property
-    def has_syntax_only(self):
+    def has_syntax_only(self) -> bool:
+        ''':returns: whether this compiler supports a syntax-only feature.'''
         return self._syntax_only_flag is not None
 
-    def set_module_output_path(self, path):
-        path = str(path)
-        self._module_output_path = path
+    def set_module_output_path(self, path: Path):
+        '''Sets the output path for modules.
+        :params path: the path to the output directory.
+        '''
+        self._module_output_path = str(path)
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None,
@@ -153,7 +156,7 @@ class FortranCompiler(Compiler):
             params.append(self._syntax_only_flag)
 
         # Append module output path
-        if self._module_folder_flag:
+        if self._module_folder_flag and self._module_output_path:
             params.append(self._module_folder_flag)
             params.append(self._module_output_path)
         super().compile_file(input_file, output_file, params)

@@ -7,7 +7,7 @@
 '''This file contains the ToolRepository class.
 '''
 
-# We can't declare _singleton and get() using ToolRepository, but
+# We can't declare _singleton and __new__() using ToolRepository, but
 # it is allowed if we use this import:
 from __future__ import annotations
 
@@ -25,23 +25,25 @@ class ToolRepository(dict):
     linking with the specified compiler.
     '''
 
-    _singleton: None | str | ToolRepository = None
+    _singleton: None | ToolRepository = None
 
-    @staticmethod
-    def get() -> ToolRepository | Any:
+    def __new__(cls) -> ToolRepository:
         '''Singleton access. Changes the value of _singleton so that the
         constructor can verify that it is indeed called from here.
         '''
-        if ToolRepository._singleton is None:
-            ToolRepository._singleton = "FROM_GET"
-            ToolRepository._singleton = ToolRepository()
-        return ToolRepository._singleton
+        if not cls._singleton:
+            cls._singleton = super().__new__(cls)
+
+        return cls._singleton
 
     def __init__(self):
-        # Check if the constructor is called from 'get':
-        if ToolRepository._singleton != "FROM_GET":
-            raise RuntimeError("You must use 'ToolRepository.get()' to get "
-                               "the singleton instance.")
+        # Note that in this singleton pattern the constructor is called each
+        # time the instance is requested (since we overwrite __new__). But
+        # we only want to initialise the instance once, so let the constructor
+        # not do anything if the singleton already exists:
+        if ToolRepository._singleton:
+            return
+
         self._logger = logging.getLogger(__name__)
         super().__init__()
 
@@ -88,7 +90,7 @@ class ToolRepository(dict):
 
         if category not in self:
             raise KeyError(f"Unknown category '{category}' "
-                           f"in ToolRepository.get.")
+                           f"in ToolRepository.get_tool().")
         all_tools = self[category]
         for tool in all_tools:
             if tool.name == name:

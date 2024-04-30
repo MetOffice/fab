@@ -19,9 +19,9 @@ def test_tool_box_constructor():
 def test_tool_box_get_tool():
     '''Tests get_tool.'''
     tb = ToolBox()
-    tr = ToolRepository.get()
     # No tool is defined, so the default Fortran compiler must be returned:
     default_compiler = tb.get_tool(Categories.FORTRAN_COMPILER)
+    tr = ToolRepository()
     assert default_compiler is tr.get_default(Categories.FORTRAN_COMPILER)
     # Check that dictionary-like access works as expected:
     assert tb[Categories.FORTRAN_COMPILER] == default_compiler

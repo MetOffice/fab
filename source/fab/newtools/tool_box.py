@@ -44,5 +44,5 @@ class ToolBox:
 
         # No tool was specified for this category, get the default tool
         # from the ToolRepository:
-        tr = ToolRepository.get()
+        tr = ToolRepository()
         return tr.get_default(category)
