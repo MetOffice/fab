@@ -71,7 +71,7 @@ class MpCommonArgs:
     Contains data used to calculate the prebuild hash.
 
     """
-    config: BuildConfig
+    config: Optional[BuildConfig] 
     analysed_x90: Dict[Path, AnalysedX90]
 
     kernel_roots: List[Path]

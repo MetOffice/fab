@@ -49,7 +49,8 @@ class Test_gen_prebuild_hash(object):
             analysed_x90=analysed_x90,
             all_kernel_hashes=all_kernel_hashes,
             cli_args=[],
-            config=None, kernel_roots=None, 
+            config=None, 
+            kernel_roots=[], 
             transformation_script=mock_transformation_script,  # type: ignore[arg-type]
             overrides_folder=None, 
             override_files=None,  # type: ignore[arg-type]
