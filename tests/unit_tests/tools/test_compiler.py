@@ -38,15 +38,19 @@ def test_compiler():
 def test_compiler_hash():
     '''Test the hash functionality.'''
     cc = CCompiler("gcc", "gcc", "gnu")
-    assert cc.get_hash() == 3584447629
+    with mock.patch.object(cc, "_version", 567):
+        hash1 = cc.get_hash()
+        assert hash1 == 4646426180
+
     # A change in the version number must change the hash:
-    cc._version = "-123"
-    new_hash = cc.get_hash()
-    assert new_hash != 3584447629
+    with mock.patch.object(cc, "_version", 89):
+        hash2 = cc.get_hash()
+        assert hash2 != hash1
 
     # A change in the name must change the hash, again:
     cc._name = "new_name"
-    assert cc.get_hash() != new_hash
+    hash3 = cc.get_hash()
+    assert hash3 != hash1 and hash3 != hash2
 
 
 def test_compiler_with_env_fflags():
