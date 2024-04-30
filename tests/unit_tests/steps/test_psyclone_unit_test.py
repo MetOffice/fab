@@ -12,6 +12,7 @@ import pytest
 from fab.parse.x90 import AnalysedX90
 from fab.steps.psyclone import _check_override, _gen_prebuild_hash, MpCommonArgs
 from fab.util import file_checksum
+from fab.build_config import BuildConfig
 
 
 class Test_gen_prebuild_hash(object):
@@ -49,7 +50,7 @@ class Test_gen_prebuild_hash(object):
             analysed_x90=analysed_x90,
             all_kernel_hashes=all_kernel_hashes,
             cli_args=[],
-            config=None, 
+            config=BuildConfig('proj', fab_workspace=tmp_path), 
             kernel_roots=[], 
             transformation_script=mock_transformation_script,  # type: ignore[arg-type]
             overrides_folder=None, 
