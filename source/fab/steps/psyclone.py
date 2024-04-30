@@ -386,7 +386,7 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
     # calculate the transformation script hash for this file
     transformation_script_hash = 0
     if mp_payload.transformation_script:
-        transformation_script_return_path = mp_payload.transformation_script(x90_file)
+        transformation_script_return_path = mp_payload.transformation_script(fpath=x90_file)  # type: ignore[call-arg]
         if transformation_script_return_path:
             transformation_script_hash = file_checksum(transformation_script_return_path).file_hash
 
@@ -424,7 +424,7 @@ def run_psyclone(generated, modified_alg, x90_file, kernel_roots, transformation
     # transformation python script
     transform_options = []
     if transformation_script:
-        transformation_script_return_path = transformation_script(x90_file)
+        transformation_script_return_path = transformation_script(fpath=x90_file)  # type: ignore[call-arg]
         if transformation_script_return_path:
             transform_options = ['-s', transformation_script_return_path]
 
