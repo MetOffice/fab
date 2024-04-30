@@ -24,6 +24,16 @@ class Preprocessor(Tool):
         super().__init__(name, exec_name, category)
         self._version = None
 
+    def check_available(self):
+        '''Checks if the compiler is available. We do this by requesting the
+        compiler version.
+        '''
+        try:
+            self.run("--version")
+        except (RuntimeError, FileNotFoundError):
+            return False
+        return True
+
     def preprocess(self, input_file: Path, output_file: Path,
                    add_flags: Union[None, List[str]] = None):
         '''Calls the preprocessor to process the specified input file,
@@ -62,9 +72,19 @@ class CppFortran(Preprocessor):
 
 # ============================================================================
 class Fpp(Preprocessor):
-    '''Class for the Fortran-specific preprocessor.
+    '''Class for Intel's Fortran-specific preprocessor.
     '''
     def __init__(self):
         super().__init__("fpp", "fpp", Categories.FORTRAN_PREPROCESSOR)
-        # TODO: Proper check to be done
-        self.is_available = False
+
+    def check_available(self):
+        '''Checks if the compiler is available. We do this by requesting the
+        compiler version.
+        '''
+        try:
+            # fpp -V prints version information, but then hangs (i.e. reading
+            # from stdin), so use -what
+            self.run("-what")
+        except (RuntimeError, FileNotFoundError):
+            return False
+        return True

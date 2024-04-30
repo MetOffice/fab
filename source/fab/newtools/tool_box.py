@@ -27,7 +27,11 @@ class ToolBox:
 
         :param category: the category for which to add a tool
         :param tool: the tool to add.
+
+        :raises RuntimeError: if a tool is added that is not installed
         '''
+        if not tool.is_available:
+            raise RuntimeError(f"Tool '{tool}' is not available.")
         self._all_tools[tool.category] = tool
 
     def get_tool(self, category: Categories):

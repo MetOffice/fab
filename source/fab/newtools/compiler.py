@@ -44,6 +44,12 @@ class Compiler(VendorTool):
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
+        '''Compiles a file.
+        :param input_file: the path of the input file.
+        :param outpout_file: the path of the output file.
+        :param add_flags: additional compiler flags.
+        '''
+
         params = [self._compile_flag]
         if add_flags:
             params += add_flags
@@ -54,14 +60,34 @@ class Compiler(VendorTool):
         return self.run(cwd=input_file.parent,
                         additional_parameters=params)
 
+    def check_available(self):
+        '''Checks if the compiler is available. We do this by requesting the
+        compiler version.
+        '''
+        try:
+            version = self.get_version()
+        except RuntimeError:
+            # Compiler does not exist:
+            return False
+
+        # An empty string is returned if some other error occurred when trying
+        # to get the compiler version.
+        return version != ""
+
     def get_version(self):
         """
         Try to get the version of the given compiler.
+        # TODO: why return "" when an error happened?
+        # TODO: we need to properly create integers for compiler versions
+        #       to (later) allow less and greater than comparisons.
 
         Expects a version in a certain part of the --version output,
         which must adhere to the n.n.n format, with at least 2 parts.
 
-        Returns a version string, e.g '6.10.1', or empty string.
+        :Returns: a version string, e.g '6.10.1', or empty string if
+            a different error happened when trying to get the compiler version.
+
+        :raises RuntimeError: if the compiler was not found.
         """
         if self._version:
             return self._version
@@ -69,7 +95,7 @@ class Compiler(VendorTool):
         try:
             res = self.run("--version", capture_output=True)
         except FileNotFoundError as err:
-            raise ValueError(f'Compiler not found: {self.name}') from err
+            raise RuntimeError(f'Compiler not found: {self.name}') from err
         except RuntimeError as err:
             self.logger.warning(f"Error asking for version of compiler "
                                 f"'{self.name}': {err}")

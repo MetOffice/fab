@@ -26,16 +26,23 @@ def test_preprocessor_constructor():
     assert isinstance(tool.logger, logging.Logger)
 
 
-def test_preprocessor_is_available():
+def test_preprocessor_fpp_is_available():
     '''Test that is_available works as expected.'''
     fpp = Fpp()
-    assert not fpp.is_available
+    mock_run = mock.Mock(side_effect=RuntimeError("not found"))
+    with mock.patch("subprocess.run", mock_run):
+        assert not fpp.is_available
+
+    # Reset the flag and pretend run returns a success:
+    fpp._is_available = None
+    mock_run = mock.Mock(returncode=0)
+    with mock.patch("fab.newtools.tool.Tool.run", mock_run):
+        assert fpp.is_available
 
 
 def test_preprocessor_cpp():
     '''Test cpp.'''
     cpp = Cpp()
-    assert cpp.is_available
     # First create a mock object that is the result of subprocess.run.
     # Tool will only check `returncode` of this object.
     mock_result = mock.Mock(returncode=0)
@@ -46,6 +53,12 @@ def test_preprocessor_cpp():
         cpp.run("--version")
         mock_run.assert_called_with(["cpp", "--version"], capture_output=True,
                                     env=None, cwd=None, check=False)
+
+    # Reset the flag and raise an error when executing:
+    cpp._is_available = None
+    mock_run = mock.Mock(side_effect=RuntimeError("not found"))
+    with mock.patch("fab.newtools.tool.Tool.run", mock_run):
+        assert not cpp.is_available
 
 
 def test_preprocessor_cppfortran():

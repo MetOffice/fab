@@ -6,8 +6,11 @@
 
 '''This module tests the TooBox class.
 '''
+from unittest import mock
 
-from fab.newtools import Categories, ToolBox, ToolRepository
+import pytest
+
+from fab.newtools import Categories, Gfortran, ToolBox, ToolRepository
 
 
 def test_tool_box_constructor():
@@ -31,3 +34,16 @@ def test_tool_box_get_tool():
     tb.add_tool(tr_gfortran)
     gfortran = tb.get_tool(Categories.FORTRAN_COMPILER)
     assert gfortran is tr_gfortran
+
+
+def test_tool_box_add_tool_not_avail():
+    '''Test that tools that are not available cannot be added to
+    a tool box.'''
+
+    tb = ToolBox()
+    gfortran = Gfortran()
+    # Mark this compiler to be not available:
+    with mock.patch.object(gfortran, "check_available", return_value=False):
+        with pytest.raises(RuntimeError) as err:
+            tb.add_tool(gfortran)
+        assert f"Tool '{gfortran}' is not available" in str(err.value)

@@ -43,6 +43,20 @@ class Linker(VendorTool):
         self._compiler = compiler
         self.flags.extend(os.getenv("LDFLAGS", "").split())
 
+    def check_available(self):
+        '''Checks if the compiler is available. We do this by requesting the
+        compiler version.
+        '''
+        if self._compiler:
+            return self._compiler.check_available()
+
+        try:
+            # We don't actually care about the result
+            self.run("--version")
+        except (RuntimeError, FileNotFoundError):
+            return False
+        return True
+
     def link(self, input_files: List[Path], output_file: Path,
              add_libs: Optional[List[str]] = None):
         '''Executes the linker with the specified input files,

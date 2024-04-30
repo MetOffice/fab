@@ -52,6 +52,32 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
             "creating Linker." in str(err.value))
 
 
+def test_linker_check_available(mock_c_compiler):
+    '''Tests the is_available functionality.'''
+
+    # First test if a compiler is given. The linker will call the
+    # corresponding function in the compiler:
+    linker = Linker(compiler=mock_c_compiler)
+    with mock.patch.object(mock_c_compiler, "check_available",
+                           return_value=True) as comp_run:
+        assert linker.check_available()
+    # It should be called once without any parameter
+    comp_run.assert_called_once_with()
+
+    # Second test, no compiler is given. Mock Tool.run to
+    # return a success:
+    linker = Linker("ld", "ld", vendor="gnu")
+    with mock.patch("fab.newtools.tool.Tool.run") as tool_run:
+        linker.check_available()
+    tool_run.assert_called_once_with("--version")
+
+    # Third test: assume the tool does not exist, run will raise
+    # runtime error:
+    with mock.patch("fab.newtools.tool.Tool.run",
+                    side_effect=RuntimeError("")) as tool_run:
+        linker.check_available()
+
+
 def test_linker_c(mock_c_compiler):
     '''Test the link command line.'''
     linker = Linker(compiler=mock_c_compiler)

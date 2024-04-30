@@ -35,6 +35,21 @@ def test_compiler():
     assert fc.flags == []
 
 
+def test_compiler_check_available():
+    '''Check if check_available works as expected. The compiler class
+    uses internally get_version to test if a compiler works or not.
+    '''
+    cc = CCompiler("gcc", "gcc", "gnu")
+    # The compiler uses get_version to check if it is available.
+    # First simulate a successful run:
+    with mock.patch.object(cc, "get_version", returncode=123):
+        assert cc.check_available()
+
+    # Now test if get_version raises an error
+    with mock.patch.object(cc, "get_version", side_effect=RuntimeError("")):
+        assert not cc.check_available()
+
+
 def test_compiler_hash():
     '''Test the hash functionality.'''
     cc = CCompiler("gcc", "gcc", "gnu")
@@ -139,7 +154,7 @@ class TestGetCompilerVersion:
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
             assert c.get_version() == '', 'expected empty string'
         with mock.patch.object(c, 'run', side_effect=FileNotFoundError()):
-            with pytest.raises(ValueError) as err:
+            with pytest.raises(RuntimeError) as err:
                 c.get_version()
             assert "Compiler not found: gfortran" in str(err.value)
 

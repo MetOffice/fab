@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Type
 
-from fab.newtools import (Categories, Cpp, CppFortran, Fpp, Gcc, Gfortran,
+from fab.newtools import (Categories, Cpp, CppFortran, Gcc, Gfortran,
                           Icc, Ifort, Linker)
 
 
@@ -52,7 +52,10 @@ class ToolRepository(dict):
             self[category] = []
 
         # Add the FAB default tools:
-        for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp, CppFortran]:
+        # TODO: sort the defaults so that they actually work (since not all
+        # tools FAB knows about are available). For now, disable Fpp
+        # for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp, CppFortran]:
+        for cls in [Gcc, Icc, Gfortran, Ifort, Cpp, CppFortran]:
             self.add_tool(cls)
 
     def add_tool(self, cls: Type[Any]):
@@ -66,9 +69,9 @@ class ToolRepository(dict):
         # derived from Tool which do not require any arguments (e.g. Ifort)
 
         tool = cls()
-        if not tool.is_available:
-            self._logger.debug(f"Tool {tool.name} is not available - ignored.")
-            return
+        # We do not test if a tool is actually available. The ToolRepository
+        # contains the tools that FAB knows about. It is the responsibility
+        # of the ToolBox to make sure only available tools are added.
         self[tool.category].append(tool)
 
         # If we have a compiler, add the compiler as linker as well

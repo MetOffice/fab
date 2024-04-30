@@ -8,6 +8,7 @@
 It provides basic
 
 """
+from abc import abstractmethod
 import logging
 from pathlib import Path
 import subprocess
@@ -28,13 +29,24 @@ class Tool:
         self._exec_name = exec_name
         self._flags = Flags()
         self._category = category
-        # TODO: check if a tool actually works
-        self._is_available = True
+        self._is_available: Optional[bool] = None
+
+    @abstractmethod
+    def check_available(self):
+        '''An abstract method to check if this tool is available in the system.
+        '''
 
     @property
     def is_available(self) -> bool:
-        ''':returns: whether the tool is available (i.e. installed and
-        working)'''
+        '''Checks if the tool is available or not. It will call a tool-specific
+        function check_available to determine this, but will cache the results
+        to avoid testing a tool more than once.
+
+        :returns: whether the tool is available (i.e. installed and
+        working).
+        '''
+        if self._is_available is None:
+            self._is_available = self.check_available()
         return self._is_available
 
     @is_available.setter
