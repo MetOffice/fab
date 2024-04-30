@@ -8,7 +8,7 @@
 '''
 
 import logging
-from typing import Optional
+from typing import List, Optional
 import warnings
 
 
@@ -19,7 +19,7 @@ class Flags(list):
     :param list_of_flags: List of parameters to initialise this object with.
     '''
 
-    def __init__(self, list_of_flags: Optional[list[str]] = None):
+    def __init__(self, list_of_flags: Optional[List[str]] = None):
         self._logger = logging.getLogger(__name__)
         super().__init__()
         if list_of_flags:

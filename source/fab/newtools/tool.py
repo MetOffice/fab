@@ -11,7 +11,7 @@ It provides basic
 import logging
 from pathlib import Path
 import subprocess
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 from fab.newtools.categories import Categories
 from fab.newtools.flags import Flags
@@ -79,7 +79,7 @@ class Tool:
 
     def run(self,
             additional_parameters: Optional[Union[str, List[str]]] = None,
-            env: Optional[dict[str, str]] = None,
+            env: Optional[Dict[str, str]] = None,
             cwd: Optional[Union[Path, str]] = None,
             capture_output=True) -> str:
         """
