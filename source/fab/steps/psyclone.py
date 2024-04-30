@@ -75,7 +75,7 @@ class MpCommonArgs:
     analysed_x90: Dict[Path, AnalysedX90]
 
     kernel_roots: List[Path]
-    transformation_script: Optional[Callable[[Path],Path]]
+    transformation_script: Optional[Callable[[Path], Path]]
     cli_args: List[str]
 
     all_kernel_hashes: Dict[str, int]
@@ -91,7 +91,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 
 @step
 def psyclone(config, kernel_roots: Optional[List[Path]] = None,
-             transformation_script: Optional[Callable[[Path],Path]] = None,
+             transformation_script: Optional[Callable[[Path], Path]] = None,
              cli_args: Optional[List[str]] = None,
              source_getter: Optional[ArtefactsGetter] = None,
              overrides_folder: Optional[Path] = None):
@@ -113,7 +113,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     :param kernel_roots:
         Folders containing kernel files. Must be part of the analysed source code.
     :param transformation_script:
-        The function to get Python transformation script. It takes in a file path, and returns the path of the transformation script or none.
+        The function to get Python transformation script.
+        It takes in a file path, and returns the path of the transformation script or none.
     :param cli_args:
         Passed through to the psyclone cli tool.
     :param source_getter:
