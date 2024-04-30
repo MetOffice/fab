@@ -193,7 +193,7 @@ class TestPsyclone(object):
 
 class TestTransformationScript(object):
     """
-    Check whether transformation script is called with x90 file twice
+    Check whether transformation script is called with x90 file once
     and whether transformation script is passed to psyclone after '-s'.
 
     """
@@ -212,8 +212,7 @@ class TestTransformationScript(object):
                          )
 
             # check whether x90 is passed to transformation_script
-            mock_transformation_script.assert_called_with(Path(__file__))
-            assert mock_transformation_script.call_count == 2
+            mock_transformation_script.assert_called_once_with(Path(__file__))
             # check transformation_script is passed to psyclone command with '-s'
             mock_run_command.assert_called_with(['psyclone', '-api', 'dynamo0.3',
                                                  '-l', 'all',
