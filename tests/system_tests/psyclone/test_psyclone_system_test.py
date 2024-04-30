@@ -96,7 +96,8 @@ class TestX90Analyser(object):
 class Test_analysis_for_prebuilds(object):
 
     def test_analyse(self, tmp_path):
-        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+        with BuildConfig('proj', fab_workspace=tmp_path) as config, \
+             pytest.warns(UserWarning, match="no transformation script specified"):
             analysed_x90, all_kernel_hashes = \
                 _analysis_for_prebuilds(config,
                                         x90s=[SAMPLE_X90],
