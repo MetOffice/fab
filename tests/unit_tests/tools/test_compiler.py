@@ -118,12 +118,14 @@ class TestGetCompilerVersion:
         '''
         c = Compiler("gfortran", "gfortran", "gnu",
                      Categories.FORTRAN_COMPILER)
-        c.run = mock.Mock(return_value=full_version_string)
-        assert c.get_version() == expected
+        with mock.patch.object(c, "run",
+                               mock.Mock(return_value=full_version_string)):
+            assert c.get_version() == expected
         # Now let the run method raise an exception, to make sure
-        # we now get a cached value back:
-        c.run = mock.Mock(side_effect=RuntimeError(""))
-        assert c.get_version() == expected
+        # we get a cached value back (and the run method isn't called again):
+        with mock.patch.object(c, "run",
+                               mock.Mock(side_effect=RuntimeError(""))):
+            assert c.get_version() == expected
 
     def test_command_failure(self):
         '''If the command fails, we must return an empty string, not None,
