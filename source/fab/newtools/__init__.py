@@ -17,3 +17,23 @@ from fab.newtools.tool import Tool, VendorTool
 # Order here is important to avoid a circular import
 from fab.newtools.tool_repository import ToolRepository
 from fab.newtools.tool_box import ToolBox
+
+__all__ = ["Categories",
+           "CCompiler",
+           "Compiler",
+           "FortranCompiler",
+           "Gcc",
+           "Gfortran",
+           "Icc",
+           "Ifort",
+           "Flags",
+           "Linker",
+           "Cpp",
+           "CppFortran",
+           "Fpp",
+           "Preprocessor",
+           "Tool",
+           "VendorTool",
+           "ToolRepository",
+           "ToolBox",
+           ]
