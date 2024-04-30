@@ -13,9 +13,7 @@ from pathlib import Path
 
 from unittest import mock
 
-# TODO: why is ignore required?
-from fab.newtools import (Categories, Cpp, CppFortran, Fpp,   # type: ignore
-                          Preprocessor)
+from fab.newtools import (Categories, Cpp, CppFortran, Fpp, Preprocessor)
 
 
 def test_preprocessor_constructor():

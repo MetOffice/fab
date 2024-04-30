@@ -9,18 +9,9 @@
 
 import pytest
 
-# TODO I don't know why mypy complains here
-# $ mypy  ./test_tool_repository.py
-# test_tool_repository.py:14: error: Skipping analyzing "fab.newtools":
-#     module is installed, but missing library stubs or py.typed marker
-#     [import-untyped]
-# test_tool_repository.py:14: note: See https://mypy.readthedocs.io/en/stable
-#     /running_mypy.html#missing-imports
-# test_tool_repository.py:35: note: By default the bodies of untyped functions
-# are not checked, consider using --check-untyped-defs  [annotation-unchecked]
 
-from fab.newtools import (Categories, Gcc, Gfortran, Ifort,   # type: ignore
-                          Linker, ToolRepository)
+from fab.newtools import (Categories, Gcc, Gfortran, Ifort, Linker,
+                          ToolRepository)
 
 
 def test_tool_repository_get_singleton_new():
