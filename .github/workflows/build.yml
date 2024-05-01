@@ -16,7 +16,7 @@ jobs:
       #
       - name: Setup Compiler
         run: |
-          sudo apt-get -y install llvm flang clang libclang-dev gcc gfortran
+          sudo apt-get -y install llvm clang libclang-dev gcc gfortran
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
