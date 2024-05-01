@@ -35,13 +35,6 @@ jobs:
           pip install -e .
           pip install clang==14.0
 
-#    - name: Setup LibClang
-#      run: |
-#        sudo apt-get -y install libclang-dev python-clang
-#        SP=~/.local/lib/python${{ matrix.python-version }}/site-packages
-#        mkdir -p $SP
-#        cp -vr /usr/lib/python3/dist-packages/clang $SP/
-
       - name: Type check with mypy
         run: |
           pip install -e .[dev]
