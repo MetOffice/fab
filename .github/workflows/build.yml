@@ -5,46 +5,59 @@ on: [push, pull_request]
 jobs:
   build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       max-parallel: 4
       matrix:
         python-version: ['3.7', '3.8', '3.9', '3.10']
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Setup Compiler
-      run: |
-        sudo apt-get -y install gcc gfortran
-    - name: Setup LibClang
-      run: |
-        sudo apt-get -y install libclang-dev python-clang
-        SP=~/.local/lib/python${{ matrix.python-version }}/site-packages
-        mkdir -p $SP
-        cp -vr /usr/lib/python3/dist-packages/clang $SP/
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-    - name: Type check with mypy
-      run: |
-        pip install -e .[dev]
-        pip install pytest
-        python -m mypy source tests
-    - name: Code style check with flake8
-      run: |
-        pip install -e .[dev]
-        flake8 . --count --show-source --statistics
-    - name: Unit tests with Pytest
-      run: |
-        pip install .[tests]
-        python -m pytest --cov=fab tests/unit_tests
+      # Should this step use a cache?
+      #
+      - name: Setup Compiler
+        run: |
+          sudo apt-get -y install llvm flang clang libclang-dev gcc gfortran
 
-    - name: System tests with Pytest
-      run: |
-        pip install .[tests]
-        python -m pytest --cov=fab tests/system_tests
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install Python libraries
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -e .[c-language]
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+#    - name: Setup LibClang
+#      run: |
+#        sudo apt-get -y install libclang-dev python-clang
+#        SP=~/.local/lib/python${{ matrix.python-version }}/site-packages
+#        mkdir -p $SP
+#        cp -vr /usr/lib/python3/dist-packages/clang $SP/
+
+      - name: Type check with mypy
+        run: |
+          pip install -e .[dev]
+          pip install pytest
+          python -m mypy source tests
+
+      - name: Code style check with flake8
+        run: |
+          pip install -e .[dev]
+          flake8 . --count --show-source --statistics
+
+      - name: Unit tests with Pytest
+        run: |
+          pip install .[tests]
+          python -m pytest --cov=fab tests/unit_tests
+
+      - name: System tests with Pytest
+        run: |
+          pip install .[tests]
+          python -m pytest --cov=fab tests/system_tests
