@@ -32,7 +32,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install -e .[c-language]
+# The clang binding version has to match the version in the Ubuntu being used.
+          pip install -e clang==14.0
 
 #    - name: Setup LibClang
 #      run: |
