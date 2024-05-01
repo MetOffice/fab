@@ -33,7 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install -e clang==14.0
+          pip install clang==14.0
 
 #    - name: Setup LibClang
 #      run: |
