@@ -81,7 +81,7 @@ See also
    writing_config
    advanced_config
    features
-   Api Reference <apidoc/modules>
+   Api Reference <api>
    development
    glossary
    genindex
