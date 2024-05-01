@@ -28,11 +28,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
+      # The clang binding version has to match the version in the Ubuntu being used.
       - name: Install Python libraries
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-# The clang binding version has to match the version in the Ubuntu being used.
           pip install -e clang==14.0
 
 #    - name: Setup LibClang
