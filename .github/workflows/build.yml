@@ -18,6 +18,10 @@ jobs:
         run: |
           sudo apt-get -y install llvm clang libclang-dev gcc gfortran
 
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -29,10 +33,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           pip install -e .[c-language]
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
 #    - name: Setup LibClang
 #      run: |

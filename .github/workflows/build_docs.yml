@@ -13,7 +13,8 @@ jobs:
           git config --global user.email "metomi@metoffice.gov.uk"
           git config --global user.name "SciFab Developers"
 
-      - uses: actions/checkout@v3
+      - name: Checkout Fab project files
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
