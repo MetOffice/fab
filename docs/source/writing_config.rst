@@ -132,6 +132,52 @@ Preprocessed files are created in the `'build_output'` folder, inside the projec
 After the fortran_preprocessor step, there will be a collection called ``"preprocessed_fortran"``, in the artefact store.
 
 
+PSyclone
+========
+
+If you want to use PSyclone to do code transformation and pre-processing (see https://github.com/stfc/PSyclone),
+you must run :func:`~fab.steps.psyclone.preprocess_x90` and :func:`~fab.steps.psyclone.psyclone`,
+before you run the :func:`~fab.steps.analyse.analyse` step below.
+
+* For :func:`~fab.steps.psyclone.preprocess_x90`:
+            You can pass in `common_flags` list as an argument.
+* For :func:`~fab.steps.psyclone.psyclone`:
+            You can pass in kernel file roots to `kernel_roots`, a function to get transformation script to
+            `transformation_script` (see examples in :ref:`~fab.run_configs.lfric.gungho.py` and
+            :ref:`~fab.run_configs.lfric.atm.py`), command-line arguments to `cli_args`,
+            override for input files to `source_getter`, and folders containing override files to `overrides_folder`
+
+
+.. code-block::
+    :linenos:
+    :caption: build_it.py
+    :emphasize-lines: 8,18,19
+
+    #!/usr/bin/env python3
+    from logging import getLogger
+
+    from fab.build_config import BuildConfig
+    from fab.steps.find_source_files import find_source_files
+    from fab.steps.grab.folder import grab_folder
+    from fab.steps.preprocess import preprocess_fortran
+    from fab.steps.psyclone import psyclone, preprocess_x90
+
+    logger = getLogger('fab')
+
+    if __name__ == '__main__':
+
+        with BuildConfig(project_label='<project label') as state:
+            grab_folder(state, src='<path to source folder>')
+            find_source_files(state)
+            preprocess_fortran(state)
+            preprocess_x90(state)
+            psyclone(state)
+
+
+After the psyclone step, you can find `_psy.f90` files in the `'build_output'` folder. There will be a collection
+called ``"psyclone_output"`` in the artefact store.
+
+
 .. _Analyse Overview:
 
 Analyse
@@ -149,7 +195,7 @@ The Analyse step looks for source to analyse in several collections:
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 4,18
+    :emphasize-lines: 4,21
 
     #!/usr/bin/env python3
     from logging import getLogger
@@ -159,6 +205,7 @@ The Analyse step looks for source to analyse in several collections:
     from fab.steps.find_source_files import find_source_files
     from fab.steps.grab.folder import grab_folder
     from fab.steps.preprocess import preprocess_fortran
+    from fab.steps.psyclone import psyclone, preprocess_x90
 
     logger = getLogger('fab')
 
@@ -168,6 +215,8 @@ The Analyse step looks for source to analyse in several collections:
             grab_folder(state, src='<path to source folder>')
             find_source_files(state)
             preprocess_fortran(state)
+            preprocess_x90(state)
+            psyclone(state)
             analyse(state, root_symbol='<program>')
 
 
@@ -187,7 +236,7 @@ then creates the executable.
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 6,9,21,22
+    :emphasize-lines: 6,9,24,25
 
     #!/usr/bin/env python3
     from logging import getLogger
@@ -199,6 +248,7 @@ then creates the executable.
     from fab.steps.grab.folder import grab_folder
     from fab.steps.link import link_exe
     from fab.steps.preprocess import preprocess_fortran
+    from fab.steps.psyclone import psyclone, preprocess_x90
 
     logger = getLogger('fab')
 
@@ -208,6 +258,8 @@ then creates the executable.
             grab_folder(state, src='<path to source folder>')
             find_source_files(state)
             preprocess_fortran(state)
+            preprocess_x90(state)
+            psyclone(state)
             analyse(state, root_symbol='<program>')
             compile_fortran(state)
             link_exe(state)
