@@ -35,13 +35,8 @@ class Test_gen_prebuild_hash(object):
             'kernel2': 456,
         }
 
-        # Transformation_script function is supplied by LFRic or other apps, and is not inside Fab.
-        # Here a dummy function is created for mocking.
-        def dummy_transformation_script(fpath):
-            pass
         # the script is just hashed later, so any one will do - use this file!
-        mock_transformation_script = mock.create_autospec(dummy_transformation_script,
-                                                          return_value=Path(__file__))
+        mock_transformation_script = mock.Mock(return_value=__file__)
 
         expect_hash = 223133492 + file_checksum(__file__).file_hash  # add the transformation_script_hash
 
@@ -80,7 +75,8 @@ class Test_gen_prebuild_hash(object):
         # changing the transformation script should change the hash
         mp_payload, x90_file, expect_hash = data
         mp_payload.transformation_script = None
-        result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
+        with pytest.warns(UserWarning, match="no transformation script specified"):
+            result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
         # transformation_script_hash = 0
         assert result == expect_hash - file_checksum(__file__).file_hash
 

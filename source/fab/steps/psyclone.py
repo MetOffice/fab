@@ -114,7 +114,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
         Folders containing kernel files. Must be part of the analysed source code.
     :param transformation_script:
         The function to get Python transformation script.
-        It takes in a file path, and returns the path of the transformation script or none.
+        It takes in a file path, and returns the path of the transformation script or None.
+        If no function is given or the function returns None, no script will be applied and PSyclone still runs.
     :param cli_args:
         Passed through to the psyclone cli tool.
     :param source_getter:
@@ -134,10 +135,15 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
 
     x90s = source_getter(config.artefact_store)
 
-    # get the data for child processes to calculate prebuild hashes
-    prebuild_analyses = _analysis_for_prebuilds(config, x90s, transformation_script, kernel_roots)
+    # analyse the x90s
+    analysed_x90 = _analyse_x90s(config, x90s)
+
+    # analyse the kernel files,
+    all_kernel_hashes = _analyse_kernels(config, kernel_roots)
+
+    # get the data in a payload object for child processes to calculate prebuild hashes
     mp_payload = _generate_mp_payload(
-        config, prebuild_analyses, overrides_folder, kernel_roots, transformation_script, cli_args)
+        config, analysed_x90, all_kernel_hashes, overrides_folder, kernel_roots, transformation_script, cli_args)
 
     # run psyclone.
     # for every file, we get back a list of its output files plus a list of the prebuild copies.
@@ -167,9 +173,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     # assert False
 
 
-def _generate_mp_payload(config, prebuild_analyses, overrides_folder, kernel_roots, transformation_script, cli_args):
-    analysed_x90, all_kernel_hashes = prebuild_analyses
-
+def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_folder, kernel_roots,
+                         transformation_script, cli_args):
     override_files: List[str] = []
     if overrides_folder:
         override_files = [f.name for f in file_walk(overrides_folder)]
@@ -184,64 +189,6 @@ def _generate_mp_payload(config, prebuild_analyses, overrides_folder, kernel_roo
         overrides_folder=overrides_folder,
         override_files=override_files,
     )
-
-
-# todo: test that we can run this step before or after the analysis step
-def _analysis_for_prebuilds(config, x90s, transformation_script, kernel_roots) -> Tuple:
-    """
-    Analysis for PSyclone prebuilds.
-
-    In order to build reusable psyclone results, we need to know everything that goes into making one.
-    Then we can hash it all, and check for changes in subsequent builds.
-    We'll build up this data in a payload object, to be passed to the child processes.
-
-    Changes which must trigger reprocessing of an x90 file:
-     - x90 source:
-     - kernel metadata used by the x90
-     - transformation script
-     - cli args
-
-    Later:
-     - the psyclone version, to cover changes to built-in kernels
-
-    Kernels:
-
-    Kernel metadata are type definitions passed to invoke().
-    For example, this x90 code depends on the kernel `compute_total_mass_kernel_type`.
-    .. code-block:: fortran
-
-        call invoke( name = "compute_dry_mass",                                         &
-                     compute_total_mass_kernel_type(dry_mass, rho, chi, panel_id, qr),  &
-                     sum_X(total_dry, dry_mass))
-
-    We can see this kernel in a use statement at the top of the x90.
-    .. code-block:: fortran
-
-        use compute_total_mass_kernel_mod,   only: compute_total_mass_kernel_type
-
-    Some kernels, such as `setval_c`, are
-    `PSyclone built-ins <https://github.com/stfc/PSyclone/blob/ebb7f1aa32a9377da6ccc1ec04eec4adbc1e0a0a/src/
-    psyclone/domain/lfric/lfric_builtins.py#L2136>`_.
-    They will not appear in use statements and can be ignored.
-
-    The Psyclone and Analyse steps both use the generic Fortran analyser, which recognises Psyclone kernel metadata.
-    The Analysis step must come after this step because it needs to analyse the fortran we create.
-
-    """
-    # give warning if there is no transformation script
-    if not transformation_script:
-        warnings.warn('no transformation script specified')
-
-    # analyse the x90s
-    analysed_x90 = _analyse_x90s(config, x90s)
-
-    # Analyse the kernel files, hashing the psyclone kernel metadata.
-    # We only need the hashes right now but they all need analysing anyway, and we don't want to parse twice.
-    # We pass them through the general fortran analyser, which currently recognises kernel metadata.
-    # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
-    all_kernel_hashes = _analyse_kernels(config, kernel_roots)
-
-    return analysed_x90, all_kernel_hashes
 
 
 def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
@@ -276,7 +223,31 @@ def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
 
 
 def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
-    # We want to hash the kernel metadata (type defs).
+    """
+    We want to hash the kernel metadata (type defs).
+
+    Kernel metadata are type definitions passed to invoke().
+    For example, this x90 code depends on the kernel `compute_total_mass_kernel_type`.
+    .. code-block:: fortran
+
+        call invoke( name = "compute_dry_mass",                                         &
+                     compute_total_mass_kernel_type(dry_mass, rho, chi, panel_id, qr),  &
+                     sum_X(total_dry, dry_mass))
+
+    We can see this kernel in a use statement at the top of the x90.
+    .. code-block:: fortran
+
+        use compute_total_mass_kernel_mod,   only: compute_total_mass_kernel_type
+
+    Some kernels, such as `setval_c`, are
+    `PSyclone built-ins <https://github.com/stfc/PSyclone/blob/ebb7f1aa32a9377da6ccc1ec04eec4adbc1e0a0a/src/
+    psyclone/domain/lfric/lfric_builtins.py#L2136>`_.
+    They will not appear in use statements and can be ignored.
+
+    The Psyclone and Analyse steps both use the generic Fortran analyser, which recognises Psyclone kernel metadata.
+    The Analysis step must come after this step because it needs to analyse the fortran we create.
+
+    """
     # Ignore the prebuild folder. Todo: test the prebuild folder is ignored, in case someone breaks this.
     file_lists = [list(file_walk(root, ignore_folders=[config.prebuild_folder])) for root in kernel_roots]
     all_kernel_files: Set[Path] = set(sum(file_lists, []))
@@ -375,6 +346,12 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
     """
     Calculate the prebuild hash for this x90 file, based on all the things which should trigger reprocessing.
 
+    Changes which must trigger reprocessing of an x90 file:
+     - x90 source:
+     - kernel metadata used by the x90
+     - transformation script
+     - cli args
+
     """
     # We've analysed (a parsable version of) this x90.
     analysis_result = mp_payload.analysed_x90[x90_file]  # type: ignore
@@ -389,6 +366,8 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
         transformation_script_return_path = mp_payload.transformation_script(x90_file)
         if transformation_script_return_path:
             transformation_script_hash = file_checksum(transformation_script_return_path).file_hash
+    if transformation_script_hash == 0:
+        warnings.warn('no transformation script specified')
 
     # hash everything which should trigger re-processing
     # todo: hash the psyclone version in case the built-in kernels change?

@@ -17,7 +17,7 @@ from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import _analysis_for_prebuilds, make_parsable_x90, preprocess_x90, \
+from fab.steps.psyclone import _analyse_x90s, _analyse_kernels, make_parsable_x90, preprocess_x90, \
                                psyclone, tool_available, run_psyclone
 from fab.util import file_checksum
 
@@ -93,17 +93,12 @@ class TestX90Analyser(object):
         assert analysed_x90 == self.expected_analysis_result
 
 
-class Test_analysis_for_prebuilds(object):
+class Test_analysis_for_x90s_and_kernels(object):
 
     def test_analyse(self, tmp_path):
-        with BuildConfig('proj', fab_workspace=tmp_path) as config, \
-             pytest.warns(UserWarning, match="no transformation script specified"):
-            analysed_x90, all_kernel_hashes = \
-                _analysis_for_prebuilds(config,
-                                        x90s=[SAMPLE_X90],
-                                        kernel_roots=[Path(__file__).parent],
-                                        transformation_script=None,
-                                        )
+        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+            analysed_x90 = _analyse_x90s(config, x90s=[SAMPLE_X90])
+            all_kernel_hashes = _analyse_kernels(config, kernel_roots=[Path(__file__).parent])
 
         # analysed_x90
         assert analysed_x90 == {
@@ -199,9 +194,7 @@ class TestTransformationScript(object):
 
     """
     def test_transformation_script(self):
-        def dummy_transformation_script(fpath):
-            pass
-        mock_transformation_script = mock.create_autospec(dummy_transformation_script, return_value=Path(__file__))
+        mock_transformation_script = mock.Mock(return_value=__file__)
         with mock.patch('fab.steps.psyclone.run_command') as mock_run_command:
             mock_transformation_script.return_value = Path(__file__)
             run_psyclone(generated=Path(__file__),
