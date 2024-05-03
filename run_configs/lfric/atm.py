@@ -16,10 +16,10 @@ from fab.steps.find_source_files import find_source_files, Exclude, Include
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import configurator, fparser_workaround_stop_concatenation
+from fnmatch import fnmatch
+from string import Template
 
 logger = logging.getLogger('fab')
-
-# todo: optimisation path stuff
 
 
 def file_filtering(config):
@@ -163,6 +163,38 @@ def file_filtering(config):
     ]
 
 
+def get_transformation_script(fpath):
+    ''':returns: the transformation script to be used by PSyclone.
+    :rtype: Path
+
+    '''
+    params = {'relative': fpath.parent, 'source': lfric_source_config.source_root,
+              'output': lfric_source_config.build_output}
+    global_transformation_script = '$source/lfric/lfric_atm/optimisation/meto-spice/global.py'
+    local_transformation_script = None
+    if global_transformation_script:
+        if local_transformation_script:
+            # global defined, local defined
+            for key_match in local_transformation_script:
+                if fnmatch(str(fpath), Template(key_match).substitute(params)):
+                    # use templating to render any relative paths
+                    return Template(local_transformation_script[key_match]).substitute(params)
+            return Template(global_transformation_script).substitute(params)
+        else:
+            # global defined, local not defined
+            return Template(global_transformation_script).substitute(params)
+    elif local_transformation_script:
+        # global not defined, local defined
+        for key_match in local_transformation_script:
+            if fnmatch(str(fpath), Template(key_match).substitute(params)):
+                # use templating to render any relative paths
+                return Template(local_transformation_script[key_match]).substitute(params)
+        return ""
+    else:
+        # global not defined, local not defined
+        return ""
+
+
 if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
@@ -239,7 +271,7 @@ if __name__ == '__main__':
         psyclone(
             state,
             kernel_roots=[state.build_output / 'lfric' / 'kernel'],
-            transformation_script=lfric_source / 'lfric_atm/optimisation/meto-spice/global.py',
+            transformation_script=get_transformation_script,
             cli_args=[],
         )
 
