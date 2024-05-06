@@ -107,6 +107,7 @@ class Tool:
             If True, capture and return stdout. If False, the command will
             print its output directly to the console.
 
+        :raises RuntimeError: if the code is not available.
         :raises RuntimeError: if the return code of the executable is not 0.
         """
 
@@ -117,6 +118,11 @@ class Tool:
             else:
                 command.extend(additional_parameters)
 
+        # self._is_available is None when it is unknown. Testing for False
+        # means the run function can be used to test if a tool is available.
+        if self._is_available is False:
+            raise RuntimeError(f"Tool '{self.name}' is not available to run "
+                               f"'{command}'.")
         self._logger.debug(f'run_command: {" ".join(command)}')
         res = subprocess.run(command, capture_output=capture_output,
                              env=env, cwd=cwd, check=False)

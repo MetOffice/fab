@@ -16,6 +16,7 @@ from typing import Any, Type
 
 from fab.newtools import (Categories, Cpp, CppFortran, Gcc, Gfortran,
                           Icc, Ifort, Linker)
+from fab.newtools.git import Git
 
 
 class ToolRepository(dict):
@@ -55,7 +56,7 @@ class ToolRepository(dict):
         # TODO: sort the defaults so that they actually work (since not all
         # tools FAB knows about are available). For now, disable Fpp
         # for cls in [Gcc, Icc, Gfortran, Ifort, Fpp, Cpp, CppFortran]:
-        for cls in [Gcc, Icc, Gfortran, Ifort, Cpp, CppFortran]:
+        for cls in [Gcc, Icc, Gfortran, Ifort, Cpp, CppFortran, Git]:
             self.add_tool(cls)
 
     def add_tool(self, cls: Type[Any]):

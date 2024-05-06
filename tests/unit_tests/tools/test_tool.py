@@ -45,6 +45,12 @@ def test_tool_is_available():
     assert not tool.is_available
     assert tool.is_compiler
 
+    # Test the exception when trying to use in a non-existent tool:
+    with pytest.raises(RuntimeError) as err:
+        tool.run("--ops")
+    assert ("Tool 'gfortran' is not available to run '['gfortran', '--ops']'"
+            in str(err.value))
+
 
 class TestToolRun():
     '''Test the run method of Tool.'''

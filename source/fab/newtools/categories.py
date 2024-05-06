@@ -19,6 +19,7 @@ class Categories(Enum):
     FORTRAN_PREPROCESSOR = auto()
     LINKER = auto()
     PSYCLONE = auto()
+    GIT = auto()
 
     def __str__(self):
         '''Simplify the str output by using only the name (e.g. `C_COMPILER`
