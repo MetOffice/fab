@@ -48,7 +48,7 @@ class Git(Tool):
 
     def fetch(self, src: Union[str, Path],
               dst: Union[str, Path],
-              revision: Union[None | str]):
+              revision: Union[None, str]):
         '''Runs `git fetch` in the specified directory
         :param src: the source directory from which to fetch
         :param revision: the revision to fetch (can be "" for latest revision)
