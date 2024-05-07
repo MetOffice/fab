@@ -25,7 +25,7 @@ class Git(Tool):
         ''':returns: whether git is installed or not.'''
         try:
             self.run('help')
-        except FileNotFoundError:
+        except RuntimeError:
             return False
         return True
 
@@ -58,41 +58,26 @@ class Git(Tool):
         command = ['fetch', str(src)]
         if revision:
             command.append(revision)
-        self.run(command, cwd=str(dst))
+        self.run(command, cwd=str(dst), capture_output=False)
 
     def checkout(self, src: str,
                  dst: str = '',
                  revision: Optional[str] = None):
-        """
-        Checkout or update a Git repo.
+        """Checkout or update a Git repo.
         :param src: the source directory from which to fetch.
         :param dst: the directory in which to run fetch.
         :param revision: the revision to fetch (can be "" for latest revision).
         """
         self.fetch(src, dst, revision)
-        self.run(['checkout', 'FETCH_HEAD'], cwd=dst)
+        self.run(['checkout', 'FETCH_HEAD'], cwd=dst, capture_output=False)
 
     def merge(self, dst: Union[str, Path],
-              src: str,
               revision: Optional[str] = None):
+        """Merge a git repo into a local working copy.
         """
-        Merge a git repo into a local working copy.
-        """
-
-        if not dst or not self.is_working_copy(dst):
-            raise ValueError(f"destination is not a working copy: '{dst}'")
-
-        self.fetch(src=src, revision=revision, dst=dst)
-
         try:
-            self.run(['merge', 'FETCH_HEAD'], cwd=dst)
+            self.run(['merge', 'FETCH_HEAD'], cwd=dst, capture_output=False)
         except RuntimeError as err:
-            self.run(['merge', '--abort'], cwd=dst)
+            self.run(['merge', '--abort'], cwd=dst, capture_output=False)
             raise RuntimeError(f"Error merging {revision}. "
                                f"Merge aborted.\n{err}") from err
-
-
-if __name__ == "__main__":
-    git = Git()
-    print(git.check_available())
-    print(git.current_commit())

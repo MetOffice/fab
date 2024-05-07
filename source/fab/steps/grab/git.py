@@ -4,6 +4,9 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
+'''This module contains the git related steps.
+'''
+
 import warnings
 
 from fab.steps import step
@@ -25,9 +28,9 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
         dst.mkdir(parents=True)
         git.run(['init', '.'], cwd=dst)
     elif not git.is_working_copy(dst):  # type: ignore
-        raise ValueError(f"destination exists but is not a working copy: '{dst}'")
+        raise ValueError(f"destination exists but is not a working copy: "
+                         f"'{dst}'")
 
-    git.fetch(src, dst, revision=revision)
     git.checkout(src, dst, revision=revision)
     try:
         dst.relative_to(config.project_workspace)
@@ -44,6 +47,7 @@ def git_merge(config, src: str, dst_label: str = '', revision=None):
     """
     git = config.tool_box[Categories.GIT]
     dst = config.source_root / dst_label
-    git.merge(dst, src=src, revision=revision)
-    git.fetch(src=src, revision=revision, dst=dst)
-    git.merge(dst=dst, src=src, revision=revision)
+    if not dst or not git.is_working_copy(dst):
+        raise ValueError(f"destination is not a working copy: '{dst}'")
+    git.fetch(src=src, dst=dst, revision=revision)
+    git.merge(dst=dst, revision=revision)
