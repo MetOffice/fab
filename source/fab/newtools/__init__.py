@@ -17,7 +17,7 @@ from fab.newtools.tool import Tool, VendorTool
 # Order here is important to avoid a circular import
 from fab.newtools.tool_repository import ToolRepository
 from fab.newtools.tool_box import ToolBox
-from fab.newtools.git import Git
+from fab.newtools.versioning import Git
 
 __all__ = ["Categories",
            "CCompiler",

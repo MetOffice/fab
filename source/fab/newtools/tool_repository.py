@@ -16,7 +16,7 @@ from typing import Any, Type
 
 from fab.newtools import (Categories, Cpp, CppFortran, Gcc, Gfortran,
                           Icc, Ifort, Linker)
-from fab.newtools.git import Git
+from fab.newtools.versioning import Git
 
 
 class ToolRepository(dict):
