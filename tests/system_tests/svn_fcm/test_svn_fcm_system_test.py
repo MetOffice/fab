@@ -52,7 +52,7 @@ def config_fixture(tmp_path: Path) -> BuildConfig:
 
 
 @pytest.fixture(name="repo_url")
-def repo_url_fixture(tmp_path: str) ->str:
+def repo_url_fixture(tmp_path: str) -> str:
     '''Unpacks a gzip'ed repository into tmp_path and returns
     its location.'''
     shutil.unpack_archive(
