@@ -17,13 +17,14 @@ from fab.newtools.tool import Tool, VendorTool
 # Order here is important to avoid a circular import
 from fab.newtools.tool_repository import ToolRepository
 from fab.newtools.tool_box import ToolBox
-from fab.newtools.versioning import Git
+from fab.newtools.versioning import Fcm, Git, Subversion, Versioning
 
 __all__ = ["Categories",
            "CCompiler",
            "Compiler",
            "Cpp",
            "CppFortran",
+           "Fcm",
            "Flags",
            "FortranCompiler",
            "Fpp",
@@ -34,8 +35,10 @@ __all__ = ["Categories",
            "Ifort",
            "Linker",
            "Preprocessor",
+           "Subversion",
            "Tool",
            "ToolBox",
            "ToolRepository",
            "VendorTool",
+           "Versioning",
            ]

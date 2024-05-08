@@ -98,6 +98,17 @@ class TestToolRun():
             assert mocked_error_message in str(err.value)
             assert "Command failed with return code 1" in str(err.value)
 
+    def test_error_file_not_found(self):
+        '''Tests the error handling of `run`. '''
+        tool = Tool("does_not_exist", "does_not_exist",
+                    Categories.FORTRAN_COMPILER)
+        with mock.patch('fab.newtools.tool.subprocess.run',
+                        side_effect=FileNotFoundError("not found")):
+            with pytest.raises(RuntimeError) as err:
+                tool.run()
+            assert ("Command '['does_not_exist']' could not be executed."
+                    in str(err.value))
+
 
 def test_vendor_tool():
     '''Test the constructor.'''

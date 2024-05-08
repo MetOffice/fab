@@ -124,8 +124,12 @@ class Tool:
             raise RuntimeError(f"Tool '{self.name}' is not available to run "
                                f"'{command}'.")
         self._logger.debug(f'run_command: {" ".join(command)}')
-        res = subprocess.run(command, capture_output=capture_output,
-                             env=env, cwd=cwd, check=False)
+        try:
+            res = subprocess.run(command, capture_output=capture_output,
+                                 env=env, cwd=cwd, check=False)
+        except FileNotFoundError as err:
+            raise RuntimeError(f"Command '{command}' could not be "
+                               f"executed.") from err
         if res.returncode != 0:
             msg = (f'Command failed with return code {res.returncode}:\n'
                    f'{command}')
