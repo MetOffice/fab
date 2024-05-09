@@ -64,7 +64,7 @@ A grab step will copy files from a folder or remote repo into a folder called
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as state:
+        with BuildConfig(project_label='<project label>') as state:
             grab_folder(state, src='<path to source folder>')
             find_source_files(state)
 
@@ -122,7 +122,7 @@ The Fortran preprocessor will read the :ref:`FPP<env_vars>` environment variable
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as state:
+        with BuildConfig(project_label='<project label>') as state:
             grab_folder(state, src='<path to source folder>')
             find_source_files(state)
             preprocess_fortran(state)
@@ -143,8 +143,8 @@ before you run the :func:`~fab.steps.analyse.analyse` step below.
             You can pass in `common_flags` list as an argument.
 * For :func:`~fab.steps.psyclone.psyclone`:
             You can pass in kernel file roots to `kernel_roots`, a function to get transformation script to
-            `transformation_script` (see examples in :ref:`~fab.run_configs.lfric.gungho.py` and
-            :ref:`~fab.run_configs.lfric.atm.py`), command-line arguments to `cli_args`,
+            `transformation_script` (see examples in ``~fab.run_configs.lfric.gungho.py`` and
+            ``~fab.run_configs.lfric.atm.py``), command-line arguments to `cli_args`,
             override for input files to `source_getter`, and folders containing override files to `overrides_folder`
 
 
@@ -166,7 +166,7 @@ before you run the :func:`~fab.steps.analyse.analyse` step below.
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as state:
+        with BuildConfig(project_label='<project label>') as state:
             grab_folder(state, src='<path to source folder>')
             find_source_files(state)
             preprocess_fortran(state)
@@ -174,8 +174,8 @@ before you run the :func:`~fab.steps.analyse.analyse` step below.
             psyclone(state)
 
 
-After the psyclone step, you can find `_psy.f90` files in the `'build_output'` folder. There will be a collection
-called ``"psyclone_output"`` in the artefact store.
+After the psyclone step, two new source files will be created for each .x90 file in the `'build_output'` folder.
+These two output files will be added under ``"psyclone_output"`` collection to the artefact store.
 
 
 .. _Analyse Overview:
@@ -211,7 +211,7 @@ The Analyse step looks for source to analyse in several collections:
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as state:
+        with BuildConfig(project_label='<project label>') as state:
             grab_folder(state, src='<path to source folder>')
             find_source_files(state)
             preprocess_fortran(state)
@@ -254,7 +254,7 @@ then creates the executable.
 
     if __name__ == '__main__':
 
-        with BuildConfig(project_label='<project label') as state:
+        with BuildConfig(project_label='<project label>') as state:
             grab_folder(state, src='<path to source folder>')
             find_source_files(state)
             preprocess_fortran(state)
