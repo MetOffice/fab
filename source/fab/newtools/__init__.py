@@ -7,6 +7,7 @@
 '''A simple init file to make it shorter to import tools.
 '''
 
+from fab.newtools.ar import Ar
 from fab.newtools.categories import Categories
 from fab.newtools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
                                    Gfortran, Icc, Ifort)
@@ -19,7 +20,8 @@ from fab.newtools.tool_repository import ToolRepository
 from fab.newtools.tool_box import ToolBox
 from fab.newtools.versioning import Fcm, Git, Subversion, Versioning
 
-__all__ = ["Categories",
+__all__ = ["Ar",
+           "Categories",
            "CCompiler",
            "Compiler",
            "Cpp",

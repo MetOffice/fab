@@ -22,6 +22,7 @@ class Categories(Enum):
     FCM = auto()
     GIT = auto()
     SUBVERSION = auto()
+    AR = auto()
 
     def __str__(self):
         '''Simplify the str output by using only the name (e.g. `C_COMPILER`
