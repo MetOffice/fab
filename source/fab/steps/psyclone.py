@@ -75,7 +75,7 @@ class MpCommonArgs:
     analysed_x90: Dict[Path, AnalysedX90]
 
     kernel_roots: List[Path]
-    transformation_script: Optional[Callable[[Path], Path]]
+    transformation_script: Optional[Callable[[Path, BuildConfig], Path]]
     cli_args: List[str]
 
     all_kernel_hashes: Dict[str, int]
@@ -91,7 +91,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 
 @step
 def psyclone(config, kernel_roots: Optional[List[Path]] = None,
-             transformation_script: Optional[Callable[[Path], Path]] = None,
+             transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
              cli_args: Optional[List[str]] = None,
              source_getter: Optional[ArtefactsGetter] = None,
              overrides_folder: Optional[Path] = None):
@@ -114,7 +114,7 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
         Folders containing kernel files. Must be part of the analysed source code.
     :param transformation_script:
         The function to get Python transformation script.
-        It takes in a file path, and returns the path of the transformation script or None.
+        It takes in a file path and the config object, and returns the path of the transformation script or None.
         If no function is given or the function returns None, no script will be applied and PSyclone still runs.
     :param cli_args:
         Passed through to the psyclone cli tool.
@@ -313,7 +313,8 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
         try:
             # logger.info(f'running psyclone on {x90_file}')
             run_psyclone(generated, modified_alg, x90_file,
-                         mp_payload.kernel_roots, mp_payload.transformation_script, mp_payload.cli_args)
+                         mp_payload.kernel_roots, mp_payload.transformation_script,
+                         mp_payload.cli_args, mp_payload.config)
 
             shutil.copy2(modified_alg, prebuilt_alg)
             msg = f'created prebuilds for {x90_file}:\n    {prebuilt_alg}'
@@ -363,7 +364,7 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
     # calculate the transformation script hash for this file
     transformation_script_hash = 0
     if mp_payload.transformation_script:
-        transformation_script_return_path = mp_payload.transformation_script(x90_file)
+        transformation_script_return_path = mp_payload.transformation_script(x90_file, mp_payload.config)
         if transformation_script_return_path:
             transformation_script_hash = file_checksum(transformation_script_return_path).file_hash
     if transformation_script_hash == 0:
@@ -395,7 +396,7 @@ def _get_prebuild_paths(prebuild_folder, modified_alg, generated, prebuild_hash)
     return prebuilt_alg, prebuilt_gen
 
 
-def run_psyclone(generated, modified_alg, x90_file, kernel_roots, transformation_script, cli_args):
+def run_psyclone(generated, modified_alg, x90_file, kernel_roots, transformation_script, cli_args, config):
 
     # -d specifies "a root directory structure containing kernel source"
     kernel_args: Union[List[str], list] = sum([['-d', k] for k in kernel_roots], [])
@@ -403,7 +404,7 @@ def run_psyclone(generated, modified_alg, x90_file, kernel_roots, transformation
     # transformation python script
     transform_options = []
     if transformation_script:
-        transformation_script_return_path = transformation_script(x90_file)
+        transformation_script_return_path = transformation_script(x90_file, config)
         if transformation_script_return_path:
             transform_options = ['-s', transformation_script_return_path]
 

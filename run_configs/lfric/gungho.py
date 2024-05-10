@@ -18,41 +18,24 @@ from fab.steps.psyclone import psyclone, preprocess_x90
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import configurator, fparser_workaround_stop_concatenation
-from fnmatch import fnmatch
-from string import Template
 
 logger = logging.getLogger('fab')
 
 
-def get_transformation_script(fpath):
+def get_transformation_script(fpath, config):
     ''':returns: the transformation script to be used by PSyclone.
     :rtype: Path
 
     '''
-    params = {'relative': fpath.parent, 'source': lfric_source_config.source_root,
-              'output': lfric_source_config.build_output}
-    global_transformation_script = '$source/lfric/miniapps/gungho_model/optimisation/meto-spice/global.py'
-    local_transformation_script = None
-    if global_transformation_script:
-        if local_transformation_script:
-            # global defined, local defined
-            for key_match in local_transformation_script:
-                if fnmatch(str(fpath), Template(key_match).substitute(params)):
-                    # use templating to render any relative paths
-                    return Template(local_transformation_script[key_match]).substitute(params)
-            return Template(global_transformation_script).substitute(params)
-        else:
-            # global defined, local not defined
-            return Template(global_transformation_script).substitute(params)
-    elif local_transformation_script:
-        # global not defined, local defined
-        for key_match in local_transformation_script:
-            if fnmatch(str(fpath), Template(key_match).substitute(params)):
-                # use templating to render any relative paths
-                return Template(local_transformation_script[key_match]).substitute(params)
-        return ""
+    global_transformation_script = config.source_root / 'lfric' / 'miniapps' / 'gungho_model' / 'optimisation' / \
+        'meto-spice' / 'global.py'
+    local_transformation_script = config.source_root / 'lfric' / 'miniapps' / 'gungho_model' / 'optimisation' / \
+        'meto-spice' / (fpath.relative_to(config.source_root).with_suffix('.py'))
+    if local_transformation_script:
+        return local_transformation_script
+    elif global_transformation_script:
+        return global_transformation_script
     else:
-        # global not defined, local not defined
         return ""
 
 

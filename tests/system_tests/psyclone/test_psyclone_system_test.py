@@ -203,10 +203,11 @@ class TestTransformationScript(object):
                          kernel_roots=[],
                          transformation_script=mock_transformation_script,
                          cli_args=[],
+                         config=None,  # type: ignore[arg-type]
                          )
 
             # check whether x90 is passed to transformation_script
-            mock_transformation_script.assert_called_once_with(Path(__file__))
+            mock_transformation_script.assert_called_once_with(Path(__file__), None)
             # check transformation_script is passed to psyclone command with '-s'
             mock_run_command.assert_called_with(['psyclone', '-api', 'dynamo0.3',
                                                  '-l', 'all',
