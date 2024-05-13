@@ -15,7 +15,7 @@ import logging
 from typing import Any, Type
 
 from fab.newtools import (Ar, Categories, Cpp, CppFortran, Gcc, Gfortran,
-                          Icc, Ifort, Linker)
+                          Icc, Ifort, Linker, Psyclone)
 from fab.newtools.versioning import Fcm, Git, Subversion
 
 
@@ -56,7 +56,7 @@ class ToolRepository(dict):
         # TODO: sort the defaults so that they actually work (since not all
         # tools FAB knows about are available). For now, disable Fpp:
         for cls in [Gcc, Icc, Gfortran, Ifort, Cpp, CppFortran,
-                    Fcm, Git, Subversion, Ar]:
+                    Fcm, Git, Subversion, Ar, Psyclone]:
             self.add_tool(cls)
 
     def add_tool(self, cls: Type[Any]):

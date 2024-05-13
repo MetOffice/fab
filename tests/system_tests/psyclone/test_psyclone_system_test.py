@@ -17,8 +17,8 @@ from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import _analysis_for_prebuilds, make_parsable_x90, preprocess_x90, psyclone, tool_available
-from fab.newtools import ToolBox
+from fab.steps.psyclone import _analysis_for_prebuilds, make_parsable_x90, preprocess_x90, psyclone
+from fab.newtools import ToolBox, Psyclone
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
@@ -61,7 +61,7 @@ def test_make_parsable_x90(tmp_path):
     unlink(parsable_x90_path)
 
 
-class TestX90Analyser(object):
+class TestX90Analyser():
 
     expected_analysis_result = AnalysedX90(
         fpath=EXPECT_PARSABLE_X90,
@@ -93,7 +93,7 @@ class TestX90Analyser(object):
         assert analysed_x90 == self.expected_analysis_result
 
 
-class Test_analysis_for_prebuilds(object):
+class Test_analysis_for_prebuilds():
 
     def test_analyse(self, tmp_path):
 
@@ -124,8 +124,8 @@ class Test_analysis_for_prebuilds(object):
         }
 
 
-@pytest.mark.skipif(not tool_available(), reason="psyclone cli tool not available")
-class TestPsyclone(object):
+@pytest.mark.skipif(not Psyclone().is_available, reason="psyclone cli tool not available")
+class TestPsyclone():
     """
     Basic run of the psyclone step.
 
@@ -185,11 +185,11 @@ class TestPsyclone(object):
             self.steps(config)
 
         # make sure no work gets done the second time round
-        with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk:
-            with mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk:
-                with mock.patch('fab.steps.psyclone.run_psyclone') as mock_run:
-                    with config, pytest.warns(UserWarning, match="no transformation script specified"):
-                        self.steps(config)
+        with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk, \
+                mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk, \
+                mock.patch('fab.newtools.psyclone.Psyclone.process') as mock_run, \
+                config, pytest.warns(UserWarning, match="no transformation script specified"):
+            self.steps(config)
 
         mock_x90_walk.assert_not_called()
         mock_fortran_walk.assert_not_called()

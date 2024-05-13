@@ -15,10 +15,9 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from fab.build_config import BuildConfig
-from fab.tools import run_command
 
 from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
@@ -30,15 +29,6 @@ from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk
     string_checksum, suffix_filter, by_type, log_or_dot_finish
 
 logger = logging.getLogger(__name__)
-
-
-def tool_available() -> bool:
-    """Check if the psyclone tool is available at the command line."""
-    try:
-        run_command(['psyclone', '-h'])
-    except (RuntimeError, FileNotFoundError):
-        return False
-    return True
 
 
 # todo: should this be part of the psyclone step?
@@ -318,37 +308,46 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
     prebuild_hash = _gen_prebuild_hash(x90_file, mp_payload)
 
     # These are the filenames we expect to be output for this x90 input file.
-    # There will always be one modified_alg, and 0-1 generated.
+    # There will always be one modified_alg, and 0-1 generated psy file.
     modified_alg: Path = x90_file.with_suffix('.f90')
     modified_alg = input_to_output_fpath(config=mp_payload.config, input_path=modified_alg)
-    generated: Path = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
-    generated = input_to_output_fpath(config=mp_payload.config, input_path=generated)
+    psy_file: Path = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
+    psy_file = input_to_output_fpath(config=mp_payload.config, input_path=psy_file)
 
-    generated.parent.mkdir(parents=True, exist_ok=True)
+    psy_file.parent.mkdir(parents=True, exist_ok=True)
 
     # do we already have prebuilt results for this x90 file?
     prebuilt_alg, prebuilt_gen = _get_prebuild_paths(
-        mp_payload.config.prebuild_folder, modified_alg, generated, prebuild_hash)
+        mp_payload.config.prebuild_folder, modified_alg, psy_file, prebuild_hash)
     if prebuilt_alg.exists():
         # todo: error handling in here
         msg = f'found prebuilds for {x90_file}:\n    {prebuilt_alg}'
         shutil.copy2(prebuilt_alg, modified_alg)
         if prebuilt_gen.exists():
             msg += f'\n    {prebuilt_gen}'
-            shutil.copy2(prebuilt_gen, generated)
+            shutil.copy2(prebuilt_gen, psy_file)
         log_or_dot(logger=logger, msg=msg)
 
     else:
+        config = mp_payload.config
+        psyclone = config.tool_box[Categories.PSYCLONE]
         try:
+            transformation_script = mp_payload.transformation_script
+            psyclone.process(api="dynamo0.3",
+                             x90_file=x90_file,
+                             psy_file=psy_file,
+                             alg_file=modified_alg,
+                             transformation_script=transformation_script,
+                             kernel_roots=mp_payload.kernel_roots,
+                             additional_parameters=mp_payload.cli_args)
+
             # logger.info(f'running psyclone on {x90_file}')
-            run_psyclone(generated, modified_alg, x90_file,
-                         mp_payload.kernel_roots, mp_payload.transformation_script, mp_payload.cli_args)
 
             shutil.copy2(modified_alg, prebuilt_alg)
             msg = f'created prebuilds for {x90_file}:\n    {prebuilt_alg}'
-            if Path(generated).exists():
+            if Path(psy_file).exists():
                 msg += f'\n    {prebuilt_gen}'
-                shutil.copy2(generated, prebuilt_gen)
+                shutil.copy2(psy_file, prebuilt_gen)
             log_or_dot(logger=logger, msg=msg)
 
         except Exception as err:
@@ -357,12 +356,12 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
 
     # do we have handwritten overrides for either of the files we just created?
     modified_alg = _check_override(modified_alg, mp_payload)
-    generated = _check_override(generated, mp_payload)
+    psy_file = _check_override(psy_file, mp_payload)
 
     # return the output files from psyclone
     result: List[Path] = [modified_alg]
-    if Path(generated).exists():
-        result.append(generated)
+    if Path(psy_file).exists():
+        result.append(psy_file)
 
     # we also want to return the prebuild artefact files we created,
     # which are just copies, in the prebuild folder, with hashes in the filenames.
@@ -403,33 +402,10 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
     return prebuild_hash
 
 
-def _get_prebuild_paths(prebuild_folder, modified_alg, generated, prebuild_hash):
+def _get_prebuild_paths(prebuild_folder, modified_alg, psy_file, prebuild_hash):
     prebuilt_alg = Path(prebuild_folder / f'{modified_alg.stem}.{prebuild_hash}{modified_alg.suffix}')
-    prebuilt_gen = Path(prebuild_folder / f'{generated.stem}.{prebuild_hash}{generated.suffix}')
+    prebuilt_gen = Path(prebuild_folder / f'{psy_file.stem}.{prebuild_hash}{psy_file.suffix}')
     return prebuilt_alg, prebuilt_gen
-
-
-def run_psyclone(generated, modified_alg, x90_file, kernel_roots,
-                 transformation_script, cli_args) -> None:
-
-    # -d specifies "a root directory structure containing kernel source"
-    kernel_args: Union[List[str], list] = sum([['-d', k] for k in kernel_roots], [])
-
-    # transformation python script
-    transform_options = ['-s', transformation_script] if transformation_script else []
-
-    command = [
-        'psyclone', '-api', 'dynamo0.3',
-        '-l', 'all',
-        *kernel_args,
-        '-opsy', generated,  # filename of generated PSy code
-        '-oalg', modified_alg,  # filename of transformed algorithm code
-        *transform_options,
-        *cli_args,
-        x90_file,
-    ]
-
-    run_command(command)
 
 
 def _check_override(check_path: Path, mp_payload: MpCommonArgs):
