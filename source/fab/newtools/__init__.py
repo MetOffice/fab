@@ -14,6 +14,7 @@ from fab.newtools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
 from fab.newtools.flags import Flags
 from fab.newtools.linker import Linker
 from fab.newtools.psyclone import Psyclone
+from fab.newtools.rsync import Rsync
 from fab.newtools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
 from fab.newtools.tool import Tool, VendorTool
 # Order here is important to avoid a circular import
@@ -39,6 +40,7 @@ __all__ = ["Ar",
            "Linker",
            "Preprocessor",
            "Psyclone",
+           "Rsync",
            "Subversion",
            "Tool",
            "ToolBox",

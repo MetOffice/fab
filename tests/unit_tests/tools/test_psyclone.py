@@ -13,7 +13,7 @@ from fab.newtools import (Categories, Psyclone)
 
 
 def test_psyclone_constructor():
-    '''Test the psyclone constructor.'''
+    '''Test the PSyclone constructor.'''
     psyclone = Psyclone()
     assert psyclone.category == Categories.PSYCLONE
     assert psyclone.name == "psyclone"

@@ -14,7 +14,7 @@ from fab.newtools import ToolBox
 import pytest
 
 
-class TestGrabFolder(object):
+class TestGrabFolder():
 
     def test_trailing_slash(self):
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
@@ -31,15 +31,16 @@ class TestGrabFolder(object):
         mock_config = SimpleNamespace(source_root=source_root,
                                       tool_box=ToolBox())
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.steps.grab.run_command') as mock_run:
+            with mock.patch('fab.newtools.tool.Tool.run') as mock_run:
                 grab_folder(mock_config, src=grab_src, dst_label=dst)
 
         expect_dst = mock_config.source_root / dst
-        mock_run.assert_called_once_with(['rsync', '--times', '--links', '--stats',
-                                          '-ru', expect_grab_src, str(expect_dst)])
+        mock_run.assert_called_once_with(
+            additional_parameters=['--times', '--links', '--stats',
+                                   '-ru', expect_grab_src, str(expect_dst)])
 
 
-class TestGrabFcm(object):
+class TestGrabFcm():
 
     def test_no_revision(self):
         source_root = Path('/workspace/source')
