@@ -50,18 +50,26 @@ def test_git_current_commit():
     The system_tests will test an actual check out etc. '''
 
     git = Git()
-    # Note that only the first line will be returned
-    with mock.patch.object(git, "run", return_value="abc\ndef") as run:
+    # Note that only the first line will be returned, and stdout of the
+    # subprocess run method must be encoded (i.e. decode is called later)
+    mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         assert "abc" == git.current_commit()
 
-    run.assert_called_once_with(['log', '--oneline', '-n', '1'], cwd=".")
+    tool_run.assert_called_once_with(
+        ['git', 'log', '--oneline', '-n', '1'], capture_output=True,
+        env=None, cwd='.', check=False)
 
     # Test if we specify a path
-    with mock.patch.object(git, "run", return_value="abc\ndef") as run:
+    mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         assert "abc" == git.current_commit("/not-exist")
 
-    run.assert_called_once_with(['log', '--oneline', '-n', '1'],
-                                cwd="/not-exist")
+    tool_run.assert_called_once_with(
+        ['git', 'log', '--oneline', '-n', '1'], capture_output=True,
+        env=None, cwd="/not-exist", check=False)
 
 
 def test_git_is_working_copy():
@@ -70,11 +78,15 @@ def test_git_is_working_copy():
     The system_tests will test an actual check out etc. '''
 
     git = Git()
-    with mock.patch.object(git, "run", return_value="abc\ndef") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         assert git.is_working_copy("/dst")
-    run.assert_called_once_with(['status'], cwd="/dst", capture_output=False)
+    tool_run.assert_called_once_with(
+        ['git', 'status'], capture_output=False, env=None, cwd='/dst',
+        check=False)
 
-    with mock.patch.object(git, "run", side_effect=RuntimeError()) as run:
+    with mock.patch.object(git, "run", side_effect=RuntimeError()):
         assert git.is_working_copy("/dst") is False
 
 
@@ -85,10 +97,13 @@ def test_git_fetch():
 
     git = Git()
     # Note that only the first line will be returned
-    with mock.patch.object(git, "run", return_value="abc\ndef") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         git.fetch("/src", "/dst", revision="revision")
-    run.assert_called_once_with(['fetch', "/src", "revision"], cwd="/dst",
-                                capture_output=False)
+    tool_run.assert_called_once_with(
+        ['git', 'fetch', "/src", "revision"], capture_output=False, env=None,
+        cwd='/dst', check=False)
 
     with mock.patch.object(git, "run", side_effect=RuntimeError("ERR")) as run:
         with pytest.raises(RuntimeError) as err:
@@ -105,12 +120,15 @@ def test_git_checkout():
 
     git = Git()
     # Note that only the first line will be returned
-    with mock.patch.object(git, "run", return_value="abc\ndef") as run:
+
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         git.checkout("/src", "/dst", revision="revision")
-    run.assert_any_call(['fetch', "/src", "revision"], cwd="/dst",
-                        capture_output=False)
-    run.assert_called_with(['checkout', "FETCH_HEAD"], cwd="/dst",
-                           capture_output=False)
+    tool_run.assert_any_call(['git', 'fetch', "/src", "revision"], cwd='/dst',
+                             capture_output=False, env=None, check=False)
+    tool_run.assert_called_with(['git', 'checkout', "FETCH_HEAD"], cwd="/dst",
+                                capture_output=False, env=None, check=False)
 
     with mock.patch.object(git, "run", side_effect=RuntimeError("ERR")) as run:
         with pytest.raises(RuntimeError) as err:
@@ -127,10 +145,13 @@ def test_git_merge():
 
     git = Git()
     # Note that only the first line will be returned
-    with mock.patch.object(git, "run", return_value="abc\ndef") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         git.merge("/dst", revision="revision")
-    run.assert_called_once_with(['merge', "FETCH_HEAD"], cwd="/dst",
-                                capture_output=False)
+    tool_run.assert_called_once_with(
+        ['git', 'merge', 'FETCH_HEAD'], capture_output=False,
+        env=None, cwd='/dst', check=False)
 
     # Test the behaviour if merge fails, but merge --abort works:
     # Simple function that raises an exception only the first time
@@ -173,11 +194,15 @@ def test_svn_is_working_copy():
     The system_tests will test an actual check out etc. '''
 
     svn = Subversion()
-    with mock.patch.object(svn, "run") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         assert svn.is_working_copy("/dst")
-    run.assert_called_once_with(['info'], cwd="/dst", capture_output=False)
+    tool_run.assert_called_once_with(
+        ['svn', 'info'], capture_output=False, env=None, cwd='/dst',
+        check=False)
 
-    with mock.patch.object(svn, "run", side_effect=RuntimeError()) as run:
+    with mock.patch.object(svn, "run", side_effect=RuntimeError()):
         assert svn.is_working_copy("/dst") is False
 
 
@@ -187,18 +212,23 @@ def test_svn_export():
     installed. The system_tests will test an actual check out etc. '''
 
     svn = Subversion()
-    with mock.patch("fab.newtools.tool.Tool.run") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         svn.export("/src", "/dst", revision="123")
 
-    run.assert_called_once_with(["export", "--force", "--revision", "123",
-                                "/src", "/dst"], env=None, cwd=None,
-                                capture_output=True)
+    tool_run.assert_called_once_with(
+        ["svn", "export", "--force", "--revision", "123", "/src", "/dst"],
+        env=None, cwd=None, capture_output=True, check=False)
 
     # Test if we don't specify a revision
-    with mock.patch("fab.newtools.tool.Tool.run") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         svn.export("/src", "/dst")
-    run.assert_called_once_with(["export", "--force", "/src", "/dst"],
-                                env=None, cwd=None, capture_output=True)
+    tool_run.assert_called_once_with(
+        ["svn", "export", "--force", "/src", "/dst"],
+        env=None, cwd=None, capture_output=True, check=False)
 
 
 def test_svn_checkout():
@@ -207,19 +237,23 @@ def test_svn_checkout():
     installed. The system_tests will test an actual check out etc. '''
 
     svn = Subversion()
-    with mock.patch("fab.newtools.tool.Tool.run", return_value="") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         svn.checkout("/src", "/dst", revision="123")
 
-    run.assert_called_once_with(["checkout", "--revision", "123",
-                                "/src", "/dst"], env=None, cwd=None,
-                                capture_output=True)
+    tool_run.assert_called_once_with(
+        ["svn", "checkout", "--revision", "123", "/src", "/dst"],
+        env=None, cwd=None, capture_output=True, check=False)
 
     # Test if we don't specify a revision
-    with mock.patch("fab.newtools.tool.Tool.run",
-                    return_value="abc\ndef") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         svn.checkout("/src", "/dst")
-    run.assert_called_once_with(["checkout", "/src", "/dst"],
-                                env=None, cwd=None, capture_output=True)
+    tool_run.assert_called_once_with(
+        ["svn", "checkout", "/src", "/dst"],
+        env=None, cwd=None, capture_output=True, check=False)
 
 
 def test_svn_update():
@@ -228,11 +262,14 @@ def test_svn_update():
     installed. The system_tests will test an actual check out etc. '''
 
     svn = Subversion()
-    with mock.patch("fab.newtools.tool.Tool.run") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         svn.update("/dst", revision="123")
 
-    run.assert_called_once_with(["update", "--revision", "123"],
-                                env=None, cwd="/dst", capture_output=True)
+    tool_run.assert_called_once_with(
+        ["svn", "update", "--revision", "123"],
+        env=None, cwd="/dst", capture_output=True, check=False)
 
 
 def test_svn_merge():
@@ -241,11 +278,14 @@ def test_svn_merge():
     installed. The system_tests will test an actual check out etc. '''
 
     svn = Subversion()
-    with mock.patch("fab.newtools.tool.Tool.run") as run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         svn.merge("/src", "/dst", "123")
 
-    run.assert_called_once_with(["merge", "--non-interactive", "/src@123"],
-                                env=None, cwd="/dst", capture_output=True)
+    tool_run.assert_called_once_with(
+        ["svn", "merge", "--non-interactive", "/src@123"],
+        env=None, cwd="/dst", capture_output=True, check=False)
 
 
 # ============================================================================

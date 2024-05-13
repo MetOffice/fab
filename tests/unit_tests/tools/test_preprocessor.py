@@ -43,16 +43,12 @@ def test_preprocessor_fpp_is_available():
 def test_preprocessor_cpp():
     '''Test cpp.'''
     cpp = Cpp()
-    # First create a mock object that is the result of subprocess.run.
-    # Tool will only check `returncode` of this object.
     mock_result = mock.Mock(returncode=0)
-    # Then set this result as result of a mock run function
-    mock_run = mock.Mock(return_value=mock_result)
-
-    with mock.patch("subprocess.run", mock_run):
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         cpp.run("--version")
-        mock_run.assert_called_with(["cpp", "--version"], capture_output=True,
-                                    env=None, cwd=None, check=False)
+    tool_run.assert_called_with(["cpp", "--version"], capture_output=True,
+                                env=None, cwd=None, check=False)
 
     # Reset the flag and raise an error when executing:
     cpp._is_available = None
@@ -74,13 +70,13 @@ def test_preprocessor_cppfortran():
     with mock.patch("subprocess.run", mock_run):
         # First test calling without additional flags:
         cppf.preprocess(Path("a.in"), Path("a.out"))
-        mock_run.assert_called_with(["cpp", "-traditional-cpp", "-P",
-                                     "a.in", "a.out"],
-                                    capture_output=True, env=None, cwd=None,
-                                    check=False)
+    mock_run.assert_called_with(
+        ["cpp", "-traditional-cpp", "-P", "a.in", "a.out"],
+        capture_output=True, env=None, cwd=None, check=False)
+
+    with mock.patch("subprocess.run", mock_run):
         # Then test with added flags:
         cppf.preprocess(Path("a.in"), Path("a.out"), ["-DDO_SOMETHING"])
-        mock_run.assert_called_with(["cpp", "-traditional-cpp", "-P",
-                                     "-DDO_SOMETHING", "a.in", "a.out"],
-                                    capture_output=True, env=None, cwd=None,
-                                    check=False)
+    mock_run.assert_called_with(
+        ["cpp", "-traditional-cpp", "-P", "-DDO_SOMETHING", "a.in", "a.out"],
+        capture_output=True, env=None, cwd=None, check=False)

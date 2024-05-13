@@ -73,8 +73,11 @@ class TestToolRun():
         tool = Tool("gnu", "gfortran", Categories.FORTRAN_COMPILER)
         mock_result = mock.Mock(returncode=0)
         with mock.patch('fab.newtools.tool.subprocess.run',
-                        return_value=mock_result):
+                        return_value=mock_result) as tool_run:
             tool.run("a")
+        tool_run.assert_called_once_with(
+            ["gfortran", "a"], capture_output=True, env=None,
+            cwd=None, check=False)
 
     def test_no_error_with_multiple_args(self):
         '''Test usage of `run` without any errors when more than
@@ -82,8 +85,11 @@ class TestToolRun():
         tool = Tool("gnu", "gfortran", Categories.FORTRAN_COMPILER)
         mock_result = mock.Mock(returncode=0)
         with mock.patch('fab.newtools.tool.subprocess.run',
-                        return_value=mock_result):
+                        return_value=mock_result) as tool_run:
             tool.run(["a", "b"])
+        tool_run.assert_called_once_with(
+            ["gfortran", "a", "b"], capture_output=True, env=None,
+            cwd=None, check=False)
 
     def test_error(self):
         '''Tests the error handling of `run`. '''

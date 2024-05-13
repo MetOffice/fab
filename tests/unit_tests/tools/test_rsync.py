@@ -41,14 +41,19 @@ def test_rsync_create():
     rsync = Rsync()
 
     # Test 1: src with /
-    with mock.patch("fab.newtools.tool.Tool.run") as tool_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         rsync.execute(src="/src/", dst="/dst")
     tool_run.assert_called_with(
-        additional_parameters=['--times', '--links', '--stats',
-                               '-ru', '/src/', '/dst'])
+        ['rsync', '--times', '--links', '--stats', '-ru', '/src/', '/dst'],
+        capture_output=True, env=None, cwd=None, check=False)
+
     # Test 2: src without /
-    with mock.patch("fab.newtools.tool.Tool.run") as tool_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         rsync.execute(src="/src", dst="/dst")
     tool_run.assert_called_with(
-        additional_parameters=['--times', '--links', '--stats',
-                               '-ru', '/src/', '/dst'])
+        ['rsync', '--times', '--links', '--stats', '-ru', '/src/', '/dst'],
+        capture_output=True, env=None, cwd=None, check=False)

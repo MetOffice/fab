@@ -67,9 +67,13 @@ def test_linker_check_available(mock_c_compiler):
     # Second test, no compiler is given. Mock Tool.run to
     # return a success:
     linker = Linker("ld", "ld", vendor="gnu")
-    with mock.patch("fab.newtools.tool.Tool.run") as tool_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         linker.check_available()
-    tool_run.assert_called_once_with("--version")
+    tool_run.assert_called_once_with(
+        ["ld", "--version"], capture_output=True, env=None,
+        cwd=None, check=False)
 
     # Third test: assume the tool does not exist, run will raise
     # runtime error:
@@ -81,9 +85,13 @@ def test_linker_check_available(mock_c_compiler):
 def test_linker_c(mock_c_compiler):
     '''Test the link command line.'''
     linker = Linker(compiler=mock_c_compiler)
-    with mock.patch.object(linker, "run") as link_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         linker.link([Path("a.o")], Path("a.out"))
-    link_run.assert_called_with(['a.o', '-o', 'a.out'])
+    tool_run.assert_called_with(
+        ["mock_c_compiler.exe", 'a.o', '-o', 'a.out'], capture_output=True,
+        env=None, cwd=None, check=False)
 
     with mock.patch.object(linker, "run") as link_run:
         linker.link([Path("a.o")], Path("a.out"), add_libs=["-L", "/tmp"])
@@ -98,14 +106,22 @@ def test_linker_add_compiler_flag(mock_c_compiler):
 
     linker = Linker(compiler=mock_c_compiler)
     mock_c_compiler.flags.append("-my-flag")
-    with mock.patch.object(linker, "run") as link_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         linker.link([Path("a.o")], Path("a.out"))
-    link_run.assert_called_with(['-my-flag', 'a.o', '-o', 'a.out'])
+    tool_run.assert_called_with(
+        ['mock_c_compiler.exe', '-my-flag', 'a.o', '-o', 'a.out'],
+        capture_output=True, env=None, cwd=None, check=False)
 
     # Make also sure the code works if a linker is created without
     # a compiler:
     linker = Linker("no-compiler", "no-compiler.exe", "vendor")
     linker.flags.append("-some-other-flag")
-    with mock.patch.object(linker, "run") as link_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         linker.link([Path("a.o")], Path("a.out"))
-    link_run.assert_called_with(['a.o', '-some-other-flag', '-o', 'a.out'])
+    tool_run.assert_called_with(
+        ['no-compiler.exe', '-some-other-flag', 'a.o', '-o', 'a.out'],
+        capture_output=True, env=None, cwd=None, check=False)

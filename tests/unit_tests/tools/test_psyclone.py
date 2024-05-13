@@ -24,9 +24,13 @@ def test_psyclone_constructor():
 def test_psyclone_check_available():
     '''Tests the is_available functionality.'''
     psyclone = Psyclone()
-    with mock.patch("fab.newtools.tool.Tool.run") as tool_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         assert psyclone.check_available()
-    tool_run.assert_called_once_with("--version")
+    tool_run.assert_called_once_with(
+        ["psyclone", "--version"], capture_output=True, env=None,
+        cwd=None, check=False)
 
     # Test behaviour if a runtime error happens:
     with mock.patch("fab.newtools.tool.Tool.run",
@@ -37,7 +41,9 @@ def test_psyclone_check_available():
 def test_psyclone_process():
     '''Test running PSyclone.'''
     psyclone = Psyclone()
-    with mock.patch("fab.newtools.tool.Tool.run") as tool_run:
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.newtools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
         psyclone.process(api="dynamo0.3",
                          x90_file="x90_file",
                          psy_file="psy_file",
@@ -46,7 +52,7 @@ def test_psyclone_process():
                          kernel_roots=["root1", "root2"],
                          additional_parameters=["-c", "psyclone.cfg"])
     tool_run.assert_called_with(
-        additional_parameters=['-api', 'dynamo0.3', '-l', 'all', '-opsy',
-                               'psy_file', '-oalg', 'alg_file', '-s',
-                               'transformation_script', '-c', 'psyclone.cfg',
-                               '-d', 'root1', '-d', 'root2', 'x90_file'])
+        ['psyclone', '-api', 'dynamo0.3', '-l', 'all', '-opsy', 'psy_file',
+         '-oalg', 'alg_file', '-s', 'transformation_script', '-c',
+         'psyclone.cfg', '-d', 'root1', '-d', 'root2', 'x90_file'],
+        capture_output=True, env=None, cwd=None, check=False)
