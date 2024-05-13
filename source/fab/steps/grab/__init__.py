@@ -12,7 +12,4 @@ import os
 from pathlib import Path
 from typing import Union
 
-from fab.tools import run_command
-
-
 logger = logging.getLogger(__name__)
