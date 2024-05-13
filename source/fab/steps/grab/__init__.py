@@ -8,8 +8,5 @@ Build steps for pulling source code from remote repos and local folders.
 
 """
 import logging
-import os
-from pathlib import Path
-from typing import Union
 
 logger = logging.getLogger(__name__)
