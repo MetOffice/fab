@@ -53,8 +53,8 @@ class Psyclone(Tool):
         if additional_parameters:
             parameters.extend(additional_parameters)
         if kernel_roots:
-            roots_with_dash_d = sum([['-d', str(k)] for k in kernel_roots], [])
+            roots_with_dash_d: List[str] = sum([['-d', str(k)]
+                                                for k in kernel_roots], [])
             parameters.extend(roots_with_dash_d)
         parameters.append(str(x90_file))
-        print("XX", parameters)
         return self.run(additional_parameters=parameters)
