@@ -27,16 +27,14 @@ def get_transformation_script(fpath, config):
     :rtype: Path
 
     '''
-    global_transformation_script = config.source_root / 'lfric' / 'miniapps' / 'gungho_model' / 'optimisation' / \
-        'meto-spice' / 'global.py'
-    local_transformation_script = config.source_root / 'lfric' / 'miniapps' / 'gungho_model' / 'optimisation' / \
-        'meto-spice' / (fpath.relative_to(config.source_root).with_suffix('.py'))
-    if local_transformation_script:
+    optimisation_path = config.source_root / 'lfric' / 'miniapps' / 'gungho_model' / 'optimisation' / 'meto-spice'
+    local_transformation_script = optimisation_path / (fpath.relative_to(config.source_root).with_suffix('.py'))
+    if local_transformation_script.exists():
         return local_transformation_script
-    elif global_transformation_script:
+    global_transformation_script = optimisation_path / 'global.py'
+    if global_transformation_script.exists():
         return global_transformation_script
-    else:
-        return ""
+    return ""
 
 
 if __name__ == '__main__':
