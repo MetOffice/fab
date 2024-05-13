@@ -40,11 +40,18 @@ class Psyclone(Tool):
                 additional_parameters: Optional[List[str]] = None,
                 kernel_roots: Optional[List[str]] = None,
                 ):
-        '''Create the archive with the specified name, containing the
-        listed members.
-        :param output_fpath: the output path.
-        :param members: the list of objects to be added to the archive.
+        # pylint: disable=too-many-arguments
+        '''Run PSyclone with the specified parameters.
+        :param api: the PSyclone API.
+        :param x90_file: the input file for PSyclone
+        :param psy_file: the output PSy-layer file.
+        :param alg_file: the output modified algorithm file.
+        :param transformation_script: an optional transformation script
+        :param additional_parameters: optional additional parameters
+            for PSyclone
+        :param kernel_roots: optional directories with kernels.
         '''
+
         parameters = ["-api", api, "-l", "all",
                       "-opsy", str(psy_file),
                       "-oalg", str(alg_file)]

@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains Ar class for archiving files.
+"""This file contains the Ar class for archiving files.
 """
 
 from pathlib import Path
@@ -22,7 +22,7 @@ class Ar(Tool):
         super().__init__("ar", "ar", Categories.AR)
 
     def check_available(self):
-        '''Checks if the ar is available. We do this by requesting the
+        '''Checks if `ar` is available. We do this by requesting the
         ar version.
         '''
         try:
