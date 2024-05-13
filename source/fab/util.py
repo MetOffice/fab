@@ -110,12 +110,12 @@ def file_walk(path: Union[str, Path], ignore_folders: Optional[List[Path]] = Non
             yield i
 
 
-class Timer(object):
+class Timer():
     """
     A simple timing context manager.
 
     """
-    def __init__(self):
+    def __init__(self) -> None:
         self.start: Optional[float] = None
         self.taken: Optional[float] = None
 

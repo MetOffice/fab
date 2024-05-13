@@ -5,12 +5,12 @@ from unittest.mock import call
 
 import pytest
 
-from fab.build_config import BuildConfig
+from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
-from fab.newtools import Categories
+from fab.newtools import Categories, ToolBox
 from fab.util import CompiledFile
 
 
@@ -32,11 +32,11 @@ def fixture_artefact_store(analysed_files):
 
 class TestCompilePass():
 
-    def test_vanilla(self, analysed_files, tool_box):
+    def test_vanilla(self, analysed_files, tool_box: ToolBox):
         # make sure it compiles b only
         a, b, c = analysed_files
         uncompiled = {a, b}
-        compiled = {c.fpath: mock.Mock(input_fpath=c.fpath)}
+        compiled: dict[Path, CompiledFile] = {c.fpath: mock.Mock(input_fpath=c.fpath)}
 
         run_mp_results = [
             (
@@ -49,10 +49,11 @@ class TestCompilePass():
         mod_hashes: Dict[str, int] = {}
 
         config = BuildConfig('proj', tool_box)
+        mp_common_args = MpCommonArgs(config, FlagsConfig(), {}, True)
         with mock.patch('fab.steps.compile_fortran.run_mp', return_value=run_mp_results):
             with mock.patch('fab.steps.compile_fortran.get_mod_hashes'):
                 uncompiled_result = compile_pass(config=config, compiled=compiled, uncompiled=uncompiled,
-                                                 mod_hashes=mod_hashes, mp_common_args=None)
+                                                 mod_hashes=mod_hashes, mp_common_args=mp_common_args)
 
         assert Path('a.f90') not in compiled
         assert Path('b.f90') in compiled
@@ -425,8 +426,10 @@ class TestProcessFile():
 
 
 class TestGetModHashes():
+    '''Contains hashing-tests.'''
 
     def test_vanilla(self, tool_box):
+        '''Test hashing. '''
         # get a hash value for every module in the analysed file
         analysed_files = {
             mock.Mock(module_defs=['foo', 'bar']),

@@ -32,9 +32,9 @@ def test_simple_result(tmp_path):
     assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
 
 
-class Test__locate_include_regions(object):
+class Test__locate_include_regions():
 
-    def test_vanilla(self):
+    def test_vanilla(self) -> None:
         lines: List[Tuple[int, str]] = [
             (5, "foo"),
             (10, "# pragma FAB SysIncludeStart"),
@@ -57,7 +57,7 @@ class Test__locate_include_regions(object):
         self._run(lines=[], expect=[])
 
     def _run(self, lines, expect):
-        class MockToken(object):
+        class MockToken():
             def __init__(self, spelling, line):
                 self.spelling = spelling
                 self.location = Mock(line=line)
@@ -75,7 +75,7 @@ class Test__locate_include_regions(object):
         assert analyser._include_region == expect
 
 
-class Test__check_for_include(object):
+class Test__check_for_include():
 
     def test_vanilla(self):
         analyser = CAnalyser()
@@ -93,7 +93,7 @@ class Test__check_for_include(object):
         assert analyser._check_for_include(45) is None
 
 
-class Test_process_symbol_declaration(object):
+class Test_process_symbol_declaration():
 
     # definitions
     def test_external_definition(self):
@@ -141,7 +141,7 @@ class Test_process_symbol_declaration(object):
         return usr_symbols
 
 
-class Test_process_symbol_dependency(object):
+class Test_process_symbol_dependency():
 
     def test_usr_symbol(self):
         analysed_file = self._dependency(spelling="foo", usr_symbols=["foo"])
