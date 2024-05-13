@@ -74,6 +74,5 @@ class Linker(VendorTool):
         params.extend(sorted(map(str, input_files)))
         if add_libs:
             params += add_libs
-        params.extend(self.flags)
         params.extend([self._output_flag, str(output_file)])
         return self.run(params)
