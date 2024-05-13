@@ -36,7 +36,7 @@ class TestCompilePass():
         # make sure it compiles b only
         a, b, c = analysed_files
         uncompiled = {a, b}
-        compiled: dict[Path, CompiledFile] = {c.fpath: mock.Mock(input_fpath=c.fpath)}
+        compiled: Dict[Path, CompiledFile] = {c.fpath: mock.Mock(input_fpath=c.fpath)}
 
         run_mp_results = [
             (
