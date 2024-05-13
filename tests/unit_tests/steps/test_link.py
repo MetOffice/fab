@@ -16,7 +16,8 @@ import pytest
 
 class TestLinkExe():
     def test_run(self, tool_box):
-        # ensure the command is formed correctly, with the flags at the end (why?!)
+        # ensure the command is formed correctly, with the flags at the
+        # end (why?!)
 
         config = SimpleNamespace(
             project_workspace=Path('workspace'),
@@ -30,13 +31,14 @@ class TestLinkExe():
             # Mark the linker as available to it can be added to the tool box
             linker.is_available = True
             tool_box.add_tool(linker)
-            with mock.patch.object(linker, "run") as mock_run, \
-                 pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+            mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
+            with mock.patch('fab.newtools.tool.subprocess.run',
+                            return_value=mock_result) as tool_run, \
+                    pytest.warns(UserWarning, match="_metric_send_conn not "
+                                                    "set, cannot send metrics"):
                 link_exe(config, flags=['-fooflag', '-barflag'])
 
-        mock_run.assert_called_with([
-            *sorted(['foo.o', 'bar.o']),
-            '-fooflag', '-barflag',
-            '-L/foo1/lib', '-L/foo2/lib',
-            '-o', 'workspace/foo',
-        ])
+        tool_run.assert_called_with(
+            ['mock_link.exe', '-L/foo1/lib', '-L/foo2/lib', 'bar.o', 'foo.o',
+             '-fooflag', '-barflag', '-o', 'workspace/foo'],
+            capture_output=True, env=None, cwd=None, check=False)

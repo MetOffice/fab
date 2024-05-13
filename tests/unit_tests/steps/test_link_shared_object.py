@@ -35,13 +35,15 @@ def test_run(tool_box):
         # Mark the linker as available so it can added to the tool box:
         linker.is_available = True
         tool_box.add_tool(linker)
-        with mock.patch.object(linker, "run") as mock_run, \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            link_shared_object(config, "/tmp/lib_my.so", flags=['-fooflag', '-barflag'])
+        mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
+        with mock.patch('fab.newtools.tool.subprocess.run',
+                        return_value=mock_result) as tool_run, \
+                pytest.warns(UserWarning, match="_metric_send_conn not set, "
+                                                "cannot send metrics"):
+            link_shared_object(config, "/tmp/lib_my.so",
+                               flags=['-fooflag', '-barflag'])
 
-    mock_run.assert_called_with([
-        *sorted(['foo.o', 'bar.o']),
-        '-fooflag', '-barflag', '-fPIC', '-shared',
-        '-L/foo1/lib', '-L/foo2/lib',
-        '-o', '/tmp/lib_my.so',
-    ])
+    tool_run.assert_called_with(
+        ['mock_link.exe', '-L/foo1/lib', '-L/foo2/lib', 'bar.o', 'foo.o',
+         '-fooflag', '-barflag', '-fPIC', '-shared', '-o', '/tmp/lib_my.so'],
+        capture_output=True, env=None, cwd=None, check=False)
