@@ -90,6 +90,38 @@ def test_git_is_working_copy():
         assert git.is_working_copy("/dst") is False
 
 
+def test_git_init():
+    '''Check init functionality. The tests here will actually
+    mock the git results, so they will work even if git is not installed.
+    The system_tests will test an actual check out etc. '''
+
+    git = Git()
+    # Note that only the first line will be returned
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.tools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
+        git.init("/src")
+    tool_run.assert_called_once_with(
+        ['git', 'init', '.'], capture_output=True, env=None,
+        cwd='/src', check=False)
+
+
+def test_git_clean():
+    '''Check clean functionality. The tests here will actually
+    mock the git results, so they will work even if git is not installed.
+    The system_tests will test an actual check out etc. '''
+
+    git = Git()
+    # Note that only the first line will be returned
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch('fab.tools.tool.subprocess.run',
+                    return_value=mock_result) as tool_run:
+        git.clean('/src')
+    tool_run.assert_called_once_with(
+        ['git', 'clean', '-f'], capture_output=True, env=None,
+        cwd='/src', check=False)
+
+
 def test_git_fetch():
     '''Check getch functionality. The tests here will actually
     mock the git results, so they will work even if git is not installed.

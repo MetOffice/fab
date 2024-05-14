@@ -26,7 +26,7 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
     # create folder?
     if not dst.exists():
         dst.mkdir(parents=True)
-        git.run(['init', '.'], cwd=dst)
+        git.init(dst)
     elif not git.is_working_copy(dst):  # type: ignore
         raise ValueError(f"destination exists but is not a working copy: "
                          f"'{dst}'")
@@ -34,7 +34,7 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
     git.checkout(src, dst, revision=revision)
     try:
         dst.relative_to(config.project_workspace)
-        git.run(['clean', '-f'], cwd=dst)
+        git.clean(dst)
     except RuntimeError:
         warnings.warn(f'not safe to clean git source in {dst}')
 

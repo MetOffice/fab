@@ -60,13 +60,23 @@ class Git(Versioning):
                          "status",
                          Categories.GIT)
 
-    def current_commit(self, folder=None) -> str:
+    def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
         ''':returns the hash of the current commit.
         '''
         folder = folder or '.'
         output = self.run(['log', '--oneline', '-n', '1'], cwd=folder)
         commit = output.split()[0]
         return commit
+
+    def init(self, folder: Union[Path, str]):
+        '''Initialises a directory.
+        '''
+        self.run(['init', '.'], cwd=folder)
+
+    def clean(self, folder: Union[Path, str]):
+        '''Initialises a directory.
+        '''
+        self.run(['clean', '-f'], cwd=folder)
 
     def fetch(self, src: Union[str, Path],
               dst: Union[str, Path],
