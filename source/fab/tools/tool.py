@@ -21,6 +21,10 @@ from fab.tools.flags import Flags
 class Tool:
     '''This is the base class for all tools. It stores the name of the tool,
     the name of the executable, and provides a `run` method.
+
+    :param name: name of the tool.
+    :param exec_name: name of the executable to start.
+    :param category: the Category to which this tool belongs.
     '''
 
     def __init__(self, name: str, exec_name: str, category: Categories):
@@ -32,7 +36,7 @@ class Tool:
         self._is_available: Optional[bool] = None
 
     @abstractmethod
-    def check_available(self):
+    def check_available(self) -> bool:
         '''An abstract method to check if this tool is available in the system.
         '''
 
@@ -43,7 +47,7 @@ class Tool:
         to avoid testing a tool more than once.
 
         :returns: whether the tool is available (i.e. installed and
-        working).
+            working).
         '''
         if self._is_available is None:
             self._is_available = self.check_available()
@@ -146,6 +150,11 @@ class Tool:
 class VendorTool(Tool):
     '''A tool that has a vendor attached to it (typically compiler
     and linker).
+
+    :param name: name of the tool.
+    :param exec_name: name of the executable to start.
+    :param vendor: name of the vendor.
+    :param category: the Category to which this tool belongs.
     '''
     def __init__(self, name: str, exec_name: str, vendor: str,
                  category: Categories):
@@ -154,5 +163,5 @@ class VendorTool(Tool):
 
     @property
     def vendor(self) -> str:
-        '''Returns the vendor of this compiler.'''
+        ''':returns: the vendor of this tool.'''
         return self._vendor

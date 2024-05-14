@@ -22,8 +22,9 @@ class Ar(Tool):
         super().__init__("ar", "ar", Categories.AR)
 
     def check_available(self):
-        '''Checks if `ar` is available. We do this by requesting the
-        ar version.
+        '''
+        :returns: whether `ar` is available or not. We do this by
+            requesting the ar version.
         '''
         try:
             self.run("--version")
@@ -35,6 +36,7 @@ class Ar(Tool):
                members: List[Union[Path, str]]):
         '''Create the archive with the specified name, containing the
         listed members.
+
         :param output_fpath: the output path.
         :param members: the list of objects to be added to the archive.
         '''

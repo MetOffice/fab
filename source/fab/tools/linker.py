@@ -17,7 +17,15 @@ from fab.tools.tool import VendorTool
 
 
 class Linker(VendorTool):
-    '''This is the base class for any Linker.
+    '''This is the base class for any Linker. If a compiler is specified,
+    its name, executable, and vendor will be used for the linker (if not
+    explicitly set in the constructor).
+
+    :param name: the name of the linker.
+    :param exec_name: the name of the executable.
+    :param vendor: optional, the name of the vendor.
+    :param compiler: optional, a compiler instance
+    :param output_flag: flag to use to specify the output name.
     '''
 
     # pylint: disable=too-many-arguments
@@ -43,9 +51,10 @@ class Linker(VendorTool):
         self._compiler = compiler
         self.flags.extend(os.getenv("LDFLAGS", "").split())
 
-    def check_available(self):
-        '''Checks if the compiler is available. We do this by requesting the
-        compiler version.
+    def check_available(self) -> bool:
+        '''
+        :returns: whether the linker is available or not. We do this
+            by requesting the linker version.
         '''
         if self._compiler:
             return self._compiler.check_available()
@@ -58,12 +67,15 @@ class Linker(VendorTool):
         return True
 
     def link(self, input_files: List[Path], output_file: Path,
-             add_libs: Optional[List[str]] = None):
+             add_libs: Optional[List[str]] = None) -> str:
         '''Executes the linker with the specified input files,
         creating `output_file`.
+
         :param input_files: list of input files to link.
         :param output_file: output file.
         :param add_libs: additional linker flags.
+
+        :returns: the stdout of the link command
         '''
         if self._compiler:
             # Create a copy:

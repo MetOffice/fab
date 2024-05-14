@@ -62,6 +62,7 @@ class ToolRepository(dict):
     def add_tool(self, cls: Type[Any]):
         '''Creates an instance of the specified class and adds it
         to the tool repository.
+
         :param cls: the tool to instantiate.
         '''
 
@@ -81,13 +82,13 @@ class ToolRepository(dict):
             self[linker.category].append(linker)
 
     def get_tool(self, category: Categories, name: str):
-        '''Returns the tool with a given name in the specified category.
+        ''':returns: the tool with a given name in the specified category.
 
         :param category: the name of the category in which to look
             for the tool.
         :param name: the name of the tool to find.
 
-        :raises KeyError: if the category is not known.
+        :raises KeyError: if there is not tool in this category.
         :raises KeyError: if no tool in the given category has the
             requested name.
         '''
@@ -105,6 +106,7 @@ class ToolRepository(dict):
     def set_default_vendor(self, vendor: str):
         '''Sets the default for linker and compilers to be of the
         given vendor.
+
         :param vendor: the vendor name.
         '''
         for category in [Categories.FORTRAN_COMPILER, Categories.C_COMPILER,

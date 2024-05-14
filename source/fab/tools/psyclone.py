@@ -22,9 +22,10 @@ class Psyclone(Tool):
     def __init__(self):
         super().__init__("psyclone", "psyclone", Categories.PSYCLONE)
 
-    def check_available(self):
-        '''Checks if psyclone is available. We do this by requesting the
-        psyclone version.
+    def check_available(self) -> bool:
+        '''
+        :returns: whether psyclone is available or not. We do this
+            by requesting the psyclone version.
         '''
         try:
             self.run("--version")
@@ -42,6 +43,7 @@ class Psyclone(Tool):
                 ):
         # pylint: disable=too-many-arguments
         '''Run PSyclone with the specified parameters.
+
         :param api: the PSyclone API.
         :param x90_file: the input file for PSyclone
         :param psy_file: the output PSy-layer file.

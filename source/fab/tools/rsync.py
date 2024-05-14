@@ -21,9 +21,10 @@ class Rsync(Tool):
     def __init__(self):
         super().__init__("rsync", "rsync", Categories.RSYNC)
 
-    def check_available(self):
-        '''Checks if `rsync` is available. We do this by requesting the
-        rsync version.
+    def check_available(self) -> bool:
+        '''
+        :returns: whether `rsync` is available or not. We do this by
+            requesting the rsync version.
         '''
         try:
             self.run("--version")

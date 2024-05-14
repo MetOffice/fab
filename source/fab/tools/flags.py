@@ -29,9 +29,9 @@ class Flags(list):
         if list_of_flags:
             self.extend(list_of_flags)
 
-    def checksum(self):
+    def checksum(self) -> str:
         """
-        Return a checksum of the flags.
+        :returns: a checksum of the flags.
 
         """
         return string_checksum(str(self))
@@ -40,7 +40,7 @@ class Flags(list):
         '''Removes all occurrences of `remove_flag` in flags`.
         If has_parameter is defined, the next entry in flags will also be
         removed, and if this object contains this flag+parameter without space
-        (e.g. -J/tmp), it will be correctly removed.
+        (e.g. `-J/tmp`), it will be correctly removed.
 
         :param remove_flag: the flag to remove
         :param has_parameter: if the flag to remove takes a parameter

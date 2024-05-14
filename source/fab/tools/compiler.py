@@ -20,9 +20,20 @@ from fab.tools.tool import VendorTool
 
 class Compiler(VendorTool):
     '''This is the base class for any compiler. It provides flags for
+
     - compilation only (-c),
     - naming the output file (-o),
     - OpenMP
+
+    :param name: name of the compiler.
+    :param exec_name: name of the executable to start.
+    :param vendor: name of the compiler vendor.
+    :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
+    :param compile_flag: the compilation flag to use when only requesting
+        compilation (not linking).
+    :param output_flag: the compilation flag to use to indicate the name
+        of the output file
+    :param omp_flag: the flag to use to enable OpenMP
     '''
 
     # pylint: disable=too-many-arguments
@@ -45,6 +56,7 @@ class Compiler(VendorTool):
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
         '''Compiles a file.
+
         :param input_file: the path of the input file.
         :param outpout_file: the path of the output file.
         :param add_flags: additional compiler flags.
@@ -60,9 +72,10 @@ class Compiler(VendorTool):
         return self.run(cwd=input_file.parent,
                         additional_parameters=params)
 
-    def check_available(self):
-        '''Checks if the compiler is available. We do this by requesting the
-        compiler version.
+    def check_available(self) -> bool:
+        '''
+        :returns: whether the compiler is available or not. We do
+            this by requesting the compiler version.
         '''
         try:
             version = self.get_version()
@@ -132,6 +145,16 @@ class Compiler(VendorTool):
 class CCompiler(Compiler):
     '''This is the base class for a C compiler. It just sets the category
     of the compiler as convenience.
+
+    :param name: name of the compiler.
+    :param exec_name: name of the executable to start.
+    :param vendor: name of the compiler vendor.
+    :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
+    :param compile_flag: the compilation flag to use when only requesting
+        compilation (not linking).
+    :param output_flag: the compilation flag to use to indicate the name
+        of the output file
+    :param omp_flag: the flag to use to enable OpenMP
     '''
 
     def __init__(self, name: str, exec_name: str, vendor: str,
@@ -145,6 +168,19 @@ class FortranCompiler(Compiler):
     '''This is the base class for a Fortran compiler. It is a compiler
     that needs to support a module output path and support for syntax-only
     compilation (which will only generate the .mod files).
+
+    :param name: name of the compiler.
+    :param exec_name: name of the executable to start.
+    :param vendor: name of the compiler vendor.
+    :param module_folder_flag: the compiler flag to indicate where to
+        store created module files.
+    :param syntax_only_flag: flag to indicate to only do a syntax check.
+        The side effect is that the module files are created.S
+    :param compile_flag: the compilation flag to use when only requesting
+        compilation (not linking).
+    :param output_flag: the compilation flag to use to indicate the name
+        of the output file
+    :param omp_flag: the flag to use to enable OpenMP
     '''
 
     def __init__(self, name: str, exec_name: str, vendor: str,
@@ -164,6 +200,7 @@ class FortranCompiler(Compiler):
 
     def set_module_output_path(self, path: Path):
         '''Sets the output path for modules.
+
         :params path: the path to the output directory.
         '''
         self._module_output_path = str(path)
@@ -171,6 +208,15 @@ class FortranCompiler(Compiler):
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None,
                      syntax_only: bool = False):
+        '''Compiles a file.
+
+        :param input_file: the name of the input file.
+        :param output_file: the name of the output file.
+        :param add_flags: additional flags for the compiler.
+        :param syntax_only: if set, the compiler will only do
+            a syntax check
+        '''
+
         params: List[str] = []
         if add_flags:
             new_flags = Flags(add_flags)
