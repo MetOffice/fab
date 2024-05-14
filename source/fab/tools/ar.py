@@ -10,8 +10,8 @@
 from pathlib import Path
 from typing import List, Union
 
-from fab.newtools.categories import Categories
-from fab.newtools.tool import Tool
+from fab.tools.categories import Categories
+from fab.tools.tool import Tool
 
 
 class Ar(Tool):

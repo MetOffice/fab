@@ -7,7 +7,7 @@
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 
 class TestBuildConfig():

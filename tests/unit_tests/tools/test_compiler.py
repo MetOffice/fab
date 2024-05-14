@@ -14,8 +14,8 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import (Categories, CCompiler, Compiler, FortranCompiler,
-                          Gcc, Gfortran, Icc, Ifort)
+from fab.tools import (Categories, CCompiler, Compiler, FortranCompiler,
+                       Gcc, Gfortran, Icc, Ifort)
 
 
 def test_compiler():

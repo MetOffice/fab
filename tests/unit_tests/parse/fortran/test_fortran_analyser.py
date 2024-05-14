@@ -16,7 +16,7 @@ from fab.build_config import BuildConfig
 from fab.parse import EmptySourceFile
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.fortran_common import iter_content
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 
 # todo: test function binding

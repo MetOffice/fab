@@ -12,7 +12,7 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import (Categories, Linker)
+from fab.tools import (Categories, Linker)
 
 
 def test_linker(mock_c_compiler, mock_fortran_compiler):
@@ -68,7 +68,7 @@ def test_linker_check_available(mock_c_compiler):
     # return a success:
     linker = Linker("ld", "ld", vendor="gnu")
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         linker.check_available()
     tool_run.assert_called_once_with(
@@ -77,7 +77,7 @@ def test_linker_check_available(mock_c_compiler):
 
     # Third test: assume the tool does not exist, run will raise
     # runtime error:
-    with mock.patch("fab.newtools.tool.Tool.run",
+    with mock.patch("fab.tools.tool.Tool.run",
                     side_effect=RuntimeError("")) as tool_run:
         linker.check_available()
 
@@ -86,7 +86,7 @@ def test_linker_c(mock_c_compiler):
     '''Test the link command line.'''
     linker = Linker(compiler=mock_c_compiler)
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         linker.link([Path("a.o")], Path("a.out"))
     tool_run.assert_called_with(
@@ -107,7 +107,7 @@ def test_linker_add_compiler_flag(mock_c_compiler):
     linker = Linker(compiler=mock_c_compiler)
     mock_c_compiler.flags.append("-my-flag")
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         linker.link([Path("a.o")], Path("a.out"))
     tool_run.assert_called_with(
@@ -119,7 +119,7 @@ def test_linker_add_compiler_flag(mock_c_compiler):
     linker = Linker("no-compiler", "no-compiler.exe", "vendor")
     linker.flags.append("-some-other-flag")
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         linker.link([Path("a.o")], Path("a.out"))
     tool_run.assert_called_with(

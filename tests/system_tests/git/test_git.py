@@ -24,7 +24,7 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.steps.grab.git import git_checkout, git_merge
-from fab.newtools import Git, ToolBox
+from fab.tools import Git, ToolBox
 
 
 @pytest.fixture

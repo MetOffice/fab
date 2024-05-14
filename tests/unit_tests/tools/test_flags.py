@@ -9,7 +9,7 @@
 
 import pytest
 
-from fab.newtools import Flags
+from fab.tools import Flags
 
 
 def test_flags_constructor():

@@ -12,7 +12,7 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.grab.prebuild import grab_pre_build
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 from fab.util import file_walk
 
 

@@ -10,8 +10,8 @@
 import os
 from pathlib import Path
 
-from fab.newtools.categories import Categories
-from fab.newtools.tool import Tool
+from fab.tools.categories import Categories
+from fab.tools.tool import Tool
 
 
 class Rsync(Tool):

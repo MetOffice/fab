@@ -23,7 +23,7 @@ from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 from fab.util import common_arg_parser
 
 

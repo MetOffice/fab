@@ -26,7 +26,7 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
-from fab.newtools import Categories, Compiler, Flags
+from fab.tools import Categories, Compiler, Flags
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \
     file_checksum
 

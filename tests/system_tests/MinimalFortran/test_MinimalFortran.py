@@ -14,7 +14,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 import pytest
 

@@ -13,7 +13,7 @@ from unittest import mock
 
 from fab.constants import OBJECT_FILES
 from fab.steps.link import link_shared_object
-from fab.newtools import Linker
+from fab.tools import Linker
 
 import pytest
 
@@ -36,7 +36,7 @@ def test_run(tool_box):
         linker.is_available = True
         tool_box.add_tool(linker)
         mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=mock_result) as tool_run, \
                 pytest.warns(UserWarning, match="_metric_send_conn not set, "
                                                 "cannot send metrics"):

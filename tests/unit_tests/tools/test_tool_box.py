@@ -10,7 +10,7 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import Categories, Gfortran, ToolBox, ToolRepository
+from fab.tools import Categories, Gfortran, ToolBox, ToolRepository
 
 
 def test_tool_box_constructor():

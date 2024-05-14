@@ -14,7 +14,7 @@ from typing import Optional, Union, Tuple
 import xml.etree.ElementTree as ET
 
 from fab.steps import step
-from fab.newtools import Categories, Versioning
+from fab.tools import Categories, Versioning
 
 
 def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:

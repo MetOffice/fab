@@ -10,8 +10,7 @@
 import pytest
 
 
-from fab.newtools import (Categories, Gcc, Gfortran, Ifort, Linker,
-                          ToolRepository)
+from fab.tools import Categories, Gcc, Gfortran, Ifort, Linker, ToolRepository
 
 
 def test_tool_repository_get_singleton_new():

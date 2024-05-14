@@ -17,7 +17,7 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
-from fab.newtools import Categories, Flags
+from fab.tools import Categories, Flags
 
 
 # This avoids pylint warnings about Redefining names from outer scope

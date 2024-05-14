@@ -16,7 +16,7 @@ from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import step
 from fab.util import log_or_dot
-from fab.newtools import Categories
+from fab.tools import Categories
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)

@@ -19,7 +19,7 @@ from fab.metrics import send_metric
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, suffix_filter, Timer, by_type
 from fab.steps import check_for_errors, run_mp, step
-from fab.newtools import Categories, Preprocessor
+from fab.tools import Categories, Preprocessor
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
 logger = logging.getLogger(__name__)

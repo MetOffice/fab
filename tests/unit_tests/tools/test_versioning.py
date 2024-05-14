@@ -11,7 +11,7 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import (Categories, Fcm, Git, Subversion, Versioning)
+from fab.tools import Categories, Fcm, Git, Subversion, Versioning
 
 
 def test_versioning_constructor():
@@ -53,7 +53,7 @@ def test_git_current_commit():
     # Note that only the first line will be returned, and stdout of the
     # subprocess run method must be encoded (i.e. decode is called later)
     mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         assert "abc" == git.current_commit()
 
@@ -63,7 +63,7 @@ def test_git_current_commit():
 
     # Test if we specify a path
     mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         assert "abc" == git.current_commit("/not-exist")
 
@@ -79,7 +79,7 @@ def test_git_is_working_copy():
 
     git = Git()
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         assert git.is_working_copy("/dst")
     tool_run.assert_called_once_with(
@@ -98,7 +98,7 @@ def test_git_fetch():
     git = Git()
     # Note that only the first line will be returned
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         git.fetch("/src", "/dst", revision="revision")
     tool_run.assert_called_once_with(
@@ -122,7 +122,7 @@ def test_git_checkout():
     # Note that only the first line will be returned
 
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         git.checkout("/src", "/dst", revision="revision")
     tool_run.assert_any_call(['git', 'fetch', "/src", "revision"], cwd='/dst',
@@ -146,7 +146,7 @@ def test_git_merge():
     git = Git()
     # Note that only the first line will be returned
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         git.merge("/dst", revision="revision")
     tool_run.assert_called_once_with(
@@ -195,7 +195,7 @@ def test_svn_is_working_copy():
 
     svn = Subversion()
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         assert svn.is_working_copy("/dst")
     tool_run.assert_called_once_with(
@@ -213,7 +213,7 @@ def test_svn_export():
 
     svn = Subversion()
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         svn.export("/src", "/dst", revision="123")
 
@@ -223,7 +223,7 @@ def test_svn_export():
 
     # Test if we don't specify a revision
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         svn.export("/src", "/dst")
     tool_run.assert_called_once_with(
@@ -238,7 +238,7 @@ def test_svn_checkout():
 
     svn = Subversion()
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         svn.checkout("/src", "/dst", revision="123")
 
@@ -248,7 +248,7 @@ def test_svn_checkout():
 
     # Test if we don't specify a revision
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         svn.checkout("/src", "/dst")
     tool_run.assert_called_once_with(
@@ -263,7 +263,7 @@ def test_svn_update():
 
     svn = Subversion()
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         svn.update("/dst", revision="123")
 
@@ -279,7 +279,7 @@ def test_svn_merge():
 
     svn = Subversion()
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         svn.merge("/src", "/dst", "123")
 

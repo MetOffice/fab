@@ -13,9 +13,9 @@ from pathlib import Path
 from typing import List, Union
 import zlib
 
-from fab.newtools.categories import Categories
-from fab.newtools.flags import Flags
-from fab.newtools.tool import VendorTool
+from fab.tools.categories import Categories
+from fab.tools.flags import Flags
+from fab.tools.tool import VendorTool
 
 
 class Compiler(VendorTool):

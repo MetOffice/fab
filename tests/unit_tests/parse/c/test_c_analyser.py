@@ -11,7 +11,7 @@ import clang  # type: ignore
 
 from fab.build_config import BuildConfig
 from fab.parse.c import CAnalyser, AnalysedC
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 
 def test_simple_result(tmp_path):

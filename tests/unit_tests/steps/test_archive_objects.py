@@ -13,7 +13,7 @@ from unittest.mock import call
 from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps.archive_objects import archive_objects
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 import pytest
 
@@ -32,7 +32,7 @@ class TestArchiveObjects():
                                   for target in targets}}
 
         mock_result = mock.Mock(returncode=0, return_value=123)
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=mock_result) as mock_run_command, \
                 pytest.warns(UserWarning, match="_metric_send_conn not set, "
                                                 "cannot send metrics"):
@@ -60,7 +60,7 @@ class TestArchiveObjects():
         config._artefact_store = {OBJECT_FILES: {None: ['util1.o', 'util2.o']}}
 
         mock_result = mock.Mock(returncode=0, return_value=123)
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=mock_result) as mock_run_command, \
                 pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             archive_objects(config=config, output_fpath=config.build_output / 'mylib.a')

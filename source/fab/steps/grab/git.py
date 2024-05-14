@@ -10,7 +10,7 @@
 import warnings
 
 from fab.steps import step
-from fab.newtools import Categories
+from fab.tools import Categories
 
 
 # todo: allow cli args, e.g to set the depth

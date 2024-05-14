@@ -18,7 +18,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import _analysis_for_prebuilds, make_parsable_x90, preprocess_x90, psyclone
-from fab.newtools import ToolBox, Psyclone
+from fab.tools import ToolBox, Psyclone
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
@@ -187,7 +187,7 @@ class TestPsyclone():
         # make sure no work gets done the second time round
         with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk, \
                 mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk, \
-                mock.patch('fab.newtools.psyclone.Psyclone.process') as mock_run, \
+                mock.patch('fab.tools.psyclone.Psyclone.process') as mock_run, \
                 config, pytest.warns(UserWarning, match="no transformation script specified"):
             self.steps(config)
 

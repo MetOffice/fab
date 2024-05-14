@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.constants import SOURCE_ROOT
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 
 class TestAddFlags(object):

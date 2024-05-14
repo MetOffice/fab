@@ -17,7 +17,7 @@ import pytest
 
 import fab
 from fab.build_config import BuildConfig
-from fab.newtools import Fcm, Subversion, ToolBox
+from fab.tools import Fcm, Subversion, ToolBox
 from fab.steps.grab.fcm import fcm_checkout, fcm_export, fcm_merge
 from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge
 
@@ -173,8 +173,8 @@ class TestCheckout():
         else:
             assert False
 
-        with mock.patch('fab.newtools.tool.subprocess.run',
-                        wraps=fab.newtools.tool.subprocess.run) as wrap, \
+        with mock.patch('fab.tools.tool.subprocess.run',
+                        wraps=fab.tools.tool.subprocess.run) as wrap, \
              pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
 
             checkout_func(config, src=file2_experiment, dst_label='proj', revision='7')

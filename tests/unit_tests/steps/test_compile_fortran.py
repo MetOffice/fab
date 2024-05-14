@@ -10,7 +10,7 @@ from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
-from fab.newtools import Categories, ToolBox
+from fab.tools import Categories, ToolBox
 from fab.util import CompiledFile
 
 

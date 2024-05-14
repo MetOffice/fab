@@ -13,7 +13,7 @@ from pathlib import Path
 
 from unittest import mock
 
-from fab.newtools import (Categories, Cpp, CppFortran, Fpp, Preprocessor)
+from fab.tools import (Categories, Cpp, CppFortran, Fpp, Preprocessor)
 
 
 def test_preprocessor_constructor():
@@ -36,7 +36,7 @@ def test_preprocessor_fpp_is_available():
     # Reset the flag and pretend run returns a success:
     fpp._is_available = None
     mock_run = mock.Mock(returncode=0)
-    with mock.patch("fab.newtools.tool.Tool.run", mock_run):
+    with mock.patch("fab.tools.tool.Tool.run", mock_run):
         assert fpp.is_available
 
 
@@ -44,7 +44,7 @@ def test_preprocessor_cpp():
     '''Test cpp.'''
     cpp = Cpp()
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         cpp.run("--version")
     tool_run.assert_called_with(["cpp", "--version"], capture_output=True,
@@ -53,7 +53,7 @@ def test_preprocessor_cpp():
     # Reset the flag and raise an error when executing:
     cpp._is_available = None
     mock_run = mock.Mock(side_effect=RuntimeError("not found"))
-    with mock.patch("fab.newtools.tool.Tool.run", mock_run):
+    with mock.patch("fab.tools.tool.Tool.run", mock_run):
         assert not cpp.is_available
 
 

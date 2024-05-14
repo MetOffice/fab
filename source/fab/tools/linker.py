@@ -11,9 +11,9 @@ import os
 from pathlib import Path
 from typing import cast, List, Optional
 
-from fab.newtools.categories import Categories
-from fab.newtools.compiler import Compiler
-from fab.newtools.tool import VendorTool
+from fab.tools.categories import Categories
+from fab.tools.compiler import Compiler
+from fab.tools.tool import VendorTool
 
 
 class Linker(VendorTool):

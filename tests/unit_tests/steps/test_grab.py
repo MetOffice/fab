@@ -9,7 +9,7 @@ from unittest import mock
 
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.folder import grab_folder
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 import pytest
 
@@ -31,7 +31,7 @@ class TestGrabFolder():
         mock_config = SimpleNamespace(source_root=source_root,
                                       tool_box=ToolBox())
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.newtools.tool.Tool.run') as mock_run:
+            with mock.patch('fab.tools.tool.Tool.run') as mock_run:
                 grab_folder(mock_config, src=grab_src, dst_label=dst)
 
         expect_dst = mock_config.source_root / dst
@@ -50,7 +50,7 @@ class TestGrabFcm():
         mock_config = SimpleNamespace(source_root=source_root,
                                       tool_box=ToolBox())
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.newtools.tool.Tool.run') as mock_run, \
+            with mock.patch('fab.tools.tool.Tool.run') as mock_run, \
                  pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                 fcm_export(config=mock_config, src=source_url, dst_label=dst_label)
 
@@ -67,7 +67,7 @@ class TestGrabFcm():
         mock_config = SimpleNamespace(source_root=source_root,
                                       tool_box=ToolBox())
         with mock.patch('pathlib.Path.mkdir'):
-            with mock.patch('fab.newtools.tool.Tool.run') as mock_run, \
+            with mock.patch('fab.tools.tool.Tool.run') as mock_run, \
                  pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                 fcm_export(mock_config, src=source_url, dst_label=dst_label, revision=revision)
 

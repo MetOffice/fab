@@ -5,7 +5,7 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.steps.root_inc_files import root_inc_files
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 
 class TestRootIncFiles():

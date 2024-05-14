@@ -13,7 +13,7 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import Categories, Tool, VendorTool
+from fab.tools import Categories, Tool, VendorTool
 
 
 def test_tool_constructor():
@@ -62,7 +62,7 @@ class TestToolRun():
         mock_result = mock.Mock(returncode=0, return_value=123)
         mock_result.stdout.decode = mock.Mock(return_value="123")
 
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=mock_result):
             assert tool.run(capture_output=True) == "123"
             assert tool.run(capture_output=False) == ""
@@ -72,7 +72,7 @@ class TestToolRun():
         command line argument is provided as string.'''
         tool = Tool("gnu", "gfortran", Categories.FORTRAN_COMPILER)
         mock_result = mock.Mock(returncode=0)
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=mock_result) as tool_run:
             tool.run("a")
         tool_run.assert_called_once_with(
@@ -84,7 +84,7 @@ class TestToolRun():
         one command line argument is provided as a list.'''
         tool = Tool("gnu", "gfortran", Categories.FORTRAN_COMPILER)
         mock_result = mock.Mock(returncode=0)
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=mock_result) as tool_run:
             tool.run(["a", "b"])
         tool_run.assert_called_once_with(
@@ -97,7 +97,7 @@ class TestToolRun():
         result = mock.Mock(returncode=1)
         mocked_error_message = 'mocked error message'
         result.stderr.decode = mock.Mock(return_value=mocked_error_message)
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=result):
             with pytest.raises(RuntimeError) as err:
                 tool.run()
@@ -108,7 +108,7 @@ class TestToolRun():
         '''Tests the error handling of `run`. '''
         tool = Tool("does_not_exist", "does_not_exist",
                     Categories.FORTRAN_COMPILER)
-        with mock.patch('fab.newtools.tool.subprocess.run',
+        with mock.patch('fab.tools.tool.subprocess.run',
                         side_effect=FileNotFoundError("not found")):
             with pytest.raises(RuntimeError) as err:
                 tool.run()

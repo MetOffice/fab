@@ -15,7 +15,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 

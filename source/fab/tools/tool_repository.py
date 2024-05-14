@@ -14,9 +14,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Type
 
-from fab.newtools import (Ar, Categories, Cpp, CppFortran, Gcc, Gfortran,
-                          Icc, Ifort, Linker, Psyclone, Rsync)
-from fab.newtools.versioning import Fcm, Git, Subversion
+from fab.tools import (Ar, Categories, Cpp, CppFortran, Gcc, Gfortran,
+                       Icc, Ifort, Linker, Psyclone, Rsync)
+from fab.tools.versioning import Fcm, Git, Subversion
 
 
 class ToolRepository(dict):

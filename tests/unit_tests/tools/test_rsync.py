@@ -9,7 +9,7 @@
 
 from unittest import mock
 
-from fab.newtools import (Categories, Rsync)
+from fab.tools import (Categories, Rsync)
 
 
 def test_ar_constructor():
@@ -24,12 +24,12 @@ def test_ar_constructor():
 def test_rsync_check_available():
     '''Tests the is_available functionality.'''
     rsync = Rsync()
-    with mock.patch("fab.newtools.tool.Tool.run") as tool_run:
+    with mock.patch("fab.tools.tool.Tool.run") as tool_run:
         assert rsync.check_available()
     tool_run.assert_called_once_with("--version")
 
     # Test behaviour if a runtime error happens:
-    with mock.patch("fab.newtools.tool.Tool.run",
+    with mock.patch("fab.tools.tool.Tool.run",
                     side_effect=RuntimeError("")) as tool_run:
         assert not rsync.check_available()
 
@@ -42,7 +42,7 @@ def test_rsync_create():
 
     # Test 1: src with /
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         rsync.execute(src="/src/", dst="/dst")
     tool_run.assert_called_with(
@@ -51,7 +51,7 @@ def test_rsync_create():
 
     # Test 2: src without /
     mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.newtools.tool.subprocess.run',
+    with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         rsync.execute(src="/src", dst="/dst")
     tool_run.assert_called_with(

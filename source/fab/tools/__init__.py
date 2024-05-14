@@ -7,20 +7,20 @@
 '''A simple init file to make it shorter to import tools.
 '''
 
-from fab.newtools.ar import Ar
-from fab.newtools.categories import Categories
-from fab.newtools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
-                                   Gfortran, Icc, Ifort)
-from fab.newtools.flags import Flags
-from fab.newtools.linker import Linker
-from fab.newtools.psyclone import Psyclone
-from fab.newtools.rsync import Rsync
-from fab.newtools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
-from fab.newtools.tool import Tool, VendorTool
+from fab.tools.ar import Ar
+from fab.tools.categories import Categories
+from fab.tools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
+                                Gfortran, Icc, Ifort)
+from fab.tools.flags import Flags
+from fab.tools.linker import Linker
+from fab.tools.psyclone import Psyclone
+from fab.tools.rsync import Rsync
+from fab.tools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
+from fab.tools.tool import Tool, VendorTool
 # Order here is important to avoid a circular import
-from fab.newtools.tool_repository import ToolRepository
-from fab.newtools.tool_box import ToolBox
-from fab.newtools.versioning import Fcm, Git, Subversion, Versioning
+from fab.tools.tool_repository import ToolRepository
+from fab.tools.tool_box import ToolBox
+from fab.tools.versioning import Fcm, Git, Subversion, Versioning
 
 __all__ = ["Ar",
            "Categories",

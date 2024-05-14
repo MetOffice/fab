@@ -11,7 +11,7 @@ from unittest import mock
 
 import pytest
 
-from fab.newtools import Categories, Compiler, Linker, ToolBox
+from fab.tools import Categories, Compiler, Linker, ToolBox
 
 
 # This avoids pylint warnings about Redefining names from outer scope

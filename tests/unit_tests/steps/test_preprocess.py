@@ -8,7 +8,7 @@ from unittest import mock
 
 from fab.build_config import BuildConfig
 from fab.steps.preprocess import preprocess_fortran
-from fab.newtools import ToolBox
+from fab.tools import ToolBox
 
 
 class Test_preprocess_fortran(object):
