@@ -4,7 +4,8 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the base class for git.
+"""This file contains the base class for versioning tools like git and
+subversion. It also contains derived classes Git, Subversion, and Fcm.
 """
 
 from pathlib import Path
@@ -136,7 +137,8 @@ class Git(Versioning):
 # =============================================================================
 class Subversion(Versioning):
     '''This is the base class for subversion. Note that this is also the
-    base class for FCM
+    base class for FCM, so it allows overwriting name, exec_name and
+    category, but will default to use svn.
 
     :param name: name of the tool, defaults to subversion.
     :param exec_name: name of the executable, defaults to "svn".
@@ -232,7 +234,7 @@ class Subversion(Versioning):
 # =============================================================================
 class Fcm(Subversion):
     '''This is the base class for FCM. All commands will be mapped back
-    to the corresponding SVN commands.
+    to the corresponding subversion commands.
     '''
 
     def __init__(self):

@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file the tool class for PSyclone.
-
+"""This file contains the tool class for PSyclone.
 """
 
 from pathlib import Path
@@ -25,7 +24,7 @@ class Psyclone(Tool):
     def check_available(self) -> bool:
         '''
         :returns: whether psyclone is available or not. We do this
-            by requesting the psyclone version.
+            by requesting the PSyclone version.
         '''
         try:
             self.run("--version")
