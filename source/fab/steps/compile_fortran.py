@@ -26,8 +26,7 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import flags_checksum
-from fab.newtools import Categories, Compiler
+from fab.newtools import Categories, Compiler, Flags
 from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \
     file_checksum
 
@@ -229,7 +228,7 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
         analysed_file, mp_common_args = arg
         config = mp_common_args.config
         compiler = config.tool_box[Categories.FORTRAN_COMPILER]
-        flags = mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=config)
+        flags = Flags(mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=config))
 
         mod_combo_hash = _get_mod_combo_hash(analysed_file, compiler=compiler)
         obj_combo_hash = _get_obj_combo_hash(analysed_file,
@@ -291,7 +290,7 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
 
 
 def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs,
-                        compiler: Compiler, flags):
+                        compiler: Compiler, flags: Flags):
     # get a combo hash of things which matter to the object file we define
     # todo: don't just silently use 0 for a missing dep hash
     mod_deps_hashes = {
@@ -299,7 +298,7 @@ def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs,
     try:
         obj_combo_hash = sum([
             analysed_file.file_hash,
-            flags_checksum(flags),
+            flags.checksum(),
             sum(mod_deps_hashes.values()),
             compiler.get_hash(),
         ])

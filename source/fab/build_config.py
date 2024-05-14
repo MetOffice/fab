@@ -306,7 +306,7 @@ class FlagsConfig():
         :param path:
             The file path for which we want command-line flags.
         :param config:
-            THe config contains the source root and project workspace.
+            The config contains the source root and project workspace.
 
         """
         # We COULD make the user pass these template params to the constructor

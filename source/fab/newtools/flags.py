@@ -5,11 +5,15 @@
 ##############################################################################
 
 '''This file contains a simple Flag class to manage tool flags.
+It will need to be combined with build_config.FlagsConfig in a follow up
+PR.
 '''
 
 import logging
 from typing import List, Optional
 import warnings
+
+from fab.util import string_checksum
 
 
 class Flags(list):
@@ -24,6 +28,13 @@ class Flags(list):
         super().__init__()
         if list_of_flags:
             self.extend(list_of_flags)
+
+    def checksum(self):
+        """
+        Return a checksum of the flags.
+
+        """
+        return string_checksum(str(self))
 
     def remove_flag(self, remove_flag: str, has_parameter: bool = False):
         '''Removes all occurrences of `remove_flag` in flags`.

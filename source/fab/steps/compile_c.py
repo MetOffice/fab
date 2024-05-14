@@ -20,8 +20,7 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
-from fab.newtools import Categories
-from fab.tools import flags_checksum
+from fab.newtools import Categories, Flags
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
@@ -115,8 +114,8 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     config = mp_payload.config
     compiler = config.tool_box[Categories.C_COMPILER]
     with Timer() as timer:
-        flags = mp_payload.flags.flags_for_path(path=analysed_file.fpath,
-                                                config=config)
+        flags = Flags(mp_payload.flags.flags_for_path(path=analysed_file.fpath,
+                                                      config=config))
         obj_combo_hash = _get_obj_combo_hash(compiler, analysed_file, flags)
 
         obj_file_prebuild = config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
@@ -140,12 +139,12 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
 
-def _get_obj_combo_hash(compiler, analysed_file, flags):
+def _get_obj_combo_hash(compiler, analysed_file, flags: Flags):
     # get a combo hash of things which matter to the object file we define
     try:
         obj_combo_hash = sum([
             analysed_file.file_hash,
-            flags_checksum(flags),
+            flags.checksum(),
             compiler.get_hash(),
         ])
     except TypeError:

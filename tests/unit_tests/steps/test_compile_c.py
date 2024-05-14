@@ -17,7 +17,7 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
-from fab.newtools import Categories
+from fab.newtools import Categories, Flags
 
 
 # This avoids pylint warnings about Redefining names from outer scope
@@ -92,7 +92,7 @@ class TestGetObjComboHash():
     @pytest.fixture
     def flags(self):
         '''Returns the flag for these tests.'''
-        return ['-Denv_flag', '-I', 'foo/include', '-Dhello']
+        return Flags(['-Denv_flag', '-I', 'foo/include', '-Dhello'])
 
     def test_vanilla(self, content, flags):
         '''Test that we get the expected hashes in this test setup.'''
@@ -114,7 +114,7 @@ class TestGetObjComboHash():
         '''Test that changing the flags changes the hash.'''
         config, analysed_file, expect_hash = content
         compiler = config.tool_box[Categories.C_COMPILER]
-        flags = ['-Dfoo'] + flags
+        flags = Flags(['-Dfoo'] + flags)
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result != expect_hash
 
