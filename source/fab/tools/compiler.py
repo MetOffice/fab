@@ -157,6 +157,7 @@ class CCompiler(Compiler):
     :param omp_flag: the flag to use to enable OpenMP
     '''
 
+    # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, vendor: str,
                  compile_flag=None, output_flag=None, omp_flag=None):
         super().__init__(name, exec_name, vendor, Categories.C_COMPILER,
@@ -183,6 +184,7 @@ class FortranCompiler(Compiler):
     :param omp_flag: the flag to use to enable OpenMP
     '''
 
+    # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, vendor: str,
                  module_folder_flag: str, syntax_only_flag=None,
                  compile_flag=None, output_flag=None, omp_flag=None):
@@ -237,17 +239,27 @@ class FortranCompiler(Compiler):
 # ============================================================================
 class Gcc(CCompiler):
     '''Class for GNU's gcc compiler.
+
+    :param name: name of this compiler.
+    :param exec_name: name of the executable.
     '''
-    def __init__(self):
-        super().__init__("gcc", "gcc", "gnu", omp_flag="-fopenmp")
+    def __init__(self,
+                 name: str = "gcc",
+                 exec_name: str = "gcc"):
+        super().__init__(name, exec_name, "gnu", omp_flag="-fopenmp")
 
 
 # ============================================================================
 class Gfortran(FortranCompiler):
     '''Class for GNU's gfortran compiler.
+
+    :param name: name of this compiler.
+    :param exec_name: name of the executable.
     '''
-    def __init__(self):
-        super().__init__("gfortran", "gfortran", "gnu",
+    def __init__(self,
+                 name: str = "gfortran",
+                 exec_name: str = "gfortran"):
+        super().__init__(name, exec_name, "gnu",
                          module_folder_flag="-J",
                          omp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
@@ -256,17 +268,27 @@ class Gfortran(FortranCompiler):
 # ============================================================================
 class Icc(CCompiler):
     '''Class for the Intel's icc compiler.
+
+    :param name: name of this compiler.
+    :param exec_name: name of the executable.
     '''
-    def __init__(self):
-        super().__init__("icc", "icc", "intel", omp_flag="-qopenmp")
+    def __init__(self,
+                 name: str = "icc",
+                 exec_name: str = "icc"):
+        super().__init__(name, exec_name, "intel", omp_flag="-qopenmp")
 
 
 # ============================================================================
 class Ifort(FortranCompiler):
     '''Class for Intel's ifort compiler.
+
+    :param name: name of this compiler.
+    :param exec_name: name of the executable.
     '''
-    def __init__(self):
-        super().__init__("ifort", "ifort", "intel",
+    def __init__(self,
+                 name: str = "ifort",
+                 exec_name: str = "ifort"):
+        super().__init__(name, exec_name, "intel",
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")

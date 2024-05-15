@@ -65,7 +65,7 @@ def test_compiler_hash():
     # A change in the name must change the hash, again:
     cc._name = "new_name"
     hash3 = cc.get_hash()
-    assert hash3 != hash1 and hash3 != hash2
+    assert hash3 not in (hash1, hash2)
 
 
 def test_compiler_with_env_fflags():
@@ -319,3 +319,18 @@ def test_ifort():
     assert ifort.name == "ifort"
     assert isinstance(ifort, FortranCompiler)
     assert ifort.category == Categories.FORTRAN_COMPILER
+
+
+def test_compiler_wrapper():
+    '''Make sure we can easily create a compiler wrapper.'''
+    class MpiF90(Ifort):
+        '''A simple compiler wrapper'''
+        def __init__(self):
+            super().__init__(name="mpif90-intel",
+                             exec_name="mpif90")
+
+    mpif90 = MpiF90()
+    assert mpif90.vendor == "intel"
+    assert mpif90.category == Categories.FORTRAN_COMPILER
+    assert mpif90.name == "mpif90-intel"
+    assert mpif90.exec_name == "mpif90"
