@@ -142,10 +142,11 @@ before you run the :func:`~fab.steps.analyse.analyse` step below.
 * For :func:`~fab.steps.psyclone.preprocess_x90`:
             You can pass in `common_flags` list as an argument.
 * For :func:`~fab.steps.psyclone.psyclone`:
-            You can pass in 
+            You can pass in:
+
             * kernel file roots to `kernel_roots`, 
             * a function to get transformation script to `transformation_script` 
-                (see examples in ``~fab.run_configs.lfric.gungho.py`` and ``~fab.run_configs.lfric.atm.py``),
+              (see examples in ``~fab.run_configs.lfric.gungho.py`` and ``~fab.run_configs.lfric.atm.py``),
             * command-line arguments to `cli_args`,
             * override for input files to `source_getter`, 
             * folders containing override files to `overrides_folder`.
