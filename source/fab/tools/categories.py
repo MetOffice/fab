@@ -24,6 +24,7 @@ class Categories(Enum):
     SUBVERSION = auto()
     AR = auto()
     RSYNC = auto()
+    MISC = auto()
 
     def __str__(self):
         '''Simplify the str output by using only the name (e.g. `C_COMPILER`

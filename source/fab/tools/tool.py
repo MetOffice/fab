@@ -27,7 +27,8 @@ class Tool:
     :param category: the Category to which this tool belongs.
     '''
 
-    def __init__(self, name: str, exec_name: str, category: Categories):
+    def __init__(self, name: str, exec_name: str,
+                 category: Categories = Categories.MISC):
         self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_name = exec_name

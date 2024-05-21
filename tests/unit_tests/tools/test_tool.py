@@ -34,6 +34,12 @@ def test_tool_constructor():
     assert isinstance(linker.logger, logging.Logger)
     assert not linker.is_compiler
 
+    # Check that if we specify no category, we get the default:
+    misc = Tool("misc", "misc")
+    assert misc.exec_name == "misc"
+    assert misc.name == "misc"
+    assert misc.category == Categories.MISC
+
 
 def test_tool_is_available():
     '''Test that is_available works as expected.'''
