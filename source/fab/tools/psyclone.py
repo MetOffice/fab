@@ -10,6 +10,7 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
+#from fab.build_config import BuildConfig
 from fab.tools.categories import Categories
 from fab.tools.tool import Tool
 
@@ -39,6 +40,7 @@ class Psyclone(Tool):
                 transformation_script: Optional[Union[Path, str]] = None,
                 additional_parameters: Optional[List[str]] = None,
                 kernel_roots: Optional[List[str]] = None,
+                config = None,
                 ):
         # pylint: disable=too-many-arguments
         '''Run PSyclone with the specified parameters.
@@ -54,10 +56,15 @@ class Psyclone(Tool):
         '''
 
         parameters = ["-api", api, "-l", "all",
-                      "-opsy", str(psy_file),
-                      "-oalg", str(alg_file)]
+                      "-opsy", psy_file,
+                      "-oalg", alg_file]
+        transform_options = []
         if transformation_script:
-            parameters.extend(["-s", str(transformation_script)])
+            transformation_script_return_path = \
+                transformation_script(x90_file, config)
+            if transformation_script_return_path:
+                parameters.extend(['-s', transformation_script_return_path])
+
         if additional_parameters:
             parameters.extend(additional_parameters)
         if kernel_roots:

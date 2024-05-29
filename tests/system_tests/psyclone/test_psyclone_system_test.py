@@ -17,7 +17,9 @@ from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import _analysis_for_prebuilds, make_parsable_x90, preprocess_x90, psyclone
+from fab.steps.psyclone import (_analyse_x90s, _analyse_kernels,
+                                make_parsable_x90, preprocess_x90,
+                                psyclone)
 from fab.tools import ToolBox, Psyclone
 from fab.util import file_checksum
 
@@ -93,20 +95,13 @@ class TestX90Analyser():
         assert analysed_x90 == self.expected_analysis_result
 
 
-class Test_analysis_for_prebuilds():
+class Test_analysis_for_x90s_and_kernels(object):
 
     def test_analyse(self, tmp_path):
-
-        with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
-            transformation_script_hash, analysed_x90, all_kernel_hashes = \
-                _analysis_for_prebuilds(config,
-                                        x90s=[SAMPLE_X90],
-                                        kernel_roots=[Path(__file__).parent],
-                                        # the script is just hashed, so any one will do - use this file!
-                                        transformation_script=Path(__file__))
-
-        # transformation_script_hash
-        assert transformation_script_hash == file_checksum(__file__).file_hash
+        with BuildConfig('proj', fab_workspace=tmp_path,
+                         tool_box=ToolBox()) as config:
+            analysed_x90 = _analyse_x90s(config, x90s=[SAMPLE_X90])
+            all_kernel_hashes = _analyse_kernels(config, kernel_roots=[Path(__file__).parent])
 
         # analysed_x90
         assert analysed_x90 == {
@@ -194,3 +189,36 @@ class TestPsyclone():
         mock_x90_walk.assert_not_called()
         mock_fortran_walk.assert_not_called()
         mock_run.assert_not_called()
+
+
+class TestTransformationScript(object):
+    """
+    Check whether transformation script is called with x90 file once
+    and whether transformation script is passed to psyclone after '-s'.
+
+    """
+    def test_transformation_script(self):
+        psyclone = Psyclone()
+        mock_transformation_script = mock.Mock(return_value=__file__)
+        with mock.patch('fab.tools.psyclone.Psyclone.run') as mock_run_command:
+            mock_transformation_script.return_value = Path(__file__)
+            psyclone.process(api="dynamo0.3",
+                             x90_file=Path(__file__),
+                             psy_file=Path(__file__),
+                             alg_file=Path(__file__),
+                             kernel_roots=[],
+                             transformation_script=mock_transformation_script,
+                             additional_parameters=[],
+                             config=None,  # type: ignore[arg-type]
+                             )
+
+            # check whether x90 is passed to transformation_script
+            mock_transformation_script.assert_called_once_with(Path(__file__), None)
+            # check transformation_script is passed to psyclone command with '-s'
+            mock_run_command.assert_called_with(
+                additional_parameters=['-api', 'dynamo0.3', '-l', 'all',
+                                       '-opsy',  Path(__file__),
+                                       '-oalg', Path(__file__),
+                                       '-s', Path(__file__), 
+                                       __file__])
+
