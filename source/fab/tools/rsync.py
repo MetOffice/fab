@@ -9,6 +9,7 @@
 
 import os
 from pathlib import Path
+from typing import List, Union
 
 from fab.tools.categories import Categories
 from fab.tools.tool import Tool
@@ -45,6 +46,6 @@ class Rsync(Tool):
         if not src_str.endswith('/'):
             src_str += '/'
 
-        parameters = ['--times', '--links', '--stats', '-ru',
-                      src_str, str(dst)]
+        parameters: List[Union[str, Path]] = [
+            '--times', '--links', '--stats', '-ru', src_str, dst]
         return self.run(additional_parameters=parameters)

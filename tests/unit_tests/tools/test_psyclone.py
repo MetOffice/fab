@@ -45,9 +45,11 @@ def test_psyclone_process():
     # Create a mock function that returns a 'transformation script'
     # called `script_called`:
     transformation_function = mock.Mock(return_value="script_called")
+    config = mock.Mock()
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        psyclone.process(api="dynamo0.3",
+        psyclone.process(config=config,
+                         api="dynamo0.3",
                          x90_file="x90_file",
                          psy_file="psy_file",
                          alg_file="alg_file",

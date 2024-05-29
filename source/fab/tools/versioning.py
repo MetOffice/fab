@@ -99,7 +99,7 @@ class Git(Versioning):
         :param dst: the directory in which to run fetch.
         '''
         # todo: allow shallow fetch with --depth 1
-        command = ['fetch', str(src)]
+        command: List[Union[str, Path]] = ['fetch', str(src)]
         if revision:
             command.append(revision)
         self.run(command, cwd=str(dst), capture_output=False)
@@ -171,7 +171,7 @@ class Subversion(Versioning):
         :param capture_output: If True, capture and return stdout. If False,
             the command will print its output directly to the console.
         '''
-        command = []
+        command: List[Union[str, Path]] = []
         if pre_commands:
             command.extend(pre_commands)
         if revision:

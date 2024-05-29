@@ -40,7 +40,7 @@ class Preprocessor(Tool):
         return True
 
     def preprocess(self, input_file: Path, output_file: Path,
-                   add_flags: Union[None, List[str]] = None):
+                   add_flags: Union[None, List[Union[Path, str]]] = None):
         '''Calls the preprocessor to process the specified input file,
         creating the requested output file.
 
@@ -48,13 +48,12 @@ class Preprocessor(Tool):
         :param output_file: the output filename.
         :param add_flags: List with additional flags to be used.
         '''
+        params: List[Union[str, Path]] = []
         if add_flags:
             # Make a copy to avoid modifying the caller's list
             params = add_flags[:]
-        else:
-            params = []
         # Input and output files come as the last two parameters
-        params.extend([str(input_file), str(output_file)])
+        params.extend([input_file, output_file])
 
         return self.run(additional_parameters=params)
 

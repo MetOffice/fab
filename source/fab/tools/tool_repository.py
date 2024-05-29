@@ -14,8 +14,9 @@ from __future__ import annotations
 import logging
 from typing import Any, Type
 
-from fab.tools import (Ar, Categories, Cpp, CppFortran, Gcc, Gfortran,
-                       Icc, Ifort, Linker, Psyclone, Rsync, Tool)
+from fab.tools.tool import Tool
+from fab.tools.categories import Categories
+from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
 
 
@@ -55,6 +56,11 @@ class ToolRepository(dict):
         # Add the FAB default tools:
         # TODO: sort the defaults so that they actually work (since not all
         # tools FAB knows about are available). For now, disable Fpp:
+        # We get circular dependencies if imported at top of the file:
+        # pylint: disable=import-outside-toplevel
+        from fab.tools import (Ar, Cpp, CppFortran, Gcc, Gfortran,
+                               Icc, Ifort, Psyclone, Rsync)
+
         for cls in [Gcc, Icc, Gfortran, Ifort, Cpp, CppFortran,
                     Fcm, Git, Subversion, Ar, Psyclone, Rsync]:
             self.add_tool(cls)

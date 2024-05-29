@@ -219,6 +219,5 @@ class TestTransformationScript(object):
                 additional_parameters=['-api', 'dynamo0.3', '-l', 'all',
                                        '-opsy',  Path(__file__),
                                        '-oalg', Path(__file__),
-                                       '-s', Path(__file__), 
+                                       '-s', Path(__file__),
                                        __file__])
-

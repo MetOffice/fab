@@ -7,7 +7,9 @@
 '''This file contains the ToolBox class.
 '''
 
-from fab.tools import Categories, Tool, ToolRepository
+from fab.tools.categories import Categories
+from fab.tools.tool import Tool
+from fab.tools.tool_repository import ToolRepository
 
 
 class ToolBox:

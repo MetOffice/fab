@@ -8,9 +8,9 @@
 """
 
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Callable, List, Optional, Union
 
-#from fab.build_config import BuildConfig
+from fab.build_config import BuildConfig
 from fab.tools.categories import Categories
 from fab.tools.tool import Tool
 
@@ -34,13 +34,14 @@ class Psyclone(Tool):
         return True
 
     def process(self, api: str,
-                x90_file: Union[Path, str],
-                psy_file: Union[Path, str],
+                config: BuildConfig,
+                x90_file: Path,
+                psy_file: Path,
                 alg_file: Union[Path, str],
-                transformation_script: Optional[Union[Path, str]] = None,
+                transformation_script: Optional[Callable[[Path, BuildConfig],
+                                                         Path]] = None,
                 additional_parameters: Optional[List[str]] = None,
-                kernel_roots: Optional[List[str]] = None,
-                config = None,
+                kernel_roots: Optional[List[str]] = None
                 ):
         # pylint: disable=too-many-arguments
         '''Run PSyclone with the specified parameters.
@@ -55,10 +56,8 @@ class Psyclone(Tool):
         :param kernel_roots: optional directories with kernels.
         '''
 
-        parameters = ["-api", api, "-l", "all",
-                      "-opsy", psy_file,
-                      "-oalg", alg_file]
-        transform_options = []
+        parameters: List[Union[str, Path]] = [
+            "-api", api, "-l", "all", "-opsy", psy_file, "-oalg", alg_file]
         if transformation_script:
             transformation_script_return_path = \
                 transformation_script(x90_file, config)

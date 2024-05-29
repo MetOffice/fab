@@ -69,7 +69,7 @@ class Compiler(VendorTool):
         :param add_flags: additional compiler flags.
         '''
 
-        params = [self._compile_flag]
+        params: List[Union[Path, str]] = [self._compile_flag]
         if add_flags:
             params += add_flags
 

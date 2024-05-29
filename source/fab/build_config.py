@@ -23,7 +23,8 @@ from typing import List, Optional, Iterable
 from fab.artefacts import ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.tools import Categories, ToolBox
+from fab.tools.categories import Categories
+from fab.tools.tool_box import ToolBox
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
 

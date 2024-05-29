@@ -37,7 +37,7 @@ class TestGrabFolder():
         expect_dst = mock_config.source_root / dst
         mock_run.assert_called_once_with(
             additional_parameters=['--times', '--links', '--stats',
-                                   '-ru', expect_grab_src, str(expect_dst)])
+                                   '-ru', expect_grab_src, expect_dst])
 
 
 class TestGrabFcm():

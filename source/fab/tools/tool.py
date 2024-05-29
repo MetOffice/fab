@@ -109,7 +109,8 @@ class Tool:
         return f"{type(self).__name__} - {self._name}: {self._exec_name}"
 
     def run(self,
-            additional_parameters: Optional[Union[str, List[str]]] = None,
+            additional_parameters: Optional[
+                Union[str, List[Union[Path, str]]]] = None,
             env: Optional[Dict[str, str]] = None,
             cwd: Optional[Union[Path, str]] = None,
             capture_output=True) -> str:
@@ -183,3 +184,9 @@ class VendorTool(Tool):
     def vendor(self) -> str:
         ''':returns: the vendor of this tool.'''
         return self._vendor
+
+    @abstractmethod
+    def check_available(self) -> bool:
+        '''An abstract method to check if this tool is available in the system.
+        Needs to be declared again to make pylint happy.
+        '''
