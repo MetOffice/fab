@@ -4,10 +4,15 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This is the base class for all tools, i.e. compiler, preprocessor, linkers.
-It provides basic
+"""This file contains the base class for all tools, i.e. compiler,
+preprocessor, linker, archiver, Psyclone, rsync, versioning tools.
 
+Each tool belongs to one category (e.g. FORTRAN_COMPILER). This category
+is used when adding a tool to a ToolRepository or ToolBox.
+It provides basic support for running a binary, and keeping track if
+a tool is actually available.
 """
+
 from abc import abstractmethod
 import logging
 from pathlib import Path
@@ -34,6 +39,15 @@ class Tool:
         self._exec_name = exec_name
         self._flags = Flags()
         self._category = category
+
+        # This flag keeps track if a tool is available on the system or not.
+        # A value of `None` means that it has not been tested if a tool works
+        # or not. It will be set to the output of `check_available` when
+        # querying the `is_available` property.
+        # If `_is_available` is False, any call to `run` will immediately
+        # raise a RuntimeError. As long as it is still set to None (or True),
+        # the `run` method will work, allowing the `check_available` method
+        # to use `run` to determine if a tool is available or not.
         self._is_available: Optional[bool] = None
 
     @abstractmethod
@@ -121,10 +135,13 @@ class Tool:
             if isinstance(additional_parameters, str):
                 command.append(additional_parameters)
             else:
-                command.extend(additional_parameters)
+                # Convert everything to a str, this is useful for supporting
+                # paths as additional parameter
+                command.extend(str(i) for i in additional_parameters)
 
-        # self._is_available is None when it is unknown. Testing for False
-        # means the run function can be used to test if a tool is available.
+        # self._is_available is None when it is not known yet whether a tool
+        # is available or not. Testing for `False` only means this `run`
+        # function can be used to test if a tool is available.
         if self._is_available is False:
             raise RuntimeError(f"Tool '{self.name}' is not available to run "
                                f"'{command}'.")

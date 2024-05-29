@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Build directory for documentation
+docs/build
+docs/source/api
+docs/source/apidoc
+
 # C extensions
 *.so
 

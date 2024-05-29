@@ -98,7 +98,7 @@ class CollectionConcat(ArtefactsGetter):
         self.collections = collections
 
     # todo: ensure the labelled values are iterables
-    def __call__(self, artefact_store: Dict):
+    def __call__(self, artefact_store: ArtefactStore):
         # todo: this should be a set, in case a file appears in multiple collections
         result = []
         for collection in self.collections:

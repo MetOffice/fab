@@ -69,7 +69,7 @@ class TestGetCompileNext():
 
         compile_next = get_compile_next(compiled, uncompiled)
 
-        assert compile_next == {b, }
+        assert compile_next == {b}
 
     def test_unable_to_compile_anything(self, analysed_files):
         # like vanilla, except c hasn't been compiled

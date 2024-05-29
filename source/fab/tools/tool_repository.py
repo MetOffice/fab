@@ -15,7 +15,7 @@ import logging
 from typing import Any, Type
 
 from fab.tools import (Ar, Categories, Cpp, CppFortran, Gcc, Gfortran,
-                       Icc, Ifort, Linker, Psyclone, Rsync)
+                       Icc, Ifort, Linker, Psyclone, Rsync, Tool)
 from fab.tools.versioning import Fcm, Git, Subversion
 
 
@@ -81,14 +81,14 @@ class ToolRepository(dict):
             linker = Linker(name=f"linker-{tool.name}", compiler=tool)
             self[linker.category].append(linker)
 
-    def get_tool(self, category: Categories, name: str):
+    def get_tool(self, category: Categories, name: str) -> Tool:
         ''':returns: the tool with a given name in the specified category.
 
         :param category: the name of the category in which to look
             for the tool.
         :param name: the name of the tool to find.
 
-        :raises KeyError: if there is not tool in this category.
+        :raises KeyError: if there is no tool in this category.
         :raises KeyError: if no tool in the given category has the
             requested name.
         '''

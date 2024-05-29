@@ -1,11 +1,9 @@
 from pathlib import Path
 
-from fab.cli import cli_fab
-import shutil
-import os
-from unittest import mock
-
 import pytest
+
+from fab.cli import cli_fab
+from fab.tools import ToolRepository
 
 
 class TestZeroConfig():
@@ -37,11 +35,17 @@ class TestZeroConfig():
         # test the sample project in the fortran dependencies system test
         kwargs = {'project_label': 'fortran explicit gfortran', 'fab_workspace': tmp_path, 'multiprocessing': False}
 
-        cc = shutil.which('gcc')
-        fc = shutil.which('gfortran')
+        tr = ToolRepository()
+        tr.set_default_vendor("gnu")
 
-        with mock.patch.dict(os.environ, CC=cc, FC=fc, LD=fc), \
-             pytest.warns(DeprecationWarning, match="RootIncFiles is deprecated as .inc files are due to be removed."):
+        # TODO: If the intel compiler should be used here, the linker will
+        # need an additional flag (otherwise duplicated `main` symbols will
+        # occur). The following code can be used e.g. in cli.py:
+        #
+        # if config.tool_box.get_tool(Categories.LINKER).name == "linker-ifort":
+        #    flags = ["-nofor-main"]
+
+        with pytest.warns(DeprecationWarning, match="RootIncFiles is deprecated as .inc files are due to be removed."):
             config = cli_fab(
                 folder=Path(__file__).parent.parent / 'CFortranInterop',
                 kwargs=kwargs)

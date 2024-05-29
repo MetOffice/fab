@@ -43,7 +43,7 @@ with a different one.
 
 New tools can easily be created, look at
 :class:`~fab.tools.compiler.Gcc` or
-:class:`~fab.tools.compiler.icc`. Typically, they can just be
+:class:`~fab.tools.compiler.Icc`. Typically, they can just be
 created by providing a different set of parameters in the
 constructor.
 
@@ -78,7 +78,7 @@ startup section can add more tools to the repository:
     # Assume the MpiF90 class as shown in the previous example
 
     tr = ToolRepository()
-    tr.add(MpiF90)   # the tool repository will create the instance
+    tr.add_tool(MpiF90)   # the tool repository will create the instance
 
 Compiler and linker objects define a vendor, and the `ToolRepository`
 provides
@@ -99,15 +99,13 @@ BuildConfig object:
 
     from fab.tools import Categories, ToolBox, ToolRepository
 
-    # Assume the MpiF90 class as shown in the previous example
-
     tr = ToolRepository()
     tr.set_default_vendor("intel")
     tool_box = ToolBox()
     ifort = tr.get_tool(Categories.FORTRAN_COMPILER, "ifort")
-    tool_box.add(ifort)
+    tool_box.add_tool(ifort)
     c_comp = tr.get_default(Categories.C_COMPILER)
-    tool_box.add(c_comp)
+    tool_box.add_tool(c_comp)
 
     config = BuildConfig(tool_box=tool_box,
                          project_label=f'lfric_atm-{ifort.name}', ...)
@@ -125,6 +123,13 @@ in the example above adding `ifort` is not strictly necessary (since
 it will be the default after setting the default vendor to `intel`),
 and `c_comp` is the default as well. This feature is especially useful
 for the many default tools that Fab requires (git, rsync, ar, ...).
+
+.. code-block::
+    :linenos:
+    :caption: ToolBox
+
+    tool_box = ToolBox()
+    default_c_compiler = tool_box.get_tool(Categories.C_COMPILER)
 
 
 TODO

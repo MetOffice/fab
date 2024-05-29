@@ -36,9 +36,9 @@ class Rsync(Tool):
                 dst: Path):
         '''Execute an rsync command from src to dst. It supports
         ~ expansion for src, and makes sure that `src` end with a `/`
-        so that do not create a sub-directory.
+        so that rsync does not create a sub-directory.
 
-        :param src: the output path.
+        :param src: the input path.
         :param dst: destination path.
         '''
         src_str = os.path.expanduser(str(src))

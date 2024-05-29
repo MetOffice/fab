@@ -20,6 +20,8 @@ class Flags(list):
     '''This class represents a list of parameters for a tool. It is a
     list with some additional functionality.
 
+    TODO #22: This class and build_config.FlagsConfig should be combined.
+
     :param list_of_flags: List of parameters to initialise this object with.
     '''
 
@@ -40,7 +42,10 @@ class Flags(list):
         '''Removes all occurrences of `remove_flag` in flags`.
         If has_parameter is defined, the next entry in flags will also be
         removed, and if this object contains this flag+parameter without space
-        (e.g. `-J/tmp`), it will be correctly removed.
+        (e.g. `-J/tmp`), it will be correctly removed. Note that only the
+        flag itself must be specified, you cannot remove a flag only if a
+        specific parameter is given (i.e. `remove_flag="-J/tmp"` will not
+        work if this object contains `[...,"-J", "/tmp"]`).
 
         :param remove_flag: the flag to remove
         :param has_parameter: if the flag to remove takes a parameter
@@ -49,8 +54,8 @@ class Flags(list):
         flag_len = len(remove_flag)
         while i < len(self):
             flag = self[i]
-            # First check for the flag stand-alone (i.e. if it has a parameter,
-            # it will be the next entry).
+            # First check for the flag stand-alone, i.e. if it has a parameter,
+            # it will be the next entry: [... "-J", "/tmp"]:
             if flag == remove_flag:
                 if has_parameter and i + 1 == len(self):
                     # We have a flag which takes a parameter, but there is no
@@ -64,6 +69,7 @@ class Flags(list):
                 warnings.warn(f"Removing managed flag '{remove_flag}'.")
                 continue
             # Now check if it has flag and parameter as one argument (-J/tmp)
+            # ['-J/tmp'] and remove_flag('-J', True)
             if has_parameter and flag[:flag_len] == remove_flag:
                 # No space between flag and parameter, remove this one flag
                 warnings.warn(f"Removing managed flag '{remove_flag}'.")

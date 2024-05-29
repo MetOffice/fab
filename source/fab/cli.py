@@ -34,7 +34,6 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
 
     # Within the fab workspace, we'll create a project workspace.
     # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
-    linker_flags = ['-lgfortran']
     with BuildConfig(project_label=project_label,
                      tool_box=ToolBox(), **kwargs) as config:
         grab_folder(config, folder)
@@ -46,7 +45,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
         analyse(config, find_programs=True)
         compile_fortran(config)
         compile_c(config)
-        link_exe(config, flags=linker_flags)
+        link_exe(config, flags=[])
 
     return config
 

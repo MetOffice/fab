@@ -45,7 +45,6 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     This step uses multiprocessing.
     All C files are compiled in a single pass.
 
-    The command line compiler to is taken from the environment variable `CC`, and defaults to `gcc -c`.
 
     Uses multiprocessing, unless disabled in the *config*.
 

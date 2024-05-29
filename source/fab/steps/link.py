@@ -45,13 +45,11 @@ def link_exe(config, flags=None, source: Optional[ArtefactsGetter] = None):
     :param config:
         The :class:`fab.build_config.BuildConfig` object where we can read settings
         such as the project workspace folder or the multiprocessing flag.
-    :param linker:
-        E.g 'gcc' or 'ld'.
     :param flags:
         A list of flags to pass to the linker.
     :param source:
-        An optional :class:`~fab.artefacts.ArtefactsGetter`.
-        Typically not required, as there is a sensible default.
+        An optional :class:`~fab.artefacts.ArtefactsGetter`. It defaults to the
+        output from compiler steps, which typically is the expected behaviour.
 
     """
     linker = config.tool_box[Categories.LINKER]

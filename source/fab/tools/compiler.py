@@ -10,7 +10,7 @@ classes for gcc, gfortran, icc, ifort
 
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 import zlib
 
 from fab.tools.categories import Categories
@@ -38,8 +38,10 @@ class Compiler(VendorTool):
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, vendor: str,
-                 category: Categories, compile_flag=None,
-                 output_flag=None, omp_flag=None):
+                 category: Categories,
+                 compile_flag: Optional[str] = None,
+                 output_flag: Optional[str] = None,
+                 omp_flag: Optional[str] = None):
         super().__init__(name, exec_name, vendor, category)
         self._version = None
         self._compile_flag = compile_flag if compile_flag else "-c"
@@ -55,7 +57,12 @@ class Compiler(VendorTool):
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
-        '''Compiles a file.
+        '''Compiles a file. It will add the flag for compilation-only
+        automatically, as well as the output directives. The current working
+        directory for the command is set to the folder where the source file
+        lives when compile_file is called. This is done to stop the compiler
+        inserting folder information into the mod files, which would cause
+        them to have different checksums depending on where they live.
 
         :param input_file: the path of the input file.
         :param outpout_file: the path of the output file.
@@ -176,7 +183,7 @@ class FortranCompiler(Compiler):
     :param module_folder_flag: the compiler flag to indicate where to
         store created module files.
     :param syntax_only_flag: flag to indicate to only do a syntax check.
-        The side effect is that the module files are created.S
+        The side effect is that the module files are created.
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name

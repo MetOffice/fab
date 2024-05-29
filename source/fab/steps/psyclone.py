@@ -333,6 +333,7 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
         psyclone = config.tool_box[Categories.PSYCLONE]
         try:
             transformation_script = mp_payload.transformation_script
+            logger.info(f"running psyclone on '{x90_file}'.")
             psyclone.process(api="dynamo0.3",
                              x90_file=x90_file,
                              psy_file=psy_file,
@@ -340,8 +341,6 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
                              transformation_script=transformation_script,
                              kernel_roots=mp_payload.kernel_roots,
                              additional_parameters=mp_payload.cli_args)
-
-            # logger.info(f'running psyclone on {x90_file}')
 
             shutil.copy2(modified_alg, prebuilt_alg)
             msg = f'created prebuilds for {x90_file}:\n    {prebuilt_alg}'

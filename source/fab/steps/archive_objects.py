@@ -77,8 +77,6 @@ def archive_objects(config: BuildConfig,
     :param source:
         An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of objects to archive.
         The artefacts are expected to be of the form `Dict[root_symbol_name, list_of_object_files]`.
-    :param archiver:
-        The archiver executable. Defaults to 'ar'.
     :param output_fpath:
         The file path of the archive file to create.
         This string can include templating, where "$output" is replaced with the output folder.
