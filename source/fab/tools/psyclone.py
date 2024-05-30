@@ -8,11 +8,15 @@
 """
 
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, TYPE_CHECKING, Union
 
-from fab.build_config import BuildConfig
 from fab.tools.categories import Categories
 from fab.tools.tool import Tool
+
+if TYPE_CHECKING:
+    # Otherwise we have a circular dependency:
+    # BuildConfig needs ToolBox which imports __init__ which imports this
+    from fab.build_config import BuildConfig
 
 
 class Psyclone(Tool):
@@ -34,11 +38,11 @@ class Psyclone(Tool):
         return True
 
     def process(self, api: str,
-                config: BuildConfig,
+                config: "BuildConfig",
                 x90_file: Path,
                 psy_file: Path,
                 alg_file: Union[Path, str],
-                transformation_script: Optional[Callable[[Path, BuildConfig],
+                transformation_script: Optional[Callable[[Path, "BuildConfig"],
                                                          Path]] = None,
                 additional_parameters: Optional[List[str]] = None,
                 kernel_roots: Optional[List[str]] = None
