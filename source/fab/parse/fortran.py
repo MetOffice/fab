@@ -297,7 +297,9 @@ class FortranAnalyser(FortranAnalyserBase):
                 analysed_file.add_symbol_dep(dep)
         if comment[:2] == "!$":
             # Check if it is a use statement with an OpenMP sentinel:
-            # Use fparser's string reader to discard potential comments
+            # Use fparser's string reader to discard potential comment
+            # TODO #13: once fparser supports reading the sentinels,
+            # this can be removed.
             reader = FortranStringReader(comment[2:])
             line = reader.next()
             try:
