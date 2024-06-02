@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 from typing import Union, Optional, Iterable, Dict, Any, Set
 
-from fparser.common.readfortran import FortranStringReader
+from fparser.common.readfortran import FortranStringReader   # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
