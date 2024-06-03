@@ -145,4 +145,4 @@ def find_source_files(config, source_root=None, output_collection="all_source",
     if not filtered_fpaths:
         raise RuntimeError("no source files found after filtering")
 
-    config._artefact_store[output_collection] = filtered_fpaths
+    config.artefact_store[output_collection] = filtered_fpaths

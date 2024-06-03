@@ -59,7 +59,6 @@ def _typed_child(parent, child_type: Type, must_exist=False):
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
     children = list(filter(lambda child: isinstance(child, child_type), parent.children))
-    print(children)
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
 
@@ -134,8 +133,6 @@ class FortranAnalyserBase(ABC):
 
         # find things in the node tree
         analysed_file = self.walk_nodes(fpath=fpath, file_hash=file_hash, node_tree=node_tree)
-
-        analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
         analysed_file.save(analysis_fpath)
 
         return analysed_file, analysis_fpath

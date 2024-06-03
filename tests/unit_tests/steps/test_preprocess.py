@@ -8,6 +8,7 @@ from unittest import mock
 
 from fab.build_config import BuildConfig
 from fab.steps.preprocess import preprocess_fortran
+from fab.tools import ToolBox
 
 
 class Test_preprocess_fortran(object):
@@ -15,7 +16,7 @@ class Test_preprocess_fortran(object):
     def test_big_little(self, tmp_path):
         # ensure big F90s are preprocessed and little f90s are copied
 
-        config = BuildConfig('proj', fab_workspace=tmp_path)
+        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
         big_f90 = Path(config.source_root / 'big.F90')
         little_f90 = Path(config.source_root / 'little.f90')
 

@@ -8,6 +8,7 @@ from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround
 from fab.steps.analyse import _add_manual_results, _add_unreferenced_deps, _gen_file_deps, _gen_symbol_table, \
     _parse_files
+from fab.tools import ToolBox
 from fab.util import HashedFile
 
 
@@ -115,8 +116,11 @@ class Test_parse_files(object):
 
     def test_exceptions(self, tmp_path):
         # make sure parse exceptions do not stop the build
-        with mock.patch('fab.steps.run_mp', return_value=[(Exception('foo'), None)]):
-            config = BuildConfig('proj', fab_workspace=tmp_path)
+        with mock.patch('fab.steps.run_mp', return_value=[(Exception('foo'), None)]), \
+             pytest.warns(UserWarning, match="deprecated 'DEPENDS ON:'"):
+            # The warning "deprecated 'DEPENDS ON:' comment found in fortran code"
+            # is in "def _parse_files" in "source/steps/analyse.py"
+            config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
 
             # the exception should be suppressed (and logged) and this step should run to completion
             _parse_files(config, files=[], fortran_analyser=mock.Mock(), c_analyser=mock.Mock())
@@ -130,7 +134,10 @@ class Test_add_manual_results(object):
         workaround = FortranParserWorkaround(fpath=Path('foo.f'), symbol_defs={'foo', })
         analysed_files = set()
 
-        with mock.patch('fab.parse.fortran.file_checksum', return_value=HashedFile(None, 123)):
+        with mock.patch('fab.parse.fortran.file_checksum', return_value=HashedFile(None, 123)), \
+             pytest.warns(UserWarning, match="SPECIAL MEASURE: injecting user-defined analysis results"):
+            # This warning "UserWarning: SPECIAL MEASURE: injecting user-defined analysis results"
+            # is in "def _add_manual_results" in "source/steps/analyse.py"
             _add_manual_results(special_measure_analysis_results=[workaround], analysed_files=analysed_files)
 
         assert analysed_files == {AnalysedFortran(fpath=Path('foo.f'), file_hash=123, symbol_defs={'foo', })}

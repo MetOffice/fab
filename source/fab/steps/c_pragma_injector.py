@@ -9,7 +9,7 @@ Add custom pragmas to C code which identify user and system include regions.
 """
 import re
 from pathlib import Path
-from typing import Pattern, Optional, Match
+from typing import Generator, Pattern, Optional, Match
 
 from fab import FabException
 from fab.constants import PRAGMAD_C
@@ -43,9 +43,9 @@ def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None, output_n
     source_getter = source or DEFAULT_SOURCE_GETTER
     output_name = output_name or PRAGMAD_C
 
-    files = source_getter(config._artefact_store)
+    files = source_getter(config.artefact_store)
     results = run_mp(config, items=files, func=_process_artefact)
-    config._artefact_store[output_name] = list(results)
+    config.artefact_store[output_name] = list(results)
 
 
 def _process_artefact(fpath: Path):
@@ -54,7 +54,7 @@ def _process_artefact(fpath: Path):
     return prag_output_fpath
 
 
-def inject_pragmas(fpath):
+def inject_pragmas(fpath) -> Generator:
     """
     Reads a C source file but when encountering an #include
     preprocessor directive injects a special Fab-specific
