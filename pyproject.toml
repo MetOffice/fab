@@ -48,3 +48,9 @@ version = {attr = 'fab.__version__'}
 [build-system]
 requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
+
+# This is required so that pytest finds conftest.py files.
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]

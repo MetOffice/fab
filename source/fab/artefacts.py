@@ -20,6 +20,51 @@ from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
 
 
+class ArtefactStore(dict):
+    '''This object stores artefacts (which can be of any type). Each artefact
+    is indexed by a string.
+    '''
+
+    FORTRAN_BUILD_FILES = "fortran_build_files"
+    C_BUILD_FILES = "c_build_files"
+    X90_BUILD_FILES = "x90_build_files"
+
+    def __init__(self):
+        super().__init__()
+        self.reset()
+
+    def reset(self):
+        '''Clears the artefact store (but does not delete any files).
+        '''
+        self.clear()
+        self[CURRENT_PREBUILDS] = set()
+        self[self.FORTRAN_BUILD_FILES] = set()
+        self[self.C_BUILD_FILES] = set()
+        self[self.X90_BUILD_FILES] = set()
+
+    def _add_files_to_artefact(self, collection: str,
+                               files: Union[str, List[str], Set[str]]):
+        if isinstance(files, list):
+            files = set(files)
+        elif not isinstance(files, set):
+            # We need to use a list, otherwise each character is added
+            files = set([files])
+
+        self[collection].update(files)
+
+    def add_fortran_build_files(self, files: Union[str, List[str], Set[str]]):
+        self._add_files_to_artefact(self.FORTRAN_BUILD_FILES, files)
+
+    def get_fortran_build_files(self):
+        return self[self.FORTRAN_BUILD_FILES]
+
+    def add_c_build_files(self, files: Union[str, List[str], Set[str]]):
+        self._add_files_to_artefact(self.C_BUILD_FILES, files)
+
+    def add_x90_build_files(self, files: Union[str, List[str], Set[str]]):
+        self._add_files_to_artefact(self.X90_BUILD_FILES, files)
+
+
 class ArtefactsGetter(ABC):
     """
     Abstract base class for artefact getters.
@@ -83,7 +128,7 @@ class CollectionConcat(ArtefactsGetter):
         self.collections = collections
 
     # todo: ensure the labelled values are iterables
-    def __call__(self, artefact_store: Dict):
+    def __call__(self, artefact_store: ArtefactStore):
         # todo: this should be a set, in case a file appears in multiple collections
         result = []
         for collection in self.collections:
@@ -116,7 +161,7 @@ class SuffixFilter(ArtefactsGetter):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: ArtefactStore):
         # todo: returning an empty list is probably "dishonest" if the collection doesn't exist - return None instead?
         fpaths: Iterable[Path] = artefact_store.get(self.collection_name, [])
         return suffix_filter(fpaths, self.suffixes)
@@ -146,7 +191,7 @@ class FilterBuildTrees(ArtefactsGetter):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: ArtefactStore):
 
         build_trees = artefact_store[self.collection_name]
 
@@ -155,48 +200,3 @@ class FilterBuildTrees(ArtefactsGetter):
             build_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
 
         return build_lists
-
-
-class ArtefactStore(dict):
-    '''This object stores artefacts (which can be of any type). Each artefact
-    is indexed by a string.
-    '''
-
-    FORTRAN_BUILD_FILES = "fortran_build_files"
-    C_BUILD_FILES = "c_build_files"
-    X90_BUILD_FILES = "x90_build_files"
-
-    def __init__(self):
-        super().__init__()
-        self.reset()
-
-    def reset(self):
-        '''Clears the artefact store (but does not delete any files).
-        '''
-        self.clear()
-        self[CURRENT_PREBUILDS] = set()
-        self[self.FORTRAN_BUILD_FILES] = set()
-        self[self.C_BUILD_FILES] = set()
-        self[self.X90_BUILD_FILES] = set()
-
-    def _add_files_to_artefact(self, collection: str,
-                               files: Union[str, List[str], Set[str]]):
-        if isinstance(files, list):
-            files = set(files)
-        elif not isinstance(files, set):
-            # We need to use a list, otherwise each character is added
-            files = set([files])
-
-        self[collection].update(files)
-
-    def add_fortran_build_files(self, files: Union[str, List[str], Set[str]]):
-        self._add_files_to_artefact(self.FORTRAN_BUILD_FILES, files)
-
-    def get_fortran_build_files(self):
-        return self[self.FORTRAN_BUILD_FILES]
-
-    def add_c_build_files(self, files: Union[str, List[str], Set[str]]):
-        self._add_files_to_artefact(self.C_BUILD_FILES, files)
-
-    def add_x90_build_files(self, files: Union[str, List[str], Set[str]]):
-        self._add_files_to_artefact(self.X90_BUILD_FILES, files)

@@ -8,28 +8,24 @@ Fortran file compilation.
 
 """
 
-# TODO: This has become too complicated. Refactor.
-
-
 import logging
 import os
 import shutil
-import zlib
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 from typing import List, Set, Dict, Tuple, Optional, Union
 
-from fab.artefacts import ArtefactsGetter, FilterBuildTrees
+from fab.artefacts import ArtefactsGetter, ArtefactStore, FilterBuildTrees
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import COMPILERS, remove_managed_flags, flags_checksum, run_command, get_tool, get_compiler_version
-from fab.util import CompiledFile, log_or_dot_finish, log_or_dot, Timer, by_type, \
-    file_checksum
+from fab.tools import Categories, Compiler, Flags
+from fab.util import (CompiledFile, log_or_dot_finish, log_or_dot, Timer,
+                      by_type, file_checksum)
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +33,12 @@ DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
 
 @dataclass
-class MpCommonArgs(object):
+class MpCommonArgs():
     """Arguments to be passed into the multiprocessing function, alongside the filenames."""
     config: BuildConfig
     flags: FlagsConfig
-    compiler: str
-    compiler_version: str
     mod_hashes: Dict[str, int]
-    two_stage_flag: Optional[str]
-    stage: Optional[int]
+    syntax_only: bool
 
 
 @step
@@ -71,43 +64,42 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
 
     """
 
-    compiler, compiler_version, flags_config = handle_compiler_args(common_flags, path_flags)
+    compiler, flags_config = handle_compiler_args(config, common_flags,
+                                                  path_flags)
+    # Set module output folder:
+    compiler.set_module_output_path(config.build_output)
 
     source_getter = source or DEFAULT_SOURCE_GETTER
-
-    # todo: move this to the known compiler flags?
-    # todo: this is a misleading name
-    two_stage_flag = None
-    if compiler == 'gfortran' and config.two_stage:
-        two_stage_flag = '-fsyntax-only'
-
     mod_hashes: Dict[str, int] = {}
 
     # get all the source to compile, for all build trees, into one big lump
     build_lists: Dict[str, List] = source_getter(config.artefact_store)
 
+    syntax_only = compiler.has_syntax_only and config.two_stage
     # build the arguments passed to the multiprocessing function
     mp_common_args = MpCommonArgs(
-        config=config, flags=flags_config, compiler=compiler, compiler_version=compiler_version,
-        mod_hashes=mod_hashes, two_stage_flag=two_stage_flag, stage=None)
+        config=config, flags=flags_config,
+        mod_hashes=mod_hashes, syntax_only=syntax_only)
 
     # compile everything in multiple passes
     compiled: Dict[Path, CompiledFile] = {}
     uncompiled: Set[AnalysedFortran] = set(sum(build_lists.values(), []))
     logger.info(f"compiling {len(uncompiled)} fortran files")
 
-    if two_stage_flag:
+    if syntax_only:
         logger.info("Starting two-stage compile: mod files, multiple passes")
-        mp_common_args.stage = 1
+    elif config.two_stage:
+        logger.info(f"Compiler {compiler.name} does not support syntax-only, "
+                    f"disabling two-stage compile.")
 
     while uncompiled:
         uncompiled = compile_pass(config=config, compiled=compiled, uncompiled=uncompiled,
                                   mp_common_args=mp_common_args, mod_hashes=mod_hashes)
     log_or_dot_finish(logger)
 
-    if two_stage_flag:
+    if syntax_only:
         logger.info("Finalising two-stage compile: object files, single pass")
-        mp_common_args.stage = 2
+        mp_common_args.syntax_only = False
 
         # a single pass should now compile all the object files in one go
         uncompiled = set(sum(build_lists.values(), []))  # todo: order by last compile duration
@@ -122,32 +114,19 @@ def compile_fortran(config: BuildConfig, common_flags: Optional[List[str]] = Non
     store_artefacts(compiled, build_lists, config.artefact_store)
 
 
-def handle_compiler_args(common_flags=None, path_flags=None):
+def handle_compiler_args(config: BuildConfig, common_flags=None,
+                         path_flags=None):
 
     # Command line tools are sometimes specified with flags attached.
-    compiler, compiler_flags = get_fortran_compiler()
+    compiler = config.tool_box[Categories.FORTRAN_COMPILER]
+    logger.info(f'fortran compiler is {compiler} {compiler.get_version()}')
 
-    compiler_version = get_compiler_version(compiler)
-    logger.info(f'fortran compiler is {compiler} {compiler_version}')
-
-    # collate the flags from 1) compiler env, 2) flags env and 3) params
+    # Collate the flags from 1) flags env and 2) parameters.
     env_flags = os.getenv('FFLAGS', '').split()
-    common_flags = compiler_flags + env_flags + (common_flags or [])
-
-    # Do we know this compiler? If so we can manage the flags a little, to avoid duplication or misconfiguration.
-    # todo: This has been raised for discussion - we might never want to modify incoming flags...
-    known_compiler = COMPILERS.get(os.path.basename(compiler))
-    if known_compiler:
-        common_flags = remove_managed_flags(compiler, common_flags)
-    else:
-        logger.warning(f"Unknown compiler {compiler}. Fab cannot control certain flags."
-                       "Please ensure you specify the flag `-c` equivalent flag to only compile."
-                       "Please ensure the module output folder is set to your config's build_output folder."
-                       "or please extend fab.tools.COMPILERS in your build script.")
-
+    common_flags = env_flags + (common_flags or [])
     flags_config = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
 
-    return compiler, compiler_version, flags_config
+    return compiler, flags_config
 
 
 def compile_pass(config, compiled: Dict[Path, CompiledFile], uncompiled: Set[AnalysedFortran],
@@ -209,7 +188,9 @@ def get_compile_next(compiled: Dict[Path, CompiledFile], uncompiled: Set[Analyse
     return compile_next
 
 
-def store_artefacts(compiled_files: Dict[Path, CompiledFile], build_lists: Dict[str, List], artefact_store):
+def store_artefacts(compiled_files: Dict[Path, CompiledFile],
+                    build_lists: Dict[str, List],
+                    artefact_store: ArtefactStore):
     """
     Create our artefact collection; object files for each compiled file, per root symbol.
 
@@ -244,10 +225,14 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
     """
     with Timer() as timer:
         analysed_file, mp_common_args = arg
+        config = mp_common_args.config
+        compiler = config.tool_box[Categories.FORTRAN_COMPILER]
+        flags = Flags(mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=config))
 
-        flags = mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=mp_common_args.config)
-        mod_combo_hash = _get_mod_combo_hash(analysed_file, mp_common_args=mp_common_args)
-        obj_combo_hash = _get_obj_combo_hash(analysed_file, mp_common_args=mp_common_args, flags=flags)
+        mod_combo_hash = _get_mod_combo_hash(analysed_file, compiler=compiler)
+        obj_combo_hash = _get_obj_combo_hash(analysed_file,
+                                             mp_common_args=mp_common_args,
+                                             compiler=compiler, flags=flags)
 
         # calculate the incremental/prebuild artefact filenames
         obj_file_prebuild = mp_common_args.config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
@@ -262,7 +247,9 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
             # compile
             try:
                 logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
-                compile_file(analysed_file, flags, output_fpath=obj_file_prebuild, mp_common_args=mp_common_args)
+                compile_file(analysed_file.fpath, flags,
+                             output_fpath=obj_file_prebuild,
+                             mp_common_args=mp_common_args)
             except Exception as err:
                 return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
 
@@ -288,8 +275,10 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
         compiled_file = CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
         artefacts = [obj_file_prebuild] + mod_file_prebuilds
 
-    # todo: probably better to record both mod and obj metrics
-    metric_name = "compile fortran" + (f' stage {mp_common_args.stage}' if mp_common_args.stage else '')
+    metric_name = "compile fortran"
+    if mp_common_args.syntax_only:
+        metric_name += " syntax-only"
+
     send_metric(
         group=metric_name,
         name=str(analysed_file.fpath),
@@ -298,7 +287,8 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
     return compiled_file, artefacts
 
 
-def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs, flags):
+def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs,
+                        compiler: Compiler, flags: Flags):
     # get a combo hash of things which matter to the object file we define
     # todo: don't just silently use 0 for a missing dep hash
     mod_deps_hashes = {
@@ -306,23 +296,21 @@ def _get_obj_combo_hash(analysed_file, mp_common_args: MpCommonArgs, flags):
     try:
         obj_combo_hash = sum([
             analysed_file.file_hash,
-            flags_checksum(flags),
+            flags.checksum(),
             sum(mod_deps_hashes.values()),
-            zlib.crc32(mp_common_args.compiler.encode()),
-            zlib.crc32(mp_common_args.compiler_version.encode()),
+            compiler.get_hash(),
         ])
     except TypeError:
         raise ValueError("could not generate combo hash for object file")
     return obj_combo_hash
 
 
-def _get_mod_combo_hash(analysed_file, mp_common_args: MpCommonArgs):
+def _get_mod_combo_hash(analysed_file, compiler: Compiler):
     # get a combo hash of things which matter to the mod files we define
     try:
         mod_combo_hash = sum([
             analysed_file.file_hash,
-            zlib.crc32(mp_common_args.compiler.encode()),
-            zlib.crc32(mp_common_args.compiler_version.encode()),
+            compiler.get_hash(),
         ])
     except TypeError:
         raise ValueError("could not generate combo hash for mod files")
@@ -333,84 +321,21 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
     """
     Call the compiler.
 
-    The current working folder for the command is set to the folder where the source file lives.
-    This is done to stop the compiler inserting folder information into the mod files,
-    which would cause them to have different checksums depending on where they live.
+    The current working folder for the command is set to the folder where the
+    source file lives when compile_file is called. This is done to stop the
+    compiler inserting folder information into the mod files, which would
+    cause them to have different checksums depending on where they live.
 
     """
     output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
     # tool
-    command = [mp_common_args.compiler]
-    known_compiler = COMPILERS.get(os.path.basename(mp_common_args.compiler))
+    config = mp_common_args.config
+    compiler = config.tool_box[Categories.FORTRAN_COMPILER]
 
-    # Compile flag.
-    # If it's an unknown compiler, we rely on the user config to specify this.
-    if known_compiler:
-        command.append(known_compiler.compile_flag)
-
-    # flags
-    command.extend(flags)
-    if mp_common_args.two_stage_flag and mp_common_args.stage == 1:
-        command.append(mp_common_args.two_stage_flag)
-
-    # Module folder.
-    # If it's an unknown compiler, we rely on the user config to specify this.
-    if known_compiler:
-        command.extend([known_compiler.module_folder_flag, str(mp_common_args.config.build_output)])
-
-    # files
-    command.append(analysed_file.fpath.name)
-    command.extend(['-o', str(output_fpath)])
-
-    run_command(command, cwd=analysed_file.fpath.parent)
-
-
-# todo: move this
-
-
-def get_fortran_compiler(compiler: Optional[str] = None):
-    """
-    Get the fortran compiler specified by the `$FC` environment variable,
-    or overridden by the optional `compiler` argument.
-
-    Separates the tool and flags for the sort of value we see in environment variables, e.g. `gfortran -c`.
-
-    :param compiler:
-        Use this string instead of the $FC environment variable.
-
-    Returns the tool and a list of flags.
-
-    """
-    fortran_compiler = None
-    try:
-        fortran_compiler = get_tool(compiler or os.getenv('FC', ''))  # type: ignore
-    except ValueError:
-        # tool not specified
-        pass
-
-    if not fortran_compiler:
-        try:
-            run_command(['gfortran', '--help'])
-            fortran_compiler = 'gfortran', []
-            logger.info('detected gfortran')
-        except RuntimeError:
-            # gfortran not available
-            pass
-
-    if not fortran_compiler:
-        try:
-            run_command(['ifort', '--help'])
-            fortran_compiler = 'ifort', []
-            logger.info('detected ifort')
-        except RuntimeError:
-            # gfortran not available
-            pass
-
-    if not fortran_compiler:
-        raise RuntimeError('no fortran compiler specified or discovered')
-
-    return fortran_compiler
+    compiler.compile_file(input_file=analysed_file, output_file=output_fpath,
+                          add_flags=flags,
+                          syntax_only=mp_common_args.syntax_only)
 
 
 def get_mod_hashes(analysed_files: Set[AnalysedFortran], config) -> Dict[str, int]:

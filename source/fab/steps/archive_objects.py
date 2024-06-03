@@ -16,7 +16,7 @@ from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import step
 from fab.util import log_or_dot
-from fab.tools import run_command
+from fab.tools import Categories
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -30,8 +30,10 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(OBJECT_FILES)
 # todo: all this documentation for such a simple step - should we split it up somehow?
 
 @step
-def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = None, archiver='ar',
-                    output_fpath=None, output_collection=OBJECT_ARCHIVES):
+def archive_objects(config: BuildConfig,
+                    source: Optional[ArtefactsGetter] = None,
+                    output_fpath=None,
+                    output_collection=OBJECT_ARCHIVES):
     """
     Create an object archive for every build target, from their object files.
 
@@ -75,8 +77,6 @@ def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = Non
     :param source:
         An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of objects to archive.
         The artefacts are expected to be of the form `Dict[root_symbol_name, list_of_object_files]`.
-    :param archiver:
-        The archiver executable. Defaults to 'ar'.
     :param output_fpath:
         The file path of the archive file to create.
         This string can include templating, where "$output" is replaced with the output folder.
@@ -91,9 +91,8 @@ def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = Non
     # todo: the output path should not be an abs fpath, it should be relative to the proj folder
 
     source_getter = source or DEFAULT_SOURCE_GETTER
-    archiver = archiver
+    ar = config.tool_box[Categories.AR]
     output_fpath = str(output_fpath) if output_fpath else None
-    output_collection = output_collection
 
     target_objects = source_getter(config.artefact_store)
     assert target_objects.keys()
@@ -114,14 +113,11 @@ def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = Non
             output_fpath = Template(str(output_fpath)).substitute(
                 output=config.build_output)
 
-        command = [archiver]
-        command.extend(['cr', output_fpath])
-        command.extend(map(str, sorted(objects)))
-
-        log_or_dot(logger, 'CreateObjectArchive running command: ' + ' '.join(command))
+        log_or_dot(logger, f"CreateObjectArchive running archiver for "
+                           f"'{output_fpath}'.")
         try:
-            run_command(command)
-        except Exception as err:
-            raise Exception(f"error creating object archive:\n{err}")
+            ar.create(output_fpath, sorted(objects))
+        except RuntimeError as err:
+            raise RuntimeError(f"error creating object archive:\n{err}") from err
 
         output_archives[root] = [output_fpath]

@@ -1,15 +1,16 @@
 from pathlib import Path
 
 from fab.build_config import AddFlags, BuildConfig
-
 from fab.constants import SOURCE_ROOT
+from fab.tools import ToolBox
 
 
 class TestAddFlags(object):
 
     def test_run(self):
         add_flags = AddFlags(match="$source/foo/*", flags=['-I', '$relative/include'])
-        config = BuildConfig('proj', fab_workspace=Path("/fab_workspace"))
+        config = BuildConfig('proj', ToolBox(),
+                             fab_workspace=Path("/fab_workspace"))
 
         # anything in $source/foo should get the include folder
         my_flags = ["-foo"]

@@ -17,6 +17,11 @@ CONTAINS
         RETURN
     END SUBROUTINE internal_sub
 
+    SUBROUTINE openmp_sentinel
+!$ USE compute_chunk_size_mod, ONLY: compute_chunk_size  ! Note OpenMP sentinel
+!$ USE test that is not a sentinel with a use statement inside
+    END SUBROUTINE openmp_sentinel
+
     INTEGER FUNCTION internal_func()
         internal_func = 456
     END FUNCTION internal_func

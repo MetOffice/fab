@@ -9,8 +9,6 @@ C file compilation.
 """
 import logging
 import os
-import warnings
-import zlib
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
@@ -22,7 +20,7 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import flags_checksum, run_command, get_tool, get_compiler_version
+from fab.tools import Categories, Flags
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
@@ -32,11 +30,10 @@ DEFAULT_OUTPUT_ARTEFACT = ''
 
 
 @dataclass
-class MpCommonArgs(object):
+class MpCommonArgs():
+    '''A simple class to pass arguments to subprocesses.'''
     config: BuildConfig
     flags: FlagsConfig
-    compiler: str
-    compiler_version: str
 
 
 @step
@@ -48,7 +45,6 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     This step uses multiprocessing.
     All C files are compiled in a single pass.
 
-    The command line compiler to is taken from the environment variable `CC`, and defaults to `gcc -c`.
 
     Uses multiprocessing, unless disabled in the *config*.
 
@@ -66,18 +62,11 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
 
-    compiler, compiler_flags = get_tool(os.getenv('CC', 'gcc -c'))
-    compiler_version = get_compiler_version(compiler)
-    logger.info(f'c compiler is {compiler} {compiler_version}')
+    compiler = config.tool_box[Categories.C_COMPILER]
+    logger.info(f'c compiler is {compiler}')
 
     env_flags = os.getenv('CFLAGS', '').split()
-    common_flags = compiler_flags + env_flags + (common_flags or [])
-
-    # make sure we have a -c
-    # todo: c compiler awareness, like we have with fortran?
-    if '-c' not in common_flags:
-        warnings.warn("Adding '-c' to C compiler flags")
-        common_flags = ['-c'] + common_flags
+    common_flags = env_flags + (common_flags or [])
 
     flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
     source_getter = source or DEFAULT_SOURCE_GETTER
@@ -87,7 +76,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     to_compile: list = sum(build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
 
-    mp_payload = MpCommonArgs(config=config, flags=flags, compiler=compiler, compiler_version=compiler_version)
+    mp_payload = MpCommonArgs(config=config, flags=flags)
     mp_items = [(fpath, mp_payload) for fpath in to_compile]
 
     # compile everything in one go
@@ -121,27 +110,24 @@ def store_artefacts(compiled_files: List[CompiledFile], build_lists: Dict[str, L
 def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
-
+    config = mp_payload.config
+    compiler = config.tool_box[Categories.C_COMPILER]
     with Timer() as timer:
-        flags = mp_payload.flags.flags_for_path(path=analysed_file.fpath, config=mp_payload.config)
-        obj_combo_hash = _get_obj_combo_hash(mp_payload.compiler, mp_payload.compiler_version, analysed_file, flags)
+        flags = Flags(mp_payload.flags.flags_for_path(path=analysed_file.fpath,
+                                                      config=config))
+        obj_combo_hash = _get_obj_combo_hash(compiler, analysed_file, flags)
 
-        obj_file_prebuild = mp_payload.config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
+        obj_file_prebuild = config.prebuild_folder / f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o'
 
         # prebuild available?
         if obj_file_prebuild.exists():
             log_or_dot(logger, f'CompileC using prebuild: {analysed_file.fpath}')
         else:
             obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
-
-            command = mp_payload.compiler.split()  # type: ignore
-            command.extend(flags)
-            command.append(str(analysed_file.fpath))
-            command.extend(['-o', str(obj_file_prebuild)])
-
             log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
             try:
-                run_command(command)
+                compiler.compile_file(analysed_file.fpath, obj_file_prebuild,
+                                      add_flags=flags)
             except Exception as err:
                 return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
 
@@ -152,14 +138,13 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
 
-def _get_obj_combo_hash(compiler, compiler_version, analysed_file, flags):
+def _get_obj_combo_hash(compiler, analysed_file, flags: Flags):
     # get a combo hash of things which matter to the object file we define
     try:
         obj_combo_hash = sum([
             analysed_file.file_hash,
-            flags_checksum(flags),
-            zlib.crc32(compiler.encode()),
-            zlib.crc32(compiler_version.encode()),
+            flags.checksum(),
+            compiler.get_hash(),
         ])
     except TypeError:
         raise ValueError("could not generate combo hash for object file")
