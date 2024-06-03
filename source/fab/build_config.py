@@ -23,6 +23,8 @@ from typing import List, Optional, Iterable
 from fab.artefacts import ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
+from fab.tools.categories import Categories
+from fab.tools.tool_box import ToolBox
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
@@ -37,15 +39,17 @@ class BuildConfig():
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str, multiprocessing: bool = True, n_procs: Optional[int] = None,
-                 reuse_artefacts: bool = False, fab_workspace: Optional[Path] = None, two_stage=False, verbose=False):
+    def __init__(self, project_label: str,
+                 tool_box: ToolBox,
+                 multiprocessing: bool = True, n_procs: Optional[int] = None,
+                 reuse_artefacts: bool = False,
+                 fab_workspace: Optional[Path] = None, two_stage=False,
+                 verbose=False):
         """
         :param project_label:
             Name of the build project. The project workspace folder is created from this name, with spaces replaced
             by underscores.
-        :param parsed_args:
-            If you want to add arguments to your script, please use common_arg_parser() and add arguments.
-            This pararmeter is the result of running :func:`ArgumentParser.parse_args`.
+        :param tool_box: The ToolBox with all tools to use in the build.
         :param multiprocessing:
             An option to disable multiprocessing to aid debugging.
         :param n_procs:
@@ -63,12 +67,12 @@ class BuildConfig():
             DEBUG level logging.
 
         """
+        self._tool_box = tool_box
         self.two_stage = two_stage
         self.verbose = verbose
-        from fab.steps.compile_fortran import get_fortran_compiler
-        compiler, _ = get_fortran_compiler()
+        compiler = tool_box[Categories.FORTRAN_COMPILER]
         project_label = Template(project_label).safe_substitute(
-            compiler=compiler,
+            compiler=compiler.name,
             two_stage=f'{int(two_stage)+1}stage')
 
         self.project_label: str = project_label.replace(' ', '_')
@@ -142,6 +146,11 @@ class BuildConfig():
         # always
         self._finalise_metrics(self._start_time, self._build_timer)
         self._finalise_logging()
+
+    @property
+    def tool_box(self) -> ToolBox:
+        ''':returns: the tool box to use.'''
+        return self._tool_box
 
     @property
     def artefact_store(self) -> ArtefactStore:
@@ -298,7 +307,7 @@ class FlagsConfig():
         :param path:
             The file path for which we want command-line flags.
         :param config:
-            THe config contains the source root and project workspace.
+            The config contains the source root and project workspace.
 
         """
         # We COULD make the user pass these template params to the constructor

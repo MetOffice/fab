@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Union
 
 from fab.steps import step
-from fab.steps.grab import call_rsync
+from fab.tools import Categories
 
 
 @step
@@ -27,4 +27,5 @@ def grab_folder(config, src: Union[Path, str], dst_label: str = ''):
     """
     _dst = config.source_root / dst_label
     _dst.mkdir(parents=True, exist_ok=True)
-    call_rsync(src=src, dst=_dst)
+    rsync = config.tool_box[Categories.RSYNC]
+    rsync.execute(src=src, dst=_dst)

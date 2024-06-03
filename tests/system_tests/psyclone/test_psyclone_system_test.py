@@ -17,8 +17,10 @@ from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import _analyse_x90s, _analyse_kernels, make_parsable_x90, preprocess_x90, \
-                               psyclone, tool_available, run_psyclone
+from fab.steps.psyclone import (_analyse_x90s, _analyse_kernels,
+                                make_parsable_x90, preprocess_x90,
+                                psyclone)
+from fab.tools import ToolBox, Psyclone
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'
@@ -47,7 +49,7 @@ def test_make_parsable_x90(tmp_path):
     parsable_x90_path = make_parsable_x90(input_x90_path)
 
     x90_analyser = X90Analyser()
-    with BuildConfig('proj', fab_workspace=tmp_path) as config:
+    with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
         x90_analyser._config = config  # todo: code smell
         x90_analyser.run(parsable_x90_path)
 
@@ -61,7 +63,7 @@ def test_make_parsable_x90(tmp_path):
     unlink(parsable_x90_path)
 
 
-class TestX90Analyser(object):
+class TestX90Analyser():
 
     expected_analysis_result = AnalysedX90(
         fpath=EXPECT_PARSABLE_X90,
@@ -71,7 +73,7 @@ class TestX90Analyser(object):
     def run(self, tmp_path):
         parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
-        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+        with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
             x90_analyser._config = config
             analysed_x90, _ = x90_analyser.run(parsable_x90_path)  # type: ignore
             # don't delete the prebuild
@@ -96,7 +98,8 @@ class TestX90Analyser(object):
 class Test_analysis_for_x90s_and_kernels(object):
 
     def test_analyse(self, tmp_path):
-        with BuildConfig('proj', fab_workspace=tmp_path) as config:
+        with BuildConfig('proj', fab_workspace=tmp_path,
+                         tool_box=ToolBox()) as config:
             analysed_x90 = _analyse_x90s(config, x90s=[SAMPLE_X90])
             all_kernel_hashes = _analyse_kernels(config, kernel_roots=[Path(__file__).parent])
 
@@ -116,15 +119,16 @@ class Test_analysis_for_x90s_and_kernels(object):
         }
 
 
-@pytest.mark.skipif(not tool_available(), reason="psyclone cli tool not available")
-class TestPsyclone(object):
+@pytest.mark.skipif(not Psyclone().is_available, reason="psyclone cli tool not available")
+class TestPsyclone():
     """
     Basic run of the psyclone step.
 
     """
     @pytest.fixture
     def config(self, tmp_path):
-        config = BuildConfig('proj', fab_workspace=tmp_path, multiprocessing=False)
+        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path,
+                             multiprocessing=False)
         return config
 
     def steps(self, config):
@@ -176,11 +180,11 @@ class TestPsyclone(object):
             self.steps(config)
 
         # make sure no work gets done the second time round
-        with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk:
-            with mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk:
-                with mock.patch('fab.steps.psyclone.run_psyclone') as mock_run:
-                    with config, pytest.warns(UserWarning, match="no transformation script specified"):
-                        self.steps(config)
+        with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk, \
+                mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk, \
+                mock.patch('fab.tools.psyclone.Psyclone.process') as mock_run, \
+                config, pytest.warns(UserWarning, match="no transformation script specified"):
+            self.steps(config)
 
         mock_x90_walk.assert_not_called()
         mock_fortran_walk.assert_not_called()
@@ -194,25 +198,26 @@ class TestTransformationScript(object):
 
     """
     def test_transformation_script(self):
+        psyclone = Psyclone()
         mock_transformation_script = mock.Mock(return_value=__file__)
-        with mock.patch('fab.steps.psyclone.run_command') as mock_run_command:
+        with mock.patch('fab.tools.psyclone.Psyclone.run') as mock_run_command:
             mock_transformation_script.return_value = Path(__file__)
-            run_psyclone(generated=Path(__file__),
-                         modified_alg=Path(__file__),
-                         x90_file=Path(__file__),
-                         kernel_roots=[],
-                         transformation_script=mock_transformation_script,
-                         cli_args=[],
-                         config=None,  # type: ignore[arg-type]
-                         )
+            psyclone.process(api="dynamo0.3",
+                             x90_file=Path(__file__),
+                             psy_file=Path(__file__),
+                             alg_file=Path(__file__),
+                             kernel_roots=[],
+                             transformation_script=mock_transformation_script,
+                             additional_parameters=[],
+                             config=None,  # type: ignore[arg-type]
+                             )
 
             # check whether x90 is passed to transformation_script
             mock_transformation_script.assert_called_once_with(Path(__file__), None)
             # check transformation_script is passed to psyclone command with '-s'
-            mock_run_command.assert_called_with(['psyclone', '-api', 'dynamo0.3',
-                                                 '-l', 'all',
-                                                 '-opsy', Path(__file__),
-                                                 '-oalg', Path(__file__),
-                                                 '-s', Path(__file__),
-                                                 Path(__file__),
-                                                 ])
+            mock_run_command.assert_called_with(
+                additional_parameters=['-api', 'dynamo0.3', '-l', 'all',
+                                       '-opsy',  Path(__file__),
+                                       '-oalg', Path(__file__),
+                                       '-s', Path(__file__),
+                                       __file__])

@@ -8,7 +8,6 @@ Fortran and C Preprocessing.
 
 """
 import logging
-import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,24 +18,24 @@ from fab.constants import PRAGMAD_C
 from fab.metrics import send_metric
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, suffix_filter, Timer, by_type
-from fab.tools import get_tool, run_command
 from fab.steps import check_for_errors, run_mp, step
+from fab.tools import Categories, Preprocessor
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class MpCommonArgs(object):
+class MpCommonArgs():
     """Common args for calling process_artefact() using multiprocessing."""
     config: BuildConfig
     output_suffix: str
-    preprocessor: str
+    preprocessor: Preprocessor
     flags: FlagsConfig
     name: str
 
 
-def pre_processor(config: BuildConfig, preprocessor: str,
+def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
                   files: Collection[Path], output_collection, output_suffix,
                   common_flags: Optional[List[str]] = None,
                   path_flags: Optional[List] = None,
@@ -68,7 +67,7 @@ def pre_processor(config: BuildConfig, preprocessor: str,
     common_flags = common_flags or []
     flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
 
-    logger.info(f'preprocessor is {preprocessor}')
+    logger.info(f"preprocessor is '{preprocessor.name}'.")
 
     logger.info(f'preprocessing {len(files)} files')
 
@@ -97,82 +96,31 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
     Writes the output file to the output folder, with a lower case extension.
 
     """
-    fpath, args = arg
+    input_fpath, args = arg
 
     with Timer() as timer:
-
-        # output_fpath = input_to_output_fpath(config=self._config, input_path=fpath).with_suffix(self.output_suffix)
-        output_fpath = input_to_output_fpath(config=args.config, input_path=fpath).with_suffix(args.output_suffix)
+        output_fpath = (input_to_output_fpath(config=args.config,
+                                              input_path=input_fpath)
+                        .with_suffix(args.output_suffix))
 
         # already preprocessed?
-        # todo: remove reuse_artefacts eveywhere!
+        # todo: remove reuse_artefacts everywhere!
         if args.config.reuse_artefacts and output_fpath.exists():
-            log_or_dot(logger, f'Preprocessor skipping: {fpath}')
+            log_or_dot(logger, f'Preprocessor skipping: {input_fpath}')
         else:
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            command = [args.preprocessor]
-            command.extend(args.flags.flags_for_path(path=fpath, config=args.config))
-            command.append(str(fpath))
-            command.append(str(output_fpath))
+            params = args.flags.flags_for_path(path=input_fpath, config=args.config)
 
-            log_or_dot(logger, 'PreProcessor running command: ' + ' '.join(command))
+            log_or_dot(logger, f"PreProcessor running with parameters: "
+                               f"'{' '.join(params)}'.'")
             try:
-                run_command(command)
+                args.preprocessor.preprocess(input_fpath, output_fpath, params)
             except Exception as err:
-                raise Exception(f"error preprocessing {fpath}:\n{err}")
+                raise Exception(f"error preprocessing {input_fpath}:\n{err}")
 
-    send_metric(args.name, str(fpath), {'time_taken': timer.taken, 'start': timer.start})
+    send_metric(args.name, str(input_fpath), {'time_taken': timer.taken, 'start': timer.start})
     return output_fpath
-
-
-def get_fortran_preprocessor():
-    """
-    Identify the fortran preprocessor and any flags from the environment.
-
-    Initially looks for the `FPP` environment variable, then tries to call the `fpp` and `cpp` command line tools.
-
-    Returns the executable and flags.
-
-    The returned flags will always include `-P` to suppress line numbers.
-    This fparser ticket requests line number handling https://github.com/stfc/fparser/issues/390 .
-
-    """
-    fpp: Optional[str] = None
-    fpp_flags: Optional[List[str]] = None
-
-    try:
-        fpp, fpp_flags = get_tool(os.getenv('FPP'))
-        logger.info(f"The environment defined FPP as '{fpp}'")
-    except ValueError:
-        pass
-
-    if not fpp:
-        try:
-            run_command(['which', 'fpp'])
-            fpp, fpp_flags = 'fpp', ['-P']
-            logger.info('detected fpp')
-        except RuntimeError:
-            # fpp not available
-            pass
-
-    if not fpp:
-        try:
-            run_command(['which', 'cpp'])
-            fpp, fpp_flags = 'cpp', ['-traditional-cpp', '-P']
-            logger.info('detected cpp')
-        except RuntimeError:
-            # fpp not available
-            pass
-
-    if not fpp:
-        raise RuntimeError('no fortran preprocessor specified or discovered')
-
-    assert fpp_flags is not None
-    if '-P' not in fpp_flags:
-        fpp_flags.append('-P')
-
-    return fpp, fpp_flags
 
 
 # todo: rename preprocess_fortran
@@ -196,17 +144,13 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
-    # get the tool from FPP
-    fpp, fpp_flags = get_fortran_preprocessor()
+    fpp = config.tool_box[Categories.FORTRAN_PREPROCESSOR]
 
     # make sure any flags from FPP are included in any common flags specified by the config
     try:
         common_flags = kwargs.pop('common_flags')
     except KeyError:
         common_flags = []
-    for fpp_flag in fpp_flags:
-        if fpp_flag not in common_flags:
-            common_flags.append(fpp_flag)
 
     # preprocess big F90s
     pre_processor(
@@ -258,10 +202,11 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
     """
     source_getter = source or DefaultCPreprocessorSource()
     source_files = source_getter(config.artefact_store)
+    cpp = config.tool_box[Categories.C_PREPROCESSOR]
 
     pre_processor(
         config,
-        preprocessor=os.getenv('CPP', 'cpp'),
+        preprocessor=cpp,
         files=source_files,
         output_collection='preprocessed_c', output_suffix='.c',
         name='preprocess c',
