@@ -12,8 +12,9 @@ import logging
 from string import Template
 from typing import Optional
 
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
-from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
+from fab.constants import OBJECT_ARCHIVES
 from fab.steps import step
 from fab.util import log_or_dot
 from fab.tools import Categories
@@ -21,7 +22,7 @@ from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = CollectionGetter(OBJECT_FILES)
+DEFAULT_SOURCE_GETTER = CollectionGetter(ArtefactSet.OBJECT_FILES)
 
 
 # todo: two diagrams showing the flow of artefacts in the exe and library use cases

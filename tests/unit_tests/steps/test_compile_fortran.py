@@ -5,9 +5,8 @@ from unittest.mock import call
 
 import pytest
 
-from fab.artefacts import ArtefactSet
+from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.build_config import BuildConfig, FlagsConfig
-from fab.constants import OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
@@ -107,16 +106,15 @@ class TestStoreArtefacts():
         }
 
         # where it stores the results
-        artefact_store = {}
+        artefact_store = ArtefactStore()
 
-        store_artefacts(compiled_files=compiled_files, build_lists=build_lists, artefact_store=artefact_store)
+        store_artefacts(compiled_files=compiled_files, build_lists=build_lists,
+                        artefact_store=artefact_store)
 
-        assert artefact_store == {
-            OBJECT_FILES: {
+        assert artefact_store[ArtefactSet.OBJECT_FILES] == {
                 'root1': {Path('root1.o'), Path('dep1.o')},
                 'root2': {Path('root2.o'), Path('dep2.o')},
             }
-        }
 
 
 # This avoids pylint warnings about Redefining names from outer scope

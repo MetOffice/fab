@@ -15,6 +15,7 @@ have sensible defaults and can be configured with user-defined getters.
 """
 
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from enum import auto, Enum
 from pathlib import Path
 from typing import Iterable, Union, Dict, List, Set
@@ -33,6 +34,7 @@ class ArtefactSet(Enum):
     X90_BUILD_FILES = auto()
     CURRENT_PREBUILDS = auto()
     BUILD_TREES = auto()
+    OBJECT_FILES = auto()
     EXECUTABLES = auto()
 
 
@@ -52,7 +54,12 @@ class ArtefactStore(dict):
         '''
         self.clear()
         for artefact in ArtefactSet:
-            self[artefact] = set()
+            if artefact == ArtefactSet.OBJECT_FILES:
+                # ObjectFiles store a default dictionary (i.e. a non-existing
+                # key will automatically add an empty `set`)
+                self[artefact] = defaultdict(set)
+            else:
+                self[artefact] = set()
 
     def add(self, collection: Union[str, ArtefactSet],
             files: Union[str, List[str], Set[str]]):
@@ -69,6 +76,16 @@ class ArtefactStore(dict):
             files = set([files])
 
         self[collection].update(files)
+
+    def update_dict(self, collection: Union[str, ArtefactSet],
+                    key: str, values: set):
+        '''For ArtefactSets that are a dictionary of sets: update
+        the set with the specified values.
+        :param collection: the name of the collection to add this to.
+        :param key: the key in the dictionary to update.
+        :param values: the values to update with.
+        '''
+        self[collection][key].update(values)
 
     def add_fortran_build_files(self, files: Union[str, List[str], Set[str]]):
         self.add(ArtefactSet.FORTRAN_BUILD_FILES, files)

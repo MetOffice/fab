@@ -15,7 +15,6 @@ import pytest
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import AddFlags, BuildConfig
-from fab.constants import OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
 from fab.tools import Categories, Flags
@@ -69,7 +68,7 @@ class TestCompileC():
         send_metric.assert_called_once()
 
         # ensure it created the correct artefact collection
-        assert config.artefact_store[OBJECT_FILES] == {
+        assert config.artefact_store[ArtefactSet.OBJECT_FILES] == {
             None: {config.prebuild_folder / f'foo.{expect_hash:x}.o', }
         }
 

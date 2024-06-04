@@ -7,8 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from fab.artefacts import ArtefactStore
-from fab.constants import OBJECT_FILES
+from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.steps.link import link_exe
 from fab.tools import Linker
 
@@ -25,7 +24,7 @@ class TestLinkExe():
             artefact_store=ArtefactStore(),
             tool_box=tool_box
         )
-        config.artefact_store[OBJECT_FILES] = {'foo': {'foo.o', 'bar.o'}}
+        config.artefact_store[ArtefactSet.OBJECT_FILES] = {'foo': {'foo.o', 'bar.o'}}
 
         with mock.patch('os.getenv', return_value='-L/foo1/lib -L/foo2/lib'):
             # We need to create a linker here to pick up the env var:
