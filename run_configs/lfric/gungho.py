@@ -15,6 +15,7 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import psyclone, preprocess_x90
+from fab.tools import ToolBox
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import configurator, fparser_workaround_stop_concatenation
@@ -41,7 +42,8 @@ if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
-    with BuildConfig(project_label='gungho $compiler $two_stage') as state:
+    with BuildConfig(project_label='gungho $compiler $two_stage',
+                     tool_box=ToolBox()) as state:
         grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')

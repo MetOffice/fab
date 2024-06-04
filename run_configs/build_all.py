@@ -4,20 +4,33 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+
 import os
 from pathlib import Path
 
-from fab.steps.compile_fortran import get_fortran_compiler
-from fab.tools import run_command
+from fab.tools import Categories, Tool, ToolBox
+
+class Script(Tool):
+    '''A simple wrapper that runs a shell script.
+    :name: the path to the script to run.
+    '''
+    def __init__(self, name: Path):
+        super().__init__(name=name.name, exec_name=str(name),
+                         category=Categories.MISC)
+
+    def check_available(self):
+        return True
+
 
 
 # todo: run the exes, check the output
 def build_all():
 
+    tool_box = ToolBox()
+    compiler = tool_box[Categories.FORTRAN_COMPILER]
     configs_folder = Path(__file__).parent
-    compiler, _ = get_fortran_compiler()
 
-    os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler}')
+    os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler.name}')
 
     scripts = [
         configs_folder / 'tiny_fortran/build_tiny_fortran.py',
@@ -38,19 +51,19 @@ def build_all():
 
     # skip these for now, until we configure them to build again
     compiler_skip = {'gfortran': [], 'ifort': ['atm.py']}
-    skip = compiler_skip[compiler]
+    skip = compiler_skip[compiler.name]
 
     for script in scripts:
-
+        script_tool = Script(script)
         # skip this build script for the current compiler?
         if script.name in skip:
             print(f''
                   f'-----'
-                  f'SKIPPING {script.name} FOR COMPILER {compiler} - GET THIS COMPILING AGAIN'
+                  f'SKIPPING {script.name} FOR COMPILER {compiler.name} - GET THIS COMPILING AGAIN'
                   f'-----')
             continue
 
-        run_command([script], capture_output=False)
+        script_tool.run(capture_output=False)
 
 
 if __name__ == '__main__':

@@ -17,6 +17,7 @@ from fab.steps.grab.prebuild import grab_pre_build
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.root_inc_files import root_inc_files
+from fab.tools import ToolBox
 
 logger = logging.getLogger('fab')
 
@@ -25,7 +26,8 @@ if __name__ == '__main__':
 
     revision = 'vn6.3'
 
-    with BuildConfig(project_label=f'jules {revision} $compiler') as state:
+    with BuildConfig(project_label=f'jules {revision} $compiler',
+                     tool_box=ToolBox()) as state:
         # grab the source. todo: use some checkouts instead of exports in these configs.
         fcm_export(state, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
         fcm_export(state, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
