@@ -13,8 +13,6 @@ classes to retrieve the artefacts which need to be processed. Most steps
 have sensible defaults and can be configured with user-defined getters.
 
 """
-# We can use ArtefactStore as type annotation (esp. ArtefactStore.Artefact)
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import auto, Enum
@@ -25,22 +23,23 @@ from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
 
 
+class ArtefactSet(Enum):
+    '''A simple enum with the artefact types used internally in Fab.
+    '''
+    PREPROCESSED_FORTRAN = auto()
+    PREPROCESSED_C = auto()
+    FORTRAN_BUILD_FILES = auto()
+    C_BUILD_FILES = auto()
+    X90_BUILD_FILES = auto()
+    CURRENT_PREBUILDS = auto()
+    BUILD_TREES = auto()
+    EXECUTABLES = auto()
+
+
 class ArtefactStore(dict):
-    '''This object stores artefacts (which can be of any type). Each artefact
+    '''This object stores set of artefacts (which can be of any type). Each artefact
     is indexed by a string.
     '''
-
-    class Artefacts(Enum):
-        '''A simple enum with the artefact types used internally in Fab.
-        '''
-        PREPROCESSED_FORTRAN = auto()
-        PREPROCESSED_C = auto()
-        FORTRAN_BUILD_FILES = auto()
-        C_BUILD_FILES = auto()
-        X90_BUILD_FILES = auto()
-        CURRENT_PREBUILDS = auto()
-        BUILD_TREES = auto()
-        EXECUTABLES = auto()
 
     def __init__(self):
         '''The constructor calls reset, which will mean all the internal
@@ -52,10 +51,10 @@ class ArtefactStore(dict):
         '''Clears the artefact store (but does not delete any files).
         '''
         self.clear()
-        for artefact in self.Artefacts:
+        for artefact in ArtefactSet:
             self[artefact] = set()
 
-    def add(self, collection: Union[str, ArtefactStore.Artefacts],
+    def add(self, collection: Union[str, ArtefactSet],
             files: Union[str, List[str], Set[str]]):
         '''Adds the specified artefacts to a collection. The artefact
         can be specified as a simple string, a list of string or a set, in
@@ -72,16 +71,16 @@ class ArtefactStore(dict):
         self[collection].update(files)
 
     def add_fortran_build_files(self, files: Union[str, List[str], Set[str]]):
-        self.add(self.Artefacts.FORTRAN_BUILD_FILES, files)
+        self.add(ArtefactSet.FORTRAN_BUILD_FILES, files)
 
     def get_fortran_build_files(self):
-        return self[self.Artefacts.FORTRAN_BUILD_FILES]
+        return self[ArtefactSet.FORTRAN_BUILD_FILES]
 
     def add_c_build_files(self, files: Union[str, List[str], Set[str]]):
-        self.add(self.Artefacts.C_BUILD_FILES, files)
+        self.add(ArtefactSet.C_BUILD_FILES, files)
 
     def add_x90_build_files(self, files: Union[str, List[str], Set[str]]):
-        self.add(self.Artefacts.X90_BUILD_FILES, files)
+        self.add(ArtefactSet.X90_BUILD_FILES, files)
 
 
 class ArtefactsGetter(ABC):
@@ -109,7 +108,7 @@ class CollectionGetter(ArtefactsGetter):
         `CollectionGetter('preprocessed_fortran')`
 
     """
-    def __init__(self, collection_name: Union[str, ArtefactStore.Artefacts]):
+    def __init__(self, collection_name: Union[str, ArtefactSet]):
         """
         :param collection_name:
             The name of the artefact collection to retrieve.
@@ -138,7 +137,7 @@ class CollectionConcat(ArtefactsGetter):
         ])
 
     """
-    def __init__(self, collections: Iterable[Union[ArtefactStore.Artefacts, str,
+    def __init__(self, collections: Iterable[Union[ArtefactSet, str,
                                                    ArtefactsGetter]]):
         """
         :param collections:
@@ -152,7 +151,7 @@ class CollectionConcat(ArtefactsGetter):
         # todo: this should be a set, in case a file appears in multiple collections
         result = []
         for collection in self.collections:
-            if isinstance(collection, (str, ArtefactStore.Artefacts)):
+            if isinstance(collection, (str, ArtefactSet)):
                 result.extend(artefact_store.get(collection, []))
             elif isinstance(collection, ArtefactsGetter):
                 result.extend(collection(artefact_store))
@@ -171,7 +170,7 @@ class SuffixFilter(ArtefactsGetter):
 
     """
     def __init__(self,
-                 collection_name: Union[str, ArtefactStore.Artefacts],
+                 collection_name: Union[str, ArtefactSet],
                  suffix: Union[str, List[str]]):
         """
         :param collection_name:
@@ -212,7 +211,7 @@ class FilterBuildTrees(ArtefactsGetter):
 
     def __call__(self, artefact_store: ArtefactStore):
 
-        build_trees = artefact_store[ArtefactStore.Artefacts.BUILD_TREES]
+        build_trees = artefact_store[ArtefactSet.BUILD_TREES]
 
         build_lists: Dict[str, List[AnalysedDependent]] = {}
         for root, tree in build_trees.items():

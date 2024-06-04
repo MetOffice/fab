@@ -3,7 +3,8 @@ from unittest.mock import call
 
 import pytest
 
-from fab.artefacts import ArtefactStore, ArtefactsGetter, FilterBuildTrees
+from fab.artefacts import (ArtefactSet, ArtefactStore, ArtefactsGetter,
+                           FilterBuildTrees)
 
 
 def test_artefacts_getter():
@@ -48,7 +49,7 @@ class TestFilterBuildTrees():
         '''A fixture that returns an ArtefactStore with
         some elements.'''
         artefact_store = ArtefactStore()
-        build_trees = ArtefactStore.Artefacts.BUILD_TREES
+        build_trees = ArtefactSet.BUILD_TREES
         artefact_store[build_trees] = {'tree1': {'a.foo': None,
                                                  'b.foo': None,
                                                  'c.bar': None, },
@@ -66,7 +67,7 @@ class TestFilterBuildTrees():
         with mock.patch('fab.artefacts.filter_source_tree') as mock_filter_func:
             filter_build_trees(artefact_store)
 
-        build_trees = ArtefactStore.Artefacts.BUILD_TREES
+        build_trees = ArtefactSet.BUILD_TREES
         mock_filter_func.assert_has_calls([
             call(source_tree=artefact_store[build_trees]['tree1'], suffixes=['.foo']),
             call(source_tree=artefact_store[build_trees]['tree2'], suffixes=['.foo']),
@@ -78,7 +79,7 @@ class TestFilterBuildTrees():
         with mock.patch('fab.artefacts.filter_source_tree') as mock_filter_func:
             filter_build_trees(artefact_store)
 
-        build_trees = ArtefactStore.Artefacts.BUILD_TREES
+        build_trees = ArtefactSet.BUILD_TREES
         mock_filter_func.assert_has_calls([
             call(source_tree=artefact_store[build_trees]['tree1'], suffixes=['.foo', '.bar']),
             call(source_tree=artefact_store[build_trees]['tree2'], suffixes=['.foo', '.bar']),
@@ -88,6 +89,6 @@ class TestFilterBuildTrees():
 def test_artefact_store():
     '''Tests the ArtefactStore class.'''
     artefact_store = ArtefactStore()
-    assert len(artefact_store) == len(ArtefactStore.Artefacts)
+    assert len(artefact_store) == len(ArtefactSet)
     assert isinstance(artefact_store, dict)
-    assert ArtefactStore.Artefacts.CURRENT_PREBUILDS in artefact_store
+    assert ArtefactSet.CURRENT_PREBUILDS in artefact_store

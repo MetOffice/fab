@@ -13,7 +13,7 @@ from datetime import timedelta, datetime
 from pathlib import Path
 from typing import Dict, Optional, Iterable, Set
 
-from fab.artefacts import ArtefactStore
+from fab.artefacts import ArtefactSet
 from fab.steps import run_mp, step
 from fab.util import file_walk, get_prebuild_file_groups
 
@@ -58,7 +58,7 @@ def cleanup_prebuilds(
 
     # see what's in the prebuild folder
     prebuild_files = list(file_walk(config.prebuild_folder))
-    current_prebuild = ArtefactStore.Artefacts.CURRENT_PREBUILDS
+    current_prebuild = ArtefactSet.CURRENT_PREBUILDS
     if not prebuild_files:
         logger.info('no prebuild files found')
 

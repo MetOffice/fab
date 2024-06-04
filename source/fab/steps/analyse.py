@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab import FabException
-from fab.artefacts import ArtefactsGetter, ArtefactStore, CollectionConcat, SuffixFilter
+from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat, SuffixFilter
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
@@ -53,8 +53,8 @@ from fab.util import TimerLogger, by_type
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = CollectionConcat([
-    ArtefactStore.Artefacts.FORTRAN_BUILD_FILES,
-    ArtefactStore.Artefacts.C_BUILD_FILES,
+    ArtefactSet.FORTRAN_BUILD_FILES,
+    ArtefactSet.C_BUILD_FILES,
     # todo: this is lfric stuff so might be better placed elsewhere
     SuffixFilter('psyclone_output', '.f90'),
     'preprocessed_psyclone',  # todo: this is no longer a collection, remove
@@ -81,7 +81,7 @@ def analyse(
 
     The resulting artefact collection is a mapping from root symbol to build tree.
     The name of this artefact collection is taken from
-    :py:const:`fab.artefacts.ArtefactStore.Artefacts.BUILD_TREES`.
+    :py:const:`fab.artefacts.ArtefactSet.BUILD_TREES`.
 
     If no artefact getter is specified in *source*, a default is used which provides input files
     from multiple artefact collections, including the default C and Fortran preprocessor outputs
@@ -137,28 +137,16 @@ def analyse(
     fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
     c_analyser = CAnalyser()
 
-    """
-    Creates the *build_trees* artefact from the files in `self.source_getter`.
+    # Creates the *build_trees* artefact from the files in `self.source_getter`.
 
-    Does the following, in order:
-        - Create a hash of every source file. Used to check if it's already been analysed.
-        - Parse the C and Fortran files to find external symbol definitions and dependencies in each file.
-            - Analysis results are stored in a csv as-we-go, so analysis can be resumed if interrupted.
-        - Create a 'symbol table' recording which file each symbol is in.
-        - Work out the file dependencies from the symbol dependencies.
-            - At this point we have a source tree for the entire source.
-        - (Optionally) Extract a sub tree for every root symbol, if provided. For building executables.
-
-    This step uses multiprocessing, unless disabled in the :class:`~fab.steps.Step` class.
-
-    :param artefact_store:
-        Contains artefacts created by previous Steps, and where we add our new artefacts.
-        This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
-    :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
-
-    """
+    # Does the following, in order:
+    #     - Create a hash of every source file. Used to check if it's already been analysed.
+    #     - Parse the C and Fortran files to find external symbol definitions and dependencies in each file.
+    #         - Analysis results are stored in a csv as-we-go, so analysis can be resumed if interrupted.
+    #     - Create a 'symbol table' recording which file each symbol is in.
+    #     - Work out the file dependencies from the symbol dependencies.
+    #         - At this point we have a source tree for the entire source.
+    #     - (Optionally) Extract a sub tree for every root symbol, if provided. For building executables.
 
     # todo: code smell - refactor (in another PR to keep things small)
     fortran_analyser._config = config
@@ -204,7 +192,7 @@ def analyse(
         _add_unreferenced_deps(unreferenced_deps, symbol_table, project_source_tree, build_tree)
         validate_dependencies(build_tree)
 
-    config.artefact_store[ArtefactStore.Artefacts.BUILD_TREES] = build_trees
+    config.artefact_store[ArtefactSet.BUILD_TREES] = build_trees
 
 
 def _analyse_dependencies(analysed_files: Iterable[AnalysedDependent]):

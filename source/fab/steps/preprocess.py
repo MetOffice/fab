@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Collection, List, Optional, Tuple
 
-from fab.artefacts import (ArtefactStore, ArtefactsGetter, SuffixFilter,
+from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import PRAGMAD_C
@@ -154,21 +154,20 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     except KeyError:
         common_flags = []
 
-    Artefacts = ArtefactStore.Artefacts
     # preprocess big F90s
     pre_processor(
         config,
         preprocessor=fpp,
         common_flags=common_flags,
         files=F90s,
-        output_collection=Artefacts.PREPROCESSED_FORTRAN,
+        output_collection=ArtefactSet.PREPROCESSED_FORTRAN,
         output_suffix='.f90',
         name='preprocess fortran',
         **kwargs,
     )
 
     # Add all pre-processed files to the set of files to compile
-    all_preprocessed_files = config.artefact_store[Artefacts.PREPROCESSED_FORTRAN]
+    all_preprocessed_files = config.artefact_store[ArtefactSet.PREPROCESSED_FORTRAN]
     config.artefact_store.add_fortran_build_files(all_preprocessed_files)
 
     # todo: parallel copy?
@@ -213,16 +212,15 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
     source_files = source_getter(config.artefact_store)
     cpp = config.tool_box[Categories.C_PREPROCESSOR]
 
-    Artefacts = ArtefactStore.Artefacts
     pre_processor(
         config,
         preprocessor=cpp,
         files=source_files,
-        output_collection=Artefacts.PREPROCESSED_C,
+        output_collection=ArtefactSet.PREPROCESSED_C,
         output_suffix='.c',
         name='preprocess c',
         **kwargs,
     )
 
-    all_preprocessed_files = config.artefact_store[Artefacts.PREPROCESSED_C]
+    all_preprocessed_files = config.artefact_store[ArtefactSet.PREPROCESSED_C]
     config.artefact_store.add_c_build_files(all_preprocessed_files)

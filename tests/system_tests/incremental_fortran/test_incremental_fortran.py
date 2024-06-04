@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from fab.artefacts import ArtefactStore
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.constants import PREBUILD, BUILD_OUTPUT
 from fab.steps.analyse import analyse
@@ -254,7 +254,7 @@ class TestCleanupPrebuilds():
     def test_prune_unused(self, tmp_path):
         # pruning everything not current
 
-        current_prebuilds = ArtefactStore.Artefacts.CURRENT_PREBUILDS
+        current_prebuilds = ArtefactSet.CURRENT_PREBUILDS
         with BuildConfig(project_label=PROJECT_LABEL,
                          tool_box=ToolBox(), fab_workspace=tmp_path,
                          multiprocessing=False) as config:

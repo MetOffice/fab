@@ -6,7 +6,7 @@
 import subprocess
 from pathlib import Path
 
-from fab.artefacts import ArtefactStore
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.analyse import analyse
@@ -35,12 +35,11 @@ def test_fortran_dependencies(tmp_path):
             compile_fortran(config, common_flags=['-c'])
         link_exe(config, flags=['-lgfortran'])
 
-    Artefacts = ArtefactStore.Artefacts
-    assert len(config.artefact_store[Artefacts.EXECUTABLES]) == 2
+    assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 2
 
     # run both exes
     output = set()
-    for exe in config.artefact_store[Artefacts.EXECUTABLES]:
+    for exe in config.artefact_store[ArtefactSet.EXECUTABLES]:
         res = subprocess.run(str(exe), capture_output=True)
         output.add(res.stdout.decode())
 

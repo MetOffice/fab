@@ -10,7 +10,7 @@ from unittest.mock import call
 
 import pytest
 
-from fab.artefacts import ArtefactStore
+from fab.artefacts import ArtefactSet
 from fab.steps.cleanup_prebuilds import by_age, by_version_age, cleanup_prebuilds, remove_all_unused
 from fab.util import get_prebuild_file_groups
 
@@ -18,7 +18,7 @@ from fab.util import get_prebuild_file_groups
 class TestCleanupPrebuilds(object):
 
     def test_init_no_args(self):
-        current_prebuilds = ArtefactStore.Artefacts.CURRENT_PREBUILDS
+        current_prebuilds = ArtefactSet.CURRENT_PREBUILDS
         with mock.patch('fab.steps.cleanup_prebuilds.file_walk', return_value=[Path('foo.o')]), \
              pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             with mock.patch('fab.steps.cleanup_prebuilds.remove_all_unused') as mock_remove_all_unused:
