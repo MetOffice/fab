@@ -27,6 +27,7 @@ from fab.util import suffix_filter
 class ArtefactSet(Enum):
     '''A simple enum with the artefact types used internally in Fab.
     '''
+    ALL_SOURCE = auto()
     PREPROCESSED_FORTRAN = auto()
     PREPROCESSED_C = auto()
     FORTRAN_BUILD_FILES = auto()
@@ -152,7 +153,7 @@ class CollectionConcat(ArtefactsGetter):
         DEFAULT_SOURCE_GETTER = CollectionConcat([
             'preprocessed_c',
             'preprocessed_fortran',
-            SuffixFilter('all_source', '.f90'),
+            SuffixFilter(ArtefactSet.ALL_SOURCE, '.f90'),
         ])
 
     """
@@ -185,7 +186,7 @@ class SuffixFilter(ArtefactsGetter):
     Example::
 
         # The default source getter for the FortranPreProcessor step.
-        DEFAULT_SOURCE = SuffixFilter('all_source', '.F90')
+        DEFAULT_SOURCE = SuffixFilter(ArtefactSet.ALL_SOURCE, '.F90')
 
     """
     def __init__(self,

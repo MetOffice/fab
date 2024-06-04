@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.root_inc_files import root_inc_files
 from fab.tools import ToolBox
@@ -15,7 +16,7 @@ class TestRootIncFiles():
         inc_files = [Path('/foo/source/bar.inc')]
 
         config = BuildConfig('proj', ToolBox())
-        config.artefact_store['all_source'] = inc_files
+        config.artefact_store[ArtefactSet.ALL_SOURCE] = inc_files
 
         with mock.patch('fab.steps.root_inc_files.shutil') as mock_shutil:
             with mock.patch('fab.steps.root_inc_files.Path.mkdir'), \
@@ -28,7 +29,7 @@ class TestRootIncFiles():
         # ensure it doesn't try to copy a file in the build output
         config = BuildConfig('proj', ToolBox())
         inc_files = [Path('/foo/source/bar.inc'), config.build_output / 'fab.inc']
-        config.artefact_store['all_source'] = inc_files
+        config.artefact_store[ArtefactSet.ALL_SOURCE] = inc_files
 
         with mock.patch('fab.steps.root_inc_files.shutil') as mock_shutil:
             with mock.patch('fab.steps.root_inc_files.Path.mkdir'), \
@@ -42,7 +43,7 @@ class TestRootIncFiles():
         inc_files = [Path('/foo/source/bar.inc'), Path('/foo/sauce/bar.inc')]
 
         config = BuildConfig('proj', ToolBox())
-        config.artefact_store['all_source'] = inc_files
+        config.artefact_store[ArtefactSet.ALL_SOURCE] = inc_files
 
         with pytest.raises(FileExistsError):
             with mock.patch('fab.steps.root_inc_files.shutil'):

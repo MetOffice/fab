@@ -12,11 +12,10 @@ from pathlib import Path
 from typing import Generator, Pattern, Optional, Match
 
 from fab import FabException
-from fab.artefacts import ArtefactSet
+from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
 from fab.steps import run_mp, step
-from fab.artefacts import ArtefactsGetter, SuffixFilter
 
-DEFAULT_SOURCE_GETTER = SuffixFilter('all_source', '.c')
+DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.ALL_SOURCE, '.c')
 
 
 # todo: test

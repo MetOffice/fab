@@ -17,11 +17,10 @@ from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
-
-from fab.util import (log_or_dot_finish, input_to_output_fpath, log_or_dot,
-                      suffix_filter, Timer, by_type)
 from fab.steps import check_for_errors, run_mp, step
 from fab.tools import Categories, Preprocessor
+from fab.util import (log_or_dot_finish, input_to_output_fpath, log_or_dot,
+                      suffix_filter, Timer, by_type)
 
 logger = logging.getLogger(__name__)
 
@@ -138,10 +137,12 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
 
     The preprocessor is taken from the `FPP` environment, or falls back to `fpp -P`.
 
-    If source is not provided, it defaults to `SuffixFilter('all_source', '.F90')`.
+    If source is not provided, it defaults to
+    `SuffixFilter(ArtefactStore.ALL_SOURCE, '.F90')`.
 
     """
-    source_getter = source or SuffixFilter('all_source', ['.F90', '.f90'])
+    source_getter = source or SuffixFilter(ArtefactSet.ALL_SOURCE,
+                                           ['.F90', '.f90'])
     source_files = source_getter(config.artefact_store)
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
@@ -192,7 +193,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
     """
     def __call__(self, artefact_store):
         return CollectionGetter(ArtefactSet.PRAGMAD_C)(artefact_store) \
-               or SuffixFilter('all_source', '.c')(artefact_store)
+               or SuffixFilter(ArtefactSet.ALL_SOURCE, '.c')(artefact_store)
 
 
 # todo: rename preprocess_c

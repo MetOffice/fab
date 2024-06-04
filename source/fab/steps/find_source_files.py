@@ -10,6 +10,7 @@ Gather files from a source folder.
 import logging
 from typing import Optional, Iterable
 
+from fab.artefacts import ArtefactSet
 from fab.steps import step
 from fab.util import file_walk
 
@@ -73,7 +74,8 @@ class Exclude(_PathFilter):
 
 
 @step
-def find_source_files(config, source_root=None, output_collection="all_source",
+def find_source_files(config, source_root=None,
+                      output_collection=ArtefactSet.ALL_SOURCE,
                       path_filters: Optional[Iterable[_PathFilter]] = None):
     """
     Find the files in the source folder, with filtering.
@@ -112,17 +114,8 @@ def find_source_files(config, source_root=None, output_collection="all_source",
     """
     path_filters = path_filters or []
 
-    """
-    Recursively get all files in the given folder, with filtering.
+    # Recursively get all files in the given folder, with filtering.
 
-    :param artefact_store:
-        Contains artefacts created by previous Steps, and where we add our new artefacts.
-        This is where the given :class:`~fab.artefacts.ArtefactsGetter` finds the artefacts to process.
-    :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
-
-    """
     source_root = source_root or config.source_root
 
     # file filtering
