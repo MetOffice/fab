@@ -40,6 +40,7 @@ class ArtefactStore(dict):
         X90_BUILD_FILES = auto()
         CURRENT_PREBUILDS = auto()
         BUILD_TREES = auto()
+        EXECUTABLES = auto()
 
     def __init__(self):
         '''The constructor calls reset, which will mean all the internal
@@ -54,8 +55,14 @@ class ArtefactStore(dict):
         for artefact in self.Artefacts:
             self[artefact] = set()
 
-    def _add_files_to_artefact(self, collection: Union[str, ArtefactStore.Artefacts],
-                               files: Union[str, List[str], Set[str]]):
+    def add(self, collection: Union[str, ArtefactStore.Artefacts],
+            files: Union[str, List[str], Set[str]]):
+        '''Adds the specified artefacts to a collection. The artefact
+        can be specified as a simple string, a list of string or a set, in
+        which case all individual entries of the list/set will be added.
+        :param collection: the name of the collection to add this to.
+        :param files: the artefacts to add.
+        '''
         if isinstance(files, list):
             files = set(files)
         elif not isinstance(files, set):
@@ -65,16 +72,16 @@ class ArtefactStore(dict):
         self[collection].update(files)
 
     def add_fortran_build_files(self, files: Union[str, List[str], Set[str]]):
-        self._add_files_to_artefact(self.Artefacts.FORTRAN_BUILD_FILES, files)
+        self.add(self.Artefacts.FORTRAN_BUILD_FILES, files)
 
     def get_fortran_build_files(self):
         return self[self.Artefacts.FORTRAN_BUILD_FILES]
 
     def add_c_build_files(self, files: Union[str, List[str], Set[str]]):
-        self._add_files_to_artefact(self.Artefacts.C_BUILD_FILES, files)
+        self.add(self.Artefacts.C_BUILD_FILES, files)
 
     def add_x90_build_files(self, files: Union[str, List[str], Set[str]]):
-        self._add_files_to_artefact(self.Artefacts.X90_BUILD_FILES, files)
+        self.add(self.Artefacts.X90_BUILD_FILES, files)
 
 
 class ArtefactsGetter(ABC):

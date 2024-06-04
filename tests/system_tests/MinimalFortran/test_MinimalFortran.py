@@ -6,8 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from fab.artefacts import ArtefactStore
 from fab.build_config import BuildConfig
-from fab.constants import EXECUTABLES
 from fab.steps.analyse import analyse
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
@@ -34,10 +34,11 @@ def test_minimal_fortran(tmp_path):
             compile_fortran(config, common_flags=['-c'])
         link_exe(config, flags=['-lgfortran'])
 
-    assert len(config.artefact_store[EXECUTABLES]) == 1
+    Artefacts = ArtefactStore.Artefacts
+    assert len(config.artefact_store[Artefacts.EXECUTABLES]) == 1
 
     # run
-    command = [str(config.artefact_store[EXECUTABLES][0])]
+    command = [str(list(config.artefact_store[Artefacts.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
     assert output.strip() == 'Hello world!'

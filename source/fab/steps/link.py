@@ -11,7 +11,8 @@ import logging
 from string import Template
 from typing import Optional
 
-from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES, EXECUTABLES
+from fab.artefacts import ArtefactStore
+from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import step
 from fab.tools import Categories
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -62,7 +63,7 @@ def link_exe(config, flags=None, source: Optional[ArtefactsGetter] = None):
     for root, objects in target_objects.items():
         exe_path = config.project_workspace / f'{root}'
         linker.link(objects, exe_path, flags)
-        config.artefact_store.setdefault(EXECUTABLES, []).append(exe_path)
+        config.artefact_store.add(ArtefactStore.Artefacts.EXECUTABLES, exe_path)
 
 
 # todo: the bit about Dict[None, object_files] seems too obscure - try to rethink this.

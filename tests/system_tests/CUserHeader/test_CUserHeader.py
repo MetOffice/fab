@@ -6,8 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from fab.artefacts import ArtefactStore
 from fab.build_config import BuildConfig
-from fab.constants import EXECUTABLES
 from fab.steps.analyse import analyse
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
@@ -34,10 +34,11 @@ def test_CUseHeader(tmp_path):
         compile_c(config, common_flags=['-c', '-std=c99'])
         link_exe(config, flags=['-lgfortran'])
 
-    assert len(config.artefact_store[EXECUTABLES]) == 1
+    Artefacts = ArtefactStore.Artefacts
+    assert len(config.artefact_store[Artefacts.EXECUTABLES]) == 1
 
     # run
-    command = [str(config.artefact_store[EXECUTABLES][0])]
+    command = [str(list(config.artefact_store[Artefacts.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
     assert output == ''.join(open(PROJECT_SOURCE / 'expected.exec.txt').readlines())
