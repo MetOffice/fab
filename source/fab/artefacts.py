@@ -35,6 +35,7 @@ class ArtefactSet(Enum):
     CURRENT_PREBUILDS = auto()
     BUILD_TREES = auto()
     OBJECT_FILES = auto()
+    OBJECT_ARCHIVES = auto()
     EXECUTABLES = auto()
 
 

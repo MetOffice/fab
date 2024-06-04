@@ -14,7 +14,6 @@ from typing import Optional
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
-from fab.constants import OBJECT_ARCHIVES
 from fab.steps import step
 from fab.util import log_or_dot
 from fab.tools import Categories
@@ -34,14 +33,16 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(ArtefactSet.OBJECT_FILES)
 def archive_objects(config: BuildConfig,
                     source: Optional[ArtefactsGetter] = None,
                     output_fpath=None,
-                    output_collection=OBJECT_ARCHIVES):
+                    output_collection=ArtefactSet.OBJECT_ARCHIVES):
     """
     Create an object archive for every build target, from their object files.
 
-    An object archive is a set of object (*.o*) files bundled into a single file, typically with a *.a* extension.
+    An object archive is a set of object (*.o*) files bundled into a single
+    file, typically with a *.a* extension.
 
-    Expects one or more build targets from its artefact getter, of the form Dict[name, object_files].
-    By default, it finds the build targets and their object files in the artefact collection named by
+    Expects one or more build targets from its artefact getter, of the form
+    Dict[name, object_files]. By default, it finds the build targets and
+    their object files in the artefact collection named by
     :py:const:`fab.constants.COMPILED_FILES`.
 
     This step has three use cases:
@@ -50,46 +51,54 @@ def archive_objects(config: BuildConfig,
     * The object archive is a convenience step before linking a **shared object**.
     * One or more object archives as convenience steps before linking **executables**.
 
-    The benefit of creating an object archive before linking is simply to reduce the size
-    of the linker command, which might otherwise include thousands of .o files, making any error output
-    difficult to read. You don't have to use this step before linking.
-    The linker step has a default artefact getter which will work with or without this preceding step.
+    The benefit of creating an object archive before linking is simply to
+    reduce the size of the linker command, which might otherwise include
+    thousands of .o files, making any error output difficult to read. You
+    don't have to use this step before linking. The linker step has a default
+    artefact getter which will work with or without this preceding step.
 
     **Creating a Static or Shared Library:**
 
-    When building a library there is expected to be a single build target with a `None` name.
-    This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *without* a root symbol.
-    We can assume the list of object files is the entire project source, compiled.
+    When building a library there is expected to be a single build target
+    with a `None` name. This typically happens when configuring the
+    :class:`~fab.steps.analyser.Analyser` step *without* a root symbol.
+    We can assume the list of object files is the entire project source,
+    compiled.
 
     In this case you must specify an *output_fpath*.
 
     **Creating Executables:**
 
-    When creating executables, there is expected to be one or more build targets, each with a name.
-    This typically happens when configuring the :class:`~fab.steps.analyser.Analyser` step *with* a root symbol(s).
-    We can assume each list of object files is sufficient to build each *<root_symbol>.exe*.
+    When creating executables, there is expected to be one or more build
+    targets, each with a name. This typically happens when configuring the
+    :class:`~fab.steps.analyser.Analyser` step *with* a root symbol(s).
+    We can assume each list of object files is sufficient to build each
+    *<root_symbol>.exe*.
 
-    In this case you cannot specify an *output_fpath* path because they are automatically created from the
-    target name.
+    In this case you cannot specify an *output_fpath* path because they are
+    automatically created from the target name.
 
     :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
+        The :class:`fab.build_config.BuildConfig` object where we can read
+        settings such as the project workspace folder or the multiprocessing flag.
     :param source:
-        An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of objects to archive.
-        The artefacts are expected to be of the form `Dict[root_symbol_name, list_of_object_files]`.
+        An :class:`~fab.artefacts.ArtefactsGetter` which give us our lists of
+        objects to archive. The artefacts are expected to be of the form
+        `Dict[root_symbol_name, list_of_object_files]`.
     :param output_fpath:
-        The file path of the archive file to create.
-        This string can include templating, where "$output" is replaced with the output folder.
+        The file path of the archive file to create. This string can include
+        templating, where "$output" is replaced with the output folder.
 
         * Must be specified when building a library file (no build target name).
-        * Must not be specified when building linker input (one or more build target names).
+        * Must not be specified when building linker input (one or more build
+          target names).
     :param output_collection:
         The name of the artefact collection to create. Defaults to the name in
-        :const:`fab.constants.OBJECT_ARCHIVES`.
+        :const:`fab.artefacts.ArtefactSet.OBJECT_ARCHIVES`.
 
     """
-    # todo: the output path should not be an abs fpath, it should be relative to the proj folder
+    # todo: the output path should not be an abs fpath, it should be relative
+    # to the proj folder
 
     source_getter = source or DEFAULT_SOURCE_GETTER
     ar = config.tool_box[Categories.AR]

@@ -12,7 +12,6 @@ from string import Template
 from typing import Optional
 
 from fab.artefacts import ArtefactSet
-from fab.constants import OBJECT_ARCHIVES
 from fab.steps import step
 from fab.tools import Categories
 from fab.artefacts import ArtefactsGetter, CollectionGetter
@@ -28,7 +27,7 @@ class DefaultLinkerSource(ArtefactsGetter):
 
     """
     def __call__(self, artefact_store):
-        return CollectionGetter(OBJECT_ARCHIVES)(artefact_store) \
+        return CollectionGetter(ArtefactSet.OBJECT_ARCHIVES)(artefact_store) \
                or CollectionGetter(ArtefactSet.OBJECT_FILES)(artefact_store)
 
 
