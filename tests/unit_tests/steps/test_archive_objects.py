@@ -10,12 +10,12 @@ Test for the archive step.
 from unittest import mock
 from unittest.mock import call
 
+import pytest
+
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.archive_objects import archive_objects
 from fab.tools import ToolBox
-
-import pytest
 
 
 class TestArchiveObjects():
@@ -30,7 +30,7 @@ class TestArchiveObjects():
         config = BuildConfig('proj', ToolBox())
         config._artefact_store = {
             ArtefactSet.OBJECT_FILES: {target: [f'{target}.o', 'util.o']
-                                                for target in targets}}
+                                       for target in targets}}
 
         mock_result = mock.Mock(returncode=0, return_value=123)
         with mock.patch('fab.tools.tool.subprocess.run',
