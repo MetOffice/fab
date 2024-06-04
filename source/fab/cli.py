@@ -11,14 +11,13 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional
 
+from fab.artefacts import ArtefactSet, CollectionGetter
+from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
 from fab.steps.link import link_exe
 from fab.steps.root_inc_files import root_inc_files
-from fab.artefacts import CollectionGetter
-from fab.build_config import BuildConfig
-from fab.constants import PRAGMAD_C
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
@@ -52,7 +51,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
         root_inc_files(config)  # JULES helper, get rid of this eventually
         preprocess_fortran(config)
         c_pragma_injector(config)
-        preprocess_c(config, source=CollectionGetter(PRAGMAD_C))
+        preprocess_c(config, source=CollectionGetter(ArtefactSet.PRAGMAD_C))
         analyse(config, find_programs=True)
         compile_fortran(config)
         compile_c(config)

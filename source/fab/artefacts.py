@@ -33,6 +33,7 @@ class ArtefactSet(Enum):
     C_BUILD_FILES = auto()
     X90_BUILD_FILES = auto()
     CURRENT_PREBUILDS = auto()
+    PRAGMAD_C = auto()
     BUILD_TREES = auto()
     OBJECT_FILES = auto()
     OBJECT_ARCHIVES = auto()

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Generator, Pattern, Optional, Match
 
 from fab import FabException
-from fab.constants import PRAGMAD_C
+from fab.artefacts import ArtefactSet
 from fab.steps import run_mp, step
 from fab.artefacts import ArtefactsGetter, SuffixFilter
 
@@ -41,7 +41,7 @@ def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None, output_n
 
     """
     source_getter = source or DEFAULT_SOURCE_GETTER
-    output_name = output_name or PRAGMAD_C
+    output_name = output_name or ArtefactSet.PRAGMAD_C
 
     files = source_getter(config.artefact_store)
     results = run_mp(config, items=files, func=_process_artefact)

@@ -16,7 +16,6 @@ from typing import Collection, List, Optional, Tuple
 from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
 from fab.build_config import BuildConfig, FlagsConfig
-from fab.constants import PRAGMAD_C
 from fab.metrics import send_metric
 
 from fab.util import (log_or_dot_finish, input_to_output_fpath, log_or_dot,
@@ -119,7 +118,8 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
             try:
                 args.preprocessor.preprocess(input_fpath, output_fpath, params)
             except Exception as err:
-                raise Exception(f"error preprocessing {input_fpath}:\n{err}")
+                raise Exception(f"error preprocessing {input_fpath}:\n"
+                                f"{err}") from err
 
     send_metric(args.name, str(input_fpath), {'time_taken': timer.taken, 'start': timer.start})
     return output_fpath
@@ -191,7 +191,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 
     """
     def __call__(self, artefact_store):
-        return CollectionGetter(PRAGMAD_C)(artefact_store) \
+        return CollectionGetter(ArtefactSet.PRAGMAD_C)(artefact_store) \
                or SuffixFilter('all_source', '.c')(artefact_store)
 
 
@@ -202,10 +202,8 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
     Wrapper to pre_processor for C files.
 
     Params as per :func:`~fab.steps.preprocess._pre_processor`.
-
-    The preprocessor is taken from the `CPP` environment, or falls back to `cpp`.
-
-    If source is not provided, it defaults to :class:`~fab.steps.preprocess.DefaultCPreprocessorSource`.
+    If source is not provided, it defaults to
+    :class:`~fab.steps.preprocess.DefaultCPreprocessorSource`.
 
     """
     source_getter = source or DefaultCPreprocessorSource()
