@@ -13,8 +13,9 @@ from unittest import mock
 
 import pytest
 
+from fab.artefacts import ArtefactStore
 from fab.build_config import AddFlags, BuildConfig
-from fab.constants import BUILD_TREES, OBJECT_FILES
+from fab.constants import OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
 from fab.tools import Categories, Flags
@@ -30,7 +31,8 @@ def fixture_content(tmp_path, tool_box):
                          fab_workspace=tmp_path)
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
-    config._artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
+    config._artefact_store[ArtefactStore.Artefacts.BUILD_TREES] = \
+        {None: {analysed_file.fpath: analysed_file}}
     expect_hash = 7435424994
     return config, analysed_file, expect_hash
 

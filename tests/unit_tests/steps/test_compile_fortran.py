@@ -5,8 +5,9 @@ from unittest.mock import call
 
 import pytest
 
+from fab.artefacts import ArtefactStore
 from fab.build_config import BuildConfig, FlagsConfig
-from fab.constants import BUILD_TREES, OBJECT_FILES
+from fab.constants import OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
@@ -26,7 +27,7 @@ def fixture_analysed_files():
 @pytest.fixture(name="artefact_store")
 def fixture_artefact_store(analysed_files):
     build_tree = {af.fpath: af for af in analysed_files}
-    artefact_store = {BUILD_TREES: {None: build_tree}}
+    artefact_store = {ArtefactStore.Artefact.BUILD_TREES: {None: build_tree}}
     return artefact_store
 
 

@@ -42,7 +42,6 @@ from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab import FabException
 from fab.artefacts import ArtefactsGetter, ArtefactStore, CollectionConcat, SuffixFilter
-from fab.constants import BUILD_TREES
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
@@ -54,8 +53,8 @@ from fab.util import TimerLogger, by_type
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = CollectionConcat([
-    ArtefactStore.FORTRAN_BUILD_FILES,
-    ArtefactStore.C_BUILD_FILES,
+    ArtefactStore.Artefacts.FORTRAN_BUILD_FILES,
+    ArtefactStore.Artefacts.C_BUILD_FILES,
     # todo: this is lfric stuff so might be better placed elsewhere
     SuffixFilter('psyclone_output', '.f90'),
     'preprocessed_psyclone',  # todo: this is no longer a collection, remove
@@ -76,12 +75,13 @@ def analyse(
         special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
         unreferenced_deps: Optional[Iterable[str]] = None,
         ignore_mod_deps: Optional[Iterable[str]] = None,
-        name='analyser'):
+        ):
     """
     Produce one or more build trees by analysing source code dependencies.
 
     The resulting artefact collection is a mapping from root symbol to build tree.
-    The name of this artefact collection is taken from :py:const:`fab.constants.BUILD_TREES`.
+    The name of this artefact collection is taken from
+    :py:const:`fab.artefacts.ArtefactStore.Artefacts.BUILD_TREES`.
 
     If no artefact getter is specified in *source*, a default is used which provides input files
     from multiple artefact collections, including the default C and Fortran preprocessor outputs
@@ -204,7 +204,7 @@ def analyse(
         _add_unreferenced_deps(unreferenced_deps, symbol_table, project_source_tree, build_tree)
         validate_dependencies(build_tree)
 
-    config.artefact_store[BUILD_TREES] = build_trees
+    config.artefact_store[ArtefactStore.Artefacts.BUILD_TREES] = build_trees
 
 
 def _analyse_dependencies(analysed_files: Iterable[AnalysedDependent]):
@@ -315,7 +315,7 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> Dict[str, 
     Create a dictionary mapping symbol names to the files in which they appear.
 
     """
-    symbols: Dict[str, Path] = dict()
+    symbols: Dict[str, Path] = {}
     duplicates = []
     for analysed_file in analysed_files:
         for symbol_def in analysed_file.symbol_defs:

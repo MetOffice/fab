@@ -13,7 +13,7 @@ from datetime import timedelta, datetime
 from pathlib import Path
 from typing import Dict, Optional, Iterable, Set
 
-from fab.constants import CURRENT_PREBUILDS
+from fab.artefacts import ArtefactStore
 from fab.steps import run_mp, step
 from fab.util import file_walk, get_prebuild_file_groups
 
@@ -58,12 +58,14 @@ def cleanup_prebuilds(
 
     # see what's in the prebuild folder
     prebuild_files = list(file_walk(config.prebuild_folder))
+    current_prebuild = ArtefactStore.Artefacts.CURRENT_PREBUILDS
     if not prebuild_files:
         logger.info('no prebuild files found')
 
     elif all_unused:
         num_removed = remove_all_unused(
-            found_files=prebuild_files, current_files=config.artefact_store[CURRENT_PREBUILDS])
+            found_files=prebuild_files,
+            current_files=config.artefact_store[current_prebuild])
 
     else:
         # get the file access time for every artefact
@@ -71,8 +73,10 @@ def cleanup_prebuilds(
             dict(zip(prebuild_files, run_mp(config, prebuild_files, get_access_time)))  # type: ignore
 
         # work out what to delete
-        to_delete = by_age(older_than, prebuilds_ts, current_files=config.artefact_store[CURRENT_PREBUILDS])
-        to_delete |= by_version_age(n_versions, prebuilds_ts, current_files=config.artefact_store[CURRENT_PREBUILDS])
+        to_delete = by_age(older_than, prebuilds_ts,
+                           current_files=config.artefact_store[current_prebuild])
+        to_delete |= by_version_age(n_versions, prebuilds_ts,
+                                    current_files=config.artefact_store[current_prebuild])
 
         # delete them all
         run_mp(config, to_delete, os.remove)

@@ -22,9 +22,6 @@ PREBUILD = '_prebuild'
 # names of artefact collections
 PROJECT_SOURCE_TREE = 'project source tree'
 PRAGMAD_C = 'pragmad_c'
-BUILD_TREES = 'build trees'
 OBJECT_FILES = 'object files'
 OBJECT_ARCHIVES = 'object archives'
 EXECUTABLES = 'executables'
-
-CURRENT_PREBUILDS = 'current prebuilds'

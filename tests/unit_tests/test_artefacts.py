@@ -4,7 +4,6 @@ from unittest.mock import call
 import pytest
 
 from fab.artefacts import ArtefactStore, ArtefactsGetter, FilterBuildTrees
-from fab.constants import BUILD_TREES, CURRENT_PREBUILDS
 
 
 def test_artefacts_getter():
@@ -49,7 +48,8 @@ class TestFilterBuildTrees():
         '''A fixture that returns an ArtefactStore with
         some elements.'''
         artefact_store = ArtefactStore()
-        artefact_store[BUILD_TREES] = {'tree1': {'a.foo': None,
+        build_trees = ArtefactStore.Artefacts.BUILD_TREES
+        artefact_store[build_trees] = {'tree1': {'a.foo': None,
                                                  'b.foo': None,
                                                  'c.bar': None, },
                                        'tree2': {'d.foo': None,
@@ -62,30 +62,32 @@ class TestFilterBuildTrees():
         # ensure the artefact getter passes through the trees properly to the filter func
 
         # run the artefact getter
-        filter_build_trees = FilterBuildTrees('.foo', BUILD_TREES)
+        filter_build_trees = FilterBuildTrees('.foo')
         with mock.patch('fab.artefacts.filter_source_tree') as mock_filter_func:
             filter_build_trees(artefact_store)
 
+        build_trees = ArtefactStore.Artefacts.BUILD_TREES
         mock_filter_func.assert_has_calls([
-            call(source_tree=artefact_store[BUILD_TREES]['tree1'], suffixes=['.foo']),
-            call(source_tree=artefact_store[BUILD_TREES]['tree2'], suffixes=['.foo']),
+            call(source_tree=artefact_store[build_trees]['tree1'], suffixes=['.foo']),
+            call(source_tree=artefact_store[build_trees]['tree2'], suffixes=['.foo']),
         ])
 
     def test_multiple_suffixes(self, artefact_store):
         # test it works with multiple suffixes provided
-        filter_build_trees = FilterBuildTrees(['.foo', '.bar'], BUILD_TREES)
+        filter_build_trees = FilterBuildTrees(['.foo', '.bar'])
         with mock.patch('fab.artefacts.filter_source_tree') as mock_filter_func:
             filter_build_trees(artefact_store)
 
+        build_trees = ArtefactStore.Artefacts.BUILD_TREES
         mock_filter_func.assert_has_calls([
-            call(source_tree=artefact_store[BUILD_TREES]['tree1'], suffixes=['.foo', '.bar']),
-            call(source_tree=artefact_store[BUILD_TREES]['tree2'], suffixes=['.foo', '.bar']),
+            call(source_tree=artefact_store[build_trees]['tree1'], suffixes=['.foo', '.bar']),
+            call(source_tree=artefact_store[build_trees]['tree2'], suffixes=['.foo', '.bar']),
         ])
 
 
 def test_artefact_store():
     '''Tests the ArtefactStore class.'''
     artefact_store = ArtefactStore()
-    assert len(artefact_store) == 4
+    assert len(artefact_store) == len(ArtefactStore.Artefacts)
     assert isinstance(artefact_store, dict)
-    assert CURRENT_PREBUILDS in artefact_store
+    assert ArtefactStore.Artefacts.CURRENT_PREBUILDS in artefact_store
