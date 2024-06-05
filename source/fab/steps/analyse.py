@@ -57,8 +57,6 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
     ArtefactSet.C_BUILD_FILES,
     # todo: this is lfric stuff so might be better placed elsewhere
     SuffixFilter('psyclone_output', '.f90'),
-    'preprocessed_psyclone',  # todo: this is no longer a collection, remove
-    'configurator_output',
 ])
 
 
