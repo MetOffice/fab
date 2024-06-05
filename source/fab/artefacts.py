@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import auto, Enum
 from pathlib import Path
-from typing import Iterable, Union, Dict, List, Set
+from typing import Dict, Iterable, List, Optional, Set, Union
 
 from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
@@ -90,17 +90,23 @@ class ArtefactStore(dict):
         '''
         self[collection][key].update(values)
 
-    def add_fortran_build_files(self, files: Union[str, List[str], Set[str]]):
-        self.add(ArtefactSet.FORTRAN_BUILD_FILES, files)
+    def copy_artefacts(self, source: Union[str, ArtefactSet],
+                       dest: Union[str, ArtefactSet],
+                       suffixes: Optional[Union[str, List[str]]] = None):
+        '''Copies all artefacts from `source` to `destination`. If a
+        suffix_fiter is specified, only files with the given suffix
+        will be copied.
 
-    def get_fortran_build_files(self):
-        return self[ArtefactSet.FORTRAN_BUILD_FILES]
-
-    def add_c_build_files(self, files: Union[str, List[str], Set[str]]):
-        self.add(ArtefactSet.C_BUILD_FILES, files)
-
-    def add_x90_build_files(self, files: Union[str, List[str], Set[str]]):
-        self.add(ArtefactSet.X90_BUILD_FILES, files)
+        :param source: the source artefact set.
+        :param dest: the source artefact set.
+        :param suffixes: a string or list of strings specifying the
+            suffixes to copy.
+        '''
+        if suffixes:
+            suffixes = [suffixes] if isinstance(suffixes, str) else suffixes
+            self.add(dest, suffix_filter(self[source], suffixes))
+        else:
+            self.add(dest, self[source])
 
 
 class ArtefactsGetter(ABC):
@@ -203,7 +209,8 @@ class SuffixFilter(ArtefactsGetter):
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
     def __call__(self, artefact_store: ArtefactStore):
-        # todo: returning an empty list is probably "dishonest" if the collection doesn't exist - return None instead?
+        # todo: returning an empty list is probably "dishonest" if the
+        # collection doesn't exist - return None instead?
         fpaths: Iterable[Path] = artefact_store.get(self.collection_name, [])
         return suffix_filter(fpaths, self.suffixes)
 
