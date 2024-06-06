@@ -13,8 +13,9 @@ import os
 import re
 import warnings
 
-from fab.artefacts import ArtefactSet, CollectionGetter
+from fab.artefacts import CollectionGetter
 from fab.build_config import AddFlags, BuildConfig
+from fab.constants import PRAGMAD_C
 from fab.steps import step
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
@@ -176,7 +177,7 @@ if __name__ == '__main__':
 
         preprocess_c(
             state,
-            source=CollectionGetter(ArtefactSet.PRAGMAD_C),
+            source=CollectionGetter(PRAGMAD_C),
             path_flags=[
                 # todo: this is a bit "codey" - can we safely give longer strings and split later?
                 AddFlags(match="$source/um/*", flags=[

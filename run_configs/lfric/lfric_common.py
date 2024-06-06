@@ -8,6 +8,7 @@ from fab.tools import Categories, Tool
 
 logger = logging.getLogger('fab')
 
+
 class Script(Tool):
     '''A simple wrapper that runs a shell script.
     :name: the path to the script to run.
@@ -15,7 +16,7 @@ class Script(Tool):
     def __init__(self, name: Path):
         super().__init__(name=name.name, exec_name=str(name),
                          category=Categories.MISC)
-        
+
     def check_available(self):
         return True
 

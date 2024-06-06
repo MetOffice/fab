@@ -14,10 +14,12 @@ from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.tools import Ifort, Linker, ToolBox
 
+
 class MpiIfort(Ifort):
     '''A small wrapper to make mpiifort available.'''
     def __init__(self):
         super().__init__(name="mpiifort", exec_name="mpiifort")
+
 
 if __name__ == '__main__':
 

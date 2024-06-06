@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fab.tools import Categories, Tool, ToolBox
 
+
 class Script(Tool):
     '''A simple wrapper that runs a shell script.
     :name: the path to the script to run.
@@ -20,7 +21,6 @@ class Script(Tool):
 
     def check_available(self):
         return True
-
 
 
 # todo: run the exes, check the output
