@@ -87,7 +87,7 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     check_for_errors(results, caller_label=name)
 
     log_or_dot_finish(logger)
-    config.artefact_store[output_collection] = list(by_type(results, Path))
+    config.artefact_store[output_collection] = set(by_type(results, Path))
 
 
 def process_artefact(arg: Tuple[Path, MpCommonArgs]):
@@ -141,9 +141,10 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     `SuffixFilter(ArtefactStore.ALL_SOURCE, '.F90')`.
 
     """
-    source_getter = source or SuffixFilter(ArtefactSet.ALL_SOURCE,
-                                           ['.F90', '.f90'])
-    source_files = source_getter(config.artefact_store)
+    if source:
+        source_files = source(config.artefact_store)
+    else:
+        source_files = config.artefact_store[ArtefactSet.FORTRAN_BUILD_FILES]
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
@@ -167,6 +168,10 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
+    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+                                  remove_files=F90s,
+                                  add_files=config.artefact_store[ArtefactSet.PREPROCESSED_FORTRAN])
+
     # Add all pre-processed files to the set of files to compile
     config.artefact_store.copy_artefacts(ArtefactSet.PREPROCESSED_FORTRAN,
                                          ArtefactSet.FORTRAN_BUILD_FILES)
@@ -174,6 +179,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     # todo: parallel copy?
     # copy little f90s from source to output folder
     logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
+    f90_in_build = []
     for f90 in f90s:
         output_path = input_to_output_fpath(config, input_path=f90)
         if output_path != f90:
@@ -181,7 +187,10 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
                 output_path.parent.mkdir(parents=True)
             log_or_dot(logger, f'copying {f90}')
             shutil.copyfile(str(f90), str(output_path))
-            config.artefact_store.add(ArtefactSet.FORTRAN_BUILD_FILES, output_path)
+            f90_in_build.append(output_path)
+    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+                                  remove_files=f90s,
+                                  add_files=f90_in_build)
 
 
 class DefaultCPreprocessorSource(ArtefactsGetter):
@@ -223,3 +232,6 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
 
     config.artefact_store.copy_artefacts(ArtefactSet.PREPROCESSED_C,
                                          ArtefactSet.C_BUILD_FILES)
+    config.artefact_store.replace(ArtefactSet.C_BUILD_FILES,
+                                  remove_files=source_files,
+                                  add_files=config.artefact_store[ArtefactSet.PREPROCESSED_C])

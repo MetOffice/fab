@@ -139,3 +139,13 @@ def find_source_files(config, source_root=None,
         raise RuntimeError("no source files found after filtering")
 
     config.artefact_store[output_collection] = filtered_fpaths
+
+    # Now split the files into the various main groups:
+    # Fortran, C, and PSyclone
+    config.artefact_store.copy_artefacts(output_collection,
+                                         ArtefactSet.FORTRAN_BUILD_FILES,
+                                         suffixes=[".f90", ".F90"])
+
+    config.artefact_store.copy_artefacts(output_collection,
+                                         ArtefactSet.C_BUILD_FILES,
+                                         suffixes=[".c", ".F90"])
