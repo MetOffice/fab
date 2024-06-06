@@ -108,6 +108,27 @@ class ArtefactStore(dict):
         else:
             self.add(dest, self[source])
 
+    def replace(self, artefact: Union[str, ArtefactSet],
+                remove_files: List[str],
+                add_files: Union[List[str], dict]):
+        '''Replaces artefacts in one artefact set with other artefacts. This
+        can be used e.g to replace files that have been preprocessed
+        and renamed. There is no requirement for these lists to have the
+        same number of elements, nor is there any check if an artefact to
+        be removed is actually in the artefact set.
+
+        :param artefact: the artefact set to modify.
+        :param remove_files: files to remove from the artefact set.
+        :param add_files: files to add to the artefact set.
+        '''
+
+        art_set = self[artefact]
+        if not isinstance(art_set, set):
+            raise RuntimeError(f"Replacing artefacts in dictionary "
+                               f"'{artefact}' is not supported.")
+        art_set.difference_update(set(remove_files))
+        art_set.update(add_files)
+
 
 class ArtefactsGetter(ABC):
     """
@@ -143,7 +164,7 @@ class CollectionGetter(ArtefactsGetter):
         self.collection_name = collection_name
 
     def __call__(self, artefact_store):
-        return artefact_store.get(self.collection_name, [])
+        return artefact_store.get(self.collection_name, set())
 
 
 class CollectionConcat(ArtefactsGetter):

@@ -1,10 +1,91 @@
+'''Tests the artefacts file.
+'''
+
 from unittest import mock
 from unittest.mock import call
-
+from pathlib import Path
 import pytest
 
 from fab.artefacts import (ArtefactSet, ArtefactStore, ArtefactsGetter,
-                           FilterBuildTrees)
+                           CollectionConcat, CollectionGetter,
+                           FilterBuildTrees, SuffixFilter)
+
+
+def test_artefact_store():
+    '''Tests the ArtefactStore class.'''
+    artefact_store = ArtefactStore()
+    assert len(artefact_store) == len(ArtefactSet)
+    assert isinstance(artefact_store, dict)
+    assert ArtefactSet.CURRENT_PREBUILDS in artefact_store
+    for artefact in ArtefactSet:
+        if artefact == ArtefactSet.OBJECT_FILES:
+            assert isinstance(artefact_store[artefact], dict)
+        else:
+            assert isinstance(artefact_store[artefact], set)
+
+
+def test_artefact_store_copy():
+    '''Tests the add and copy operations.'''
+    artefact_store = ArtefactStore()
+    # We need paths for suffix filtering, so create some
+    a = Path("a.f90")
+    b = Path("b.F90")
+    c = Path("c.f90")
+    d = Path("d.F90.nocopy")
+    e = Path("e.f90.donotcopyeither")
+    # Try adding a single path, a set and a list:
+    artefact_store.add(ArtefactSet.ALL_SOURCE, a)
+    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+                                  ArtefactSet.CURRENT_PREBUILDS)
+    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
+    artefact_store.add(ArtefactSet.ALL_SOURCE, [b, c])
+    artefact_store.add(ArtefactSet.ALL_SOURCE, set([d, e]))
+    assert (artefact_store[ArtefactSet.ALL_SOURCE] ==
+            set([a, b, c, d, e]))
+
+    # Make sure that the previous copy did not get modified:
+    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
+    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+                                  ArtefactSet.CURRENT_PREBUILDS)
+    assert (artefact_store[ArtefactSet.CURRENT_PREBUILDS] ==
+            set([a, b, c, d, e]))
+    # Now copy with suffix filtering:
+    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+                                  ArtefactSet.FORTRAN_BUILD_FILES,
+                                  suffixes=[".F90", ".f90"])
+    assert artefact_store[ArtefactSet.FORTRAN_BUILD_FILES] == set([a, b, c])
+
+    # Make sure filtering is case sensitive
+    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+                                  ArtefactSet.C_BUILD_FILES,
+                                  suffixes=[".f90"])
+    assert artefact_store[ArtefactSet.C_BUILD_FILES] == set([a, c])
+
+
+def test_artefact_store_update_dict():
+    '''Tests the update_dict function.'''
+    artefact_store = ArtefactStore()
+    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, "a", ["AA"])
+    assert artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {"AA"}}
+    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, "b", set(["BB"]))
+    assert (artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {"AA"},
+                                                         "b": {"BB"}})
+
+
+def test_artefact_store_replace():
+    '''Tests the replace function.'''
+    artefact_store = ArtefactStore()
+    artefact_store.add(ArtefactSet.ALL_SOURCE, ["a", "b", "c"])
+    artefact_store.replace(ArtefactSet.ALL_SOURCE, remove_files=["a", "b"],
+                           add_files=["B"])
+    assert artefact_store[ArtefactSet.ALL_SOURCE] == set(["B", "c"])
+
+    # Test the behaviour for dictionaries
+    with pytest.raises(RuntimeError) as err:
+        artefact_store.replace(ArtefactSet.OBJECT_FILES, remove_files=["a"],
+                               add_files=["c"])
+    assert ("Replacing artefacts in dictionary 'ArtefactSet.OBJECT_FILES' "
+            "is not supported" in str(err.value))
 
 
 def test_artefacts_getter():
@@ -43,6 +124,7 @@ def test_artefacts_getter():
 
 
 class TestFilterBuildTrees():
+    '''Tests for FilterBuildTrees.'''
 
     @pytest.fixture
     def artefact_store(self):
@@ -60,35 +142,55 @@ class TestFilterBuildTrees():
         return artefact_store
 
     def test_single_suffix(self, artefact_store):
-        # ensure the artefact getter passes through the trees properly to the filter func
+        '''Ensure the artefact getter passes through the trees properly to
+        the filter func.'''
 
         # run the artefact getter
         filter_build_trees = FilterBuildTrees('.foo')
-        with mock.patch('fab.artefacts.filter_source_tree') as mock_filter_func:
+        with mock.patch('fab.artefacts.filter_source_tree') as mock_filter:
             filter_build_trees(artefact_store)
 
         build_trees = ArtefactSet.BUILD_TREES
-        mock_filter_func.assert_has_calls([
-            call(source_tree=artefact_store[build_trees]['tree1'], suffixes=['.foo']),
-            call(source_tree=artefact_store[build_trees]['tree2'], suffixes=['.foo']),
+        mock_filter.assert_has_calls([
+            call(source_tree=artefact_store[build_trees]['tree1'],
+                 suffixes=['.foo']),
+            call(source_tree=artefact_store[build_trees]['tree2'],
+                 suffixes=['.foo']),
         ])
 
     def test_multiple_suffixes(self, artefact_store):
-        # test it works with multiple suffixes provided
+        '''Test it works with multiple suffixes provided.'''
         filter_build_trees = FilterBuildTrees(['.foo', '.bar'])
-        with mock.patch('fab.artefacts.filter_source_tree') as mock_filter_func:
+        with mock.patch('fab.artefacts.filter_source_tree') as mock_filter:
             filter_build_trees(artefact_store)
 
         build_trees = ArtefactSet.BUILD_TREES
-        mock_filter_func.assert_has_calls([
-            call(source_tree=artefact_store[build_trees]['tree1'], suffixes=['.foo', '.bar']),
-            call(source_tree=artefact_store[build_trees]['tree2'], suffixes=['.foo', '.bar']),
+        mock_filter.assert_has_calls([
+            call(source_tree=artefact_store[build_trees]['tree1'],
+                 suffixes=['.foo', '.bar']),
+            call(source_tree=artefact_store[build_trees]['tree2'],
+                 suffixes=['.foo', '.bar']),
         ])
 
 
-def test_artefact_store():
-    '''Tests the ArtefactStore class.'''
+def test_collection_getter():
+    '''Test CollectionGetter.'''
     artefact_store = ArtefactStore()
-    assert len(artefact_store) == len(ArtefactSet)
-    assert isinstance(artefact_store, dict)
-    assert ArtefactSet.CURRENT_PREBUILDS in artefact_store
+    artefact_store.add(ArtefactSet.ALL_SOURCE, ["a", "b", "c"])
+    cg = CollectionGetter(ArtefactSet.ALL_SOURCE)
+    assert artefact_store[ArtefactSet.ALL_SOURCE] == cg(artefact_store)
+
+
+def test_collection_concat():
+    '''Test CollectionContact functionality.'''
+    getter = CollectionConcat(collections=[
+        'fooz',
+        SuffixFilter('barz', '.c')
+    ])
+
+    result = getter(artefact_store={
+        'fooz': ['foo1', 'foo2'],
+        'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')],
+    })
+
+    assert result == ['foo1', 'foo2', Path('bar.c')]
