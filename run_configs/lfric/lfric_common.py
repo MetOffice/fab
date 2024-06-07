@@ -4,9 +4,21 @@ import shutil
 from pathlib import Path
 
 from fab.steps import step
-from fab.tools import run_command
+from fab.tools import Categories, Tool
 
 logger = logging.getLogger('fab')
+
+
+class Script(Tool):
+    '''A simple wrapper that runs a shell script.
+    :name: the path to the script to run.
+    '''
+    def __init__(self, name: Path):
+        super().__init__(name=name.name, exec_name=str(name),
+                         category=Categories.MISC)
+
+    def check_available(self):
+        return True
 
 
 # todo: is this part of psyclone? if so, put  it in the psyclone step module?
@@ -27,49 +39,34 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
     # "rose picker"
     # creates rose-meta.json and config_namelists.txt in gungho/source/configuration
     logger.info('rose_picker')
-    run_command(
-        command=[
-            str(rose_picker_tool), str(rose_meta_conf),
-            '-directory', str(config_dir),
-            '-include_dirs', lfric_source],
-        env=env,
-    )
+    rose_picker = Script(rose_picker_tool)
+    rose_picker.run(additional_parameters=[str(rose_meta_conf),
+                                           '-directory', str(config_dir),
+                                           '-include_dirs', lfric_source],
+                    env=env)
 
     # "build_config_loaders"
     # builds a bunch of f90s from the json
     logger.info('GenerateNamelist')
-    run_command(
-        command=[
-            str(gen_namelist_tool),
-            '-verbose',
-            str(config_dir / 'rose-meta.json'),
-            '-directory', str(config_dir),
-            # '--norandom_enums'
-        ]
-    )
+    gen_namelist = Script(gen_namelist_tool)
+    gen_namelist.run(additional_parameters=['-verbose',
+                                            str(config_dir / 'rose-meta.json'),
+                                            '-directory', str(config_dir)])
 
     # create configuration_mod.f90 in source root
     logger.info('GenerateLoader')
+    gen_loader = Script(gen_loader_tool)
     names = [name.strip() for name in open(config_dir / 'config_namelists.txt').readlines()]
     configuration_mod_fpath = config.source_root / 'configuration_mod.f90'
-    run_command(
-        command=[
-            str(gen_loader_tool),
-            configuration_mod_fpath,
-            *names,
-        ]
-    )
+    gen_loader.run(additional_parameters=[configuration_mod_fpath,
+                                          *names])
 
     # create feign_config_mod.f90 in source root
     logger.info('GenerateFeigns')
+    feign_config = Script(gen_feigns_tool)
     feign_config_mod_fpath = config.source_root / 'feign_config_mod.f90'
-    run_command(
-        command=[
-            str(gen_feigns_tool),
-            str(config_dir / 'rose-meta.json'),
-            '-output', feign_config_mod_fpath,
-        ]
-    )
+    feign_config.run(additional_parameters=[str(config_dir / 'rose-meta.json'),
+                                            '-output', feign_config_mod_fpath])
 
     # put the generated source into an artefact
     # todo: we shouldn't need to do this, should we?
