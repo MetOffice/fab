@@ -251,7 +251,6 @@ if __name__ == '__main__':
 
         link_exe(
             state,
-            linker='mpifort',
             flags=[
                 '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
                 '-L', gcom_build, '-l', 'gcom'

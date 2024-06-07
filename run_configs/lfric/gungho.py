@@ -111,7 +111,6 @@ if __name__ == '__main__':
 
         link_exe(
             state,
-            linker='mpifort',
             flags=[
                 '-fopenmp',
 

@@ -33,7 +33,7 @@ if __name__ == '__main__':
         fcm_export(state, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
 
         #
-        grab_pre_build(state, path='/not/a/real/folder', allow_fail=True),
+        grab_pre_build(state, path='/not/a/real/folder', allow_fail=True)
 
         # find the source files
         find_source_files(state, path_filters=[
@@ -49,12 +49,12 @@ if __name__ == '__main__':
 
         preprocess_fortran(state, common_flags=['-P', '-DMPI_DUMMY', '-DNCDF_DUMMY', '-I$output'])
 
-        analyse(state, root_symbol='jules', unreferenced_deps=['imogen_update_carb']),
+        analyse(state, root_symbol='jules', unreferenced_deps=['imogen_update_carb'])
 
         compile_fortran(state)
 
-        archive_objects(state),
+        archive_objects(state)
 
-        link_exe(state, linker='mpifort', flags=['-lm', '-lnetcdff', '-lnetcdf']),
+        link_exe(state, flags=['-lm', '-lnetcdff', '-lnetcdf'])
 
         cleanup_prebuilds(state, n_versions=1)

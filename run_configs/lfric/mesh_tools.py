@@ -74,7 +74,6 @@ if __name__ == '__main__':
         # link the 3 trees' objects
         link_exe(
             state,
-            linker='mpifort',
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
