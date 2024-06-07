@@ -38,7 +38,7 @@ if __name__ == '__main__':
     tool_box.add_tool(Linker(compiler=fc))
 
     with BuildConfig(project_label=f'jules {revision} $compiler',
-                     tool_box=ToolBox()) as state:
+                     tool_box=tool_box) as state:
         # grab the source. todo: use some checkouts instead of exports in these configs.
         fcm_export(state, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
         fcm_export(state, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
