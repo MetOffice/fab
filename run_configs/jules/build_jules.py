@@ -20,6 +20,10 @@ from fab.tools import Ifort, Linker, ToolBox
 
 logger = logging.getLogger('fab')
 
+class MpiIfort(Ifort):
+    '''A small wrapper to make mpif90 available.'''
+    def __init__(self):
+        super().__init__(name="mpif90", exec_name="mpif90")
 
 class MpiIfort(Ifort):
     '''A small wrapper to make mpif90 available.'''
