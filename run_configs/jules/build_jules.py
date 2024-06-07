@@ -17,14 +17,25 @@ from fab.steps.grab.prebuild import grab_pre_build
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.root_inc_files import root_inc_files
-from fab.tools import ToolBox
+from fab.tools import Ifort, Linker, ToolBox
 
 logger = logging.getLogger('fab')
 
+class MpiIfort(Ifort):
+    '''A small wrapper to make mpif90 available.'''
+    def __init__(self):
+        super().__init__(name="mpif90", exec_name="mpif90")
 
 if __name__ == '__main__':
 
     revision = 'vn6.3'
+
+    tool_box = ToolBox()
+    # Create a new Fortran compiler MpiIfort
+    fc = MpiIfort()
+    tool_box.add_tool(fc)
+    # Use the compiler as linker:
+    tool_box.add_tool(Linker(compiler=fc))
 
     with BuildConfig(project_label=f'jules {revision} $compiler',
                      tool_box=ToolBox()) as state:
