@@ -11,7 +11,7 @@ import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Collection, List, Optional, Tuple
+from typing import Collection, List, Optional, Tuple, Union
 
 from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
@@ -36,7 +36,9 @@ class MpCommonArgs():
 
 
 def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
-                  files: Collection[Path], output_collection, output_suffix,
+                  files: Collection[Path],
+                  output_collection: Union[str, ArtefactSet],
+                  output_suffix,
                   common_flags: Optional[List[str]] = None,
                   path_flags: Optional[List] = None,
                   name="preprocess"):
@@ -87,7 +89,7 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     check_for_errors(results, caller_label=name)
 
     log_or_dot_finish(logger)
-    config.artefact_store[output_collection] = set(by_type(results, Path))
+    config.artefact_store.add(output_collection, set(by_type(results, Path)))
 
 
 def process_artefact(arg: Tuple[Path, MpCommonArgs]):

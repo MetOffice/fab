@@ -148,4 +148,8 @@ def find_source_files(config, source_root=None,
 
     config.artefact_store.copy_artefacts(output_collection,
                                          ArtefactSet.C_BUILD_FILES,
-                                         suffixes=[".c", ".F90"])
+                                         suffixes=[".c"])
+
+    config.artefact_store.copy_artefacts(output_collection,
+                                         ArtefactSet.X90_BUILD_FILES,
+                                         suffixes=[".x90", ".X90"])

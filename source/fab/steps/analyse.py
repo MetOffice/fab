@@ -41,7 +41,7 @@ from pathlib import Path
 from typing import Dict, List, Iterable, Set, Optional, Union
 
 from fab import FabException
-from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat, SuffixFilter
+from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
@@ -55,8 +55,6 @@ logger = logging.getLogger(__name__)
 DEFAULT_SOURCE_GETTER = CollectionConcat([
     ArtefactSet.FORTRAN_BUILD_FILES,
     ArtefactSet.C_BUILD_FILES,
-    # todo: this is lfric stuff so might be better placed elsewhere
-    SuffixFilter('psyclone_output', '.f90'),
 ])
 
 

@@ -39,17 +39,22 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
 
     # get the tool from FPP
     fpp = config.tool_box[Categories.FORTRAN_PREPROCESSOR]
-    source_files = SuffixFilter(ArtefactSet.ALL_SOURCE, '.X90')(config.artefact_store)
+    source_files = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.X90')(config.artefact_store)
 
+    # Add the pre-processed now .x90 files into X90_BUILD_FILES
     pre_processor(
         config,
         preprocessor=fpp,
         files=source_files,
-        output_collection='preprocessed_x90',
+        output_collection=ArtefactSet.X90_BUILD_FILES,
         output_suffix='.x90',
         name='preprocess x90',
         common_flags=common_flags,
     )
+    # Then remove the .X90 files:
+    config.artefact_store.replace(ArtefactSet.X90_BUILD_FILES,
+                                  remove_files=source_files,
+                                  add_files=[])
 
 
 @dataclass
@@ -73,8 +78,7 @@ class MpCommonArgs:
 
 
 DEFAULT_SOURCE_GETTER = CollectionConcat([
-    'preprocessed_x90',  # any X90 we've preprocessed this run
-    SuffixFilter(ArtefactSet.ALL_SOURCE, '.x90'),  # any already preprocessed x90 we pulled in
+    SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.x90'),  # any already preprocessed x90 we pulled in
 ])
 
 
