@@ -28,8 +28,13 @@ def get_transformation_script(fpath, config):
     :rtype: Path
 
     '''
-    optimisation_path = config.source_root / 'lfric' / 'miniapps' / 'gungho_model' / 'optimisation' / 'meto-spice'
-    local_transformation_script = optimisation_path / (fpath.relative_to(config.source_root).with_suffix('.py'))
+    optimisation_path = config.source_root / 'optimisation' / 'meto-spice'
+    for base_path in [config.source_root, config.build_output]:
+        try:
+            relative_path = fpath.relative_to(base_path)
+        except ValueError:
+            pass
+    local_transformation_script = optimisation_path / (relative_path.with_suffix('.py'))
     if local_transformation_script.exists():
         return local_transformation_script
     global_transformation_script = optimisation_path / 'global.py'
@@ -52,7 +57,8 @@ if __name__ == '__main__':
         grab_folder(state, src=lfric_source / 'gungho/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'um_physics/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'miniapps' / 'gungho_model' / 'source', dst_label='')
-
+        grab_folder(state, src=lfric_source / 'miniapps' / 'gungho_model' / 'optimisation',
+                    dst_label='optimisation')
         grab_folder(state, src=lfric_source / 'jules/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'socrates/source/', dst_label='')
 

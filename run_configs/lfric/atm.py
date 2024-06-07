@@ -167,8 +167,13 @@ def get_transformation_script(fpath, config):
     :rtype: Path
 
     '''
-    optimisation_path = config.source_root / 'lfric' / 'lfric_atm' / 'optimisation' / 'meto-spice'
-    local_transformation_script = optimisation_path / (fpath.relative_to(config.source_root).with_suffix('.py'))
+    optimisation_path = config.source_root / 'optimisation' / 'meto-spice'
+    for base_path in [config.source_root, config.build_output]:
+        try:
+            relative_path = fpath.relative_to(base_path)
+        except ValueError:
+            pass
+    local_transformation_script = optimisation_path / (relative_path.with_suffix('.py'))
     if local_transformation_script.exists():
         return local_transformation_script
     global_transformation_script = optimisation_path / 'global.py'
@@ -214,13 +219,14 @@ if __name__ == '__main__':
 
         # lfric_atm
         grab_folder(state, src=lfric_source / 'lfric_atm/source/', dst_label='lfric')
-
+        grab_folder(state, src=lfric_source / 'lfric_atm' / 'optimisation',
+                    dst_label='optimisation')
         # generate more source files in source and source/configuration
         configurator(state,
                      lfric_source=lfric_source,
                      gpl_utils_source=gpl_utils_source,
                      rose_meta_conf=lfric_source / 'lfric_atm/rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf',
-                     config_dir=state.source_root / 'lfric/configuration'),
+                     config_dir=state.source_root / 'lfric/configuration')
 
         find_source_files(state, path_filters=file_filtering(state))
 

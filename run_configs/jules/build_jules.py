@@ -13,7 +13,6 @@ from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.grab.fcm import fcm_export
-from fab.steps.grab.prebuild import grab_pre_build
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.root_inc_files import root_inc_files
@@ -21,10 +20,12 @@ from fab.tools import Ifort, Linker, ToolBox
 
 logger = logging.getLogger('fab')
 
+
 class MpiIfort(Ifort):
     '''A small wrapper to make mpif90 available.'''
     def __init__(self):
         super().__init__(name="mpif90", exec_name="mpif90")
+
 
 if __name__ == '__main__':
 
@@ -42,9 +43,6 @@ if __name__ == '__main__':
         # grab the source. todo: use some checkouts instead of exports in these configs.
         fcm_export(state, src='fcm:jules.xm_tr/src', revision=revision, dst_label='src')
         fcm_export(state, src='fcm:jules.xm_tr/utils', revision=revision, dst_label='utils')
-
-        #
-        grab_pre_build(state, path='/not/a/real/folder', allow_fail=True)
 
         # find the source files
         find_source_files(state, path_filters=[

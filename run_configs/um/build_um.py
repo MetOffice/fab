@@ -226,7 +226,7 @@ if __name__ == '__main__':
 
         # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
         gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(os.path.expanduser(
-            state.project_workspace / f"../gcom_object_archive_{compiler}/build_output"))
+            state.project_workspace / f"../gcom_object_archive_{compiler.name}/build_output"))
         if not os.path.exists(gcom_build):
             raise RuntimeError(f'gcom not found at {gcom_build}')
 
@@ -247,7 +247,7 @@ if __name__ == '__main__':
         )
 
         # this step just makes linker error messages more manageable
-        archive_objects(state),
+        archive_objects(state)
 
         link_exe(
             state,
