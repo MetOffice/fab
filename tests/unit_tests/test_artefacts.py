@@ -18,7 +18,8 @@ def test_artefact_store():
     assert isinstance(artefact_store, dict)
     assert ArtefactSet.CURRENT_PREBUILDS in artefact_store
     for artefact in ArtefactSet:
-        if artefact == ArtefactSet.OBJECT_FILES:
+        if artefact in [ArtefactSet.OBJECT_FILES,
+                        ArtefactSet.OBJECT_ARCHIVES]:
             assert isinstance(artefact_store[artefact], dict)
         else:
             assert isinstance(artefact_store[artefact], set)
