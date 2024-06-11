@@ -71,13 +71,9 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
         ]
     )
 
-    # put the generated source into an artefact
-    # todo: we shouldn't need to do this, should we?
-    #       it's just going to be found in the source folder with everything else.
-    config._artefact_store['configurator_output'] = [
-        configuration_mod_fpath,
-        feign_config_mod_fpath
-    ]
+    config._artefact_store.add(ArtefactSet.FORTRAN_BUILD_FILES,
+                               [configuration_mod_fpath,
+                                feign_config_mod_fpath ])
 
 
 @step

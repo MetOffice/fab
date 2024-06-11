@@ -57,7 +57,8 @@ class ArtefactStore(dict):
         '''
         self.clear()
         for artefact in ArtefactSet:
-            if artefact == ArtefactSet.OBJECT_FILES:
+            if artefact in [ArtefactSet.OBJECT_FILES,
+                            ArtefactSet.OBJECT_ARCHIVES]:
                 # ObjectFiles store a default dictionary (i.e. a non-existing
                 # key will automatically add an empty `set`)
                 self[artefact] = defaultdict(set)
@@ -81,14 +82,14 @@ class ArtefactStore(dict):
         self[collection].update(files)
 
     def update_dict(self, collection: Union[str, ArtefactSet],
-                    key: str, values: set):
+                    key: str, values: Union[str, set]):
         '''For ArtefactSets that are a dictionary of sets: update
         the set with the specified values.
         :param collection: the name of the collection to add this to.
         :param key: the key in the dictionary to update.
         :param values: the values to update with.
         '''
-        self[collection][key].update(values)
+        self[collection][key].update([values] if isinstance(values, str) else values)
 
     def copy_artefacts(self, source: Union[str, ArtefactSet],
                        dest: Union[str, ArtefactSet],
@@ -104,7 +105,7 @@ class ArtefactStore(dict):
         '''
         if suffixes:
             suffixes = [suffixes] if isinstance(suffixes, str) else suffixes
-            self.add(dest, suffix_filter(self[source], suffixes))
+            self.add(dest, set(suffix_filter(self[source], suffixes)))
         else:
             self.add(dest, self[source])
 

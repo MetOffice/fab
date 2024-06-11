@@ -146,11 +146,11 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     check_for_errors(outputs, caller_label='psyclone')
 
     # flatten the list of lists we got back from run_mp
-    output_files: List[Path] = list(chain(*by_type(outputs, List)))
+    output_files: Set[Path] = set(chain(*by_type(outputs, List)))
     prebuild_files: List[Path] = list(chain(*by_type(prebuilds, List)))
 
     # record the output files in the artefact store for further processing
-    config.artefact_store['psyclone_output'] = output_files
+    config.artefact_store.add(ArtefactSet.FORTRAN_BUILD_FILES, output_files)
     outputs_str = "\n".join(map(str, output_files))
     logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 

@@ -111,7 +111,6 @@ def archive_objects(config: BuildConfig,
     if not output_fpath and list(target_objects.keys()) == [None]:
         raise ValueError("You must specify an output path when building a library.")
 
-    output_archives = config.artefact_store.setdefault(output_collection, {})
     for root, objects in target_objects.items():
 
         if root:
@@ -130,4 +129,5 @@ def archive_objects(config: BuildConfig,
         except RuntimeError as err:
             raise RuntimeError(f"error creating object archive:\n{err}") from err
 
-        output_archives[root] = [output_fpath]
+        config.artefact_store.update_dict(output_collection, root,
+                                          output_fpath)

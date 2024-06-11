@@ -119,7 +119,7 @@ def find_source_files(config, source_root=None,
     source_root = source_root or config.source_root
 
     # file filtering
-    filtered_fpaths = []
+    filtered_fpaths = set()
     # todo: we shouldn't need to ignore the prebuild folder here, it's not underneath the source root.
     for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
 
@@ -131,7 +131,7 @@ def find_source_files(config, source_root=None,
                 wanted = res
 
         if wanted:
-            filtered_fpaths.append(fpath)
+            filtered_fpaths.add(fpath)
         else:
             logger.debug(f"excluding {fpath}")
 
