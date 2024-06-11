@@ -3,6 +3,7 @@ import os
 import shutil
 from pathlib import Path
 
+from fab.artefacts import ArtefactSet
 from fab.steps import step
 from fab.tools import Categories, Tool
 
