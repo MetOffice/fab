@@ -71,7 +71,7 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
 
     config._artefact_store.add(ArtefactSet.FORTRAN_BUILD_FILES,
                                [configuration_mod_fpath,
-                                feign_config_mod_fpath ])
+                                feign_config_mod_fpath])
 
 
 @step
