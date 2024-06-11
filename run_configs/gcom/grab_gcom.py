@@ -4,14 +4,17 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+
 from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import fcm_export
+from fab.tools import ToolBox
 
 
 revision = 'vn7.6'
 
 # we put this here so the two build configs can read its source_root
-grab_config = BuildConfig(project_label=f'gcom_source {revision}')
+grab_config = BuildConfig(project_label=f'gcom_source {revision}',
+                          tool_box=ToolBox())
 
 
 if __name__ == '__main__':

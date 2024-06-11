@@ -21,12 +21,13 @@ from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
-from fab.steps.compile_fortran import compile_fortran, get_fortran_compiler
+from fab.steps.compile_fortran import compile_fortran
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.steps.find_source_files import find_source_files, Exclude, Include
 from fab.steps.root_inc_files import root_inc_files
+from fab.tools import Categories, ToolBox
 
 logger = logging.getLogger('fab')
 
@@ -124,11 +125,14 @@ if __name__ == '__main__':
     revision = 'vn12.1'
     um_revision = revision.replace('vn', 'um')
 
+    state = BuildConfig(project_label=f'um atmos safe {revision} $compiler $two_stage',
+                        tool_box=ToolBox())
+
     # compiler-specific flags
-    compiler, _ = get_fortran_compiler()
-    if compiler == 'gfortran':
+    compiler = state.tool_box[Categories.FORTRAN_COMPILER]
+    if compiler.name == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
-    elif compiler == 'ifort':
+    elif compiler.name == 'ifort':
         # compiler_specific_flags = ['-r8']
         compiler_specific_flags = [
             '-i8', '-r8', '-mcmodel=medium',
@@ -144,7 +148,7 @@ if __name__ == '__main__':
         compiler_specific_flags = []
 
     # todo: document: if you're changing compilers, put $compiler in your label
-    with BuildConfig(project_label=f'um atmos safe {revision} $compiler $two_stage') as state:
+    with state:
 
         # todo: these repo defs could make a good set of reusable variables
 
@@ -222,7 +226,7 @@ if __name__ == '__main__':
 
         # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
         gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(os.path.expanduser(
-            state.project_workspace / f"../gcom_object_archive_{compiler}/build_output"))
+            state.project_workspace / f"../gcom_object_archive_{compiler.name}/build_output"))
         if not os.path.exists(gcom_build):
             raise RuntimeError(f'gcom not found at {gcom_build}')
 
@@ -243,11 +247,10 @@ if __name__ == '__main__':
         )
 
         # this step just makes linker error messages more manageable
-        archive_objects(state),
+        archive_objects(state)
 
         link_exe(
             state,
-            linker='mpifort',
             flags=[
                 '-lc', '-lgfortran', '-L', '~/.conda/envs/sci-fab/lib',
                 '-L', gcom_build, '-l', 'gcom'
