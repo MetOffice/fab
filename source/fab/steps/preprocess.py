@@ -181,7 +181,8 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     # todo: parallel copy?
     # copy little f90s from source to output folder
     logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
-    f90_in_build = []
+    new_files = []
+    remove_files = []
     for f90 in f90s:
         output_path = input_to_output_fpath(config, input_path=f90)
         if output_path != f90:
@@ -189,10 +190,13 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
                 output_path.parent.mkdir(parents=True)
             log_or_dot(logger, f'copying {f90}')
             shutil.copyfile(str(f90), str(output_path))
-            f90_in_build.append(output_path)
+            # Only remove and add a file when it is actually copied.
+            remove_files.append(f90)
+            new_files.append(output_path)
+
     config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
-                                  remove_files=f90s,
-                                  add_files=f90_in_build)
+                                  remove_files=remove_files,
+                                  add_files=new_files)
 
 
 class DefaultCPreprocessorSource(ArtefactsGetter):
