@@ -30,7 +30,6 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
     gen_namelist_tool = lfric_source / 'infrastructure/build/tools/GenerateNamelist'
     gen_loader_tool = lfric_source / 'infrastructure/build/tools/GenerateLoader'
     gen_feigns_tool = lfric_source / 'infrastructure/build/tools/GenerateFeigns'
-
     config_dir = config_dir or config.source_root / 'configuration'
     config_dir.mkdir(parents=True, exist_ok=True)
 
@@ -44,7 +43,7 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
     # gungho/build
     logger.info('rose_picker')
     rose_picker = Script(rose_picker_tool)
-    rose_picker.run(additional_parameters=[str(rose_meta_conf),
+    rose_picker.run(additional_parameters=[rose_meta_conf,
                                            '-directory', config_dir,
                                            '-include_dirs', lfric_source],
                     env=env)
