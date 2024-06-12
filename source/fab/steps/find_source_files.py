@@ -138,7 +138,7 @@ def find_source_files(config, source_root=None,
     if not filtered_fpaths:
         raise RuntimeError("no source files found after filtering")
 
-    config.artefact_store[output_collection] = filtered_fpaths
+    config.artefact_store.add(output_collection, filtered_fpaths)
 
     # Now split the files into the various main groups:
     # Fortran, C, and PSyclone
