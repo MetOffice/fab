@@ -292,7 +292,7 @@ it is the user's responsibility to maintain the default artefact sets
 
 ..
   My apologies for the LONG lines, they were the only way I could find
-  to have properly intended paragraphs :(
+  to have properly indented paragraphs :(
 
 1. `find_source_files` will add all source files it finds to `ALL_SOURCE` (by default, can be overwritten by the user). Any `.F90` and `.f90` file will also be added to `FORTRAN_BUILD_FILES`, any `.c` file to `C_BUILD_FILES`, and any `.x90` or `.X90` file to `X90_BUILD_FILES`. It can be called several times if files from different root directories need to be added, and it will automatically update the `*_BUILD_FILES` sets.
 2. Any user script that creates new files can add files to `ALL_SOURCE` if required, but also to the corresponding `*_BUILD_FILES`. This will happen automatically if `find_source_files` is called to add these newly created files.
