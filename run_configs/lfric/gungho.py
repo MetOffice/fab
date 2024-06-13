@@ -87,6 +87,7 @@ if __name__ == '__main__':
             kernel_roots=[state.build_output],
             transformation_script=get_transformation_script,
             cli_args=[],
+            api="dynamo0.3",
         )
 
         fparser_workaround_stop_concatenation(state)

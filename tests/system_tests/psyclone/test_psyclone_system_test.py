@@ -95,7 +95,7 @@ class TestX90Analyser():
         assert analysed_x90 == self.expected_analysis_result
 
 
-class Test_analysis_for_x90s_and_kernels(object):
+class Test_analysis_for_x90s_and_kernels():
 
     def test_analyse(self, tmp_path):
         with BuildConfig('proj', fab_workspace=tmp_path,
@@ -145,7 +145,7 @@ class TestPsyclone():
             config.build_output / 'kernel',
             # this second folder is just to test the multiple folders code, which was bugged. There's no kernels there.
             Path(__file__).parent / 'skeleton/algorithm',
-        ])
+        ], api="dynamo0.3")
 
     def test_run(self, config):
         # if these files exist after the run then we know:
@@ -191,7 +191,7 @@ class TestPsyclone():
         mock_run.assert_not_called()
 
 
-class TestTransformationScript(object):
+class TestTransformationScript():
     """
     Check whether transformation script is called with x90 file once
     and whether transformation script is passed to psyclone after '-s'.

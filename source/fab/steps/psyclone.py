@@ -15,7 +15,7 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Callable
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 from fab.build_config import BuildConfig
 
@@ -71,7 +71,7 @@ class MpCommonArgs:
     kernel_roots: List[Path]
     transformation_script: Optional[Callable[[Path, BuildConfig], Path]]
     cli_args: List[str]
-
+    api: Union[str, None]
     all_kernel_hashes: Dict[str, int]
     overrides_folder: Optional[Path]
     override_files: List[str]  # filenames (not paths) of hand crafted overrides
@@ -87,7 +87,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
              transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
              cli_args: Optional[List[str]] = None,
              source_getter: Optional[ArtefactsGetter] = None,
-             overrides_folder: Optional[Path] = None):
+             overrides_folder: Optional[Path] = None,
+             api: Optional[str] = None):
     """
     Psyclone runner step.
 
@@ -134,7 +135,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
 
     # get the data in a payload object for child processes to calculate prebuild hashes
     mp_payload = _generate_mp_payload(
-        config, analysed_x90, all_kernel_hashes, overrides_folder, kernel_roots, transformation_script, cli_args)
+        config, analysed_x90, all_kernel_hashes, overrides_folder,
+        kernel_roots, transformation_script, cli_args, api=api)
 
     # run psyclone.
     # for every file, we get back a list of its output files plus a list of the prebuild copies.
@@ -165,7 +167,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
 
 
 def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_folder, kernel_roots,
-                         transformation_script, cli_args) -> MpCommonArgs:
+                         transformation_script, cli_args,
+                         api: Union[str, None]) -> MpCommonArgs:
     override_files: List[str] = []
     if overrides_folder:
         override_files = [f.name for f in file_walk(overrides_folder)]
@@ -177,6 +180,7 @@ def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_fold
         cli_args=cli_args,
         analysed_x90=analysed_x90,
         all_kernel_hashes=all_kernel_hashes,
+        api=api,
         overrides_folder=overrides_folder,
         override_files=override_files,
     )
@@ -307,7 +311,7 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
             transformation_script = mp_payload.transformation_script
             logger.info(f"running psyclone on '{x90_file}'.")
             psyclone.process(config=mp_payload.config,
-                             api="dynamo0.3",
+                             api=mp_payload.api,
                              x90_file=x90_file,
                              psy_file=psy_file,
                              alg_file=modified_alg,

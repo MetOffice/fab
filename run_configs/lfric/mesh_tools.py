@@ -57,6 +57,7 @@ if __name__ == '__main__':
             kernel_roots=[state.build_output],
             cli_args=['--config', Path(__file__).parent / 'psyclone.cfg'],
             overrides_folder=state.source_root / 'mesh_tools_overrides',
+            api="dynamo0.3",
         )
 
         fparser_workaround_stop_concatenation(state)

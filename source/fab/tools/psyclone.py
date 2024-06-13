@@ -23,8 +23,9 @@ class Psyclone(Tool):
     '''This is the base class for `PSyclone`.
     '''
 
-    def __init__(self):
+    def __init__(self, api: Optional[str] = None):
         super().__init__("psyclone", "psyclone", Categories.PSYCLONE)
+        self._api = api
 
     def check_available(self) -> bool:
         '''
@@ -37,7 +38,7 @@ class Psyclone(Tool):
             return False
         return True
 
-    def process(self, api: str,
+    def process(self,
                 config: "BuildConfig",
                 x90_file: Path,
                 psy_file: Path,
@@ -45,7 +46,8 @@ class Psyclone(Tool):
                 transformation_script: Optional[Callable[[Path, "BuildConfig"],
                                                          Path]] = None,
                 additional_parameters: Optional[List[str]] = None,
-                kernel_roots: Optional[List[str]] = None
+                kernel_roots: Optional[List[str]] = None,
+                api: Optional[str] = None,
                 ):
         # pylint: disable=too-many-arguments
         '''Run PSyclone with the specified parameters.
@@ -60,8 +62,18 @@ class Psyclone(Tool):
         :param kernel_roots: optional directories with kernels.
         '''
 
-        parameters: List[Union[str, Path]] = [
-            "-api", api, "-l", "all", "-opsy", psy_file, "-oalg", alg_file]
+        parameters: List[Union[str, Path]] = []
+        # If an api is defined in this call (or in the constructor) add it
+        # as parameter. No API is required if PSyclone works as
+        # transformation tool only, so calling PSyclone without api is
+        # actually valid.
+        if api:
+            parameters.extend(["-api", api])
+        elif self._api:
+            parameters.extend(["-api", self._api])
+
+        parameters.extend(["-l", "all", "-opsy", psy_file, "-oalg", alg_file])
+
         if transformation_script:
             transformation_script_return_path = \
                 transformation_script(x90_file, config)
