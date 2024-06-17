@@ -14,6 +14,7 @@ from fab.tools.categories import Categories
 from fab.tools.tool import Tool
 
 if TYPE_CHECKING:
+    # TODO 314: see if this circular dependency can be broken
     # Otherwise we have a circular dependency:
     # BuildConfig needs ToolBox which imports __init__ which imports this
     from fab.build_config import BuildConfig

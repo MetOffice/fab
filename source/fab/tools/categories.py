@@ -12,6 +12,7 @@ from enum import auto, Enum
 
 class Categories(Enum):
     '''This class defines the allowed tool categories.'''
+    # TODO 311: Allow support for users to add their own tools.
 
     C_COMPILER = auto()
     C_PREPROCESSOR = auto()

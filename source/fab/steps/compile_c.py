@@ -30,7 +30,7 @@ DEFAULT_OUTPUT_ARTEFACT = ''
 
 
 @dataclass
-class MpCommonArgs():
+class MpCommonArgs:
     '''A simple class to pass arguments to subprocesses.'''
     config: BuildConfig
     flags: FlagsConfig
@@ -63,7 +63,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     # todo: tell the compiler (and other steps) which artefact name to create?
 
     compiler = config.tool_box[Categories.C_COMPILER]
-    logger.info(f'c compiler is {compiler}')
+    logger.info(f'C compiler is {compiler}')
 
     env_flags = os.getenv('CFLAGS', '').split()
     common_flags = env_flags + (common_flags or [])

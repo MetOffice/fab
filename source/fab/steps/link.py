@@ -53,7 +53,7 @@ def link_exe(config, flags=None, source: Optional[ArtefactsGetter] = None):
 
     """
     linker = config.tool_box[Categories.LINKER]
-    logger.info(f'linker is {linker.name}')
+    logger.info(f'Linker is {linker.name}')
 
     flags = flags or []
     source_getter = source or DefaultLinkerSource()

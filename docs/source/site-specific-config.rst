@@ -5,7 +5,7 @@ Site-Specific Configuration
 A site might have compilers that Fab doesn't know about, or prefers
 a different compiler from the Fab default. Fab abstracts the compilers
 and other programs required during building as an instance of a
-:class:`~fab.tools.tool.Tool` class. All tools that Fab knows about, are
+:class:`~fab.tools.Tool` class. All tools that Fab knows about, are
 available in a :class:`~fab.tools.tool_repository.ToolRepository`.
 That will include tools that might not be available on the current system.
 
@@ -31,14 +31,14 @@ should be required, they can be added.
 
 Tool
 ====
-Each tool must be derived from :class:`~fab.tools.tool.Tool`.
+Each tool must be derived from :class:`~fab.tools.Tool`.
 The base class provides a `run` method, which any tool can
 use to execute a command in a shell. Typically, a tool will
 provide one (or several) custom commands to be used by the steps.
 For example, a compiler instance provides a
 :func:`~fab.tools.compiler.Compiler.compile_file` method.
 This makes sure that no tool-specific command line options need
-to be used in any Fab step, which will allow to replace any tool
+to be used in any Fab step, which will allow the user to replace any tool
 with a different one.
 
 New tools can easily be created, look at
@@ -47,7 +47,7 @@ New tools can easily be created, look at
 created by providing a different set of parameters in the
 constructor.
 
-This also allows to easily define compiler wrapper. For example,
+This also allows compiler wrappers to be easily defined. For example,
 if you want to use `mpif90` as compiler, which is a MPI-specific
 wrapper for `ifort`, you can create this class as follows:
 
@@ -85,13 +85,16 @@ provides
 :func:`~fab.tools.tool_repository.ToolRepository.set_default_vendor`
 which allows you to change the defaults for compiler and linker with
 a single call. This will allow you to easily switch from one compiler
-to another.
+to another. If required, you can still change any individual compiler
+after setting a vendor, e.g. you can define `intel` as default vendor,
+but set the C-compiler to be `gcc`.
+
 
 Tool Box
 ========
 The class :class:`~fab.tools.tool_box.ToolBox` is used to provide
-the tools to be use to the build environment, i.e. the
-BuildConfig object:
+the tools to be used by the build environment, i.e. the
+`BuildConfig` object:
 
 .. code-block::
     :linenos:
@@ -104,8 +107,8 @@ BuildConfig object:
     tool_box = ToolBox()
     ifort = tr.get_tool(Categories.FORTRAN_COMPILER, "ifort")
     tool_box.add_tool(ifort)
-    c_comp = tr.get_default(Categories.C_COMPILER)
-    tool_box.add_tool(c_comp)
+    c_compiler = tr.get_default(Categories.C_COMPILER)
+    tool_box.add_tool(c_compiler)
 
     config = BuildConfig(tool_box=tool_box,
                          project_label=f'lfric_atm-{ifort.name}', ...)
@@ -115,13 +118,15 @@ it allows a site to replace a compiler in the tool repository (e.g.
 if a site wants to use an older gfortran version, say one which is called
 `gfortran-11`). They can then remove the standard gfortran in the tool
 repository and replace it with a new gfortran compiler that will call
-`gfortran-11` instead of `gfortran`.
+`gfortran-11` instead of `gfortran`. But a site can also decide to
+not support a generic `gfortran` call, instead adding different
+gfortran compiler with a version number in the name.
 
 If a tool category is not defined in the `ToolBox`, then
 the default tool from the `ToolRepository` will be used. Therefore,
 in the example above adding `ifort` is not strictly necessary (since
 it will be the default after setting the default vendor to `intel`),
-and `c_comp` is the default as well. This feature is especially useful
+and `c_compiler` is the default as well. This feature is especially useful
 for the many default tools that Fab requires (git, rsync, ar, ...).
 
 .. code-block::

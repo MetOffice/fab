@@ -110,7 +110,7 @@ def file_walk(path: Union[str, Path], ignore_folders: Optional[List[Path]] = Non
             yield i
 
 
-class Timer():
+class Timer:
     """
     A simple timing context manager.
 
@@ -160,7 +160,7 @@ class TimerLogger(Timer):
 
 
 # todo: move this
-class CompiledFile(object):
+class CompiledFile:
     """
     A Fortran or C file which has been compiled.
 

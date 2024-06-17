@@ -33,7 +33,7 @@ DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
 
 @dataclass
-class MpCommonArgs():
+class MpCommonArgs:
     """Arguments to be passed into the multiprocessing function, alongside the filenames."""
     config: BuildConfig
     flags: FlagsConfig
@@ -119,7 +119,7 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
 
     # Command line tools are sometimes specified with flags attached.
     compiler = config.tool_box[Categories.FORTRAN_COMPILER]
-    logger.info(f'fortran compiler is {compiler} {compiler.get_version()}')
+    logger.info(f'Fortran compiler is {compiler} {compiler.get_version()}')
 
     # Collate the flags from 1) flags env and 2) parameters.
     env_flags = os.getenv('FFLAGS', '').split()

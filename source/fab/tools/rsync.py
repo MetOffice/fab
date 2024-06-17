@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the Rsync class for archiving files.
+"""This file contains the Rsync class for synchronising file trees.
 """
 
 import os
