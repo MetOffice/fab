@@ -46,8 +46,8 @@ def test_tool_is_available():
     tool = Tool("gfortran", "gfortran", Categories.FORTRAN_COMPILER)
     with mock.patch.object(tool, "check_available", return_value=True):
         assert tool.is_available
-    # Test the getter and setter
-    tool.is_available = False
+    # Test the getter
+    tool._is_available = False
     assert not tool.is_available
     assert tool.is_compiler
 

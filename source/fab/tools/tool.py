@@ -68,13 +68,6 @@ class Tool:
             self._is_available = self.check_available()
         return self._is_available
 
-    @is_available.setter
-    def is_available(self, value: bool):
-        '''Sets a tool to be available (i.e. installed and working)
-        or not.
-        :param value: if the tool is available or not.'''
-        self._is_available = value
-
     @property
     def is_compiler(self) -> bool:
         '''Returns whether this tool is a (Fortran or C) compiler or not.'''
