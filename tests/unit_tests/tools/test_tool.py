@@ -16,7 +16,7 @@ import pytest
 from fab.tools import Category, Tool, VendorTool
 
 
-def test_tool_constructor:
+def test_tool_constructor():
     '''Test the constructor.'''
     tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
     assert str(tool) == "Tool - gnu: gfortran"
