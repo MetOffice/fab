@@ -32,7 +32,7 @@ def config(tmp_path):
     return BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
 
 
-class TestGitCheckout(object):
+class TestGitCheckout:
     # Check we can fetch from github.
     @pytest.fixture
     def url(self):
@@ -67,7 +67,7 @@ class TestGitCheckout(object):
 # todo: we could do with a test to ensure left-over files from previous fetches are cleaned away
 
 
-class TestGitMerge(object):
+class TestGitMerge:
 
     @pytest.fixture
     def repo_url(self, tmp_path):

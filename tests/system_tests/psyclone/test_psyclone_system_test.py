@@ -63,7 +63,7 @@ def test_make_parsable_x90(tmp_path):
     unlink(parsable_x90_path)
 
 
-class TestX90Analyser():
+class TestX90Analyser:
 
     expected_analysis_result = AnalysedX90(
         fpath=EXPECT_PARSABLE_X90,
@@ -95,7 +95,7 @@ class TestX90Analyser():
         assert analysed_x90 == self.expected_analysis_result
 
 
-class Test_analysis_for_x90s_and_kernels():
+class Test_analysis_for_x90s_and_kernels:
 
     def test_analyse(self, tmp_path):
         with BuildConfig('proj', fab_workspace=tmp_path,
@@ -120,7 +120,7 @@ class Test_analysis_for_x90s_and_kernels():
 
 
 @pytest.mark.skipif(not Psyclone().is_available, reason="psyclone cli tool not available")
-class TestPsyclone():
+class TestPsyclone:
     """
     Basic run of the psyclone step.
 
@@ -191,7 +191,7 @@ class TestPsyclone():
         mock_run.assert_not_called()
 
 
-class TestTransformationScript():
+class TestTransformationScript:
     """
     Check whether transformation script is called with x90 file once
     and whether transformation script is passed to psyclone after '-s'.
