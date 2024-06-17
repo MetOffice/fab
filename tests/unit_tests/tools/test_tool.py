@@ -16,7 +16,7 @@ import pytest
 from fab.tools import Category, Tool, VendorTool
 
 
-def test_tool_constructor():
+def test_tool_constructor:
     '''Test the constructor.'''
     tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
     assert str(tool) == "Tool - gnu: gfortran"
@@ -58,7 +58,7 @@ def test_tool_is_available():
             in str(err.value))
 
 
-class TestToolRun():
+class TestToolRun:
     '''Test the run method of Tool.'''
 
     def test_no_error_no_args(self,):

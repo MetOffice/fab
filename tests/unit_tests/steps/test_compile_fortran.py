@@ -30,7 +30,7 @@ def fixture_artefact_store(analysed_files):
     return artefact_store
 
 
-class TestCompilePass():
+class TestCompilePass:
 
     def test_vanilla(self, analysed_files, tool_box: ToolBox):
         # make sure it compiles b only
@@ -60,7 +60,7 @@ class TestCompilePass():
         assert list(uncompiled_result)[0].fpath == Path('a.f90')
 
 
-class TestGetCompileNext():
+class TestGetCompileNext:
 
     def test_vanilla(self, analysed_files):
         a, b, c = analysed_files
@@ -81,7 +81,7 @@ class TestGetCompileNext():
             get_compile_next(already_compiled_files, to_compile)
 
 
-class TestStoreArtefacts():
+class TestStoreArtefacts:
 
     def test_vanilla(self):
 
@@ -144,7 +144,7 @@ def fixture_content(tool_box):
             mods_combo_hash)
 
 
-class TestProcessFile():
+class TestProcessFile:
 
     # Developer's note: If the "mods combo hash" changes you'll get an unhelpful message from pytest.
     # It'll come from this function but pytest won't tell you that.
@@ -425,7 +425,7 @@ class TestProcessFile():
         }
 
 
-class TestGetModHashes():
+class TestGetModHashes:
     '''Contains hashing-tests.'''
 
     def test_vanilla(self, tool_box):

@@ -6,7 +6,7 @@ from fab.cli import cli_fab
 from fab.tools import ToolRepository
 
 
-class TestZeroConfig():
+class TestZeroConfig:
 
     def test_fortran_dependencies(self, tmp_path):
         # test the sample project in the fortran dependencies system test

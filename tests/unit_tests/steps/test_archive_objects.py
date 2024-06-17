@@ -18,7 +18,7 @@ from fab.tools import ToolBox
 import pytest
 
 
-class TestArchiveObjects():
+class TestArchiveObjects:
     '''Test the achive step.
     '''
 

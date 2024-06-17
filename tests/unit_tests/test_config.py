@@ -5,7 +5,7 @@ from fab.constants import SOURCE_ROOT
 from fab.tools import ToolBox
 
 
-class TestAddFlags(object):
+class TestAddFlags:
 
     def test_run(self):
         add_flags = AddFlags(match="$source/foo/*", flags=['-I', '$relative/include'])

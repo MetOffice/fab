@@ -14,7 +14,7 @@ from fab.tools import Linker
 import pytest
 
 
-class TestLinkExe():
+class TestLinkExe:
     def test_run(self, tool_box):
         # ensure the command is formed correctly, with the flags at the
         # end (why?!)

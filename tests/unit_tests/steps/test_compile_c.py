@@ -36,7 +36,7 @@ def fixture_content(tmp_path, tool_box):
 
 
 # This is more of an integration test than a unit test
-class TestCompileC():
+class TestCompileC:
     '''Test various functionalities of the C compilation step.'''
 
     def test_vanilla(self, content):
@@ -86,7 +86,7 @@ class TestCompileC():
         mock_send_metric.assert_not_called()
 
 
-class TestGetObjComboHash():
+class TestGetObjComboHash:
     '''Tests the object combo hash functionality.'''
 
     @pytest.fixture
