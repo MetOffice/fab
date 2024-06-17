@@ -11,7 +11,7 @@ subversion. It also contains derived classes Git, Subversion, and Fcm.
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
@@ -28,7 +28,7 @@ class Versioning(Tool):
     def __init__(self, name: str,
                  exec_name: str,
                  working_copy_command: str,
-                 category: Categories):
+                 category: Category):
         super().__init__(name, exec_name, category)
         self._working_copy_command = working_copy_command
 
@@ -62,7 +62,7 @@ class Git(Versioning):
     def __init__(self):
         super().__init__("git", "git",
                          "status",
-                         Categories.GIT)
+                         Category.GIT)
 
     def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
         ''':returns: the hash of the current commit.
@@ -148,7 +148,7 @@ class Subversion(Versioning):
 
     def __init__(self, name: Optional[str] = None,
                  exec_name: Optional[str] = None,
-                 category: Categories = Categories.SUBVERSION):
+                 category: Category = Category.SUBVERSION):
         name = name or "subversion"
         exec_name = exec_name or "svn"
         super().__init__(name, exec_name, "info", category)
@@ -238,4 +238,4 @@ class Fcm(Subversion):
     '''
 
     def __init__(self):
-        super().__init__("fcm", "fcm", Categories.FCM)
+        super().__init__("fcm", "fcm", Category.FCM)

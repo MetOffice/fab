@@ -10,7 +10,7 @@
 from pathlib import Path
 from typing import Callable, List, Optional, TYPE_CHECKING, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 if TYPE_CHECKING:
@@ -25,7 +25,7 @@ class Psyclone(Tool):
     '''
 
     def __init__(self):
-        super().__init__("psyclone", "psyclone", Categories.PSYCLONE)
+        super().__init__("psyclone", "psyclone", Category.PSYCLONE)
 
     def check_available(self) -> bool:
         '''

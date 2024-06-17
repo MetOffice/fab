@@ -42,7 +42,7 @@ class TestZeroConfig():
         # need an additional flag (otherwise duplicated `main` symbols will
         # occur). The following code can be used e.g. in cli.py:
         #
-        # if config.tool_box.get_tool(Categories.LINKER).name == "linker-ifort":
+        # if config.tool_box.get_tool(Category.LINKER).name == "linker-ifort":
         #    flags = ["-nofor-main"]
 
         with pytest.warns(DeprecationWarning, match="RootIncFiles is deprecated as .inc files are due to be removed."):

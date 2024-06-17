@@ -15,7 +15,7 @@ import logging
 from typing import Any, Type
 
 from fab.tools.tool import Tool
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
 
@@ -50,7 +50,7 @@ class ToolRepository(dict):
         super().__init__()
 
         # Create the list that stores all tools for each category:
-        for category in Categories:
+        for category in Category:
             self[category] = []
 
         # Add the FAB default tools:
@@ -87,7 +87,7 @@ class ToolRepository(dict):
             linker = Linker(name=f"linker-{tool.name}", compiler=tool)
             self[linker.category].append(linker)
 
-    def get_tool(self, category: Categories, name: str) -> Tool:
+    def get_tool(self, category: Category, name: str) -> Tool:
         ''':returns: the tool with a given name in the specified category.
 
         :param category: the name of the category in which to look
@@ -115,8 +115,8 @@ class ToolRepository(dict):
 
         :param vendor: the vendor name.
         '''
-        for category in [Categories.FORTRAN_COMPILER, Categories.C_COMPILER,
-                         Categories.LINKER]:
+        for category in [Category.FORTRAN_COMPILER, Category.C_COMPILER,
+                         Category.LINKER]:
             all_vendor = [tool for tool in self[category]
                           if tool.vendor == vendor]
             if len(all_vendor) == 0:
@@ -127,7 +127,7 @@ class ToolRepository(dict):
                 self[category].remove(tool)
                 self[category].insert(0, tool)
 
-    def get_default(self, category: Categories):
+    def get_default(self, category: Category):
         '''Returns the default tool for a given category, which is just
         the first tool in the category.
 
@@ -136,7 +136,7 @@ class ToolRepository(dict):
         :raises KeyError: if the category does not exist.
         '''
 
-        if not isinstance(category, Categories):
+        if not isinstance(category, Category):
             raise RuntimeError(f"Invalid category type "
                                f"'{type(category).__name__}'.")
         return self[category][0]

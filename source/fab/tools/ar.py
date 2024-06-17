@@ -10,7 +10,7 @@
 from pathlib import Path
 from typing import List, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
@@ -19,7 +19,7 @@ class Ar(Tool):
     '''
 
     def __init__(self):
-        super().__init__("ar", "ar", Categories.AR)
+        super().__init__("ar", "ar", Category.AR)
 
     def check_available(self):
         '''

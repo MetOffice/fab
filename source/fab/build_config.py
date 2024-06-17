@@ -23,7 +23,7 @@ from typing import List, Optional, Iterable
 from fab.artefacts import ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
@@ -70,7 +70,7 @@ class BuildConfig():
         self._tool_box = tool_box
         self.two_stage = two_stage
         self.verbose = verbose
-        compiler = tool_box[Categories.FORTRAN_COMPILER]
+        compiler = tool_box[Category.FORTRAN_COMPILER]
         project_label = Template(project_label).safe_substitute(
             compiler=compiler.name,
             two_stage=f'{int(two_stage)+1}stage')

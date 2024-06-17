@@ -19,7 +19,7 @@ from pathlib import Path
 import subprocess
 from typing import Dict, List, Optional, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.flags import Flags
 
 
@@ -33,7 +33,7 @@ class Tool:
     '''
 
     def __init__(self, name: str, exec_name: str,
-                 category: Categories = Categories.MISC):
+                 category: Category = Category.MISC):
         self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_name = exec_name
@@ -84,7 +84,7 @@ class Tool:
         return self._name
 
     @property
-    def category(self) -> Categories:
+    def category(self) -> Category:
         ''':returns: the category of this tool.'''
         return self._category
 
@@ -169,7 +169,7 @@ class VendorTool(Tool):
     :param category: the Category to which this tool belongs.
     '''
     def __init__(self, name: str, exec_name: str, vendor: str,
-                 category: Categories):
+                 category: Category):
         super().__init__(name, exec_name, category)
         self._vendor = vendor
 

@@ -17,7 +17,7 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, compile_c
-from fab.tools import Categories, Flags
+from fab.tools import Category, Flags
 
 
 # This avoids pylint warnings about Redefining names from outer scope
@@ -42,7 +42,7 @@ class TestCompileC():
     def test_vanilla(self, content):
         '''Ensure the command is formed correctly.'''
         config, _, expect_hash = content
-        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler = config.tool_box[Category.C_COMPILER]
 
         # run the step
         with mock.patch("fab.steps.compile_c.send_metric") as send_metric:
@@ -74,7 +74,7 @@ class TestCompileC():
     def test_exception_handling(self, content):
         '''Test exception handling if the compiler fails.'''
         config, _, _ = content
-        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler = config.tool_box[Category.C_COMPILER]
         # mock the run command to raise an exception
         with pytest.raises(RuntimeError):
             with mock.patch.object(compiler, "run", side_effect=Exception):
@@ -97,7 +97,7 @@ class TestGetObjComboHash():
     def test_vanilla(self, content, flags):
         '''Test that we get the expected hashes in this test setup.'''
         config, analysed_file, expect_hash = content
-        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler = config.tool_box[Category.C_COMPILER]
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result == expect_hash
 
@@ -105,7 +105,7 @@ class TestGetObjComboHash():
         '''Check that a change in the file (simulated by changing
         the hash) changes the obj combo hash.'''
         config, analysed_file, expect_hash = content
-        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler = config.tool_box[Category.C_COMPILER]
         analysed_file._file_hash += 1
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result == expect_hash + 1
@@ -113,7 +113,7 @@ class TestGetObjComboHash():
     def test_change_flags(self, content, flags):
         '''Test that changing the flags changes the hash.'''
         config, analysed_file, expect_hash = content
-        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler = config.tool_box[Category.C_COMPILER]
         flags = Flags(['-Dfoo'] + flags)
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result != expect_hash
@@ -122,7 +122,7 @@ class TestGetObjComboHash():
         '''Test that a change in the name of the compiler changes
         the hash.'''
         config, analysed_file, expect_hash = content
-        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler = config.tool_box[Category.C_COMPILER]
         # Change the name of the compiler
         compiler._name = compiler.name + "XX"
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
@@ -132,7 +132,7 @@ class TestGetObjComboHash():
         '''Test that a change in the version number of the compiler
         changes the hash.'''
         config, analysed_file, expect_hash = content
-        compiler = config.tool_box[Categories.C_COMPILER]
+        compiler = config.tool_box[Category.C_COMPILER]
         compiler._version = "9.8.7"
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result != expect_hash

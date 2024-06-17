@@ -7,7 +7,9 @@
 '''This file contains the ToolBox class.
 '''
 
-from fab.tools.categories import Categories
+from typing import Dict
+
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 from fab.tools.tool_repository import ToolRepository
 
@@ -18,9 +20,9 @@ class ToolBox:
     '''
 
     def __init__(self):
-        self._all_tools = {}
+        self._all_tools: Dict[Category, Tool] = {}
 
-    def __getitem__(self, category: Categories):
+    def __getitem__(self, category: Category):
         '''A convenience function for get_tool.'''
         return self.get_tool(category)
 
@@ -35,7 +37,7 @@ class ToolBox:
             raise RuntimeError(f"Tool '{tool}' is not available.")
         self._all_tools[tool.category] = tool
 
-    def get_tool(self, category: Categories):
+    def get_tool(self, category: Category) -> Tool:
         '''Returns the tool for the specified category.
 
         :param category: the name of the category in which to look

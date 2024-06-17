@@ -27,7 +27,7 @@ from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.steps.find_source_files import find_source_files, Exclude, Include
 from fab.steps.root_inc_files import root_inc_files
-from fab.tools import Categories, ToolBox
+from fab.tools import Category, ToolBox
 
 logger = logging.getLogger('fab')
 
@@ -129,7 +129,7 @@ if __name__ == '__main__':
                         tool_box=ToolBox())
 
     # compiler-specific flags
-    compiler = state.tool_box[Categories.FORTRAN_COMPILER]
+    compiler = state.tool_box[Category.FORTRAN_COMPILER]
     if compiler.name == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
     elif compiler.name == 'ifort':

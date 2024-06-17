@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 from typing import cast, List, Optional
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.compiler import Compiler
 from fab.tools.tool import VendorTool
 
@@ -47,7 +47,7 @@ class Linker(VendorTool):
         if not vendor:
             vendor = compiler.vendor
         self._output_flag = output_flag
-        super().__init__(name, exec_name, vendor, Categories.LINKER)
+        super().__init__(name, exec_name, vendor, Category.LINKER)
         self._compiler = compiler
         self.flags.extend(os.getenv("LDFLAGS", "").split())
 

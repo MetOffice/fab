@@ -11,14 +11,14 @@ from unittest import mock
 
 import pytest
 
-from fab.tools import Categories, Fcm, Git, Subversion, Versioning
+from fab.tools import Category, Fcm, Git, Subversion, Versioning
 
 
 def test_versioning_constructor():
     '''Test the versioning constructor.'''
     versioning = Versioning("versioning", "versioning.exe",
-                            "working_copy_command", Categories.GIT)
-    assert versioning.category == Categories.GIT
+                            "working_copy_command", Category.GIT)
+    assert versioning.category == Category.GIT
     assert versioning.name == "versioning"
     assert versioning.flags == []
     assert versioning.exec_name == "versioning.exe"
@@ -28,7 +28,7 @@ def test_versioning_constructor():
 def test_git_constructor():
     '''Test the git constructor.'''
     git = Git()
-    assert git.category == Categories.GIT
+    assert git.category == Category.GIT
     assert git.flags == []
 
 
@@ -214,7 +214,7 @@ def test_git_merge():
 def test_svn_constructor():
     '''Test the git constructor.'''
     svn = Subversion()
-    assert svn.category == Categories.SUBVERSION
+    assert svn.category == Category.SUBVERSION
     assert svn.flags == []
     assert svn.name == "subversion"
     assert svn.exec_name == "svn"
@@ -324,7 +324,7 @@ def test_svn_merge():
 def test_fcm_constructor():
     '''Test the fcb constructor.'''
     fcm = Fcm()
-    assert fcm.category == Categories.FCM
+    assert fcm.category == Category.FCM
     assert fcm.flags == []
     assert fcm.name == "fcm"
     assert fcm.exec_name == "fcm"

@@ -10,7 +10,7 @@
 import pytest
 
 
-from fab.tools import Categories, Gcc, Gfortran, Ifort, Linker, ToolRepository
+from fab.tools import Category, Gcc, Gfortran, Ifort, Linker, ToolRepository
 
 
 def test_tool_repository_get_singleton_new():
@@ -27,17 +27,17 @@ def test_tool_repository_get_singleton_new():
 def test_tool_repository_constructor():
     '''Tests the ToolRepository constructor.'''
     tr = ToolRepository()
-    assert Categories.C_COMPILER in tr
-    assert Categories.FORTRAN_COMPILER in tr
+    assert Category.C_COMPILER in tr
+    assert Category.FORTRAN_COMPILER in tr
 
 
 def test_tool_repository_get_tool():
     '''Tests get_tool.'''
     tr = ToolRepository()
-    gfortran = tr.get_tool(Categories.FORTRAN_COMPILER, "gfortran")
+    gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "gfortran")
     assert isinstance(gfortran, Gfortran)
 
-    ifort = tr.get_tool(Categories.FORTRAN_COMPILER, "ifort")
+    ifort = tr.get_tool(Category.FORTRAN_COMPILER, "ifort")
     assert isinstance(ifort, Ifort)
 
 
@@ -49,7 +49,7 @@ def test_tool_repository_get_tool_error():
     assert "Unknown category 'unknown-category'" in str(err.value)
 
     with pytest.raises(KeyError) as err:
-        tr.get_tool(Categories.C_COMPILER, "something")
+        tr.get_tool(Category.C_COMPILER, "something")
     assert ("Unknown tool 'something' in category 'C_COMPILER'"
             in str(err.value))
 
@@ -57,14 +57,14 @@ def test_tool_repository_get_tool_error():
 def test_tool_repository_get_default():
     '''Tests get_default.'''
     tr = ToolRepository()
-    gfortran = tr.get_default(Categories.FORTRAN_COMPILER)
+    gfortran = tr.get_default(Category.FORTRAN_COMPILER)
     assert isinstance(gfortran, Gfortran)
 
-    gcc_linker = tr.get_default(Categories.LINKER)
+    gcc_linker = tr.get_default(Category.LINKER)
     assert isinstance(gcc_linker, Linker)
     assert gcc_linker.name == "linker-gcc"
 
-    gcc = tr.get_default(Categories.C_COMPILER)
+    gcc = tr.get_default(Category.C_COMPILER)
     assert isinstance(gcc, Gcc)
 
 
@@ -80,14 +80,14 @@ def test_tool_repository_default_vendor():
     '''Tests the setting of default vendor for compiler and linker.'''
     tr = ToolRepository()
     tr.set_default_vendor("gnu")
-    for cat in [Categories.C_COMPILER, Categories.FORTRAN_COMPILER,
-                Categories.LINKER]:
+    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
+                Category.LINKER]:
         def_tool = tr.get_default(cat)
         assert def_tool.vendor == "gnu"
 
     tr.set_default_vendor("intel")
-    for cat in [Categories.C_COMPILER, Categories.FORTRAN_COMPILER,
-                Categories.LINKER]:
+    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
+                Category.LINKER]:
         def_tool = tr.get_default(cat)
         assert def_tool.vendor == "intel"
     with pytest.raises(RuntimeError) as err:

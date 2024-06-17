@@ -12,7 +12,7 @@ corresponding svn steps.
 from typing import Optional, Union
 
 from fab.steps.grab.svn import svn_export, svn_checkout, svn_merge
-from fab.tools import Categories
+from fab.tools import Category
 
 
 def fcm_export(config, src: str, dst_label: Optional[str] = None,
@@ -21,7 +21,7 @@ def fcm_export(config, src: str, dst_label: Optional[str] = None,
     Params as per :func:`~fab.steps.grab.svn.svn_export`.
 
     """
-    svn_export(config, src, dst_label, revision, category=Categories.FCM)
+    svn_export(config, src, dst_label, revision, category=Category.FCM)
 
 
 def fcm_checkout(config, src: str, dst_label: Optional[str] = None,
@@ -30,7 +30,7 @@ def fcm_checkout(config, src: str, dst_label: Optional[str] = None,
     Params as per :func:`~fab.steps.grab.svn.svn_checkout`.
 
     """
-    svn_checkout(config, src, dst_label, revision, category=Categories.FCM)
+    svn_checkout(config, src, dst_label, revision, category=Category.FCM)
 
 
 def fcm_merge(config, src: str, dst_label: Optional[str] = None,
@@ -39,4 +39,4 @@ def fcm_merge(config, src: str, dst_label: Optional[str] = None,
     Params as per :func:`~fab.steps.grab.svn.svn_merge`.
 
     """
-    svn_merge(config, src, dst_label, revision, category=Categories.FCM)
+    svn_merge(config, src, dst_label, revision, category=Category.FCM)

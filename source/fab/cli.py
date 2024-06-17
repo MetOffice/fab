@@ -23,7 +23,7 @@ from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
-from fab.tools import Categories, ToolBox, ToolRepository
+from fab.tools import Category, ToolBox, ToolRepository
 from fab.util import common_arg_parser
 
 
@@ -35,11 +35,11 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     # Set the default Fortran compiler as linker (otherwise e.g. the
     # C compiler might be used in linking, requiring additional flags)
     tr = ToolRepository()
-    fc = tr.get_default(Categories.FORTRAN_COMPILER)
+    fc = tr.get_default(Category.FORTRAN_COMPILER)
     # TODO: This assumes a mapping of compiler name to the corresponding
     # linker name (i.e. `linker-gfortran` or `linker-ifort`). Still, that's
     # better than hard-coding gnu here.
-    linker = tr.get_tool(Categories.LINKER, f"linker-{fc.name}")
+    linker = tr.get_tool(Category.LINKER, f"linker-{fc.name}")
     tool_box = ToolBox()
     tool_box.add_tool(fc)
     tool_box.add_tool(linker)

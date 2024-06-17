@@ -10,7 +10,7 @@ available in a :class:`~fab.tools.tool_repository.ToolRepository`.
 That will include tools that might not be available on the current system.
 
 Each tool belongs to a certain category of
-:class:`~fab.tool.categories.Categories`. A `ToolRepository` can store
+:class:`~fab.tool.category.Category`. A `ToolRepository` can store
 several instances of the same category.
 
 At build time, the user has to create an instance of
@@ -23,10 +23,10 @@ be used. This is useful for many standard tools like `git`, `rsync`
 etc that de-facto will never be changed.
 
 
-Categories
+Category
 ==========
 All possible categories are defined in
-:class:`~fab.tool.categories.Categories`. If additional categories
+:class:`~fab.tool.category.Category`. If additional categories
 should be required, they can be added.
 
 Tool
@@ -100,14 +100,14 @@ the tools to be used by the build environment, i.e. the
     :linenos:
     :caption: ToolBox
 
-    from fab.tools import Categories, ToolBox, ToolRepository
+    from fab.tools import Category, ToolBox, ToolRepository
 
     tr = ToolRepository()
     tr.set_default_vendor("intel")
     tool_box = ToolBox()
-    ifort = tr.get_tool(Categories.FORTRAN_COMPILER, "ifort")
+    ifort = tr.get_tool(Category.FORTRAN_COMPILER, "ifort")
     tool_box.add_tool(ifort)
-    c_compiler = tr.get_default(Categories.C_COMPILER)
+    c_compiler = tr.get_default(Category.C_COMPILER)
     tool_box.add_tool(c_compiler)
 
     config = BuildConfig(tool_box=tool_box,
@@ -134,7 +134,7 @@ for the many default tools that Fab requires (git, rsync, ar, ...).
     :caption: ToolBox
 
     tool_box = ToolBox()
-    default_c_compiler = tool_box.get_tool(Categories.C_COMPILER)
+    default_c_compiler = tool_box.get_tool(Category.C_COMPILER)
 
 
 TODO

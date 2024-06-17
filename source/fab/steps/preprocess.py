@@ -19,7 +19,7 @@ from fab.metrics import send_metric
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, suffix_filter, Timer, by_type
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Categories, Preprocessor
+from fab.tools import Category, Preprocessor
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
-    fpp = config.tool_box[Categories.FORTRAN_PREPROCESSOR]
+    fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
 
     # make sure any flags from FPP are included in any common flags specified by the config
     try:
@@ -202,7 +202,7 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
     """
     source_getter = source or DefaultCPreprocessorSource()
     source_files = source_getter(config.artefact_store)
-    cpp = config.tool_box[Categories.C_PREPROCESSOR]
+    cpp = config.tool_box[Category.C_PREPROCESSOR]
 
     pre_processor(
         config,

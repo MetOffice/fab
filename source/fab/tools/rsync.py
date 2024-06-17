@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 from typing import List, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
@@ -20,7 +20,7 @@ class Rsync(Tool):
     '''
 
     def __init__(self):
-        super().__init__("rsync", "rsync", Categories.RSYNC)
+        super().__init__("rsync", "rsync", Category.RSYNC)
 
     def check_available(self) -> bool:
         '''

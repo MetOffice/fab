@@ -10,7 +10,7 @@ from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import compile_pass, get_compile_next, \
     get_mod_hashes, MpCommonArgs, process_file, store_artefacts
-from fab.tools import Categories, ToolBox
+from fab.tools import Category, ToolBox
 from fab.util import CompiledFile
 
 
@@ -317,7 +317,7 @@ class TestProcessFile():
     def test_compiler_hash(self, content):
         # changing the compiler must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
-        compiler = mp_common_args.config.tool_box[Categories.FORTRAN_COMPILER]
+        compiler = mp_common_args.config.tool_box[Category.FORTRAN_COMPILER]
         compiler._name += "xx"
 
         obj_combo_hash = '19dfa6c83'
@@ -348,7 +348,7 @@ class TestProcessFile():
     def test_compiler_version_hash(self, content):
         # changing the compiler version must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
-        compiler = mp_common_args.config.tool_box[Categories.FORTRAN_COMPILER]
+        compiler = mp_common_args.config.tool_box[Category.FORTRAN_COMPILER]
         compiler._version = "9.8.7"
 
         obj_combo_hash = '1a87f4e07'

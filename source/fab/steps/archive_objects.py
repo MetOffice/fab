@@ -16,7 +16,7 @@ from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps import step
 from fab.util import log_or_dot
-from fab.tools import Categories
+from fab.tools import Category
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ def archive_objects(config: BuildConfig,
     # todo: the output path should not be an abs fpath, it should be relative to the proj folder
 
     source_getter = source or DEFAULT_SOURCE_GETTER
-    ar = config.tool_box[Categories.AR]
+    ar = config.tool_box[Category.AR]
     output_fpath = str(output_fpath) if output_fpath else None
 
     target_objects = source_getter(config.artefact_store)

@@ -8,7 +8,7 @@
 import os
 from pathlib import Path
 
-from fab.tools import Categories, Tool, ToolBox
+from fab.tools import Category, Tool, ToolBox
 
 
 class Script(Tool):
@@ -17,7 +17,7 @@ class Script(Tool):
     '''
     def __init__(self, name: Path):
         super().__init__(name=name.name, exec_name=str(name),
-                         category=Categories.MISC)
+                         category=Category.MISC)
 
     def check_available(self):
         return True
@@ -27,7 +27,7 @@ class Script(Tool):
 def build_all():
 
     tool_box = ToolBox()
-    compiler = tool_box[Categories.FORTRAN_COMPILER]
+    compiler = tool_box[Category.FORTRAN_COMPILER]
     configs_folder = Path(__file__).parent
 
     os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler.name}')

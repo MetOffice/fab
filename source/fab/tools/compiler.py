@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 import zlib
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.flags import Flags
 from fab.tools.tool import VendorTool
 
@@ -38,7 +38,7 @@ class Compiler(VendorTool):
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, vendor: str,
-                 category: Categories,
+                 category: Category,
                  compile_flag: Optional[str] = None,
                  output_flag: Optional[str] = None,
                  omp_flag: Optional[str] = None):
@@ -167,7 +167,7 @@ class CCompiler(Compiler):
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, vendor: str,
                  compile_flag=None, output_flag=None, omp_flag=None):
-        super().__init__(name, exec_name, vendor, Categories.C_COMPILER,
+        super().__init__(name, exec_name, vendor, Category.C_COMPILER,
                          compile_flag, output_flag, omp_flag)
 
 
@@ -196,7 +196,7 @@ class FortranCompiler(Compiler):
                  module_folder_flag: str, syntax_only_flag=None,
                  compile_flag=None, output_flag=None, omp_flag=None):
 
-        super().__init__(name, exec_name, vendor, Categories.FORTRAN_COMPILER,
+        super().__init__(name, exec_name, vendor, Category.FORTRAN_COMPILER,
                          compile_flag, output_flag, omp_flag)
         self._module_folder_flag = module_folder_flag
         self._module_output_path = ""

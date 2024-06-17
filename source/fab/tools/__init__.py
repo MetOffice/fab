@@ -8,7 +8,7 @@
 '''
 
 from fab.tools.ar import Ar
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
                                 Gfortran, Icc, Ifort)
 from fab.tools.flags import Flags
@@ -23,7 +23,7 @@ from fab.tools.tool_box import ToolBox
 from fab.tools.versioning import Fcm, Git, Subversion, Versioning
 
 __all__ = ["Ar",
-           "Categories",
+           "Category",
            "CCompiler",
            "Compiler",
            "Cpp",

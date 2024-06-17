@@ -20,7 +20,7 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Categories, Flags
+from fab.tools import Category, Flags
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
 
-    compiler = config.tool_box[Categories.C_COMPILER]
+    compiler = config.tool_box[Category.C_COMPILER]
     logger.info(f'C compiler is {compiler}')
 
     env_flags = os.getenv('CFLAGS', '').split()
@@ -111,7 +111,7 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
     config = mp_payload.config
-    compiler = config.tool_box[Categories.C_COMPILER]
+    compiler = config.tool_box[Category.C_COMPILER]
     with Timer() as timer:
         flags = Flags(mp_payload.flags.flags_for_path(path=analysed_file.fpath,
                                                       config=config))

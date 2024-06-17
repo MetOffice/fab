@@ -12,7 +12,7 @@ classes for cpp and fpp.
 from pathlib import Path
 from typing import List, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
@@ -24,7 +24,7 @@ class Preprocessor(Tool):
     :param category: the category (C_PREPROCESSOR or FORTRAN_PREPROCESSOR)
     '''
 
-    def __init__(self, name: str, exec_name: str, category: Categories):
+    def __init__(self, name: str, exec_name: str, category: Category):
         super().__init__(name, exec_name, category)
         self._version = None
 
@@ -63,7 +63,7 @@ class Cpp(Preprocessor):
     '''Class for cpp.
     '''
     def __init__(self):
-        super().__init__("cpp", "cpp", Categories.C_PREPROCESSOR)
+        super().__init__("cpp", "cpp", Category.C_PREPROCESSOR)
 
 
 # ============================================================================
@@ -71,7 +71,7 @@ class CppFortran(Preprocessor):
     '''Class for cpp when used as a Fortran preprocessor
     '''
     def __init__(self):
-        super().__init__("cpp", "cpp", Categories.FORTRAN_PREPROCESSOR)
+        super().__init__("cpp", "cpp", Category.FORTRAN_PREPROCESSOR)
         self.flags.extend(["-traditional-cpp", "-P"])
 
 
@@ -80,7 +80,7 @@ class Fpp(Preprocessor):
     '''Class for Intel's Fortran-specific preprocessor.
     '''
     def __init__(self):
-        super().__init__("fpp", "fpp", Categories.FORTRAN_PREPROCESSOR)
+        super().__init__("fpp", "fpp", Category.FORTRAN_PREPROCESSOR)
 
     def check_available(self):
         '''Checks if the compiler is available. We do this by requesting the
