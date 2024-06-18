@@ -26,7 +26,7 @@ class Versioning(Tool):
     '''
 
     def __init__(self, name: str,
-                 exec_name: str,
+                 exec_name: Union[str, Path],
                  working_copy_command: str,
                  category: Category):
         super().__init__(name, exec_name, category,
@@ -140,13 +140,14 @@ class Subversion(Versioning):
     '''
 
     def __init__(self, name: Optional[str] = None,
-                 exec_name: Optional[str] = None,
+                 exec_name: Optional[Union[str, Path]] = None,
                  category: Category = Category.SUBVERSION):
         name = name or "subversion"
         exec_name = exec_name or "svn"
         super().__init__(name, exec_name, working_copy_command="info",
                          category=category)
 
+    # pylint: disable-next=too-many-arguments
     def execute(self, pre_commands: Optional[List[str]] = None,
                 revision: Optional[Union[int, str]] = None,
                 post_commands: Optional[List[str]] = None,

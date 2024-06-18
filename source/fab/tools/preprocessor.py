@@ -24,7 +24,8 @@ class Preprocessor(Tool):
     :param category: the category (C_PREPROCESSOR or FORTRAN_PREPROCESSOR)
     '''
 
-    def __init__(self, name: str, exec_name: str, category: Category,
+    def __init__(self, name: str, exec_name: Union[str, Path],
+                 category: Category,
                  availablility_option: Optional[str] = None):
         super().__init__(name, exec_name, category)
         self._version = None

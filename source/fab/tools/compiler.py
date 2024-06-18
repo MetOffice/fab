@@ -37,7 +37,9 @@ class Compiler(CompilerSuiteTool):
     '''
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, exec_name: str, suite: str,
+    def __init__(self, name: str,
+                 exec_name: Union[str, Path],
+                 suite: str,
                  category: Category,
                  compile_flag: Optional[str] = None,
                  output_flag: Optional[str] = None,
@@ -80,7 +82,12 @@ class Compiler(CompilerSuiteTool):
                         additional_parameters=params)
 
     def check_available(self) -> bool:
-        '''
+        '''Checks if the compiler is available. While the method in
+        the Tools base class would be sufficient (when using --version),
+        in case of a compiler we also want to store the compiler version.
+        So, re-implement check_available in a way that will automatically
+        store the compiler version for later usage.
+
         :returns: whether the compiler is available or not. We do
             this by requesting the compiler version.
         '''
