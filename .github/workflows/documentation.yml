@@ -44,7 +44,7 @@ jobs:
   deploy-documentation:
     environment:
       name: github-pages
-      url: ${{steps.deployment.outputs.page_url}}
+      url: ${{steps.deploy-documentation.outputs.page_url}}
       runs-on: ubuntu-24.04
       needs: sphinx-build
       steps:
