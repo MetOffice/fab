@@ -9,6 +9,7 @@
 
 
 import logging
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -33,6 +34,14 @@ def test_tool_constructor():
     assert linker.category == Category.LINKER
     assert isinstance(linker.logger, logging.Logger)
     assert not linker.is_compiler
+
+    # Check that a path is accepted
+    mytool = Tool("MyTool", Path("/bin/mytool"))
+    assert mytool.name == "MyTool"
+    # A path should be converted to a string, since this
+    # is later passed to the subprocess command
+    assert mytool.exec_name == "/bin/mytool"
+    assert mytool.category == Category.MISC
 
     # Check that if we specify no category, we get the default:
     misc = Tool("misc", "misc")

@@ -28,15 +28,15 @@ class Tool:
     the name of the executable, and provides a `run` method.
 
     :param name: name of the tool.
-    :param exec_name: name of the executable to start.
+    :param exec_name: name or full path of the executable to start.
     :param category: the Category to which this tool belongs.
     '''
 
-    def __init__(self, name: str, exec_name: str,
+    def __init__(self, name: str, exec_name: Union[str, Path],
                  category: Category = Category.MISC):
         self._logger = logging.getLogger(__name__)
         self._name = name
-        self._exec_name = exec_name
+        self._exec_name = str(exec_name)
         self._flags = Flags()
         self._category = category
 
