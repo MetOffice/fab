@@ -181,7 +181,7 @@ class CompilerSuiteTool(Tool):
     :param suite: name of the compiler suite.
     :param category: the Category to which this tool belongs.
     '''
-    def __init__(self, name: str, exec_name: str, suite: str,
+    def __init__(self, name: str, exec_name: Union[str, Path], suite: str,
                  category: Category):
         super().__init__(name, exec_name, category)
         self._suite = suite
