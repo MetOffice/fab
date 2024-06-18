@@ -59,12 +59,7 @@ class Linker(CompilerSuiteTool):
         if self._compiler:
             return self._compiler.check_available()
 
-        try:
-            # We don't actually care about the result
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
+        return super().check_available()
 
     def link(self, input_files: List[Path], output_file: Path,
              add_libs: Optional[List[str]] = None) -> str:

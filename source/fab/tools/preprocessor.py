@@ -10,7 +10,7 @@ classes for cpp and fpp.
 """
 
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -24,20 +24,10 @@ class Preprocessor(Tool):
     :param category: the category (C_PREPROCESSOR or FORTRAN_PREPROCESSOR)
     '''
 
-    def __init__(self, name: str, exec_name: str, category: Category):
+    def __init__(self, name: str, exec_name: str, category: Category,
+                 availablility_option: Optional[str] = None):
         super().__init__(name, exec_name, category)
         self._version = None
-
-    def check_available(self) -> bool:
-        '''
-        :returns: whether the preprocessor is available or not. We do
-            this by requesting the compiler version.
-        '''
-        try:
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
 
     def preprocess(self, input_file: Path, output_file: Path,
                    add_flags: Union[None, List[Union[Path, str]]] = None):
@@ -80,16 +70,7 @@ class Fpp(Preprocessor):
     '''Class for Intel's Fortran-specific preprocessor.
     '''
     def __init__(self):
-        super().__init__("fpp", "fpp", Category.FORTRAN_PREPROCESSOR)
-
-    def check_available(self):
-        '''Checks if the compiler is available. We do this by requesting the
-        compiler version.
-        '''
-        try:
-            # fpp -V prints version information, but then hangs (i.e. reading
-            # from stdin), so use -what
-            self.run("-what")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
+        # fpp -V prints version information, but then hangs (i.e. reading
+        # from stdin), so use -what to see if it is available
+        super().__init__("fpp", "fpp", Category.FORTRAN_PREPROCESSOR,
+                         availablility_option="-what")

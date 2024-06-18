@@ -22,17 +22,6 @@ class Rsync(Tool):
     def __init__(self):
         super().__init__("rsync", "rsync", Category.RSYNC)
 
-    def check_available(self) -> bool:
-        '''
-        :returns: whether `rsync` is available or not. We do this by
-            requesting the rsync version.
-        '''
-        try:
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
-
     def execute(self, src: Path,
                 dst: Path):
         '''Execute an rsync command from src to dst. It supports

@@ -27,17 +27,6 @@ class Psyclone(Tool):
     def __init__(self):
         super().__init__("psyclone", "psyclone", Category.PSYCLONE)
 
-    def check_available(self) -> bool:
-        '''
-        :returns: whether psyclone is available or not. We do this
-            by requesting the PSyclone version.
-        '''
-        try:
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
-
     def process(self, api: str,
                 config: "BuildConfig",
                 x90_file: Path,

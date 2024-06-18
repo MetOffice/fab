@@ -21,17 +21,6 @@ class Ar(Tool):
     def __init__(self):
         super().__init__("ar", "ar", Category.AR)
 
-    def check_available(self):
-        '''
-        :returns: whether `ar` is available or not. We do this by
-            requesting the ar version.
-        '''
-        try:
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
-
     def create(self, output_fpath: Path,
                members: List[Union[Path, str]]):
         '''Create the archive with the specified name, containing the

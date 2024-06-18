@@ -29,16 +29,9 @@ class Versioning(Tool):
                  exec_name: str,
                  working_copy_command: str,
                  category: Category):
-        super().__init__(name, exec_name, category)
+        super().__init__(name, exec_name, category,
+                         availablility_option="help")
         self._working_copy_command = working_copy_command
-
-    def check_available(self) -> bool:
-        ''':returns: whether this tool is installed or not.'''
-        try:
-            self.run("help")
-        except RuntimeError:
-            return False
-        return True
 
     def is_working_copy(self, path: Union[str, Path]) -> bool:
         """:returns: whether the given path is a working copy or not. It
@@ -61,8 +54,8 @@ class Git(Versioning):
 
     def __init__(self):
         super().__init__("git", "git",
-                         "status",
-                         Category.GIT)
+                         working_copy_command="status",
+                         category=Category.GIT)
 
     def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
         ''':returns: the hash of the current commit.
@@ -151,7 +144,8 @@ class Subversion(Versioning):
                  category: Category = Category.SUBVERSION):
         name = name or "subversion"
         exec_name = exec_name or "svn"
-        super().__init__(name, exec_name, "info", category)
+        super().__init__(name, exec_name, working_copy_command="info",
+                         category=category)
 
     def execute(self, pre_commands: Optional[List[str]] = None,
                 revision: Optional[Union[int, str]] = None,
