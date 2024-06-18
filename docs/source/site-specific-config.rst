@@ -22,6 +22,14 @@ be defined in the toolbox, the default from the `ToolRepository` will
 be used. This is useful for many standard tools like `git`, `rsync`
 etc that de-facto will never be changed.
 
+.. note:: If you need to use for example different compilers for
+          different files, you would implement this as a `meta-compiler`:
+          implement a new class based on the existing
+          :class:`~fab.tools.compiler.Compiler` class,
+          which takes two (or more) compiler instances. Its
+          :func:`~fab.tools.compiler.Compiler.compile_file`
+          method can then decide (e.g. based on the path of the file to
+          compile, or a hard-coded set of criteria) which compiler to use.
 
 Category
 ==========
