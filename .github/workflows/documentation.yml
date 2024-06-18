@@ -1,39 +1,53 @@
 name: Build Documentation
 
-on: workflow_dispatch
+on:
+  push:
+    branches:
+      - 'main'
+  workflow-dispatch
 
 jobs:
-  build-docs:
+  sphinx-build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-    - name: set git user
-      run: |
-        git config --global user.email "metomi@metoffice.gov.uk"
-        git config --global user.name "SciFab Developers"
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
+    - name: Cache Python packages
+      uses: actions/cache@v4
       with:
-        python-version: '3.x'
-    - name: install fab
+        path: ~/.pip/cache
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/pyproject.toml') }}
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install documentation tools
       run: pip install .[docs]
-    - name: build docs
+
+    - name: Check out Fab source
+      uses: actions/checkout@v4
+
+    - name: Generate documentation
       run: |
-        cd docs
-        rm -rf build
+        cd Documentation
         sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
         make html
-    - name: move built docs to docs root
-      run: |
-        mv docs/build/html/* docs/
-    - name: git add built docs
-      run: |
-        git add docs/*
-    - name: commit
-      run: |
-        git commit -m "docs build"
-    - name: push to gh_pages branch
-      run: |
-        echo "pushing from $GITHUB_REF_NAME to gh_pages"
-        git push --force origin $GITHUB_REF_NAME:gh_pages
+
+    - name: Prepare and upload asset
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: Documentation/build/html
+
+
+  deploy-documentation:
+    environment:
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}
+      runs-on: ubuntu-24.04
+      needs: sphinx-build
+      steps:
+        - name: Deploy to GitHub Pages
+          id: deployment
+          uses: actions/deploy-pages@v4
