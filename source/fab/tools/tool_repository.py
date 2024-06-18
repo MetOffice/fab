@@ -113,12 +113,12 @@ class ToolRepository(dict):
         '''Sets the default for linker and compilers to be of the
         given compiler suite.
 
-        :param vendor: the vendor name.
+        :param suite: the name of the compiler suite to make the default.
         '''
         for category in [Category.FORTRAN_COMPILER, Category.C_COMPILER,
                          Category.LINKER]:
             all_members = [tool for tool in self[category]
-                           if tool.vendor == suite]
+                           if tool.suite == suite]
             if len(all_members) == 0:
                 raise RuntimeError(f"Cannot find '{category}' "
                                    f"in the suite '{suite}'.")

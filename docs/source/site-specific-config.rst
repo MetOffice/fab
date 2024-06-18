@@ -103,7 +103,7 @@ the tools to be used by the build environment, i.e. the
     from fab.tools import Category, ToolBox, ToolRepository
 
     tr = ToolRepository()
-    tr.set_default_compiler_suite("intel")
+    tr.set_default_compiler_suite("intel-classic")
     tool_box = ToolBox()
     ifort = tr.get_tool(Category.FORTRAN_COMPILER, "ifort")
     tool_box.add_tool(ifort)

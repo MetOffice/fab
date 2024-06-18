@@ -159,24 +159,24 @@ class Tool:
         return ""
 
 
-class VendorTool(Tool):
-    '''A tool that has a vendor attached to it (typically compiler
+class CompilerSuiteTool(Tool):
+    '''A tool that is part of a compiler suite (typically compiler
     and linker).
 
     :param name: name of the tool.
     :param exec_name: name of the executable to start.
-    :param vendor: name of the vendor.
+    :param suite: name of the compiler suite.
     :param category: the Category to which this tool belongs.
     '''
-    def __init__(self, name: str, exec_name: str, vendor: str,
+    def __init__(self, name: str, exec_name: str, suite: str,
                  category: Category):
         super().__init__(name, exec_name, category)
-        self._vendor = vendor
+        self._suite = suite
 
     @property
-    def vendor(self) -> str:
-        ''':returns: the vendor of this tool.'''
-        return self._vendor
+    def suite(self) -> str:
+        ''':returns: the compiler suite of this tool.'''
+        return self._suite
 
     @abstractmethod
     def check_available(self) -> bool:

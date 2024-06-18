@@ -13,7 +13,7 @@ from unittest import mock
 
 import pytest
 
-from fab.tools import Category, Tool, VendorTool
+from fab.tools import Category, CompilerSuiteTool, Tool
 
 
 def test_tool_constructor():
@@ -122,12 +122,13 @@ class TestToolRun:
                     in str(err.value))
 
 
-def test_vendor_tool():
+def test_suite_tool():
     '''Test the constructor.'''
-    tool = VendorTool("gnu", "gfortran", "gnu", Category.FORTRAN_COMPILER)
-    assert str(tool) == "VendorTool - gnu: gfortran"
+    tool = CompilerSuiteTool("gnu", "gfortran", "gnu",
+                             Category.FORTRAN_COMPILER)
+    assert str(tool) == "CompilerSuiteTool - gnu: gfortran"
     assert tool.exec_name == "gfortran"
     assert tool.name == "gnu"
-    assert tool.vendor == "gnu"
+    assert tool.suite == "gnu"
     assert tool.category == Category.FORTRAN_COMPILER
     assert isinstance(tool.logger, logging.Logger)

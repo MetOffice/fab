@@ -18,7 +18,7 @@ from fab.tools import Category, Compiler, Linker, ToolBox
 @pytest.fixture(name="mock_c_compiler")
 def fixture_mock_c_compiler():
     '''Provides a mock C-compiler.'''
-    mock_compiler = Compiler("mock_c_compiler", "mock_exec", "vendor",
+    mock_compiler = Compiler("mock_c_compiler", "mock_exec", "suite",
                              Category.C_COMPILER)
     mock_compiler.run = mock.Mock()
     mock_compiler._version = "1.2.3"
@@ -30,7 +30,7 @@ def fixture_mock_c_compiler():
 @pytest.fixture(name="mock_fortran_compiler")
 def fixture_mock_fortran_compiler():
     '''Provides a mock Fortran-compiler.'''
-    mock_compiler = Compiler("mock_fortran_compiler", "mock_exec", "vendor",
+    mock_compiler = Compiler("mock_fortran_compiler", "mock_exec", "suite",
                              Category.FORTRAN_COMPILER)
     mock_compiler.run = mock.Mock()
     mock_compiler._name = "mock_fortran_compiler"

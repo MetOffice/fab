@@ -19,25 +19,25 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
     '''Test the linker constructor.'''
 
     linker = Linker(name="my_linker", exec_name="my_linker.exe",
-                    vendor="vendor")
+                    suite="suite")
     assert linker.category == Category.LINKER
     assert linker.name == "my_linker"
     assert linker.exec_name == "my_linker.exe"
-    assert linker.vendor == "vendor"
+    assert linker.suite == "suite"
     assert linker.flags == []
 
     linker = Linker(name="my_linker", compiler=mock_c_compiler)
     assert linker.category == Category.LINKER
     assert linker.name == "my_linker"
     assert linker.exec_name == mock_c_compiler.exec_name
-    assert linker.vendor == mock_c_compiler.vendor
+    assert linker.suite == mock_c_compiler.suite
     assert linker.flags == []
 
     linker = Linker(compiler=mock_c_compiler)
     assert linker.category == Category.LINKER
     assert linker.name == mock_c_compiler.name
     assert linker.exec_name == mock_c_compiler.exec_name
-    assert linker.vendor == mock_c_compiler.vendor
+    assert linker.suite == mock_c_compiler.suite
     assert linker.flags == []
 
     linker = Linker(compiler=mock_fortran_compiler)
@@ -48,7 +48,7 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
 
     with pytest.raises(RuntimeError) as err:
         linker = Linker(name="no-exec-given")
-    assert ("Either specify name, exec name, and vendor or a compiler when "
+    assert ("Either specify name, exec name, and suite or a compiler when "
             "creating Linker." in str(err.value))
 
 
@@ -66,7 +66,7 @@ def test_linker_check_available(mock_c_compiler):
 
     # Second test, no compiler is given. Mock Tool.run to
     # return a success:
-    linker = Linker("ld", "ld", vendor="gnu")
+    linker = Linker("ld", "ld", suite="gnu")
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
@@ -116,7 +116,7 @@ def test_linker_add_compiler_flag(mock_c_compiler):
 
     # Make also sure the code works if a linker is created without
     # a compiler:
-    linker = Linker("no-compiler", "no-compiler.exe", "vendor")
+    linker = Linker("no-compiler", "no-compiler.exe", "suite")
     linker.flags.append("-some-other-flag")
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',

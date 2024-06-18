@@ -25,13 +25,13 @@ def test_compiler():
     assert cc._compile_flag == "-c"
     assert cc._output_flag == "-o"
     assert cc.flags == []
-    assert cc.vendor == "gnu"
+    assert cc.suite == "gnu"
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert fc._compile_flag == "-c"
     assert fc._output_flag == "-o"
     assert fc.category == Category.FORTRAN_COMPILER
-    assert fc.vendor == "gnu"
+    assert fc.suite == "gnu"
     assert fc.flags == []
 
 
@@ -100,7 +100,7 @@ def test_compiler_syntax_only():
 
 def test_compiler_module_output():
     '''Tests handling of module output_flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", vendor="gnu",
+    fc = FortranCompiler("gfortran", "gfortran", suite="gnu",
                          module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
@@ -330,7 +330,7 @@ def test_compiler_wrapper():
                              exec_name="mpif90")
 
     mpif90 = MpiF90()
-    assert mpif90.vendor == "intel-classic"
+    assert mpif90.suite == "intel-classic"
     assert mpif90.category == Category.FORTRAN_COMPILER
     assert mpif90.name == "mpif90-intel"
     assert mpif90.exec_name == "mpif90"
