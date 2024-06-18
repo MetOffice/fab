@@ -42,6 +42,9 @@ jobs:
 
 
   deploy-documentation:
+    permissions:
+      pages: write
+      io-token: write
     environment:
       name: github-pages
       url: ${{steps.deploy-documentation.outputs.page_url}}
