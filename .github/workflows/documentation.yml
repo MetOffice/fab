@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - 'main'
-  workflow_dispatch:
 
 jobs:
   sphinx-build:
@@ -23,11 +22,11 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install documentation tools
-      run: pip install .[docs]
-
     - name: Check out Fab source
       uses: actions/checkout@v4
+
+    - name: Install documentation tools
+      run: pip install .[docs]
 
     - name: Generate documentation
       run: |
