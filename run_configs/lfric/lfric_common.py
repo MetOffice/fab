@@ -23,6 +23,7 @@ class Script(Tool):
         return True
 
 
+# ============================================================================
 @step
 def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):
 
@@ -79,6 +80,7 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
     find_source_files(config, source_root=config_dir)
 
 
+# ============================================================================
 @step
 def fparser_workaround_stop_concatenation(config):
     """
@@ -106,3 +108,28 @@ def fparser_workaround_stop_concatenation(config):
 
     open(feign_path, 'wt').write(
         open(broken_version, 'rt').read().replace(bad, good))
+
+
+# ============================================================================
+def get_transformation_script(fpath, config):
+    ''':returns: the transformation script to be used by PSyclone.
+    :rtype: Path
+
+    '''
+    optimisation_path = config.source_root / 'optimisation' / 'meto-spice'
+    relative_path = None
+    for base_path in [config.source_root, config.build_output]:
+        try:
+            relative_path = fpath.relative_to(base_path)
+        except ValueError:
+            pass
+    if relative_path:
+        local_transformation_script = (optimisation_path /
+                                       (relative_path.with_suffix('.py')))
+        if local_transformation_script.exists():
+            return local_transformation_script
+
+    global_transformation_script = optimisation_path / 'global.py'
+    if global_transformation_script.exists():
+        return global_transformation_script
+    return ""
