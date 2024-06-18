@@ -282,7 +282,8 @@ class Icc(CCompiler):
     def __init__(self,
                  name: str = "icc",
                  exec_name: str = "icc"):
-        super().__init__(name, exec_name, "intel", omp_flag="-qopenmp")
+        super().__init__(name, exec_name, "intel-classic",
+                         omp_flag="-qopenmp")
 
 
 # ============================================================================
@@ -295,7 +296,7 @@ class Ifort(FortranCompiler):
     def __init__(self,
                  name: str = "ifort",
                  exec_name: str = "ifort"):
-        super().__init__(name, exec_name, "intel",
+        super().__init__(name, exec_name, "intel-classic",
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")

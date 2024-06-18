@@ -80,14 +80,14 @@ startup section can add more tools to the repository:
     tr = ToolRepository()
     tr.add_tool(MpiF90)   # the tool repository will create the instance
 
-Compiler and linker objects define a vendor, and the `ToolRepository`
+Compiler and linker objects define a compiler suite, and the `ToolRepository`
 provides
-:func:`~fab.tools.tool_repository.ToolRepository.set_default_vendor`
+:func:`~fab.tools.tool_repository.ToolRepository.set_default_compiler_suite`
 which allows you to change the defaults for compiler and linker with
 a single call. This will allow you to easily switch from one compiler
 to another. If required, you can still change any individual compiler
-after setting a vendor, e.g. you can define `intel` as default vendor,
-but set the C-compiler to be `gcc`.
+after setting a default compiler suite, e.g. you can define `intel-classic`
+as default suite, but set the C-compiler to be `gcc`.
 
 
 Tool Box
@@ -103,7 +103,7 @@ the tools to be used by the build environment, i.e. the
     from fab.tools import Category, ToolBox, ToolRepository
 
     tr = ToolRepository()
-    tr.set_default_vendor("intel")
+    tr.set_default_compiler_suite("intel")
     tool_box = ToolBox()
     ifort = tr.get_tool(Category.FORTRAN_COMPILER, "ifort")
     tool_box.add_tool(ifort)
@@ -125,9 +125,10 @@ gfortran compiler with a version number in the name.
 If a tool category is not defined in the `ToolBox`, then
 the default tool from the `ToolRepository` will be used. Therefore,
 in the example above adding `ifort` is not strictly necessary (since
-it will be the default after setting the default vendor to `intel`),
-and `c_compiler` is the default as well. This feature is especially useful
-for the many default tools that Fab requires (git, rsync, ar, ...).
+it will be the default after setting the default compiler suite to
+`intel-classic`), and `c_compiler` is the default as well. This feature
+is especially useful for the many default tools that Fab requires (git,
+rsync, ar, ...).
 
 .. code-block::
     :linenos:

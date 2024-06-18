@@ -36,7 +36,7 @@ class TestZeroConfig:
         kwargs = {'project_label': 'fortran explicit gfortran', 'fab_workspace': tmp_path, 'multiprocessing': False}
 
         tr = ToolRepository()
-        tr.set_default_vendor("gnu")
+        tr.set_default_compiler_suite("gnu")
 
         # TODO: If the intel compiler should be used here, the linker will
         # need an additional flag (otherwise duplicated `main` symbols will

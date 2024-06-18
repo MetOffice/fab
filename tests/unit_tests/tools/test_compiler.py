@@ -330,7 +330,7 @@ def test_compiler_wrapper():
                              exec_name="mpif90")
 
     mpif90 = MpiF90()
-    assert mpif90.vendor == "intel"
+    assert mpif90.vendor == "intel-classic"
     assert mpif90.category == Category.FORTRAN_COMPILER
     assert mpif90.name == "mpif90-intel"
     assert mpif90.exec_name == "mpif90"
