@@ -44,7 +44,7 @@ def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None, output_n
 
     files = source_getter(config.artefact_store)
     results = run_mp(config, items=files, func=_process_artefact)
-    config.artefact_store[output_name] = list(results)
+    config.artefact_store.add(collection=output_name, files=list(results))
 
 
 def _process_artefact(fpath: Path):
