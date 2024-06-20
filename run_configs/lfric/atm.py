@@ -19,8 +19,6 @@ from lfric_common import configurator, fparser_workaround_stop_concatenation
 
 logger = logging.getLogger('fab')
 
-# todo: optimisation path stuff
-
 
 def file_filtering(config):
     """Based on lfric_atm/fcm-make/extract.cfg"""
@@ -163,6 +161,21 @@ def file_filtering(config):
     ]
 
 
+def get_transformation_script(fpath, config):
+    ''':returns: the transformation script to be used by PSyclone.
+    :rtype: Path
+
+    '''
+    optimisation_path = config.source_root / 'lfric' / 'lfric_atm' / 'optimisation' / 'meto-spice'
+    local_transformation_script = optimisation_path / (fpath.relative_to(config.source_root).with_suffix('.py'))
+    if local_transformation_script.exists():
+        return local_transformation_script
+    global_transformation_script = optimisation_path / 'global.py'
+    if global_transformation_script.exists():
+        return global_transformation_script
+    return ""
+
+
 if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
@@ -239,7 +252,7 @@ if __name__ == '__main__':
         psyclone(
             state,
             kernel_roots=[state.build_output / 'lfric' / 'kernel'],
-            transformation_script=lfric_source / 'lfric_atm/optimisation/meto-spice/global.py',
+            transformation_script=get_transformation_script,
             cli_args=[],
         )
 

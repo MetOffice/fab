@@ -25,6 +25,6 @@ class TestBuildConfig(object):
     def test_add_cleanup(self):
         # ensure the cleanup step is added
         with BuildConfig('proj') as config:
-            assert CLEANUP_COUNT not in config._artefact_store
+            assert CLEANUP_COUNT not in config.artefact_store
             pass
-        assert CLEANUP_COUNT in config._artefact_store
+        assert CLEANUP_COUNT in config.artefact_store

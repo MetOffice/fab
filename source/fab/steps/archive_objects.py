@@ -95,14 +95,14 @@ def archive_objects(config: BuildConfig, source: Optional[ArtefactsGetter] = Non
     output_fpath = str(output_fpath) if output_fpath else None
     output_collection = output_collection
 
-    target_objects = source_getter(config._artefact_store)
+    target_objects = source_getter(config.artefact_store)
     assert target_objects.keys()
     if output_fpath and list(target_objects.keys()) != [None]:
         raise ValueError("You must not specify an output path (library) when there are root symbols (exes)")
     if not output_fpath and list(target_objects.keys()) == [None]:
         raise ValueError("You must specify an output path when building a library.")
 
-    output_archives = config._artefact_store.setdefault(output_collection, {})
+    output_archives = config.artefact_store.setdefault(output_collection, {})
     for root, objects in target_objects.items():
 
         if root:
