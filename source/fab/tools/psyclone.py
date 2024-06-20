@@ -35,7 +35,7 @@ class Psyclone(Tool):
                 transformation_script: Optional[Callable[[Path, "BuildConfig"],
                                                          Path]] = None,
                 additional_parameters: Optional[List[str]] = None,
-                kernel_roots: Optional[List[str]] = None
+                kernel_roots: Optional[List[Union[str, Path]]] = None
                 ):
         # pylint: disable=too-many-arguments
         '''Run PSyclone with the specified parameters.

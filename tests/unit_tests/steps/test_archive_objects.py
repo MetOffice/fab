@@ -13,7 +13,7 @@ from unittest.mock import call
 from fab.build_config import BuildConfig
 from fab.constants import OBJECT_FILES, OBJECT_ARCHIVES
 from fab.steps.archive_objects import archive_objects
-from fab.tools import ToolBox
+from fab.tools import Category, ToolBox
 
 import pytest
 
@@ -73,3 +73,21 @@ class TestArchiveObjects:
         # ensure the correct artefacts were created
         assert config.artefact_store[OBJECT_ARCHIVES] == {
             None: [str(config.build_output / 'mylib.a')]}
+
+    def test_incorrect_tool(self):
+        '''Test that an incorrect archive tool is detected
+        '''
+
+        config = BuildConfig('proj', ToolBox())
+        tool_box = config.tool_box
+        cc = tool_box[Category.C_COMPILER]
+        # And set its category to C_COMPILER
+        cc._category = Category.AR
+        # So overwrite the C compiler with the re-categories Fortran compiler
+        tool_box.add_tool(cc)
+
+        with pytest.raises(RuntimeError) as err:
+            archive_objects(config=config,
+                            output_fpath=config.build_output / 'mylib.a')
+        assert ("Unexpected tool 'gcc' of type '<class "
+                "'fab.tools.compiler.Gcc'>' instead of Ar" in str(err.value))
