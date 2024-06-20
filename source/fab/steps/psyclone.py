@@ -19,14 +19,16 @@ from typing import Dict, List, Optional, Set, Tuple, Callable
 
 from fab.build_config import BuildConfig
 
-from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
+from fab.artefacts import (ArtefactSet, ArtefactsGetter, CollectionConcat,
+                           SuffixFilter)
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
 from fab.steps.preprocess import pre_processor
 from fab.tools import Categories
-from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \
-    string_checksum, suffix_filter, by_type, log_or_dot_finish
+from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
+                      file_walk, TimerLogger, string_checksum, suffix_filter,
+                      by_type, log_or_dot_finish)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
 
     # get the tool from FPP
     fpp = config.tool_box[Categories.FORTRAN_PREPROCESSOR]
-    source_files = SuffixFilter('all_source', '.X90')(config.artefact_store)
+    source_files = SuffixFilter(ArtefactSet.ALL_SOURCE, '.X90')(config.artefact_store)
 
     pre_processor(
         config,
@@ -72,7 +74,7 @@ class MpCommonArgs:
 
 DEFAULT_SOURCE_GETTER = CollectionConcat([
     'preprocessed_x90',  # any X90 we've preprocessed this run
-    SuffixFilter('all_source', '.x90'),  # any already preprocessed x90 we pulled in
+    SuffixFilter(ArtefactSet.ALL_SOURCE, '.x90'),  # any already preprocessed x90 we pulled in
 ])
 
 

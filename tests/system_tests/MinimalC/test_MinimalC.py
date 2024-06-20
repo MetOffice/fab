@@ -6,8 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
-from fab.constants import EXECUTABLES
 from fab.steps.analyse import analyse
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
@@ -34,10 +34,10 @@ def test_minimal_c(tmp_path):
         compile_c(config, common_flags=['-c', '-std=c99'])
         link_exe(config)
 
-    assert len(config.artefact_store[EXECUTABLES]) == 1
+    assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 1
 
     # run
-    command = [str(config.artefact_store[EXECUTABLES][0])]
+    command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
     assert output == 'Hello world!'

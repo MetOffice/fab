@@ -11,15 +11,14 @@ Fortran file compilation.
 import logging
 import os
 import shutil
-from collections import defaultdict
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 from typing import List, Set, Dict, Tuple, Optional, Union
 
-from fab.artefacts import ArtefactsGetter, ArtefactStore, FilterBuildTrees
+from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
+                           FilterBuildTrees)
 from fab.build_config import BuildConfig, FlagsConfig
-from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
@@ -197,10 +196,9 @@ def store_artefacts(compiled_files: Dict[Path, CompiledFile],
     """
     # add the new object files to the artefact store, by target
     lookup = {c.input_fpath: c for c in compiled_files.values()}
-    object_files = artefact_store.setdefault(OBJECT_FILES, defaultdict(set))
     for root, source_files in build_lists.items():
-        new_objects = [lookup[af.fpath].output_fpath for af in source_files]
-        object_files[root].update(new_objects)
+        new_objects = {lookup[af.fpath].output_fpath for af in source_files}
+        artefact_store.update_dict(ArtefactSet.OBJECT_FILES, root, new_objects)
 
 
 def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \

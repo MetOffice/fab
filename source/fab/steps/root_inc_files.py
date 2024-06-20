@@ -15,6 +15,7 @@ import shutil
 import warnings
 from pathlib import Path
 
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.util import suffix_filter
@@ -48,7 +49,7 @@ def root_inc_files(config: BuildConfig):
 
     # inc files all go in the root - they're going to be removed altogether, soon
     inc_copied = set()
-    for fpath in suffix_filter(config.artefact_store["all_source"], [".inc"]):
+    for fpath in suffix_filter(config.artefact_store[ArtefactSet.ALL_SOURCE], [".inc"]):
 
         # don't copy from the output root to the output root!
         # this is currently unlikely to happen but did in the past, and caused problems.
