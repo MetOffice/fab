@@ -23,7 +23,7 @@ from fab.constants import OBJECT_FILES
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Compiler, Flags
+from fab.tools import Category, Compiler, Flags, FortranCompiler
 from fab.util import (CompiledFile, log_or_dot_finish, log_or_dot, Timer,
                       by_type, file_checksum)
 
@@ -119,6 +119,9 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
 
     # Command line tools are sometimes specified with flags attached.
     compiler = config.tool_box[Category.FORTRAN_COMPILER]
+    if not isinstance(compiler, FortranCompiler):
+        raise RuntimeError(f"Unexpected tool '{compiler.name}' of type "
+                           f"'{type(compiler)}' instead of FortranCompiler")
     logger.info(f'Fortran compiler is {compiler} {compiler.get_version()}')
 
     # Collate the flags from 1) flags env and 2) parameters.
@@ -227,6 +230,10 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
         analysed_file, mp_common_args = arg
         config = mp_common_args.config
         compiler = config.tool_box[Category.FORTRAN_COMPILER]
+        if not isinstance(compiler, FortranCompiler):
+            raise RuntimeError(f"Unexpected tool '{compiler.name}' of type "
+                               f"'{type(compiler)}' instead of "
+                               f"FortranCompiler")
         flags = Flags(mp_common_args.flags.flags_for_path(path=analysed_file.fpath, config=config))
 
         mod_combo_hash = _get_mod_combo_hash(analysed_file, compiler=compiler)

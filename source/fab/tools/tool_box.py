@@ -22,7 +22,7 @@ class ToolBox:
     def __init__(self):
         self._all_tools: Dict[Category, Tool] = {}
 
-    def __getitem__(self, category: Category):
+    def __getitem__(self, category: Category) -> Tool:
         '''A convenience function for get_tool.'''
         return self.get_tool(category)
 

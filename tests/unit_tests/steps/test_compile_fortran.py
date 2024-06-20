@@ -8,8 +8,9 @@ import pytest
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
-from fab.steps.compile_fortran import compile_pass, get_compile_next, \
-    get_mod_hashes, MpCommonArgs, process_file, store_artefacts
+from fab.steps.compile_fortran import (compile_pass, get_compile_next,
+    get_mod_hashes, handle_compiler_args, MpCommonArgs, process_file,
+    store_artefacts)
 from fab.tools import Category, ToolBox
 from fab.util import CompiledFile
 
@@ -29,6 +30,31 @@ def fixture_artefact_store(analysed_files):
     artefact_store = {BUILD_TREES: {None: build_tree}}
     return artefact_store
 
+
+def test_compile_cc_wrong_compiler(tool_box):
+    '''Test if a non-C compiler is specified as c compiler.
+    '''
+    config = BuildConfig('proj', tool_box)
+    # Take the Fortran compiler
+    cc = tool_box[Category.C_COMPILER]
+    # And set its category to C_COMPILER
+    cc._category = Category.FORTRAN_COMPILER
+    # So overwrite the C compiler with the re-categories Fortran compiler
+    tool_box.add_tool(cc)
+
+    # Now check that _compile_file detects the incorrect class of the
+    # C compiler
+    mp_common_args = mock.Mock(config=config)
+    with pytest.raises(RuntimeError) as err:
+        process_file((None, mp_common_args))
+    assert ("Unexpected tool 'mock_c_compiler' of type '<class "
+            "'fab.tools.compiler.CCompiler'>' instead of FortranCompiler"
+            in str(err.value))
+    with pytest.raises(RuntimeError) as err:
+        handle_compiler_args(config)
+    assert ("Unexpected tool 'mock_c_compiler' of type '<class "
+            "'fab.tools.compiler.CCompiler'>' instead of FortranCompiler"
+            in str(err.value))
 
 class TestCompilePass:
 

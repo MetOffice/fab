@@ -19,7 +19,7 @@ from fab.metrics import send_metric
 
 from fab.util import log_or_dot_finish, input_to_output_fpath, log_or_dot, suffix_filter, Timer, by_type
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Preprocessor
+from fab.tools import Category, Cpp, CppFortran, Preprocessor
 from fab.artefacts import ArtefactsGetter, SuffixFilter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -117,7 +117,7 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
             try:
                 args.preprocessor.preprocess(input_fpath, output_fpath, params)
             except Exception as err:
-                raise Exception(f"error preprocessing {input_fpath}:\n{err}")
+                raise Exception(f"error preprocessing {input_fpath}:\n{err}") from err
 
     send_metric(args.name, str(input_fpath), {'time_taken': timer.taken, 'start': timer.start})
     return output_fpath
@@ -145,6 +145,9 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     f90s = suffix_filter(source_files, '.f90')
 
     fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
+    if not isinstance(fpp, CppFortran):
+        raise RuntimeError(f"Unexpected tool '{fpp.name}' of type "
+                           f"'{type(fpp)}' instead of CppFortran")
 
     # make sure any flags from FPP are included in any common flags specified by the config
     try:
@@ -203,6 +206,9 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
     source_getter = source or DefaultCPreprocessorSource()
     source_files = source_getter(config.artefact_store)
     cpp = config.tool_box[Category.C_PREPROCESSOR]
+    if not isinstance(cpp, Cpp):
+        raise RuntimeError(f"Unexpected tool '{cpp.name}' of type "
+                           f"'{type(cpp)}' instead of Cpp")
 
     pre_processor(
         config,
