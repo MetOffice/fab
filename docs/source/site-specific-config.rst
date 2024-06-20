@@ -71,6 +71,9 @@ wrapper for `ifort`, you can create this class as follows:
             super().__init__(name="mpif90-intel",
                              exec_name="mpif90")
 
+.. note:: In `ticket 312 <https://github.com/metomi/fab/issues/312>`_ a better
+        implementation of compiler wrapper will be implemented.
+
 Tool Repository
 ===============
 The :class:`~fab.tools.tool_repository.ToolRepository` implements
