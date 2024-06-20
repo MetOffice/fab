@@ -1,0 +1,888 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>fab.steps package &#8212; Fab 1.1.dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=fd3f3429" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341" />
+  <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=3ee479438cf8b5e0d341"></script>
+
+    <script src="../_static/documentation_options.js?v=b25a302a"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'apidoc/fab.steps';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="../index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Fab 1.1.dev0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../install.html">
+    Installing Fab
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../environment.html">
+    Environment
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../metoffice.html">
+    Using Fab at the Met Office
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../config_intro.html">
+    Introduction to Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../writing_config.html">
+    How to Write a Build Configuration
+  </a>
+</li>
+
+            <li class="nav-item dropdown pst-header-nav-item">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../advanced_config.html">
+    Advanced Configuration
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../features.html">
+    Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../api.html">
+    Api Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../development.html">
+    Developer’s guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../glossary.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../genindex.html">
+    Index
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="../py-modindex.html">
+    Python Module Index
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/metomi/fab" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../install.html">
+    Installing Fab
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../environment.html">
+    Environment
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../metoffice.html">
+    Using Fab at the Met Office
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../config_intro.html">
+    Introduction to Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../writing_config.html">
+    How to Write a Build Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../advanced_config.html">
+    Advanced Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../features.html">
+    Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../api.html">
+    Api Reference
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../development.html">
+    Developer’s guide
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../glossary.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../genindex.html">
+    Index
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="../py-modindex.html">
+    Python Module Index
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/metomi/fab" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="fab.parse.html">fab.parse package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.parse.c.html">fab.parse.c module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.parse.fortran.html">fab.parse.fortran module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.parse.fortran_common.html">fab.parse.fortran_common module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.parse.x90.html">fab.parse.x90 module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">fab.steps package</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="fab.steps.grab.html">fab.steps.grab package</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.archive.html">fab.steps.grab.archive module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.fcm.html">fab.steps.grab.fcm module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.folder.html">fab.steps.grab.folder module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.git.html">fab.steps.grab.git module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.prebuild.html">fab.steps.grab.prebuild module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.svn.html">fab.steps.grab.svn module</a></li>
+</ul>
+</details></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.analyse.html">fab.steps.analyse module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.archive_objects.html">fab.steps.archive_objects module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.c_pragma_injector.html">fab.steps.c_pragma_injector module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.cleanup_prebuilds.html">fab.steps.cleanup_prebuilds module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_c.html">fab.steps.compile_c module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html">fab.steps.compile_fortran module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.find_source_files.html">fab.steps.find_source_files module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.link.html">fab.steps.link module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html">fab.steps.preprocess module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html">fab.steps.psyclone module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.root_inc_files.html">fab.steps.root_inc_files module</a></li>
+</ul>
+</details></li>
+</ul>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="fab.artefacts.html">fab.artefacts module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.build_config.html">fab.build_config module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.cli.html">fab.cli module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.constants.html">fab.constants module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.dep_tree.html">fab.dep_tree module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.metrics.html">fab.metrics module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.mo.html">fab.mo module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.tools.html">fab.tools module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fab.util.html">fab.util module</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">fab.steps package</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="module-fab.steps">
+<span id="fab-steps-package"></span><h1>fab.steps package<a class="headerlink" href="#module-fab.steps" title="Link to this heading">#</a></h1>
+<p>Predefined build steps with sensible defaults.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="fab.steps.step">
+<span class="sig-prename descclassname"><span class="pre">fab.steps.</span></span><span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fab.steps.step" title="Link to this definition">#</a></dt>
+<dd><p>Function decorator for steps.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="fab.steps.run_mp">
+<span class="sig-prename descclassname"><span class="pre">fab.steps.</span></span><span class="sig-name descname"><span class="pre">run_mp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">no_multiprocessing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fab.steps.run_mp" title="Link to this definition">#</a></dt>
+<dd><p>Called from Step.run() to process multiple items in parallel.</p>
+<p>For example, a compile step would, in its run() method, find a list of source files in the artefact store.
+It could then pass those paths to this method, along with a function to compile a <em>single</em> file.
+The whole set of results are returned in a list-like, with undefined order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>items</strong> – An iterable of items to process in parallel.</p></li>
+<li><p><strong>func</strong> – A function to process a single item. Must accept a single argument.</p></li>
+<li><p><strong>no_multiprocessing</strong> (<span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a></span>) – (default: <code class="docutils literal notranslate"><span class="pre">False</span></code>)
+Overrides the config’s multiprocessing flag, disabling multiprocessing for this call.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="fab.steps.run_mp_imap">
+<span class="sig-prename descclassname"><span class="pre">fab.steps.</span></span><span class="sig-name descname"><span class="pre">run_mp_imap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">items</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_handler</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fab.steps.run_mp_imap" title="Link to this definition">#</a></dt>
+<dd><p>Like run_mp, but uses imap instead of map so that we can process each result as it happens.</p>
+<p>This is useful for a slow operation where we want to save our progress as we go
+instead of waiting for everything to finish, allowing us to pick up where we left off if the program is halted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>items</strong> – An iterable of items to process in parallel.</p></li>
+<li><p><strong>func</strong> – A function to process a single item. Must accept a single argument.</p></li>
+<li><p><strong>result_handler</strong> – A function to handle a single result. Must accept a single argument.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="fab.steps.check_for_errors">
+<span class="sig-prename descclassname"><span class="pre">fab.steps.</span></span><span class="sig-name descname"><span class="pre">check_for_errors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">caller_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#fab.steps.check_for_errors" title="Link to this definition">#</a></dt>
+<dd><p>Check an iterable of results for any exceptions and handle them gracefully.</p>
+<p>This is a helper function for steps which use multiprocessing,
+getting multiple results back from <code class="xref py py-meth docutils literal notranslate"><span class="pre">run_mp()</span></code> all in one go.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>results</strong> – An iterable of results.</p></li>
+<li><p><strong>caller_label</strong> – (default: <code class="docutils literal notranslate"><span class="pre">None</span></code>)
+Optional human-friendly name of the caller for logging.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.grab.html">fab.steps.grab package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.grab.html#fab.steps.grab.call_rsync"><code class="docutils literal notranslate"><span class="pre">call_rsync()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.grab.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.archive.html">fab.steps.grab.archive module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.archive.html#fab.steps.grab.archive.grab_archive"><code class="docutils literal notranslate"><span class="pre">grab_archive()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.fcm.html">fab.steps.grab.fcm module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.fcm.html#fab.steps.grab.fcm.fcm_export"><code class="docutils literal notranslate"><span class="pre">fcm_export()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.fcm.html#fab.steps.grab.fcm.fcm_checkout"><code class="docutils literal notranslate"><span class="pre">fcm_checkout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.fcm.html#fab.steps.grab.fcm.fcm_merge"><code class="docutils literal notranslate"><span class="pre">fcm_merge()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.folder.html">fab.steps.grab.folder module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.folder.html#fab.steps.grab.folder.grab_folder"><code class="docutils literal notranslate"><span class="pre">grab_folder()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.git.html">fab.steps.grab.git module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.git.html#fab.steps.grab.git.current_commit"><code class="docutils literal notranslate"><span class="pre">current_commit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.git.html#fab.steps.grab.git.tool_available"><code class="docutils literal notranslate"><span class="pre">tool_available()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.git.html#fab.steps.grab.git.is_working_copy"><code class="docutils literal notranslate"><span class="pre">is_working_copy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.git.html#fab.steps.grab.git.fetch"><code class="docutils literal notranslate"><span class="pre">fetch()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.git.html#fab.steps.grab.git.git_checkout"><code class="docutils literal notranslate"><span class="pre">git_checkout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.git.html#fab.steps.grab.git.git_merge"><code class="docutils literal notranslate"><span class="pre">git_merge()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.prebuild.html">fab.steps.grab.prebuild module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.prebuild.html#fab.steps.grab.prebuild.grab_pre_build"><code class="docutils literal notranslate"><span class="pre">grab_pre_build()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.grab.svn.html">fab.steps.grab.svn module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.svn.html#fab.steps.grab.svn.tool_available"><code class="docutils literal notranslate"><span class="pre">tool_available()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.svn.html#fab.steps.grab.svn.is_working_copy"><code class="docutils literal notranslate"><span class="pre">is_working_copy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.svn.html#fab.steps.grab.svn.svn_export"><code class="docutils literal notranslate"><span class="pre">svn_export()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.svn.html#fab.steps.grab.svn.svn_checkout"><code class="docutils literal notranslate"><span class="pre">svn_checkout()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.svn.html#fab.steps.grab.svn.svn_merge"><code class="docutils literal notranslate"><span class="pre">svn_merge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="fab.steps.grab.svn.html#fab.steps.grab.svn.check_conflict"><code class="docutils literal notranslate"><span class="pre">check_conflict()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.analyse.html">fab.steps.analyse module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.analyse.html#fab.steps.analyse.analyse"><code class="docutils literal notranslate"><span class="pre">analyse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.archive_objects.html">fab.steps.archive_objects module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.archive_objects.html#fab.steps.archive_objects.archive_objects"><code class="docutils literal notranslate"><span class="pre">archive_objects()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.c_pragma_injector.html">fab.steps.c_pragma_injector module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.c_pragma_injector.html#fab.steps.c_pragma_injector.c_pragma_injector"><code class="docutils literal notranslate"><span class="pre">c_pragma_injector()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.c_pragma_injector.html#fab.steps.c_pragma_injector.inject_pragmas"><code class="docutils literal notranslate"><span class="pre">inject_pragmas()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.cleanup_prebuilds.html">fab.steps.cleanup_prebuilds module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.cleanup_prebuilds.html#fab.steps.cleanup_prebuilds.cleanup_prebuilds"><code class="docutils literal notranslate"><span class="pre">cleanup_prebuilds()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.cleanup_prebuilds.html#fab.steps.cleanup_prebuilds.by_age"><code class="docutils literal notranslate"><span class="pre">by_age()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.cleanup_prebuilds.html#fab.steps.cleanup_prebuilds.by_version_age"><code class="docutils literal notranslate"><span class="pre">by_version_age()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.cleanup_prebuilds.html#fab.steps.cleanup_prebuilds.remove_all_unused"><code class="docutils literal notranslate"><span class="pre">remove_all_unused()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.cleanup_prebuilds.html#fab.steps.cleanup_prebuilds.get_access_time"><code class="docutils literal notranslate"><span class="pre">get_access_time()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.compile_c.html">fab.steps.compile_c module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_c.html#fab.steps.compile_c.MpCommonArgs"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_c.html#fab.steps.compile_c.MpCommonArgs.config"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_c.html#fab.steps.compile_c.MpCommonArgs.flags"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.flags</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_c.html#fab.steps.compile_c.MpCommonArgs.compiler"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.compiler</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_c.html#fab.steps.compile_c.MpCommonArgs.compiler_version"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.compiler_version</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_c.html#fab.steps.compile_c.compile_c"><code class="docutils literal notranslate"><span class="pre">compile_c()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_c.html#fab.steps.compile_c.store_artefacts"><code class="docutils literal notranslate"><span class="pre">store_artefacts()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.compile_fortran.html">fab.steps.compile_fortran module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs.config"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs.flags"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.flags</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs.compiler"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.compiler</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs.compiler_version"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.compiler_version</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs.mod_hashes"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.mod_hashes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs.two_stage_flag"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.two_stage_flag</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.MpCommonArgs.stage"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.stage</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.compile_fortran"><code class="docutils literal notranslate"><span class="pre">compile_fortran()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.handle_compiler_args"><code class="docutils literal notranslate"><span class="pre">handle_compiler_args()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.compile_pass"><code class="docutils literal notranslate"><span class="pre">compile_pass()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.get_compile_next"><code class="docutils literal notranslate"><span class="pre">get_compile_next()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.store_artefacts"><code class="docutils literal notranslate"><span class="pre">store_artefacts()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.process_file"><code class="docutils literal notranslate"><span class="pre">process_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.compile_file"><code class="docutils literal notranslate"><span class="pre">compile_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.get_fortran_compiler"><code class="docutils literal notranslate"><span class="pre">get_fortran_compiler()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.compile_fortran.html#fab.steps.compile_fortran.get_mod_hashes"><code class="docutils literal notranslate"><span class="pre">get_mod_hashes()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.find_source_files.html">fab.steps.find_source_files module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.find_source_files.html#fab.steps.find_source_files.Include"><code class="docutils literal notranslate"><span class="pre">Include</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.find_source_files.html#fab.steps.find_source_files.Exclude"><code class="docutils literal notranslate"><span class="pre">Exclude</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.find_source_files.html#fab.steps.find_source_files.find_source_files"><code class="docutils literal notranslate"><span class="pre">find_source_files()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.link.html">fab.steps.link module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.link.html#fab.steps.link.DefaultLinkerSource"><code class="docutils literal notranslate"><span class="pre">DefaultLinkerSource</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.link.html#fab.steps.link.call_linker"><code class="docutils literal notranslate"><span class="pre">call_linker()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.link.html#fab.steps.link.link_exe"><code class="docutils literal notranslate"><span class="pre">link_exe()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.link.html#fab.steps.link.link_shared_object"><code class="docutils literal notranslate"><span class="pre">link_shared_object()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.preprocess.html">fab.steps.preprocess module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.MpCommonArgs"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.MpCommonArgs.config"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.MpCommonArgs.output_suffix"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.output_suffix</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.MpCommonArgs.preprocessor"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.preprocessor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.MpCommonArgs.flags"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.flags</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.MpCommonArgs.name"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.pre_processor"><code class="docutils literal notranslate"><span class="pre">pre_processor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.process_artefact"><code class="docutils literal notranslate"><span class="pre">process_artefact()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.get_fortran_preprocessor"><code class="docutils literal notranslate"><span class="pre">get_fortran_preprocessor()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.preprocess_fortran"><code class="docutils literal notranslate"><span class="pre">preprocess_fortran()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.DefaultCPreprocessorSource"><code class="docutils literal notranslate"><span class="pre">DefaultCPreprocessorSource</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.preprocess.html#fab.steps.preprocess.preprocess_c"><code class="docutils literal notranslate"><span class="pre">preprocess_c()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.psyclone.html">fab.steps.psyclone module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.tool_available"><code class="docutils literal notranslate"><span class="pre">tool_available()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.preprocess_x90"><code class="docutils literal notranslate"><span class="pre">preprocess_x90()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.config"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.analysed_x90"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.analysed_x90</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.kernel_roots"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.kernel_roots</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.transformation_script"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.transformation_script</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.cli_args"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.cli_args</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.all_kernel_hashes"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.all_kernel_hashes</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.overrides_folder"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.overrides_folder</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.MpCommonArgs.override_files"><code class="docutils literal notranslate"><span class="pre">MpCommonArgs.override_files</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.psyclone"><code class="docutils literal notranslate"><span class="pre">psyclone()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.do_one_file"><code class="docutils literal notranslate"><span class="pre">do_one_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.run_psyclone"><code class="docutils literal notranslate"><span class="pre">run_psyclone()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.psyclone.html#fab.steps.psyclone.make_parsable_x90"><code class="docutils literal notranslate"><span class="pre">make_parsable_x90()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="fab.steps.root_inc_files.html">fab.steps.root_inc_files module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fab.steps.root_inc_files.html#fab.steps.root_inc_files.root_inc_files"><code class="docutils literal notranslate"><span class="pre">root_inc_files()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fab.steps.step"><code class="docutils literal notranslate"><span class="pre">step()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fab.steps.run_mp"><code class="docutils literal notranslate"><span class="pre">run_mp()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fab.steps.run_mp_imap"><code class="docutils literal notranslate"><span class="pre">run_mp_imap()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fab.steps.check_for_errors"><code class="docutils literal notranslate"><span class="pre">check_for_errors()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#subpackages">Subpackages</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="../_sources/apidoc/fab.steps.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+
+<p class="copyright">
+    
+    © Crown Copyright 2024 Met Office. All rights reserved..
+    
+</p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__center">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

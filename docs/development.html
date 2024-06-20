@@ -1,0 +1,789 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Developer’s guide &#8212; Fab 1.1.dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=3ee479438cf8b5e0d341"></script>
+
+    <script src="_static/documentation_options.js?v=b25a302a"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'development';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Glossary" href="glossary.html" />
+    <link rel="prev" title="fab.util" href="api/fab.util.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Fab 1.1.dev0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="install.html">
+    Installing Fab
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="environment.html">
+    Environment
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="metoffice.html">
+    Using Fab at the Met Office
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="config_intro.html">
+    Introduction to Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="writing_config.html">
+    How to Write a Build Configuration
+  </a>
+</li>
+
+            <li class="nav-item dropdown pst-header-nav-item">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="advanced_config.html">
+    Advanced Configuration
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="features.html">
+    Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="api.html">
+    Api Reference
+  </a>
+</li>
+
+
+<li class="nav-item  current active">
+  <a class="nav-link dropdown-item nav-internal" href="#">
+    Developer’s guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="glossary.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="genindex.html">
+    Index
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="py-modindex.html">
+    Python Module Index
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/metomi/fab" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="install.html">
+    Installing Fab
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="environment.html">
+    Environment
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="metoffice.html">
+    Using Fab at the Met Office
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="config_intro.html">
+    Introduction to Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="writing_config.html">
+    How to Write a Build Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="advanced_config.html">
+    Advanced Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="features.html">
+    Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="api.html">
+    Api Reference
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    Developer’s guide
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="glossary.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="genindex.html">
+    Index
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="py-modindex.html">
+    Python Module Index
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/metomi/fab" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">Developer’s guide</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="developer-s-guide">
+<span id="development"></span><h1>Developer’s guide<a class="headerlink" href="#developer-s-guide" title="Link to this heading">#</a></h1>
+<p>Interested in developing Fab? Here are some resources to help you on your way.</p>
+<section id="install-from-source">
+<span id="id1"></span><h2>Install from source<a class="headerlink" href="#install-from-source" title="Link to this heading">#</a></h2>
+<p>The following commands will checkout the latest version of the code and create
+an
+<a class="reference external" href="https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs">editable install</a>.</p>
+<p>This lets you edit the code without needing to reinstall fab after every change.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/metomi/fab.git<span class="w"> </span>&lt;fab-folder&gt;
+<span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>&lt;fab-folder&gt;
+</pre></div>
+</div>
+<p>You can install extra features by using [test], [docs], [features] or [dev], as
+defined in setup.py.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>&lt;fab-folder&gt;<span class="o">[</span>dev<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="source-code-analysis">
+<h2>Source code Analysis<a class="headerlink" href="#source-code-analysis" title="Link to this heading">#</a></h2>
+<p>The class hierarchy for analysis results can be seen below. See
+<a class="reference internal" href="apidoc/fab.steps.analyse.html#module-fab.steps.analyse" title="fab.steps.analyse"><code class="xref py py-mod docutils literal notranslate"><span class="pre">analyse</span></code></a> for a description of the analysis process.</p>
+<p>Classes which are involved in source tree analysis contain symbol definitions
+and dependencies, and the file dependencies into which they are converted.</p>
+<a class="reference internal image-reference" href="_images/analysis_results_hierarchy.svg"><img alt="Analysis results class hierarchy" class="align-center" src="_images/analysis_results_hierarchy.svg" width="95%" /></a>
+</section>
+<section id="incremental-prebuilds">
+<h2>Incremental &amp; Prebuilds<a class="headerlink" href="#incremental-prebuilds" title="Link to this heading">#</a></h2>
+<p>See <a class="reference internal" href="glossary.html#term-Incremental-Build"><span class="xref std std-term">Incremental Build</span></a> and <a class="reference internal" href="glossary.html#term-Prebuild"><span class="xref std std-term">Prebuild</span></a> for definitions.</p>
+<p>Prebuilt artefacts are stored in a flat <em>_prebuild</em> folder underneath the
+<em>build_output</em> folder. They include a checksum in their filename to distinguish
+between different builds of the same artefact. All prebuild files are named:
+<cite>&lt;stem&gt;.&lt;hash&gt;.&lt;suffix&gt;</cite>, e.g: <em>my_mod.123.o</em>.</p>
+<section id="checksums">
+<h3>Checksums<a class="headerlink" href="#checksums" title="Link to this heading">#</a></h3>
+<p>Fab inserts a checksum in the names of prebuild files. This checksum is derived
+from everything which should trigger a rebuild if changed. Before an artefact
+is created, Fab will calculate the checksum and search for an existing artefact
+so it can avoid reprocessing the inputs.</p>
+</section>
+<section id="analysis-results">
+<h3>Analysis results<a class="headerlink" href="#analysis-results" title="Link to this heading">#</a></h3>
+<p>Analysis results are stored in files with a <em>.an</em> suffix. The checksum in the
+filename is solely the hash of the analysed source file. Note: this can change
+with different preprocessor flags.</p>
+</section>
+<section id="fortran-module-files">
+<h3>Fortran module files<a class="headerlink" href="#fortran-module-files" title="Link to this heading">#</a></h3>
+<p>When creating a module file from a Fortran source file, the prebuild checksum is created from hashes of:</p>
+<ul class="simple">
+<li><p>source file</p></li>
+<li><p>compiler</p></li>
+<li><p>compiler version</p></li>
+</ul>
+</section>
+<section id="fortran-object-files">
+<h3>Fortran object files<a class="headerlink" href="#fortran-object-files" title="Link to this heading">#</a></h3>
+<p>When creating an object file from a Fortran source file, the prebuild checksum is created from hashes of:</p>
+<ul class="simple">
+<li><p>source file</p></li>
+<li><p>compiler</p></li>
+<li><p>compiler version</p></li>
+<li><p>compiler flags</p></li>
+<li><p>modules on which the source depends</p></li>
+</ul>
+</section>
+</section>
+<section id="running-the-tests">
+<h2>Running the tests<a class="headerlink" href="#running-the-tests" title="Link to this heading">#</a></h2>
+<p>You’ll need to install from source, and a full
+<a class="reference internal" href="#install-from-source"><span class="std std-ref">[dev] install</span></a> to get the testing dependencies.</p>
+<section id="unit-and-system-tests">
+<h3>Unit and system tests<a class="headerlink" href="#unit-and-system-tests" title="Link to this heading">#</a></h3>
+<p>From the fab folder, type:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>pytest<span class="w"> </span>tests/unit_tests
+<span class="gp">$ </span>pytest<span class="w"> </span>tests/system_tests
+</pre></div>
+</div>
+</section>
+<section id="flake8-and-mypy">
+<h3>Flake8 and mypy<a class="headerlink" href="#flake8-and-mypy" title="Link to this heading">#</a></h3>
+<p>When making a PR, you might want to run all the checks which give us green
+ticks. You can see the commands we run in <code class="docutils literal notranslate"><span class="pre">.github/workflows/build.yml</span></code>.</p>
+<p>To run flake8 and mypy, type:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>flake8<span class="w"> </span>.
+<span class="gp">$ </span>mypy<span class="w"> </span>setup.py<span class="w"> </span><span class="nb">source</span><span class="w"> </span>tests
+</pre></div>
+</div>
+</section>
+</section>
+<section id="github-actions">
+<h2>Github Actions<a class="headerlink" href="#github-actions" title="Link to this heading">#</a></h2>
+<p>Various workflows are maintained by the project.</p>
+<section id="testing-a-pr">
+<h3>Testing a PR<a class="headerlink" href="#testing-a-pr" title="Link to this heading">#</a></h3>
+<p>The github action defined in <code class="docutils literal notranslate"><span class="pre">.github/workflows/build.yml</span></code> automatically runs
+the unit and system tests, plus flake8 and mypy, and adds green ticks to pull
+requests.</p>
+</section>
+<section id="build-these-docs">
+<h3>Build these docs<a class="headerlink" href="#build-these-docs" title="Link to this heading">#</a></h3>
+<p>The github action to build the docs is defined in
+<code class="docutils literal notranslate"><span class="pre">.github/workflows/build_docs.yml</span></code>. It is manually triggered and can be run
+from any branch in the metomi repo.</p>
+<p>You can also run it on your fork to produce a separate build, for viewing work
+in progress.</p>
+</section>
+</section>
+<section id="version-numbering">
+<span id="build-singularity"></span><h2>Version numbering<a class="headerlink" href="#version-numbering" title="Link to this heading">#</a></h2>
+<p>We use a <a class="reference external" href="https://peps.python.org/pep-0440/#examples-of-compliant-version-schemes">PEP 440 compliant</a>
+semantic versioning, of the form <code class="docutils literal notranslate"><span class="pre">{major}.{minor}.{patch}[{a|b|rc}N]</span></code></p>
+<ul class="simple">
+<li><p>0.9.5</p></li>
+<li><p>1.0.0a1</p></li>
+<li><p>1.0.0a2</p></li>
+<li><p>1.0.0b1</p></li>
+<li><p>1.0.0rc1</p></li>
+<li><p>1.0.0</p></li>
+<li><p>1.0.1</p></li>
+<li><p>1.1.0a1</p></li>
+</ul>
+<p>Dev versions are not for release and cover multiple commits.
+* 1.0.dev0
+* …
+* 1.0.0
+* 1.0.dev1
+* …
+* 1.0.1</p>
+<p>The version number is defined in <code class="docutils literal notranslate"><span class="pre">source/fab/__init_.py</span></code>.</p>
+</section>
+<section id="developing-at-the-met-office">
+<h2>Developing at the Met Office<a class="headerlink" href="#developing-at-the-met-office" title="Link to this heading">#</a></h2>
+<p>There are special notes for
+<a class="reference internal" href="metoffice.html#metofficedevelopment"><span class="std std-ref">developers working at the Met Office</span></a>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="api/fab.util.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">fab.util</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="glossary.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Glossary</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#install-from-source">Install from source</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#source-code-analysis">Source code Analysis</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#incremental-prebuilds">Incremental &amp; Prebuilds</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#checksums">Checksums</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#analysis-results">Analysis results</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fortran-module-files">Fortran module files</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fortran-object-files">Fortran object files</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-the-tests">Running the tests</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#unit-and-system-tests">Unit and system tests</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#flake8-and-mypy">Flake8 and mypy</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#github-actions">Github Actions</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#testing-a-pr">Testing a PR</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#build-these-docs">Build these docs</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#version-numbering">Version numbering</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#developing-at-the-met-office">Developing at the Met Office</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/development.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+
+<p class="copyright">
+    
+    © Crown Copyright 2024 Met Office. All rights reserved..
+    
+</p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__center">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

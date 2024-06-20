@@ -1,0 +1,908 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>How to Write a Build Configuration &#8212; Fab 1.1.dev0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.5.2/css/all.min.css?digest=3ee479438cf8b5e0d341" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.5.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341" />
+  <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=3ee479438cf8b5e0d341"></script>
+
+    <script src="_static/documentation_options.js?v=b25a302a"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'writing_config';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Advanced Configuration" href="advanced_config.html" />
+    <link rel="prev" title="Introduction to Configuration" href="config_intro.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-primary-sidebar-checkbox"/>
+  <label class="overlay overlay-primary" for="pst-primary-sidebar-checkbox"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          id="pst-secondary-sidebar-checkbox"/>
+  <label class="overlay overlay-secondary" for="pst-secondary-sidebar-checkbox"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">Fab 1.1.dev0 documentation</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="install.html">
+    Installing Fab
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="environment.html">
+    Environment
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="metoffice.html">
+    Using Fab at the Met Office
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="config_intro.html">
+    Introduction to Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    How to Write a Build Configuration
+  </a>
+</li>
+
+            <li class="nav-item dropdown pst-header-nav-item">
+                <button class="btn dropdown-toggle nav-item" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="advanced_config.html">
+    Advanced Configuration
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="features.html">
+    Features
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="api.html">
+    Api Reference
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="development.html">
+    Developer’s guide
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="glossary.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="genindex.html">
+    Index
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link dropdown-item nav-internal" href="py-modindex.html">
+    Python Module Index
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/metomi/fab" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <button class="sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav class="navbar-nav">
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="install.html">
+    Installing Fab
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="environment.html">
+    Environment
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="metoffice.html">
+    Using Fab at the Met Office
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="config_intro.html">
+    Introduction to Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item current active">
+  <a class="nav-link nav-internal" href="#">
+    How to Write a Build Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="advanced_config.html">
+    Advanced Configuration
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="features.html">
+    Features
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="api.html">
+    Api Reference
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="development.html">
+    Developer’s guide
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="glossary.html">
+    Glossary
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="genindex.html">
+    Index
+  </a>
+</li>
+
+
+<li class="nav-item pst-header-nav-item">
+  <a class="nav-link nav-internal" href="py-modindex.html">
+    Python Module Index
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/metomi/fab" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"></div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    <li class="breadcrumb-item active" aria-current="page">How to...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="how-to-write-a-build-configuration">
+<span id="writing-config"></span><h1>How to Write a Build Configuration<a class="headerlink" href="#how-to-write-a-build-configuration" title="Link to this heading">#</a></h1>
+<p>This page walks through the process of writing a build script.</p>
+<section id="configuration-file">
+<h2>Configuration File<a class="headerlink" href="#configuration-file" title="Link to this heading">#</a></h2>
+<p>Here’s a simple configuration without any steps.</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">build_it</span><a class="headerlink" href="#id3" title="Link to this code">#</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python3</span>
+<span class="linenos"> 2</span><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="kn">from</span> <span class="nn">fab.build_config</span> <span class="kn">import</span> <span class="n">BuildConfig</span>
+<span class="linenos"> 5</span>
+<span class="linenos"> 6</span><span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;fab&#39;</span><span class="p">)</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span>    <span class="k">with</span> <span class="n">BuildConfig</span><span class="p">(</span><span class="n">project_label</span><span class="o">=</span><span class="s1">&#39;&lt;project label&gt;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">state</span><span class="p">:</span>
+<span class="linenos">11</span>        <span class="k">pass</span>
+</pre></div>
+</div>
+</div>
+<p>If we want to run the build script from the command line,
+we give it executable permission with the command <code class="docutils literal notranslate"><span class="pre">chmod</span> <span class="pre">+x</span> <span class="pre">build_it</span></code>.
+We also add the <a class="reference external" href="https://en.wikipedia.org/wiki/Shebang_(Unix)">shebang</a> directive on line 1,
+telling our computer it’s a Python script.</p>
+<p>Pick a project label. Fab creates a <a class="reference internal" href="glossary.html#term-Project-Workspace"><span class="xref std std-term">project workspace</span></a> with this name.</p>
+</section>
+<section id="source-code">
+<h2>Source Code<a class="headerlink" href="#source-code" title="Link to this heading">#</a></h2>
+<p>Let’s tell Fab where our source code is.</p>
+<p>We use the <a class="reference internal" href="apidoc/fab.steps.find_source_files.html#fab.steps.find_source_files.find_source_files" title="fab.steps.find_source_files.find_source_files"><code class="xref py py-func docutils literal notranslate"><span class="pre">find_source_files()</span></code></a> step for this.
+We can point this step to a source folder, however, because Fab can sometimes
+create artefacts alongside the source <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>, we usually copy the source into the
+project workspace first using a <a class="reference internal" href="apidoc/fab.steps.grab.html#module-fab.steps.grab" title="fab.steps.grab"><code class="xref py py-mod docutils literal notranslate"><span class="pre">grab</span></code></a> step.</p>
+<p>A grab step will copy files from a folder or remote repo into a folder called
+“source” within the project workspace.</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">build_it.py</span><a class="headerlink" href="#id4" title="Link to this code">#</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python3</span>
+<span class="linenos"> 2</span><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="kn">from</span> <span class="nn">fab.build_config</span> <span class="kn">import</span> <span class="n">BuildConfig</span>
+<span class="hll"><span class="linenos"> 5</span><span class="kn">from</span> <span class="nn">fab.steps.find_source_files</span> <span class="kn">import</span> <span class="n">find_source_files</span>
+</span><span class="hll"><span class="linenos"> 6</span><span class="kn">from</span> <span class="nn">fab.steps.grab.folder</span> <span class="kn">import</span> <span class="n">grab_folder</span>
+</span><span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;fab&#39;</span><span class="p">)</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span>    <span class="k">with</span> <span class="n">BuildConfig</span><span class="p">(</span><span class="n">project_label</span><span class="o">=</span><span class="s1">&#39;&lt;project label&gt;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">state</span><span class="p">:</span>
+<span class="hll"><span class="linenos">13</span>        <span class="n">grab_folder</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="s1">&#39;&lt;path to source folder&gt;&#39;</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">14</span>        <span class="n">find_source_files</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Fab tries to minimise user input by providing <em>sensible defaults</em>.
+In this case, the user doesn’t have to specify where the code goes.
+The grab and find_source_files steps already know what to do by default.
+Sensible defaults can be overridden.</p>
+</div>
+<p>Please see the documentation for <a class="reference internal" href="apidoc/fab.steps.find_source_files.html#fab.steps.find_source_files.find_source_files" title="fab.steps.find_source_files.find_source_files"><code class="xref py py-func docutils literal notranslate"><span class="pre">find_source_files()</span></code></a> for more information,
+including how to exclude certain source code from the build. More grab steps can be found in the <a class="reference internal" href="apidoc/fab.steps.grab.html#module-fab.steps.grab" title="fab.steps.grab"><code class="xref py py-mod docutils literal notranslate"><span class="pre">grab</span></code></a>
+module.</p>
+<p>After the find_source_files step, there will be a collection called <code class="docutils literal notranslate"><span class="pre">&quot;all_source&quot;</span></code>, in the artefact store.</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id2" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>See <a class="reference internal" href="apidoc/fab.steps.c_pragma_injector.html#fab.steps.c_pragma_injector.c_pragma_injector" title="fab.steps.c_pragma_injector.c_pragma_injector"><code class="xref py py-func docutils literal notranslate"><span class="pre">c_pragma_injector()</span></code></a> for an example of a step which
+creates artefacts in the source folder.</p>
+</aside>
+</aside>
+</section>
+<section id="preprocess">
+<h2>Preprocess<a class="headerlink" href="#preprocess" title="Link to this heading">#</a></h2>
+<p>Next we want to preprocess our source code.
+Preprocessing resolves any <cite>#include</cite> and <cite>#ifdef</cite> directives in the code,
+which must happen before we analyse it.</p>
+<p>Steps generally create and find artefacts in the <a class="reference internal" href="glossary.html#term-Artefact-Store"><span class="xref std std-term">Artefact Store</span></a>, arranged into named collections.
+The <a class="reference internal" href="apidoc/fab.steps.preprocess.html#fab.steps.preprocess.preprocess_fortran" title="fab.steps.preprocess.preprocess_fortran"><code class="xref py py-func docutils literal notranslate"><span class="pre">preprocess_fortran()</span></code></a>
+automatically looks for Fortran source code in a collection named <cite>‘all_source’</cite>,
+which is the default output from the preceding :funcfind_source_files step.
+It filters just the (uppercase) <code class="docutils literal notranslate"><span class="pre">.F90</span></code> files.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Uppercase <code class="docutils literal notranslate"><span class="pre">.F90</span></code> are preprocessed into lowercase <code class="docutils literal notranslate"><span class="pre">.f90</span></code>.</p>
+</div>
+<p>The Fortran preprocessor will read the <a class="reference internal" href="advanced_config.html#env-vars"><span class="std std-ref">FPP</span></a> environment variable to determine which tool to call.</p>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">build_it.py</span><a class="headerlink" href="#id5" title="Link to this code">#</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python3</span>
+<span class="linenos"> 2</span><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="kn">from</span> <span class="nn">fab.build_config</span> <span class="kn">import</span> <span class="n">BuildConfig</span>
+<span class="linenos"> 5</span><span class="kn">from</span> <span class="nn">fab.steps.find_source_files</span> <span class="kn">import</span> <span class="n">find_source_files</span>
+<span class="linenos"> 6</span><span class="kn">from</span> <span class="nn">fab.steps.grab.folder</span> <span class="kn">import</span> <span class="n">grab_folder</span>
+<span class="hll"><span class="linenos"> 7</span><span class="kn">from</span> <span class="nn">fab.steps.preprocess</span> <span class="kn">import</span> <span class="n">preprocess_fortran</span>
+</span><span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;fab&#39;</span><span class="p">)</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span>    <span class="k">with</span> <span class="n">BuildConfig</span><span class="p">(</span><span class="n">project_label</span><span class="o">=</span><span class="s1">&#39;&lt;project label&gt;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">state</span><span class="p">:</span>
+<span class="linenos">14</span>        <span class="n">grab_folder</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="s1">&#39;&lt;path to source folder&gt;&#39;</span><span class="p">)</span>
+<span class="linenos">15</span>        <span class="n">find_source_files</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="hll"><span class="linenos">16</span>        <span class="n">preprocess_fortran</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<p>Preprocessed files are created in the <cite>‘build_output’</cite> folder, inside the project workspace.
+After the fortran_preprocessor step, there will be a collection called <code class="docutils literal notranslate"><span class="pre">&quot;preprocessed_fortran&quot;</span></code>, in the artefact store.</p>
+</section>
+<section id="psyclone">
+<h2>PSyclone<a class="headerlink" href="#psyclone" title="Link to this heading">#</a></h2>
+<p>If you want to use PSyclone to do code transformation and pre-processing (see <a class="github reference external" href="https://github.com/stfc/PSyclone">stfc/PSyclone</a>),
+you must run <a class="reference internal" href="apidoc/fab.steps.psyclone.html#fab.steps.psyclone.preprocess_x90" title="fab.steps.psyclone.preprocess_x90"><code class="xref py py-func docutils literal notranslate"><span class="pre">preprocess_x90()</span></code></a> and <a class="reference internal" href="apidoc/fab.steps.psyclone.html#fab.steps.psyclone.psyclone" title="fab.steps.psyclone.psyclone"><code class="xref py py-func docutils literal notranslate"><span class="pre">psyclone()</span></code></a>,
+before you run the <a class="reference internal" href="apidoc/fab.steps.analyse.html#fab.steps.analyse.analyse" title="fab.steps.analyse.analyse"><code class="xref py py-func docutils literal notranslate"><span class="pre">analyse()</span></code></a> step below.</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>For <a class="reference internal" href="apidoc/fab.steps.psyclone.html#fab.steps.psyclone.preprocess_x90" title="fab.steps.psyclone.preprocess_x90"><code class="xref py py-func docutils literal notranslate"><span class="pre">preprocess_x90()</span></code></a>:</dt><dd><p>You can pass in <cite>common_flags</cite> list as an argument.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>For <a class="reference internal" href="apidoc/fab.steps.psyclone.html#fab.steps.psyclone.psyclone" title="fab.steps.psyclone.psyclone"><code class="xref py py-func docutils literal notranslate"><span class="pre">psyclone()</span></code></a>:</dt><dd><p>You can pass in:</p>
+<ul>
+<li><p>kernel file roots to <cite>kernel_roots</cite>,</p></li>
+<li><p>a function to get transformation script to <cite>transformation_script</cite>
+(see examples in <code class="docutils literal notranslate"><span class="pre">~fab.run_configs.lfric.gungho.py</span></code> and <code class="docutils literal notranslate"><span class="pre">~fab.run_configs.lfric.atm.py</span></code>),</p></li>
+<li><p>command-line arguments to <cite>cli_args</cite>,</p></li>
+<li><p>override for input files to <cite>source_getter</cite>,</p></li>
+<li><p>folders containing override files to <cite>overrides_folder</cite>.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">build_it.py</span><a class="headerlink" href="#id6" title="Link to this code">#</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python3</span>
+<span class="linenos"> 2</span><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="kn">from</span> <span class="nn">fab.build_config</span> <span class="kn">import</span> <span class="n">BuildConfig</span>
+<span class="linenos"> 5</span><span class="kn">from</span> <span class="nn">fab.steps.find_source_files</span> <span class="kn">import</span> <span class="n">find_source_files</span>
+<span class="linenos"> 6</span><span class="kn">from</span> <span class="nn">fab.steps.grab.folder</span> <span class="kn">import</span> <span class="n">grab_folder</span>
+<span class="linenos"> 7</span><span class="kn">from</span> <span class="nn">fab.steps.preprocess</span> <span class="kn">import</span> <span class="n">preprocess_fortran</span>
+<span class="hll"><span class="linenos"> 8</span><span class="kn">from</span> <span class="nn">fab.steps.psyclone</span> <span class="kn">import</span> <span class="n">psyclone</span><span class="p">,</span> <span class="n">preprocess_x90</span>
+</span><span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;fab&#39;</span><span class="p">)</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span>    <span class="k">with</span> <span class="n">BuildConfig</span><span class="p">(</span><span class="n">project_label</span><span class="o">=</span><span class="s1">&#39;&lt;project label&gt;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">state</span><span class="p">:</span>
+<span class="linenos">15</span>        <span class="n">grab_folder</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="s1">&#39;&lt;path to source folder&gt;&#39;</span><span class="p">)</span>
+<span class="linenos">16</span>        <span class="n">find_source_files</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">17</span>        <span class="n">preprocess_fortran</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="hll"><span class="linenos">18</span>        <span class="n">preprocess_x90</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">19</span>        <span class="n">psyclone</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<p>After the psyclone step, two new source files will be created for each .x90 file in the <cite>‘build_output’</cite> folder.
+These two output files will be added under <code class="docutils literal notranslate"><span class="pre">&quot;psyclone_output&quot;</span></code> collection to the artefact store.</p>
+</section>
+<section id="analyse">
+<span id="analyse-overview"></span><h2>Analyse<a class="headerlink" href="#analyse" title="Link to this heading">#</a></h2>
+<p>We must <a class="reference internal" href="apidoc/fab.steps.analyse.html#fab.steps.analyse.analyse" title="fab.steps.analyse.analyse"><code class="xref py py-func docutils literal notranslate"><span class="pre">analyse()</span></code></a> the source code to determine which
+Fortran files to compile, and in which order.</p>
+<p>The Analyse step looks for source to analyse in several collections:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">.f90</span></code> found in the source</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.F90</span></code> we pre-processed into <code class="docutils literal notranslate"><span class="pre">.f90</span></code></p></li>
+<li><p>preprocessed c</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">build_it.py</span><a class="headerlink" href="#id7" title="Link to this code">#</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python3</span>
+<span class="linenos"> 2</span><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span>
+<span class="linenos"> 3</span>
+<span class="hll"><span class="linenos"> 4</span><span class="kn">from</span> <span class="nn">fab.steps.analyse</span> <span class="kn">import</span> <span class="n">analyse</span>
+</span><span class="linenos"> 5</span><span class="kn">from</span> <span class="nn">fab.build_config</span> <span class="kn">import</span> <span class="n">BuildConfig</span>
+<span class="linenos"> 6</span><span class="kn">from</span> <span class="nn">fab.steps.find_source_files</span> <span class="kn">import</span> <span class="n">find_source_files</span>
+<span class="linenos"> 7</span><span class="kn">from</span> <span class="nn">fab.steps.grab.folder</span> <span class="kn">import</span> <span class="n">grab_folder</span>
+<span class="linenos"> 8</span><span class="kn">from</span> <span class="nn">fab.steps.preprocess</span> <span class="kn">import</span> <span class="n">preprocess_fortran</span>
+<span class="linenos"> 9</span><span class="kn">from</span> <span class="nn">fab.steps.psyclone</span> <span class="kn">import</span> <span class="n">psyclone</span><span class="p">,</span> <span class="n">preprocess_x90</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;fab&#39;</span><span class="p">)</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span>    <span class="k">with</span> <span class="n">BuildConfig</span><span class="p">(</span><span class="n">project_label</span><span class="o">=</span><span class="s1">&#39;&lt;project label&gt;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">state</span><span class="p">:</span>
+<span class="linenos">16</span>        <span class="n">grab_folder</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="s1">&#39;&lt;path to source folder&gt;&#39;</span><span class="p">)</span>
+<span class="linenos">17</span>        <span class="n">find_source_files</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">18</span>        <span class="n">preprocess_fortran</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">19</span>        <span class="n">preprocess_x90</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">20</span>        <span class="n">psyclone</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="hll"><span class="linenos">21</span>        <span class="n">analyse</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">root_symbol</span><span class="o">=</span><span class="s1">&#39;&lt;program&gt;&#39;</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<p>Here we tell the analyser which <a class="reference internal" href="glossary.html#term-Root-Symbol"><span class="xref std std-term">Root Symbol</span></a> we want to build into an executable.
+Alternatively, we can use the <code class="docutils literal notranslate"><span class="pre">find_programs</span></code> flag for Fab to discover and build all programs.</p>
+<p>After the Analyse step, there will be a collection called <code class="docutils literal notranslate"><span class="pre">&quot;build_trees&quot;</span></code>, in the artefact store.</p>
+</section>
+<section id="compile-and-link">
+<h2>Compile and Link<a class="headerlink" href="#compile-and-link" title="Link to this heading">#</a></h2>
+<p>The <a class="reference internal" href="apidoc/fab.steps.compile_fortran.html#fab.steps.compile_fortran.compile_fortran" title="fab.steps.compile_fortran.compile_fortran"><code class="xref py py-func docutils literal notranslate"><span class="pre">compile_fortran()</span></code></a> step compiles files in
+the <code class="docutils literal notranslate"><span class="pre">&quot;build_trees&quot;</span></code> collection. The <a class="reference internal" href="apidoc/fab.steps.link.html#fab.steps.link.link_exe" title="fab.steps.link.link_exe"><code class="xref py py-func docutils literal notranslate"><span class="pre">link_exe()</span></code></a> step
+then creates the executable.</p>
+<div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">build_it.py</span><a class="headerlink" href="#id8" title="Link to this code">#</a></div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python3</span>
+<span class="linenos"> 2</span><span class="kn">from</span> <span class="nn">logging</span> <span class="kn">import</span> <span class="n">getLogger</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="kn">from</span> <span class="nn">fab.steps.analyse</span> <span class="kn">import</span> <span class="n">analyse</span>
+<span class="linenos"> 5</span><span class="kn">from</span> <span class="nn">fab.build_config</span> <span class="kn">import</span> <span class="n">BuildConfig</span>
+<span class="hll"><span class="linenos"> 6</span><span class="kn">from</span> <span class="nn">fab.steps.compile_fortran</span> <span class="kn">import</span> <span class="n">compile_fortran</span>
+</span><span class="linenos"> 7</span><span class="kn">from</span> <span class="nn">fab.steps.find_source_files</span> <span class="kn">import</span> <span class="n">find_source_files</span>
+<span class="linenos"> 8</span><span class="kn">from</span> <span class="nn">fab.steps.grab.folder</span> <span class="kn">import</span> <span class="n">grab_folder</span>
+<span class="hll"><span class="linenos"> 9</span><span class="kn">from</span> <span class="nn">fab.steps.link</span> <span class="kn">import</span> <span class="n">link_exe</span>
+</span><span class="linenos">10</span><span class="kn">from</span> <span class="nn">fab.steps.preprocess</span> <span class="kn">import</span> <span class="n">preprocess_fortran</span>
+<span class="linenos">11</span><span class="kn">from</span> <span class="nn">fab.steps.psyclone</span> <span class="kn">import</span> <span class="n">psyclone</span><span class="p">,</span> <span class="n">preprocess_x90</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="n">logger</span> <span class="o">=</span> <span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;fab&#39;</span><span class="p">)</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span>    <span class="k">with</span> <span class="n">BuildConfig</span><span class="p">(</span><span class="n">project_label</span><span class="o">=</span><span class="s1">&#39;&lt;project label&gt;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">state</span><span class="p">:</span>
+<span class="linenos">18</span>        <span class="n">grab_folder</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">src</span><span class="o">=</span><span class="s1">&#39;&lt;path to source folder&gt;&#39;</span><span class="p">)</span>
+<span class="linenos">19</span>        <span class="n">find_source_files</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">20</span>        <span class="n">preprocess_fortran</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">21</span>        <span class="n">preprocess_x90</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">22</span>        <span class="n">psyclone</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="linenos">23</span>        <span class="n">analyse</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">root_symbol</span><span class="o">=</span><span class="s1">&#39;&lt;program&gt;&#39;</span><span class="p">)</span>
+<span class="hll"><span class="linenos">24</span>        <span class="n">compile_fortran</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span><span class="hll"><span class="linenos">25</span>        <span class="n">link_exe</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</span></pre></div>
+</div>
+</div>
+<p>After the <a class="reference internal" href="apidoc/fab.steps.link.html#fab.steps.link.link_exe" title="fab.steps.link.link_exe"><code class="xref py py-func docutils literal notranslate"><span class="pre">link_exe()</span></code></a> step, the executable name can be found in a collection called <code class="docutils literal notranslate"><span class="pre">&quot;executables&quot;</span></code>.</p>
+</section>
+<section id="flags">
+<h2>Flags<a class="headerlink" href="#flags" title="Link to this heading">#</a></h2>
+<p>Preprocess, compile and link steps usually need configuration to specify
+command-line arguments to the underlying tool, such as symbol definitions,
+include paths, optimisation flags, etc. See also
+<a class="reference internal" href="advanced_config.html#advanced-flags"><span class="std std-ref">Advanced Flags</span></a>.</p>
+</section>
+<section id="c-code">
+<h2>C Code<a class="headerlink" href="#c-code" title="Link to this heading">#</a></h2>
+<p>Fab comes with C processing steps.
+The <a class="reference internal" href="apidoc/fab.steps.preprocess.html#fab.steps.preprocess.preprocess_c" title="fab.steps.preprocess.preprocess_c"><code class="xref py py-func docutils literal notranslate"><span class="pre">preprocess_c()</span></code></a> and <a class="reference internal" href="apidoc/fab.steps.compile_c.html#fab.steps.compile_c.compile_c" title="fab.steps.compile_c.compile_c"><code class="xref py py-func docutils literal notranslate"><span class="pre">compile_c()</span></code></a> Steps
+behave like their Fortran equivalents.</p>
+<p>However preprocessing C currently requires a preceding step called the
+<a class="reference internal" href="apidoc/fab.steps.c_pragma_injector.html#fab.steps.c_pragma_injector.c_pragma_injector" title="fab.steps.c_pragma_injector.c_pragma_injector"><code class="xref py py-func docutils literal notranslate"><span class="pre">c_pragma_injector()</span></code></a>. This injects markers
+into the C code so Fab is able to deduce which inclusions are user code and
+which are system code. This allows system dependencies to be ignored.</p>
+<p>See also <a class="reference internal" href="advanced_config.html#c-pragma-injector"><span class="std std-ref">Advanced C Code</span></a></p>
+</section>
+<section id="further-reading">
+<h2>Further Reading<a class="headerlink" href="#further-reading" title="Link to this heading">#</a></h2>
+<p>More advanced configuration topics are discussed in
+<a class="reference internal" href="advanced_config.html#advanced-config"><span class="std std-ref">Advanced Configuration</span></a>.</p>
+<p>You can see more complicated configurations in the
+<a class="reference external" href="https://github.com/metomi/fab/tree/master/run_configs">developer testing directory</a>.</p>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="config_intro.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Introduction to Configuration</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="advanced_config.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Advanced Configuration</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#configuration-file">Configuration File</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#source-code">Source Code</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#preprocess">Preprocess</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#psyclone">PSyclone</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#analyse">Analyse</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#compile-and-link">Compile and Link</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#flags">Flags</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#c-code">C Code</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#further-reading">Further Reading</a></li>
+</ul>
+  </nav></div>
+
+  <div class="sidebar-secondary-item">
+
+  <div class="tocsection sourcelink">
+    <a href="_sources/writing_config.rst.txt">
+      <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+  </div>
+</div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=3ee479438cf8b5e0d341"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=3ee479438cf8b5e0d341"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+
+
+<p class="copyright">
+    
+    © Crown Copyright 2024 Met Office. All rights reserved..
+    
+</p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__center">
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 7.3.7.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.15.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>
