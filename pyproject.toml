@@ -2,7 +2,7 @@
 name = "sci-fab"
 description = "Build system for scientific software"
 authors = [
-    {name = "SciFab Developers", email = 'metomi@metoffice.gov.uk'}
+    {name = "Core Capabilities Development Team", email = 'CoreCapabilityDevelopmentTeam@metoffice.gov.uk'}
 ]
 license = {file = 'LICENSE.txt'}
 dynamic = ['version', 'readme']
