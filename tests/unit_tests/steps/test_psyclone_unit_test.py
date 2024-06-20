@@ -11,6 +11,7 @@ import pytest
 
 from fab.parse.x90 import AnalysedX90
 from fab.steps.psyclone import _check_override, _gen_prebuild_hash, MpCommonArgs
+from fab.util import file_checksum
 
 
 class Test_gen_prebuild_hash(object):
@@ -34,15 +35,20 @@ class Test_gen_prebuild_hash(object):
             'kernel2': 456,
         }
 
-        expect_hash = 223133615
+        # the script is just hashed later, so any one will do - use this file!
+        mock_transformation_script = mock.Mock(return_value=__file__)
+
+        expect_hash = 223133492 + file_checksum(__file__).file_hash  # add the transformation_script_hash
 
         mp_payload = MpCommonArgs(
             analysed_x90=analysed_x90,
             all_kernel_hashes=all_kernel_hashes,
-            transformation_script_hash=123,
             cli_args=[],
-            config=None, kernel_roots=None, transformation_script=None,  # type: ignore[arg-type]
-            overrides_folder=None, override_files=None,  # type: ignore[arg-type]
+            config=None,  # type: ignore[arg-type]
+            kernel_roots=[],
+            transformation_script=mock_transformation_script,
+            overrides_folder=None,
+            override_files=None,  # type: ignore[arg-type]
         )
         return mp_payload, x90_file, expect_hash
 
@@ -68,9 +74,11 @@ class Test_gen_prebuild_hash(object):
     def test_trans_script(self, data):
         # changing the transformation script should change the hash
         mp_payload, x90_file, expect_hash = data
-        mp_payload.transformation_script_hash += 1
-        result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
-        assert result == expect_hash + 1
+        mp_payload.transformation_script = None
+        with pytest.warns(UserWarning, match="no transformation script specified"):
+            result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
+        # transformation_script_hash = 0
+        assert result == expect_hash - file_checksum(__file__).file_hash
 
     def test_cli_args(self, data):
         # changing the cli args should change the hash
