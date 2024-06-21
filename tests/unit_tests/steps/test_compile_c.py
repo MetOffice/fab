@@ -34,6 +34,7 @@ def fixture_content(tmp_path, tool_box):
     expect_hash = 7435424994
     return config, analysed_file, expect_hash
 
+
 def test_compile_c_wrong_compiler(content):
     '''Test if a non-C compiler is specified as c compiler.
     '''

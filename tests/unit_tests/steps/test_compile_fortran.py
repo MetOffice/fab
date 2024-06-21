@@ -8,7 +8,8 @@ import pytest
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.constants import BUILD_TREES, OBJECT_FILES
 from fab.parse.fortran import AnalysedFortran
-from fab.steps.compile_fortran import (compile_pass, get_compile_next,
+from fab.steps.compile_fortran import (
+    compile_pass, get_compile_next,
     get_mod_hashes, handle_compiler_args, MpCommonArgs, process_file,
     store_artefacts)
 from fab.tools import Category, ToolBox
@@ -55,6 +56,7 @@ def test_compile_cc_wrong_compiler(tool_box):
     assert ("Unexpected tool 'mock_c_compiler' of type '<class "
             "'fab.tools.compiler.CCompiler'>' instead of FortranCompiler"
             in str(err.value))
+
 
 class TestCompilePass:
 
