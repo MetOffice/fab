@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-c-language = ['python-clang']
+c-language = ['clang']
 plots = ['matplotlib']
 tests = ['pytest', 'pytest-cov', 'pytest-mock']
 checks = ['flake8>=5.0.4', 'mypy']

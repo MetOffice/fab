@@ -5,35 +5,48 @@ on: workflow_dispatch
 jobs:
   build-docs:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-    - name: set git user
-      run: |
-        git config --global user.email "metomi@metoffice.gov.uk"
-        git config --global user.name "SciFab Developers"
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    - name: install fab
-      run: pip install .[docs]
-    - name: build docs
-      run: |
-        cd docs
-        rm -rf build
-        sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
-        make html
-    - name: move built docs to docs root
-      run: |
-        mv docs/build/html/* docs/
-    - name: git add built docs
-      run: |
-        git add docs/*
-    - name: commit
-      run: |
-        git commit -m "docs build"
-    - name: push to gh_pages branch
-      run: |
-        echo "pushing from $GITHUB_REF_NAME to gh_pages"
-        git push --force origin $GITHUB_REF_NAME:gh_pages
+      - name: set git user
+        run: |
+          git config --global user.email "metomi@metoffice.gov.uk"
+          git config --global user.name "SciFab Developers"
+
+      - name: Checkout Fab project files
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+          cache: pip
+
+      - name: Install Python libraries
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[docs]
+
+      - name: build docs
+        run: |
+          cd docs
+          rm -rf build
+          sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
+          make html
+
+      - name: move built docs to docs root
+        run: |
+          mv docs/build/html/* docs/
+
+      - name: git add built docs
+        run: |
+          git add docs/*
+
+      - name: commit
+        run: |
+          git commit -m "docs build"
+
+      - name: push to gh_pages branch
+        run: |
+          echo "pushing from $GITHUB_REF_NAME to gh_pages"
+          git push --force origin $GITHUB_REF_NAME:gh_pages
