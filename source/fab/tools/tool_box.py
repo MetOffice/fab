@@ -19,14 +19,14 @@ class ToolBox:
     category to be used in a FAB build.
     '''
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._all_tools: Dict[Category, Tool] = {}
 
     def __getitem__(self, category: Category) -> Tool:
         '''A convenience function for get_tool.'''
         return self.get_tool(category)
 
-    def add_tool(self, tool: Tool):
+    def add_tool(self, tool: Tool) -> None:
         '''Adds a tool for a given category.
 
         :param tool: the tool to add.
