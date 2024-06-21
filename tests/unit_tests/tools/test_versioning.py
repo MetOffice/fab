@@ -19,13 +19,11 @@ class TestGit:
 
     def test_versioning_constructor(self):
         '''Test the versioning constructor.'''
-        versioning = Versioning("versioning", "versioning.exe",
-                                "working_copy_command", Category.GIT)
+        versioning = Versioning("versioning", "versioning.exe", Category.GIT)
         assert versioning.category == Category.GIT
         assert versioning.name == "versioning"
         assert versioning.flags == []
         assert versioning.exec_name == "versioning.exe"
-        assert versioning._working_copy_command == "working_copy_command"
 
     def test_git_constructor(self):
         '''Test the git constructor.'''
@@ -70,23 +68,6 @@ class TestGit:
         tool_run.assert_called_once_with(
             ['git', 'log', '--oneline', '-n', '1'], capture_output=True,
             env=None, cwd="/not-exist", check=False)
-
-    def test_git_is_working_copy(self):
-        '''Check is_working_copy functionality. The tests here will actually
-        mock the git results, so they will work even if git is not installed.
-        The system_tests will test an actual check out etc. '''
-
-        git = Git()
-        mock_result = mock.Mock(returncode=0)
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        return_value=mock_result) as tool_run:
-            assert git.is_working_copy("/dst")
-        tool_run.assert_called_once_with(
-            ['git', 'status'], capture_output=False, env=None, cwd='/dst',
-            check=False)
-
-        with mock.patch.object(git, "run", side_effect=RuntimeError()):
-            assert git.is_working_copy("/dst") is False
 
     def test_git_init(self):
         '''Check init functionality. The tests here will actually
@@ -221,23 +202,6 @@ class TestSvn:
         assert svn.flags == []
         assert svn.name == "subversion"
         assert svn.exec_name == "svn"
-
-    def test_svn_is_working_copy(self):
-        '''Check is_working_copy functionality. The tests here will actually
-        mock the git results, so they will work even if git is not installed.
-        The system_tests will test an actual check out etc. '''
-
-        svn = Subversion()
-        mock_result = mock.Mock(returncode=0)
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        return_value=mock_result) as tool_run:
-            assert svn.is_working_copy("/dst")
-        tool_run.assert_called_once_with(
-            ['svn', 'info'], capture_output=False, env=None, cwd='/dst',
-            check=False)
-
-        with mock.patch.object(svn, "run", side_effect=RuntimeError()):
-            assert svn.is_working_copy("/dst") is False
 
     def test_svn_export(self):
         '''Check export svn functionality. The tests here will actually

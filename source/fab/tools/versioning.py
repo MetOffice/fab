@@ -20,31 +20,14 @@ class Versioning(Tool):
 
     :param name: the name of the tool.
     :param exec_name: the name of the executable of this tool.
-    :param working_copy_command: which command is run to determine if
-        a directory is a working copy for this tool or not.
     :param category: the category to which this tool belongs).
     '''
 
     def __init__(self, name: str,
                  exec_name: Union[str, Path],
-                 working_copy_command: str,
                  category: Category):
         super().__init__(name, exec_name, category,
                          availablility_option="help")
-        self._working_copy_command = working_copy_command
-
-    def is_working_copy(self, path: Union[str, Path]) -> bool:
-        """:returns: whether the given path is a working copy or not. It
-            runs the command specific to the instance.
-
-        :param path: directory to be checked.
-        """
-        try:
-            self.run([self._working_copy_command], cwd=path,
-                     capture_output=False)
-        except RuntimeError:
-            return False
-        return True
 
 
 # =============================================================================
@@ -54,7 +37,6 @@ class Git(Versioning):
 
     def __init__(self):
         super().__init__("git", "git",
-                         working_copy_command="status",
                          category=Category.GIT)
 
     def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
@@ -144,8 +126,7 @@ class Subversion(Versioning):
                  category: Category = Category.SUBVERSION):
         name = name or "subversion"
         exec_name = exec_name or "svn"
-        super().__init__(name, exec_name, working_copy_command="info",
-                         category=category)
+        super().__init__(name, exec_name, category=category)
 
     # pylint: disable-next=too-many-arguments
     def execute(self, pre_commands: Optional[List[str]] = None,

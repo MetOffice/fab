@@ -91,15 +91,9 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None,
     if not dst.exists():  # type: ignore
         svn.checkout(src, dst, revision)
     else:
-        # working copy?
-        if svn.is_working_copy(dst):  # type: ignore
-            # update
-            # todo: ensure the existing checkout is from self.src?
-            svn.update(dst, revision)
-        else:
-            # we can't deal with an existing folder that isn't a working copy
-            raise ValueError(f"destination exists but is not an fcm "
-                             f"working copy: '{dst}'")
+        # update
+        # todo: ensure the existing checkout is from self.src?
+        svn.update(dst, revision)
 
 
 def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
@@ -110,9 +104,6 @@ def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
     """
     svn = config.tool_box[category]
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
-
-    if not dst or not svn.is_working_copy(dst):
-        raise ValueError(f"destination is not a working copy: '{dst}'")
 
     svn.merge(src, dst, revision)
     check_conflict(svn, dst)
