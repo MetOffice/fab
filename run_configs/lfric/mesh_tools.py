@@ -11,6 +11,7 @@ from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.psyclone import psyclone, preprocess_x90
+from fab.tools import ToolBox
 
 from lfric_common import configurator, fparser_workaround_stop_concatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
@@ -23,7 +24,8 @@ if __name__ == '__main__':
     # this folder just contains previous output, for testing the overrides mechanism.
     psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
 
-    with BuildConfig(project_label='mesh tools $compiler $two_stage') as state:
+    with BuildConfig(project_label='mesh tools $compiler $two_stage',
+                     tool_box=ToolBox()) as state:
         grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'mesh_tools/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='')
@@ -72,7 +74,6 @@ if __name__ == '__main__':
         # link the 3 trees' objects
         link_exe(
             state,
-            linker='mpifort',
             flags=[
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES

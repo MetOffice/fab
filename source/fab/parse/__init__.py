@@ -39,11 +39,11 @@ class AnalysedFile(ABC):
         self._file_hash = file_hash
 
     @property
-    def file_hash(self):
+    def file_hash(self) -> int:
         if self._file_hash is None:
             if not self.fpath.exists():
                 raise ValueError(f"analysed file '{self.fpath}' does not exist")
-            self._file_hash: int = file_checksum(self.fpath).file_hash
+            self._file_hash = file_checksum(self.fpath).file_hash
         return self._file_hash
 
     def __eq__(self, other):
