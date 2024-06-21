@@ -10,7 +10,7 @@ jobs:
     steps:
       - name: set git user
         run: |
-          git config --global user.email "metomi@metoffice.gov.uk"
+          git config --global user.email "CoreCapabilityDevelopmentTeam@metoffice.gov.uk"
           git config --global user.name "SciFab Developers"
 
       - name: Checkout Fab project files
