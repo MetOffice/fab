@@ -44,7 +44,7 @@ def test_compile_c_wrong_compiler(content):
     # And set its category to C_COMPILER
     fc._category = Category.C_COMPILER
     # So overwrite the C compiler with the re-categorised Fortran compiler
-    tb.add_tool(fc)
+    tb.add_tool(fc, silent_replace=True)
 
     # Now check that _compile_file detects the incorrect class of the
     # C compiler

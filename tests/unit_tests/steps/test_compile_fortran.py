@@ -40,7 +40,7 @@ def test_compile_cc_wrong_compiler(tool_box):
     # And set its category to C_COMPILER
     cc._category = Category.FORTRAN_COMPILER
     # So overwrite the C compiler with the re-categories Fortran compiler
-    tool_box.add_tool(cc)
+    tool_box.add_tool(cc, silent_replace=True)
 
     # Now check that _compile_file detects the incorrect class of the
     # C compiler
