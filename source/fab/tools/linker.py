@@ -11,19 +11,19 @@ import os
 from pathlib import Path
 from typing import cast, List, Optional
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.compiler import Compiler
-from fab.tools.tool import VendorTool
+from fab.tools.tool import CompilerSuiteTool
 
 
-class Linker(VendorTool):
+class Linker(CompilerSuiteTool):
     '''This is the base class for any Linker. If a compiler is specified,
-    its name, executable, and vendor will be used for the linker (if not
-    explicitly set in the constructor).
+    its name, executable, and compile suite will be used for the linker (if
+    not explicitly set in the constructor).
 
     :param name: the name of the linker.
     :param exec_name: the name of the executable.
-    :param vendor: optional, the name of the vendor.
+    :param suite: optional, the name of the suite.
     :param compiler: optional, a compiler instance
     :param output_flag: flag to use to specify the output name.
     '''
@@ -31,11 +31,11 @@ class Linker(VendorTool):
     # pylint: disable=too-many-arguments
     def __init__(self, name: Optional[str] = None,
                  exec_name: Optional[str] = None,
-                 vendor: Optional[str] = None,
+                 suite: Optional[str] = None,
                  compiler: Optional[Compiler] = None,
                  output_flag: str = "-o"):
-        if (not name or not exec_name or not vendor) and not compiler:
-            raise RuntimeError("Either specify name, exec name, and vendor "
+        if (not name or not exec_name or not suite) and not compiler:
+            raise RuntimeError("Either specify name, exec name, and suite "
                                "or a compiler when creating Linker.")
         # Make mypy happy, since it can't work out otherwise if these string
         # variables might still be None :(
@@ -44,10 +44,10 @@ class Linker(VendorTool):
             name = compiler.name
         if not exec_name:
             exec_name = compiler.exec_name
-        if not vendor:
-            vendor = compiler.vendor
+        if not suite:
+            suite = compiler.suite
         self._output_flag = output_flag
-        super().__init__(name, exec_name, vendor, Categories.LINKER)
+        super().__init__(name, exec_name, suite, Category.LINKER)
         self._compiler = compiler
         self.flags.extend(os.getenv("LDFLAGS", "").split())
 
@@ -59,12 +59,7 @@ class Linker(VendorTool):
         if self._compiler:
             return self._compiler.check_available()
 
-        try:
-            # We don't actually care about the result
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
+        return super().check_available()
 
     def link(self, input_files: List[Path], output_file: Path,
              add_libs: Optional[List[str]] = None) -> str:

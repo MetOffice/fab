@@ -166,6 +166,7 @@ class TestCheckout():
         version bump. Since we can change the revision and expect it to work,
         let's test that while we're here.'''
 
+        # pylint: disable=comparison-with-callable
         if checkout_func == svn_checkout:
             expect_tool = 'svn'
         elif checkout_func == fcm_checkout:
@@ -198,7 +199,7 @@ class TestCheckout():
             export_func(config, src=trunk, dst_label='proj')
 
         # if we try to checkout into that folder, it should fail
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError):
             checkout_func(config, src=trunk, dst_label='proj')
 
 
@@ -240,7 +241,7 @@ class TestMerge():
             export_func(config, src=trunk, dst_label='proj')
 
         # try to merge into an export
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError):
             merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))

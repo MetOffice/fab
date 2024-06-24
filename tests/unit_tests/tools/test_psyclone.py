@@ -9,13 +9,13 @@
 
 from unittest import mock
 
-from fab.tools import (Categories, Psyclone)
+from fab.tools import (Category, Psyclone)
 
 
 def test_psyclone_constructor():
     '''Test the PSyclone constructor.'''
     psyclone = Psyclone()
-    assert psyclone.category == Categories.PSYCLONE
+    assert psyclone.category == Category.PSYCLONE
     assert psyclone.name == "psyclone"
     assert psyclone.exec_name == "psyclone"
     assert psyclone.flags == []

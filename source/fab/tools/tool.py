@@ -13,13 +13,12 @@ It provides basic support for running a binary, and keeping track if
 a tool is actually available.
 """
 
-from abc import abstractmethod
 import logging
 from pathlib import Path
 import subprocess
 from typing import Dict, List, Optional, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.flags import Flags
 
 
@@ -28,17 +27,25 @@ class Tool:
     the name of the executable, and provides a `run` method.
 
     :param name: name of the tool.
-    :param exec_name: name of the executable to start.
+    :param exec_name: name or full path of the executable to start.
     :param category: the Category to which this tool belongs.
+    :param availability_option: a command line option for the tool to test
+        if the tool is available on the current system. Defaults to
+        `--version`.
     '''
 
-    def __init__(self, name: str, exec_name: str,
-                 category: Categories = Categories.MISC):
+    def __init__(self, name: str, exec_name: Union[str, Path],
+                 category: Category = Category.MISC,
+                 availablility_option: Optional[str] = None):
         self._logger = logging.getLogger(__name__)
         self._name = name
-        self._exec_name = exec_name
+        self._exec_name = str(exec_name)
         self._flags = Flags()
         self._category = category
+        if availablility_option:
+            self._availability_option = availablility_option
+        else:
+            self._availability_option = "--version"
 
         # This flag keeps track if a tool is available on the system or not.
         # A value of `None` means that it has not been tested if a tool works
@@ -50,10 +57,16 @@ class Tool:
         # to use `run` to determine if a tool is available or not.
         self._is_available: Optional[bool] = None
 
-    @abstractmethod
     def check_available(self) -> bool:
-        '''An abstract method to check if this tool is available in the system.
+        '''Run a 'test' command to check if this tool is available in the
+        system.
+        :returns: whether the tool is working (True) or not.
         '''
+        try:
+            self.run(self._availability_option)
+        except (RuntimeError, FileNotFoundError):
+            return False
+        return True
 
     @property
     def is_available(self) -> bool:
@@ -67,13 +80,6 @@ class Tool:
         if self._is_available is None:
             self._is_available = self.check_available()
         return self._is_available
-
-    @is_available.setter
-    def is_available(self, value: bool):
-        '''Sets a tool to be available (i.e. installed and working)
-        or not.
-        :param value: if the tool is available or not.'''
-        self._is_available = value
 
     @property
     def is_compiler(self) -> bool:
@@ -91,7 +97,7 @@ class Tool:
         return self._name
 
     @property
-    def category(self) -> Categories:
+    def category(self) -> Category:
         ''':returns: the category of this tool.'''
         return self._category
 
@@ -167,27 +173,21 @@ class Tool:
         return ""
 
 
-class VendorTool(Tool):
-    '''A tool that has a vendor attached to it (typically compiler
+class CompilerSuiteTool(Tool):
+    '''A tool that is part of a compiler suite (typically compiler
     and linker).
 
     :param name: name of the tool.
     :param exec_name: name of the executable to start.
-    :param vendor: name of the vendor.
+    :param suite: name of the compiler suite.
     :param category: the Category to which this tool belongs.
     '''
-    def __init__(self, name: str, exec_name: str, vendor: str,
-                 category: Categories):
+    def __init__(self, name: str, exec_name: Union[str, Path], suite: str,
+                 category: Category):
         super().__init__(name, exec_name, category)
-        self._vendor = vendor
+        self._suite = suite
 
     @property
-    def vendor(self) -> str:
-        ''':returns: the vendor of this tool.'''
-        return self._vendor
-
-    @abstractmethod
-    def check_available(self) -> bool:
-        '''An abstract method to check if this tool is available in the system.
-        Needs to be declared again to make pylint happy.
-        '''
+    def suite(self) -> str:
+        ''':returns: the compiler suite of this tool.'''
+        return self._suite

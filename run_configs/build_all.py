@@ -5,10 +5,15 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
+'''A top-level build script that executes all scripts in the various
+subdirectories.
+'''
+
 import os
 from pathlib import Path
+import shutil
 
-from fab.tools import Categories, Tool, ToolBox
+from fab.tools import Category, Tool, ToolBox
 
 
 class Script(Tool):
@@ -16,21 +21,31 @@ class Script(Tool):
     :name: the path to the script to run.
     '''
     def __init__(self, name: Path):
-        super().__init__(name=name.name, exec_name=str(name),
-                         category=Categories.MISC)
+        super().__init__(name=name.name, exec_name=name,
+                         category=Category.MISC)
 
     def check_available(self):
-        return True
+        '''Since there typically is no command line option we could test for
+        the tolls here, we use `which` to determine if a tool is available.
+        '''
+        out = shutil.which(self.exec_name)
+        if out:
+            return True
+        print(f"Tool '{self.name}' (f{self.exec_name}) cannot be executed.")
+        return False
 
 
-# todo: run the exes, check the output
+# todo: after running the execs, check the output
 def build_all():
+    '''Build all example codes here.
+    '''
 
     tool_box = ToolBox()
-    compiler = tool_box[Categories.FORTRAN_COMPILER]
+    compiler = tool_box[Category.FORTRAN_COMPILER]
     configs_folder = Path(__file__).parent
 
-    os.environ['FAB_WORKSPACE'] = os.path.join(os.getcwd(), f'fab_build_all_{compiler.name}')
+    os.environ['FAB_WORKSPACE'] = \
+        os.path.join(os.getcwd(), f'fab_build_all_{compiler.name}')
 
     scripts = [
         configs_folder / 'tiny_fortran/build_tiny_fortran.py',
@@ -59,12 +74,14 @@ def build_all():
         if script.name in skip:
             print(f''
                   f'-----'
-                  f'SKIPPING {script.name} FOR COMPILER {compiler.name} - GET THIS COMPILING AGAIN'
+                  f'SKIPPING {script.name} FOR COMPILER {compiler.name} - '
+                  f'GET THIS COMPILING AGAIN'
                   f'-----')
             continue
 
         script_tool.run(capture_output=False)
 
 
+# =============================================================================
 if __name__ == '__main__':
     build_all()

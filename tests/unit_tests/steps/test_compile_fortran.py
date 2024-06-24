@@ -8,9 +8,11 @@ import pytest
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.parse.fortran import AnalysedFortran
-from fab.steps.compile_fortran import compile_pass, get_compile_next, \
-    get_mod_hashes, MpCommonArgs, process_file, store_artefacts
-from fab.tools import Categories, ToolBox
+from fab.steps.compile_fortran import (
+    compile_pass, get_compile_next,
+    get_mod_hashes, handle_compiler_args, MpCommonArgs, process_file,
+    store_artefacts)
+from fab.tools import Category, ToolBox
 from fab.util import CompiledFile
 
 
@@ -30,7 +32,33 @@ def fixture_artefact_store(analysed_files):
     return artefact_store
 
 
-class TestCompilePass():
+def test_compile_cc_wrong_compiler(tool_box):
+    '''Test if a non-C compiler is specified as c compiler.
+    '''
+    config = BuildConfig('proj', tool_box)
+    # Take the Fortran compiler
+    cc = tool_box[Category.C_COMPILER]
+    # And set its category to C_COMPILER
+    cc._category = Category.FORTRAN_COMPILER
+    # So overwrite the C compiler with the re-categories Fortran compiler
+    tool_box.add_tool(cc, silent_replace=True)
+
+    # Now check that _compile_file detects the incorrect class of the
+    # C compiler
+    mp_common_args = mock.Mock(config=config)
+    with pytest.raises(RuntimeError) as err:
+        process_file((None, mp_common_args))
+    assert ("Unexpected tool 'mock_c_compiler' of type '<class "
+            "'fab.tools.compiler.CCompiler'>' instead of FortranCompiler"
+            in str(err.value))
+    with pytest.raises(RuntimeError) as err:
+        handle_compiler_args(config)
+    assert ("Unexpected tool 'mock_c_compiler' of type '<class "
+            "'fab.tools.compiler.CCompiler'>' instead of FortranCompiler"
+            in str(err.value))
+
+
+class TestCompilePass:
 
     def test_vanilla(self, analysed_files, tool_box: ToolBox):
         # make sure it compiles b only
@@ -60,7 +88,7 @@ class TestCompilePass():
         assert list(uncompiled_result)[0].fpath == Path('a.f90')
 
 
-class TestGetCompileNext():
+class TestGetCompileNext:
 
     def test_vanilla(self, analysed_files):
         a, b, c = analysed_files
@@ -81,7 +109,7 @@ class TestGetCompileNext():
             get_compile_next(already_compiled_files, to_compile)
 
 
-class TestStoreArtefacts():
+class TestStoreArtefacts:
 
     def test_vanilla(self):
 
@@ -143,7 +171,7 @@ def fixture_content(tool_box):
             mods_combo_hash)
 
 
-class TestProcessFile():
+class TestProcessFile:
 
     # Developer's note: If the "mods combo hash" changes you'll get an unhelpful message from pytest.
     # It'll come from this function but pytest won't tell you that.
@@ -316,7 +344,7 @@ class TestProcessFile():
     def test_compiler_hash(self, content):
         # changing the compiler must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
-        compiler = mp_common_args.config.tool_box[Categories.FORTRAN_COMPILER]
+        compiler = mp_common_args.config.tool_box[Category.FORTRAN_COMPILER]
         compiler._name += "xx"
 
         obj_combo_hash = '19dfa6c83'
@@ -347,7 +375,7 @@ class TestProcessFile():
     def test_compiler_version_hash(self, content):
         # changing the compiler version must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
-        compiler = mp_common_args.config.tool_box[Categories.FORTRAN_COMPILER]
+        compiler = mp_common_args.config.tool_box[Category.FORTRAN_COMPILER]
         compiler._version = "9.8.7"
 
         obj_combo_hash = '1a87f4e07'
@@ -424,7 +452,7 @@ class TestProcessFile():
         }
 
 
-class TestGetModHashes():
+class TestGetModHashes:
     '''Contains hashing-tests.'''
 
     def test_vanilla(self, tool_box):

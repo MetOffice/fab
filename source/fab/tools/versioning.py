@@ -11,7 +11,7 @@ subversion. It also contains derived classes Git, Subversion, and Fcm.
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
@@ -20,38 +20,14 @@ class Versioning(Tool):
 
     :param name: the name of the tool.
     :param exec_name: the name of the executable of this tool.
-    :param working_copy_command: which command is run to determine if
-        a directory is a working copy for this tool or not.
     :param category: the category to which this tool belongs).
     '''
 
     def __init__(self, name: str,
-                 exec_name: str,
-                 working_copy_command: str,
-                 category: Categories):
-        super().__init__(name, exec_name, category)
-        self._working_copy_command = working_copy_command
-
-    def check_available(self) -> bool:
-        ''':returns: whether this tool is installed or not.'''
-        try:
-            self.run("help")
-        except RuntimeError:
-            return False
-        return True
-
-    def is_working_copy(self, path: Union[str, Path]) -> bool:
-        """:returns: whether the given path is a working copy or not. It
-            runs the command specific to the instance.
-
-        :param path: directory to be checked.
-        """
-        try:
-            self.run([self._working_copy_command], cwd=path,
-                     capture_output=False)
-        except RuntimeError:
-            return False
-        return True
+                 exec_name: Union[str, Path],
+                 category: Category):
+        super().__init__(name, exec_name, category,
+                         availablility_option="help")
 
 
 # =============================================================================
@@ -61,8 +37,7 @@ class Git(Versioning):
 
     def __init__(self):
         super().__init__("git", "git",
-                         "status",
-                         Categories.GIT)
+                         category=Category.GIT)
 
     def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
         ''':returns: the hash of the current commit.
@@ -147,12 +122,13 @@ class Subversion(Versioning):
     '''
 
     def __init__(self, name: Optional[str] = None,
-                 exec_name: Optional[str] = None,
-                 category: Categories = Categories.SUBVERSION):
+                 exec_name: Optional[Union[str, Path]] = None,
+                 category: Category = Category.SUBVERSION):
         name = name or "subversion"
         exec_name = exec_name or "svn"
-        super().__init__(name, exec_name, "info", category)
+        super().__init__(name, exec_name, category=category)
 
+    # pylint: disable-next=too-many-arguments
     def execute(self, pre_commands: Optional[List[str]] = None,
                 revision: Optional[Union[int, str]] = None,
                 post_commands: Optional[List[str]] = None,
@@ -238,4 +214,4 @@ class Fcm(Subversion):
     '''
 
     def __init__(self):
-        super().__init__("fcm", "fcm", Categories.FCM)
+        super().__init__("fcm", "fcm", Category.FCM)

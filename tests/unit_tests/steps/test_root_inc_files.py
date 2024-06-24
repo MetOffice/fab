@@ -9,7 +9,7 @@ from fab.steps.root_inc_files import root_inc_files
 from fab.tools import ToolBox
 
 
-class TestRootIncFiles():
+class TestRootIncFiles:
 
     def test_vanilla(self):
         # ensure it copies the inc file

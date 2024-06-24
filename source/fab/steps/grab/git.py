@@ -10,7 +10,7 @@
 import warnings
 
 from fab.steps import step
-from fab.tools import Categories
+from fab.tools import Category
 
 
 # todo: allow cli args, e.g to set the depth
@@ -20,16 +20,13 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
     Checkout or update a Git repo.
 
     """
-    git = config.tool_box[Categories.GIT]
+    git = config.tool_box[Category.GIT]
     dst = config.source_root / dst_label
 
     # create folder?
     if not dst.exists():
         dst.mkdir(parents=True)
         git.init(dst)
-    elif not git.is_working_copy(dst):  # type: ignore
-        raise ValueError(f"destination exists but is not a working copy: "
-                         f"'{dst}'")
 
     git.checkout(src, dst, revision=revision)
     try:
@@ -45,9 +42,7 @@ def git_merge(config, src: str, dst_label: str = '', revision=None):
     Merge a git repo into a local working copy.
 
     """
-    git = config.tool_box[Categories.GIT]
+    git = config.tool_box[Category.GIT]
     dst = config.source_root / dst_label
-    if not dst or not git.is_working_copy(dst):
-        raise ValueError(f"destination is not a working copy: '{dst}'")
     git.fetch(src=src, dst=dst, revision=revision)
     git.merge(dst=dst, revision=revision)

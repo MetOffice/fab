@@ -6,7 +6,7 @@ from pathlib import Path
 from fab.artefacts import ArtefactSet
 from fab.steps import step
 from fab.steps.find_source_files import find_source_files
-from fab.tools import Categories, Tool
+from fab.tools import Category, Tool
 
 logger = logging.getLogger('fab')
 
@@ -17,7 +17,7 @@ class Script(Tool):
     '''
     def __init__(self, name: Path):
         super().__init__(name=name.name, exec_name=str(name),
-                         category=Categories.MISC)
+                         category=Category.MISC)
 
     def check_available(self):
         return True

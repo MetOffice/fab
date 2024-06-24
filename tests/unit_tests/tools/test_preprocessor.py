@@ -13,16 +13,16 @@ from pathlib import Path
 
 from unittest import mock
 
-from fab.tools import (Categories, Cpp, CppFortran, Fpp, Preprocessor)
+from fab.tools import (Category, Cpp, CppFortran, Fpp, Preprocessor)
 
 
 def test_preprocessor_constructor():
     '''Test the constructor.'''
-    tool = Preprocessor("cpp-fortran", "cpp", Categories.FORTRAN_PREPROCESSOR)
+    tool = Preprocessor("cpp-fortran", "cpp", Category.FORTRAN_PREPROCESSOR)
     assert str(tool) == "Preprocessor - cpp-fortran: cpp"
     assert tool.exec_name == "cpp"
     assert tool.name == "cpp-fortran"
-    assert tool.category == Categories.FORTRAN_PREPROCESSOR
+    assert tool.category == Category.FORTRAN_PREPROCESSOR
     assert isinstance(tool.logger, logging.Logger)
 
 
