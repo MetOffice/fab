@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import auto, Enum
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
@@ -66,7 +66,7 @@ class ArtefactStore(dict):
                 self[artefact] = set()
 
     def add(self, collection: Union[str, ArtefactSet],
-            files: Union[str, List[str], Set[str]]):
+            files: Union[Path, str, Iterable[Path], Iterable[str]]):
         '''Adds the specified artefacts to a collection. The artefact
         can be specified as a simple string, a list of string or a set, in
         which case all individual entries of the list/set will be added.
@@ -75,7 +75,7 @@ class ArtefactStore(dict):
         '''
         if isinstance(files, list):
             files = set(files)
-        elif not isinstance(files, set):
+        elif not isinstance(files, Iterable):
             # We need to use a list, otherwise each character is added
             files = set([files])
 
@@ -110,8 +110,8 @@ class ArtefactStore(dict):
             self.add(dest, self[source])
 
     def replace(self, artefact: Union[str, ArtefactSet],
-                remove_files: List[str],
-                add_files: Union[List[str], dict]):
+                remove_files: List[Union[str, Path]],
+                add_files: Union[List[Union[str, Path]], dict]):
         '''Replaces artefacts in one artefact set with other artefacts. This
         can be used e.g to replace files that have been preprocessed
         and renamed. There is no requirement for these lists to have the
