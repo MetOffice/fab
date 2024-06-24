@@ -22,7 +22,7 @@ def test_psyclone_constructor():
     assert psyclone._api is None
 
     psyclone = Psyclone(api="gocean")
-    assert psyclone.category == Categories.PSYCLONE
+    assert psyclone.category == Category.PSYCLONE
     assert psyclone.name == "psyclone"
     assert psyclone.exec_name == "psyclone"
     assert psyclone.flags == []
