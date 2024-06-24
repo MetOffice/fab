@@ -15,6 +15,7 @@ import shutil
 import warnings
 from pathlib import Path
 
+from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.util import suffix_filter
 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 @step
-def root_inc_files(config):
+def root_inc_files(config: BuildConfig):
 
     """
     Copy inc files into the workspace output root.

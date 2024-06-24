@@ -59,7 +59,6 @@ def _typed_child(parent, child_type: Type, must_exist=False):
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
     children = list(filter(lambda child: isinstance(child, child_type), parent.children))
-    print(children)
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
 

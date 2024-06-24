@@ -14,19 +14,22 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
+from fab.tools import ToolBox
+
 
 import pytest
 
 
 def build(fab_workspace, fpp_flags=None):
-    with BuildConfig(fab_workspace=fab_workspace, project_label='foo', multiprocessing=False) as config, \
-         pytest.warns(UserWarning, match="removing managed flag"):
-        grab_folder(config, Path(__file__).parent / 'project-source'),
-        find_source_files(config),
-        preprocess_fortran(config, common_flags=fpp_flags),
-        analyse(config, root_symbol=['stay_or_go_now']),
-        compile_fortran(config, common_flags=['-c']),
-        link_exe(config, linker='gcc', flags=['-lgfortran']),
+    with BuildConfig(fab_workspace=fab_workspace, tool_box=ToolBox(),
+                     project_label='foo', multiprocessing=False) as config:
+        grab_folder(config, Path(__file__).parent / 'project-source')
+        find_source_files(config)
+        preprocess_fortran(config, common_flags=fpp_flags)
+        analyse(config, root_symbol=['stay_or_go_now'])
+        with pytest.warns(UserWarning, match="Removing managed flag"):
+            compile_fortran(config, common_flags=['-c'])
+        link_exe(config, flags=['-lgfortran'])
 
     return config
 

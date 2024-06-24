@@ -80,6 +80,7 @@ See also
    config_intro
    writing_config
    advanced_config
+   site-specific-config
    features
    Api Reference <api>
    development
