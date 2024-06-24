@@ -10,13 +10,13 @@
 from pathlib import Path
 from unittest import mock
 
-from fab.tools import Categories, Ar
+from fab.tools import Category, Ar
 
 
 def test_ar_constructor():
     '''Test the ar constructor.'''
     ar = Ar()
-    assert ar.category == Categories.AR
+    assert ar.category == Category.AR
     assert ar.name == "ar"
     assert ar.exec_name == "ar"
     assert ar.flags == []

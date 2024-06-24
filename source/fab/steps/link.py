@@ -13,7 +13,7 @@ from typing import Optional
 
 from fab.artefacts import ArtefactSet
 from fab.steps import step
-from fab.tools import Categories
+from fab.tools import Category
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -52,8 +52,8 @@ def link_exe(config, flags=None, source: Optional[ArtefactsGetter] = None):
         output from compiler steps, which typically is the expected behaviour.
 
     """
-    linker = config.tool_box[Categories.LINKER]
-    logger.info(f'linker is {linker.name}')
+    linker = config.tool_box[Category.LINKER]
+    logger.info(f'Linker is {linker.name}')
 
     flags = flags or []
     source_getter = source or DefaultLinkerSource()
@@ -89,7 +89,7 @@ def link_shared_object(config, output_fpath: str, flags=None,
         Typically not required, as there is a sensible default.
 
     """
-    linker = config.tool_box[Categories.LINKER]
+    linker = config.tool_box[Category.LINKER]
     logger.info(f'linker is {linker}')
 
     flags = flags or []

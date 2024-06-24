@@ -7,21 +7,21 @@
 '''This module tests the Categories.
 '''
 
-from fab.tools import Categories
+from fab.tools import Category
 
 
-def test_categories():
+def test_category():
     '''Tests the categories.'''
     # Make sure that str of a category only prints the name (which is more
     # useful for error messages).
-    for cat in list(Categories):
+    for cat in list(Category):
         assert str(cat) == cat.name
 
 
 def test_is_compiler():
     '''Tests that compiler correctly sets the `is_compiler` property.'''
-    for cat in Categories:
-        if cat in [Categories.FORTRAN_COMPILER, Categories.C_COMPILER]:
+    for cat in Category:
+        if cat in [Category.FORTRAN_COMPILER, Category.C_COMPILER]:
             assert cat.is_compiler
         else:
             assert not cat.is_compiler

@@ -6,7 +6,7 @@ from fab.cli import cli_fab
 from fab.tools import ToolRepository
 
 
-class TestZeroConfig():
+class TestZeroConfig:
 
     def test_fortran_dependencies(self, tmp_path):
         # test the sample project in the fortran dependencies system test
@@ -36,13 +36,13 @@ class TestZeroConfig():
         kwargs = {'project_label': 'fortran explicit gfortran', 'fab_workspace': tmp_path, 'multiprocessing': False}
 
         tr = ToolRepository()
-        tr.set_default_vendor("gnu")
+        tr.set_default_compiler_suite("gnu")
 
         # TODO: If the intel compiler should be used here, the linker will
         # need an additional flag (otherwise duplicated `main` symbols will
         # occur). The following code can be used e.g. in cli.py:
         #
-        # if config.tool_box.get_tool(Categories.LINKER).name == "linker-ifort":
+        # if config.tool_box.get_tool(Category.LINKER).name == "linker-ifort":
         #    flags = ["-nofor-main"]
 
         with pytest.warns(DeprecationWarning, match="RootIncFiles is deprecated as .inc files are due to be removed."):

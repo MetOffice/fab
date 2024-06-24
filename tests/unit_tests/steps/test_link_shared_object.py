@@ -35,8 +35,8 @@ def test_run(tool_box):
         # We need to create a linker here to pick up the env var:
         linker = Linker("mock_link", "mock_link.exe", "vendor")
         # Mark the linker as available so it can added to the tool box:
-        linker.is_available = True
-        tool_box.add_tool(linker)
+        linker._is_available = True
+        tool_box.add_tool(linker, silent_replace=True)
         mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
         with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=mock_result) as tool_run, \
