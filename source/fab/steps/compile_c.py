@@ -18,7 +18,7 @@ from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Categories, Flags
+from fab.tools import Category, CCompiler, Flags
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ DEFAULT_OUTPUT_ARTEFACT = ''
 
 
 @dataclass
-class MpCommonArgs():
+class MpCommonArgs:
     '''A simple class to pass arguments to subprocesses.'''
     config: BuildConfig
     flags: FlagsConfig
@@ -60,8 +60,8 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
 
-    compiler = config.tool_box[Categories.C_COMPILER]
-    logger.info(f'c compiler is {compiler}')
+    compiler = config.tool_box[Category.C_COMPILER]
+    logger.info(f'C compiler is {compiler}')
 
     env_flags = os.getenv('CFLAGS', '').split()
     common_flags = env_flags + (common_flags or [])
@@ -108,7 +108,10 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
     config = mp_payload.config
-    compiler = config.tool_box[Categories.C_COMPILER]
+    compiler = config.tool_box[Category.C_COMPILER]
+    if not isinstance(compiler, CCompiler):
+        raise RuntimeError(f"Unexpected tool '{compiler.name}' of type "
+                           f"'{type(compiler)}' instead of CCompiler")
     with Timer() as timer:
         flags = Flags(mp_payload.flags.flags_for_path(path=analysed_file.fpath,
                                                       config=config))

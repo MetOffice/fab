@@ -4,14 +4,14 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the Rsync class for archiving files.
+"""This file contains the Rsync class for synchronising file trees.
 """
 
 import os
 from pathlib import Path
 from typing import List, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
@@ -20,18 +20,7 @@ class Rsync(Tool):
     '''
 
     def __init__(self):
-        super().__init__("rsync", "rsync", Categories.RSYNC)
-
-    def check_available(self) -> bool:
-        '''
-        :returns: whether `rsync` is available or not. We do this by
-            requesting the rsync version.
-        '''
-        try:
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
+        super().__init__("rsync", "rsync", Category.RSYNC)
 
     def execute(self, src: Path,
                 dst: Path):

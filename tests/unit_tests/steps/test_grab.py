@@ -14,7 +14,7 @@ from fab.tools import ToolBox
 import pytest
 
 
-class TestGrabFolder():
+class TestGrabFolder:
 
     def test_trailing_slash(self):
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
@@ -40,7 +40,7 @@ class TestGrabFolder():
                                    '-ru', expect_grab_src, expect_dst])
 
 
-class TestGrabFcm():
+class TestGrabFcm:
 
     def test_no_revision(self):
         source_root = Path('/workspace/source')

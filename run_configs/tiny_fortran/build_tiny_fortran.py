@@ -18,7 +18,7 @@ from fab.tools import Ifort, Linker, ToolBox
 class MpiIfort(Ifort):
     '''A small wrapper to make mpiifort available.'''
     def __init__(self):
-        super().__init__(name="mpiifort", exec_name="mpiifort")
+        super().__init__(name="mpifort", exec_name="mpifort")
 
 
 if __name__ == '__main__':

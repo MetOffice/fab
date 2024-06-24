@@ -13,12 +13,12 @@ from pathlib import Path
 from typing import List, Optional, Union
 import zlib
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.flags import Flags
-from fab.tools.tool import VendorTool
+from fab.tools.tool import CompilerSuiteTool
 
 
-class Compiler(VendorTool):
+class Compiler(CompilerSuiteTool):
     '''This is the base class for any compiler. It provides flags for
 
     - compilation only (-c),
@@ -27,7 +27,7 @@ class Compiler(VendorTool):
 
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
-    :param vendor: name of the compiler vendor.
+    :param suite: name of the compiler suite this tool belongs to.
     :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
@@ -37,12 +37,14 @@ class Compiler(VendorTool):
     '''
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, exec_name: str, vendor: str,
-                 category: Categories,
+    def __init__(self, name: str,
+                 exec_name: Union[str, Path],
+                 suite: str,
+                 category: Category,
                  compile_flag: Optional[str] = None,
                  output_flag: Optional[str] = None,
                  omp_flag: Optional[str] = None):
-        super().__init__(name, exec_name, vendor, category)
+        super().__init__(name, exec_name, suite, category)
         self._version = None
         self._compile_flag = compile_flag if compile_flag else "-c"
         self._output_flag = output_flag if output_flag else "-o"
@@ -80,7 +82,12 @@ class Compiler(VendorTool):
                         additional_parameters=params)
 
     def check_available(self) -> bool:
-        '''
+        '''Checks if the compiler is available. While the method in
+        the Tools base class would be sufficient (when using --version),
+        in case of a compiler we also want to store the compiler version.
+        So, re-implement check_available in a way that will automatically
+        store the compiler version for later usage.
+
         :returns: whether the compiler is available or not. We do
             this by requesting the compiler version.
         '''
@@ -155,7 +162,7 @@ class CCompiler(Compiler):
 
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
-    :param vendor: name of the compiler vendor.
+    :param suite: name of the compiler suite.
     :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
@@ -165,9 +172,9 @@ class CCompiler(Compiler):
     '''
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, exec_name: str, vendor: str,
+    def __init__(self, name: str, exec_name: str, suite: str,
                  compile_flag=None, output_flag=None, omp_flag=None):
-        super().__init__(name, exec_name, vendor, Categories.C_COMPILER,
+        super().__init__(name, exec_name, suite, Category.C_COMPILER,
                          compile_flag, output_flag, omp_flag)
 
 
@@ -179,7 +186,7 @@ class FortranCompiler(Compiler):
 
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
-    :param vendor: name of the compiler vendor.
+    :param suite: name of the compiler suite.
     :param module_folder_flag: the compiler flag to indicate where to
         store created module files.
     :param syntax_only_flag: flag to indicate to only do a syntax check.
@@ -192,11 +199,11 @@ class FortranCompiler(Compiler):
     '''
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, exec_name: str, vendor: str,
+    def __init__(self, name: str, exec_name: str, suite: str,
                  module_folder_flag: str, syntax_only_flag=None,
                  compile_flag=None, output_flag=None, omp_flag=None):
 
-        super().__init__(name, exec_name, vendor, Categories.FORTRAN_COMPILER,
+        super().__init__(name, exec_name, suite, Category.FORTRAN_COMPILER,
                          compile_flag, output_flag, omp_flag)
         self._module_folder_flag = module_folder_flag
         self._module_output_path = ""
@@ -282,7 +289,8 @@ class Icc(CCompiler):
     def __init__(self,
                  name: str = "icc",
                  exec_name: str = "icc"):
-        super().__init__(name, exec_name, "intel", omp_flag="-qopenmp")
+        super().__init__(name, exec_name, "intel-classic",
+                         omp_flag="-qopenmp")
 
 
 # ============================================================================
@@ -295,7 +303,7 @@ class Ifort(FortranCompiler):
     def __init__(self,
                  name: str = "ifort",
                  exec_name: str = "ifort"):
-        super().__init__(name, exec_name, "intel",
+        super().__init__(name, exec_name, "intel-classic",
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")

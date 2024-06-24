@@ -50,6 +50,9 @@ class Flags(list):
         :param remove_flag: the flag to remove
         :param has_parameter: if the flag to remove takes a parameter
         '''
+
+        # TODO #313: Check if we can use an OrderedDict and get O(1)
+        # behaviour here (since ordering of flags can be important)
         i = 0
         flag_len = len(remove_flag)
         while i < len(self):

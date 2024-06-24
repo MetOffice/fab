@@ -9,13 +9,13 @@
 
 from unittest import mock
 
-from fab.tools import (Categories, Rsync)
+from fab.tools import (Category, Rsync)
 
 
 def test_ar_constructor():
     '''Test the rsync constructor.'''
     rsync = Rsync()
-    assert rsync.category == Categories.RSYNC
+    assert rsync.category == Category.RSYNC
     assert rsync.name == "rsync"
     assert rsync.exec_name == "rsync"
     assert rsync.flags == []

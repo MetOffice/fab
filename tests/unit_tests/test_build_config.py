@@ -10,7 +10,7 @@ from fab.steps.cleanup_prebuilds import CLEANUP_COUNT
 from fab.tools import ToolBox
 
 
-class TestBuildConfig():
+class TestBuildConfig:
 
     def test_error_newlines(self, tmp_path):
         # Check cli tool errors have newlines displayed correctly.
