@@ -281,7 +281,7 @@ steps in Fab will make sure to maintain these artefact sets consistently,
 for example, if a ``.F90`` file is preprocessed, the ``.F90`` file in
 ``FORTRAN_BUILD_FILES`` will be replaced with the corresponding preprocessed
 ``.f90`` file. Similarly, new files (for examples created by PSyclone)
-will be added to ``FORTRAN_BUILD_FILES``). A user script can adds its own
+will be added to ``FORTRAN_BUILD_FILES``. A user script can adds its own
 artefacts using strings as keys if required.
 
 The exact flow of artefact sets is as follows. Note that any artefact
@@ -295,15 +295,15 @@ it is the user's responsibility to maintain the default artefact sets
 
 1. :func:`~fab.steps.find_source_files.find_source_files` will add all source files it finds to ``ALL_SOURCE`` (by default, can be overwritten by the user). Any ``.F90`` and ``.f90`` file will also be added to ``FORTRAN_BUILD_FILES``, any ``.c`` file to ``C_BUILD_FILES``, and any ``.x90`` or ``.X90`` file to ``X90_BUILD_FILES``. It can be called several times if files from different root directories need to be added, and it will automatically update the ``*_BUILD_FILES`` sets.
 2. Any user script that creates new files can add files to ``ALL_SOURCE`` if required, but also to the corresponding ``*_BUILD_FILES``. This will happen automatically if :func:`~fab.steps.find_source_files.find_source_files` is called to add these newly created files.
-3. If :func:`~fab.steps.c_pragma_injector.c_pragma_injector` is being called, it will handle all files in ``C_BUILD_FILES``, and will replace all the original C files with the newly created ones.
-4. If :func:`~fab.steps.preprocess.preprocess_c` is called, it will preprocess all files in ``C_BUILD_FILES`` (at this stage typically preprocess the files in the original source folder, writing the output files to the build folder), and update that artefact set accordingly.
+3. If :func:`~fab.steps.c_pragma_injector.c_pragma_injector` is being called, it will handle all files in ``C_BUILD_FILES``, and will replace all the original C files with the newly created ones. For backward compatibility it will also store the new objects in the ``PRAGMAD_C`` set.
+4. If :func:`~fab.steps.preprocess.preprocess_c` is called, it will preprocess all files in ``C_BUILD_FILES`` (at this stage typically preprocess the files in the original source folder, writing the output files to the build folder), and update that artefact set accordingly. For backward compatibility it will also store the preprocessed files in ``PREPROCESSED_C``.
 5. If :func:`~fab.steps.preprocess.preprocess_fortran` is called, it will preprocess all files in ``FORTRAN_BUILD_FILES`` that end on ``.F90``, creating new ``.f90`` files in the build folder. These files will be added to ``PREPROCESSED_FORTRAN``. Then the original ``.F90`` are removed from ``FORTRAN_BUILD_FILES``, and the new preprocessed files (which are in ``PREPROCESSED_FORTRAN``) will be added. Then any ``.f90`` files that are not already in the build folder (an example of this are files created by a user script) are copied from the original source folder into the build folder, and ``FORTRAN_BUILD_FILES`` is updated to use the files in the new location.
 6. If :func:`~fab.steps.psyclone.preprocess_x90` is called, it will similarly preprocess all ``.X90`` files in ``X90_BUILD_FILES``, creating the output files in the build folder, and replacing the files in ``X90_BUILD_FILES``.
 7. If :func:`~fab.steps.psyclone.psyclone` is called, it will process all files in ``X90_BUILD_FILES`` and add any newly created file to ``FORTRAN_BUILD_FILES``, and removing them from ``X90_BUILD_FILES``.
 8. The :func:`~fab.steps.analyse.analyse` step analyses all files in ``FORTRAN_BUILD_FILES`` and ``C_BUILD_FILES``, and add all dependencies to ``BUILD_TREES``.
 9. The :func:`~fab.steps.compile_c.compile_c` and :func:`~fab.steps.compile_fortran.compile_fortran` steps will compile all files from ``C_BUILD_FILES`` and ``FORTRAN_BUILD_FILES``, and add them to ``OBJECT_FILES``.
 10. If :func:`~fab.steps.archive_objects.archive_objects` is called, it will create libraries based on ``OBJECT_FILES``, adding the libraries to ``OBJECT_ARCHIVES``.
-11. If :func:`~fab.steps.link.link_exe` is called, it will either use ``OBJECT_ARCHIVES``, or if this is empty ``OBJECT_FILES``, create the binaries, and add them to ``EXECUTABLES``.
+11. If :func:`~fab.steps.link.link_exe` is called, it will either use ``OBJECT_ARCHIVES``, or if this is empty, use ``OBJECT_FILES``, create the binaries, and add them to ``EXECUTABLES``.
 
 
 Flags

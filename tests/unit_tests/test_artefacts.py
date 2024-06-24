@@ -11,7 +11,7 @@ from fab.artefacts import (ArtefactSet, ArtefactStore, ArtefactsGetter,
                            FilterBuildTrees, SuffixFilter)
 
 
-def test_artefact_store():
+def test_artefact_store() -> None:
     '''Tests the ArtefactStore class.'''
     artefact_store = ArtefactStore()
     assert len(artefact_store) == len(ArtefactSet)
@@ -25,7 +25,7 @@ def test_artefact_store():
             assert isinstance(artefact_store[artefact], set)
 
 
-def test_artefact_store_copy():
+def test_artefact_store_copy() -> None:
     '''Tests the add and copy operations.'''
     artefact_store = ArtefactStore()
     # We need paths for suffix filtering, so create some
@@ -63,28 +63,32 @@ def test_artefact_store_copy():
     assert artefact_store[ArtefactSet.C_BUILD_FILES] == set([a, c])
 
 
-def test_artefact_store_update_dict():
+def test_artefact_store_update_dict() -> None:
     '''Tests the update_dict function.'''
     artefact_store = ArtefactStore()
-    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, "a", ["AA"])
-    assert artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {"AA"}}
-    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, "b", set(["BB"]))
-    assert (artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {"AA"},
-                                                         "b": {"BB"}})
+    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, "a", [Path("AA")])
+    assert artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {Path("AA")}}
+    artefact_store.update_dict(ArtefactSet.OBJECT_FILES,
+                               "b", set([Path("BB")]))
+    assert (artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {Path("AA")},
+                                                         "b": {Path("BB")}})
 
 
-def test_artefact_store_replace():
+def test_artefact_store_replace() -> None:
     '''Tests the replace function.'''
     artefact_store = ArtefactStore()
-    artefact_store.add(ArtefactSet.ALL_SOURCE, ["a", "b", "c"])
-    artefact_store.replace(ArtefactSet.ALL_SOURCE, remove_files=["a", "b"],
-                           add_files=["B"])
-    assert artefact_store[ArtefactSet.ALL_SOURCE] == set(["B", "c"])
+    artefact_store.add(ArtefactSet.ALL_SOURCE, [Path("a"), Path("b"),
+                                                Path("c")])
+    artefact_store.replace(ArtefactSet.ALL_SOURCE,
+                           remove_files=[Path("a"), Path("b")],
+                           add_files=[Path("B")])
+    assert artefact_store[ArtefactSet.ALL_SOURCE] == set([Path("B"),
+                                                          Path("c")])
 
     # Test the behaviour for dictionaries
     with pytest.raises(RuntimeError) as err:
-        artefact_store.replace(ArtefactSet.OBJECT_FILES, remove_files=["a"],
-                               add_files=["c"])
+        artefact_store.replace(ArtefactSet.OBJECT_FILES,
+                               remove_files=[Path("a")], add_files=["c"])
     assert ("Replacing artefacts in dictionary 'ArtefactSet.OBJECT_FILES' "
             "is not supported" in str(err.value))
 
@@ -128,7 +132,7 @@ class TestFilterBuildTrees():
     '''Tests for FilterBuildTrees.'''
 
     @pytest.fixture
-    def artefact_store(self):
+    def artefact_store(self) -> ArtefactStore:
         '''A fixture that returns an ArtefactStore with
         some elements.'''
         artefact_store = ArtefactStore()
@@ -142,7 +146,7 @@ class TestFilterBuildTrees():
                                        }
         return artefact_store
 
-    def test_single_suffix(self, artefact_store):
+    def test_single_suffix(self, artefact_store) -> None:
         '''Ensure the artefact getter passes through the trees properly to
         the filter func.'''
 
@@ -159,7 +163,7 @@ class TestFilterBuildTrees():
                  suffixes=['.foo']),
         ])
 
-    def test_multiple_suffixes(self, artefact_store):
+    def test_multiple_suffixes(self, artefact_store) -> None:
         '''Test it works with multiple suffixes provided.'''
         filter_build_trees = FilterBuildTrees(['.foo', '.bar'])
         with mock.patch('fab.artefacts.filter_source_tree') as mock_filter:
@@ -174,7 +178,7 @@ class TestFilterBuildTrees():
         ])
 
 
-def test_collection_getter():
+def test_collection_getter() -> None:
     '''Test CollectionGetter.'''
     artefact_store = ArtefactStore()
     artefact_store.add(ArtefactSet.ALL_SOURCE, ["a", "b", "c"])
