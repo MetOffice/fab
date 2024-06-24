@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import auto, Enum
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
@@ -57,7 +57,8 @@ class ArtefactStore(dict):
         '''
         self.clear()
         for artefact in ArtefactSet:
-            if artefact == ArtefactSet.OBJECT_FILES:
+            if artefact in [ArtefactSet.OBJECT_FILES,
+                            ArtefactSet.OBJECT_ARCHIVES]:
                 # ObjectFiles store a default dictionary (i.e. a non-existing
                 # key will automatically add an empty `set`)
                 self[artefact] = defaultdict(set)
@@ -65,7 +66,7 @@ class ArtefactStore(dict):
                 self[artefact] = set()
 
     def add(self, collection: Union[str, ArtefactSet],
-            files: Union[str, List[str], Set[str]]):
+            files: Union[Path, str, Iterable[Path], Iterable[str]]):
         '''Adds the specified artefacts to a collection. The artefact
         can be specified as a simple string, a list of string or a set, in
         which case all individual entries of the list/set will be added.
@@ -74,21 +75,21 @@ class ArtefactStore(dict):
         '''
         if isinstance(files, list):
             files = set(files)
-        elif not isinstance(files, set):
+        elif not isinstance(files, Iterable):
             # We need to use a list, otherwise each character is added
             files = set([files])
 
         self[collection].update(files)
 
     def update_dict(self, collection: Union[str, ArtefactSet],
-                    key: str, values: set):
+                    key: str, values: Union[str, Iterable]):
         '''For ArtefactSets that are a dictionary of sets: update
         the set with the specified values.
         :param collection: the name of the collection to add this to.
         :param key: the key in the dictionary to update.
         :param values: the values to update with.
         '''
-        self[collection][key].update(values)
+        self[collection][key].update([values] if isinstance(values, str) else values)
 
     def copy_artefacts(self, source: Union[str, ArtefactSet],
                        dest: Union[str, ArtefactSet],
@@ -98,15 +99,36 @@ class ArtefactStore(dict):
         will be copied.
 
         :param source: the source artefact set.
-        :param dest: the source artefact set.
+        :param dest: the destination artefact set.
         :param suffixes: a string or list of strings specifying the
             suffixes to copy.
         '''
         if suffixes:
             suffixes = [suffixes] if isinstance(suffixes, str) else suffixes
-            self.add(dest, suffix_filter(self[source], suffixes))
+            self.add(dest, set(suffix_filter(self[source], suffixes)))
         else:
             self.add(dest, self[source])
+
+    def replace(self, artefact: Union[str, ArtefactSet],
+                remove_files: List[Union[str, Path]],
+                add_files: Union[List[Union[str, Path]], dict]):
+        '''Replaces artefacts in one artefact set with other artefacts. This
+        can be used e.g to replace files that have been preprocessed
+        and renamed. There is no requirement for these lists to have the
+        same number of elements, nor is there any check if an artefact to
+        be removed is actually in the artefact set.
+
+        :param artefact: the artefact set to modify.
+        :param remove_files: files to remove from the artefact set.
+        :param add_files: files to add to the artefact set.
+        '''
+
+        art_set = self[artefact]
+        if not isinstance(art_set, set):
+            raise RuntimeError(f"Replacing artefacts in dictionary "
+                               f"'{artefact}' is not supported.")
+        art_set.difference_update(set(remove_files))
+        art_set.update(add_files)
 
 
 class ArtefactsGetter(ABC):
@@ -143,7 +165,7 @@ class CollectionGetter(ArtefactsGetter):
         self.collection_name = collection_name
 
     def __call__(self, artefact_store):
-        return artefact_store.get(self.collection_name, [])
+        return artefact_store.get(self.collection_name, set())
 
 
 class CollectionConcat(ArtefactsGetter):

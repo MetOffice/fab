@@ -79,7 +79,7 @@ Please see the documentation for :func:`~fab.steps.find_source_files.find_source
 including how to exclude certain source code from the build. More grab steps can be found in the :mod:`~fab.steps.grab`
 module.
 
-After the find_source_files step, there will be a collection called ``"all_source"``, in the artefact store.
+After the find_source_files step, there will be a collection called ``"ALL_SOURCE"``, in the artefact store.
 
 .. [1] See :func:`~fab.steps.c_pragma_injector.c_pragma_injector` for an example of a step which
     creates artefacts in the source folder.
@@ -94,7 +94,7 @@ which must happen before we analyse it.
 
 Steps generally create and find artefacts in the :term:`Artefact Store`, arranged into named collections.
 The :func:`~fab.steps.preprocess.preprocess_fortran`
-automatically looks for Fortran source code in a collection named `'all_source'`,
+automatically looks for Fortran source code in a collection named `'ALL_SOURCE'`,
 which is the default output from the preceding :funcfind_source_files step.
 It filters just the (uppercase) ``.F90`` files.
 
@@ -179,7 +179,7 @@ before you run the :func:`~fab.steps.analyse.analyse` step below.
 
 
 After the psyclone step, two new source files will be created for each .x90 file in the `'build_output'` folder.
-These two output files will be added under ``"psyclone_output"`` collection to the artefact store.
+These two output files will be added under ``FORTRAN_BUILD_FILES`` collection to the artefact store.
 
 
 .. _Analyse Overview:
@@ -190,11 +190,10 @@ Analyse
 We must :func:`~fab.steps.analyse.analyse` the source code to determine which
 Fortran files to compile, and in which order.
 
-The Analyse step looks for source to analyse in several collections:
+The Analyse step looks for source to analyse in two collections:
 
-* ``.f90`` found in the source
-* ``.F90`` we pre-processed into ``.f90``
-* preprocessed c
+* ``FORTRAN_BUILD_FILES``, which contains all ``.f90`` found in the source, all ``.F90`` files we pre-processed into ``.f90``, and files created by any additional step (e.g. PSyclone).
+* ``C_BUILD_FILES``, all preprocessed c files.
 
 .. code-block::
     :linenos:
@@ -227,14 +226,14 @@ The Analyse step looks for source to analyse in several collections:
 Here we tell the analyser which :term:`Root Symbol` we want to build into an executable.
 Alternatively, we can use the ``find_programs`` flag for Fab to discover and build all programs.
 
-After the Analyse step, there will be a collection called ``"build_trees"``, in the artefact store.
+After the Analyse step, there will be a collection called ``BUILD_TREES``, in the artefact store.
 
 
 Compile and Link
 ================
 
 The :func:`~fab.steps.compile_fortran.compile_fortran` step compiles files in
-the ``"build_trees"`` collection. The :func:`~fab.steps.link.link_exe` step
+the ``BUILD_TREES`` collection. The :func:`~fab.steps.link.link_exe` step
 then creates the executable.
 
 .. code-block::
@@ -269,7 +268,42 @@ then creates the executable.
             link_exe(state)
 
 
-After the :func:`~fab.steps.link.link_exe` step, the executable name can be found in a collection called ``"executables"``.
+After the :func:`~fab.steps.link.link_exe` step, the executable name can be found in a collection called ``EXECUTABLES``.
+
+ArtefactStore
+=============
+Each build configuration contains an artefact store, containing various
+sets of artefacts. The artefact sets used by Fab are defined in the
+enum :class:`~fab.artefacts.ArtefactSet`. The most important sets are ``FORTRAN_BUILD_FILES``, 
+``C_BUILD_FILES``, which will always contain all known source files that
+will need to be analysed for dependencies, compiled, and linked. All existing
+steps in Fab will make sure to maintain these artefact sets consistently,
+for example, if a ``.F90`` file is preprocessed, the ``.F90`` file in
+``FORTRAN_BUILD_FILES`` will be replaced with the corresponding preprocessed
+``.f90`` file. Similarly, new files (for examples created by PSyclone)
+will be added to ``FORTRAN_BUILD_FILES``. A user script can adds its own
+artefacts using strings as keys if required.
+
+The exact flow of artefact sets is as follows. Note that any artefact
+sets mentioned here can typically be overwritten by the user, but then
+it is the user's responsibility to maintain the default artefact sets
+(or change them all):
+
+..
+  My apologies for the LONG lines, they were the only way I could find
+  to have properly indented paragraphs :(
+
+1. :func:`~fab.steps.find_source_files.find_source_files` will add all source files it finds to ``ALL_SOURCE`` (by default, can be overwritten by the user). Any ``.F90`` and ``.f90`` file will also be added to ``FORTRAN_BUILD_FILES``, any ``.c`` file to ``C_BUILD_FILES``, and any ``.x90`` or ``.X90`` file to ``X90_BUILD_FILES``. It can be called several times if files from different root directories need to be added, and it will automatically update the ``*_BUILD_FILES`` sets.
+2. Any user script that creates new files can add files to ``ALL_SOURCE`` if required, but also to the corresponding ``*_BUILD_FILES``. This will happen automatically if :func:`~fab.steps.find_source_files.find_source_files` is called to add these newly created files.
+3. If :func:`~fab.steps.c_pragma_injector.c_pragma_injector` is being called, it will handle all files in ``C_BUILD_FILES``, and will replace all the original C files with the newly created ones. For backward compatibility it will also store the new objects in the ``PRAGMAD_C`` set.
+4. If :func:`~fab.steps.preprocess.preprocess_c` is called, it will preprocess all files in ``C_BUILD_FILES`` (at this stage typically preprocess the files in the original source folder, writing the output files to the build folder), and update that artefact set accordingly. For backward compatibility it will also store the preprocessed files in ``PREPROCESSED_C``.
+5. If :func:`~fab.steps.preprocess.preprocess_fortran` is called, it will preprocess all files in ``FORTRAN_BUILD_FILES`` that end on ``.F90``, creating new ``.f90`` files in the build folder. These files will be added to ``PREPROCESSED_FORTRAN``. Then the original ``.F90`` are removed from ``FORTRAN_BUILD_FILES``, and the new preprocessed files (which are in ``PREPROCESSED_FORTRAN``) will be added. Then any ``.f90`` files that are not already in the build folder (an example of this are files created by a user script) are copied from the original source folder into the build folder, and ``FORTRAN_BUILD_FILES`` is updated to use the files in the new location.
+6. If :func:`~fab.steps.psyclone.preprocess_x90` is called, it will similarly preprocess all ``.X90`` files in ``X90_BUILD_FILES``, creating the output files in the build folder, and replacing the files in ``X90_BUILD_FILES``.
+7. If :func:`~fab.steps.psyclone.psyclone` is called, it will process all files in ``X90_BUILD_FILES`` and add any newly created file to ``FORTRAN_BUILD_FILES``, and removing them from ``X90_BUILD_FILES``.
+8. The :func:`~fab.steps.analyse.analyse` step analyses all files in ``FORTRAN_BUILD_FILES`` and ``C_BUILD_FILES``, and add all dependencies to ``BUILD_TREES``.
+9. The :func:`~fab.steps.compile_c.compile_c` and :func:`~fab.steps.compile_fortran.compile_fortran` steps will compile all files from ``C_BUILD_FILES`` and ``FORTRAN_BUILD_FILES``, and add them to ``OBJECT_FILES``.
+10. If :func:`~fab.steps.archive_objects.archive_objects` is called, it will create libraries based on ``OBJECT_FILES``, adding the libraries to ``OBJECT_ARCHIVES``.
+11. If :func:`~fab.steps.link.link_exe` is called, it will either use ``OBJECT_ARCHIVES``, or if this is empty, use ``OBJECT_FILES``, create the binaries, and add them to ``EXECUTABLES``.
 
 
 Flags

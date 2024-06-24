@@ -301,7 +301,11 @@ class FortranAnalyser(FortranAnalyserBase):
             # TODO #13: once fparser supports reading the sentinels,
             # this can be removed.
             reader = FortranStringReader(comment[2:])
-            line = reader.next()
+            try:
+                line = reader.next()
+            except StopIteration:
+                # No other item, ignore
+                return
             try:
                 # match returns a 5-tuple, the third one being the module name
                 module_name = Use_Stmt.match(line.strline)[2]

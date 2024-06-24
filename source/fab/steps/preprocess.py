@@ -11,7 +11,7 @@ import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Collection, List, Optional, Tuple
+from typing import Collection, List, Optional, Tuple, Union
 
 from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
@@ -36,7 +36,9 @@ class MpCommonArgs():
 
 
 def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
-                  files: Collection[Path], output_collection, output_suffix,
+                  files: Collection[Path],
+                  output_collection: Union[str, ArtefactSet],
+                  output_suffix,
                   common_flags: Optional[List[str]] = None,
                   path_flags: Optional[List] = None,
                   name="preprocess"):
@@ -87,7 +89,7 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     check_for_errors(results, caller_label=name)
 
     log_or_dot_finish(logger)
-    config.artefact_store[output_collection] = list(by_type(results, Path))
+    config.artefact_store.add(output_collection, set(by_type(results, Path)))
 
 
 def process_artefact(arg: Tuple[Path, MpCommonArgs]):
@@ -138,12 +140,13 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     The preprocessor is taken from the `FPP` environment, or falls back to `fpp -P`.
 
     If source is not provided, it defaults to
-    `SuffixFilter(ArtefactStore.ALL_SOURCE, '.F90')`.
+    `SuffixFilter(ArtefactStore.FORTRAN_BUILD_FILES, '.F90')`.
 
     """
-    source_getter = source or SuffixFilter(ArtefactSet.ALL_SOURCE,
-                                           ['.F90', '.f90'])
-    source_files = source_getter(config.artefact_store)
+    if source:
+        source_files = source(config.artefact_store)
+    else:
+        source_files = config.artefact_store[ArtefactSet.FORTRAN_BUILD_FILES]
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
@@ -170,13 +173,15 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
-    # Add all pre-processed files to the set of files to compile
-    config.artefact_store.copy_artefacts(ArtefactSet.PREPROCESSED_FORTRAN,
-                                         ArtefactSet.FORTRAN_BUILD_FILES)
+    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+                                  remove_files=F90s,
+                                  add_files=config.artefact_store[ArtefactSet.PREPROCESSED_FORTRAN])
 
     # todo: parallel copy?
     # copy little f90s from source to output folder
     logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
+    new_files = []
+    remove_files = []
     for f90 in f90s:
         output_path = input_to_output_fpath(config, input_path=f90)
         if output_path != f90:
@@ -184,7 +189,13 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
                 output_path.parent.mkdir(parents=True)
             log_or_dot(logger, f'copying {f90}')
             shutil.copyfile(str(f90), str(output_path))
-            config.artefact_store.add(ArtefactSet.FORTRAN_BUILD_FILES, output_path)
+            # Only remove and add a file when it is actually copied.
+            remove_files.append(f90)
+            new_files.append(output_path)
+
+    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+                                  remove_files=remove_files,
+                                  add_files=new_files)
 
 
 class DefaultCPreprocessorSource(ArtefactsGetter):
@@ -201,7 +212,8 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 
 # todo: rename preprocess_c
 @step
-def preprocess_c(config: BuildConfig, source=None, **kwargs):
+def preprocess_c(config: BuildConfig,
+                 source: Optional[ArtefactsGetter] = None, **kwargs):
     """
     Wrapper to pre_processor for C files.
 
@@ -227,5 +239,6 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
         **kwargs,
     )
 
-    config.artefact_store.copy_artefacts(ArtefactSet.PREPROCESSED_C,
-                                         ArtefactSet.C_BUILD_FILES)
+    config.artefact_store.replace(ArtefactSet.C_BUILD_FILES,
+                                  remove_files=source_files,
+                                  add_files=config.artefact_store[ArtefactSet.PREPROCESSED_C])

@@ -119,7 +119,7 @@ def find_source_files(config, source_root=None,
     source_root = source_root or config.source_root
 
     # file filtering
-    filtered_fpaths = []
+    filtered_fpaths = set()
     # todo: we shouldn't need to ignore the prebuild folder here, it's not underneath the source root.
     for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
 
@@ -131,11 +131,25 @@ def find_source_files(config, source_root=None,
                 wanted = res
 
         if wanted:
-            filtered_fpaths.append(fpath)
+            filtered_fpaths.add(fpath)
         else:
             logger.debug(f"excluding {fpath}")
 
     if not filtered_fpaths:
         raise RuntimeError("no source files found after filtering")
 
-    config.artefact_store[output_collection] = filtered_fpaths
+    config.artefact_store.add(output_collection, filtered_fpaths)
+
+    # Now split the files into the various main groups:
+    # Fortran, C, and PSyclone
+    config.artefact_store.copy_artefacts(output_collection,
+                                         ArtefactSet.FORTRAN_BUILD_FILES,
+                                         suffixes=[".f90", ".F90"])
+
+    config.artefact_store.copy_artefacts(output_collection,
+                                         ArtefactSet.C_BUILD_FILES,
+                                         suffixes=[".c"])
+
+    config.artefact_store.copy_artefacts(output_collection,
+                                         ArtefactSet.X90_BUILD_FILES,
+                                         suffixes=[".x90", ".X90"])

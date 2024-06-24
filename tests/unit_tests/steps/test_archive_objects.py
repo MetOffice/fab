@@ -28,9 +28,10 @@ class TestArchiveObjects:
         targets = ['prog1', 'prog2']
 
         config = BuildConfig('proj', ToolBox())
-        config._artefact_store = {
-            ArtefactSet.OBJECT_FILES: {target: [f'{target}.o', 'util.o']
-                                       for target in targets}}
+        for target in targets:
+            config.artefact_store.update_dict(
+                ArtefactSet.OBJECT_FILES, target,
+                set([f'{target}.o', 'util.o']))
 
         mock_result = mock.Mock(returncode=0, return_value=123)
         with mock.patch('fab.tools.tool.subprocess.run',
@@ -50,7 +51,7 @@ class TestArchiveObjects:
 
         # ensure the correct artefacts were created
         assert config.artefact_store[ArtefactSet.OBJECT_ARCHIVES] == {
-            target: [str(config.build_output / f'{target}.a')] for target in targets}
+            target: set([str(config.build_output / f'{target}.a')]) for target in targets}
 
     def test_for_library(self):
         '''As used when building an object archive or archiving before linking
@@ -58,7 +59,8 @@ class TestArchiveObjects:
         '''
 
         config = BuildConfig('proj', ToolBox())
-        config._artefact_store = {ArtefactSet.OBJECT_FILES: {None: ['util1.o', 'util2.o']}}
+        config.artefact_store.update_dict(
+            ArtefactSet.OBJECT_FILES, None, {'util1.o', 'util2.o'})
 
         mock_result = mock.Mock(returncode=0, return_value=123)
         with mock.patch('fab.tools.tool.subprocess.run',
@@ -73,7 +75,7 @@ class TestArchiveObjects:
 
         # ensure the correct artefacts were created
         assert config.artefact_store[ArtefactSet.OBJECT_ARCHIVES] == {
-            None: [str(config.build_output / 'mylib.a')]}
+            None: set([str(config.build_output / 'mylib.a')])}
 
     def test_incorrect_tool(self):
         '''Test that an incorrect archive tool is detected
