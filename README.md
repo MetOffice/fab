@@ -2,14 +2,15 @@
 
 ![](https://github.com/Metomi/fab/workflows/Build/badge.svg)
 
-The "Fab" build system aims to provide a quick and easy build process tailored towards a
-specific subset of scientific software developers. Quick should be in both use and
-operation. Easy should mean the simple things are simple and the complicated things
-possible.
+The "Fab" project aims to provide the means to quickly and easily compile
+software in a way tailored for scientific software development. It aims to be
+quick both in terms of use and operation. Meanwhile ease should mean the
+simple things are simple and the complicated things are possible.
 
-The tool is not intended for general use outside its intended domain although you are,
-of course, welcome to use it there. Just don't expect high priority to be given to
-features which do not target scientific software development.
+Fab is not intended to replace existing tools for compiling general
+application software. It targets different problems to, for instance, CMake
+derived build systems. This means that if your usage falls outside the focus
+of development you shouldn't expect high priority on your feature requests.
 
 ## Licence
 
@@ -17,10 +18,13 @@ The software is made available under a 3-clause BSD licence.
 
 ## Installation
 
-You may simply use `pip install sci-fab`.
+The tool is easily installed using `pip install sci-fab`.
 
 ## Usage
 
-Although Fab is in its initial development phases right now and much of the
-functionality is yet to be added, the command line interface to the tool is 
-in place and can be run using the command `fab` 
+Fab offers two modes of operation. In "zero configuration" mode it is used
+directly as a tool by running `fab`. This examines the currently selected
+directory and tries to build whatever it finds there.
+
+In "framework" mode it offers a library of building-blocks which a developer
+can use to create a build system customised to the needs of their software.

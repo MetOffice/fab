@@ -10,8 +10,9 @@
 from enum import auto, Enum
 
 
-class Categories(Enum):
+class Category(Enum):
     '''This class defines the allowed tool categories.'''
+    # TODO 311: Allow support for users to add their own tools.
 
     C_COMPILER = auto()
     C_PREPROCESSOR = auto()
@@ -28,10 +29,10 @@ class Categories(Enum):
 
     def __str__(self):
         '''Simplify the str output by using only the name (e.g. `C_COMPILER`
-        instead of `Categories.C_COMPILER)`.'''
+        instead of `Category.C_COMPILER)`.'''
         return str(self.name)
 
     @property
     def is_compiler(self):
         '''Returns if the category is either a C or a Fortran compiler.'''
-        return self in [Categories.FORTRAN_COMPILER, Categories.C_COMPILER]
+        return self in [Category.FORTRAN_COMPILER, Category.C_COMPILER]

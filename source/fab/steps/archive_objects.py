@@ -16,7 +16,7 @@ from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.util import log_or_dot
-from fab.tools import Categories
+from fab.tools import Ar, Category
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,10 @@ def archive_objects(config: BuildConfig,
     # to the proj folder
 
     source_getter = source or DEFAULT_SOURCE_GETTER
-    ar = config.tool_box[Categories.AR]
+    ar = config.tool_box[Category.AR]
+    if not isinstance(ar, Ar):
+        raise RuntimeError(f"Unexpected tool '{ar.name}' of type "
+                           f"'{type(ar)}' instead of Ar")
     output_fpath = str(output_fpath) if output_fpath else None
 
     target_objects = source_getter(config.artefact_store)

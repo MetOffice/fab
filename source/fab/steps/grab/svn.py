@@ -14,7 +14,7 @@ from typing import Optional, Union, Tuple
 import xml.etree.ElementTree as ET
 
 from fab.steps import step
-from fab.tools import Categories, Versioning
+from fab.tools import Category, Versioning
 
 
 def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
@@ -61,7 +61,7 @@ def _svn_prep_common(config, src: str,
 def svn_export(config, src: str,
                dst_label: Optional[str] = None,
                revision=None,
-               category=Categories.SUBVERSION):
+               category=Category.SUBVERSION):
     # todo: params in docstrings
     """
     Export an FCM repo folder to the project workspace.
@@ -74,7 +74,7 @@ def svn_export(config, src: str,
 
 @step
 def svn_checkout(config, src: str, dst_label: Optional[str] = None,
-                 revision=None, category=Categories.SUBVERSION):
+                 revision=None, category=Category.SUBVERSION):
     """
     Checkout or update an FCM repo.
 
@@ -91,28 +91,19 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None,
     if not dst.exists():  # type: ignore
         svn.checkout(src, dst, revision)
     else:
-        # working copy?
-        if svn.is_working_copy(dst):  # type: ignore
-            # update
-            # todo: ensure the existing checkout is from self.src?
-            svn.update(dst, revision)
-        else:
-            # we can't deal with an existing folder that isn't a working copy
-            raise ValueError(f"destination exists but is not an fcm "
-                             f"working copy: '{dst}'")
+        # update
+        # todo: ensure the existing checkout is from self.src?
+        svn.update(dst, revision)
 
 
 def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
-              category=Categories.SUBVERSION):
+              category=Category.SUBVERSION):
     """
     Merge an FCM repo into a local working copy.
 
     """
     svn = config.tool_box[category]
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
-
-    if not dst or not svn.is_working_copy(dst):
-        raise ValueError(f"destination is not a working copy: '{dst}'")
 
     svn.merge(src, dst, revision)
     check_conflict(svn, dst)

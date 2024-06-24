@@ -14,24 +14,24 @@ from unittest import mock
 
 import pytest
 
-from fab.tools import (Categories, CCompiler, Compiler, FortranCompiler,
+from fab.tools import (Category, CCompiler, Compiler, FortranCompiler,
                        Gcc, Gfortran, Icc, Ifort)
 
 
 def test_compiler():
     '''Test the compiler constructor.'''
     cc = CCompiler("gcc", "gcc", "gnu")
-    assert cc.category == Categories.C_COMPILER
+    assert cc.category == Category.C_COMPILER
     assert cc._compile_flag == "-c"
     assert cc._output_flag == "-o"
     assert cc.flags == []
-    assert cc.vendor == "gnu"
+    assert cc.suite == "gnu"
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert fc._compile_flag == "-c"
     assert fc._output_flag == "-o"
-    assert fc.category == Categories.FORTRAN_COMPILER
-    assert fc.vendor == "gnu"
+    assert fc.category == Category.FORTRAN_COMPILER
+    assert fc.suite == "gnu"
     assert fc.flags == []
 
 
@@ -100,7 +100,7 @@ def test_compiler_syntax_only():
 
 def test_compiler_module_output():
     '''Tests handling of module output_flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", vendor="gnu",
+    fc = FortranCompiler("gfortran", "gfortran", suite="gnu",
                          module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
@@ -136,7 +136,7 @@ class TestGetCompilerVersion:
         given full_version_string.
         '''
         c = Compiler("gfortran", "gfortran", "gnu",
-                     Categories.FORTRAN_COMPILER)
+                     Category.FORTRAN_COMPILER)
         with mock.patch.object(c, "run",
                                mock.Mock(return_value=full_version_string)):
             assert c.get_version() == expected
@@ -150,7 +150,7 @@ class TestGetCompilerVersion:
         '''If the command fails, we must return an empty string, not None,
         so it can still be hashed.'''
         c = Compiler("gfortran", "gfortran", "gnu",
-                     Categories.FORTRAN_COMPILER)
+                     Category.FORTRAN_COMPILER)
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
             assert c.get_version() == '', 'expected empty string'
         with mock.patch.object(c, 'run', side_effect=FileNotFoundError()):
@@ -294,7 +294,7 @@ def test_gcc():
     gcc = Gcc()
     assert gcc.name == "gcc"
     assert isinstance(gcc, CCompiler)
-    assert gcc.category == Categories.C_COMPILER
+    assert gcc.category == Category.C_COMPILER
 
 
 def test_gfortran():
@@ -302,7 +302,7 @@ def test_gfortran():
     gfortran = Gfortran()
     assert gfortran.name == "gfortran"
     assert isinstance(gfortran, FortranCompiler)
-    assert gfortran.category == Categories.FORTRAN_COMPILER
+    assert gfortran.category == Category.FORTRAN_COMPILER
 
 
 def test_icc():
@@ -310,7 +310,7 @@ def test_icc():
     icc = Icc()
     assert icc.name == "icc"
     assert isinstance(icc, CCompiler)
-    assert icc.category == Categories.C_COMPILER
+    assert icc.category == Category.C_COMPILER
 
 
 def test_ifort():
@@ -318,7 +318,7 @@ def test_ifort():
     ifort = Ifort()
     assert ifort.name == "ifort"
     assert isinstance(ifort, FortranCompiler)
-    assert ifort.category == Categories.FORTRAN_COMPILER
+    assert ifort.category == Category.FORTRAN_COMPILER
 
 
 def test_compiler_wrapper():
@@ -330,7 +330,7 @@ def test_compiler_wrapper():
                              exec_name="mpif90")
 
     mpif90 = MpiF90()
-    assert mpif90.vendor == "intel"
-    assert mpif90.category == Categories.FORTRAN_COMPILER
+    assert mpif90.suite == "intel-classic"
+    assert mpif90.category == Category.FORTRAN_COMPILER
     assert mpif90.name == "mpif90-intel"
     assert mpif90.exec_name == "mpif90"

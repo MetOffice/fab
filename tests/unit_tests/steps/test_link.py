@@ -14,7 +14,7 @@ from fab.tools import Linker
 import pytest
 
 
-class TestLinkExe():
+class TestLinkExe:
     def test_run(self, tool_box):
         # ensure the command is formed correctly, with the flags at the
         # end (why?!)
@@ -29,9 +29,9 @@ class TestLinkExe():
         with mock.patch('os.getenv', return_value='-L/foo1/lib -L/foo2/lib'):
             # We need to create a linker here to pick up the env var:
             linker = Linker("mock_link", "mock_link.exe", "mock-vendor")
-            # Mark the linker as available so it can be added to the tool box
-            linker.is_available = True
-            tool_box.add_tool(linker)
+            # Mark the linker as available to it can be added to the tool box
+            linker._is_available = True
+            tool_box.add_tool(linker, silent_replace=True)
             mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
             with mock.patch('fab.tools.tool.subprocess.run',
                             return_value=mock_result) as tool_run, \

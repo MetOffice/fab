@@ -10,10 +10,11 @@
 from pathlib import Path
 from typing import Callable, List, Optional, TYPE_CHECKING, Union
 
-from fab.tools.categories import Categories
+from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 if TYPE_CHECKING:
+    # TODO 314: see if this circular dependency can be broken
     # Otherwise we have a circular dependency:
     # BuildConfig needs ToolBox which imports __init__ which imports this
     from fab.build_config import BuildConfig
@@ -24,18 +25,7 @@ class Psyclone(Tool):
     '''
 
     def __init__(self):
-        super().__init__("psyclone", "psyclone", Categories.PSYCLONE)
-
-    def check_available(self) -> bool:
-        '''
-        :returns: whether psyclone is available or not. We do this
-            by requesting the PSyclone version.
-        '''
-        try:
-            self.run("--version")
-        except (RuntimeError, FileNotFoundError):
-            return False
-        return True
+        super().__init__("psyclone", "psyclone", Category.PSYCLONE)
 
     def process(self, api: str,
                 config: "BuildConfig",
@@ -45,7 +35,7 @@ class Psyclone(Tool):
                 transformation_script: Optional[Callable[[Path, "BuildConfig"],
                                                          Path]] = None,
                 additional_parameters: Optional[List[str]] = None,
-                kernel_roots: Optional[List[str]] = None
+                kernel_roots: Optional[List[Union[str, Path]]] = None
                 ):
         # pylint: disable=too-many-arguments
         '''Run PSyclone with the specified parameters.
