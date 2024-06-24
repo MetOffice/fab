@@ -177,10 +177,6 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
                                   remove_files=F90s,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_FORTRAN])
 
-    # Add all pre-processed files to the set of files to compile
-    config.artefact_store.copy_artefacts(ArtefactSet.PREPROCESSED_FORTRAN,
-                                         ArtefactSet.FORTRAN_BUILD_FILES)
-
     # todo: parallel copy?
     # copy little f90s from source to output folder
     logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
@@ -243,8 +239,6 @@ def preprocess_c(config: BuildConfig,
         **kwargs,
     )
 
-    config.artefact_store.copy_artefacts(ArtefactSet.PREPROCESSED_C,
-                                         ArtefactSet.C_BUILD_FILES)
     config.artefact_store.replace(ArtefactSet.C_BUILD_FILES,
                                   remove_files=source_files,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_C])
