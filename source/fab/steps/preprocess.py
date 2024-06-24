@@ -140,7 +140,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     The preprocessor is taken from the `FPP` environment, or falls back to `fpp -P`.
 
     If source is not provided, it defaults to
-    `SuffixFilter(ArtefactStore.ALL_SOURCE, '.F90')`.
+    `SuffixFilter(ArtefactStore.FORTRAN_BUILD_FILES, '.F90')`.
 
     """
     if source:
@@ -216,7 +216,8 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 
 # todo: rename preprocess_c
 @step
-def preprocess_c(config: BuildConfig, source=None, **kwargs):
+def preprocess_c(config: BuildConfig,
+                 source: Optional[ArtefactsGetter] = None, **kwargs):
     """
     Wrapper to pre_processor for C files.
 

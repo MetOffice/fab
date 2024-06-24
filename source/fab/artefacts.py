@@ -82,7 +82,7 @@ class ArtefactStore(dict):
         self[collection].update(files)
 
     def update_dict(self, collection: Union[str, ArtefactSet],
-                    key: str, values: Union[str, set]):
+                    key: str, values: Union[str, Iterable]):
         '''For ArtefactSets that are a dictionary of sets: update
         the set with the specified values.
         :param collection: the name of the collection to add this to.
@@ -99,7 +99,7 @@ class ArtefactStore(dict):
         will be copied.
 
         :param source: the source artefact set.
-        :param dest: the source artefact set.
+        :param dest: the destination artefact set.
         :param suffixes: a string or list of strings specifying the
             suffixes to copy.
         '''

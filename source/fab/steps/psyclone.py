@@ -19,8 +19,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union, Callable
 
 from fab.build_config import BuildConfig
 
-from fab.artefacts import (ArtefactSet, ArtefactsGetter, CollectionConcat,
-                           SuffixFilter)
+from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter)
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
@@ -77,9 +76,8 @@ class MpCommonArgs:
     override_files: List[str]  # filenames (not paths) of hand crafted overrides
 
 
-DEFAULT_SOURCE_GETTER = CollectionConcat([
-    SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.x90'),  # any already preprocessed x90 we pulled in
-])
+# any already preprocessed x90 we pulled in
+DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.x90')
 
 
 @step
