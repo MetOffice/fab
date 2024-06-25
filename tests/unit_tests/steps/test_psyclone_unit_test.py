@@ -38,8 +38,7 @@ class Test_gen_prebuild_hash(object):
         # the script is just hashed later, so any one will do - use this file!
         mock_transformation_script = mock.Mock(return_value=__file__)
 
-        expect_hash = 223133492 + file_checksum(__file__).file_hash  # add the transformation_script_hash
-
+        expect_hash = 3962584109 + file_checksum(__file__).file_hash  # add the transformation_script_hash
         mp_payload = MpCommonArgs(
             analysed_x90=analysed_x90,
             all_kernel_hashes=all_kernel_hashes,
