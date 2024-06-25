@@ -47,7 +47,7 @@ class Test_gen_prebuild_hash(object):
             config=None,  # type: ignore[arg-type]
             kernel_roots=[],
             transformation_script=mock_transformation_script,
-            api="dynamo0p3",
+            api="dynamo0.3",
             overrides_folder=None,
             override_files=None,  # type: ignore[arg-type]
         )
