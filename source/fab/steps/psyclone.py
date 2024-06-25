@@ -391,7 +391,7 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
         string_checksum(str(mp_payload.cli_args)),
 
         # the API
-        string_checksum(mp_payload.api),
+        string_checksum(str(mp_payload.api)),
     ])
 
     return prebuild_hash
