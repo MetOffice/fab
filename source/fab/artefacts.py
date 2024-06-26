@@ -20,6 +20,21 @@ from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
 
 
+class ArtefactStore(dict):
+    '''This object stores artefacts (which can be of any type). Each artefact
+    is indexed by a string.
+    '''
+    def __init__(self):
+        super().__init__()
+        self.reset()
+
+    def reset(self):
+        '''Clears the artefact store (but does not delete any files).
+        '''
+        self.clear()
+        self[CURRENT_PREBUILDS] = set()
+
+
 class ArtefactsGetter(ABC):
     """
     Abstract base class for artefact getters.
@@ -83,7 +98,7 @@ class CollectionConcat(ArtefactsGetter):
         self.collections = collections
 
     # todo: ensure the labelled values are iterables
-    def __call__(self, artefact_store: Dict):
+    def __call__(self, artefact_store: ArtefactStore):
         # todo: this should be a set, in case a file appears in multiple collections
         result = []
         for collection in self.collections:
@@ -116,7 +131,7 @@ class SuffixFilter(ArtefactsGetter):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: ArtefactStore):
         # todo: returning an empty list is probably "dishonest" if the collection doesn't exist - return None instead?
         fpaths: Iterable[Path] = artefact_store.get(self.collection_name, [])
         return suffix_filter(fpaths, self.suffixes)
@@ -146,7 +161,7 @@ class FilterBuildTrees(ArtefactsGetter):
         self.collection_name = collection_name
         self.suffixes = [suffix] if isinstance(suffix, str) else suffix
 
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: ArtefactStore):
 
         build_trees = artefact_store[self.collection_name]
 
@@ -155,18 +170,3 @@ class FilterBuildTrees(ArtefactsGetter):
             build_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
 
         return build_lists
-
-
-class ArtefactStore(dict):
-    '''This object stores artefacts (which can be of any type). Each artefact
-    is indexed by a string.
-    '''
-    def __init__(self):
-        super().__init__()
-        self.reset()
-
-    def reset(self):
-        '''Clears the artefact store (but does not delete any files).
-        '''
-        self.clear()
-        self[CURRENT_PREBUILDS] = set()

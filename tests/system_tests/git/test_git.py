@@ -23,46 +23,51 @@ from pathlib import Path
 import pytest
 
 from fab.build_config import BuildConfig
-from fab.steps.grab.git import current_commit, git_checkout, git_merge
+from fab.steps.grab.git import git_checkout, git_merge
+from fab.tools import Git, ToolBox
 
 
 @pytest.fixture
 def config(tmp_path):
-    return BuildConfig('proj', fab_workspace=tmp_path)
+    return BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
 
 
-class TestGitCheckout(object):
+class TestGitCheckout:
     # Check we can fetch from github.
     @pytest.fixture
     def url(self):
         return 'https://github.com/metomi/fab-test-data.git'
 
     def test_checkout_url(self, tmp_path, url, config):
+        git = Git()
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             git_checkout(config, src=url, dst_label='tiny_fortran')
             # todo: The commit will keep changing. Perhaps make a non-changing branch
-            assert current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
+            assert git.current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
 
     def test_checkout_branch(self, tmp_path, url, config):
+        git = Git()
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             git_checkout(config, src=url, dst_label='tiny_fortran', revision='main')
-            assert current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
+            assert git.current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
 
     def test_checkout_tag(self, tmp_path, url, config):
+        git = Git()
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             git_checkout(config, src=url, dst_label='tiny_fortran', revision='early')
-            assert current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
+            assert git.current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
 
     def test_checkout_commit(self, tmp_path, url, config):
+        git = Git()
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
             git_checkout(config, src=url, dst_label='tiny_fortran', revision='ee5648928893701c5dbccdbf0561c0038352a5ff')
-            assert current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
+            assert git.current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
 
 
 # todo: we could do with a test to ensure left-over files from previous fetches are cleaned away
 
 
-class TestGitMerge(object):
+class TestGitMerge:
 
     @pytest.fixture
     def repo_url(self, tmp_path):
