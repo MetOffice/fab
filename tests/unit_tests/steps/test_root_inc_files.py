@@ -5,16 +5,17 @@ import pytest
 
 from fab.build_config import BuildConfig
 from fab.steps.root_inc_files import root_inc_files
+from fab.tools import ToolBox
 
 
-class TestRootIncFiles(object):
+class TestRootIncFiles:
 
     def test_vanilla(self):
         # ensure it copies the inc file
         inc_files = [Path('/foo/source/bar.inc')]
 
-        config = BuildConfig('proj')
-        config._artefact_store['all_source'] = inc_files
+        config = BuildConfig('proj', ToolBox())
+        config.artefact_store['all_source'] = inc_files
 
         with mock.patch('fab.steps.root_inc_files.shutil') as mock_shutil:
             with mock.patch('fab.steps.root_inc_files.Path.mkdir'), \
@@ -25,9 +26,9 @@ class TestRootIncFiles(object):
 
     def test_skip_output_folder(self):
         # ensure it doesn't try to copy a file in the build output
-        config = BuildConfig('proj')
+        config = BuildConfig('proj', ToolBox())
         inc_files = [Path('/foo/source/bar.inc'), config.build_output / 'fab.inc']
-        config._artefact_store['all_source'] = inc_files
+        config.artefact_store['all_source'] = inc_files
 
         with mock.patch('fab.steps.root_inc_files.shutil') as mock_shutil:
             with mock.patch('fab.steps.root_inc_files.Path.mkdir'), \
@@ -40,8 +41,8 @@ class TestRootIncFiles(object):
         # ensure raises an exception if there is a name clash
         inc_files = [Path('/foo/source/bar.inc'), Path('/foo/sauce/bar.inc')]
 
-        config = BuildConfig('proj')
-        config._artefact_store['all_source'] = inc_files
+        config = BuildConfig('proj', ToolBox())
+        config.artefact_store['all_source'] = inc_files
 
         with pytest.raises(FileExistsError):
             with mock.patch('fab.steps.root_inc_files.shutil'):

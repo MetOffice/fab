@@ -315,7 +315,7 @@ which most Fab steps accept. (See :ref:`Overriding default collections`)
 
     @step
     def custom_step(state):
-            state._artefact_store['custom_artefacts'] = do_something(state._artefact_store['step 1 artefacts'])
+        state.artefact_store['custom_artefacts'] = do_something(state.artefact_store['step 1 artefacts'])
 
 
     with BuildConfig(project_label='<project label>') as state:
@@ -332,7 +332,7 @@ Steps have access to multiprocessing methods through the
 
     @step
     def custom_step(state):
-        input_files = artefact_store['custom_artefacts']
+        input_files = state.artefact_store['custom_artefacts']
         results = run_mp(state, items=input_files, func=do_something)
 
 

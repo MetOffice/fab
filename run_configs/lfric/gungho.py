@@ -15,6 +15,7 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import psyclone, preprocess_x90
+from fab.tools import ToolBox
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import configurator, fparser_workaround_stop_concatenation
@@ -22,14 +23,32 @@ from lfric_common import configurator, fparser_workaround_stop_concatenation
 logger = logging.getLogger('fab')
 
 
-# todo: optimisation path stuff
+def get_transformation_script(fpath, config):
+    ''':returns: the transformation script to be used by PSyclone.
+    :rtype: Path
+
+    '''
+    optimisation_path = config.source_root / 'optimisation' / 'meto-spice'
+    for base_path in [config.source_root, config.build_output]:
+        try:
+            relative_path = fpath.relative_to(base_path)
+        except ValueError:
+            pass
+    local_transformation_script = optimisation_path / (relative_path.with_suffix('.py'))
+    if local_transformation_script.exists():
+        return local_transformation_script
+    global_transformation_script = optimisation_path / 'global.py'
+    if global_transformation_script.exists():
+        return global_transformation_script
+    return ""
 
 
 if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
-    with BuildConfig(project_label='gungho $compiler $two_stage') as state:
+    with BuildConfig(project_label='gungho $compiler $two_stage',
+                     tool_box=ToolBox()) as state:
         grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')
@@ -38,7 +57,8 @@ if __name__ == '__main__':
         grab_folder(state, src=lfric_source / 'gungho/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'um_physics/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'miniapps' / 'gungho_model' / 'source', dst_label='')
-
+        grab_folder(state, src=lfric_source / 'miniapps' / 'gungho_model' / 'optimisation',
+                    dst_label='optimisation')
         grab_folder(state, src=lfric_source / 'jules/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'socrates/source/', dst_label='')
 
@@ -65,7 +85,7 @@ if __name__ == '__main__':
         psyclone(
             state,
             kernel_roots=[state.build_output],
-            transformation_script=lfric_source / 'miniapps/gungho_model/optimisation/meto-spice/global.py',
+            transformation_script=get_transformation_script,
             cli_args=[],
         )
 
@@ -97,7 +117,6 @@ if __name__ == '__main__':
 
         link_exe(
             state,
-            linker='mpifort',
             flags=[
                 '-fopenmp',
 

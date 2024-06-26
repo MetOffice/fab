@@ -12,6 +12,7 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.grab.prebuild import grab_pre_build
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
+from fab.tools import ToolBox
 from fab.util import file_walk
 
 
@@ -26,16 +27,18 @@ class TestFortranPrebuild(object):
         logging.getLogger('fab').setLevel(logging.WARNING)
 
         with BuildConfig(
-                project_label='test_prebuild', fab_workspace=fab_workspace, multiprocessing=False) as config:
-            grab_folder(config, Path(__file__).parent / 'project-source', dst_label='src'),
+                project_label='test_prebuild', tool_box=ToolBox(),
+                fab_workspace=fab_workspace, multiprocessing=False) as config:
+            grab_folder(config, Path(__file__).parent / 'project-source',
+                        dst_label='src')
             # insert a prebuild grab step or don't insert anything
             if grab_prebuild_folder:
                 grab_pre_build(config, grab_prebuild_folder)
-            find_source_files(config),
-            preprocess_fortran(config),
-            analyse(config, root_symbol='my_prog'),
-            compile_fortran(config),
-            link_exe(config, linker='gcc', flags=['-lgfortran']),
+            find_source_files(config)
+            preprocess_fortran(config)
+            analyse(config, root_symbol='my_prog')
+            compile_fortran(config)
+            link_exe(config, flags=['-lgfortran'])
 
         return config
 
