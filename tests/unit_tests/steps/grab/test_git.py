@@ -85,7 +85,8 @@ class TestGit:
 
     @mark.skipif(not find_executable('git-daemon'),
                  reason="Unable to find git daemon")
-    def test_extract_from_git(self, workspace, tmp_path: Path):
+    def test_extract_from_git(self,
+                              workspace: Workspace, tmp_path: Path):
         """
         Checks that a source tree can be extracted from a Git repository
         accessed through its own protocol.
@@ -106,7 +107,7 @@ class TestGit:
         assert process.returncode == -15
 
     @mark.skip(reason="Too hard to test at the moment.")
-    def test_extract_from_http(self, workspace, tmp_path: Path):
+    def test_extract_from_http(self, workspace: Workspace, tmp_path: Path):
         """
         Checks that a source tree can be extracted from a Git repository
         accessed through HTTP.

@@ -6,9 +6,9 @@
 from pathlib import Path
 from subprocess import Popen, run
 import time
-from typing import Tuple
+from typing import Generator, Tuple
 
-from pytest import fixture, mark, raises
+from pytest import TempPathFactory, fixture, mark, raises
 
 from fab.build_config import BuildConfig
 from fab.steps.grab.svn import split_repo_url, svn_export
@@ -17,7 +17,7 @@ from fab.tools.tool_box import ToolBox
 from .support import Workspace, file_tree_compare
 
 
-class TestRevision(object):
+class TestRevision:
     # test the handling of the revision in the base class
 
     def test_no_revision(self):
@@ -42,7 +42,7 @@ class TestSubversion:
     Tests of the Subversion repository interface.
     """
     @fixture(scope='class')
-    def workspace(self, tmp_path_factory) -> Workspace:
+    def workspace(self, tmp_path_factory: TempPathFactory) -> Workspace:
         """
         Set up a repository and return its path along with the path of the
         original file tree.
@@ -59,7 +59,8 @@ class TestSubversion:
         assert run(command).returncode == 0
         return Workspace(repo_path, tree_path)
 
-    def test_extract_from_file(self, workspace, tmp_path: Path) -> None:
+    def test_extract_from_file(self,
+                               workspace: Workspace, tmp_path: Path) -> None:
         """
         Checks that a source tree can be extracted from a Subversion
         repository stored on disc.
@@ -71,7 +72,8 @@ class TestSubversion:
         assert not (source_path / '.svn').exists()
 
     @fixture(scope='class')
-    def server(self, workspace):
+    def server(self,
+               workspace: Workspace) -> Generator[Workspace, None, None]:
         command = ['svnserve', '-r', str(workspace.repo_path), '-X']
         process = Popen(command)
         #
