@@ -11,6 +11,7 @@ subversion. It also contains derived classes Git, Subversion, and Fcm.
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
+from fab import FabException
 from fab.tools.category import Category
 from fab.tools.tool import Tool
 
@@ -79,8 +80,8 @@ class Git(Versioning):
             command.append(revision)
         self.run(command, cwd=str(dst), capture_output=False)
 
-    def checkout(self, src: str,
-                 dst: str = '',
+    def checkout(self, src: Path,
+                 dst: Path = Path(),
                  revision: Optional[str] = None):
         """Checkout or update a Git repo.
 
@@ -103,9 +104,9 @@ class Git(Versioning):
         """
         try:
             self.run(['merge', 'FETCH_HEAD'], cwd=dst, capture_output=False)
-        except RuntimeError as err:
+        except FabException as err:
             self.run(['merge', '--abort'], cwd=dst, capture_output=False)
-            raise RuntimeError(f"Error merging {revision}. "
+            raise FabException(f"Error merging {revision}. "
                                f"Merge aborted.\n{err}") from err
 
 

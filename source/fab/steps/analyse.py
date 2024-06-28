@@ -78,7 +78,7 @@ def analyse(
         special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
         unreferenced_deps: Optional[Iterable[str]] = None,
         ignore_mod_deps: Optional[Iterable[str]] = None,
-        name='analyser'):
+        name='analyser') -> None:
     """
     Produce one or more build trees by analysing source code dependencies.
 

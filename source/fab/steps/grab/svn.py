@@ -3,53 +3,52 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-
-'''This file contains the steps related to SVN. It is also used by the various
-fcm steps, which call the functions here with just a different category (FCM)
+"""
+Contains the steps related to Subversion. It is also used by the various
+FCM steps, which call the functions here with just a different category (FCM)
 from the tool box.
-'''
+"""
 
 from pathlib import Path
 from typing import Optional, Union, Tuple
 import xml.etree.ElementTree as ET
 
+from fab.build_config import BuildConfig
 from fab.steps import step
-from fab.tools import Category, Versioning
+from fab.tools import Category, Subversion, Tool, Versioning
 
 
-def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
+def split_repo_url(url: str,
+                   revision: Optional[str] = None) -> Tuple[str, Optional[str]]:
     """
     Pull out the revision if it's part of the url.
 
     Some operations need it separated from the url,
     e.g. when calling fcm update, which accepts revision but no url.
 
-    :param src:
-        Repo url.
-    :param revision:
-        Optional revision.
-    Returns (src, revision)
-
+    :param url: Repository url.
+    :param revision: Expected revision or None.
+    :return: URL and revision.
     """
     url_revision = None
-    at_split = src.split('@')
+    at_split = url.split('@')
     if len(at_split) == 2:
         url_revision = at_split[1]
         if url_revision and revision and url_revision != revision:
             raise ValueError('Conflicting revisions in url and argument. '
                              'Please provide as argument only.')
-        src = at_split[0]
+        url = at_split[0]
     else:
         assert len(at_split) == 1
 
-    return src, revision or url_revision
+    return url, revision or url_revision
 
 
-def _svn_prep_common(config, src: str,
+def _svn_prep_common(config: BuildConfig, src: str,
                      dst_label: Optional[str],
                      revision: Optional[str]) -> Tuple[str, Path,
                                                        Optional[str]]:
-    src, revision = _get_revision(src, revision)
+    src, revision = split_repo_url(src, revision)
     if not config.source_root.exists():
         config.source_root.mkdir(parents=True, exist_ok=True)
     dst: Path = config.source_root / (dst_label or '')
@@ -58,9 +57,9 @@ def _svn_prep_common(config, src: str,
 
 
 @step
-def svn_export(config, src: str,
+def svn_export(config: BuildConfig, src: str,
                dst_label: Optional[str] = None,
-               revision=None,
+               revision: Optional[str] = None,
                category=Category.SUBVERSION):
     # todo: params in docstrings
     """
@@ -68,13 +67,16 @@ def svn_export(config, src: str,
 
     """
     svn = config.tool_box[category]
+    assert isinstance(svn, Subversion)  # ToDo: Better way to handle classes.
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
     svn.export(src, dst, revision)
 
 
 @step
-def svn_checkout(config, src: str, dst_label: Optional[str] = None,
-                 revision=None, category=Category.SUBVERSION):
+def svn_checkout(config: BuildConfig,
+                 src: str, dst_label: Optional[str] = None,
+                 revision: Optional[str] = None,
+                 category=Category.SUBVERSION) -> None:
     """
     Checkout or update an FCM repo.
 
@@ -85,6 +87,7 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None,
 
     """
     svn = config.tool_box[category]
+    assert isinstance(svn, Subversion)  # ToDo: Better way to handle classes.
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     # new folder?
@@ -96,22 +99,27 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None,
         svn.update(dst, revision)
 
 
-def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
+def svn_merge(config: BuildConfig,
+              src: str, dst_label: Optional[str] = None,
+              revision: Optional[str] = None,
               category=Category.SUBVERSION):
     """
     Merge an FCM repo into a local working copy.
 
     """
     svn = config.tool_box[category]
+    assert isinstance(svn, Subversion)  # ToDo: Better way to handle classes.
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     svn.merge(src, dst, revision)
     check_conflict(svn, dst)
 
 
-def check_conflict(tool: Versioning, dst: Union[str, Path]):
-    '''Check if there's a conflict
-    '''
+def check_conflict(tool: Tool, dst: Union[str, Path]) -> bool:
+    """
+    Check if there's a conflict
+    """
+    assert isinstance(tool, Versioning)  # ToDo: Better way to handel classes.
     xml_str = tool.run(['status', '--xml'], cwd=dst, capture_output=True)
     root = ET.fromstring(xml_str)
 

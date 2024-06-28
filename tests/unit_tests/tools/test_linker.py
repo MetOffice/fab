@@ -6,7 +6,7 @@
 
 '''Tests the linker implementation.
 '''
-
+import os
 from pathlib import Path
 from unittest import mock
 
@@ -15,6 +15,9 @@ import pytest
 from fab.tools import (Category, Linker)
 
 
+# The linker will make use of LDFLAGS so make sure it is clear.
+#
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_linker(mock_c_compiler, mock_fortran_compiler):
     '''Test the linker constructor.'''
 
@@ -52,6 +55,18 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
             "creating Linker." in str(err.value))
 
 
+@mock.patch.dict(os.environ, {'LDFLAGS': '-L/wonder/place'})
+def test_ldflags(mock_fortran_compiler):
+    linker = Linker(compiler=mock_fortran_compiler)
+    assert linker.category == Category.LINKER
+    assert linker.name == mock_fortran_compiler.name
+    assert linker.exec_name == mock_fortran_compiler.exec_name
+    assert linker.flags == ['-L/wonder/place']
+
+
+# The linker will make use of LDFLAGS so make sure it is clear.
+#
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_linker_check_available(mock_c_compiler):
     '''Tests the is_available functionality.'''
 
@@ -82,6 +97,9 @@ def test_linker_check_available(mock_c_compiler):
         linker.check_available()
 
 
+# The linker will make use of LDFLAGS so make sure it is clear.
+#
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_linker_c(mock_c_compiler):
     '''Test the link command line.'''
     linker = Linker(compiler=mock_c_compiler)
@@ -98,6 +116,9 @@ def test_linker_c(mock_c_compiler):
     link_run.assert_called_with(['a.o', '-L', '/tmp', '-o', 'a.out'])
 
 
+# The linker will make use of LDFLAGS so make sure it is clear.
+#
+@mock.patch.dict(os.environ, {}, clear=True)
 def test_linker_add_compiler_flag(mock_c_compiler):
     '''Test that a flag added to the compiler will be automatically
     added to the link line (even if the flags are modified after

@@ -3,17 +3,16 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-
-'''Tests the tool class.
-'''
-
-
+"""
+Tests the tool infrastructure.
+"""
 import logging
 from pathlib import Path
 from unittest import mock
 
 import pytest
 
+from fab import FabException
 from fab.tools import Category, CompilerSuiteTool, Tool
 
 
@@ -61,7 +60,7 @@ def test_tool_is_available():
     assert tool.is_compiler
 
     # Test the exception when trying to use in a non-existent tool:
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(FabException) as err:
         tool.run("--ops")
     assert ("Tool 'gfortran' is not available to run '['gfortran', '--ops']'"
             in str(err.value))
@@ -114,7 +113,7 @@ class TestToolRun:
         result.stderr.decode = mock.Mock(return_value=mocked_error_message)
         with mock.patch('fab.tools.tool.subprocess.run',
                         return_value=result):
-            with pytest.raises(RuntimeError) as err:
+            with pytest.raises(FabException) as err:
                 tool.run()
             assert mocked_error_message in str(err.value)
             assert "Command failed with return code 1" in str(err.value)
@@ -125,7 +124,7 @@ class TestToolRun:
                     Category.FORTRAN_COMPILER)
         with mock.patch('fab.tools.tool.subprocess.run',
                         side_effect=FileNotFoundError("not found")):
-            with pytest.raises(RuntimeError) as err:
+            with pytest.raises(FabException) as err:
                 tool.run()
             assert ("Command '['does_not_exist']' could not be executed."
                     in str(err.value))

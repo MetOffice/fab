@@ -4,8 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 """
-Test svn and fcm steps, if their underlying cli tools are available.
-
+Tests Subversion and FCM steps, if their underlying cli tools are available.
 """
 import shutil
 from pathlib import Path
@@ -15,9 +14,9 @@ import warnings
 
 import pytest
 
-import fab
+from fab import FabException
 from fab.build_config import BuildConfig
-from fab.tools import Fcm, Subversion, ToolBox
+from fab.tools import Fcm, Subversion, ToolBox, tool
 from fab.steps.grab.fcm import fcm_checkout, fcm_export, fcm_merge
 from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge
 
@@ -175,7 +174,7 @@ class TestCheckout():
             assert False
 
         with mock.patch('fab.tools.tool.subprocess.run',
-                        wraps=fab.tools.tool.subprocess.run) as wrap, \
+                        wraps=tool.subprocess.run) as wrap, \
              pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
 
             checkout_func(config, src=file2_experiment, dst_label='proj', revision='7')
@@ -199,7 +198,7 @@ class TestCheckout():
             export_func(config, src=trunk, dst_label='proj')
 
         # if we try to checkout into that folder, it should fail
-        with pytest.raises(RuntimeError):
+        with pytest.raises(FabException):
             checkout_func(config, src=trunk, dst_label='proj')
 
 
@@ -241,7 +240,7 @@ class TestMerge():
             export_func(config, src=trunk, dst_label='proj')
 
         # try to merge into an export
-        with pytest.raises(RuntimeError):
+        with pytest.raises(FabException):
             merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))

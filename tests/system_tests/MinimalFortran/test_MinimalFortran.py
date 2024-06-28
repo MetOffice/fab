@@ -39,5 +39,6 @@ def test_minimal_fortran(tmp_path):
     # run
     command = [str(config.artefact_store[EXECUTABLES][0])]
     res = subprocess.run(command, capture_output=True)
+    assert res.returncode == 0
     output = res.stdout.decode()
     assert output.strip() == 'Hello world!'

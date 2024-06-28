@@ -1,15 +1,97 @@
+# ToDo: Big problems with this test. Lots of the tests are of "private"
+#       functions and until I added it, none for the public function.
+
 from pathlib import Path
+from textwrap import dedent
+from typing import List
 from unittest import mock
 
 import pytest
 
+from fab.artefacts import ArtefactsGetter, ArtefactStore, BUILD_TREES
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
+from fab.parse.c import AnalysedC
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround
-from fab.steps.analyse import _add_manual_results, _add_unreferenced_deps, _gen_file_deps, _gen_symbol_table, \
-    _parse_files
+from fab.steps.analyse import (analyse,
+                               _add_manual_results,
+                               _add_unreferenced_deps,
+                               _gen_file_deps,
+                               _gen_symbol_table,
+                               _parse_files)
 from fab.tools import ToolBox
 from fab.util import HashedFile
+
+
+class TestAnalyse:
+    def test_fortran_program(self, tmp_path: Path):
+        test_file = tmp_path / 'test.f90'
+        test_file.write_text(
+            dedent(
+                """
+                module test_mod
+                end module test_mod
+                program test
+                end program test
+                """
+            )
+        )
+
+        workspace = tmp_path / 'workspace'
+        with BuildConfig('test_project', ToolBox(),
+                         multiprocessing=False,
+                         fab_workspace=workspace) as configuration:
+            configuration.artefact_store['all_source'] = [test_file]
+            analyse(configuration, find_programs=True)
+            build_trees = configuration.artefact_store[BUILD_TREES]
+            assert list(build_trees.keys()) == ['test']
+            assert list(build_trees['test'].keys()) == [test_file]
+            analytics = build_trees['test'][test_file]
+            assert analytics.program_defs == {'test'}
+            assert analytics.module_defs == {'test_mod'}
+            assert analytics.symbol_defs == {'test', 'test_mod'}
+
+    @pytest.mark.parametrize(
+        'main_signature',
+        [
+            'int main(void)',
+            'int main()',
+            'int main(int argc, char *argv[])',
+            'int main(int argc, char **argv)'
+        ]
+    )
+    def test_c_program(self, tmp_path: Path, main_signature: str):
+        clang = pytest.importorskip('clang')
+        test_file = tmp_path / 'test.c'
+        test_file.write_text(
+            dedent(
+                f"""
+                int func(int arg1, int arg2) {{
+                    return arg1 + arg2;
+                }}
+                {main_signature}
+                {{
+                    return 0;
+                }}
+                """
+            )
+        )
+
+        workspace = tmp_path / 'workspace'
+        with BuildConfig('test_project', ToolBox(),
+                         multiprocessing=False,
+                         fab_workspace=workspace) as configuration:
+            configuration.artefact_store['all_source'] = [test_file]
+
+            # The C does not need preprocessing so I'll drop it straight in
+            #
+            configuration.artefact_store['preprocessed_c'] = [test_file]
+            analyse(configuration, find_programs=True)
+            build_trees = configuration.artefact_store[BUILD_TREES]
+            assert list(build_trees.keys()) == ['main']
+            assert list(build_trees['main'].keys()) == [test_file]
+            analytics: AnalysedC = build_trees['main'][test_file]
+            assert analytics.symbol_defs == {'func', 'main'}
 
 
 class Test_gen_symbol_table(object):

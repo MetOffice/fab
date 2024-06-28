@@ -22,6 +22,7 @@ from pathlib import Path
 
 import pytest
 
+from fab import FabException
 from fab.build_config import BuildConfig
 from fab.steps.grab.git import git_checkout, git_merge
 from fab.tools import Git, ToolBox
@@ -90,9 +91,8 @@ class TestGitMerge:
             git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_a')
             assert 'This is sentence one, with Experiment A modification.' in open(check_file).read()
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(FabException):
             git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_b')
 
         # The conflicted merge must have been aborted, check that we can do another checkout of master
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='master')
+        git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='master')

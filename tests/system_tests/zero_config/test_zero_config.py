@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -31,7 +32,12 @@ class TestZeroConfig:
 
             assert (config.project_workspace / 'main').exists()
 
-    def test_fortran_explicit_gfortran(self, tmp_path):
+    def test_fortran_explicit_gfortran(self, tmp_path: Path,
+                                       monkeypatch: pytest.MonkeyPatch):
+        # The linker will make use of LDFLAGS so make sure it is clear.
+        #
+        monkeypatch.delenv('LDFLAGS', raising=False)
+
         # test the sample project in the fortran dependencies system test
         kwargs = {'project_label': 'fortran explicit gfortran', 'fab_workspace': tmp_path, 'multiprocessing': False}
 

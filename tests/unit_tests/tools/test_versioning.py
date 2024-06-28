@@ -3,14 +3,14 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-
-'''Tests the compiler implementation.
-'''
-
+"""
+Tests the version control tools.
+"""
 from unittest import mock
 
 import pytest
 
+from fab import FabException
 from fab.tools import Category, Fcm, Git, Subversion, Versioning
 
 
@@ -111,7 +111,7 @@ class TestGit:
                         return_value=mock_result) as tool_run:
             git.fetch("/src", "/dst", revision="revision")
         tool_run.assert_called_once_with(
-            ['git', 'fetch', "/src", "revision"], capture_output=False,
+            ['git', 'fetch', "/src", "revision"], capture_output=True,
             env=None, cwd='/dst', check=False)
 
         with mock.patch.object(git, "run",
@@ -135,10 +135,10 @@ class TestGit:
                         return_value=mock_result) as tool_run:
             git.checkout("/src", "/dst", revision="revision")
         tool_run.assert_any_call(['git', 'fetch', "/src", "revision"],
-                                 cwd='/dst', capture_output=False, env=None,
+                                 cwd='/dst', capture_output=True, env=None,
                                  check=False)
         tool_run.assert_called_with(['git', 'checkout', "FETCH_HEAD"],
-                                    cwd="/dst", capture_output=False,
+                                    cwd="/dst", capture_output=True,
                                     env=None, check=False)
 
         with mock.patch.object(git, "run",
@@ -149,6 +149,9 @@ class TestGit:
         run.assert_called_with(['fetch', "/src", "revision"], cwd="/dst",
                                capture_output=False)
 
+    # ToDo: These tests contain far too much knowledge of internal working.
+    #       "Mock" is a really double-edged sword.
+    #
     def test_git_merge(self):
         '''Check merge functionality. The tests here will actually
         mock the git results, so they will work even if git is not installed.
@@ -161,19 +164,19 @@ class TestGit:
                         return_value=mock_result) as tool_run:
             git.merge("/dst", revision="revision")
         tool_run.assert_called_once_with(
-            ['git', 'merge', 'FETCH_HEAD'], capture_output=False,
+            ['git', 'merge', 'FETCH_HEAD'], capture_output=True,
             env=None, cwd='/dst', check=False)
 
         # Test the behaviour if merge fails, but merge --abort works:
         # Simple function that raises an exception only the first time
         # it is called.
         def raise_1st_time():
-            yield RuntimeError
+            yield FabException
             yield 0
 
         with mock.patch.object(git, "run",
                                side_effect=raise_1st_time()) as run:
-            with pytest.raises(RuntimeError) as err:
+            with pytest.raises(FabException) as err:
                 git.merge("/dst", revision="revision")
             assert "Error merging revision. Merge aborted." in str(err.value)
         run.assert_any_call(['merge', "FETCH_HEAD"], cwd="/dst",
@@ -183,8 +186,8 @@ class TestGit:
 
         # Test behaviour if both merge and merge --abort fail
         with mock.patch.object(git, "run",
-                               side_effect=RuntimeError("ERR")) as run:
-            with pytest.raises(RuntimeError) as err:
+                               side_effect=FabException("ERR")) as run:
+            with pytest.raises(FabException) as err:
                 git.merge("/dst", revision="revision")
             assert "ERR" in str(err.value)
         run.assert_called_with(['merge', "--abort"], cwd="/dst",

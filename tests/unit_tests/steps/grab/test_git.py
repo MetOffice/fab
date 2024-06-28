@@ -15,6 +15,7 @@ from pytest import TempPathFactory, fixture, mark, raises
 from fab import FabException
 from fab.build_config import BuildConfig
 from fab.steps.grab.git import git_checkout
+from fab.tools.tool_box import ToolBox
 
 from .support import Workspace, file_tree_compare
 
@@ -63,7 +64,9 @@ class TestGit:
         """
         Tests that a source tree can be extracted from a local repository.
         """
-        config = BuildConfig(fab_workspace=tmp_path, project_label='foo')
+        config = BuildConfig(fab_workspace=tmp_path,
+                             project_label='foo',
+                             tool_box=ToolBox())
         parent_url = f'file://{workspace.repo_path}'
         git_checkout(config, parent_url)
         assert (tmp_path / 'foo' / 'source' / '.git').exists()
@@ -73,7 +76,9 @@ class TestGit:
         """
         Tests that an error is returned if the repository is not there.
         """
-        config = BuildConfig(fab_workspace=tmp_path, project_label='bar')
+        config = BuildConfig(fab_workspace=tmp_path,
+                             project_label='bar',
+                             tool_box=ToolBox())
         parent_url = f'file://{tmp_path}/nosuch.repo'
         with raises(FabException):
             git_checkout(config, parent_url)
@@ -90,7 +95,7 @@ class TestGit:
                               str(workspace.repo_path)]
         process = Popen(command)
 
-        config = BuildConfig('baz', fab_workspace=tmp_path)
+        config = BuildConfig('baz', fab_workspace=tmp_path, tool_box=ToolBox())
         parent_url = 'git://localhost/' + workspace.repo_path.name
         git_checkout(config, parent_url)
         assert (tmp_path / 'baz' / 'source' / '.git').exists()

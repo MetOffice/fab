@@ -12,6 +12,7 @@ from pytest import fixture, mark, raises
 
 from fab.build_config import BuildConfig
 from fab.steps.grab.svn import split_repo_url, svn_export
+from fab.tools.tool_box import ToolBox
 
 from .support import Workspace, file_tree_compare
 
@@ -64,7 +65,7 @@ class TestSubversion:
         repository stored on disc.
         """
         source_path = tmp_path / 'foo' / 'source'
-        config = BuildConfig('foo', fab_workspace=tmp_path)
+        config = BuildConfig('foo', fab_workspace=tmp_path, tool_box=ToolBox())
         svn_export(config, f'file://{workspace.repo_path}/trunk')
         file_tree_compare(workspace.tree_path, source_path)
         assert not (source_path / '.svn').exists()
@@ -91,7 +92,7 @@ class TestSubversion:
         repository accessed through its own protocol.
         """
         source_path = tmp_path / 'bar' / 'source'
-        config = BuildConfig('bar', fab_workspace=tmp_path)
+        config = BuildConfig('bar', fab_workspace=tmp_path, tool_box=ToolBox())
         svn_export(config, 'svn://127.0.0.1/trunk')
         file_tree_compare(server.tree_path, source_path)
         assert not (source_path / '.svn').exists()

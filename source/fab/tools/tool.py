@@ -18,6 +18,7 @@ from pathlib import Path
 import subprocess
 from typing import Dict, List, Optional, Union
 
+from fab import FabException
 from fab.tools.category import Category
 from fab.tools.flags import Flags
 
@@ -150,14 +151,14 @@ class Tool:
         # is available or not. Testing for `False` only means this `run`
         # function can be used to test if a tool is available.
         if self._is_available is False:
-            raise RuntimeError(f"Tool '{self.name}' is not available to run "
+            raise FabException(f"Tool '{self.name}' is not available to run "
                                f"'{command}'.")
         self._logger.debug(f'run_command: {" ".join(command)}')
         try:
-            res = subprocess.run(command, capture_output=capture_output,
+            res = subprocess.run(command, capture_output=True,
                                  env=env, cwd=cwd, check=False)
         except FileNotFoundError as err:
-            raise RuntimeError(f"Command '{command}' could not be "
+            raise FabException(f"Command '{command}' could not be "
                                f"executed.") from err
         if res.returncode != 0:
             msg = (f'Command failed with return code {res.returncode}:\n'
@@ -166,7 +167,7 @@ class Tool:
                 msg += f'\n{res.stdout.decode()}'
             if res.stderr:
                 msg += f'\n{res.stderr.decode()}'
-            raise RuntimeError(msg)
+            raise FabException(msg)
         if capture_output:
             return res.stdout.decode()
         return ""
