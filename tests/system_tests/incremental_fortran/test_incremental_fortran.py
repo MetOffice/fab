@@ -228,16 +228,20 @@ class TestCleanupPrebuilds(object):
 
     in_out = [
         # prune artefacts by age
-        ({'older_than': timedelta(days=15)}, ['a.123.foo', 'a.234.foo']),
-        ({'older_than': timedelta(days=25)}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
+        ({'older_than': timedelta(days=15)},
+         ['a.123.foo', 'a.234.foo']),
+        ({'older_than': timedelta(days=25)},
+         ['a.123.foo', 'a.234.foo', 'a.345.foo']),
 
         # prune individual artefact versions (hashes) by age
         ({'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
         ({'n_versions': 3}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
 
-        # pruning a file which is covered by both the age and the version pruning code.
+        # pruning a file which is covered by both the age and the version
+        # pruning code.
         # this is to protect against trying to delete a non-existent file.
-        ({'older_than': timedelta(days=15), 'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
+        ({'older_than': timedelta(days=15), 'n_versions': 2},
+         ['a.123.foo', 'a.234.foo']),
     ]
 
     @pytest.mark.parametrize("kwargs,expect", in_out)
