@@ -35,6 +35,12 @@ jobs:
           pip install -e .
           pip install clang==14.0
 
+      - name: Fetch FCM
+        uses: actions/download-artifact@v4
+        with:
+          name: 2021.05.0.tar.gz
+          repository: metomi/fcm
+
       - name: Install FCM
         run: |
           curl https://github.com/metomi/fcm/archive/refs/tags/2021.05.0.tar.gz
