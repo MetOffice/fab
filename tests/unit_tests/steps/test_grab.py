@@ -64,7 +64,9 @@ class TestGrabFcm:
                 UserWarning,
                 match="_metric_send_conn not set, cannot send metrics"
             ):
-                fcm_export(config=mock_config, src=source_url, dst_label=dst_label)
+                fcm_export(config=mock_config,
+                           src=source_url,
+                           dst_label=dst_label)
 
         mock_run.assert_called_once_with(
             [

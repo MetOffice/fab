@@ -194,11 +194,14 @@ def fixture_content(tool_box):
 
 class TestProcessFile:
 
-    # Developer's note: If the "mods combo hash" changes you'll get an unhelpful message from pytest.
+    # Developer's note: If the "mods combo hash" changes you'll get an
+    # unhelpful message from pytest.
     # It'll come from this function but pytest won't tell you that.
-    # You'll have to set a breakpoint here to see the changed hash in calls to mock_copy.
+    # You'll have to set a breakpoint here to see the changed hash in calls to
+    # mock_copy.
     def ensure_mods_stored(self, mock_copy, mods_combo_hash):
-        # Make sure the newly created mod files were copied TO the prebuilds folder.
+        # Make sure the newly created mod files were copied TO the prebuilds
+        # folder.
         output_path = Path('/fab/proj/build_output')
         prebuild_path = output_path / '_prebuild'
         mock_copy.assert_has_calls(
@@ -212,14 +215,15 @@ class TestProcessFile:
         )
 
     def ensure_mods_restored(self, mock_copy, mods_combo_hash):
-        # make sure previously built mod files were copied FROM the prebuilds folder
+        # make sure previously built mod files were copied FROM the prebuilds
+        # folder
         output_path = Path('/fab/proj/build_output')
         prebuild_path = output_path / '_prebuild'
         mock_copy.assert_has_calls(
             calls=[
-                call(prebuild_path/ f'mod_def_1.{mods_combo_hash}.mod',
+                call(prebuild_path / f'mod_def_1.{mods_combo_hash}.mod',
                      output_path / 'mod_def_1.mod'),
-                call(prebuild_path/ f'mod_def_2.{mods_combo_hash}.mod',
+                call(prebuild_path / f'mod_def_2.{mods_combo_hash}.mod',
                      output_path / 'mod_def_2.mod'),
             ],
             any_order=True,
@@ -283,8 +287,10 @@ class TestProcessFile:
          obj_combo_hash,
          mods_combo_hash) = content
 
-        with mock.patch('pathlib.Path.exists',
-                        return_value=True):  # mod def files and obj file all exist
+        with mock.patch(
+                'pathlib.Path.exists',
+                return_value=True
+        ):  # mod def files and obj file all exist
             with mock.patch(
                     'fab.steps.compile_fortran.compile_file'
             ) as mock_compile_file:
@@ -313,9 +319,11 @@ class TestProcessFile:
         }
 
     def test_file_hash(self, content):
-        # Changing the source hash must change the combo hash for the mods and obj.
-        # Note: This test adds 1 to the analysed files hash. We're using checksums so
-        #       the resulting object file and mod file combo hashes can be expected to increase by 1 too.
+        # Changing the source hash must change the combo hash for the mods and
+        # obj.
+        # Note: This test adds 1 to the analysed files hash. We're using
+        # checksums so the resulting object file and mod file combo hashes can
+        # be expected to increase by 1 too.
         (mp_common_args,
          flags,
          analysed_file,
@@ -363,7 +371,8 @@ class TestProcessFile:
         }
 
     def test_flags_hash(self, content):
-        # changing the flags must change the object combo hash, but not the mods combo hash
+        # changing the flags must change the object combo hash, but not the
+        # mods combo hash
         (mp_common_args,
          flags,
          analysed_file,
@@ -410,7 +419,8 @@ class TestProcessFile:
         }
 
     def test_deps_hash(self, content):
-        # Changing the checksums of any mod dependency must change the object combo hash but not the mods combo hash.
+        # Changing the checksums of any mod dependency must change the object
+        # combo hash but not the mods combo hash.
         # Note the difference between mods we depend on and mods we define.
         # The mods we define are not affected by the mods we depend on.
         (mp_common_args,
@@ -570,8 +580,10 @@ class TestProcessFile:
          obj_combo_hash,
          mods_combo_hash) = content
 
-        with mock.patch('pathlib.Path.exists',
-                        side_effect=[False, True, True]):  # one mod file missing
+        with mock.patch(
+                'pathlib.Path.exists',
+                side_effect=[False, True, True]
+        ):  # one mod file missing
             with mock.patch(
                     'fab.steps.compile_fortran.compile_file'
             ) as mock_compile_file:
@@ -607,10 +619,16 @@ class TestProcessFile:
 
     def test_obj_missing(self, content):
         # the object file we define is not present, so we must recompile
-        mp_common_args, flags, analysed_file, obj_combo_hash, mods_combo_hash = content
+        (mp_common_args,
+         flags,
+         analysed_file,
+         obj_combo_hash,
+         mods_combo_hash) = content
 
-        with mock.patch('pathlib.Path.exists',
-                        side_effect=[True, True, False]):  # object file missing
+        with mock.patch(
+                'pathlib.Path.exists',
+                side_effect=[True, True, False]
+        ):  # object file missing
             with mock.patch(
                     'fab.steps.compile_fortran.compile_file'
             ) as mock_compile_file:

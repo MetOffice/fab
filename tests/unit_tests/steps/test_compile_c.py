@@ -29,8 +29,13 @@ def fixture_content(tmp_path, tool_box):
     config = BuildConfig('proj', tool_box, multiprocessing=False,
                          fab_workspace=tmp_path)
 
-    analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
-    config._artefact_store[BUILD_TREES] = {None: {analysed_file.fpath: analysed_file}}
+    analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'),
+                              file_hash=0)
+    config._artefact_store[BUILD_TREES] = {
+        None: {
+            analysed_file.fpath: analysed_file
+        }
+    }
     expect_hash = 7435424994
     return config, analysed_file, expect_hash
 
@@ -69,12 +74,20 @@ class TestCompileC:
         # run the step
         with mock.patch("fab.steps.compile_c.send_metric") as send_metric:
             with mock.patch('pathlib.Path.mkdir'):
-                with mock.patch.dict(os.environ, {'CFLAGS': '-Denv_flag'}), \
-                     pytest.warns(UserWarning, match="_metric_send_conn not set, "
-                                                     "cannot send metrics"):
+                with mock.patch.dict(
+                        os.environ,
+                        {'CFLAGS': '-Denv_flag'}
+                ), pytest.warns(
+                    UserWarning,
+                    match="_metric_send_conn not set, cannot send metrics"
+                ):
                     compile_c(config=config,
-                              path_flags=[AddFlags(match='$source/*',
-                                                   flags=['-I', 'foo/include', '-Dhello'])])
+                              path_flags=[
+                                  AddFlags(
+                                      match='$source/*',
+                                      flags=['-I', 'foo/include', '-Dhello']
+                                  )
+                              ])
 
         # ensure it made the correct command-line call from the child process
         compiler.run.assert_called_with(
@@ -100,7 +113,9 @@ class TestCompileC:
         # mock the run command to raise an exception
         with pytest.raises(RuntimeError):
             with mock.patch.object(compiler, "run", side_effect=Exception):
-                with mock.patch('fab.steps.compile_c.send_metric') as mock_send_metric:
+                with mock.patch(
+                        'fab.steps.compile_c.send_metric'
+                ) as mock_send_metric:
                     with mock.patch('pathlib.Path.mkdir'):
                         compile_c(config=config)
 
