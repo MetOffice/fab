@@ -35,6 +35,12 @@ jobs:
           pip install -e .
           pip install clang==14.0
 
+      - name: Install FCM
+        run: |
+          curl https://github.com/metomi/fcm/archive/refs/tags/2021.05.0.tar.gz
+          tar -xf 2021.05.0.tar.gz
+          echo $HOME/2021.05.0/bin >> $GITHUB_PATH
+
       - name: Type check with mypy
         run: |
           pip install -e .[dev]
