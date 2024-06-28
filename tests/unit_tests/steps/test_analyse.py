@@ -3,12 +3,11 @@
 
 from pathlib import Path
 from textwrap import dedent
-from typing import List
 from unittest import mock
 
 import pytest
 
-from fab.artefacts import ArtefactsGetter, ArtefactStore, BUILD_TREES
+from fab.artefacts import BUILD_TREES
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse.c import AnalysedC
@@ -61,7 +60,7 @@ class TestAnalyse:
         ]
     )
     def test_c_program(self, tmp_path: Path, main_signature: str):
-        clang = pytest.importorskip('clang')
+        _ = pytest.importorskip('clang')  # Does this actually cause a skip?
         test_file = tmp_path / 'test.c'
         test_file.write_text(
             dedent(
