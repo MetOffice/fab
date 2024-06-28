@@ -10,7 +10,9 @@ from unittest import mock
 import pytest
 
 from fab.parse.x90 import AnalysedX90
-from fab.steps.psyclone import _check_override, _gen_prebuild_hash, MpCommonArgs
+from fab.steps.psyclone import (MpCommonArgs,
+                                _check_override,
+                                _gen_prebuild_hash)
 from fab.util import file_checksum
 
 
@@ -38,7 +40,9 @@ class Test_gen_prebuild_hash(object):
         # the script is just hashed later, so any one will do - use this file!
         mock_transformation_script = mock.Mock(return_value=__file__)
 
-        expect_hash = 223133492 + file_checksum(__file__).file_hash  # add the transformation_script_hash
+        # add the transformation_script_hash
+        #
+        expect_hash = 223133492 + file_checksum(__file__).file_hash
 
         mp_payload = MpCommonArgs(
             analysed_x90=analysed_x90,
@@ -75,8 +79,10 @@ class Test_gen_prebuild_hash(object):
         # changing the transformation script should change the hash
         mp_payload, x90_file, expect_hash = data
         mp_payload.transformation_script = None
-        with pytest.warns(UserWarning, match="no transformation script specified"):
-            result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
+        with pytest.warns(UserWarning,
+                          match="no transformation script specified"):
+            result = _gen_prebuild_hash(x90_file=x90_file,
+                                        mp_payload=mp_payload)
         # transformation_script_hash = 0
         assert result == expect_hash - file_checksum(__file__).file_hash
 
@@ -91,14 +97,16 @@ class Test_gen_prebuild_hash(object):
 class Test_check_override(object):
 
     def test_no_override(self):
-        mp_payload = mock.Mock(overrides_folder=Path('/foo'), override_files=[Path('/foo/bar.f90')])
+        mp_payload = mock.Mock(overrides_folder=Path('/foo'),
+                               override_files=[Path('/foo/bar.f90')])
 
         check_path = Path('/not_foo/bar.f90')
         result = _check_override(check_path=check_path, mp_payload=mp_payload)
         assert result == check_path
 
     def test_override(self):
-        mp_payload = mock.Mock(overrides_folder=Path('/foo'), override_files=[Path('/foo/bar.f90')])
+        mp_payload = mock.Mock(overrides_folder=Path('/foo'),
+                               override_files=[Path('/foo/bar.f90')])
 
         check_path = Path('/foo/bar.f90')
         result = _check_override(check_path=check_path, mp_payload=mp_payload)

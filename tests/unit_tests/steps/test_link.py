@@ -32,10 +32,13 @@ class TestLinkExe:
             linker._is_available = True
             tool_box.add_tool(linker, silent_replace=True)
             mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
-            with mock.patch('fab.tools.tool.subprocess.run',
-                            return_value=mock_result) as tool_run, \
-                    pytest.warns(UserWarning, match="_metric_send_conn not "
-                                                    "set, cannot send metrics"):
+            with mock.patch(
+                    'fab.tools.tool.subprocess.run',
+                    return_value=mock_result
+            ) as tool_run, pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+            ):
                 link_exe(config, flags=['-fooflag', '-barflag'])
 
         tool_run.assert_called_with(

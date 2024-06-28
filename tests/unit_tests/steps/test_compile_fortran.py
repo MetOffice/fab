@@ -439,9 +439,14 @@ class TestProcessFile:
                     res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(f'/fab/proj/build_output/_prebuild/foofile.{obj_combo_hash}.o')
-        assert res == CompiledFile(input_fpath=analysed_file.fpath, output_fpath=expect_object_fpath)
+        assert res == CompiledFile(input_fpath=analysed_file.fpath,
+                                   output_fpath=expect_object_fpath)
         mock_compile_file.assert_called_once_with(
-            analysed_file.fpath, flags, output_fpath=expect_object_fpath, mp_common_args=mp_common_args)
+            analysed_file.fpath,
+            flags,
+            output_fpath=expect_object_fpath,
+            mp_common_args=mp_common_args
+        )
         self.ensure_mods_stored(mock_copy, mods_combo_hash)
 
         # check the correct artefacts were returned
@@ -469,7 +474,9 @@ class TestGetModHashes:
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
             with mock.patch(
                     'fab.steps.compile_fortran.file_checksum',
-                    side_effect=[mock.Mock(file_hash=123), mock.Mock(file_hash=456)]):
-                result = get_mod_hashes(analysed_files=analysed_files, config=config)
+                    side_effect=[mock.Mock(file_hash=123),
+                                 mock.Mock(file_hash=456)]):
+                result = get_mod_hashes(analysed_files=analysed_files,
+                                        config=config)
 
         assert result == {'foo': 123, 'bar': 456}

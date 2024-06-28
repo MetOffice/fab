@@ -45,12 +45,20 @@ class TestSuffixFilter(object):
 
     def test_constructor_suffix_scalar(self):
         getter = SuffixFilter('barz', '.c')
-        result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
+        result = getter(
+            artefact_store={
+                'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]
+            }
+        )
         assert result == [Path('bar.c')]
 
     def test_constructor_suffix_vector(self):
         getter = SuffixFilter('barz', ['.b', '.c'])
-        result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
+        result = getter(
+            artefact_store={
+                'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]
+            }
+        )
         assert result == [Path('bar.b'), Path('bar.c')]
 
 
@@ -78,7 +86,8 @@ class Test_input_to_output_fpath(object):
 
     @pytest.fixture
     def config(self):
-        return mock.Mock(source_root=Path('/proj/source'), build_output=Path('/proj/build_output'))
+        return mock.Mock(source_root=Path('/proj/source'),
+                         build_output=Path('/proj/build_output'))
 
     def test_vanilla(self, config):
         input_path = Path('/proj/source/folder/file.txt')
