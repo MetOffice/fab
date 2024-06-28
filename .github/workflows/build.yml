@@ -18,8 +18,15 @@ jobs:
         run: |
           sudo apt-get -y install llvm clang libclang-dev gcc gfortran
 
+      - name: Install FCM
+        run: |
+          curl -o fcm-release.tar.gz -s -L https://github.com/metomi/fcm/archive/refs/tags/2021.05.0.tar.gz
+          tar -xf fcm-release.tar.gz
+          echo $HOME/fcm-2021.05.0/bin >> $GITHUB_PATH
+
       - uses: actions/checkout@v4
         with:
+          path: fab
           fetch-depth: 1
 
       - name: Set up Python ${{ matrix.python-version }}
@@ -32,32 +39,26 @@ jobs:
       - name: Install Python libraries
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install -e fab/.
           pip install clang==14.0
-
-      - name: Install FCM
-        run: |
-          curl -o fcm-release.tar.gz -s -L https://github.com/metomi/fcm/archive/refs/tags/2021.05.0.tar.gz
-          tar -xf fcm-release.tar.gz
-          echo $HOME/fcm-2021.05.0/bin >> $GITHUB_PATH
 
       - name: Type check with mypy
         run: |
-          pip install -e .[dev]
+          pip install -e fab/.[dev]
           pip install pytest
           python -m mypy source tests
 
       - name: Code style check with flake8
         run: |
-          pip install -e .[dev]
+          pip install -e fab/.[dev]
           flake8 . --count --show-source --statistics
 
       - name: Unit tests with Pytest
         run: |
-          pip install .[tests]
+          pip install fab/.[tests]
           python -m pytest --cov=fab tests/unit_tests
 
       - name: System tests with Pytest
         run: |
-          pip install .[tests]
+          pip install fab/.[tests]
           python -m pytest --cov=fab tests/system_tests
