@@ -46,19 +46,19 @@ jobs:
         run: |
           pip install -e fab/.[dev]
           pip install pytest
-          python -m mypy source tests
+          python -m mypy fab/source fab/tests
 
       - name: Code style check with flake8
         run: |
           pip install -e fab/.[dev]
-          flake8 . --count --show-source --statistics
+          flake8 fab --count --show-source --statistics
 
       - name: Unit tests with Pytest
         run: |
           pip install fab/.[tests]
-          python -m pytest --cov=fab tests/unit_tests
+          python -m pytest --cov=fab fab/tests/unit_tests
 
       - name: System tests with Pytest
         run: |
           pip install fab/.[tests]
-          python -m pytest --cov=fab tests/system_tests
+          python -m pytest --cov=fab fab/tests/system_tests
