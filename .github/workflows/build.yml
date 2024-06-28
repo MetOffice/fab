@@ -37,9 +37,9 @@ jobs:
 
       - name: Install FCM
         run: |
-          curl -o fcm-release.tar.gz -s https://github.com/metomi/fcm/archive/refs/tags/2021.05.0.tar.gz
+          curl -o fcm-release.tar.gz -s -L https://github.com/metomi/fcm/archive/refs/tags/2021.05.0.tar.gz
           tar -xf fcm-release.tar.gz
-          echo $HOME/2021.05.0/bin >> $GITHUB_PATH
+          echo $HOME/fcm-2021.05.0/bin >> $GITHUB_PATH
 
       - name: Type check with mypy
         run: |
