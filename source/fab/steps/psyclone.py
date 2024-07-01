@@ -249,7 +249,8 @@ def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
     return analysed_x90
 
 
-def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
+def _analyse_kernels(config: BuildConfig,
+                     kernel_roots: List[Path]) -> Dict[str, int]:
     """
     We want to hash the kernel metadata (type defs).
 
@@ -324,7 +325,7 @@ def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
     for af in analysed_fortran:
         assert set(af.psyclone_kernels).isdisjoint(all_kernel_hashes), \
             ("duplicate kernel name(s): "
-             + set(af.psyclone_kernels) & set(all_kernel_hashes))
+             + str(set(af.psyclone_kernels) & set(all_kernel_hashes)))
         all_kernel_hashes.update(af.psyclone_kernels)
 
     return all_kernel_hashes

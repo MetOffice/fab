@@ -119,7 +119,7 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     if not isinstance(compiler, CCompiler):
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of type "
                            f"'{type(compiler)}' instead of CCompiler")
-    with (Timer() as timer):
+    with Timer() as timer:
         flags = Flags(mp_payload.flags.flags_for_path(path=analysed_file.fpath,
                                                       config=config))
         obj_combo_hash = _get_obj_combo_hash(compiler, analysed_file, flags)
