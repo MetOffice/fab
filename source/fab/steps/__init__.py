@@ -34,16 +34,20 @@ def run_mp(config, items, func, no_multiprocessing: bool = False):
     """
     Called from Step.run() to process multiple items in parallel.
 
-    For example, a compile step would, in its run() method, find a list of source files in the artefact store.
-    It could then pass those paths to this method, along with a function to compile a *single* file.
-    The whole set of results are returned in a list-like, with undefined order.
+    For example, a compile step would, in its run() method, find a list of
+    source files in the artefact store.
+    It could then pass those paths to this method, along with a function to
+    compile a *single* file.
+    The whole set of results are returned in a list-like, with undefined
+    order.
 
     :param items:
         An iterable of items to process in parallel.
     :param func:
         A function to process a single item. Must accept a single argument.
     :param no_multiprocessing:
-        Overrides the config's multiprocessing flag, disabling multiprocessing for this call.
+        Overrides the config's multiprocessing flag, disabling multiprocessing
+        for this call.
 
     """
     if config.multiprocessing and not no_multiprocessing:
@@ -57,10 +61,12 @@ def run_mp(config, items, func, no_multiprocessing: bool = False):
 
 def run_mp_imap(config, items, func, result_handler):
     """
-    Like run_mp, but uses imap instead of map so that we can process each result as it happens.
+    Like run_mp, but uses imap instead of map so that we can process each
+    result as it happens.
 
-    This is useful for a slow operation where we want to save our progress as we go
-    instead of waiting for everything to finish, allowing us to pick up where we left off if the program is halted.
+    This is useful for a slow operation where we want to save our progress as
+    we go instead of waiting for everything to finish, allowing us to pick up
+    where we left off if the program is halted.
 
     :param items:
         An iterable of items to process in parallel.
@@ -84,7 +90,8 @@ def check_for_errors(results, caller_label=None):
     Check an iterable of results for any exceptions and handle them gracefully.
 
     This is a helper function for steps which use multiprocessing,
-    getting multiple results back from :meth:`~fab.steps.Step.run_mp` all in one go.
+    getting multiple results back from :meth:`~fab.steps.Step.run_mp` all in
+    one go.
 
     :param results:
         An iterable of results.

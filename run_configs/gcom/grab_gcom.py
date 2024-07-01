@@ -20,7 +20,9 @@ grab_config = BuildConfig(project_label=f'gcom_source {revision}',
 if __name__ == '__main__':
 
     # note: we can add arguments to grab_config.arg_parser here
-    # todo: do a real example of this in one of the configs, or at least in the docs.
+    # todo: do a real example of this in one of the configs, or at least in
+    #       the docs.
 
     with grab_config:
-        fcm_export(grab_config, src='fcm:gcom.xm_tr/build', revision=revision, dst_label="gcom")
+        fcm_export(grab_config, src='fcm:gcom.xm_tr/build',
+                   revision=revision, dst_label="gcom")

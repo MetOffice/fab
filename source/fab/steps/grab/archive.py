@@ -18,8 +18,10 @@ def grab_archive(config, src: Union[Path, str], dst_label: str = ''):
     :param src:
         The source archive to grab from.
     :param dst_label:
-        The name of a sub folder, in the project workspace, in which to put the source.
-        If not specified, the code is copied into the root of the source folder.
+        The name of a sub folder, in the project workspace, in which to put
+         the source.
+        If not specified, the code is copied into the root of the source
+         folder.
     :param name:
         Human friendly name for logger output, with sensible default.
 

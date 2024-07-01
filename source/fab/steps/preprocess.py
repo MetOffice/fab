@@ -46,8 +46,9 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     Uses multiprocessing, unless disabled in the config.
 
     :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
+        The :class:`fab.build_config.BuildConfig` object where we can read
+        settings such as the project workspace folder or the multiprocessing
+         flag.
     :param preprocessor:
         The preprocessor executable.
     :param files:
@@ -110,36 +111,47 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
         else:
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            params = args.flags.flags_for_path(path=input_fpath, config=args.config)
+            params = args.flags.flags_for_path(path=input_fpath,
+                                               config=args.config)
 
             log_or_dot(logger, f"PreProcessor running with parameters: "
                                f"'{' '.join(params)}'.'")
             try:
                 args.preprocessor.preprocess(input_fpath, output_fpath, params)
             except Exception as err:
-                raise Exception(f"error preprocessing {input_fpath}:\n{err}") from err
+                raise Exception(
+                    f"error preprocessing {input_fpath}:\n{err}"
+                ) from err
 
-    send_metric(args.name, str(input_fpath), {'time_taken': timer.taken, 'start': timer.start})
+    send_metric(args.name,
+                str(input_fpath),
+                {'time_taken': timer.taken, 'start': timer.start})
     return output_fpath
 
 
 # todo: rename preprocess_fortran
 @step
-def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = None, **kwargs):
+def preprocess_fortran(config: BuildConfig,
+                       source: Optional[ArtefactsGetter] = None,
+                       **kwargs):
     """
     Wrapper to pre_processor for Fortran files.
 
     Ensures all preprocessed files are in the build output.
-    This means *copying* already preprocessed files from source to build output.
+    This means *copying* already preprocessed files from source to build
+    output.
 
     Params as per :func:`~fab.steps.preprocess._pre_processor`.
 
-    The preprocessor is taken from the `FPP` environment, or falls back to `fpp -P`.
+    The preprocessor is taken from the `FPP` environment, or falls back to
+    `fpp -P`.
 
-    If source is not provided, it defaults to `SuffixFilter('all_source', '.F90')`.
+    If source is not provided, it defaults to
+    `SuffixFilter('all_source', '.F90')`.
 
     """
-    source_getter = source or SuffixFilter('all_source', ['.F90', '.f90'])
+    source_getter = source or SuffixFilter('all_source',
+                                           ['.F90', '.f90'])
     source_files = source_getter(config.artefact_store)
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
@@ -149,7 +161,8 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         raise RuntimeError(f"Unexpected tool '{fpp.name}' of type "
                            f"'{type(fpp)}' instead of CppFortran")
 
-    # make sure any flags from FPP are included in any common flags specified by the config
+    # make sure any flags from FPP are included in any common flags specified
+    # by the config
     try:
         common_flags = kwargs.pop('common_flags')
     except KeyError:
@@ -168,7 +181,9 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
 
     # todo: parallel copy?
     # copy little f90s from source to output folder
-    logger.info(f'Fortran preprocessor copying {len(f90s)} files to build_output')
+    logger.info(
+        f'Fortran preprocessor copying {len(f90s)} files to build_output'
+    )
     for f90 in f90s:
         output_path = input_to_output_fpath(config, input_path=f90)
         if output_path != f90:
@@ -181,8 +196,9 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
 class DefaultCPreprocessorSource(ArtefactsGetter):
     """
     A source getter specifically for c preprocessing.
-    Looks for the default output from pragma injection, falls back to default source finder.
-    This allows the step to work with or without a preceding pragma step.
+    Looks for the default output from pragma injection, falls back to default
+    source finder. This allows the step to work with or without a preceding
+    pragma step.
 
     """
     def __call__(self, artefact_store):
@@ -198,9 +214,11 @@ def preprocess_c(config: BuildConfig, source=None, **kwargs):
 
     Params as per :func:`~fab.steps.preprocess._pre_processor`.
 
-    The preprocessor is taken from the `CPP` environment, or falls back to `cpp`.
+    The preprocessor is taken from the `CPP` environment, or falls back to
+    `cpp`.
 
-    If source is not provided, it defaults to :class:`~fab.steps.preprocess.DefaultCPreprocessorSource`.
+    If source is not provided, it defaults to
+    :class:`~fab.steps.preprocess.DefaultCPreprocessorSource`.
 
     """
     source_getter = source or DefaultCPreprocessorSource()

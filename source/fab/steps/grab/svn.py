@@ -18,8 +18,10 @@ from fab.steps import step
 from fab.tools import Category, Subversion, Tool, Versioning
 
 
-def split_repo_url(url: str,
-                   revision: Optional[str] = None) -> Tuple[str, Optional[str]]:
+def split_repo_url(
+        url: str,
+        revision: Optional[str] = None
+) -> Tuple[str, Optional[str]]:
     """
     Pull out the revision if it's part of the url.
 
