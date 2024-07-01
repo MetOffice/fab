@@ -11,10 +11,10 @@ import pytest
 
 from fab.parse.x90 import AnalysedX90
 from fab.steps.psyclone import _check_override, _gen_prebuild_hash, MpCommonArgs
-from fab.util import file_checksum
+from fab.util import file_checksum, string_checksum
 
 
-class Test_gen_prebuild_hash(object):
+class TestGenPrebuildHash:
     """
     Tests for the prebuild hashing calculation.
 
@@ -38,8 +38,7 @@ class Test_gen_prebuild_hash(object):
         # the script is just hashed later, so any one will do - use this file!
         mock_transformation_script = mock.Mock(return_value=__file__)
 
-        expect_hash = 223133492 + file_checksum(__file__).file_hash  # add the transformation_script_hash
-
+        expect_hash = 3962584109 + file_checksum(__file__).file_hash  # add the transformation_script_hash
         mp_payload = MpCommonArgs(
             analysed_x90=analysed_x90,
             all_kernel_hashes=all_kernel_hashes,
@@ -47,6 +46,7 @@ class Test_gen_prebuild_hash(object):
             config=None,  # type: ignore[arg-type]
             kernel_roots=[],
             transformation_script=mock_transformation_script,
+            api="dynamo0.3",
             overrides_folder=None,
             override_files=None,  # type: ignore[arg-type]
         )
@@ -80,6 +80,19 @@ class Test_gen_prebuild_hash(object):
         # transformation_script_hash = 0
         assert result == expect_hash - file_checksum(__file__).file_hash
 
+    def test_api(self, data):
+        # changing PSyclone's API should change the hash
+        mp_payload, x90_file, expect_hash = data
+        old_hash = string_checksum(mp_payload.api)
+        # Change the API by appending "_new"
+        mp_payload.api = mp_payload.api + "_new"
+        result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
+        # transformation_script_hash = 0
+        new_hash = string_checksum(mp_payload.api)
+        # Make sure we really changed the
+        assert new_hash != old_hash
+        assert result == expect_hash - old_hash + new_hash
+
     def test_cli_args(self, data):
         # changing the cli args should change the hash
         mp_payload, x90_file, expect_hash = data
@@ -88,7 +101,7 @@ class Test_gen_prebuild_hash(object):
         assert result != expect_hash
 
 
-class Test_check_override(object):
+class TestCheckOverride:
 
     def test_no_override(self):
         mp_payload = mock.Mock(overrides_folder=Path('/foo'), override_files=[Path('/foo/bar.f90')])

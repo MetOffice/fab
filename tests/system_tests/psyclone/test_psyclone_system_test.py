@@ -145,7 +145,7 @@ class TestPsyclone:
             config.build_output / 'kernel',
             # this second folder is just to test the multiple folders code, which was bugged. There's no kernels there.
             Path(__file__).parent / 'skeleton/algorithm',
-        ])
+        ], api="dynamo0.3")
 
     def test_run(self, config):
         # if these files exist after the run then we know:

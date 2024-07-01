@@ -28,7 +28,7 @@ from fab.util import (CompiledFile, log_or_dot_finish, log_or_dot, Timer,
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
+DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix=['.f', '.f90'])
 
 
 @dataclass
