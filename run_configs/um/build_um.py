@@ -44,21 +44,28 @@ def case_insensitive_replace(in_str: str, find: str, replace_with: str):
 @step
 def my_custom_code_fixes(config):
     """
-    An example of a custom step to fix some source code which fparser2 can't parse.
-
+    An example of a custom step to fix some source code which fparser2 can't
+    parse.
     """
     def replace_in_file(inpath, outpath, find, replace):
         orig = open(os.path.expanduser(inpath), "rt").read()
         open(os.path.expanduser(outpath), "wt").write(
-            case_insensitive_replace(in_str=orig, find=find, replace_with=replace))
+            case_insensitive_replace(in_str=orig,
+                                     find=find,
+                                     replace_with=replace))
 
-    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 misunderstands 'NameListFile'")
+    warnings.warn("SPECIAL MEASURE for io_configuration_mod.F90: fparser2 "
+                  "misunderstands 'NameListFile'")
+    common_io_path = config.project_workspace / 'source' / 'um' \
+        / 'io_services' / 'common'
     replace_in_file(
-        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-        config.project_workspace / 'source/um/io_services/common/io_configuration_mod.F90',
-        r'(\W)NameListFile', r'\g<1>FabNameListFile')
+        common_io_path / 'io_configuration_mod.F90',
+        common_io_path / 'io_configuration_mod.F90',
+        r'(\W)NameListFile', r'\g<1>FabNameListFile'
+    )
 
-    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 misunderstands 'NameListFile'")
+    warnings.warn("SPECIAL MEASURE for um_config.F90: fparser2 "
+                  "misunderstands 'NameListFile'")
     replace_in_file(
         config.project_workspace / 'source/um/control/top_level/um_config.F90',
         config.project_workspace / 'source/um/control/top_level/um_config.F90',
@@ -125,13 +132,17 @@ if __name__ == '__main__':
     revision = 'vn12.1'
     um_revision = revision.replace('vn', 'um')
 
-    state = BuildConfig(project_label=f'um atmos safe {revision} $compiler $two_stage',
-                        tool_box=ToolBox())
+    state = BuildConfig(
+        project_label=f'um atmos safe {revision} $compiler $two_stage',
+        tool_box=ToolBox()
+    )
 
     # compiler-specific flags
     compiler = state.tool_box[Category.FORTRAN_COMPILER]
     if compiler.name == 'gfortran':
-        compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
+        compiler_specific_flags = ['-fdefault-integer-8',
+                                   '-fdefault-real-8',
+                                   '-fdefault-double-8']
     elif compiler.name == 'ifort':
         # compiler_specific_flags = ['-r8']
         compiler_specific_flags = [
@@ -153,19 +164,34 @@ if __name__ == '__main__':
         # todo: these repo defs could make a good set of reusable variables
 
         # UM 12.1, 16th November 2021
-        fcm_export(state, src='fcm:um.xm_tr/src', dst_label='um', revision=revision)
+        fcm_export(state,
+                   src='fcm:um.xm_tr/src',
+                   dst_label='um',
+                   revision=revision)
 
         # JULES 6.2, for UM 12.1
-        fcm_export(state, src='fcm:jules.xm_tr/src', dst_label='jules', revision=um_revision)
+        fcm_export(state,
+                   src='fcm:jules.xm_tr/src',
+                   dst_label='jules',
+                   revision=um_revision)
 
         # SOCRATES 21.11, for UM 12.1
-        fcm_export(state, src='fcm:socrates.xm_tr/src', dst_label='socrates', revision=um_revision)
+        fcm_export(state,
+                   src='fcm:socrates.xm_tr/src',
+                   dst_label='socrates',
+                   revision=um_revision)
 
         # SHUMLIB, for UM 12.1
-        fcm_export(state, src='fcm:shumlib.xm_tr/', dst_label='shumlib', revision=um_revision)
+        fcm_export(state,
+                   src='fcm:shumlib.xm_tr/',
+                   dst_label='shumlib',
+                   revision=um_revision)
 
         # CASIM, for UM 12.1
-        fcm_export(state, src='fcm:casim.xm_tr/src', dst_label='casim', revision=um_revision)
+        fcm_export(state,
+                   src='fcm:casim.xm_tr/src',
+                   dst_label='casim',
+                   revision=um_revision)
 
         my_custom_code_fixes(state)
 
@@ -179,7 +205,8 @@ if __name__ == '__main__':
             state,
             source=CollectionGetter(PRAGMAD_C),
             path_flags=[
-                # todo: this is a bit "codey" - can we safely give longer strings and split later?
+                # todo: this is a bit "codey" - can we safely give longer
+                #       strings and split later?
                 AddFlags(match="$source/um/*", flags=[
                     '-I$source/um/include/other',
                     '-I$source/shumlib/common/src',
@@ -190,7 +217,8 @@ if __name__ == '__main__':
                     '-I$source/shumlib/shum_thread_utils/src']),
 
                 # todo: just 3 folders use this
-                AddFlags("$source/um/*", ['-DC95_2A', '-I$source/shumlib/shum_byteswap/src']),
+                AddFlags("$source/um/*",
+                         ['-DC95_2A', '-I$source/shumlib/shum_byteswap/src']),
             ],
         )
 
@@ -204,7 +232,8 @@ if __name__ == '__main__':
 
                 # coupling defines
                 AddFlags("$source/um/control/timer/*", ['-DC97_3A']),
-                AddFlags("$source/um/io_services/client/stash/*", ['-DC96_1C']),
+                AddFlags("$source/um/io_services/client/stash/*",
+                         ['-DC96_1C'])
             ],
         )
 
@@ -216,8 +245,11 @@ if __name__ == '__main__':
             #     FortranParserWorkaround(
             #         fpath=Path(state.build_output / "casim/lookup.f90"),
             #         symbol_defs={'lookup'},
-            #         symbol_deps={'mphys_die', 'variable_precision', 'mphys_switches', 'mphys_parameters', 'special',
-            #                      'passive_fields', 'casim_moments_mod', 'yomhook', 'parkind1'},
+            #         symbol_deps={'mphys_die', 'variable_precision',
+            #                      'mphys_switches', 'mphys_parameters',
+            #                      'special', 'passive_fields',
+            #                      'casim_moments_mod', 'yomhook',
+            #                      'parkind1'},
             #     )
             # ]
         )
@@ -225,8 +257,12 @@ if __name__ == '__main__':
         compile_c(state, common_flags=['-c', '-std=c99'])
 
         # Locate the gcom library. UM 12.1 intended to be used with gcom 7.6
-        gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(os.path.expanduser(
-            state.project_workspace / f"../gcom_object_archive_{compiler.name}/build_output"))
+        gcom_build = os.getenv('GCOM_BUILD') or os.path.normpath(
+            os.path.expanduser(
+                state.project_workspace.parent
+                / f'gcom_object_archive_{compiler.name}' / 'build_output'
+            )
+        )
         if not os.path.exists(gcom_build):
             raise RuntimeError(f'gcom not found at {gcom_build}')
 
