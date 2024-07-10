@@ -22,19 +22,19 @@ class TestCPragmaInjector:
                    More unrelated text
                    #include <another_system_include.h>
                    '''))
-        test_artifact = Artifact(test_file,
-                                 CSource,
-                                 HeadersAnalysed)
+        test_artifact = Artifact(test_file,  # noqa: F821
+                                 CSource,  # noqa: F821
+                                 HeadersAnalysed)  # noqa: F821
         test_artifact.add_dependency('foo')
 
         # Run the Injector
-        injector = CPragmaInjector(workspace)
+        injector = CPragmaInjector(workspace)  # noqa: F821
         artifacts_out = injector.run([test_artifact])
 
         assert len(artifacts_out) == 1
         assert artifacts_out[0].location == workspace / 'test.c'
-        assert artifacts_out[0].filetype is CSource
-        assert artifacts_out[0].state is Modified
+        assert artifacts_out[0].filetype is CSource  # noqa: F821
+        assert artifacts_out[0].state is Modified  # noqa: F821
         assert artifacts_out[0].depends_on == ['foo']
         assert artifacts_out[0].defines == []
 
