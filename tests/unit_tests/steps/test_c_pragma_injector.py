@@ -9,7 +9,10 @@ from fab.steps.c_pragma_injector import inject_pragmas
 
 class Test_inject_pragmas(object):
 
-    @pytest.mark.skipif(sys.version_info < (3, 8), reason="requires python3.8 or higher for mock_open iteration")
+    @pytest.mark.skipif(
+        sys.version_info < (3, 8),
+        reason="requires python3.8 or higher for mock_open iteration"
+    )
     def test_vanilla(self):
         input = [
             '',
@@ -22,7 +25,8 @@ class Test_inject_pragmas(object):
         ]
         data = "\n".join(input)
 
-        with mock.patch('fab.steps.c_pragma_injector.open', mock_open(read_data=data)):
+        with mock.patch('fab.steps.c_pragma_injector.open',
+                        mock_open(read_data=data)):
             result = inject_pragmas(fpath="foo")
             output = list(result)
 

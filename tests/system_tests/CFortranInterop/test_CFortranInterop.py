@@ -38,7 +38,8 @@ def test_CFortranInterop(tmp_path):
         with pytest.warns(UserWarning, match="Removing managed flag"):
             compile_fortran(config, common_flags=['-c'])
         link_exe(config, flags=['-lgfortran'])
-        # todo: on an ubuntu vm, we needed these before the object files - investigate further
+        # todo: on an ubuntu vm, we needed these before the object files
+        #       - investigate further
         # [
         #     '/lib/x86_64-linux-gnu/libc.so.6',
         #     '/lib/x86_64-linux-gnu/libgfortran.so.5',
@@ -50,4 +51,5 @@ def test_CFortranInterop(tmp_path):
     command = [str(config.artefact_store[EXECUTABLES][0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output == ''.join(open(PROJECT_SOURCE / 'expected.exec.txt').readlines())
+    assert output == ''.join(open(PROJECT_SOURCE
+                                  / 'expected.exec.txt').readlines())

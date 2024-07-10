@@ -53,29 +53,41 @@ class Test_Analyser(object):
     def test_empty_file(self, fortran_analyser):
         # make sure we get back an EmptySourceFile
         with mock.patch('fab.parse.AnalysedFile.save'):
-            analysis, artefact = fortran_analyser.run(fpath=Path(Path(__file__).parent / "empty.f90"))
+            analysis, artefact = fortran_analyser.run(
+                fpath=Path(Path(__file__).parent / "empty.f90")
+            )
         assert type(analysis) is EmptySourceFile
         assert artefact is None
 
-    def test_module_file(self, fortran_analyser, module_fpath, module_expected):
+    def test_module_file(self,
+                         fortran_analyser,
+                         module_fpath,
+                         module_expected):
         with mock.patch('fab.parse.AnalysedFile.save'):
             analysis, artefact = fortran_analyser.run(fpath=module_fpath)
         assert analysis == module_expected
-        assert artefact == fortran_analyser._config.prebuild_folder / f'test_fortran_analyser.{analysis.file_hash}.an'
+        fname = f'test_fortran_analyser.{analysis.file_hash}.an'
+        assert artefact == fortran_analyser._config.prebuild_folder / fname
 
-    def test_program_file(self, fortran_analyser, module_fpath, module_expected):
+    def test_program_file(self,
+                          fortran_analyser,
+                          module_fpath,
+                          module_expected):
         # same as test_module_file() but replacing MODULE with PROGRAM
         with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
-            tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
+            tmp_file.write(module_fpath.open().read().replace("MODULE",
+                                                              "PROGRAM"))
             tmp_file.flush()
             with mock.patch('fab.parse.AnalysedFile.save'):
-                analysis, artefact = fortran_analyser.run(fpath=Path(tmp_file.name))
+                analysis, artefact \
+                    = fortran_analyser.run(fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)
             module_expected._file_hash = 768896775
             module_expected.program_defs = {'foo_mod'}
             module_expected.module_defs = set()
-            module_expected.symbol_defs.update({'internal_sub', 'internal_func'})
+            module_expected.symbol_defs.update({'internal_sub',
+                                                'internal_func'})
 
             assert analysis == module_expected
             assert artefact == fortran_analyser._config.prebuild_folder \
@@ -112,13 +124,15 @@ class Test_process_variable_binding(object):
         tree = f2008_parser(reader)
 
         # find the tree node representing the variable binding
-        var_decl = next(obj for obj in iter_content(tree) if isinstance(obj, Type_Declaration_Stmt))
+        var_decl = next(obj for obj in iter_content(tree)
+                        if isinstance(obj, Type_Declaration_Stmt))
 
         # run our handler
         fpath = Path('foo')
         analysed_file = AnalysedFortran(fpath=fpath, file_hash=0)
         analyser = FortranAnalyser()
-        analyser._process_variable_binding(analysed_file=analysed_file, obj=var_decl)
+        analyser._process_variable_binding(analysed_file=analysed_file,
+                                           obj=var_decl)
 
         assert analysed_file.symbol_defs == {'helloworld', }
 

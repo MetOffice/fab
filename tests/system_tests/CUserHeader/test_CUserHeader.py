@@ -40,4 +40,5 @@ def test_CUseHeader(tmp_path):
     command = [str(config.artefact_store[EXECUTABLES][0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output == ''.join(open(PROJECT_SOURCE / 'expected.exec.txt').readlines())
+    assert output == ''.join(open(PROJECT_SOURCE
+                                  / 'expected.exec.txt').readlines())

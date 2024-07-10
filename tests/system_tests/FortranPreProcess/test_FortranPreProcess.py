@@ -37,7 +37,8 @@ def build(fab_workspace, fpp_flags=None):
 def test_FortranPreProcess(tmp_path):
 
     # stay
-    stay_config = build(fab_workspace=tmp_path, fpp_flags=['-P', '-DSHOULD_I_STAY=yes'])
+    stay_config = build(fab_workspace=tmp_path,
+                        fpp_flags=['-P', '-DSHOULD_I_STAY=yes'])
 
     stay_exe = stay_config.artefact_store[EXECUTABLES][0]
     stay_res = subprocess.run(str(stay_exe), capture_output=True)

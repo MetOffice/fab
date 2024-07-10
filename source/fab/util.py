@@ -4,8 +4,8 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-Various utility functions live here - until we give them a proper place to live!
-
+Various utility functions live here - until we give them a proper place to
+live!
 """
 
 import datetime
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 def log_or_dot(logger, msg):
     """
-    Util function which prints a fullstop without a newline, except in debug logging where it logs a message.
-
+    Util function which prints a fullstop without a newline, except in debug
+    logging where it logs a message.
     """
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(msg)
@@ -38,9 +38,9 @@ def log_or_dot(logger, msg):
 
 def log_or_dot_finish(logger):
     """
-    Util function which completes the row of fullstops from :func:`~fab.util.log_or_dot`,
-    by printing a newline when not in debug logging.
-
+    Util function which completes the row of fullstops from
+    :func:`~fab.util.log_or_dot`, by printing a newline when not in debug
+    logging.
     """
     if logger.isEnabledFor(logging.INFO):
         print('')
@@ -53,11 +53,12 @@ def file_checksum(fpath):
     """
     Return a checksum of the given file.
 
-    This function is deterministic, returning the same result across Python invocations.
+    This function is deterministic, returning the same result across Python
+    invocations.
 
     We use crc32 for now because it's deterministic, unlike out-the-box hash.
-    We could seed hash with a non-random or look into hashlib, if/when we want to improve this.
-
+    We could seed hash with a non-random or look into hashlib, if/when we want
+    to improve this.
     """
     with open(fpath, "rb") as infile:
         return HashedFile(fpath, zlib.crc32(infile.read()))
@@ -67,32 +68,36 @@ def string_checksum(s: str):
     """
     Return a checksum of the given string.
 
-    This function is deterministic, returning the same result across Python invocations.
+    This function is deterministic, returning the same result across Python
+    invocations.
 
     We use crc32 for now because it's deterministic, unlike out-the-box hash.
-    We could seed hash with a non-random or look into hashlib, if/when we want to improve this.
-
+    We could seed hash with a non-random or look into hashlib, if/when we want
+    to improve this.
     """
     return zlib.crc32(s.encode())
 
 
-def file_walk(path: Union[str, Path], ignore_folders: Optional[List[Path]] = None) -> Iterator[Path]:
+def file_walk(path: Union[str, Path],
+              ignore_folders: Optional[List[Path]] = None) -> Iterator[Path]:
     """
     Return every file in *path* and its sub-folders.
 
     :param path:
         Folder to iterate.
     :param ignore_folders:
-        Pass in any folder if you don't want to traverse into. Please see explanation and intended use, below.
+        Pass in any folder if you don't want to traverse into. Please see
+        explanation and intended use, below.
 
     .. note::
 
-        The prebuild folder can contain multiple versions of a single, generated fortran file,
-        created by multiple runs of the build config. The prebuild folder stores these copies for when they're next
-        needed, when they are copied out and reused. We usually won't want to include this folder when
-        searching for source code to analyse.
-        To meet these needs, this function will not traverse into the given folders, if provided.
-
+        The prebuild folder can contain multiple versions of a single,
+        generated fortran file, created by multiple runs of the build config.
+        The prebuild folder stores these copies for when they're next needed,
+        when they are copied out and reused. We usually won't want to include
+        this folder when searching for source code to analyse. To meet these
+        needs, this function will not traverse into the given folders, if
+        provided.
     """
     path = Path(path)
     assert path.is_dir(), f"not dir: '{path}'"
@@ -184,10 +189,12 @@ class CompiledFile:
         return f'CompiledFile({self.input_fpath}, {self.output_fpath})'
 
 
-# todo: we should probably pass in the output folder, not the project workspace
+# todo: we should probably pass in the output folder, not the project
+#       workspace
 def input_to_output_fpath(config, input_path: Path):
     """
-    Convert a path in the project's source folder to the equivalent path in the output folder.
+    Convert a path in the project's source folder to the equivalent path in
+    the output folder.
 
     Allows the given path to already be in the output folder.
 
@@ -196,10 +203,10 @@ def input_to_output_fpath(config, input_path: Path):
     :param input_path:
         The path to transform from input to output folders.
 
-    Note: This function can also handle paths which are not in the project workspace at all.
-    This can happen when pointing the FindFiles step elsewhere, for example.
-    In that case, the entire path will be made relative to the source folder instead of its anchor.
-
+    Note: This function can also handle paths which are not in the project
+          workspace at all. This can happen when pointing the FindFiles step
+          elsewhere, for example. In that case, the entire path will be made
+          relative to the source folder instead of its anchor.
     """
     build_output = config.build_output
 
@@ -219,7 +226,8 @@ def input_to_output_fpath(config, input_path: Path):
 
     # It's neither in the project source folder nor the output folder.
     # This can happen if we're pointing the FindFiles step elsewhere.
-    # We'll just have to convert the entire path to be inside the output folder.
+    # We'll just have to convert the entire path to be inside the output
+    # folder.
     return build_output / '/'.join(input_path.parts[1:])
 
 
@@ -233,7 +241,8 @@ def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
         Iterable of suffixes we want.
 
     """
-    # todo: Just return the iterator from filter. Let the caller decide whether to turn into a list.
+    # todo: Just return the iterator from filter. Let the caller decide
+    #       whether to turn into a list.
     return list(filter(lambda fpath: fpath.suffix in suffixes, fpaths))
 
 
@@ -288,22 +297,31 @@ def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set]:
 
 def common_arg_parser() -> ArgumentParser:
     """
-    A helper function returning an argument parser with common, useful arguments controlling command line tools.
+    A helper function returning an argument parser with common, useful
+    arguments controlling command line tools.
 
-    More arguments can be added. The caller must call `parse_args` on the returned parser.
-
+    More arguments can be added. The caller must call `parse_args` on the
+    returned parser.
     """
     # consider adding preprocessor, linker, optimisation, two-stage
     arg_parser = ArgumentParser()
-    arg_parser.add_argument('--verbose', action='store_true', help='DEBUG level logging')
-    arg_parser.add_argument('--version', action='version', version=f'%(prog)s {fab.__version__}')
+    arg_parser.add_argument('--verbose', action='store_true',
+                            help='DEBUG level logging')
+    arg_parser.add_argument('--version',
+                            action='version',
+                            version=f'%(prog)s {fab.__version__}')
     group = arg_parser.add_argument_group(
         title='common arguments',
         description='Common arguments which can be passed to the BuildConfig.')
-    arg_parser.add_argument('folder', nargs='?', default='.', type=Path, help='Source path')
-    group.add_argument('--project_label', default=None, help='Project Label')
-    group.add_argument('--fab_workspace', nargs='?', default=None, help='Fab working directory')
-    group.add_argument('--multiprocessing', default=True, help='Turns OFF multiprocessing.')
+    arg_parser.add_argument('folder', nargs='?', default='.', type=Path,
+                            help='Source path')
+    group.add_argument('--project_label', default=None,
+                       help='Project Label')
+    group.add_argument('--fab_workspace', nargs='?', default=None,
+                       help='Fab working directory')
+    group.add_argument('--multiprocessing', default=True,
+                       help='Turns OFF multiprocessing.')
     group.add_argument('--two-stage', action='store_true',
-                       help='Compile .mod files first in a separate pass. Theoretically faster in some projects.')
+                       help="Compile .mod files first in a separate pass. "
+                            "Theoretically faster in some projects.")
     return arg_parser

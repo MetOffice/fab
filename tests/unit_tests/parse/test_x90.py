@@ -50,12 +50,16 @@ class TestAnalysedX90(object):
     def test_eq(self, analysed_x90):
         assert analysed_x90 == copy.deepcopy(analysed_x90)
 
-    def test_eq_different_kernel_deps(self, analysed_x90, different_kernel_deps):
+    def test_eq_different_kernel_deps(self,
+                                      analysed_x90,
+                                      different_kernel_deps):
         assert analysed_x90 != different_kernel_deps
 
     # hash
     def test_hash(self, analysed_x90):
         assert hash(analysed_x90) == hash(copy.deepcopy(analysed_x90))
 
-    def test_hash_different_kernel_deps(self, analysed_x90, different_kernel_deps):
+    def test_hash_different_kernel_deps(self,
+                                        analysed_x90,
+                                        different_kernel_deps):
         assert hash(analysed_x90) != hash(different_kernel_deps)

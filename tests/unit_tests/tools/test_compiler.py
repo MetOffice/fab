@@ -195,7 +195,7 @@ class TestGetCompilerVersion:
             under the terms of the GNU General Public License.
             For more information about these matters, see the file named COPYING
 
-        """)
+        """)  # noqa: E501
 
         self._check(full_version_string=full_version_string, expected='4.8.5')
 
@@ -207,7 +207,7 @@ class TestGetCompilerVersion:
             This is free software; see the source for copying conditions.  There is NO
             warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-        """)
+        """)  # noqa: E501
 
         self._check(full_version_string=full_version_string, expected='6.1.0')
 
@@ -219,7 +219,7 @@ class TestGetCompilerVersion:
             This is free software; see the source for copying conditions.  There is NO
             warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-        """)
+        """)  # noqa: E501
 
         self._check(full_version_string=full_version_string, expected='8.5.0')
 
@@ -231,7 +231,7 @@ class TestGetCompilerVersion:
             This is free software; see the source for copying conditions.  There is NO
             warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-        """)
+        """)  # noqa: E501
 
         self._check(full_version_string=full_version_string, expected='10.4.0')
 
@@ -243,7 +243,7 @@ class TestGetCompilerVersion:
             This is free software; see the source for copying conditions.  There is NO
             warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-        """)
+        """)  # noqa: E501
 
         self._check(full_version_string=full_version_string, expected='12.1.0')
 

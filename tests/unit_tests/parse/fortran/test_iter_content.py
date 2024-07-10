@@ -31,7 +31,13 @@ class Test_iter_content(object):
         ])
 
         result = [node.name for node in iter_content(root)]
-        assert result == ['root', 'child1', 'child2', 'grandchild1', 'grandchild2', 'greatgrandchild1', 'child3',
+        assert result == ['root',
+                          'child1',
+                          'child2',
+                          'grandchild1',
+                          'grandchild2',
+                          'greatgrandchild1',
+                          'child3',
                           'grandchild3']
 
     def test_empty(self):
@@ -46,4 +52,5 @@ class Test_iter_content(object):
             cur = next_child
 
         result = [node.name for node in iter_content(root)]
-        assert result == ['root', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+        assert result == ['root',
+                          '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']

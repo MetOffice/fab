@@ -50,7 +50,8 @@ _metric_recv_process: Optional[Process] = None
 
 def init_metrics(metrics_folder: Path):
     """
-    Create the pipe for sending metrics, the process to read them, and another pipe to push the final collated data.
+    Create the pipe for sending metrics, the process to read them, and another
+    pipe to push the final collated data.
 
     Only one call to init_metrics can be called before calling stop_metrics.
 
@@ -62,7 +63,10 @@ def init_metrics(metrics_folder: Path):
     global _metric_recv_process
 
     if any([_metric_recv_conn, _metric_send_conn, _metric_recv_process]):
-        raise ConnectionError('Metrics already initialised. Only one concurrent user of init_metrics is expected.')
+        raise ConnectionError(
+            "Metrics already initialised. Only one concurrent user of "
+            "init_metrics is expected."
+        )
 
     # the pipe connections for individual metrics
     _metric_recv_conn, _metric_send_conn = Pipe(duplex=False)
@@ -78,22 +82,25 @@ def init_metrics(metrics_folder: Path):
 
 def _read_metric(metrics_folder: Path):
     """
-    Intended to run as a child process, reading metrics created by other child processes.
+    Intended to run as a child process, reading metrics created by other child
+    processes.
 
     Reads from the metric pipe until the pipe is closed,
-    at which point it pushes the collated metrics onto the "collated metrics" pipe and ends.
+    at which point it pushes the collated metrics onto the "collated metrics"
+    pipe and ends.
 
     :param metrics_folder:
         The folder where we will write metrics.
-
     """
-    # An example metric is the time taken to preprocess a file; metrics['preprocess c']['my_file.c']
+    # An example metric is the time taken to preprocess a file;
+    # metrics['preprocess c']['my_file.c']
     metrics: Dict[str, Dict[str, float]] = defaultdict(dict)
 
     # todo: can we do this better?
-    # we run in a subprocess, so we get a copy of _metric_send_conn before it closes.
-    # when the calling process finally does close it, we'll still have an open copy of it,
-    # so the connection will still be considered open!
+    # we run in a subprocess, so we get a copy of _metric_send_conn before it
+    # closes.
+    # when the calling process finally does close it, we'll still have an open
+    # copy of it, so the connection will still be considered open!
     # therefore we close *OUR* copy of it now.
     _metric_send_conn.close()  # type: ignore
 
@@ -152,7 +159,8 @@ def stop_metrics():
 
     # Close the metrics recording pipe.
     # The metrics recording process will notice and finish,
-    # and send the total metrics to the "collated metrics" pipe, which it then closes.
+    # and send the total metrics to the "collated metrics" pipe, which it then
+    # closes.
     _metric_send_conn.close()  # type: ignore
     _metric_recv_process.join(1)  # type: ignore
 
@@ -174,7 +182,8 @@ def metrics_summary(metrics_folder: Path):
     #
     # metrics['steps']['compile fortran'] = step time taken
     #
-    # metrics['compile fortran'][filename] = {'time_taken': timer.taken, 'start': timer.start}
+    # metrics['compile fortran'][filename] = {'time_taken': timer.taken,
+    #                                         'start': timer.start}
     #
 
     try:
@@ -182,7 +191,9 @@ def metrics_summary(metrics_folder: Path):
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt  # type: ignore
     except ImportError:
-        logger.warning('matplotlib not installed, no metrics summary charts produced')
+        logger.warning(
+            'matplotlib not installed, no metrics summary charts produced'
+        )
         return
 
     with open(metrics_folder / JSON_FILENAME, 'rt') as outfile:
@@ -193,8 +204,11 @@ def metrics_summary(metrics_folder: Path):
     metrics_folder.mkdir(parents=True, exist_ok=True)
 
     metric_names = [
-        'preprocess fortran', 'preprocess c',
-        'compile fortran', 'compile fortran stage 1', 'compile fortran stage 2',
+        'preprocess fortran',
+        'preprocess c',
+        'compile fortran',
+        'compile fortran stage 1',
+        'compile fortran stage 2',
         'compile c',
     ]
 
@@ -208,7 +222,9 @@ def metrics_summary(metrics_folder: Path):
         run_times = [value['time_taken'] for value in values]
 
         plt.hist(run_times, 10)
-        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
+        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}",
+                    horizontalalignment='right',
+                    fontsize='x-small')
         plt.xlabel('time (s)')
 
         fbase = metrics_folder / ('hist_' + step_name.replace(' ', '_'))
@@ -221,14 +237,16 @@ def metrics_summary(metrics_folder: Path):
         if step_name not in metrics:
             continue
 
-        sorted_items = sorted(metrics[step_name].items(), key=lambda item: item[1]['start'])
+        sorted_items = sorted(metrics[step_name].items(),
+                              key=lambda item: item[1]['start'])
         values = [item[1] for item in sorted_items]
         t0 = values[0]['start']
         starts = [value['start'] - t0 for value in values]
         durations = [value['time_taken'] for value in values]
 
         # taller plot after 500 files
-        # todo: we should also increase the width when lots of quick files become sub-pixel
+        # todo: we should also increase the width when lots of quick files
+        #       become sub-pixel
         size = max(10.0, 10 * len(values) / 500)
         plt.figure(figsize=(10, size))
 
@@ -251,13 +269,18 @@ def metrics_summary(metrics_folder: Path):
     if step_totals:
         step_metrics = step_totals.items()
         step_times = [kv[1] for kv in step_metrics]
-        step_labels = [kv[0] if kv[1] > min_label_thresh else "" for kv in step_metrics]
+        step_labels = [kv[0] if kv[1] > min_label_thresh else ""
+                       for kv in step_metrics]
 
         plt.pie(step_times, labels=step_labels, normalize=True,
                 wedgeprops={"linewidth": 1, "edgecolor": "white"})
-        plt.suptitle(f"{run['label']} took {time_taken}\n"
-                     f"on {run['sysname']}, {run['nodename']}, {run['machine']}")
-        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
+        plt.suptitle(
+            f"{run['label']} took {time_taken}\n"
+            f"on {run['sysname']}, {run['nodename']}, {run['machine']}"
+        )
+        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}",
+                    horizontalalignment='right',
+                    fontsize='x-small')
         plt.savefig(metrics_folder / "pie.png")
         plt.close()
     else:

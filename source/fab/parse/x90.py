@@ -6,10 +6,19 @@
 from pathlib import Path
 from typing import Iterable, Set, Union, Optional, Dict, Any
 
-from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
+from fparser.two.Fortran2003 import (Use_Stmt,  # type: ignore
+                                     Call_Stmt,
+                                     Name,
+                                     Only_List,
+                                     Actual_Arg_Spec_List,
+                                     Part_Ref)
 
 from fab.parse import AnalysedFile
-from fab.parse.fortran_common import FortranAnalyserBase, iter_content, logger, _typed_child
+from fab.parse.fortran_common import (FortranAnalyserBase,
+                                      iter_content,
+                                      logger,
+                                      # ToDo: Import "protected" symbol is bad.
+                                      _typed_child)
 from fab.util import by_type
 
 
@@ -19,7 +28,8 @@ class AnalysedX90(AnalysedFile):
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: int,
-                 # todo: the fortran version doesn't include the remaining args - update this too, for simplicity.
+                 # todo: the fortran version doesn't include the remaining
+                 #       args - update this too, for simplicity.
                  kernel_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
@@ -32,7 +42,8 @@ class AnalysedX90(AnalysedFile):
         """
         super().__init__(fpath=fpath, file_hash=file_hash)
 
-        # Maps used kernel metadata (type def names) to the modules they're found in
+        # Maps used kernel metadata (type def names) to the modules they're
+        # found in
         self.kernel_deps: Set[str] = set(kernel_deps or {})
 
     def to_dict(self) -> Dict[str, Any]:
@@ -67,7 +78,12 @@ class X90Analyser(FortranAnalyserBase):
     def __init__(self):
         super().__init__(result_class=AnalysedX90)
 
-    def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:  # type: ignore
+    # ToDo: Ignoring of type checking is a problem.
+    #
+    def walk_nodes(self,  # type: ignore
+                   fpath,
+                   file_hash,
+                   node_tree) -> AnalysedX90:
 
         analysed_file = AnalysedX90(fpath=fpath, file_hash=file_hash)
         symbol_deps: Dict[str, str] = {}
@@ -79,10 +95,14 @@ class X90Analyser(FortranAnalyserBase):
                     self._process_use_statement(symbol_deps, obj)  # raises
 
                 elif obj_type == Call_Stmt:
-                    self._process_call_statement(symbol_deps, analysed_file, obj)
+                    self._process_call_statement(symbol_deps,
+                                                 analysed_file,
+                                                 obj)
 
             except Exception:
-                logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
+                logger.exception(
+                    f'error processing node {obj.item or obj_type} in {fpath}'
+                )
 
         # save results for reuse
         # analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
@@ -102,12 +122,15 @@ class X90Analyser(FortranAnalyserBase):
         for name in name_nodes:
             symbol_deps[name.string] = module_dep.string
 
-    def _process_call_statement(self, symbol_deps: Dict[str, str], analysed_file, obj):
+    def _process_call_statement(self,
+                                symbol_deps: Dict[str, str],
+                                analysed_file, obj):
         # if we're calling invoke, record the names of the args.
         # sanity check they end with "_type".
         called_name = _typed_child(obj, Name)
         if not called_name:
-            # we see this for member calls, like "thing%func()", which we're not interested in
+            # we see this for member calls, like "thing%func()", which we're
+            # not interested in
             return
         if called_name.string == "invoke":
             arg_list = _typed_child(obj, Actual_Arg_Spec_List)
@@ -121,4 +144,5 @@ class X90Analyser(FortranAnalyserBase):
                 if arg_name in symbol_deps:
                     analysed_file.kernel_deps.add(arg_name)
                 else:
-                    logger.debug(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")
+                    logger.debug(f"arg '{arg_name}' to invoke() was not "
+                                 "used, presumed built-in kernel")
