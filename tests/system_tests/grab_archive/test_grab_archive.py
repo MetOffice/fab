@@ -14,7 +14,10 @@ import pytest
 class TestGrabArchive(object):
 
     def test(self, tmp_path):
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             tar_file = Path(__file__).parent / '../git/tiny_fortran.tar'
             grab_archive(config=mock.Mock(source_root=tmp_path), src=tar_file)
 

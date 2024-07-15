@@ -34,7 +34,8 @@ def get_transformation_script(fpath, config):
             relative_path = fpath.relative_to(base_path)
         except ValueError:
             pass
-    local_transformation_script = optimisation_path / (relative_path.with_suffix('.py'))
+    local_transformation_script = optimisation_path \
+        / (relative_path.with_suffix('.py'))
     if local_transformation_script.exists():
         return local_transformation_script
     global_transformation_script = optimisation_path / 'global.py'
@@ -49,15 +50,28 @@ if __name__ == '__main__':
 
     with BuildConfig(project_label='gungho $compiler $two_stage',
                      tool_box=ToolBox()) as state:
-        grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')
-        grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'components/lfric-xios/source/', dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'infrastructure/source/',
+                    dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'components/driver/source/',
+                    dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'components' / 'inventory' / 'source',
+                    dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'components/science/source/',
+                    dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'components/lfric-xios/source/',
+                    dst_label='')
         grab_folder(state, src=lfric_source / 'gungho/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'um_physics/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'miniapps' / 'gungho_model' / 'source', dst_label='')
-        grab_folder(state, src=lfric_source / 'miniapps' / 'gungho_model' / 'optimisation',
+        grab_folder(state,
+                    src=lfric_source / 'um_physics' / 'source',
+                    dst_label='')
+        gungho_model_path = lfric_source / 'miniapps' / 'gungho_model'
+        grab_folder(state, src=gungho_model_path / 'source', dst_label='')
+        grab_folder(state, src=gungho_model_path / 'optimisation',
                     dst_label='optimisation')
         grab_folder(state, src=lfric_source / 'jules/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'socrates/source/', dst_label='')
@@ -77,10 +91,15 @@ if __name__ == '__main__':
         preprocess_fortran(
             state,
             common_flags=[
-                '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64', '-DUSE_XIOS',
+                '-DRDEF_PRECISION=64',
+                '-DR_SOLVER_PRECISION=64',
+                '-DR_TRAN_PRECISION=64',
+                '-DUSE_XIOS',
             ])
 
-        preprocess_x90(state, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
+        preprocess_x90(state, common_flags=['-DRDEF_PRECISION=64',
+                                            '-DUSE_XIOS',
+                                            '-DCOUPLED'])
 
         psyclone(
             state,
@@ -94,7 +113,12 @@ if __name__ == '__main__':
         analyse(
             state,
             root_symbol='gungho_model',
-            ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
+            ignore_mod_deps=['netcdf',
+                             'MPI',
+                             'yaxt',
+                             'pfunit_mod',
+                             'xios',
+                             'mod_wait'],
         )
 
         compile_fortran(
@@ -105,10 +129,15 @@ if __name__ == '__main__':
                 '-g',
                 '-std=f2008',
 
-                '-Wall', '-Werror=conversion', '-Werror=unused-variable', '-Werror=character-truncation',
+                '-Wall',
+                '-Werror=conversion',
+                '-Werror=unused-variable',
+                '-Werror=character-truncation',
                 '-Werror=unused-value', '-Werror=tabs',
 
-                '-DRDEF_PRECISION=64', '-DR_SOLVER_PRECISION=64', '-DR_TRAN_PRECISION=64',
+                '-DRDEF_PRECISION=64',
+                '-DR_SOLVER_PRECISION=64',
+                '-DR_TRAN_PRECISION=64',
                 '-DUSE_XIOS', '-DUSE_MPI=YES',
             ],
         )
@@ -119,9 +148,10 @@ if __name__ == '__main__':
             state,
             flags=[
                 '-fopenmp',
-
-                '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
-                '-lxios',  # EXTERNAL_STATIC_LIBRARIES
+                # EXTERNAL_DYNAMIC_LIBRARIES
+                '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',
+                # EXTERNAL_STATIC_LIBRARIES
+                '-lxios',
                 '-lstdc++',
             ],
         )

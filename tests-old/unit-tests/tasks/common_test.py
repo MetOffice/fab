@@ -4,16 +4,14 @@
 # which you should have received as part of this distribution
 ##############################################################################
 from pathlib import Path
-from textwrap import dedent
 
-from fab.tasks.common import Linker, HeaderAnalyser
+from fab.tasks.common import Linker
 from fab.artifact import \
     Artifact, \
     New, \
     Unknown, \
     Executable, \
-    Linked, \
-    HeadersAnalysed
+    Linked
 
 
 class TestLinker:

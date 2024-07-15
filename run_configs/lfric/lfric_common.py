@@ -23,12 +23,17 @@ class Script(Tool):
 
 # todo: is this part of psyclone? if so, put  it in the psyclone step module?
 @step
-def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):
-
+def configurator(config,
+                 lfric_source: Path,
+                 gpl_utils_source: Path,
+                 rose_meta_conf: Path,
+                 config_dir=None):
     rose_picker_tool = gpl_utils_source / 'rose_picker/rose_picker'
-    gen_namelist_tool = lfric_source / 'infrastructure/build/tools/GenerateNamelist'
-    gen_loader_tool = lfric_source / 'infrastructure/build/tools/GenerateLoader'
-    gen_feigns_tool = lfric_source / 'infrastructure/build/tools/GenerateFeigns'
+
+    tools_path = lfric_source / 'infrastructure' / 'build' / 'tools'
+    gen_namelist_tool = tools_path / 'GenerateNamelist'
+    gen_loader_tool = tools_path / 'GenerateLoader'
+    gen_feigns_tool = tools_path / 'GenerateFeigns'
 
     config_dir = config_dir or config.source_root / 'configuration'
 
@@ -37,7 +42,8 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
     env['PYTHONPATH'] += f':{rose_lfric_path}'
 
     # "rose picker"
-    # creates rose-meta.json and config_namelists.txt in gungho/source/configuration
+    # creates rose-meta.json and config_namelists.txt in
+    # gungho/source/configuration
     logger.info('rose_picker')
     rose_picker = Script(rose_picker_tool)
     rose_picker.run(additional_parameters=[str(rose_meta_conf),
@@ -56,7 +62,8 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
     # create configuration_mod.f90 in source root
     logger.info('GenerateLoader')
     gen_loader = Script(gen_loader_tool)
-    names = [name.strip() for name in open(config_dir / 'config_namelists.txt').readlines()]
+    names = [name.strip()
+             for name in open(config_dir / 'config_namelists.txt').readlines()]
     configuration_mod_fpath = config.source_root / 'configuration_mod.f90'
     gen_loader.run(additional_parameters=[configuration_mod_fpath,
                                           *names])
@@ -70,7 +77,8 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
 
     # put the generated source into an artefact
     # todo: we shouldn't need to do this, should we?
-    #       it's just going to be found in the source folder with everything else.
+    #       it's just going to be found in the source folder with everything
+    #       else.
     config._artefact_store['configurator_output'] = [
         configuration_mod_fpath,
         feign_config_mod_fpath
@@ -80,7 +88,8 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
 @step
 def fparser_workaround_stop_concatenation(config):
     """
-    fparser can't handle string concat in a stop statement. This step is a workaround.
+    fparser can't handle string concat in a stop statement. This step is a
+    workaround.
 
     https://github.com/stfc/fparser/issues/330
 

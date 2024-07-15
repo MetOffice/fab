@@ -28,8 +28,10 @@ class TestArchiveObjects:
         targets = ['prog1', 'prog2']
 
         config = BuildConfig('proj', ToolBox())
-        config._artefact_store = {OBJECT_FILES: {target: [f'{target}.o', 'util.o']
-                                  for target in targets}}
+        config._artefact_store = {
+            OBJECT_FILES: {target: [f'{target}.o', 'util.o']
+                           for target in targets}
+        }
 
         mock_result = mock.Mock(returncode=0, return_value=123)
         with mock.patch('fab.tools.tool.subprocess.run',
@@ -49,7 +51,9 @@ class TestArchiveObjects:
 
         # ensure the correct artefacts were created
         assert config.artefact_store[OBJECT_ARCHIVES] == {
-            target: [str(config.build_output / f'{target}.a')] for target in targets}
+            target: [str(config.build_output / f'{target}.a')]
+            for target in targets
+        }
 
     def test_for_library(self):
         '''As used when building an object archive or archiving before linking
@@ -60,15 +64,24 @@ class TestArchiveObjects:
         config._artefact_store = {OBJECT_FILES: {None: ['util1.o', 'util2.o']}}
 
         mock_result = mock.Mock(returncode=0, return_value=123)
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        return_value=mock_result) as mock_run_command, \
-                pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            archive_objects(config=config, output_fpath=config.build_output / 'mylib.a')
+        with mock.patch(
+                'fab.tools.tool.subprocess.run',
+                return_value=mock_result
+        ) as mock_run_command, pytest.warns(
+            UserWarning,
+            match="_metric_send_conn not set, cannot send metrics"
+        ):
+            archive_objects(config=config,
+                            output_fpath=config.build_output / 'mylib.a')
 
         # ensure the correct command line calls were made
-        mock_run_command.assert_called_once_with([
-            'ar', 'cr', str(config.build_output / 'mylib.a'), 'util1.o', 'util2.o'],
-            capture_output=True, env=None, cwd=None, check=False)
+        mock_run_command.assert_called_once_with(
+            [
+                'ar', 'cr', str(config.build_output / 'mylib.a'),
+                'util1.o', 'util2.o'
+            ],
+            capture_output=True, env=None, cwd=None, check=False
+        )
 
         # ensure the correct artefacts were created
         assert config.artefact_store[OBJECT_ARCHIVES] == {

@@ -47,14 +47,17 @@ class TestAnalysedFile(object):
         assert analysed_file != different_file_hash
 
     # hash
-    # We can't record the return value from self.hash() because it's different each time we invoke Python.
+    # We can't record the return value from self.hash() because it's different
+    # each time we invoke Python.
     def test_hash(self, analysed_file):
         assert hash(analysed_file) == hash(copy.deepcopy(analysed_file))
 
     def test_hash_different_fpath(self, analysed_file, different_fpath):
         assert hash(analysed_file) != hash(different_fpath)
 
-    def test_hash_different_file_hash(self, analysed_file, different_file_hash):
+    def test_hash_different_file_hash(self,
+                                      analysed_file,
+                                      different_file_hash):
         assert hash(analysed_file) != hash(different_file_hash)
 
 
@@ -109,16 +112,23 @@ class TestAnalysedDependent(object):
 
     def test_add_symbol_def(self, analysed_dependent):
         analysed_dependent.add_symbol_def('my_func3')
-        assert analysed_dependent.symbol_defs == {'my_func1', 'my_func2', 'my_func3'}
+        assert analysed_dependent.symbol_defs == {
+            'my_func1', 'my_func2', 'my_func3'
+        }
 
     def test_add_symbol_dep(self, analysed_dependent):
         analysed_dependent.add_symbol_dep('other_func3')
-        assert analysed_dependent.symbol_deps == {'other_func1', 'other_func2', 'other_func3'}
+        assert analysed_dependent.symbol_deps == {
+            'other_func1', 'other_func2', 'other_func3'
+        }
 
     def test_add_file_dep(self, analysed_dependent):
         analysed_dependent.add_file_dep('other_file3.f90')
         assert analysed_dependent.file_deps == {
-            Path('other_file1.f90'), Path('other_file2.f90'), Path('other_file3.f90')}
+            Path('other_file1.f90'),
+            Path('other_file2.f90'),
+            Path('other_file3.f90')
+        }
 
     def test_to_dict(self, analysed_dependent, as_dict):
         assert analysed_dependent.to_dict() == as_dict
@@ -130,24 +140,37 @@ class TestAnalysedDependent(object):
     def test_eq(self, analysed_dependent):
         assert analysed_dependent == copy.deepcopy(analysed_dependent)
 
-    def test_eq_different_symbol_defs(self, analysed_dependent, different_symbol_defs):
+    def test_eq_different_symbol_defs(self,
+                                      analysed_dependent,
+                                      different_symbol_defs):
         assert analysed_dependent != different_symbol_defs
 
-    def test_eq_different_symbol_deps(self, analysed_dependent, different_symbol_deps):
+    def test_eq_different_symbol_deps(self,
+                                      analysed_dependent,
+                                      different_symbol_deps):
         assert analysed_dependent != different_symbol_deps
 
-    def test_eq_different_file_deps(self, analysed_dependent, different_file_deps):
+    def test_eq_different_file_deps(self,
+                                    analysed_dependent,
+                                    different_file_deps):
         assert analysed_dependent != different_file_deps
 
     # hash
     def test_hash(self, analysed_dependent):
-        assert hash(analysed_dependent) == hash(copy.deepcopy(analysed_dependent))
+        assert hash(analysed_dependent) \
+               == hash(copy.deepcopy(analysed_dependent))
 
-    def test_hash_different_symbol_defs(self, analysed_dependent, different_symbol_defs):
+    def test_hash_different_symbol_defs(self,
+                                        analysed_dependent,
+                                        different_symbol_defs):
         assert hash(analysed_dependent) != hash(different_symbol_defs)
 
-    def test_hash_different_symbol_deps(self, analysed_dependent, different_symbol_deps):
+    def test_hash_different_symbol_deps(self,
+                                        analysed_dependent,
+                                        different_symbol_deps):
         assert hash(analysed_dependent) != hash(different_symbol_deps)
 
-    def test_hash_different_file_deps(self, analysed_dependent, different_file_deps):
+    def test_hash_different_file_deps(self,
+                                      analysed_dependent,
+                                      different_file_deps):
         assert hash(analysed_dependent) != hash(different_file_deps)

@@ -26,10 +26,15 @@ def test_simple_result(tmp_path):
         fpath=fpath,
         file_hash=1429445462,
         symbol_deps={'usr_var', 'usr_func'},
-        symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
+        symbol_defs={'func_decl',
+                     'func_def',
+                     'var_def',
+                     'var_extern_def',
+                     'main'},
     )
     assert analysis == expected
-    assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
+    fname = f'test_c_analyser.{analysis.file_hash}.an'
+    assert artefact == c_analyser._config.prebuild_folder / fname
 
 
 class Test__locate_include_regions:
@@ -64,7 +69,9 @@ class Test__locate_include_regions:
 
         tokens = []
         for line in lines:
-            tokens.extend(map(lambda token: MockToken(line=line[0], spelling=token), line[1].split()))
+            tokens.extend(map(lambda token: MockToken(line=line[0],
+                                                      spelling=token),
+                              line[1].split()))
 
         mock_trans_unit = Mock()
         mock_trans_unit.cursor.get_tokens.return_value = tokens
@@ -97,11 +104,17 @@ class Test_process_symbol_declaration:
 
     # definitions
     def test_external_definition(self):
-        analysed_file = self._definition(spelling="foo", linkage=clang.cindex.LinkageKind.EXTERNAL)
+        analysed_file = self._definition(
+            spelling="foo",
+            linkage=clang.cindex.LinkageKind.EXTERNAL
+        )
         analysed_file.add_symbol_def.assert_called_with("foo")
 
     def test_internal_definition(self):
-        analysed_file = self._definition(spelling=None, linkage=clang.cindex.LinkageKind.INTERNAL)
+        analysed_file = self._definition(
+            spelling=None,
+            linkage=clang.cindex.LinkageKind.INTERNAL
+        )
         analysed_file.add_symbol_def.assert_not_called()
 
     def _definition(self, spelling, linkage):
@@ -113,17 +126,21 @@ class Test_process_symbol_declaration:
         analyser = CAnalyser()
         analysed_file = Mock()
 
-        analyser._process_symbol_declaration(analysed_file=analysed_file, node=node, usr_symbols=None)
+        analyser._process_symbol_declaration(analysed_file=analysed_file,
+                                             node=node,
+                                             usr_symbols=None)
 
         return analysed_file
 
     # declarations
     def test_usr_declaration(self):
-        usr_symbols = self._declaration(spelling="foo", include_type="usr_include")
+        usr_symbols = self._declaration(spelling="foo",
+                                        include_type="usr_include")
         assert usr_symbols == ["foo"]
 
     def test_not_usr_declaration(self):
-        usr_symbols = self._declaration(spelling="foo", include_type="sys_include")
+        usr_symbols = self._declaration(spelling="foo",
+                                        include_type="sys_include")
         assert usr_symbols == []
 
     def _declaration(self, spelling, include_type):
@@ -136,7 +153,9 @@ class Test_process_symbol_declaration:
 
         usr_symbols = []
 
-        analyser._process_symbol_declaration(analysed_file=None, node=node, usr_symbols=usr_symbols)
+        analyser._process_symbol_declaration(analysed_file=None,
+                                             node=node,
+                                             usr_symbols=usr_symbols)
 
         return usr_symbols
 
@@ -165,7 +184,9 @@ def test_clang_disable():
 
     with mock.patch('fab.parse.c.clang', None):
         with mock.patch('fab.parse.c.file_checksum') as mock_file_checksum:
-            result = CAnalyser().run(Path(__file__).parent / "test_c_analyser.c")
+            result = CAnalyser().run(
+                Path(__file__).parent / "test_c_analyser.c"
+            )
 
     assert isinstance(result[0], ImportWarning)
     mock_file_checksum.assert_not_called()

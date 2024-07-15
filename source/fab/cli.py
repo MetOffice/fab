@@ -30,7 +30,8 @@ from fab.util import common_arg_parser
 def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     project_label = 'zero_config_build'
     if kwargs:
-        project_label = kwargs.pop('project_label', 'zero_config_build') or project_label
+        project_label = (kwargs.pop('project_label', 'zero_config_build')
+                         or project_label)
 
     # Set the default Fortran compiler as linker (otherwise e.g. the
     # C compiler might be used in linking, requiring additional flags)
@@ -44,7 +45,8 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     tool_box.add_tool(fc)
     tool_box.add_tool(linker)
     # Within the fab workspace, we'll create a project workspace.
-    # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
+    # Ideally we'd just use folder.name, but to avoid clashes, we'll use the
+    # full absolute path.
     with BuildConfig(project_label=project_label,
                      tool_box=tool_box, **kwargs) as config:
         grab_folder(config, folder)
@@ -66,21 +68,20 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
 
 def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
     """
-    Running Fab from the command line will attempt to build the project in the current or
-    given folder. The following params are used for testing. When run normally any parameters
-    will be caught by a common_arg_parser.
+    Running Fab from the command line will attempt to build the project in the
+    current or given folder. The following params are used for testing. When
+    run normally any parameters will be caught by a common_arg_parser.
 
     :param folder:
         source folder (Testing Only)
     :param kwargs:
         parameters  ( Testing Only )
-
     """
     kwargs = kwargs or {}
 
-    # We check if 'fab' was called directly. As it can be called by other things like 'pytest',
-    # the cli arguments may not apply to 'fab' which will cause arg_parser to fail with an
-    # invalid argument message.
+    # We check if 'fab' was called directly. As it can be called by other
+    # things like 'pytest', the cli arguments may not apply to 'fab' which
+    # will cause arg_parser to fail with an invalid argument message.
     if Path(sys.argv[0]).parts[-1] == 'fab':
         arg_parser = common_arg_parser()
         kwargs = vars(arg_parser.parse_args())

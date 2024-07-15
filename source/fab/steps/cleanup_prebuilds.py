@@ -25,34 +25,45 @@ CLEANUP_COUNT = 'cleanup_count'
 
 @step
 def cleanup_prebuilds(
-        config, older_than: Optional[timedelta] = None, n_versions: int = 0, all_unused: Optional[bool] = None):
+        config,
+        older_than: Optional[timedelta] = None,
+        n_versions: int = 0,
+        all_unused: Optional[bool] = None):
     """
     A step to delete old files from the local incremental/prebuild folder.
 
     Assumes prebuild filenames follow the pattern: `<stem>.<hash>.<suffix>`.
 
     :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
+        The :class:`fab.build_config.BuildConfig` object where we can read
+        settings such as the project workspace folder or the multiprocessing
+        flag.
     :param older_than:
-        Delete prebuild artefacts which are *n seconds* older than the *last prebuild access time*.
+        Delete prebuild artefacts which are *n seconds* older than the *last
+        prebuild access time*.
     :param n_versions:
-        Only keep the most recent n versions of each artefact `<stem>.*.<suffix>`
+        Only keep the most recent n versions of each artefact
+        `<stem>.*.<suffix>`
     :param all_unused:
         Delete everything which was not part of the current build.
 
     If no parameters are specified then `all_unused` will default to `True`.
-
     """
-    # If the user has not specified any cleanup parameters, we default to a hard cleanup.
+    # If the user has not specified any cleanup parameters, we default to a
+    # hard cleanup.
     if not n_versions and not older_than:
         if all_unused not in [None, True]:
-            raise ValueError(f"unexpected value for all_unused: '{all_unused}'")
+            raise ValueError(
+                f"unexpected value for all_unused: '{all_unused}'"
+            )
         all_unused = True
 
-    # if we're doing a hard cleanup, there's no point providing the softer options
+    # if we're doing a hard cleanup, there's no point providing the softer
+    # options
     if all_unused and (n_versions or older_than):
-        raise ValueError("n_versions or older_than should not be specified with all_unused")
+        raise ValueError(
+            "n_versions or older_than should not be specified with all_unused"
+        )
 
     num_removed = 0
 
@@ -63,16 +74,27 @@ def cleanup_prebuilds(
 
     elif all_unused:
         num_removed = remove_all_unused(
-            found_files=prebuild_files, current_files=config.artefact_store[CURRENT_PREBUILDS])
+            found_files=prebuild_files,
+            current_files=config.artefact_store[CURRENT_PREBUILDS]
+        )
 
     else:
         # get the file access time for every artefact
         prebuilds_ts = \
-            dict(zip(prebuild_files, run_mp(config, prebuild_files, get_access_time)))  # type: ignore
+            dict(zip(prebuild_files,
+                     run_mp(config, prebuild_files, get_access_time)))
 
         # work out what to delete
-        to_delete = by_age(older_than, prebuilds_ts, current_files=config.artefact_store[CURRENT_PREBUILDS])
-        to_delete |= by_version_age(n_versions, prebuilds_ts, current_files=config.artefact_store[CURRENT_PREBUILDS])
+        to_delete = by_age(
+            older_than,
+            prebuilds_ts,
+            current_files=config.artefact_store[CURRENT_PREBUILDS]
+        )
+        to_delete |= by_version_age(
+            n_versions,
+            prebuilds_ts,
+            current_files=config.artefact_store[CURRENT_PREBUILDS]
+        )
 
         # delete them all
         run_mp(config, to_delete, os.remove)
@@ -83,7 +105,8 @@ def cleanup_prebuilds(
 
 
 def by_age(older_than: Optional[timedelta],
-           prebuilds_ts: Dict[Path, datetime], current_files: Iterable[Path]) -> Set[Path]:
+           prebuilds_ts: Dict[Path, datetime],
+           current_files: Iterable[Path]) -> Set[Path]:
     to_delete = set()
 
     if older_than:
@@ -102,7 +125,9 @@ def by_age(older_than: Optional[timedelta],
     return to_delete
 
 
-def by_version_age(n_versions: int, prebuilds_ts: Dict[Path, datetime], current_files: Iterable[Path]) -> Set[Path]:
+def by_version_age(n_versions: int,
+                   prebuilds_ts: Dict[Path, datetime],
+                   current_files: Iterable[Path]) -> Set[Path]:
     to_delete = set()
 
     if n_versions:
@@ -111,7 +136,9 @@ def by_version_age(n_versions: int, prebuilds_ts: Dict[Path, datetime], current_
 
         # delete the n oldest in each group
         for pb_group in pb_file_groups.values():
-            by_age = sorted(pb_group, key=lambda f: prebuilds_ts[f], reverse=True)
+            by_age = sorted(pb_group,
+                            key=lambda f: prebuilds_ts[f],
+                            reverse=True)
             for f in by_age[n_versions:]:
                 # don't delete if it's still current
                 if f in current_files:
@@ -123,7 +150,8 @@ def by_version_age(n_versions: int, prebuilds_ts: Dict[Path, datetime], current_
     return to_delete
 
 
-def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]):
+def remove_all_unused(found_files: Iterable[Path],
+                      current_files: Iterable[Path]):
     num_removed = 0
 
     for f in found_files:

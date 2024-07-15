@@ -21,24 +21,35 @@ if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
-    # this folder just contains previous output, for testing the overrides mechanism.
+    # this folder just contains previous output, for testing the overrides
+    # mechanism.
     psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
 
     with BuildConfig(project_label='mesh tools $compiler $two_stage',
                      tool_box=ToolBox()) as state:
-        grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'mesh_tools/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'infrastructure/source/',
+                    dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'mesh_tools/source/',
+                    dst_label='')
+        grab_folder(state,
+                    src=lfric_source / 'components/science/source/',
+                    dst_label='')
 
         # grab the psyclone overrides folder into the source folder
-        grab_folder(state, src=psyclone_overrides, dst_label='mesh_tools_overrides')
+        grab_folder(state,
+                    src=psyclone_overrides,
+                    dst_label='mesh_tools_overrides')
 
         # generate more source files in source and source/configuration
+        rose_meta_path = lfric_source / 'mesh_tools' / 'rose-meta' \
+            / 'lfric-mesh_tools' / 'HEAD' / 'rose-meta.conf'
         configurator(
             state,
             lfric_source=lfric_source,
             gpl_utils_source=gpl_utils_source,
-            rose_meta_conf=lfric_source / 'mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf',
+            rose_meta_conf=rose_meta_path,
         )
 
         find_source_files(
@@ -50,7 +61,9 @@ if __name__ == '__main__':
 
         preprocess_fortran(state)
 
-        preprocess_x90(state, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
+        preprocess_x90(state, common_flags=['-DRDEF_PRECISION=64',
+                                            '-DUSE_XIOS',
+                                            '-DCOUPLED'])
 
         psyclone(
             state,
@@ -63,8 +76,11 @@ if __name__ == '__main__':
 
         analyse(
             state,
-            root_symbol=['cubedsphere_mesh_generator', 'planar_mesh_generator', 'summarise_ugrid'],
-            # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
+            root_symbol=['cubedsphere_mesh_generator',
+                         'planar_mesh_generator',
+                         'summarise_ugrid'],
+            # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios',
+            #                  'mod_wait'],
         )
 
         compile_fortran(state, common_flags=['-c'])
@@ -75,8 +91,12 @@ if __name__ == '__main__':
         link_exe(
             state,
             flags=[
-                '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
-                '-lxios',  # EXTERNAL_STATIC_LIBRARIES
+                # EXTERNAL_DYNAMIC_LIBRARIES
+                '-lyaxt', '-lyaxt_c',
+                '-lnetcdff', '-lnetcdf',
+                '-lhdf5',
+                # EXTERNAL_STATIC_LIBRARIES
+                '-lxios',
                 '-lstdc++',
             ],
         )

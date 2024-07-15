@@ -21,7 +21,8 @@ from fab.tools import Fcm, Subversion, ToolBox
 from fab.steps.grab.fcm import fcm_checkout, fcm_export, fcm_merge
 from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge
 
-# Fcm isn't available in the github test images...unless we install it from github.
+# Fcm isn't available in the github test images...unless we install it from
+# github.
 
 # Which tools are available?
 export_funcs = []
@@ -101,13 +102,17 @@ def confirm_trunk(config: BuildConfig) -> bool:
 def confirm_file1_experiment_a(config) -> bool:
     ''':returns: wheter we got the revision 7 text in file 2 or not.'''
     file1_txt = (config.source_root / 'proj/file2.txt').read_text()
-    return file1_txt.startswith("This is sentence one, with Experiment A modification.")
+    return file1_txt.startswith(
+        "This is sentence one, with Experiment A modification."
+    )
 
 
 def confirm_file2_experiment_r7(config) -> bool:
     ''':returns: Whether we got the revision 7 text in file 2.'''
     file2_txt = (config.source_root / 'proj/file2.txt').read_text()
-    return file2_txt.strip().endswith("This is sentence two, with experimental modification.")
+    return file2_txt.strip().endswith(
+        "This is sentence two, with experimental modification."
+    )
 
 
 def confirm_file2_experiment_r8(config) -> bool:
@@ -126,12 +131,19 @@ class TestExport():
     @pytest.mark.filterwarnings("ignore: Python 3.14 will, "
                                 "by default, filter extracted tar archives "
                                 "and reject files or modify their metadata. "
-                                "Use the filter argument to control this behavior.")
+                                "Use the filter argument to control this "
+                                "behavior.")
     def test_export(self, file2_experiment, config, export_func):
         '''Export the "file 2 experiment" branch, which has different sentence
         from trunk in r1 and r2.'''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            export_func(config, src=file2_experiment, dst_label='proj', revision=7)
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
+            export_func(config,
+                        src=file2_experiment,
+                        dst_label='proj',
+                        revision=7)
             assert confirm_file2_experiment_r7(config)
 
         # Make sure we can export twice into the same folder.
@@ -139,21 +151,28 @@ class TestExport():
         # To remove residual, orphaned files?
         with pytest.warns(UserWarning, match="_metric_send_conn not set, "
                                              "cannot send metrics"):
-            export_func(config, src=file2_experiment, dst_label='proj', revision=8)
+            export_func(config,
+                        src=file2_experiment,
+                        dst_label='proj',
+                        revision=8)
             assert confirm_file2_experiment_r8(config)
 
 
 @pytest.mark.filterwarnings("ignore: Python 3.14 will, "
                             "by default, filter extracted tar archives "
                             "and reject files or modify their metadata. "
-                            "Use the filter argument to control this behavior.")
+                            "Use the filter argument to control this "
+                            "behavior.")
 class TestCheckout():
     '''Checkout related tests.'''
 
     @pytest.mark.parametrize('checkout_func', checkout_funcs)
     def test_new_folder(self, trunk, config, checkout_func):
         '''Tests that a new folder is created if required.'''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             checkout_func(config, src=trunk, dst_label='proj')
             assert confirm_trunk(config)
 
@@ -176,26 +195,41 @@ class TestCheckout():
 
         with mock.patch('fab.tools.tool.subprocess.run',
                         wraps=fab.tools.tool.subprocess.run) as wrap, \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+             pytest.warns(
+                 UserWarning,
+                 match="_metric_send_conn not set, cannot send metrics"
+             ):
 
-            checkout_func(config, src=file2_experiment, dst_label='proj', revision='7')
+            checkout_func(config,
+                          src=file2_experiment,
+                          dst_label='proj',
+                          revision='7')
             assert confirm_file2_experiment_r7(config)
             wrap.assert_called_with([
                 expect_tool, 'checkout', '--revision', '7',
                 file2_experiment, str(config.source_root / 'proj')],
                 capture_output=True, env=None, cwd=None, check=False)
 
-            checkout_func(config, src=file2_experiment, dst_label='proj', revision='8')
+            checkout_func(config,
+                          src=file2_experiment,
+                          dst_label='proj',
+                          revision='8')
             assert confirm_file2_experiment_r8(config)
             wrap.assert_called_with(
                 [expect_tool, 'update', '--revision', '8'],
                 capture_output=True, env=None,
                 cwd=config.source_root / 'proj', check=False)
 
-    @pytest.mark.parametrize('export_func,checkout_func', zip(export_funcs, checkout_funcs))
+    @pytest.mark.parametrize('export_func,checkout_func',
+                             zip(export_funcs, checkout_funcs))
     def test_not_working_copy(self, trunk, config, export_func, checkout_func):
-        '''Test that the export command just makes files, not a working copy. '''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        """
+        Test that the export command just makes files, not a working copy.
+        """
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             export_func(config, src=trunk, dst_label='proj')
 
         # if we try to checkout into that folder, it should fail
@@ -206,14 +240,24 @@ class TestCheckout():
 @pytest.mark.filterwarnings("ignore: Python 3.14 will, "
                             "by default, filter extracted tar archives "
                             "and reject files or modify their metadata. "
-                            "Use the filter argument to control this behavior.")
+                            "Use the filter argument to control this "
+                            "behavior.")
 class TestMerge():
     '''Various merge related tests.'''
 
-    @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
-    def test_vanilla(self, trunk, file2_experiment, config, checkout_func, merge_func):
+    @pytest.mark.parametrize('checkout_func,merge_func',
+                             zip(checkout_funcs, merge_funcs))
+    def test_vanilla(self,
+                     trunk,
+                     file2_experiment,
+                     config,
+                     checkout_func,
+                     merge_func):
         '''Test generic merging.'''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             # something to merge into; checkout trunk
             checkout_func(config, src=trunk, dst_label='proj')
             confirm_trunk(config)
@@ -222,33 +266,60 @@ class TestMerge():
             merge_func(config, src=file2_experiment, dst_label='proj')
             confirm_file2_experiment_r8(config)
 
-    @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
-    def test_revision(self, trunk, file2_experiment, config, checkout_func, merge_func):
+    @pytest.mark.parametrize('checkout_func,merge_func',
+                             zip(checkout_funcs, merge_funcs))
+    def test_revision(self,
+                      trunk,
+                      file2_experiment,
+                      config,
+                      checkout_func,
+                      merge_func):
         '''Test merging a specific revision.'''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             # something to merge into; checkout trunk
             checkout_func(config, src=trunk, dst_label='proj')
             confirm_trunk(config)
 
             # merge another branch in
-            merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
+            merge_func(config,
+                       src=file2_experiment,
+                       dst_label='proj',
+                       revision=7)
             confirm_file2_experiment_r7(config)
 
-    @pytest.mark.parametrize('export_func,merge_func', zip(export_funcs, merge_funcs))
-    def test_not_working_copy(self, trunk, file2_experiment, config, export_func, merge_func):
+    @pytest.mark.parametrize('export_func,merge_func',
+                             zip(export_funcs, merge_funcs))
+    def test_not_working_copy(self,
+                              trunk,
+                              file2_experiment,
+                              config, export_func,
+                              merge_func):
         '''Test error handling when merging into an exported file.'''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             export_func(config, src=trunk, dst_label='proj')
 
         # try to merge into an export
         with pytest.raises(RuntimeError):
-            merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
+            merge_func(config,
+                       src=file2_experiment,
+                       dst_label='proj',
+                       revision=7)
 
-    @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
+    @pytest.mark.parametrize('checkout_func,merge_func',
+                             zip(checkout_funcs, merge_funcs))
     def test_conflict(self, file1_experiment_a, file1_experiment_b, config,
                       checkout_func, merge_func):
         '''Test conflict andling with a checkout.'''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             checkout_func(config, src=file1_experiment_a, dst_label='proj')
             confirm_file1_experiment_a(config)
 
@@ -261,12 +332,18 @@ class TestMerge():
     def test_multiple_merges(self, trunk, file1_experiment_a, file2_experiment,
                              config, checkout_func, merge_func):
         '''Check that multiple versions can be merged.'''
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+        with pytest.warns(
+                UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"
+        ):
             checkout_func(config, src=trunk, dst_label='proj')
             confirm_trunk(config)
 
             merge_func(config, src=file1_experiment_a, dst_label='proj')
             confirm_file1_experiment_a(config)
 
-            merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
+            merge_func(config,
+                       src=file2_experiment,
+                       dst_label='proj',
+                       revision=7)
             confirm_file2_experiment_r7(config)

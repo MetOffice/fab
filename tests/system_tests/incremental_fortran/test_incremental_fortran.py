@@ -27,20 +27,24 @@ class TestIncremental(object):
         - basic Fortran project build
         - incremental Fortran build, with and without mod changes
 
-    Each test runs in a different fab workspace each time, with a rolling history kept of the last three runs.
+    Each test runs in a different fab workspace each time, with a rolling
+    history kept of the last three runs.
 
     """
 
     # todo: check incremental build of other file types as Fab is upgraded
 
     @pytest.fixture
-    def config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
+    def config(self, tmp_path):
         logging.getLogger('fab').setLevel(logging.WARNING)
 
         with BuildConfig(project_label=PROJECT_LABEL,
                          tool_box=ToolBox(), fab_workspace=tmp_path,
                          multiprocessing=False) as grab_config:
-            grab_folder(grab_config, Path(__file__).parent / 'project-source', dst_label='src')
+            grab_folder(
+                grab_config,
+                Path(__file__).parent / 'project-source', dst_label='src'
+            )
 
         build_config = BuildConfig(project_label=PROJECT_LABEL,
                                    tool_box=ToolBox(), fab_workspace=tmp_path,
@@ -54,8 +58,10 @@ class TestIncremental(object):
         analyse(build_config, root_symbol='my_prog')
         compile_fortran(build_config)
         link_exe(build_config, flags=['-lgfortran'])
-        # Add a permissive cleanup step because we want to know about every file which is created,
-        # across multiple runs of the build. Otherwise, an aggressive cleanup will be automatically added.
+        # Add a permissive cleanup step because we want to know about every
+        # file which is created,
+        # across multiple runs of the build. Otherwise, an aggressive cleanup
+        # will be automatically added.
         cleanup_prebuilds(build_config, older_than=timedelta(weeks=1))
 
     def test_clean_build(self, config):
@@ -69,7 +75,8 @@ class TestIncremental(object):
         assert (config.project_workspace / 'my_prog').exists()
 
     def test_no_change_rebuild(self, config):
-        # ensure a rebuild with no change does not recreate our prebuild artefacts
+        # ensure a rebuild with no change does not recreate our prebuild
+        # artefacts
 
         # clean build
         clean_files, clean_timestamps, clean_hashes = self.build(config)
@@ -83,8 +90,11 @@ class TestIncremental(object):
         prebuild_folder = config.prebuild_folder
 
         self.assert_one_artefact(
-            ['my_mod.*.an', 'my_mod.*.o', 'my_mod.*.mod', 'my_prog.*.an', 'my_prog.*.o'],
-            prebuild_groups, prebuild_folder, clean_timestamps, clean_hashes, rebuild_timestamps, rebuild_hashes)
+            ['my_mod.*.an', 'my_mod.*.o', 'my_mod.*.mod',
+             'my_prog.*.an', 'my_prog.*.o'],
+            prebuild_groups, prebuild_folder,
+            clean_timestamps, clean_hashes,
+            rebuild_timestamps, rebuild_hashes)
 
     def test_fortran_implementation_change(self, config):
         # test a code change without a module interface change
@@ -92,7 +102,8 @@ class TestIncremental(object):
         # clean build
         clean_files, clean_timestamps, clean_hashes = self.build(config)
 
-        # modify the fortran module source without changing the module interface
+        # modify the fortran module source without changing the module
+        # interface
         mod_source = config.source_root / 'src/my_mod.F90'
         lines = open(mod_source, 'rt').readlines()
         with open(mod_source, 'wt') as out:
@@ -113,10 +124,14 @@ class TestIncremental(object):
         # my_prog should be completely unaffected
         self.assert_one_artefact(
             ['my_prog.*.an', 'my_prog.*.o'],
-            prebuild_groups, prebuild_folder, clean_timestamps, clean_hashes, rebuild_timestamps, rebuild_hashes)
+            prebuild_groups, prebuild_folder,
+            clean_timestamps, clean_hashes,
+            rebuild_timestamps, rebuild_hashes)
 
-        # my_mod will have a new mod file because the source has changed, so it's recompiled into a different artefact,
-        # but the interface hasn't changed so we expect the mod contents to be identical.
+        # my_mod will have a new mod file because the source has changed, so
+        # it's recompiled into a different artefact,
+        # but the interface hasn't changed so we expect the mod contents to be
+        # identical.
         self.assert_two_identical_artefacts(
             ['my_mod.*.mod'],
             prebuild_groups, prebuild_folder, rebuild_hashes)
@@ -159,11 +174,15 @@ class TestIncremental(object):
         # my_prog analysis should be unaffected
         self.assert_one_artefact(
             ['my_prog.*.an'],
-            prebuild_groups, prebuild_folder, clean_timestamps, clean_hashes, rebuild_timestamps, rebuild_hashes)
+            prebuild_groups, prebuild_folder,
+            clean_timestamps, clean_hashes,
+            rebuild_timestamps, rebuild_hashes)
 
         # We've recompiled my_prog because a mod it depends on changed.
-        # That means there'll be a different version of the artefact with a new hash of things it depends on.
-        # However, it's not *doing* anything different (it doesn't call the new subroutine),
+        # That means there'll be a different version of the artefact with a
+        # new hash of things it depends on.
+        # However, it's not *doing* anything different (it doesn't call the
+        # new subroutine),
         # so the object file should have the same contents.
         self.assert_two_identical_artefacts(
             ['my_prog.*.o'],
@@ -186,8 +205,13 @@ class TestIncremental(object):
         hashes = {f: zlib.crc32(open(f, 'rb').read()) for f in all_files}
         return all_files, timestamps, hashes
 
-    def assert_two_different_artefacts(self, pb_keys, prebuild_groups, prebuild_folder, rebuild_hashes):
-        # Make sure there are two versions for each given artefact wildcard, with different contents.
+    def assert_two_different_artefacts(self,
+                                       pb_keys,
+                                       prebuild_groups,
+                                       prebuild_folder,
+                                       rebuild_hashes):
+        # Make sure there are two versions for each given artefact wildcard,
+        # with different contents.
         for pb in pb_keys:
             # check there's two versions of this artefact
             pb_group = prebuild_groups[pb]
@@ -195,10 +219,16 @@ class TestIncremental(object):
 
             # check the contents changed across builds
             bob, alice = pb_group
-            assert rebuild_hashes[prebuild_folder / bob] != rebuild_hashes[prebuild_folder / alice]
+            assert (rebuild_hashes[prebuild_folder / bob]
+                    != rebuild_hashes[prebuild_folder / alice])
 
-    def assert_two_identical_artefacts(self, pb_keys, prebuild_groups, prebuild_folder, rebuild_hashes):
-        # Make sure there are two versions for each given artefact wildcard, with identical contents.
+    def assert_two_identical_artefacts(self,
+                                       pb_keys,
+                                       prebuild_groups,
+                                       prebuild_folder,
+                                       rebuild_hashes):
+        # Make sure there are two versions for each given artefact wildcard,
+        # with identical contents.
         for pb in pb_keys:
             # check there's two versions of this artefact
             pb_group = prebuild_groups[pb]
@@ -206,12 +236,15 @@ class TestIncremental(object):
 
             # check the contents didn't change across builds
             bob, alice = pb_group
-            assert rebuild_hashes[prebuild_folder / bob] == rebuild_hashes[prebuild_folder / alice]
+            assert (rebuild_hashes[prebuild_folder / bob]
+                    == rebuild_hashes[prebuild_folder / alice])
 
     def assert_one_artefact(self, pb_keys, prebuild_groups, prebuild_folder,
-                            clean_timestamps, clean_hashes, rebuild_timestamps, rebuild_hashes):
+                            clean_timestamps, clean_hashes,
+                            rebuild_timestamps, rebuild_hashes):
         # Make sure there is only one version for each given artefact wildcard.
-        # Make sure the timestamp or contents weren't changed by the rebuild, meaning they weren't reprocessed.
+        # Make sure the timestamp or contents weren't changed by the rebuild,
+        # meaning they weren't reprocessed.
         for pb in pb_keys:
             # check there's only one version of this artefact
             pb_group = prebuild_groups[pb]
@@ -219,8 +252,10 @@ class TestIncremental(object):
 
             # check it wasn't rebuilt
             pb_fpath = next(iter(pb_group))
-            assert clean_timestamps[prebuild_folder / pb_fpath] == rebuild_timestamps[prebuild_folder / pb_fpath]
-            assert clean_hashes[prebuild_folder / pb_fpath] == rebuild_hashes[prebuild_folder / pb_fpath]
+            assert (clean_timestamps[prebuild_folder / pb_fpath]
+                    == rebuild_timestamps[prebuild_folder / pb_fpath])
+            assert (clean_hashes[prebuild_folder / pb_fpath]
+                    == rebuild_hashes[prebuild_folder / pb_fpath])
 
 
 class TestCleanupPrebuilds(object):
@@ -229,15 +264,18 @@ class TestCleanupPrebuilds(object):
     in_out = [
         # prune artefacts by age
         ({'older_than': timedelta(days=15)}, ['a.123.foo', 'a.234.foo']),
-        ({'older_than': timedelta(days=25)}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
+        ({'older_than': timedelta(days=25)},
+         ['a.123.foo', 'a.234.foo', 'a.345.foo']),
 
         # prune individual artefact versions (hashes) by age
         ({'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
         ({'n_versions': 3}, ['a.123.foo', 'a.234.foo', 'a.345.foo']),
 
-        # pruning a file which is covered by both the age and the version pruning code.
-        # this is to protect against trying to delete a non-existent file.
-        ({'older_than': timedelta(days=15), 'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
+        # pruning a file which is covered by both the age and the version
+        # pruning code. this is to protect against trying to delete a
+        # non-existent file.
+        ({'older_than': timedelta(days=15), 'n_versions': 2},
+         ['a.123.foo', 'a.234.foo']),
     ]
 
     @pytest.mark.parametrize("kwargs,expect", in_out)
@@ -245,7 +283,8 @@ class TestCleanupPrebuilds(object):
 
         with BuildConfig(project_label=PROJECT_LABEL,
                          tool_box=ToolBox(),
-                         fab_workspace=tmp_path, multiprocessing=False) as config:
+                         fab_workspace=tmp_path,
+                         multiprocessing=False) as config:
             remaining = self._prune(config, kwargs=kwargs)
 
         assert sorted(remaining) == expect
@@ -256,10 +295,11 @@ class TestCleanupPrebuilds(object):
         with BuildConfig(project_label=PROJECT_LABEL,
                          tool_box=ToolBox(), fab_workspace=tmp_path,
                          multiprocessing=False) as config:
-            config._artefact_store = {CURRENT_PREBUILDS: {
-                tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.123.foo',
-                tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.456.foo',
-            }}
+            prebuild_path = tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD
+            config._artefact_store = {
+                CURRENT_PREBUILDS: {prebuild_path / 'a.123.foo',
+                                    prebuild_path / 'a.456.foo'}
+            }
 
             remaining = self._prune(config, kwargs={'all_unused': True})
 
@@ -285,6 +325,7 @@ class TestCleanupPrebuilds(object):
         cleanup_prebuilds(config, **kwargs)
 
         remaining_artefacts = file_walk(config.prebuild_folder)
-        # pull out just the filenames so we can parameterise the tests without knowing tmp_path
+        # pull out just the filenames so we can parameterise the tests without
+        # knowing tmp_path
         remaining_artefacts = [str(f.name) for f in remaining_artefacts]
         return remaining_artefacts

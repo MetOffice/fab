@@ -26,16 +26,19 @@ logger = logging.getLogger(__name__)
 
 class AnalysedC(AnalysedDependent):
     """
-    An analysis result for a single C file, containing symbol definitions and dependencies.
+    An analysis result for a single C file, containing symbol definitions and
+    dependencies.
 
-    Note: We don't need to worry about compile order with pure C projects; we can compile all in one go.
-          However, with a *Fortran -> C -> Fortran* dependency chain, we do need to ensure that one Fortran file
-          is compiled before another, so this class must be part of the dependency tree analysis.
-
+    Note: We don't need to worry about compile order with pure C projects; we
+          can compile all in one go. However, with a *Fortran -> C -> Fortran*
+          dependency chain, we do need to ensure that one Fortran file is
+          compiled before another, so this class must be part of the
+          dependency tree analysis.
     """
-    # Note: This subclass adds nothing to it's parent, which provides everything it needs.
-    #       We'd normally remove an irrelevant class like this but we want to keep the door open
-    #       for filtering analysis results by type, rather than suffix.
+    # Note: This subclass adds nothing to it's parent, which provides
+    #       everything it needs. We'd normally remove an irrelevant class like
+    #       this but we want to keep the door open for filtering analysis
+    #       results by type, rather than suffix.
     pass
 
 
@@ -50,12 +53,15 @@ class CAnalyser(object):
         # runtime
         self._config = None
 
-    # todo: simplifiy by passing in the file path instead of the analysed tokens?
+    # todo: simplifiy by passing in the file path instead of the analysed
+    #       tokens?
     def _locate_include_regions(self, trans_unit) -> None:
         """
-        Look for Fab pragmas identifying included code which came from system or user #includes.
+        Look for Fab pragmas identifying included code which came from system
+        or user #includes.
         """
-        # Aim is to identify where included (top level) regions start and end in the file
+        # Aim is to identify where included (top level) regions start and end
+        # in the file
         self._include_region = []
 
         # Use a deque to implement a rolling window of 4 identifiers
@@ -88,7 +94,10 @@ class CAnalyser(object):
                         (lineno, "usr_include_end"))
 
     def _check_for_include(self, lineno) -> Optional[str]:
-        """Check whether a given line number is in a region that has come from an include."""
+        """
+        Check whether a given line number is in a region that has come from an
+        include.
+        """
         # todo: don't need a stack?
         include_stack = []
         for region_line, region_type in self._include_region:
@@ -114,7 +123,8 @@ class CAnalyser(object):
         # do we already have analysis results for this file?
         # todo: dupe - probably best in a parser base class
         file_hash = file_checksum(fpath).file_hash
-        analysis_fpath = Path(self._config.prebuild_folder / f'{fpath.stem}.{file_hash}.an')
+        hashed_analysis_name = f'{fpath.stem}.{file_hash}.an'
+        analysis_fpath = self._config.prebuild_folder / hashed_analysis_name
         if analysis_fpath.exists():
             log_or_dot(logger, f"found analysis prebuild for {fpath}")
             return AnalysedC.load(analysis_fpath), analysis_fpath
@@ -145,14 +155,19 @@ class CAnalyser(object):
                 if not node.spelling:
                     continue
                 # ignore sys include stuff
-                if self._check_for_include(node.location.line) == "sys_include":
+                if self._check_for_include(node.location.line) == "sys_include":  # noqa: E501
                     continue
                 logger.debug('Considering node: %s', node.spelling)
 
-                if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL}:
-                    self._process_symbol_declaration(analysed_file, node, usr_symbols)
-                elif node.kind in {clang.cindex.CursorKind.CALL_EXPR, clang.cindex.CursorKind.DECL_REF_EXPR}:
-                    self._process_symbol_dependency(analysed_file, node, usr_symbols)
+                if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL,
+                                 clang.cindex.CursorKind.VAR_DECL}:
+                    self._process_symbol_declaration(analysed_file,
+                                                     node,
+                                                     usr_symbols)
+                elif node.kind in {clang.cindex.CursorKind.CALL_EXPR,
+                                   clang.cindex.CursorKind.DECL_REF_EXPR}:
+                    self._process_symbol_dependency(analysed_file,
+                                                    node, usr_symbols)
         except Exception as err:
             logger.exception(f'error walking parsed nodes {fpath}')
             return err, None
@@ -164,14 +179,17 @@ class CAnalyser(object):
         # Identify symbol declarations which are definitions or user includes
         logger.debug('  * Is a declaration')
         if node.is_definition():
-            # only global symbols can be used by other files, not static symbols
+            # only global symbols can be used by other files, not static
+            # symbols
             if node.linkage == clang.cindex.LinkageKind.EXTERNAL:
-                # This should catch function definitions which are exposed to the rest of the application
+                # This should catch function definitions which are exposed to
+                # the rest of the application
                 logger.debug('  * Is defined in this file')
                 # todo: ignore if inside user pragmas?
                 analysed_file.add_symbol_def(node.spelling)
         else:
-            # Record any user included symbols in case they're referenced later in the code
+            # Record any user included symbols in case they're referenced
+            # later in the code
             if self._check_for_include(node.location.line) == "usr_include":
                 logger.debug('  * Is not defined in this file')
                 usr_symbols.append(node.spelling)

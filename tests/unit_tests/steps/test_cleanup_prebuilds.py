@@ -11,18 +11,37 @@ from unittest.mock import call
 import pytest
 
 from fab.constants import CURRENT_PREBUILDS
-from fab.steps.cleanup_prebuilds import by_age, by_version_age, cleanup_prebuilds, remove_all_unused
+from fab.steps.cleanup_prebuilds import (by_age,
+                                         by_version_age,
+                                         cleanup_prebuilds,
+                                         remove_all_unused)
 from fab.util import get_prebuild_file_groups
 
 
 class TestCleanupPrebuilds(object):
 
     def test_init_no_args(self):
-        with mock.patch('fab.steps.cleanup_prebuilds.file_walk', return_value=[Path('foo.o')]), \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            with mock.patch('fab.steps.cleanup_prebuilds.remove_all_unused') as mock_remove_all_unused:
-                cleanup_prebuilds(config=mock.Mock(artefact_store={CURRENT_PREBUILDS: [Path('bar.o')]}))
-        mock_remove_all_unused.assert_called_once_with(found_files=[Path('foo.o')], current_files=[Path('bar.o')])
+        with mock.patch(
+                'fab.steps.cleanup_prebuilds.file_walk',
+                return_value=[Path('foo.o')]
+        ), pytest.warns(
+            UserWarning,
+            match="_metric_send_conn not set, cannot send metrics"
+        ):
+            with mock.patch(
+                    'fab.steps.cleanup_prebuilds.remove_all_unused'
+            ) as mock_remove_all_unused:
+                cleanup_prebuilds(
+                    config=mock.Mock(
+                        artefact_store={
+                            CURRENT_PREBUILDS:
+                            [Path('bar.o')]
+                        }
+                    )
+                )
+        mock_remove_all_unused.assert_called_once_with(
+            found_files=[Path('foo.o')], current_files=[Path('bar.o')]
+        )
 
     def test_init_bad_args(self):
         with pytest.raises(ValueError):
@@ -34,7 +53,9 @@ class TestCleanupPrebuilds(object):
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_age(older_than=timedelta(days=15), prebuilds_ts=prebuilds_ts, current_files=[])
+        result = by_age(older_than=timedelta(days=15),
+                        prebuilds_ts=prebuilds_ts,
+                        current_files=[])
         assert result == {Path('foo.234.o'), }
 
     def test_by_age_current(self):
@@ -44,7 +65,9 @@ class TestCleanupPrebuilds(object):
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_age(older_than=timedelta(days=15), prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
+        result = by_age(older_than=timedelta(days=15),
+                        prebuilds_ts=prebuilds_ts,
+                        current_files=prebuilds_ts.keys())
         assert result == set()
 
     def test_by_version_age(self):
@@ -53,7 +76,9 @@ class TestCleanupPrebuilds(object):
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_version_age(n_versions=1, prebuilds_ts=prebuilds_ts, current_files=[])
+        result = by_version_age(n_versions=1,
+                                prebuilds_ts=prebuilds_ts,
+                                current_files=[])
         assert result == {Path('foo.234.o'), }
 
     def test_by_version_age_current(self):
@@ -63,7 +88,9 @@ class TestCleanupPrebuilds(object):
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_version_age(n_versions=1, prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
+        result = by_version_age(n_versions=1,
+                                prebuilds_ts=prebuilds_ts,
+                                current_files=prebuilds_ts.keys())
         assert result == set()
 
 
@@ -81,7 +108,8 @@ def test_remove_all_unused():
         Path('eric.1943.o'),
     ]
 
-    # using autospec makes our mock recieve the self param, which we want to check
+    # using autospec makes our mock recieve the self param, which we want to
+    # check
     with mock.patch('os.remove', autospec=True) as mock_remove:
         num_removed = remove_all_unused(found_files, current_files)
 
