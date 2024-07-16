@@ -35,33 +35,32 @@ def test_compiler():
     assert fc.flags == []
 
 
-class TestCompilerCheckAvailable:
-    '''Check if check_available works as expected. The compiler class
-    uses internally get_version to test if a compiler works or not.
+def test_available():
+    '''Check if check_available works as expected. The compiler class uses
+    internally get_version to test if a compiler works or not. Check the
+    compiler is available when it has a valid version.
     '''
+    cc = CCompiler("gcc", "gcc", "gnu")
+    with mock.patch.object(cc, "get_version", returncode=(1, 2, 3)):
+        assert cc.check_available()
 
-    def test_available(self):
-        ''' Check the compiler is available when it has a valid version
-        '''
-        cc = CCompiler("gcc", "gcc", "gnu")
-        with mock.patch.object(cc, "get_version", returncode=(1, 2, 3)):
-            assert cc.check_available()
 
-    def test_available_after_error(self):
-        ''' Check the compiler is not available when get_version raises an
-        error
-        '''
-        cc = CCompiler("gcc", "gcc", "gnu")
-        with mock.patch.object(cc, "get_version", side_effect=RuntimeError("")):
-            assert not cc.check_available()
+def test_available_after_error():
+    ''' Check the compiler is not available when get_version raises an
+    error.
+    '''
+    cc = CCompiler("gcc", "gcc", "gnu")
+    with mock.patch.object(cc, "get_version", side_effect=RuntimeError("")):
+        assert not cc.check_available()
 
-    def test_unavailable_when_version_missing(self):
-        ''' Check the compiler is not available when get_version returns an
-        empty version
-        '''
-        cc = CCompiler("gcc", "gcc", "gnu")
-        with mock.patch.object(cc, "_version", tuple()):
-            assert not cc.check_available()
+
+def test_unavailable_when_version_missing():
+    ''' Check the compiler is not available when get_version returns an
+    empty version.
+    '''
+    cc = CCompiler("gcc", "gcc", "gnu")
+    with mock.patch.object(cc, "_version", tuple()):
+        assert not cc.check_available()
 
 
 def test_compiler_hash():
@@ -82,7 +81,7 @@ def test_compiler_hash():
     assert hash3 not in (hash1, hash2)
 
 
-# TODO: Do we need this, or can it raise an error?
+# TODO: Do we need to support this, or can it raise an error?
 def test_compiler_hash_missing_version():
     '''Test the hash functionality when version info is missing.'''
     cc = CCompiler("gcc", "gcc", "gnu")

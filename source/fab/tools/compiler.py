@@ -143,7 +143,7 @@ class Compiler(CompilerSuiteTool):
         # expect major.minor[.patch, ...]
         split = version_string.split('.')
         if len(split) < 2:
-            self.logger.warning(f"unhandled compiler version format for "
+            self.logger.warning(f"Unhandled compiler version format for "
                                 f"compiler '{self.name}' is not "
                                 f"<n.n[.n, ...]>: {version_string}")
             return ()
@@ -153,13 +153,10 @@ class Compiler(CompilerSuiteTool):
         try:
             version = tuple(int(x) for x in split)
         except ValueError:
-            self.logger.warning(f"unhandled compiler version format for "
-                                f"compiler '{self.name}' is not "
+            self.logger.warning(f"Unhandled compiler version for compiler "
+                                f"'{self.name}' should be numeric "
                                 f"<n.n[.n, ...]>: {version_string}")
             return ()
-
-        # How to convert back to string:
-        version_string = '.'.join(str(x) for x in version)
 
         self.logger.info(f'Found compiler version for {self.name} = {version_string}')
         self._version = version
