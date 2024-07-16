@@ -98,14 +98,16 @@ class Compiler(CompilerSuiteTool):
             # Compiler does not exist:
             return False
 
-        # An empty string is returned if some other error occurred when trying
+        # An empty tuple is returned if some other error occurred when trying
         # to get the compiler version.
-        return version != ""
+        return version != ()
 
     def get_version(self):
         """
         Try to get the version of the given compiler.
-        # TODO: why return empty set when an error happened?
+
+        # TODO: an empty tuple is returned for an invalid version, so that the
+        #       compiler can still be hashed. Is that necessary?
 
         Expects a version in a certain part of the --version output,
         which must adhere to the n.n.n format, with at least 2 parts.
@@ -116,7 +118,7 @@ class Compiler(CompilerSuiteTool):
 
         :raises RuntimeError: if the compiler was not found.
         """
-        if self._version:
+        if self._version != None:
             return self._version
 
         try:
