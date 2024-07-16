@@ -54,8 +54,9 @@ class Compiler(CompilerSuiteTool):
     def get_hash(self) -> int:
         ''':returns: a hash based on the compiler name and version.
         '''
+        version_string = '.'.join(str(x) for x in self.get_version())
         return (zlib.crc32(self.name.encode()) +
-                zlib.crc32(str(self.get_version()).encode()))
+                zlib.crc32(version_string.encode()))
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
@@ -104,15 +105,14 @@ class Compiler(CompilerSuiteTool):
     def get_version(self):
         """
         Try to get the version of the given compiler.
-        # TODO: why return "" when an error happened?
-        # TODO: we need to properly create integers for compiler versions
-        #       to (later) allow less and greater than comparisons.
+        # TODO: why return empty set when an error happened?
 
         Expects a version in a certain part of the --version output,
         which must adhere to the n.n.n format, with at least 2 parts.
 
-        :Returns: a version string, e.g '6.10.1', or empty string if
-            a different error happened when trying to get the compiler version.
+        :Returns: a tuple of integers representing the version string,
+            e.g (6, 10, 1) for version '6.10.1', or an empty tuple if a
+            different error happened when trying to get the compiler version.
 
         :raises RuntimeError: if the compiler was not found.
         """
@@ -126,34 +126,42 @@ class Compiler(CompilerSuiteTool):
         except RuntimeError as err:
             self.logger.warning(f"Error asking for version of compiler "
                                 f"'{self.name}': {err}")
-            return ''
+            return ()
 
         # Pull the version string from the command output.
         # All the versions of gfortran and ifort we've tried follow the
         # same pattern, it's after a ")".
         try:
-            version = res.split(')')[1].split()[0]
+            version_string = res.split(')')[1].split()[0]
         except IndexError:
             self.logger.warning(f"Unexpected version response from "
                                 f"compiler '{self.name}': {res}")
-            return ''
+            return ()
 
         # expect major.minor[.patch, ...]
-        # validate - this may be overkill
-        split = version.split('.')
+        split = version_string.split('.')
         if len(split) < 2:
             self.logger.warning(f"unhandled compiler version format for "
                                 f"compiler '{self.name}' is not "
-                                f"<n.n[.n, ...]>: {version}")
-            return ''
+                                f"<n.n[.n, ...]>: {version_string}")
+            return ()
 
-        # todo: do we care if the parts are integers? Not all will be,
-        # but perhaps major and minor?
+        # expect the parts to be integers
+        # todo: Not all will be integers? but perhaps major and minor?
+        try:
+            version = tuple(int(x) for x in split)
+        except ValueError:
+            self.logger.warning(f"unhandled compiler version format for "
+                                f"compiler '{self.name}' is not "
+                                f"<n.n[.n, ...]>: {version_string}")
+            return ()
 
-        self.logger.info(f'Found compiler version for {self.name} = {version}')
+        # How to convert back to string:
+        version_string = '.'.join(str(x) for x in version)
+
+        self.logger.info(f'Found compiler version for {self.name} = {version_string}')
         self._version = version
         return version
-
 
 # ============================================================================
 class CCompiler(Compiler):

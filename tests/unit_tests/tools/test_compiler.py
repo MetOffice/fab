@@ -42,7 +42,7 @@ def test_compiler_check_available():
     cc = CCompiler("gcc", "gcc", "gnu")
     # The compiler uses get_version to check if it is available.
     # First simulate a successful run:
-    with mock.patch.object(cc, "get_version", returncode=123):
+    with mock.patch.object(cc, "get_version", returncode=(1, 2, 3)):
         assert cc.check_available()
 
     # Now test if get_version raises an error
@@ -53,12 +53,12 @@ def test_compiler_check_available():
 def test_compiler_hash():
     '''Test the hash functionality.'''
     cc = CCompiler("gcc", "gcc", "gnu")
-    with mock.patch.object(cc, "_version", 567):
+    with mock.patch.object(cc, "_version", (5, 6, 7)):
         hash1 = cc.get_hash()
-        assert hash1 == 4646426180
+        assert hash1 == 2768517656
 
     # A change in the version number must change the hash:
-    with mock.patch.object(cc, "_version", 89):
+    with mock.patch.object(cc, "_version", (8, 9)):
         hash2 = cc.get_hash()
         assert hash2 != hash1
 
@@ -147,12 +147,17 @@ class TestGetCompilerVersion:
             assert c.get_version() == expected
 
     def test_command_failure(self):
-        '''If the command fails, we must return an empty string, not None,
-        so it can still be hashed.'''
+        '''If the version command fails, we must return an empty tuple, not
+        None, so it can still be hashed.'''
         c = Compiler("gfortran", "gfortran", "gnu",
                      Category.FORTRAN_COMPILER)
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
-            assert c.get_version() == '', 'expected empty string'
+            assert c.get_version() == (), 'expected empty tuple'
+
+    def test_file_not_found(self):
+        '''If the compiler is not found, we must raise an error.'''
+        c = Compiler("gfortran", "gfortran", "gnu",
+                     Category.FORTRAN_COMPILER)
         with mock.patch.object(c, 'run', side_effect=FileNotFoundError()):
             with pytest.raises(RuntimeError) as err:
                 c.get_version()
@@ -160,17 +165,35 @@ class TestGetCompilerVersion:
 
     def test_unknown_command_response(self):
         '''If the full version output is in an unknown format,
-        we must return an empty string.'''
-        self._check(full_version_string='foo fortran 1.2.3', expected='')
+        we must return an empty tuple.'''
+        self._check(full_version_string='foo fortran 1.2.3', expected=())
 
     def test_unknown_version_format(self):
         '''If the version is in an unknown format, we must return an
-        empty string.'''
+        empty tuple.'''
         full_version_string = dedent("""
             Foo Fortran (Foo) 5 123456 (Foo Hat 4.8.5-44)
             Copyright (C) 2022 Foo Software Foundation, Inc.
         """)
-        self._check(full_version_string=full_version_string, expected='')
+        self._check(full_version_string=full_version_string, expected=())
+
+    def test_non_int_version_format(self):
+        '''If the version contains non-number characters, we must return an
+        empty tuple.'''
+        full_version_string = dedent("""
+            Foo Fortran (Foo) 5.1f.2g (Foo Hat 4.8.5)
+            Copyright (C) 2022 Foo Software Foundation, Inc.
+        """)
+        self._check(full_version_string=full_version_string, expected=())
+
+    def test_1_part_version(self):
+        '''If the version is just one integer, that is invalid and we must
+        return an empty tuple. '''
+        full_version_string = dedent("""
+            Foo Fortran (Foo) 77
+            Copyright (C) 2022 Foo Software Foundation, Inc.
+        """)
+        self._check(full_version_string=full_version_string, expected=())
 
     def test_2_part_version(self):
         '''Test major.minor format. '''
@@ -178,7 +201,7 @@ class TestGetCompilerVersion:
             Foo Fortran (Foo) 5.6 123456 (Foo Hat 4.8.5-44)
             Copyright (C) 2022 Foo Software Foundation, Inc.
         """)
-        self._check(full_version_string=full_version_string, expected='5.6')
+        self._check(full_version_string=full_version_string, expected=(5, 6))
 
     # Possibly overkill to cover so many gfortran versions but I had to go
     # check them so might as well add them.
@@ -197,7 +220,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='4.8.5')
+        self._check(full_version_string=full_version_string, expected=(4, 8, 5))
 
     def test_gfortran_6(self):
         '''Test gfortran 6.1.0 version detection.'''
@@ -209,7 +232,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='6.1.0')
+        self._check(full_version_string=full_version_string, expected=(6, 1, 0))
 
     def test_gfortran_8(self):
         '''Test gfortran 8.5.0 version detection.'''
@@ -221,7 +244,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='8.5.0')
+        self._check(full_version_string=full_version_string, expected=(8, 5, 0))
 
     def test_gfortran_10(self):
         '''Test gfortran 10.4.0 version detection.'''
@@ -233,7 +256,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='10.4.0')
+        self._check(full_version_string=full_version_string, expected=(10, 4, 0))
 
     def test_gfortran_12(self):
         '''Test gfortran 12.1.0 version detection.'''
@@ -245,7 +268,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='12.1.0')
+        self._check(full_version_string=full_version_string, expected=(12, 1, 0))
 
     def test_ifort_14(self):
         '''Test ifort 14.0.3 version detection.'''
@@ -255,7 +278,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='14.0.3')
+        self._check(full_version_string=full_version_string, expected=(14, 0, 3))
 
     def test_ifort_15(self):
         '''Test ifort 15.0.2 version detection.'''
@@ -265,7 +288,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='15.0.2')
+        self._check(full_version_string=full_version_string, expected=(15, 0, 2))
 
     def test_ifort_17(self):
         '''Test ifort 17.0.7 version detection.'''
@@ -275,7 +298,7 @@ class TestGetCompilerVersion:
 
         """)
 
-        self._check(full_version_string=full_version_string, expected='17.0.7')
+        self._check(full_version_string=full_version_string, expected=(17, 0, 7))
 
     def test_ifort_19(self):
         '''Test ifort 19.0.0.117 version detection.'''
@@ -286,7 +309,7 @@ class TestGetCompilerVersion:
         """)
 
         self._check(full_version_string=full_version_string,
-                    expected='19.0.0.117')
+                    expected=(19, 0, 0, 117))
 
 
 def test_gcc():
