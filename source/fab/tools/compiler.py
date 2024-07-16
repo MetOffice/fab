@@ -118,7 +118,7 @@ class Compiler(CompilerSuiteTool):
 
         :raises RuntimeError: if the compiler was not found.
         """
-        if self._version != None:
+        if self._version is not None:
             return self._version
 
         try:
@@ -164,6 +164,7 @@ class Compiler(CompilerSuiteTool):
         self.logger.info(f'Found compiler version for {self.name} = {version_string}')
         self._version = version
         return version
+
 
 # ============================================================================
 class CCompiler(Compiler):

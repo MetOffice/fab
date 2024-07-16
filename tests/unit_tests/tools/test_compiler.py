@@ -47,15 +47,13 @@ class TestCompilerCheckAvailable:
         with mock.patch.object(cc, "get_version", returncode=(1, 2, 3)):
             assert cc.check_available()
 
-
     def test_available_after_error(self):
-        ''' Check the compiler is not available when get_version raises an 
+        ''' Check the compiler is not available when get_version raises an
         error
         '''
         cc = CCompiler("gcc", "gcc", "gnu")
         with mock.patch.object(cc, "get_version", side_effect=RuntimeError("")):
             assert not cc.check_available()
-
 
     def test_unavailable_when_version_missing(self):
         ''' Check the compiler is not available when get_version returns an
@@ -82,6 +80,7 @@ def test_compiler_hash():
     cc._name = "new_name"
     hash3 = cc.get_hash()
     assert hash3 not in (hash1, hash2)
+
 
 # TODO: Do we need this, or can it raise an error?
 def test_compiler_hash_missing_version():
