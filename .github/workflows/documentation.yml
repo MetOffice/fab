@@ -1,0 +1,56 @@
+name: Build Documentation
+
+on:
+  push:
+    branches:
+      - 'master'
+  workflow_dispatch:
+
+jobs:
+  sphinx-build:
+
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Cache Python packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.pip/cache
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/pyproject.toml') }}
+
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Check out Fab source
+      uses: actions/checkout@v4
+
+    - name: Install documentation tools
+      run: pip install .[docs]
+
+    - name: Generate documentation
+      run: |
+        cd Documentation
+        sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
+        make html
+
+    - name: Prepare and upload asset
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: Documentation/build/html
+
+
+  deploy-documentation:
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{steps.deploy-documentation.outputs.page_url}}
+    runs-on: ubuntu-24.04
+    needs: sphinx-build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

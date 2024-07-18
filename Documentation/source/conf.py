@@ -12,6 +12,7 @@
 #
 import os
 import sys
+from fab import __version__ as fab_version
 sys.path.insert(0, os.path.abspath('../../source'))
 
 
@@ -22,8 +23,7 @@ copyright = '2024 Met Office. All rights reserved.'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
-import fab
-release = fab.__version__
+release = fab_version
 
 # The version up to the minor patch, for distinguishing multi-version docs
 version = '.'.join(release.split('.')[:2])
