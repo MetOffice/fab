@@ -46,20 +46,10 @@ def test_available():
 
 
 def test_available_after_error():
-    ''' Check the compiler is not available when get_version raises an
-    error.
+    ''' Check the compiler is not available when get_version raises an error.
     '''
     cc = CCompiler("gcc", "gcc", "gnu")
     with mock.patch.object(cc, "get_version", side_effect=RuntimeError("")):
-        assert not cc.check_available()
-
-
-def test_unavailable_when_version_missing():
-    ''' Check the compiler is not available when get_version returns an
-    empty version.
-    '''
-    cc = CCompiler("gcc", "gcc", "gnu")
-    with mock.patch.object(cc, "_version", tuple()):
         assert not cc.check_available()
 
 
@@ -81,14 +71,24 @@ def test_compiler_hash():
     assert hash3 not in (hash1, hash2)
 
 
-# TODO: Do we need to support this, or can it raise an error?
-def test_compiler_hash_missing_version():
+def test_compiler_hash_compiler_error():
     '''Test the hash functionality when version info is missing.'''
     cc = CCompiler("gcc", "gcc", "gnu")
-    # Return an empty tuple from get_version()
-    with mock.patch.object(cc, "_version", tuple()):
-        hash1 = cc.get_hash()
-        assert hash1 == 682757169
+
+    # raise an error when trying to get compiler version
+    with mock.patch.object(cc, 'run', side_effect=RuntimeError()):
+        with pytest.raises(RuntimeError):
+            cc.get_hash()
+
+
+def test_compiler_hash_invalid_version():
+    '''Test the hash functionality when version info is missing.'''
+    cc = CCompiler("gcc", "gcc", "gnu")
+
+    # returns an invalid compiler version string
+    with mock.patch.object(cc, "run", mock.Mock(return_value='foo v1')):
+        with pytest.raises(RuntimeError):
+            cc.get_hash()
 
 
 def test_compiler_with_env_fflags():
@@ -154,12 +154,22 @@ def test_compiler_with_add_args():
 class TestGetCompilerVersion:
     '''Test `get_version`.'''
 
-    def _check(self, full_version_string: str, expected: str):
-        '''Checks if the correct version is extracted from the
-        given full_version_string.
+    def _check_error(self, full_version_string: str, expected_error: str):
+        '''Checks if the correct error is raised from the given invalid
+        full_version_string.
         '''
-        c = Compiler("gfortran", "gfortran", "gnu",
-                     Category.FORTRAN_COMPILER)
+        c = Compiler("gfortran", "gfortran", "gnu", Category.FORTRAN_COMPILER)
+        with mock.patch.object(c, "run",
+                               mock.Mock(return_value=full_version_string)):
+            with pytest.raises(RuntimeError) as err:
+                c.get_version()
+            assert expected_error in str(err.value)
+
+    def _check(self, full_version_string: str, expected: str):
+        '''Checks if the correct version is extracted from the given
+        full_version_string.
+        '''
+        c = Compiler("gfortran", "gfortran", "gnu", Category.FORTRAN_COMPILER)
         with mock.patch.object(c, "run",
                                mock.Mock(return_value=full_version_string)):
             assert c.get_version() == expected
@@ -170,12 +180,12 @@ class TestGetCompilerVersion:
             assert c.get_version() == expected
 
     def test_command_failure(self):
-        '''If the version command fails, we must return an empty tuple, not
-        None, so it can still be hashed.'''
+        '''If the version command fails, we must raise an error.'''
         c = Compiler("gfortran", "gfortran", "gnu",
                      Category.FORTRAN_COMPILER)
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
-            assert c.get_version() == (), 'expected empty tuple'
+            with pytest.raises(RuntimeError):
+                c.get_version()
 
     def test_file_not_found(self):
         '''If the compiler is not found, we must raise an error.'''
@@ -188,35 +198,51 @@ class TestGetCompilerVersion:
 
     def test_unknown_command_response(self):
         '''If the full version output is in an unknown format,
-        we must return an empty tuple.'''
-        self._check(full_version_string='foo fortran 1.2.3', expected=())
+        we must raise an error.'''
+        full_version_string = 'foo fortran 1.2.3'
+        expected_error = "Unexpected version response from compiler 'gfortran'"
+        self._check_error(
+            full_version_string=full_version_string,
+            expected_error=expected_error
+        )
 
     def test_unknown_version_format(self):
-        '''If the version is in an unknown format, we must return an
-        empty tuple.'''
+        '''If the version is in an unknown format, we must raise an error.'''
+
         full_version_string = dedent("""
             Foo Fortran (Foo) 5 123456 (Foo Hat 4.8.5-44)
             Copyright (C) 2022 Foo Software Foundation, Inc.
         """)
-        self._check(full_version_string=full_version_string, expected=())
+        expected_error = "Unhandled compiler version format for compiler 'gfortran'"
+        self._check_error(
+            full_version_string=full_version_string,
+            expected_error=expected_error
+        )
 
     def test_non_int_version_format(self):
-        '''If the version contains non-number characters, we must return an
-        empty tuple.'''
+        '''If the version contains non-number characters, we must raise an error.'''
         full_version_string = dedent("""
             Foo Fortran (Foo) 5.1f.2g (Foo Hat 4.8.5)
             Copyright (C) 2022 Foo Software Foundation, Inc.
         """)
-        self._check(full_version_string=full_version_string, expected=())
+        expected_error = "Unhandled compiler version format for compiler 'gfortran'"
+        self._check_error(
+            full_version_string=full_version_string,
+            expected_error=expected_error
+        )
 
     def test_1_part_version(self):
         '''If the version is just one integer, that is invalid and we must
-        return an empty tuple. '''
+        raise an error. '''
         full_version_string = dedent("""
             Foo Fortran (Foo) 77
             Copyright (C) 2022 Foo Software Foundation, Inc.
         """)
-        self._check(full_version_string=full_version_string, expected=())
+        expected_error = "Unhandled compiler version format for compiler 'gfortran'"
+        self._check_error(
+            full_version_string=full_version_string,
+            expected_error=expected_error
+        )
 
     def test_2_part_version(self):
         '''Test major.minor format. '''

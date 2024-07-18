@@ -93,30 +93,25 @@ class Compiler(CompilerSuiteTool):
             this by requesting the compiler version.
         '''
         try:
-            version = self.get_version()
+            self.get_version()
+            # A valid version means the compiler is available.
+            return True
         except RuntimeError:
-            # Compiler does not exist:
+            # Compiler does not exist, or version could not be handled:
             return False
-
-        # An empty tuple is returned if some other error occurred when trying
-        # to get the compiler version.
-        return version != ()
 
     def get_version(self):
         """
         Try to get the version of the given compiler.
 
-        # TODO: an empty tuple is returned for an invalid version, so that the
-        #       compiler can still be hashed. Is that necessary?
-
         Expects a version in a certain part of the --version output,
         which must adhere to the n.n.n format, with at least 2 parts.
 
         :Returns: a tuple of integers representing the version string,
-            e.g (6, 10, 1) for version '6.10.1', or an empty tuple if a
-            different error happened when trying to get the compiler version.
+            e.g (6, 10, 1) for version '6.10.1'.
 
-        :raises RuntimeError: if the compiler was not found.
+        :raises RuntimeError: if the compiler was not found, or if it returned
+            an invalid version string.
         """
         if self._version is not None:
             return self._version
@@ -126,9 +121,8 @@ class Compiler(CompilerSuiteTool):
         except FileNotFoundError as err:
             raise RuntimeError(f'Compiler not found: {self.name}') from err
         except RuntimeError as err:
-            self.logger.warning(f"Error asking for version of compiler "
-                                f"'{self.name}': {err}")
-            return ()
+            raise RuntimeError(f"Error asking for version of compiler "
+                               f"'{self.name}': {err}")
 
         # Pull the version string from the command output.
         # All the versions of gfortran and ifort we've tried follow the
@@ -136,27 +130,23 @@ class Compiler(CompilerSuiteTool):
         try:
             version_string = res.split(')')[1].split()[0]
         except IndexError:
-            self.logger.warning(f"Unexpected version response from "
-                                f"compiler '{self.name}': {res}")
-            return ()
-
-        # expect major.minor[.patch, ...]
-        split = version_string.split('.')
-        if len(split) < 2:
-            self.logger.warning(f"Unhandled compiler version format for "
-                                f"compiler '{self.name}' is not "
-                                f"<n.n[.n, ...]>: {version_string}")
-            return ()
+            raise RuntimeError(f"Unexpected version response from compiler "
+                               f"'{self.name}': {res}")
 
         # expect the parts to be integers
         # todo: Not all will be integers? but perhaps major and minor?
         try:
-            version = tuple(int(x) for x in split)
+            version = tuple(int(x) for x in version_string.split('.'))
         except ValueError:
-            self.logger.warning(f"Unhandled compiler version for compiler "
-                                f"'{self.name}' should be numeric "
-                                f"<n.n[.n, ...]>: {version_string}")
-            return ()
+            raise RuntimeError(f"Unhandled compiler version format for "
+                               f"compiler '{self.name}'. Should be numeric "
+                               f"<n.n[.n, ...]>: {version_string}")
+
+        # expect at least 2 components, i.e. major.minor[.patch, ...]
+        if len(version) < 2:
+            raise RuntimeError(f"Unhandled compiler version format for "
+                               f"compiler '{self.name}'. Should have format "
+                               f"<n.n[.n, ...]>: {version_string}")
 
         self.logger.info(f'Found compiler version for {self.name} = {version_string}')
         self._version = version
