@@ -27,7 +27,7 @@ from fab.util import suffix_filter
 class ArtefactSet(Enum):
     '''A simple enum with the artefact types used internally in Fab.
     '''
-    ALL_SOURCE = auto()
+    INITIAL_SOURCE = auto()
     PREPROCESSED_FORTRAN = auto()
     PREPROCESSED_C = auto()
     FORTRAN_BUILD_FILES = auto()
@@ -42,8 +42,8 @@ class ArtefactSet(Enum):
 
 
 class ArtefactStore(dict):
-    '''This object stores set of artefacts (which can be of any type). Each artefact
-    is indexed by a string.
+    '''This object stores sets of artefacts (which can be of any type).
+    Each artefact is indexed by either an ArtefactSet enum, or a string.
     '''
 
     def __init__(self):
@@ -89,7 +89,8 @@ class ArtefactStore(dict):
         :param key: the key in the dictionary to update.
         :param values: the values to update with.
         '''
-        self[collection][key].update([values] if isinstance(values, str) else values)
+        self[collection][key].update([values] if isinstance(values, str)
+                                     else values)
 
     def copy_artefacts(self, source: Union[str, ArtefactSet],
                        dest: Union[str, ArtefactSet],
@@ -149,7 +150,8 @@ class ArtefactsGetter(ABC):
 
 class CollectionGetter(ArtefactsGetter):
     """
-    A simple artefact getter which returns one :term:`Artefact Collection` from the artefact_store.
+    A simple artefact getter which returns one :term:`Artefact Collection`
+    from the artefact_store.
 
     Example::
 
@@ -170,18 +172,21 @@ class CollectionGetter(ArtefactsGetter):
 
 class CollectionConcat(ArtefactsGetter):
     """
-    Returns a concatenated list from multiple :term:`Artefact Collections <Artefact Collection>`
-    (each expected to be an iterable).
+    Returns a concatenated list from multiple
+    :term:`Artefact Collections <Artefact Collection>` (each expected to be
+    an iterable).
 
-    An :class:`~fab.artefacts.ArtefactsGetter` can be provided instead of a collection_name.
+    An :class:`~fab.artefacts.ArtefactsGetter` can be provided instead of a
+    collection_name.
 
     Example::
 
-        # The default source code getter for the Analyse step might look like this.
+        # The default source code getter for the Analyse step might look
+        # like this.
         DEFAULT_SOURCE_GETTER = CollectionConcat([
             'preprocessed_c',
             'preprocessed_fortran',
-            SuffixFilter(ArtefactSet.ALL_SOURCE, '.f90'),
+            SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.f90'),
         ])
 
     """
@@ -189,14 +194,16 @@ class CollectionConcat(ArtefactsGetter):
                                                    ArtefactsGetter]]):
         """
         :param collections:
-            An iterable containing collection names (strings) or other ArtefactsGetters.
+            An iterable containing collection names (strings) or
+            other ArtefactsGetters.
 
         """
         self.collections = collections
 
     # todo: ensure the labelled values are iterables
     def __call__(self, artefact_store: ArtefactStore):
-        # todo: this should be a set, in case a file appears in multiple collections
+        # todo: this should be a set, in case a file appears in
+        # multiple collections
         result = []
         for collection in self.collections:
             if isinstance(collection, (str, ArtefactSet)):
@@ -208,13 +215,13 @@ class CollectionConcat(ArtefactsGetter):
 
 class SuffixFilter(ArtefactsGetter):
     """
-    Returns the file paths in a :term:`Artefact Collection` (expected to be an iterable),
-    filtered by suffix.
+    Returns the file paths in a :term:`Artefact Collection` (expected to be
+    an iterable), filtered by suffix.
 
     Example::
 
         # The default source getter for the FortranPreProcessor step.
-        DEFAULT_SOURCE = SuffixFilter(ArtefactSet.ALL_SOURCE, '.F90')
+        DEFAULT_SOURCE = SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.F90')
 
     """
     def __init__(self,
@@ -264,6 +271,7 @@ class FilterBuildTrees(ArtefactsGetter):
 
         build_lists: Dict[str, List[AnalysedDependent]] = {}
         for root, tree in build_trees.items():
-            build_lists[root] = filter_source_tree(source_tree=tree, suffixes=self.suffixes)
+            build_lists[root] = filter_source_tree(source_tree=tree,
+                                                   suffixes=self.suffixes)
 
         return build_lists

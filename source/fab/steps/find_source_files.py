@@ -40,7 +40,8 @@ class _PathFilter(object):
 
 class Include(_PathFilter):
     """
-    A path filter which includes matching paths, this convenience class improves config readability.
+    A path filter which includes matching paths, this convenience class
+    improves config readability.
 
     """
     def __init__(self, *filter_strings):
@@ -57,7 +58,8 @@ class Include(_PathFilter):
 
 class Exclude(_PathFilter):
     """
-    A path filter which excludes matching paths, this convenience class improves config readability.
+    A path filter which excludes matching paths, this convenience class
+    improves config readability.
 
     """
 
@@ -75,7 +77,7 @@ class Exclude(_PathFilter):
 
 @step
 def find_source_files(config, source_root=None,
-                      output_collection=ArtefactSet.ALL_SOURCE,
+                      output_collection=ArtefactSet.INITIAL_SOURCE,
                       path_filters: Optional[Iterable[_PathFilter]] = None):
     """
     Find the files in the source folder, with filtering.
@@ -83,9 +85,10 @@ def find_source_files(config, source_root=None,
     Files can be included or excluded with simple pattern matching.
     Every file is included by default, unless the filters say otherwise.
 
-    Path filters are expected to be provided by the user in an *ordered* collection.
-    The two convenience subclasses, :class:`~fab.steps.walk_source.Include` and :class:`~fab.steps.walk_source.Exclude`,
-    improve readability.
+    Path filters are expected to be provided by the user in an *ordered*
+    collection. The two convenience subclasses,
+    :class:`~fab.steps.walk_source.Include` and
+    :class:`~fab.steps.walk_source.Exclude`, improve readability.
 
     Order matters. For example::
 
@@ -94,14 +97,17 @@ def find_source_files(config, source_root=None,
             Include('my_folder/my_file.F90'),
         ]
 
-    In the above example, swapping the order would stop the file being included in the build.
+    In the above example, swapping the order would stop the file being
+    included in the build.
 
     A path matches a filter string simply if it *contains* it,
-    so the path *my_folder/my_file.F90* would match filters "my_folder", "my_file" and "er/my".
+    so the path *my_folder/my_file.F90* would match filters
+    "my_folder", "my_file" and "er/my".
 
     :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
+        The :class:`fab.build_config.BuildConfig` object where we can read
+        settings such as the project workspace folder or the multiprocessing
+        flag.
     :param source_root:
         Optional path to source folder, with a sensible default.
     :param output_collection:
@@ -120,8 +126,10 @@ def find_source_files(config, source_root=None,
 
     # file filtering
     filtered_fpaths = set()
-    # todo: we shouldn't need to ignore the prebuild folder here, it's not underneath the source root.
-    for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
+    # todo: we shouldn't need to ignore the prebuild folder here, it's not
+    # underneath the source root.
+    for fpath in file_walk(source_root,
+                           ignore_folders=[config.prebuild_folder]):
 
         wanted = True
         for path_filter in path_filters:

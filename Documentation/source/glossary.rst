@@ -29,7 +29,7 @@ Glossary
         Fab's built-in steps come with sensible defaults so the user doesn't have to write unnecessary config.
 
         As an example, the Fortran preprocessor has a default artefact getter which reads *".F90"* files
-        from the :term:`Artefact Collection` called ``"all_source"``.
+        from the :term:`Artefact Collection` called ``"INITIAL_SOURCE"``.
 
         Artefact getters are derived from :class:`~fab.artefacts.ArtefactsGetter`.
 
