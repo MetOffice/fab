@@ -16,7 +16,6 @@ def test_artefact_store() -> None:
     artefact_store = ArtefactStore()
     assert len(artefact_store) == len(ArtefactSet)
     assert isinstance(artefact_store, dict)
-    assert ArtefactSet.CURRENT_PREBUILDS in artefact_store
     for artefact in ArtefactSet:
         if artefact in [ArtefactSet.OBJECT_FILES,
                         ArtefactSet.OBJECT_ARCHIVES]:
