@@ -468,6 +468,7 @@ def test_ifort_get_version_14():
                            mock.Mock(return_value=full_version_string)):
         assert ifort.get_version() == (14, 0, 3)
 
+
 def test_ifort_get_version_15():
     '''Test ifort 15.0.2 version detection.'''
     full_version_string = dedent("""
@@ -480,6 +481,7 @@ def test_ifort_get_version_15():
                            mock.Mock(return_value=full_version_string)):
         assert ifort.get_version() == (15, 0, 2)
 
+
 def test_ifort_get_version_17():
     '''Test ifort 17.0.7 version detection.'''
     full_version_string = dedent("""
@@ -491,6 +493,7 @@ def test_ifort_get_version_17():
     with mock.patch.object(ifort, "run",
                            mock.Mock(return_value=full_version_string)):
         assert ifort.get_version() == (17, 0, 7)
+
 
 def test_ifort_get_version_19():
     '''Test ifort 19.0.0.117 version detection.'''

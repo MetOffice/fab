@@ -129,7 +129,7 @@ class Compiler(CompilerSuiteTool):
             raise RuntimeError(f"Error asking for version of compiler "
                                f"'{self.name}': {err}")
 
-        if not self.version_token in res:
+        if self.version_token not in res:
             raise RuntimeError(f"Unexpected version for {self.name} compiler. "
                                f"Should contain '{self.version_token}': "
                                f"{res}")
