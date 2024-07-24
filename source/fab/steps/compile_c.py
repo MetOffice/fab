@@ -60,9 +60,6 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
 
-    compiler = config.tool_box.get_tool(Category.C_COMPILER, config.mpi)
-    logger.info(f'C compiler is {compiler}')
-
     env_flags = os.getenv('CFLAGS', '').split()
     common_flags = env_flags + (common_flags or [])
 
@@ -73,6 +70,13 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     build_lists: Dict = source_getter(config.artefact_store)
     to_compile: list = sum(build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
+
+    if len(to_compile) == 0:
+        # No need to look for compiler etc if there is nothing to do
+        return
+
+    compiler = config.tool_box.get_tool(Category.C_COMPILER, config.mpi)
+    logger.info(f'C compiler is {compiler}')
 
     mp_payload = MpCommonArgs(config=config, flags=flags)
     mp_items = [(fpath, mp_payload) for fpath in to_compile]
