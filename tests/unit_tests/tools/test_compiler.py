@@ -77,8 +77,9 @@ def test_compiler_hash_compiler_error():
 
     # raise an error when trying to get compiler version
     with mock.patch.object(cc, 'run', side_effect=RuntimeError()):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError) as err:
             cc.get_hash()
+            assert "Error asking for version of compiler" in str(err.value)
 
 
 def test_compiler_hash_invalid_version():
@@ -87,8 +88,9 @@ def test_compiler_hash_invalid_version():
 
     # returns an invalid compiler version string
     with mock.patch.object(cc, "run", mock.Mock(return_value='foo v1')):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError) as err:
             cc.get_hash()
+            assert "Unexpected version response from compiler 'gcc'" in str(err.value)
 
 
 def test_compiler_with_env_fflags():
@@ -265,7 +267,22 @@ class TestGetCompilerVersion:
         full_version_string = dedent("""
             Foo Fortran (Foo) 19.0.0.117 20180804
         """)
-        self._check(full_version_string=full_version_string, expected=(19, 0, 0, 117))
+        self._check(
+            full_version_string=full_version_string,
+            expected=(19, 0, 0, 117)
+        )
+
+
+def test_get_version_string():
+    '''Tests the compiler get_version_string() method.
+    '''
+    full_version_string = dedent("""
+        Foo Fortran (Foo) 6.1.0
+    """)
+    c = Compiler("Foo Fortran", "footran", "gnu", Category.FORTRAN_COMPILER)
+    with mock.patch.object(c, "run",
+                           mock.Mock(return_value=full_version_string)):
+        assert c.get_version_string() == "6.1.0"
 
 
 # ============================================================================
@@ -278,7 +295,7 @@ def test_gcc():
 
 
 def test_gcc_get_version():
-    '''Tests the gcc class.'''
+    '''Tests the gcc class get_version method.'''
     gcc = Gcc()
     full_version_string = dedent("""
         gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-20)
@@ -290,7 +307,7 @@ def test_gcc_get_version():
 
 
 def test_gcc_get_version_with_icc_string():
-    '''Tests the gcc class.'''
+    '''Tests the gcc class with an icc version output.'''
     gcc = Gcc()
     full_version_string = dedent("""
         icc (ICC) 2021.10.0 20230609
@@ -397,7 +414,7 @@ def test_gfortran_get_version_12():
 
 
 def test_gfortran_get_version_with_ifort_string():
-    '''Tests the gfortran class with an ifort version string.'''
+    '''Tests the gfortran class with an ifort version output.'''
     full_version_string = dedent("""
         ifort (IFORT) 14.0.3 20140422
         Copyright (C) 1985-2014 Intel Corporation.  All rights reserved.
@@ -434,7 +451,7 @@ def test_icc_get_version():
 
 
 def test_icc_get_version_with_gcc_string():
-    '''Tests the icc class with a GCC version string.'''
+    '''Tests the icc class with a GCC version output.'''
     full_version_string = dedent("""
         gcc (GCC) 8.5.0 20210514 (Red Hat 8.5.0-20)
         Copyright (C) 2018 Free Software Foundation, Inc.
@@ -509,7 +526,7 @@ def test_ifort_get_version_19():
 
 
 def test_ifort_get_version_with_icc_string():
-    '''Tests the icc class.'''
+    '''Tests the ifort class with an icc version output.'''
     full_version_string = dedent("""
         icc (ICC) 2021.10.0 20230609
         Copyright (C) 1985-2023 Intel Corporation.  All rights reserved.

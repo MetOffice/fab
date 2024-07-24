@@ -10,7 +10,7 @@ classes for gcc, gfortran, icc, ifort
 
 import os
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 import zlib
 
 from fab.tools.category import Category
@@ -29,8 +29,8 @@ class Compiler(CompilerSuiteTool):
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite this tool belongs to.
     :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
-    :param version_token: the substring of --version output that identifies
-        the compiler. Defaults to the compiler name.
+    :param compiler_identifier: the substring of --version output that
+        identifies the compiler. Defaults to the compiler name.
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
@@ -43,13 +43,13 @@ class Compiler(CompilerSuiteTool):
                  exec_name: Union[str, Path],
                  suite: str,
                  category: Category,
-                 version_token: Optional[str] = None,
+                 compiler_identifier: Optional[str] = None,
                  compile_flag: Optional[str] = None,
                  output_flag: Optional[str] = None,
                  omp_flag: Optional[str] = None):
         super().__init__(name, exec_name, suite, category)
-        self._version = None
-        self.version_token = version_token if version_token else name
+        self._version : Tuple[int, ...]|None = None
+        self.compiler_identifier = compiler_identifier if compiler_identifier else name
         self._compile_flag = compile_flag if compile_flag else "-c"
         self._output_flag = output_flag if output_flag else "-o"
         self._omp_flag = omp_flag
@@ -58,9 +58,8 @@ class Compiler(CompilerSuiteTool):
     def get_hash(self) -> int:
         ''':returns: a hash based on the compiler name and version.
         '''
-        version_string = '.'.join(str(x) for x in self.get_version())
         return (zlib.crc32(self.name.encode()) +
-                zlib.crc32(version_string.encode()))
+                zlib.crc32(self.get_version_string().encode()))
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
@@ -105,18 +104,31 @@ class Compiler(CompilerSuiteTool):
             self.logger.error(f'Error getting compiler version: {err}')
             return False
 
-    def get_version(self):
+    def get_version_string(self) -> str:
+        """
+        Get a string representing the version of the given compiler.
+
+        :returns: a string of at least 2 numeric version components,
+            i.e. major.minor[.patch, ...]
+
+        :raises RuntimeError: if the compiler was not found, or if it returned
+            an unrecognised output from the version command.
+        """
+        version = self.get_version()
+        return '.'.join(str(x) for x in version)
+
+    def get_version(self) -> Tuple[int, ...]:
         """
         Try to get the version of the given compiler.
 
         Expects a version in a certain part of the --version output,
         which must adhere to the n.n.n format, with at least 2 parts.
 
-        :Returns: a tuple of integers representing the version string,
-            e.g (6, 10, 1) for version '6.10.1'.
+        :returns: a tuple of at least 2 integers, representing the version
+            e.g. (6, 10, 1) for version '6.10.1'.
 
         :raises RuntimeError: if the compiler was not found, or if it returned
-            an invalid version string.
+            an unrecognised output from the version command.
         """
         if self._version is not None:
             return self._version
@@ -129,9 +141,9 @@ class Compiler(CompilerSuiteTool):
             raise RuntimeError(f"Error asking for version of compiler "
                                f"'{self.name}': {err}")
 
-        if self.version_token not in res:
+        if self.compiler_identifier not in res:
             raise RuntimeError(f"Unexpected version for {self.name} compiler. "
-                               f"Should contain '{self.version_token}': "
+                               f"Should contain '{self.compiler_identifier}': "
                                f"{res}")
 
         # Pull the version string from the command output.
@@ -172,8 +184,8 @@ class CCompiler(Compiler):
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite.
-    :param version_token: the substring of --version output that identifies
-        the compiler. Defaults to the compiler name.
+    :param compiler_identifier: the substring of --version output that
+        identifies the compiler. Defaults to the compiler name.
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
@@ -183,10 +195,10 @@ class CCompiler(Compiler):
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
-                 version_token=None, compile_flag=None, output_flag=None,
+                 compiler_identifier=None, compile_flag=None, output_flag=None,
                  omp_flag=None):
         super().__init__(name, exec_name, suite, Category.C_COMPILER,
-                         version_token, compile_flag, output_flag, omp_flag)
+                         compiler_identifier, compile_flag, output_flag, omp_flag)
 
 
 # ============================================================================
@@ -198,8 +210,8 @@ class FortranCompiler(Compiler):
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite.
-    :param version_token: the substring of --version output that identifies
-        the compiler. Defaults to the compiler name.
+    :param compiler_identifier: the substring of --version output that
+        identifies the compiler. Defaults to the compiler name.
     :param module_folder_flag: the compiler flag to indicate where to
         store created module files.
     :param syntax_only_flag: flag to indicate to only do a syntax check.
@@ -213,12 +225,12 @@ class FortranCompiler(Compiler):
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
-                 module_folder_flag: str, version_token=None,
+                 module_folder_flag: str, compiler_identifier=None,
                  syntax_only_flag=None, compile_flag=None, output_flag=None,
                  omp_flag=None):
 
         super().__init__(name, exec_name, suite, Category.FORTRAN_COMPILER,
-                         version_token, compile_flag, output_flag, omp_flag)
+                         compiler_identifier, compile_flag, output_flag, omp_flag)
         self._module_folder_flag = module_folder_flag
         self._module_output_path = ""
         self._syntax_only_flag = syntax_only_flag
@@ -288,7 +300,7 @@ class Gfortran(FortranCompiler):
                  name: str = "gfortran",
                  exec_name: str = "gfortran"):
         super().__init__(name, exec_name, "gnu",
-                         version_token='GNU Fortran',
+                         compiler_identifier='GNU Fortran',
                          module_folder_flag="-J",
                          omp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
