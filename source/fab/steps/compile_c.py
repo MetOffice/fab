@@ -60,7 +60,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
 
-    compiler = config.tool_box[Category.C_COMPILER]
+    compiler = config.tool_box.get_tool(Category.C_COMPILER, config.mpi)
     logger.info(f'C compiler is {compiler}')
 
     env_flags = os.getenv('CFLAGS', '').split()

@@ -10,7 +10,8 @@
 import pytest
 
 
-from fab.tools import Category, Gcc, Gfortran, Ifort, Linker, ToolRepository
+from fab.tools import (Ar, Category, Gcc, Gfortran, Ifort, Linker,
+                       ToolRepository)
 
 
 def test_tool_repository_get_singleton_new():
@@ -57,15 +58,19 @@ def test_tool_repository_get_tool_error():
 def test_tool_repository_get_default():
     '''Tests get_default.'''
     tr = ToolRepository()
-    gfortran = tr.get_default(Category.FORTRAN_COMPILER)
+    gfortran = tr.get_default(Category.FORTRAN_COMPILER, mpi=False)
     assert isinstance(gfortran, Gfortran)
 
-    gcc_linker = tr.get_default(Category.LINKER)
+    gcc_linker = tr.get_default(Category.LINKER, mpi=False)
     assert isinstance(gcc_linker, Linker)
     assert gcc_linker.name == "linker-gcc"
 
-    gcc = tr.get_default(Category.C_COMPILER)
+    gcc = tr.get_default(Category.C_COMPILER, mpi=False)
     assert isinstance(gcc, Gcc)
+
+    # Test a non-compiler
+    ar = tr.get_default(Category.AR)
+    assert isinstance(ar, Ar)
 
 
 def test_tool_repository_get_default_error():
@@ -75,6 +80,16 @@ def test_tool_repository_get_default_error():
         tr.get_default("unknown-category")
     assert "Invalid category type 'str'." in str(err.value)
 
+    with pytest.raises(RuntimeError) as err:
+        tr.get_default(Category.FORTRAN_COMPILER)
+    assert ("Invalid or missing mpi specification for 'FORTRAN_COMPILER'"
+            in str(err.value))
+
+    with pytest.raises(RuntimeError) as err:
+        tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
+    assert ("Could not find 'FORTRAN_COMPILER' that supports MPI."
+            in str(err.value))
+
 
 def test_tool_repository_default_compiler_suite():
     '''Tests the setting of default suite for compiler and linker.'''
@@ -82,13 +97,13 @@ def test_tool_repository_default_compiler_suite():
     tr.set_default_compiler_suite("gnu")
     for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
                 Category.LINKER]:
-        def_tool = tr.get_default(cat)
+        def_tool = tr.get_default(cat, mpi=False)
         assert def_tool.suite == "gnu"
 
     tr.set_default_compiler_suite("intel-classic")
     for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
                 Category.LINKER]:
-        def_tool = tr.get_default(cat)
+        def_tool = tr.get_default(cat, mpi=False)
         assert def_tool.suite == "intel-classic"
     with pytest.raises(RuntimeError) as err:
         tr.set_default_compiler_suite("does-not-exist")

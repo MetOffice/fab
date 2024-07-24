@@ -26,6 +26,7 @@ def test_compiler():
     assert cc._output_flag == "-o"
     assert cc.flags == []
     assert cc.suite == "gnu"
+    assert not cc.mpi
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert fc._compile_flag == "-c"
@@ -33,6 +34,7 @@ def test_compiler():
     assert fc.category == Category.FORTRAN_COMPILER
     assert fc.suite == "gnu"
     assert fc.flags == []
+    assert not fc.mpi
 
 
 def test_compiler_check_available():
@@ -113,7 +115,7 @@ def test_compiler_module_output():
 
 def test_compiler_with_add_args():
     '''Tests that additional arguments are handled as expected.'''
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
+    fc = FortranCompiler("gfortran", "gfortran", suite="gnu",
                          module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
@@ -135,8 +137,8 @@ class TestGetCompilerVersion:
         '''Checks if the correct version is extracted from the
         given full_version_string.
         '''
-        c = Compiler("gfortran", "gfortran", "gnu",
-                     Category.FORTRAN_COMPILER)
+        c = Compiler("gfortran", "gfortran", suite="gnu",
+                     category=Category.FORTRAN_COMPILER)
         with mock.patch.object(c, "run",
                                mock.Mock(return_value=full_version_string)):
             assert c.get_version() == expected
@@ -149,8 +151,8 @@ class TestGetCompilerVersion:
     def test_command_failure(self):
         '''If the command fails, we must return an empty string, not None,
         so it can still be hashed.'''
-        c = Compiler("gfortran", "gfortran", "gnu",
-                     Category.FORTRAN_COMPILER)
+        c = Compiler("gfortran", "gfortran", suite="gnu",
+                     category=Category.FORTRAN_COMPILER)
         with mock.patch.object(c, 'run', side_effect=RuntimeError()):
             assert c.get_version() == '', 'expected empty string'
         with mock.patch.object(c, 'run', side_effect=FileNotFoundError()):
@@ -295,6 +297,7 @@ def test_gcc():
     assert gcc.name == "gcc"
     assert isinstance(gcc, CCompiler)
     assert gcc.category == Category.C_COMPILER
+    assert not gcc.mpi
 
 
 def test_gfortran():
@@ -303,6 +306,7 @@ def test_gfortran():
     assert gfortran.name == "gfortran"
     assert isinstance(gfortran, FortranCompiler)
     assert gfortran.category == Category.FORTRAN_COMPILER
+    assert not gfortran.mpi
 
 
 def test_icc():
@@ -311,6 +315,7 @@ def test_icc():
     assert icc.name == "icc"
     assert isinstance(icc, CCompiler)
     assert icc.category == Category.C_COMPILER
+    assert not icc.mpi
 
 
 def test_ifort():
@@ -319,6 +324,7 @@ def test_ifort():
     assert ifort.name == "ifort"
     assert isinstance(ifort, FortranCompiler)
     assert ifort.category == Category.FORTRAN_COMPILER
+    assert not ifort.mpi
 
 
 def test_compiler_wrapper():
@@ -329,8 +335,13 @@ def test_compiler_wrapper():
             super().__init__(name="mpif90-intel",
                              exec_name="mpif90")
 
+        @property
+        def mpi(self):
+            return True
+
     mpif90 = MpiF90()
     assert mpif90.suite == "intel-classic"
     assert mpif90.category == Category.FORTRAN_COMPILER
     assert mpif90.name == "mpif90-intel"
     assert mpif90.exec_name == "mpif90"
+    assert mpif90.mpi

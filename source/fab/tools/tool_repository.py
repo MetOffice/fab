@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Type
+from typing import Any, Optional, Type
 
 from fab.tools.tool import Tool
 from fab.tools.category import Category
@@ -127,16 +127,37 @@ class ToolRepository(dict):
                 self[category].remove(tool)
                 self[category].insert(0, tool)
 
-    def get_default(self, category: Category):
-        '''Returns the default tool for a given category, which is just
-        the first tool in the category.
+    def get_default(self, category: Category,
+                    mpi: Optional[bool] = None):
+        '''Returns the default tool for a given category. For most tools
+        that will be the first entry in the list of tools. The exception
+        are compilers and linker: in this case it must be specified if
+        MPI support is required or not. And the default return will be
+        the first tool that either supports MPI or not.
 
         :param category: the category for which to return the default tool.
+        :param mpi: if a compiler or linker is required that supports MPI.
 
         :raises KeyError: if the category does not exist.
+        :raises RuntimeError: if no compiler/linker is found with the
+            requested level of MPI support (yes or no).
         '''
 
         if not isinstance(category, Category):
             raise RuntimeError(f"Invalid category type "
                                f"'{type(category).__name__}'.")
-        return self[category][0]
+
+        # If not a compiler or linker, return the first tool
+        if not category.is_compiler and category != Category.LINKER:
+            return self[category][0]
+
+        if not isinstance(mpi, bool):
+            raise RuntimeError(f"Invalid or missing mpi specification "
+                               f"for '{category}'.")
+
+        for tool in self[category]:
+            # If the tool supports/does not support MPI, return the first one
+            if mpi == tool.mpi:
+                return tool
+
+        raise RuntimeError(f"Could not find '{category}' that supports MPI.")

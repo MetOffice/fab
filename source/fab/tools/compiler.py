@@ -29,6 +29,7 @@ class Compiler(CompilerSuiteTool):
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite this tool belongs to.
     :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
+    :param mpi: whether the compiler or linker support MPI.
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
@@ -41,10 +42,11 @@ class Compiler(CompilerSuiteTool):
                  exec_name: Union[str, Path],
                  suite: str,
                  category: Category,
+                 mpi: bool = False,
                  compile_flag: Optional[str] = None,
                  output_flag: Optional[str] = None,
                  omp_flag: Optional[str] = None):
-        super().__init__(name, exec_name, suite, category)
+        super().__init__(name, exec_name, suite, mpi=mpi, category=category)
         self._version = None
         self._compile_flag = compile_flag if compile_flag else "-c"
         self._output_flag = output_flag if output_flag else "-o"
@@ -163,6 +165,7 @@ class CCompiler(Compiler):
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite.
+    :param mpi: whether the compiler or linker support MPI.
     :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
@@ -173,9 +176,11 @@ class CCompiler(Compiler):
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
-                 compile_flag=None, output_flag=None, omp_flag=None):
-        super().__init__(name, exec_name, suite, Category.C_COMPILER,
-                         compile_flag, output_flag, omp_flag)
+                 mpi: bool = False, compile_flag=None, output_flag=None,
+                 omp_flag: Optional[str] = None):
+        super().__init__(name, exec_name, suite, Category.C_COMPILER, mpi=mpi,
+                         compile_flag=compile_flag, output_flag=output_flag,
+                         omp_flag=omp_flag)
 
 
 # ============================================================================
@@ -189,22 +194,28 @@ class FortranCompiler(Compiler):
     :param suite: name of the compiler suite.
     :param module_folder_flag: the compiler flag to indicate where to
         store created module files.
+    :param mpi: whether the compiler or linker support MPI.
+    :param omp_flag: the flag to use to enable OpenMP
     :param syntax_only_flag: flag to indicate to only do a syntax check.
         The side effect is that the module files are created.
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
         of the output file
-    :param omp_flag: the flag to use to enable OpenMP
     '''
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
-                 module_folder_flag: str, syntax_only_flag=None,
-                 compile_flag=None, output_flag=None, omp_flag=None):
+                 module_folder_flag: str, mpi: bool = False,
+                 omp_flag: Optional[str] = None,
+                 syntax_only_flag: Optional[str] = None,
+                 compile_flag: Optional[str] = None,
+                 output_flag: Optional[str] = None):
 
-        super().__init__(name, exec_name, suite, Category.FORTRAN_COMPILER,
-                         compile_flag, output_flag, omp_flag)
+        super().__init__(name=name, exec_name=exec_name, suite=suite, mpi=mpi,
+                         category=Category.FORTRAN_COMPILER,
+                         compile_flag=compile_flag,
+                         output_flag=output_flag, omp_flag=omp_flag)
         self._module_folder_flag = module_folder_flag
         self._module_output_path = ""
         self._syntax_only_flag = syntax_only_flag
@@ -260,7 +271,8 @@ class Gcc(CCompiler):
     def __init__(self,
                  name: str = "gcc",
                  exec_name: str = "gcc"):
-        super().__init__(name, exec_name, "gnu", omp_flag="-fopenmp")
+        super().__init__(name, exec_name, suite="gnu", mpi=False,
+                         omp_flag="-fopenmp")
 
 
 # ============================================================================
@@ -273,7 +285,7 @@ class Gfortran(FortranCompiler):
     def __init__(self,
                  name: str = "gfortran",
                  exec_name: str = "gfortran"):
-        super().__init__(name, exec_name, "gnu",
+        super().__init__(name, exec_name, suite="gnu", mpi=False,
                          module_folder_flag="-J",
                          omp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
@@ -289,7 +301,7 @@ class Icc(CCompiler):
     def __init__(self,
                  name: str = "icc",
                  exec_name: str = "icc"):
-        super().__init__(name, exec_name, "intel-classic",
+        super().__init__(name, exec_name, suite="intel-classic", mpi=False,
                          omp_flag="-qopenmp")
 
 
@@ -303,7 +315,7 @@ class Ifort(FortranCompiler):
     def __init__(self,
                  name: str = "ifort",
                  exec_name: str = "ifort"):
-        super().__init__(name, exec_name, "intel-classic",
+        super().__init__(name, exec_name, suite="intel-classic", mpi=False,
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")

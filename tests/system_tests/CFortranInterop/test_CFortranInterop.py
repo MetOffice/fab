@@ -27,7 +27,8 @@ def test_CFortranInterop(tmp_path):
 
     # build
     with BuildConfig(fab_workspace=tmp_path, project_label='foo',
-                     tool_box=ToolBox(), multiprocessing=False) as config:
+                     mpi=False, openmp=False, tool_box=ToolBox(),
+                     multiprocessing=False) as config:
         grab_folder(config, src=PROJECT_SOURCE)
         find_source_files(config)
         c_pragma_injector(config)

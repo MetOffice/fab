@@ -172,7 +172,7 @@ if __name__ == '__main__':
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
     with BuildConfig(project_label='atm $compiler $two_stage',
-                     tool_box=ToolBox()) as state:
+                     mpi=False, openmp=False, tool_box=ToolBox()) as state:
 
         # todo: use different dst_labels because they all go into the same folder,
         #       making it hard to see what came from where?
