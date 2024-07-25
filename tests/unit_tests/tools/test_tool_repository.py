@@ -7,6 +7,7 @@
 '''This module tests the ToolRepository.
 '''
 
+from unittest import mock
 import pytest
 
 
@@ -85,7 +86,8 @@ def test_tool_repository_get_default_error():
     assert ("Invalid or missing mpi specification for 'FORTRAN_COMPILER'"
             in str(err.value))
 
-    with pytest.raises(RuntimeError) as err:
+    with mock.patch.dict(tr, {Category.FORTRAN_COMPILER: []}), \
+            pytest.raises(RuntimeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
     assert ("Could not find 'FORTRAN_COMPILER' that supports MPI."
             in str(err.value))
