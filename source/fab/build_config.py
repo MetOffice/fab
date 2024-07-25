@@ -189,6 +189,11 @@ class BuildConfig():
         ''':returns: whether MPI is requested or not in this config.'''
         return self._mpi
 
+    @property
+    def openmp(self) -> bool:
+        ''':returns: whether OpenMP is requested or not in this config.'''
+        return self._openmp
+
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """
         Mark the given file paths as being current prebuilds, not to be

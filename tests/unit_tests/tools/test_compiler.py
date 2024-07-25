@@ -21,21 +21,24 @@ from fab.tools import (Category, CCompiler, Compiler, FortranCompiler,
 
 def test_compiler():
     '''Test the compiler constructor.'''
-    cc = CCompiler("gcc", "gcc", "gnu")
+    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag="-fopenmp")
     assert cc.category == Category.C_COMPILER
     assert cc._compile_flag == "-c"
     assert cc._output_flag == "-o"
     assert cc.flags == []
     assert cc.suite == "gnu"
     assert not cc.mpi
+    assert cc.openmp_flag == "-fopenmp"
 
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
+                         module_folder_flag="-J")
     assert fc._compile_flag == "-c"
     assert fc._output_flag == "-o"
     assert fc.category == Category.FORTRAN_COMPILER
     assert fc.suite == "gnu"
     assert fc.flags == []
     assert not fc.mpi
+    assert fc.openmp_flag == "-fopenmp"
 
 
 def test_compiler_check_available():
@@ -82,21 +85,31 @@ def test_compiler_with_env_fflags():
 
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu",
+                         openmp_flag="-fopenmp", module_folder_flag="-J")
     assert not fc.has_syntax_only
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J",
-                         syntax_only_flag=None)
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
+                         module_folder_flag="-J", syntax_only_flag=None)
     assert not fc.has_syntax_only
+    # Empty since no flag is defined
+    assert fc.openmp_flag == "-fopenmp"
 
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J",
+    fc = FortranCompiler("gfortran", "gfortran", "gnu",
+                         openmp_flag="-fopenmp",
+                         module_folder_flag="-J",
                          syntax_only_flag="-fsyntax-only")
     fc.set_module_output_path("/tmp")
     assert fc.has_syntax_only
     assert fc._syntax_only_flag == "-fsyntax-only"
     fc.run = mock.Mock()
-    fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
+    fc.compile_file(Path("a.f90"), "a.o", openmp=False, syntax_only=True)
     fc.run.assert_called_with(cwd=Path('.'),
                               additional_parameters=['-c', '-fsyntax-only',
+                                                     "-J", '/tmp', 'a.f90',
+                                                     '-o', 'a.o', ])
+    fc.compile_file(Path("a.f90"), "a.o", openmp=True, syntax_only=True)
+    fc.run.assert_called_with(cwd=Path('.'),
+                              additional_parameters=['-c', '-fopenmp', '-fsyntax-only',
                                                      "-J", '/tmp', 'a.f90',
                                                      '-o', 'a.o', ])
 
@@ -108,7 +121,7 @@ def test_compiler_module_output():
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
-    fc.compile_file(Path("a.f90"), "a.o", syntax_only=True)
+    fc.compile_file(Path("a.f90"), "a.o", openmp=False, syntax_only=True)
     fc.run.assert_called_with(cwd=PosixPath('.'),
                               additional_parameters=['-c', '-J', '/module_out',
                                                      'a.f90', '-o', 'a.o'])
@@ -117,18 +130,25 @@ def test_compiler_module_output():
 def test_compiler_with_add_args():
     '''Tests that additional arguments are handled as expected.'''
     fc = FortranCompiler("gfortran", "gfortran", suite="gnu",
+                         openmp_flag="-fopenmp",
                          module_folder_flag="-J")
     fc.set_module_output_path("/module_out")
     assert fc._module_output_path == "/module_out"
     fc.run = mock.MagicMock()
     with pytest.warns(UserWarning, match="Removing managed flag"):
         fc.compile_file(Path("a.f90"), "a.o", add_flags=["-J/b", "-O3"],
-                        syntax_only=True)
+                        openmp=False, syntax_only=True)
     # Notice that "-J/b" has been removed
     fc.run.assert_called_with(cwd=PosixPath('.'),
                               additional_parameters=['-c', "-O3",
                                                      '-J', '/module_out',
                                                      'a.f90', '-o', 'a.o'])
+    with pytest.warns(UserWarning,
+                      match="explicitly provided. OpenMP should be enabled in "
+                            " the BuildConfiguration"):
+        fc.compile_file(Path("a.f90"), "a.o",
+                        add_flags=["-fopenmp", "-O3"],
+                        openmp=True, syntax_only=True)
 
 
 class TestGetCompilerVersion:

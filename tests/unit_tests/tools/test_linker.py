@@ -88,14 +88,16 @@ def test_linker_c(mock_c_compiler):
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        linker.link([Path("a.o")], Path("a.out"))
+        linker.link([Path("a.o")], Path("a.out"), openmp=False)
     tool_run.assert_called_with(
         ["mock_c_compiler.exe", 'a.o', '-o', 'a.out'], capture_output=True,
         env=None, cwd=None, check=False)
 
     with mock.patch.object(linker, "run") as link_run:
-        linker.link([Path("a.o")], Path("a.out"), add_libs=["-L", "/tmp"])
-    link_run.assert_called_with(['a.o', '-L', '/tmp', '-o', 'a.out'])
+        linker.link([Path("a.o")], Path("a.out"), add_libs=["-L", "/tmp"],
+                    openmp=True)
+    link_run.assert_called_with(['-fopenmp', 'a.o', '-L', '/tmp',
+                                 '-o', 'a.out'])
 
 
 def test_linker_add_compiler_flag(mock_c_compiler):
@@ -109,7 +111,7 @@ def test_linker_add_compiler_flag(mock_c_compiler):
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        linker.link([Path("a.o")], Path("a.out"))
+        linker.link([Path("a.o")], Path("a.out"), openmp=False)
     tool_run.assert_called_with(
         ['mock_c_compiler.exe', '-my-flag', 'a.o', '-o', 'a.out'],
         capture_output=True, env=None, cwd=None, check=False)
@@ -121,7 +123,7 @@ def test_linker_add_compiler_flag(mock_c_compiler):
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        linker.link([Path("a.o")], Path("a.out"))
+        linker.link([Path("a.o")], Path("a.out"), openmp=False)
     tool_run.assert_called_with(
         ['no-compiler.exe', '-some-other-flag', 'a.o', '-o', 'a.out'],
         capture_output=True, env=None, cwd=None, check=False)
