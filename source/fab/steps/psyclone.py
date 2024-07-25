@@ -19,14 +19,15 @@ from typing import Dict, List, Optional, Set, Tuple, Union, Callable
 
 from fab.build_config import BuildConfig
 
-from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
+from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter)
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
 from fab.steps.preprocess import pre_processor
 from fab.tools import Category, Psyclone
-from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \
-    string_checksum, suffix_filter, by_type, log_or_dot_finish
+from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
+                      file_walk, TimerLogger, string_checksum, suffix_filter,
+                      by_type, log_or_dot_finish)
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +38,22 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
 
     # get the tool from FPP
     fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
-    source_files = SuffixFilter('all_source', '.X90')(config.artefact_store)
+    source_files = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.X90')(config.artefact_store)
 
+    # Add the pre-processed now .x90 files into X90_BUILD_FILES
     pre_processor(
         config,
         preprocessor=fpp,
         files=source_files,
-        output_collection='preprocessed_x90',
+        output_collection=ArtefactSet.X90_BUILD_FILES,
         output_suffix='.x90',
         name='preprocess x90',
         common_flags=common_flags,
     )
+    # Then remove the .X90 files:
+    config.artefact_store.replace(ArtefactSet.X90_BUILD_FILES,
+                                  remove_files=source_files,
+                                  add_files=[])
 
 
 @dataclass
@@ -70,10 +76,8 @@ class MpCommonArgs:
     override_files: List[str]  # filenames (not paths) of hand crafted overrides
 
 
-DEFAULT_SOURCE_GETTER = CollectionConcat([
-    'preprocessed_x90',  # any X90 we've preprocessed this run
-    SuffixFilter('all_source', '.x90'),  # any already preprocessed x90 we pulled in
-])
+# any already preprocessed x90 we pulled in
+DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.x90')
 
 
 @step
@@ -140,11 +144,11 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     check_for_errors(outputs, caller_label='psyclone')
 
     # flatten the list of lists we got back from run_mp
-    output_files: List[Path] = list(chain(*by_type(outputs, List)))
+    output_files: Set[Path] = set(chain(*by_type(outputs, List)))
     prebuild_files: List[Path] = list(chain(*by_type(prebuilds, List)))
 
     # record the output files in the artefact store for further processing
-    config.artefact_store['psyclone_output'] = output_files
+    config.artefact_store.add(ArtefactSet.FORTRAN_BUILD_FILES, output_files)
     outputs_str = "\n".join(map(str, output_files))
     logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 

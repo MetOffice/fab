@@ -298,10 +298,15 @@ class FortranAnalyser(FortranAnalyserBase):
         if comment[:2] == "!$":
             # Check if it is a use statement with an OpenMP sentinel:
             # Use fparser's string reader to discard potential comment
-            # TODO #13: once fparser supports reading the sentinels,
+            # TODO #327: once fparser supports reading the sentinels,
             # this can be removed.
+            # fparser issue: https://github.com/stfc/fparser/issues/443
             reader = FortranStringReader(comment[2:])
-            line = reader.next()
+            try:
+                line = reader.next()
+            except StopIteration:
+                # No other item, ignore
+                return
             try:
                 # match returns a 5-tuple, the third one being the module name
                 module_name = Use_Stmt.match(line.strline)[2]

@@ -254,7 +254,7 @@ in particular where it creates files within it.
                 *.o (compiled object files)
                 *.mod (mod files)
           metrics/
-          my_program.exe
+          my_program
           log.txt
 
 The *project workspace* folder takes its name from the project label passed in to the build configuration.
