@@ -66,11 +66,8 @@ class Compiler(CompilerSuiteTool):
         '''
         return self._openmp_flag
 
-    # Note the / enforces to use keyword arguments for all remaining
-    # parameters. This makes sure parameters are not getting mixed up.
     def compile_file(self, input_file: Path,
                      output_file: Path,
-                     /,
                      openmp: bool,
                      add_flags: Union[None, List[str]] = None):
         '''Compiles a file. It will add the flag for compilation-only

@@ -61,10 +61,7 @@ class Linker(CompilerSuiteTool):
 
         return super().check_available()
 
-    # The / enforces that all other parameters are provided as keyword
-    # parameters, which avoids mistakes.
     def link(self, input_files: List[Path], output_file: Path,
-             /,
              openmp: bool,
              add_libs: Optional[List[str]] = None) -> str:
         '''Executes the linker with the specified input files,
