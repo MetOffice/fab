@@ -267,12 +267,26 @@ class Gcc(CCompiler):
 
     :param name: name of this compiler.
     :param exec_name: name of the executable.
+    :param mpi: whether the compiler supports MPI.
     '''
     def __init__(self,
                  name: str = "gcc",
-                 exec_name: str = "gcc"):
-        super().__init__(name, exec_name, suite="gnu", mpi=False,
+                 exec_name: str = "gcc",
+                 mpi: bool = False):
+        super().__init__(name, exec_name, suite="gnu", mpi=mpi,
                          omp_flag="-fopenmp")
+
+
+# ============================================================================
+class MpiGcc(Gcc):
+    '''Class for a simple wrapper around gcc that supports MPI.
+    It calls `mpicc`.
+    '''
+
+    def __init__(self):
+        super().__init__(name="mpicc-gcc",
+                         exec_name="mpicc",
+                         mpi=True)
 
 
 # ============================================================================
@@ -281,14 +295,29 @@ class Gfortran(FortranCompiler):
 
     :param name: name of this compiler.
     :param exec_name: name of the executable.
+    :param mpi: whether the compiler supports MPI.
     '''
+
     def __init__(self,
                  name: str = "gfortran",
-                 exec_name: str = "gfortran"):
-        super().__init__(name, exec_name, suite="gnu", mpi=False,
+                 exec_name: str = "gfortran",
+                 mpi: bool = False):
+        super().__init__(name, exec_name, suite="gnu", mpi=mpi,
                          module_folder_flag="-J",
                          omp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
+
+
+# ============================================================================
+class MpiGfortran(Gfortran):
+    '''Class for a simple wrapper around gfortran that supports MPI.
+    It calls `mpif90`.
+    '''
+
+    def __init__(self):
+        super().__init__(name="mpif90-gfortran",
+                         exec_name="mpif90",
+                         mpi=True)
 
 
 # ============================================================================
@@ -297,12 +326,26 @@ class Icc(CCompiler):
 
     :param name: name of this compiler.
     :param exec_name: name of the executable.
+    :param mpi: whether the compiler supports MPI.
     '''
     def __init__(self,
                  name: str = "icc",
-                 exec_name: str = "icc"):
-        super().__init__(name, exec_name, suite="intel-classic", mpi=False,
+                 exec_name: str = "icc",
+                 mpi: bool = False):
+        super().__init__(name, exec_name, suite="intel-classic", mpi=mpi,
                          omp_flag="-qopenmp")
+
+
+# ============================================================================
+class MpiIcc(Icc):
+    '''Class for a simple wrapper around icc that supports MPI.
+    It calls `mpicc`.
+    '''
+
+    def __init__(self):
+        super().__init__(name="mpicc-icc",
+                         exec_name="mpicc",
+                         mpi=True)
 
 
 # ============================================================================
@@ -311,11 +354,26 @@ class Ifort(FortranCompiler):
 
     :param name: name of this compiler.
     :param exec_name: name of the executable.
+    :param mpi: whether the compiler supports MPI.
     '''
+
     def __init__(self,
                  name: str = "ifort",
-                 exec_name: str = "ifort"):
-        super().__init__(name, exec_name, suite="intel-classic", mpi=False,
+                 exec_name: str = "ifort",
+                 mpi: bool = False):
+        super().__init__(name, exec_name, suite="intel-classic", mpi=mpi,
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")
+
+
+# ============================================================================
+class MpiIfort(Ifort):
+    '''Class for a simple wrapper around ifort that supports MPI.
+    It calls `mpif90`.
+    '''
+
+    def __init__(self):
+        super().__init__(name="mpif90-ifort",
+                         exec_name="mpif90",
+                         mpi=True)

@@ -15,7 +15,8 @@ from unittest import mock
 import pytest
 
 from fab.tools import (Category, CCompiler, Compiler, FortranCompiler,
-                       Gcc, Gfortran, Icc, Ifort)
+                       Gcc, Gfortran, Icc, Ifort, MpiGcc, MpiGfortran,
+                       MpiIcc, MpiIfort)
 
 
 def test_compiler():
@@ -300,6 +301,15 @@ def test_gcc():
     assert not gcc.mpi
 
 
+def test_mpi_gcc():
+    '''Tests the MPI enables gcc class.'''
+    mpi_gcc = MpiGcc()
+    assert mpi_gcc.name == "mpicc-gcc"
+    assert isinstance(mpi_gcc, CCompiler)
+    assert mpi_gcc.category == Category.C_COMPILER
+    assert mpi_gcc.mpi
+
+
 def test_gfortran():
     '''Tests the gfortran class.'''
     gfortran = Gfortran()
@@ -307,6 +317,15 @@ def test_gfortran():
     assert isinstance(gfortran, FortranCompiler)
     assert gfortran.category == Category.FORTRAN_COMPILER
     assert not gfortran.mpi
+
+
+def test_mpi_gfortran():
+    '''Tests the MPI enabled gfortran class.'''
+    mpi_gfortran = MpiGfortran()
+    assert mpi_gfortran.name == "mpif90-gfortran"
+    assert isinstance(mpi_gfortran, FortranCompiler)
+    assert mpi_gfortran.category == Category.FORTRAN_COMPILER
+    assert mpi_gfortran.mpi
 
 
 def test_icc():
@@ -318,6 +337,15 @@ def test_icc():
     assert not icc.mpi
 
 
+def test_mpi_icc():
+    '''Tests the MPI enabled icc class.'''
+    mpi_icc = MpiIcc()
+    assert mpi_icc.name == "mpicc-icc"
+    assert isinstance(mpi_icc, CCompiler)
+    assert mpi_icc.category == Category.C_COMPILER
+    assert mpi_icc.mpi
+
+
 def test_ifort():
     '''Tests the ifort class.'''
     ifort = Ifort()
@@ -325,6 +353,15 @@ def test_ifort():
     assert isinstance(ifort, FortranCompiler)
     assert ifort.category == Category.FORTRAN_COMPILER
     assert not ifort.mpi
+
+
+def test_mpi_ifort():
+    '''Tests the MPI enabled ifort class.'''
+    mpi_ifort = MpiIfort()
+    assert mpi_ifort.name == "mpif90-ifort"
+    assert isinstance(mpi_ifort, FortranCompiler)
+    assert mpi_ifort.category == Category.FORTRAN_COMPILER
+    assert mpi_ifort.mpi
 
 
 def test_compiler_wrapper():

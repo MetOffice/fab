@@ -43,6 +43,7 @@ class ToolRepository(dict):
         # time the instance is requested (since we overwrite __new__). But
         # we only want to initialise the instance once, so let the constructor
         # not do anything if the singleton already exists:
+        # pylint: disable=too-many-locals
         if ToolRepository._singleton:
             return
 
@@ -59,9 +60,11 @@ class ToolRepository(dict):
         # We get circular dependencies if imported at top of the file:
         # pylint: disable=import-outside-toplevel
         from fab.tools import (Ar, Cpp, CppFortran, Gcc, Gfortran,
-                               Icc, Ifort, Psyclone, Rsync)
+                               Icc, Ifort, MpiGcc, MpiGfortran,
+                               MpiIcc, MpiIfort, Psyclone, Rsync)
 
         for cls in [Gcc, Icc, Gfortran, Ifort, Cpp, CppFortran,
+                    MpiGcc, MpiGfortran, MpiIcc, MpiIfort,
                     Fcm, Git, Subversion, Ar, Psyclone, Rsync]:
             self.add_tool(cls)
 
