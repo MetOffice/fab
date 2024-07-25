@@ -145,7 +145,7 @@ def test_compiler_with_add_args():
                                                      'a.f90', '-o', 'a.o'])
     with pytest.warns(UserWarning,
                       match="explicitly provided. OpenMP should be enabled in "
-                            " the BuildConfiguration"):
+                            "the BuildConfiguration"):
         fc.compile_file(Path("a.f90"), "a.o",
                         add_flags=["-fopenmp", "-O3"],
                         openmp=True, syntax_only=True)
