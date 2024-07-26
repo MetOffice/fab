@@ -120,15 +120,16 @@ class ToolRepository(dict):
         '''
         for category in [Category.FORTRAN_COMPILER, Category.C_COMPILER,
                          Category.LINKER]:
-            all_members = [tool for tool in self[category]
-                           if tool.suite == suite]
-            if len(all_members) == 0:
+            # Now sort the tools in this category to have all tools with the
+            # right suite at the front. We use the stable sorted function with
+            # the key being tool.suite != suite --> all tools with the right
+            # suite use False as key, all other tools True. Since False < True
+            # this results in all suite tools to be at the front of the list
+            self[category] = sorted(self[category],
+                                    key=lambda x: x.suite != suite)
+            if len(self[category]) > 0 and self[category][0].suite != suite:
                 raise RuntimeError(f"Cannot find '{category}' "
                                    f"in the suite '{suite}'.")
-            tool = all_members[0]
-            if tool != self[category][0]:
-                self[category].remove(tool)
-                self[category].insert(0, tool)
 
     def get_default(self, category: Category,
                     mpi: Optional[bool] = None):
@@ -163,4 +164,6 @@ class ToolRepository(dict):
             if mpi == tool.mpi:
                 return tool
 
+        # Don't bother returning an MPI enabled tool if no-MPI is requested -
+        # that seems to be an unlikely scenario.
         raise RuntimeError(f"Could not find '{category}' that supports MPI.")
