@@ -142,6 +142,20 @@ class Compiler(CompilerSuiteTool):
         self._version = version
         return version
 
+    def _run_version_command(self) -> str:
+        '''
+        Run the compiler's command to get its version.
+        Implemented in subclasses for specific compilers.
+        '''
+        raise NotImplementedError
+
+    def _parse_version_output(self, version_output) -> str:
+        '''
+        Extract the numerical part from the version output.
+        Implemented in subclasses for specific compilers.
+        '''
+        raise NotImplementedError
+
     def get_version_string(self) -> str:
         """
         Get a string representing the version of the given compiler.
@@ -271,7 +285,7 @@ class GnuCompiler(Compiler):
 
     def _parse_version_output(self, version_output) -> str:
         '''
-        Get the numerical part of the version output
+        Extract the numerical part from the version output
 
         :param version_output: the full version output from the compiler
         :returns: the actual version as a string
@@ -342,7 +356,7 @@ class IntelCompiler(Compiler):
 
     def _parse_version_output(self, version_output) -> str:
         '''
-        Get the numerical part of the version output
+        Extract the numerical part from the version output
 
         :param version_output: the full version output from the compiler
         :returns: the actual version as a string
