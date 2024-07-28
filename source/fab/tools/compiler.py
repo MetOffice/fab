@@ -46,7 +46,7 @@ class Compiler(CompilerSuiteTool):
                  output_flag: Optional[str] = None,
                  omp_flag: Optional[str] = None):
         super().__init__(name, exec_name, suite, category)
-        self._version: Tuple[int, ...] | None = None
+        self._version: Union[Tuple[int, ...], None] = None
         self._compile_flag = compile_flag if compile_flag else "-c"
         self._output_flag = output_flag if output_flag else "-o"
         self._omp_flag = omp_flag
