@@ -159,7 +159,7 @@ class Compiler(CompilerSuiteTool):
             raise RuntimeError(f"Error asking for version of compiler "
                                f"'{self.name}'") from err
 
-    def _parse_version_output(self, version_output) -> str:
+    def _parse_version_output(self, version_output: str) -> str:
         '''
         Extract the numerical part from the version output.
         Implemented in subclasses for specific compilers.
