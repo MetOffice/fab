@@ -35,7 +35,7 @@ def test_compiler():
     assert fc.flags == []
 
 
-def test_available():
+def test_compiler_check_available():
     '''Check if check_available works as expected. The compiler class uses
     internally get_version to test if a compiler works or not. Check the
     compiler is available when it has a valid version.
@@ -45,7 +45,7 @@ def test_available():
         assert cc.check_available()
 
 
-def test_not_available_after_error():
+def test_compiler_check_available_runtime_error():
     ''' Check the compiler is not available when get_version raises an error.
     '''
     cc = Gcc()
@@ -79,7 +79,7 @@ def test_compiler_hash_compiler_error():
     with mock.patch.object(cc, 'run', side_effect=RuntimeError()):
         with pytest.raises(RuntimeError) as err:
             cc.get_hash()
-            assert "Error asking for version of compiler" in str(err.value)
+        assert "Error asking for version of compiler" in str(err.value)
 
 
 def test_compiler_hash_invalid_version():
@@ -90,7 +90,7 @@ def test_compiler_hash_invalid_version():
     with mock.patch.object(cc, "run", mock.Mock(return_value='foo v1')):
         with pytest.raises(RuntimeError) as err:
             cc.get_hash()
-            assert "Unexpected version output format for compiler 'gcc'" in str(err.value)
+        assert "Unexpected version output format for compiler 'gcc'" in str(err.value)
 
 
 def test_compiler_with_env_fflags():

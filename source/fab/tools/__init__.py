@@ -10,8 +10,8 @@
 from fab.tools.ar import Ar
 from fab.tools.category import Category
 from fab.tools.compiler import (CCompiler, Compiler, FortranCompiler, Gcc,
-                                Gfortran, GnuCompiler, Icc, Ifort,
-                                IntelCompiler)
+                                Gfortran, GnuVersionHandling, Icc, Ifort,
+                                IntelVersionHandling)
 from fab.tools.flags import Flags
 from fab.tools.linker import Linker
 from fab.tools.psyclone import Psyclone
@@ -37,10 +37,10 @@ __all__ = ["Ar",
            "Gcc",
            "Gfortran",
            "Git",
-           "GnuCompiler",
+           "GnuVersionHandling",
            "Icc",
            "Ifort",
-           "IntelCompiler",
+           "IntelVersionHandling",
            "Linker",
            "Preprocessor",
            "Psyclone",

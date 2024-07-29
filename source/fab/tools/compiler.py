@@ -119,7 +119,7 @@ class Compiler(CompilerSuiteTool):
 
         # Run the compiler to get the version and parse the output
         # The implementations depend on vendor
-        output = self._run_version_command()
+        output = self.run_version_command()
         version_string = self._parse_version_output(output)
 
         # Expect the version to be dot-separated integers.
@@ -142,12 +142,22 @@ class Compiler(CompilerSuiteTool):
         self._version = version
         return version
 
-    def _run_version_command(self) -> str:
+    def run_version_command(
+            self, version_command: Optional[str] = '--version') -> str:
         '''
         Run the compiler's command to get its version.
-        Implemented in subclasses for specific compilers.
+
+        :param version_command: The compiler argument used to get version info.
+
+        :returns: The output from the version command.
+
+        :raises RuntimeError: if the compiler was not found, or raised an error.
         '''
-        raise NotImplementedError
+        try:
+            return self.run(version_command, capture_output=True)
+        except RuntimeError as err:
+            raise RuntimeError(f"Error asking for version of compiler "
+                               f"'{self.name}'") from err
 
     def _parse_version_output(self, version_output) -> str:
         '''
@@ -187,8 +197,7 @@ class CCompiler(Compiler):
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str, compile_flag=None,
-                 output_flag=None,
-                 omp_flag=None):
+                 output_flag=None, omp_flag=None):
         super().__init__(name, exec_name, suite, Category.C_COMPILER,
                          compile_flag, output_flag, omp_flag)
 
@@ -266,24 +275,10 @@ class FortranCompiler(Compiler):
 
 
 # ============================================================================
-class GnuCompiler(Compiler):
-    '''GNU Versioning mixin'''
+class GnuVersionHandling(Compiler):
+    '''Mixin to handle version information from GNU compilers'''
 
-    def _run_version_command(self) -> str:
-        '''
-        Run the compiler's command to get its version
-
-        :returns: The output from the version command
-
-        :raises RuntimeError: if the compiler was not found, or raised an error.
-        '''
-        try:
-            return self.run("--version", capture_output=True)
-        except RuntimeError as err:
-            raise RuntimeError(f"Error asking for version of compiler "
-                               f"'{self.name}'") from err
-
-    def _parse_version_output(self, version_output) -> str:
+    def _parse_version_output(self, version_output: str) -> str:
         '''
         Extract the numerical part from the version output
 
@@ -308,7 +303,7 @@ class GnuCompiler(Compiler):
 
 
 # ============================================================================
-class Gcc(GnuCompiler, CCompiler):
+class Gcc(GnuVersionHandling, CCompiler):
     '''Class for GNU's gcc compiler.
 
     :param name: name of this compiler.
@@ -321,7 +316,7 @@ class Gcc(GnuCompiler, CCompiler):
 
 
 # ============================================================================
-class Gfortran(GnuCompiler, FortranCompiler):
+class Gfortran(GnuVersionHandling, FortranCompiler):
     '''Class for GNU's gfortran compiler.
 
     :param name: name of this compiler.
@@ -337,24 +332,10 @@ class Gfortran(GnuCompiler, FortranCompiler):
 
 
 # ============================================================================
-class IntelCompiler(Compiler):
-    '''Intel Versioning mixin'''
+class IntelVersionHandling(Compiler):
+    '''Mixin to handle version information from Intel compilers'''
 
-    def _run_version_command(self) -> str:
-        '''
-        Run the compiler's command to get its version
-
-        :returns: The output from the version command
-
-        :raises RuntimeError: if the compiler was not found, or raised an error.
-        '''
-        try:
-            return self.run("--version", capture_output=True)
-        except RuntimeError as err:
-            raise RuntimeError(f"Error asking for version of compiler "
-                               f"'{self.name}'\n{err}") from err
-
-    def _parse_version_output(self, version_output) -> str:
+    def _parse_version_output(self, version_output: str) -> str:
         '''
         Extract the numerical part from the version output
 
@@ -376,7 +357,7 @@ class IntelCompiler(Compiler):
 
 
 # ============================================================================
-class Icc(IntelCompiler, CCompiler):
+class Icc(IntelVersionHandling, CCompiler):
     '''Class for the Intel's icc compiler.
 
     :param name: name of this compiler.
@@ -390,7 +371,7 @@ class Icc(IntelCompiler, CCompiler):
 
 
 # ============================================================================
-class Ifort(IntelCompiler, FortranCompiler):
+class Ifort(IntelVersionHandling, FortranCompiler):
     '''Class for Intel's ifort compiler.
 
     :param name: name of this compiler.
