@@ -207,7 +207,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
     """
     def __call__(self, artefact_store):
         return CollectionGetter(ArtefactSet.PRAGMAD_C)(artefact_store) \
-               or SuffixFilter(ArtefactSet.ALL_SOURCE, '.c')(artefact_store)
+               or SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.c')(artefact_store)
 
 
 # todo: rename preprocess_c

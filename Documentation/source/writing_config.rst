@@ -79,7 +79,7 @@ Please see the documentation for :func:`~fab.steps.find_source_files.find_source
 including how to exclude certain source code from the build. More grab steps can be found in the :mod:`~fab.steps.grab`
 module.
 
-After the find_source_files step, there will be a collection called ``"ALL_SOURCE"``, in the artefact store.
+After the find_source_files step, there will be a collection called ``"INITIAL_SOURCE"``, in the artefact store.
 
 .. [1] See :func:`~fab.steps.c_pragma_injector.c_pragma_injector` for an example of a step which
     creates artefacts in the source folder.
@@ -94,7 +94,7 @@ which must happen before we analyse it.
 
 Steps generally create and find artefacts in the :term:`Artefact Store`, arranged into named collections.
 The :func:`~fab.steps.preprocess.preprocess_fortran`
-automatically looks for Fortran source code in a collection named `'ALL_SOURCE'`,
+automatically looks for Fortran source code in a collection named `'INITIAL_SOURCE'`,
 which is the default output from the preceding :funcfind_source_files step.
 It filters just the (uppercase) ``.F90`` files.
 
@@ -293,8 +293,8 @@ it is the user's responsibility to maintain the default artefact sets
   My apologies for the LONG lines, they were the only way I could find
   to have properly indented paragraphs :(
 
-1. :func:`~fab.steps.find_source_files.find_source_files` will add all source files it finds to ``ALL_SOURCE`` (by default, can be overwritten by the user). Any ``.F90`` and ``.f90`` file will also be added to ``FORTRAN_BUILD_FILES``, any ``.c`` file to ``C_BUILD_FILES``, and any ``.x90`` or ``.X90`` file to ``X90_BUILD_FILES``. It can be called several times if files from different root directories need to be added, and it will automatically update the ``*_BUILD_FILES`` sets.
-2. Any user script that creates new files can add files to ``ALL_SOURCE`` if required, but also to the corresponding ``*_BUILD_FILES``. This will happen automatically if :func:`~fab.steps.find_source_files.find_source_files` is called to add these newly created files.
+1. :func:`~fab.steps.find_source_files.find_source_files` will add all source files it finds to ``INITIAL_SOURCE`` (by default, can be overwritten by the user). Any ``.F90`` and ``.f90`` file will also be added to ``FORTRAN_BUILD_FILES``, any ``.c`` file to ``C_BUILD_FILES``, and any ``.x90`` or ``.X90`` file to ``X90_BUILD_FILES``. It can be called several times if files from different root directories need to be added, and it will automatically update the ``*_BUILD_FILES`` sets.
+2. Any user script that creates new files can add files to ``INITIAL_SOURCE`` if required, but also to the corresponding ``*_BUILD_FILES``. This will happen automatically if :func:`~fab.steps.find_source_files.find_source_files` is called to add these newly created files.
 3. If :func:`~fab.steps.c_pragma_injector.c_pragma_injector` is being called, it will handle all files in ``C_BUILD_FILES``, and will replace all the original C files with the newly created ones. For backward compatibility it will also store the new objects in the ``PRAGMAD_C`` set.
 4. If :func:`~fab.steps.preprocess.preprocess_c` is called, it will preprocess all files in ``C_BUILD_FILES`` (at this stage typically preprocess the files in the original source folder, writing the output files to the build folder), and update that artefact set accordingly. For backward compatibility it will also store the preprocessed files in ``PREPROCESSED_C``.
 5. If :func:`~fab.steps.preprocess.preprocess_fortran` is called, it will preprocess all files in ``FORTRAN_BUILD_FILES`` that end on ``.F90``, creating new ``.f90`` files in the build folder. These files will be added to ``PREPROCESSED_FORTRAN``. Then the original ``.F90`` are removed from ``FORTRAN_BUILD_FILES``, and the new preprocessed files (which are in ``PREPROCESSED_FORTRAN``) will be added. Then any ``.f90`` files that are not already in the build folder (an example of this are files created by a user script) are copied from the original source folder into the build folder, and ``FORTRAN_BUILD_FILES`` is updated to use the files in the new location.
