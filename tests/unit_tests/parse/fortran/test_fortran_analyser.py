@@ -18,20 +18,25 @@ from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.fortran_common import iter_content
 from fab.tools import ToolBox
 
+'''Tests the Fortran analyser.
+'''
 
 # todo: test function binding
 
 
 @pytest.fixture
-def module_fpath():
+def module_fpath() -> Path:
+    '''Simple fixture that sets the name of the module test file.'''
     return Path(__file__).parent / "test_fortran_analyser.f90"
 
 
 @pytest.fixture
-def module_expected(module_fpath):
+def module_expected(module_fpath) -> AnalysedFortran:
+    '''Returns the expected AnalysedFortran instance for the Fortran
+    test module.'''
     return AnalysedFortran(
         fpath=module_fpath,
-        file_hash=1344519263,
+        file_hash=1757501304,
         module_defs={'foo_mod'},
         symbol_defs={'external_sub', 'external_func', 'foo_mod'},
         module_deps={'bar_mod', 'compute_chunk_size_mod'},
@@ -41,7 +46,7 @@ def module_expected(module_fpath):
     )
 
 
-class Test_Analyser(object):
+class TestAnalyser:
 
     @pytest.fixture
     def fortran_analyser(self, tmp_path):
@@ -53,29 +58,37 @@ class Test_Analyser(object):
     def test_empty_file(self, fortran_analyser):
         # make sure we get back an EmptySourceFile
         with mock.patch('fab.parse.AnalysedFile.save'):
-            analysis, artefact = fortran_analyser.run(fpath=Path(Path(__file__).parent / "empty.f90"))
-        assert type(analysis) is EmptySourceFile
+            analysis, artefact = fortran_analyser.run(
+                fpath=Path(Path(__file__).parent / "empty.f90"))
+        assert isinstance(analysis, EmptySourceFile)
         assert artefact is None
 
-    def test_module_file(self, fortran_analyser, module_fpath, module_expected):
+    def test_module_file(self, fortran_analyser, module_fpath,
+                         module_expected):
         with mock.patch('fab.parse.AnalysedFile.save'):
             analysis, artefact = fortran_analyser.run(fpath=module_fpath)
         assert analysis == module_expected
-        assert artefact == fortran_analyser._config.prebuild_folder / f'test_fortran_analyser.{analysis.file_hash}.an'
+        assert artefact == (fortran_analyser._config.prebuild_folder /
+                            f'test_fortran_analyser.{analysis.file_hash}.an')
 
-    def test_program_file(self, fortran_analyser, module_fpath, module_expected):
+    def test_program_file(self, fortran_analyser, module_fpath,
+                          module_expected):
         # same as test_module_file() but replacing MODULE with PROGRAM
         with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
-            tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
+            tmp_file.write(module_fpath.open().read().replace("MODULE",
+                                                              "PROGRAM"))
             tmp_file.flush()
             with mock.patch('fab.parse.AnalysedFile.save'):
-                analysis, artefact = fortran_analyser.run(fpath=Path(tmp_file.name))
+                analysis, artefact = fortran_analyser.run(
+                    fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)
-            module_expected._file_hash = 731743441
+            module_expected._file_hash = 3388519280
             module_expected.program_defs = {'foo_mod'}
             module_expected.module_defs = set()
-            module_expected.symbol_defs.update({'internal_sub', 'openmp_sentinel', 'internal_func'})
+            module_expected.symbol_defs.update({'internal_func',
+                                                'internal_sub',
+                                                'openmp_sentinel'})
 
             assert analysis == module_expected
             assert artefact == fortran_analyser._config.prebuild_folder \
@@ -84,11 +97,13 @@ class Test_Analyser(object):
 
 # todo: test more methods!
 
-class Test_process_variable_binding(object):
+class TestProcessVariableBinding:
+    '''This test class tests the variable binding.'''
 
     # todo: define and depend, with and without bind name
 
     def test_define_without_bind_name(self, tmp_path):
+        '''Test usage of bind'''
         fpath = tmp_path / 'temp.f90'
 
         open(fpath, 'wt').write("""
@@ -112,13 +127,15 @@ class Test_process_variable_binding(object):
         tree = f2008_parser(reader)
 
         # find the tree node representing the variable binding
-        var_decl = next(obj for obj in iter_content(tree) if isinstance(obj, Type_Declaration_Stmt))
+        var_decl = next(obj for obj in iter_content(tree)
+                        if isinstance(obj, Type_Declaration_Stmt))
 
         # run our handler
         fpath = Path('foo')
         analysed_file = AnalysedFortran(fpath=fpath, file_hash=0)
         analyser = FortranAnalyser()
-        analyser._process_variable_binding(analysed_file=analysed_file, obj=var_decl)
+        analyser._process_variable_binding(analysed_file=analysed_file,
+                                           obj=var_decl)
 
         assert analysed_file.symbol_defs == {'helloworld', }
 
