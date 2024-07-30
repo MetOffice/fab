@@ -16,7 +16,6 @@ def test_artefact_store() -> None:
     artefact_store = ArtefactStore()
     assert len(artefact_store) == len(ArtefactSet)
     assert isinstance(artefact_store, dict)
-    assert ArtefactSet.CURRENT_PREBUILDS in artefact_store
     for artefact in ArtefactSet:
         if artefact in [ArtefactSet.OBJECT_FILES,
                         ArtefactSet.OBJECT_ARCHIVES]:
@@ -35,29 +34,29 @@ def test_artefact_store_copy() -> None:
     d = Path("d.F90.nocopy")
     e = Path("e.f90.donotcopyeither")
     # Try adding a single path, a set and a list:
-    artefact_store.add(ArtefactSet.ALL_SOURCE, a)
-    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE, a)
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
                                   ArtefactSet.CURRENT_PREBUILDS)
     assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
-    artefact_store.add(ArtefactSet.ALL_SOURCE, [b, c])
-    artefact_store.add(ArtefactSet.ALL_SOURCE, set([d, e]))
-    assert (artefact_store[ArtefactSet.ALL_SOURCE] ==
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE, [b, c])
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE, set([d, e]))
+    assert (artefact_store[ArtefactSet.INITIAL_SOURCE] ==
             set([a, b, c, d, e]))
 
     # Make sure that the previous copy did not get modified:
     assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
-    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
                                   ArtefactSet.CURRENT_PREBUILDS)
     assert (artefact_store[ArtefactSet.CURRENT_PREBUILDS] ==
             set([a, b, c, d, e]))
     # Now copy with suffix filtering:
-    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
                                   ArtefactSet.FORTRAN_BUILD_FILES,
                                   suffixes=[".F90", ".f90"])
     assert artefact_store[ArtefactSet.FORTRAN_BUILD_FILES] == set([a, b, c])
 
     # Make sure filtering is case sensitive
-    artefact_store.copy_artefacts(ArtefactSet.ALL_SOURCE,
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
                                   ArtefactSet.C_BUILD_FILES,
                                   suffixes=[".f90"])
     assert artefact_store[ArtefactSet.C_BUILD_FILES] == set([a, c])
@@ -77,13 +76,13 @@ def test_artefact_store_update_dict() -> None:
 def test_artefact_store_replace() -> None:
     '''Tests the replace function.'''
     artefact_store = ArtefactStore()
-    artefact_store.add(ArtefactSet.ALL_SOURCE, [Path("a"), Path("b"),
-                                                Path("c")])
-    artefact_store.replace(ArtefactSet.ALL_SOURCE,
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE, [Path("a"), Path("b"),
+                                                    Path("c")])
+    artefact_store.replace(ArtefactSet.INITIAL_SOURCE,
                            remove_files=[Path("a"), Path("b")],
                            add_files=[Path("B")])
-    assert artefact_store[ArtefactSet.ALL_SOURCE] == set([Path("B"),
-                                                          Path("c")])
+    assert artefact_store[ArtefactSet.INITIAL_SOURCE] == set([Path("B"),
+                                                              Path("c")])
 
     # Test the behaviour for dictionaries
     with pytest.raises(RuntimeError) as err:
@@ -181,9 +180,9 @@ class TestFilterBuildTrees():
 def test_collection_getter() -> None:
     '''Test CollectionGetter.'''
     artefact_store = ArtefactStore()
-    artefact_store.add(ArtefactSet.ALL_SOURCE, ["a", "b", "c"])
-    cg = CollectionGetter(ArtefactSet.ALL_SOURCE)
-    assert artefact_store[ArtefactSet.ALL_SOURCE] == cg(artefact_store)
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE, ["a", "b", "c"])
+    cg = CollectionGetter(ArtefactSet.INITIAL_SOURCE)
+    assert artefact_store[ArtefactSet.INITIAL_SOURCE] == cg(artefact_store)
 
 
 def test_collection_concat():

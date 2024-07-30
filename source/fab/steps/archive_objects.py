@@ -24,10 +24,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_SOURCE_GETTER = CollectionGetter(ArtefactSet.OBJECT_FILES)
 
 
-# todo: two diagrams showing the flow of artefacts in the exe and library use cases
-#       show how the library has a single build target with None as the name.
+# todo: two diagrams showing the flow of artefacts in the executables and
+# library use cases show how the library has a single build target with None
+# as the name.
 
-# todo: all this documentation for such a simple step - should we split it up somehow?
+# todo: all this documentation for such a simple step - should we split it
+# up somehow?
 
 @step
 def archive_objects(config: BuildConfig,
@@ -73,7 +75,7 @@ def archive_objects(config: BuildConfig,
     targets, each with a name. This typically happens when configuring the
     :class:`~fab.steps.analyser.Analyser` step *with* a root symbol(s).
     We can assume each list of object files is sufficient to build each
-    *<root_symbol>.exe*.
+    *<root_symbol>* executable.
 
     In this case you cannot specify an *output_fpath* path because they are
     automatically created from the target name.
@@ -110,14 +112,15 @@ def archive_objects(config: BuildConfig,
     target_objects = source_getter(config.artefact_store)
     assert target_objects.keys()
     if output_fpath and list(target_objects.keys()) != [None]:
-        raise ValueError("You must not specify an output path (library) when there are root symbols (exes)")
+        raise ValueError("You must not specify an output path (library) when "
+                         "there are root symbols (executables)")
     if not output_fpath and list(target_objects.keys()) == [None]:
         raise ValueError("You must specify an output path when building a library.")
 
     for root, objects in target_objects.items():
 
         if root:
-            # we're building an object archive for an exe
+            # we're building an object archive for an executable
             output_fpath = str(config.build_output / f'{root}.a')
         else:
             # we're building a single object archive with a given filename
