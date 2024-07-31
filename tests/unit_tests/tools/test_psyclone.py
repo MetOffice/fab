@@ -46,7 +46,7 @@ def test_psyclone_check_available():
         assert not psyclone.check_available()
 
 
-def test_psyclone_process():
+def test_psyclone_process(psyclone_lfric_api):
     '''Test running PSyclone.'''
     psyclone = Psyclone()
     mock_result = mock.Mock(returncode=0)
@@ -57,7 +57,7 @@ def test_psyclone_process():
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         psyclone.process(config=config,
-                         api="dynamo0.3",
+                         api=psyclone_lfric_api,
                          x90_file="x90_file",
                          psy_file="psy_file",
                          alg_file="alg_file",
@@ -65,8 +65,8 @@ def test_psyclone_process():
                          kernel_roots=["root1", "root2"],
                          additional_parameters=["-c", "psyclone.cfg"])
     tool_run.assert_called_with(
-        ['psyclone', '-api', 'dynamo0.3', '-l', 'all', '-opsy', 'psy_file',
-         '-oalg', 'alg_file', '-s', 'script_called', '-c',
+        ['psyclone', '-api', psyclone_lfric_api, '-l', 'all', '-opsy',
+         'psy_file', '-oalg', 'alg_file', '-s', 'script_called', '-c',
          'psyclone.cfg', '-d', 'root1', '-d', 'root2', 'x90_file'],
         capture_output=True, env=None, cwd=None, check=False)
 
@@ -112,12 +112,12 @@ def test_psyclone_process():
                          x90_file="x90_file",
                          psy_file="psy_file",
                          alg_file="alg_file",
-                         api="dynamo0.3",
+                         api=psyclone_lfric_api,
                          transformation_script=transformation_function,
                          kernel_roots=["root1", "root2"],
                          additional_parameters=["-c", "psyclone.cfg"])
     tool_run.assert_called_with(
-        ['psyclone', '-api', 'dynamo0.3', '-l', 'all', '-opsy', 'psy_file',
-         '-oalg', 'alg_file', '-s', 'script_called', '-c',
+        ['psyclone', '-api', psyclone_lfric_api, '-l', 'all', '-opsy',
+         'psy_file', '-oalg', 'alg_file', '-s', 'script_called', '-c',
          'psyclone.cfg', '-d', 'root1', '-d', 'root2', 'x90_file'],
         capture_output=True, env=None, cwd=None, check=False)
