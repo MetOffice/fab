@@ -13,7 +13,7 @@ from fab.steps.find_source_files import find_source_files, Exclude
 from fab.steps.psyclone import psyclone, preprocess_x90
 from fab.tools import ToolBox
 
-from lfric_common import configurator, fparser_workaround_stop_concatenation
+from lfric_common import API, configurator, fparser_workaround_stop_concatenation
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 
 
@@ -57,7 +57,7 @@ if __name__ == '__main__':
             kernel_roots=[state.build_output],
             cli_args=['--config', Path(__file__).parent / 'psyclone.cfg'],
             overrides_folder=state.source_root / 'mesh_tools_overrides',
-            api="dynamo0.3",
+            api=API,
         )
 
         fparser_workaround_stop_concatenation(state)
