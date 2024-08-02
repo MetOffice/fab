@@ -312,7 +312,8 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> Dict[str, 
             symbols[symbol_def] = analysed_file.fpath
 
     if duplicates:
-        # we don't break the build because these symbols might not be required to build the exe
+        # we don't break the build because these symbols might not be
+        # required to build the executable.
         # todo: put a big warning at the end of the build?
         err_msg = "\n".join(map(str, duplicates))
         warnings.warn(f"Duplicates found while generating symbol table:\n{err_msg}")

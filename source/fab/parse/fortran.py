@@ -298,8 +298,9 @@ class FortranAnalyser(FortranAnalyserBase):
         if comment[:2] == "!$":
             # Check if it is a use statement with an OpenMP sentinel:
             # Use fparser's string reader to discard potential comment
-            # TODO #13: once fparser supports reading the sentinels,
+            # TODO #327: once fparser supports reading the sentinels,
             # this can be removed.
+            # fparser issue: https://github.com/stfc/fparser/issues/443
             reader = FortranStringReader(comment[2:])
             try:
                 line = reader.next()

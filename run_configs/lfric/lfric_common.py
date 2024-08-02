@@ -1,9 +1,11 @@
 import logging
 import os
 import shutil
+from typing import Optional
 from pathlib import Path
 
 from fab.artefacts import ArtefactSet
+from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.steps.find_source_files import find_source_files
 from fab.tools import Category, Tool
@@ -111,11 +113,11 @@ def fparser_workaround_stop_concatenation(config):
 
 
 # ============================================================================
-def get_transformation_script(fpath, config):
+def get_transformation_script(fpath: Path,
+                              config: BuildConfig) -> Optional[Path]:
     ''':returns: the transformation script to be used by PSyclone.
-    :rtype: Path
-
     '''
+
     optimisation_path = config.source_root / 'optimisation' / 'meto-spice'
     relative_path = None
     for base_path in [config.source_root, config.build_output]:
@@ -132,4 +134,4 @@ def get_transformation_script(fpath, config):
     global_transformation_script = optimisation_path / 'global.py'
     if global_transformation_script.exists():
         return global_transformation_script
-    return ""
+    return None

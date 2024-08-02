@@ -377,7 +377,7 @@ class TestProcessFile:
         # changing the compiler version must change the combo hash for the mods and obj
         mp_common_args, flags, analysed_file, orig_obj_hash, orig_mods_hash = content
         compiler = mp_common_args.config.tool_box[Category.FORTRAN_COMPILER]
-        compiler._version = "9.8.7"
+        compiler._version = (9, 8, 7)
 
         obj_combo_hash = '1a87f4e07'
         mods_combo_hash = '131edbafd'

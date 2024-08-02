@@ -136,7 +136,8 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
     if not isinstance(compiler, FortranCompiler):
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of type "
                            f"'{type(compiler)}' instead of FortranCompiler")
-    logger.info(f'Fortran compiler is {compiler} {compiler.get_version()}')
+    logger.info(
+        f'Fortran compiler is {compiler} {compiler.get_version_string()}')
 
     # Collate the flags from 1) flags env and 2) parameters.
     env_flags = os.getenv('FFLAGS', '').split()
