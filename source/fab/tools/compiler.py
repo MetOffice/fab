@@ -11,7 +11,7 @@ classes for gcc, gfortran, icc, ifort
 import os
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple, Union, Protocol
+from typing import List, Optional, Tuple, Union
 import zlib
 
 from fab.tools.category import Category
@@ -120,7 +120,7 @@ class Compiler(CompilerSuiteTool):
         # Run the compiler to get the version and parse the output
         # The implementations depend on vendor
         output = self.run_version_command()
-        version_string = self._parse_version_output(output)
+        version_string = self.parse_version_output(output)
 
         # Expect the version to be dot-separated integers.
         # todo: Not all will be integers? but perhaps major and minor?
@@ -159,10 +159,10 @@ class Compiler(CompilerSuiteTool):
             raise RuntimeError(f"Error asking for version of compiler "
                                f"'{self.name}'") from err
 
-    def _parse_version_output(self, version_output: str) -> str:
+    def parse_version_output(self, version_output: str) -> str:
         '''
         Extract the numerical part from the version output.
-        Implemented in mixins for specific compilers.
+        Implemented in specific compilers.
         '''
         raise NotImplementedError
 
@@ -178,18 +178,6 @@ class Compiler(CompilerSuiteTool):
         """
         version = self.get_version()
         return '.'.join(str(x) for x in version)
-
-
-class VersionHandler(Protocol):
-    ''' Protocol that defines common functionality required for parsing version
-    output.
-
-    Used by version handler mixins to avoid inheriting Compiler directly.
-    '''
-    @property
-    def name(self) -> str: ...
-    @property
-    def category(self) -> Category: ...
 
 
 # ============================================================================
@@ -290,11 +278,14 @@ class FortranCompiler(Compiler):
 class GnuVersionHandling():
     '''Mixin to handle version information from GNU compilers'''
 
-    def _parse_version_output(
-            self: VersionHandler, version_output: str) -> str:
+    @staticmethod
+    def parse_gnu_version_output(
+            name: str, category: Category, version_output: str) -> str:
         '''
-        Extract the numerical part from the version output
+        Extract the numerical part from a GNU compiler's version output
 
+        :param name: the compiler's name
+        :param category: the compiler's Category
         :param version_output: the full version output from the compiler
         :returns: the actual version as a string
 
@@ -303,20 +294,20 @@ class GnuVersionHandling():
 
         # Expect the version to appear after some in parentheses, e.g.
         # "GNU Fortran (...) n.n[.n, ...]" or # "gcc (...) n.n[.n, ...]"
-        display_name = self.name
-        if self.category is Category.FORTRAN_COMPILER:
+        display_name = name
+        if category is Category.FORTRAN_COMPILER:
             display_name = 'GNU Fortran'
 
         exp = display_name + r" \(.*?\) (\d[\d\.]+\d)\b"
         matches = re.findall(exp, version_output)
         if not matches:
             raise RuntimeError(f"Unexpected version output format for compiler "
-                               f"'{self.name}': {version_output}")
+                               f"'{name}': {version_output}")
         return matches[0]
 
 
 # ============================================================================
-class Gcc(GnuVersionHandling, CCompiler):
+class Gcc(CCompiler, GnuVersionHandling):
     '''Class for GNU's gcc compiler.
 
     :param name: name of this compiler.
@@ -327,9 +318,14 @@ class Gcc(GnuVersionHandling, CCompiler):
                  exec_name: str = "gcc"):
         super().__init__(name, exec_name, "gnu", omp_flag="-fopenmp")
 
+    def parse_version_output(self, version_output: str) -> str:
+        '''Extract the version from a GNU compiler output'''
+        return GnuVersionHandling.parse_gnu_version_output(
+            self.name, self.category, version_output)
+
 
 # ============================================================================
-class Gfortran(GnuVersionHandling, FortranCompiler):
+class Gfortran(FortranCompiler, GnuVersionHandling):
     '''Class for GNU's gfortran compiler.
 
     :param name: name of this compiler.
@@ -343,16 +339,22 @@ class Gfortran(GnuVersionHandling, FortranCompiler):
                          omp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
 
+    def parse_version_output(self, version_output: str) -> str:
+        '''Extract the version from a GNU compiler output'''
+        return GnuVersionHandling.parse_gnu_version_output(
+            self.name, self.category, version_output)
+
 
 # ============================================================================
 class IntelVersionHandling():
     '''Mixin to handle version information from Intel compilers'''
 
-    def _parse_version_output(
-            self: VersionHandler, version_output: str) -> str:
+    @staticmethod
+    def parse_intel_version_output(name: str, version_output: str) -> str:
         '''
-        Extract the numerical part from the version output
+        Extract the numerical part from an Intel compiler's version output
 
+        :param name: the compiler's name
         :param version_output: the full version output from the compiler
         :returns: the actual version as a string
 
@@ -361,12 +363,12 @@ class IntelVersionHandling():
 
         # Expect the version to appear after some in parentheses, e.g.
         # "icc (...) n.n[.n, ...]" or "ifort (...) n.n[.n, ...]"
-        exp = self.name + r" \(.*?\) (\d[\d\.]+\d)\b"
+        exp = name + r" \(.*?\) (\d[\d\.]+\d)\b"
         matches = re.findall(exp, version_output)
 
         if not matches:
             raise RuntimeError(f"Unexpected version output format for compiler "
-                               f"'{self.name}': {version_output}")
+                               f"'{name}': {version_output}")
         return matches[0]
 
 
@@ -383,6 +385,11 @@ class Icc(IntelVersionHandling, CCompiler):
         super().__init__(name, exec_name, "intel-classic",
                          omp_flag="-qopenmp")
 
+    def parse_version_output(self, version_output: str) -> str:
+        '''Extract the version from an Intel compiler output'''
+        return IntelVersionHandling.parse_intel_version_output(self.name,
+                                                               version_output)
+
 
 # ============================================================================
 class Ifort(IntelVersionHandling, FortranCompiler):
@@ -398,3 +405,8 @@ class Ifort(IntelVersionHandling, FortranCompiler):
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")
+
+    def parse_version_output(self, version_output: str) -> str:
+        '''Extract the version from an Intel compiler output'''
+        return IntelVersionHandling.parse_intel_version_output(self.name,
+                                                               version_output)
