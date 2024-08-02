@@ -11,7 +11,7 @@ classes for gcc, gfortran, icc, ifort
 import os
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Protocol
 import zlib
 
 from fab.tools.category import Category
@@ -162,7 +162,7 @@ class Compiler(CompilerSuiteTool):
     def _parse_version_output(self, version_output: str) -> str:
         '''
         Extract the numerical part from the version output.
-        Implemented in subclasses for specific compilers.
+        Implemented in mixins for specific compilers.
         '''
         raise NotImplementedError
 
@@ -178,6 +178,18 @@ class Compiler(CompilerSuiteTool):
         """
         version = self.get_version()
         return '.'.join(str(x) for x in version)
+
+
+class VersionHandler(Protocol):
+    ''' Protocol that defines common functionality required for parsing version
+    output.
+
+    Used by version handler mixins to avoid inheriting Compiler directly.
+    '''
+    @property
+    def name(self) -> str: ...
+    @property
+    def category(self) -> Category: ...
 
 
 # ============================================================================
@@ -275,10 +287,11 @@ class FortranCompiler(Compiler):
 
 
 # ============================================================================
-class GnuVersionHandling(Compiler):
+class GnuVersionHandling():
     '''Mixin to handle version information from GNU compilers'''
 
-    def _parse_version_output(self, version_output: str) -> str:
+    def _parse_version_output(
+            self: VersionHandler, version_output: str) -> str:
         '''
         Extract the numerical part from the version output
 
@@ -332,10 +345,11 @@ class Gfortran(GnuVersionHandling, FortranCompiler):
 
 
 # ============================================================================
-class IntelVersionHandling(Compiler):
+class IntelVersionHandling():
     '''Mixin to handle version information from Intel compilers'''
 
-    def _parse_version_output(self, version_output: str) -> str:
+    def _parse_version_output(
+            self: VersionHandler, version_output: str) -> str:
         '''
         Extract the numerical part from the version output
 
