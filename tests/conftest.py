@@ -20,7 +20,7 @@ def fixture_mock_c_compiler():
     '''Provides a mock C-compiler.'''
     mock_compiler = CCompiler("mock_c_compiler", "mock_exec", "suite")
     mock_compiler.run = mock.Mock()
-    mock_compiler._version = "1.2.3"
+    mock_compiler._version = (1, 2, 3)
     mock_compiler._name = "mock_c_compiler"
     mock_compiler._exec_name = "mock_c_compiler.exe"
     return mock_compiler
@@ -36,7 +36,7 @@ def fixture_mock_fortran_compiler():
     mock_compiler.run = mock.Mock()
     mock_compiler._name = "mock_fortran_compiler"
     mock_compiler._exec_name = "mock_fortran_compiler.exe"
-    mock_compiler._version = "1.2.3"
+    mock_compiler._version = (1, 2, 3)
     return mock_compiler
 
 
@@ -46,7 +46,7 @@ def fixture_mock_linker():
     mock_linker = Linker("mock_linker", "mock_linker.exe",
                          Category.FORTRAN_COMPILER)
     mock_linker.run = mock.Mock()
-    mock_linker._version = "1.2.3"
+    mock_linker._version = (1, 2, 3)
     return mock_linker
 
 
