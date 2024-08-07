@@ -41,7 +41,7 @@ def test_compiler():
             in str(err.value))
 
     with pytest.raises(NotImplementedError) as err:
-        fc.parse_version_output("NOT NEEDED")
+        fc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
 
     assert ("The method `parse_version_output` must be provided using a mixin."
             in str(err.value))
