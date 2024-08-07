@@ -40,6 +40,12 @@ def test_compiler():
     assert ("The method `parse_version_output` must be provided using a mixin."
             in str(err.value))
 
+    with pytest.raises(NotImplementedError) as err:
+        fc.parse_version_output("NOT NEEDED")
+
+    assert ("The method `parse_version_output` must be provided using a mixin."
+            in str(err.value))
+
 
 def test_compiler_check_available():
     '''Check if check_available works as expected. The compiler class uses

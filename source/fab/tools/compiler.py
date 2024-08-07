@@ -165,7 +165,8 @@ class Compiler(CompilerSuiteTool):
         Extract the numerical part from the version output.
         Implemented in specific compilers.
         '''
-        raise NotImplementedError
+        raise NotImplementedError("The method `parse_version_output` must be "
+                                  "provided using a mixin.")
 
     def get_version_string(self) -> str:
         """
