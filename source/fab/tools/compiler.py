@@ -139,7 +139,7 @@ class Compiler(CompilerSuiteTool):
         # Run the compiler to get the version and parse the output
         # The implementations depend on vendor
         output = self.run_version_command()
-        version_string = self.parse_version_output(output)
+        version_string = self.parse_version_output(self.category, output)
 
         # Expect the version to be dot-separated integers.
         # todo: Not all will be integers? but perhaps major and minor?
@@ -179,12 +179,14 @@ class Compiler(CompilerSuiteTool):
             raise RuntimeError(f"Error asking for version of compiler "
                                f"'{self.name}'") from err
 
-    def parse_version_output(self, version_output: str) -> str:
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
         '''
         Extract the numerical part from the version output.
         Implemented in specific compilers.
         '''
-        raise NotImplementedError
+        raise NotImplementedError("The method `parse_version_output` must be "
+                                  "provided using a mixin.")
 
     def get_version_string(self) -> str:
         """
@@ -311,9 +313,8 @@ class FortranCompiler(Compiler):
 class GnuVersionHandling():
     '''Mixin to handle version information from GNU compilers'''
 
-    @staticmethod
-    def parse_gnu_version_output(
-            name: str, category: Category, version_output: str) -> str:
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
         '''
         Extract the numerical part from a GNU compiler's version output
 
@@ -327,11 +328,11 @@ class GnuVersionHandling():
 
         # Expect the version to appear after some in parentheses, e.g.
         # "GNU Fortran (...) n.n[.n, ...]" or # "gcc (...) n.n[.n, ...]"
-        display_name = name
         if category is Category.FORTRAN_COMPILER:
-            display_name = 'GNU Fortran'
-
-        exp = display_name + r" \(.*?\) (\d[\d\.]+\d)\b"
+            name = "GNU Fortran"
+        else:
+            name = "gcc"
+        exp = name + r" \(.*?\) ([\d\.]+)\b"
         matches = re.findall(exp, version_output)
         if not matches:
             raise RuntimeError(f"Unexpected version output format for "
@@ -340,7 +341,7 @@ class GnuVersionHandling():
 
 
 # ============================================================================
-class Gcc(CCompiler, GnuVersionHandling):
+class Gcc(GnuVersionHandling, CCompiler):
     '''Class for GNU's gcc compiler.
 
     :param name: name of this compiler.
@@ -353,11 +354,6 @@ class Gcc(CCompiler, GnuVersionHandling):
                  mpi: bool = False):
         super().__init__(name, exec_name, suite="gnu", mpi=mpi,
                          openmp_flag="-fopenmp")
-
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from a GNU compiler output'''
-        return GnuVersionHandling.parse_gnu_version_output(
-            self.name, self.category, version_output)
 
 
 # ============================================================================
@@ -373,7 +369,7 @@ class MpiGcc(Gcc):
 
 
 # ============================================================================
-class Gfortran(FortranCompiler, GnuVersionHandling):
+class Gfortran(GnuVersionHandling, FortranCompiler):
     '''Class for GNU's gfortran compiler.
 
     :param name: name of this compiler.
@@ -389,11 +385,6 @@ class Gfortran(FortranCompiler, GnuVersionHandling):
                          module_folder_flag="-J",
                          openmp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
-
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from a GNU compiler output'''
-        return GnuVersionHandling.parse_gnu_version_output(
-            self.name, self.category, version_output)
 
 
 # ============================================================================
@@ -412,8 +403,8 @@ class MpiGfortran(Gfortran):
 class IntelVersionHandling():
     '''Mixin to handle version information from Intel compilers'''
 
-    @staticmethod
-    def parse_intel_version_output(name: str, version_output: str) -> str:
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
         '''
         Extract the numerical part from an Intel compiler's version output
 
@@ -426,7 +417,11 @@ class IntelVersionHandling():
 
         # Expect the version to appear after some in parentheses, e.g.
         # "icc (...) n.n[.n, ...]" or "ifort (...) n.n[.n, ...]"
-        exp = name + r" \(.*?\) (\d[\d\.]+\d)\b"
+        if category == Category.C_COMPILER:
+            name = "icc"
+        else:
+            name = "ifort"
+        exp = name + r" \(.*?\) ([\d\.]+)\b"
         matches = re.findall(exp, version_output)
 
         if not matches:
@@ -449,11 +444,6 @@ class Icc(IntelVersionHandling, CCompiler):
                  mpi: bool = False):
         super().__init__(name, exec_name, suite="intel-classic", mpi=mpi,
                          openmp_flag="-qopenmp")
-
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from an Intel compiler output'''
-        return IntelVersionHandling.parse_intel_version_output(self.name,
-                                                               version_output)
 
 
 # ============================================================================
@@ -485,11 +475,6 @@ class Ifort(IntelVersionHandling, FortranCompiler):
                          module_folder_flag="-module",
                          openmp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")
-
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from an Intel compiler output'''
-        return IntelVersionHandling.parse_intel_version_output(self.name,
-                                                               version_output)
 
 
 # ============================================================================

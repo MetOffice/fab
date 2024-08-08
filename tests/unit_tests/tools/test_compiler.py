@@ -40,6 +40,18 @@ def test_compiler():
     assert not fc.mpi
     assert fc.openmp_flag == "-fopenmp"
 
+    with pytest.raises(NotImplementedError) as err:
+        fc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
+
+    assert ("The method `parse_version_output` must be provided using a mixin."
+            in str(err.value))
+
+    with pytest.raises(NotImplementedError) as err:
+        fc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
+
+    assert ("The method `parse_version_output` must be provided using a mixin."
+            in str(err.value))
+
 
 def test_compiler_check_available():
     '''Check if check_available works as expected. The compiler class uses
