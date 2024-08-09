@@ -181,7 +181,7 @@ def test_get_version_1_part_version():
     If the version is just one integer, that is invalid and we must raise an
     error. '''
     full_output = dedent("""
-        GNU Fortran (gcc) 77
+        GNU Fortran (gcc) 777
         Copyright (C) 2022 Foo Software Foundation, Inc.
     """)
     expected_error = "Unexpected version output format for compiler"
@@ -229,8 +229,9 @@ def test_get_version_4_part_version():
         assert c.get_version() == (19, 0, 0, 117)
 
 
-@pytest.mark.parametrize("version", ["5.15.2g",
+@pytest.mark.parametrize("version", ["5.15f.2",
                                      ".0.5.1",
+                                     "0.5.1.",
                                      "0.5..1"])
 def test_get_version_non_int_version_format(version):
     '''
@@ -554,6 +555,24 @@ def test_ifort_get_version_with_icc_string():
     '''Tests the ifort class with an icc version output.'''
     full_output = dedent("""
         icc (ICC) 2021.10.0 20230609
+        Copyright (C) 1985-2023 Intel Corporation.  All rights reserved.
+
+    """)
+    ifort = Ifort()
+    with mock.patch.object(ifort, "run", mock.Mock(return_value=full_output)):
+        with pytest.raises(RuntimeError) as err:
+            ifort.get_version()
+        assert "Unexpected version output format for compiler" in str(err.value)
+
+
+@pytest.mark.parametrize("version", ["5.15f.2",
+                                     ".0.5.1",
+                                     "0.5.1.",
+                                     "0.5..1"])
+def test_ifort_get_version_invalid_version(version):
+    '''Tests the ifort class with an icc version output.'''
+    full_output = dedent(f"""
+        icc (ICC) {version} 20230609
         Copyright (C) 1985-2023 Intel Corporation.  All rights reserved.
 
     """)

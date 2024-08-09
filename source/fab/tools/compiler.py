@@ -151,7 +151,8 @@ class Compiler(CompilerSuiteTool):
 
         :returns: The output from the version command.
 
-        :raises RuntimeError: if the compiler was not found, or raised an error.
+        :raises RuntimeError: if the compiler was not found, or raised an
+            error.
         '''
         try:
             return self.run(version_command, capture_output=True)
@@ -198,8 +199,8 @@ class CCompiler(Compiler):
     '''
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, exec_name: str, suite: str, compile_flag=None,
-                 output_flag=None, omp_flag=None):
+    def __init__(self, name: str, exec_name: str, suite: str,
+                 compile_flag=None, output_flag=None, omp_flag=None):
         super().__init__(name, exec_name, suite, Category.C_COMPILER,
                          compile_flag, output_flag, omp_flag)
 
@@ -299,12 +300,19 @@ class GnuVersionHandling():
             name = "GNU Fortran"
         else:
             name = "gcc"
-        exp = name + r" \(.*?\) ([\d\.]+)\b"
-        matches = re.findall(exp, version_output)
+        # A version number is a digit, followed by a sequence of digits and
+        # '.'', ending with a digit. It must then be followed by either the
+        # end of the string, or a space (e.g. "... 5.6 123456"). We can't use
+        # \b to determine the end, since then "1.2." would be matched
+        # excluding the dot (so it would become a valid 1.2)
+        exp = name + r" \(.*?\) (\d[\d\.]+\d)(?:$| )"
+        # Multiline is required in case that the version number is the
+        # end of the string, otherwise the $ would not match the end of line
+        matches = re.search(exp, version_output, re.MULTILINE)
         if not matches:
-            raise RuntimeError(f"Unexpected version output format for compiler "
-                               f"'{name}': {version_output}")
-        return matches[0]
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{name}': {version_output}")
+        return matches.groups()[0]
 
 
 # ============================================================================
@@ -358,13 +366,16 @@ class IntelVersionHandling():
             name = "icc"
         else:
             name = "ifort"
-        exp = name + r" \(.*?\) ([\d\.]+)\b"
-        matches = re.findall(exp, version_output)
+
+        # A version number is a digit, followed by a sequence of digits and
+        # '.'', ending with a digit. It must then be followed by a space.
+        exp = name + r" \(.*?\) (\d[\d\.]+\d) "
+        matches = re.search(exp, version_output)
 
         if not matches:
-            raise RuntimeError(f"Unexpected version output format for compiler "
-                               f"'{name}': {version_output}")
-        return matches[0]
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{name}': {version_output}")
+        return matches.groups()[0]
 
 
 # ============================================================================
