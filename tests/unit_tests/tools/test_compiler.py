@@ -14,8 +14,8 @@ from unittest import mock
 
 import pytest
 
-from fab.tools import (Category, CCompiler, FortranCompiler, Gcc, Gfortran, Icc,
-                       Ifort)
+from fab.tools import (Category, CCompiler, FortranCompiler, Gcc, Gfortran,
+                       Icc, Ifort)
 
 
 def test_compiler():
@@ -26,6 +26,10 @@ def test_compiler():
     assert cc._output_flag == "-o"
     assert cc.flags == []
     assert cc.suite == "gnu"
+    with pytest.raises(NotImplementedError) as err:
+        cc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
+    assert ("The method `parse_version_output` must be provided using a mixin."
+            in str(err.value))
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert fc._compile_flag == "-c"
@@ -33,16 +37,8 @@ def test_compiler():
     assert fc.category == Category.FORTRAN_COMPILER
     assert fc.suite == "gnu"
     assert fc.flags == []
-
     with pytest.raises(NotImplementedError) as err:
         fc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
-
-    assert ("The method `parse_version_output` must be provided using a mixin."
-            in str(err.value))
-
-    with pytest.raises(NotImplementedError) as err:
-        fc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
-
     assert ("The method `parse_version_output` must be provided using a mixin."
             in str(err.value))
 
