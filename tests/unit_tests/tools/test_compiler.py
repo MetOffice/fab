@@ -229,13 +229,18 @@ def test_get_version_4_part_version():
         assert c.get_version() == (19, 0, 0, 117)
 
 
-def test_get_version_non_int_version_format():
+@pytest.mark.parametrize("version", ["5.15.2g",
+                                     ".0.5.1",
+                                     "0.5..1"])
+def test_get_version_non_int_version_format(version):
     '''
     Tests the get_version() method with an invalid format.
     If the version contains non-number characters, we must raise an error.
+    TODO: the current code does not detect an error in case of `1.2..`,
+    i.e. a trailing ".".
     '''
-    full_output = dedent("""
-        GNU Fortran (gcc) 5.1f.2g (Foo Hat 4.8.5)
+    full_output = dedent(f"""
+        GNU Fortran (gcc) {version} (Foo Hat 4.8.5)
         Copyright (C) 2022 Foo Software Foundation, Inc.
     """)
     expected_error = "Unexpected version output format for compiler"
