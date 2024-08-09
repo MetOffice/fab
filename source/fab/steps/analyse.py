@@ -239,7 +239,7 @@ def _parse_files(config, files: List[Path], fortran_analyser, c_analyser) -> Set
 
     """
     # fortran
-    fortran_files = set(filter(lambda f: f.suffix == '.f90', files))
+    fortran_files = set(filter(lambda f: f.suffix in ['.f90', '.f'], files))
     with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
         fortran_results = run_mp(config, items=fortran_files, func=fortran_analyser.run)
     fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
