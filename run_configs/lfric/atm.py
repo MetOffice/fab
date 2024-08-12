@@ -20,7 +20,7 @@ from fab.steps.find_source_files import find_source_files, Exclude, Include
 from fab.tools import ToolBox
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import (configurator, fparser_workaround_stop_concatenation,
+from lfric_common import (API, configurator, fparser_workaround_stop_concatenation,
                           get_transformation_script)
 
 logger = logging.getLogger('fab')
@@ -247,7 +247,7 @@ if __name__ == '__main__':
             kernel_roots=[state.build_output / 'lfric' / 'kernel'],
             transformation_script=get_transformation_script,
             cli_args=[],
-            api="dynamo0.3",
+            api=API,
         )
 
         # todo: do we need this one in here?

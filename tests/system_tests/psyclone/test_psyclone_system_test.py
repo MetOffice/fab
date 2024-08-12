@@ -134,7 +134,7 @@ class TestPsyclone:
                              fab_workspace=tmp_path, multiprocessing=False)
         return config
 
-    def steps(self, config):
+    def steps(self, config, psyclone_lfric_api):
         here = Path(__file__).parent
         grab_folder(config, here / 'skeleton')
         find_source_files(config)
@@ -148,9 +148,9 @@ class TestPsyclone:
             config.build_output / 'kernel',
             # this second folder is just to test the multiple folders code, which was bugged. There's no kernels there.
             Path(__file__).parent / 'skeleton/algorithm',
-        ], api="dynamo0.3")
+        ], api=psyclone_lfric_api)
 
-    def test_run(self, config):
+    def test_run(self, config, psyclone_lfric_api):
         # if these files exist after the run then we know:
         #   a) the expected files were created
         #   b) the prebuilds were protected from automatic cleanup
@@ -174,20 +174,20 @@ class TestPsyclone:
         assert all(list(config.prebuild_folder.glob(f)) == [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) == [] for f in expect_build_files)
         with config, pytest.warns(UserWarning, match="no transformation script specified"):
-            self.steps(config)
+            self.steps(config, psyclone_lfric_api)
         assert all(list(config.prebuild_folder.glob(f)) != [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) != [] for f in expect_build_files)
 
-    def test_prebuild(self, tmp_path, config):
+    def test_prebuild(self, tmp_path, config, psyclone_lfric_api):
         with config, pytest.warns(UserWarning, match="no transformation script specified"):
-            self.steps(config)
+            self.steps(config, psyclone_lfric_api)
 
         # make sure no work gets done the second time round
         with mock.patch('fab.parse.x90.X90Analyser.walk_nodes') as mock_x90_walk, \
                 mock.patch('fab.parse.fortran.FortranAnalyser.walk_nodes') as mock_fortran_walk, \
                 mock.patch('fab.tools.psyclone.Psyclone.process') as mock_run, \
                 config, pytest.warns(UserWarning, match="no transformation script specified"):
-            self.steps(config)
+            self.steps(config, psyclone_lfric_api)
 
         mock_x90_walk.assert_not_called()
         mock_fortran_walk.assert_not_called()
@@ -200,12 +200,12 @@ class TestTransformationScript:
     and whether transformation script is passed to psyclone after '-s'.
 
     """
-    def test_transformation_script(self):
+    def test_transformation_script(self, psyclone_lfric_api):
         psyclone_tool = Psyclone()
         mock_transformation_script = mock.Mock(return_value=__file__)
         with mock.patch('fab.tools.psyclone.Psyclone.run') as mock_run_command:
             mock_transformation_script.return_value = Path(__file__)
-            psyclone_tool.process(api="dynamo0.3",
+            psyclone_tool.process(api=psyclone_lfric_api,
                                   x90_file=Path(__file__),
                                   psy_file=Path(__file__),
                                   alg_file=Path(__file__),
@@ -219,7 +219,7 @@ class TestTransformationScript:
             mock_transformation_script.assert_called_once_with(Path(__file__), None)
             # check transformation_script is passed to psyclone command with '-s'
             mock_run_command.assert_called_with(
-                additional_parameters=['-api', 'dynamo0.3', '-l', 'all',
+                additional_parameters=['-api', psyclone_lfric_api, '-l', 'all',
                                        '-opsy',  Path(__file__),
                                        '-oalg', Path(__file__),
                                        '-s', Path(__file__),

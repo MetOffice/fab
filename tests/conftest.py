@@ -59,3 +59,10 @@ def fixture_tool_box(mock_c_compiler, mock_fortran_compiler, mock_linker):
     tool_box.add_tool(mock_fortran_compiler)
     tool_box.add_tool(mock_linker)
     return tool_box
+
+
+@pytest.fixture(name="psyclone_lfric_api")
+def fixture_psyclone_lfric_api():
+    '''A simple fixture to provide the name of the LFRic API for
+    PSyclone.'''
+    return "dynamo0.3"
