@@ -12,6 +12,8 @@ from fab.tools import Category, Tool
 
 logger = logging.getLogger('fab')
 
+API = "dynamo0.3"
+
 
 class Script(Tool):
     '''A simple wrapper that runs a shell script.
