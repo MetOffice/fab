@@ -120,7 +120,7 @@ class Compiler(CompilerSuiteTool):
         # Run the compiler to get the version and parse the output
         # The implementations depend on vendor
         output = self.run_version_command()
-        version_string = self.parse_version_output(output)
+        version_string = self.parse_version_output(self.category, output)
 
         # Expect the version to be dot-separated integers.
         # todo: Not all will be integers? but perhaps major and minor?
@@ -151,7 +151,8 @@ class Compiler(CompilerSuiteTool):
 
         :returns: The output from the version command.
 
-        :raises RuntimeError: if the compiler was not found, or raised an error.
+        :raises RuntimeError: if the compiler was not found, or raised an
+            error.
         '''
         try:
             return self.run(version_command, capture_output=True)
@@ -159,12 +160,14 @@ class Compiler(CompilerSuiteTool):
             raise RuntimeError(f"Error asking for version of compiler "
                                f"'{self.name}'") from err
 
-    def parse_version_output(self, version_output: str) -> str:
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
         '''
         Extract the numerical part from the version output.
         Implemented in specific compilers.
         '''
-        raise NotImplementedError
+        raise NotImplementedError("The method `parse_version_output` must be "
+                                  "provided using a mixin.")
 
     def get_version_string(self) -> str:
         """
@@ -196,8 +199,8 @@ class CCompiler(Compiler):
     '''
 
     # pylint: disable=too-many-arguments
-    def __init__(self, name: str, exec_name: str, suite: str, compile_flag=None,
-                 output_flag=None, omp_flag=None):
+    def __init__(self, name: str, exec_name: str, suite: str,
+                 compile_flag=None, output_flag=None, omp_flag=None):
         super().__init__(name, exec_name, suite, Category.C_COMPILER,
                          compile_flag, output_flag, omp_flag)
 
@@ -278,9 +281,8 @@ class FortranCompiler(Compiler):
 class GnuVersionHandling():
     '''Mixin to handle version information from GNU compilers'''
 
-    @staticmethod
-    def parse_gnu_version_output(
-            name: str, category: Category, version_output: str) -> str:
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
         '''
         Extract the numerical part from a GNU compiler's version output
 
@@ -294,20 +296,27 @@ class GnuVersionHandling():
 
         # Expect the version to appear after some in parentheses, e.g.
         # "GNU Fortran (...) n.n[.n, ...]" or # "gcc (...) n.n[.n, ...]"
-        display_name = name
         if category is Category.FORTRAN_COMPILER:
-            display_name = 'GNU Fortran'
-
-        exp = display_name + r" \(.*?\) (\d[\d\.]+\d)\b"
-        matches = re.findall(exp, version_output)
+            name = "GNU Fortran"
+        else:
+            name = "gcc"
+        # A version number is a digit, followed by a sequence of digits and
+        # '.'', ending with a digit. It must then be followed by either the
+        # end of the string, or a space (e.g. "... 5.6 123456"). We can't use
+        # \b to determine the end, since then "1.2." would be matched
+        # excluding the dot (so it would become a valid 1.2)
+        exp = name + r" \(.*?\) (\d[\d\.]+\d)(?:$| )"
+        # Multiline is required in case that the version number is the
+        # end of the string, otherwise the $ would not match the end of line
+        matches = re.search(exp, version_output, re.MULTILINE)
         if not matches:
-            raise RuntimeError(f"Unexpected version output format for compiler "
-                               f"'{name}': {version_output}")
-        return matches[0]
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{name}': {version_output}")
+        return matches.groups()[0]
 
 
 # ============================================================================
-class Gcc(CCompiler, GnuVersionHandling):
+class Gcc(GnuVersionHandling, CCompiler):
     '''Class for GNU's gcc compiler.
 
     :param name: name of this compiler.
@@ -318,14 +327,9 @@ class Gcc(CCompiler, GnuVersionHandling):
                  exec_name: str = "gcc"):
         super().__init__(name, exec_name, "gnu", omp_flag="-fopenmp")
 
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from a GNU compiler output'''
-        return GnuVersionHandling.parse_gnu_version_output(
-            self.name, self.category, version_output)
-
 
 # ============================================================================
-class Gfortran(FortranCompiler, GnuVersionHandling):
+class Gfortran(GnuVersionHandling, FortranCompiler):
     '''Class for GNU's gfortran compiler.
 
     :param name: name of this compiler.
@@ -339,18 +343,13 @@ class Gfortran(FortranCompiler, GnuVersionHandling):
                          omp_flag="-fopenmp",
                          syntax_only_flag="-fsyntax-only")
 
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from a GNU compiler output'''
-        return GnuVersionHandling.parse_gnu_version_output(
-            self.name, self.category, version_output)
-
 
 # ============================================================================
 class IntelVersionHandling():
     '''Mixin to handle version information from Intel compilers'''
 
-    @staticmethod
-    def parse_intel_version_output(name: str, version_output: str) -> str:
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
         '''
         Extract the numerical part from an Intel compiler's version output
 
@@ -363,13 +362,20 @@ class IntelVersionHandling():
 
         # Expect the version to appear after some in parentheses, e.g.
         # "icc (...) n.n[.n, ...]" or "ifort (...) n.n[.n, ...]"
-        exp = name + r" \(.*?\) (\d[\d\.]+\d)\b"
-        matches = re.findall(exp, version_output)
+        if category == Category.C_COMPILER:
+            name = "icc"
+        else:
+            name = "ifort"
+
+        # A version number is a digit, followed by a sequence of digits and
+        # '.'', ending with a digit. It must then be followed by a space.
+        exp = name + r" \(.*?\) (\d[\d\.]+\d) "
+        matches = re.search(exp, version_output)
 
         if not matches:
-            raise RuntimeError(f"Unexpected version output format for compiler "
-                               f"'{name}': {version_output}")
-        return matches[0]
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{name}': {version_output}")
+        return matches.groups()[0]
 
 
 # ============================================================================
@@ -384,11 +390,6 @@ class Icc(IntelVersionHandling, CCompiler):
                  exec_name: str = "icc"):
         super().__init__(name, exec_name, "intel-classic",
                          omp_flag="-qopenmp")
-
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from an Intel compiler output'''
-        return IntelVersionHandling.parse_intel_version_output(self.name,
-                                                               version_output)
 
 
 # ============================================================================
@@ -405,8 +406,3 @@ class Ifort(IntelVersionHandling, FortranCompiler):
                          module_folder_flag="-module",
                          omp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only")
-
-    def parse_version_output(self, version_output: str) -> str:
-        '''Extract the version from an Intel compiler output'''
-        return IntelVersionHandling.parse_intel_version_output(self.name,
-                                                               version_output)

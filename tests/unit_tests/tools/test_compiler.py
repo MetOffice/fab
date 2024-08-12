@@ -14,8 +14,8 @@ from unittest import mock
 
 import pytest
 
-from fab.tools import (Category, CCompiler, FortranCompiler, Gcc, Gfortran, Icc,
-                       Ifort)
+from fab.tools import (Category, CCompiler, FortranCompiler, Gcc, Gfortran,
+                       Icc, Ifort)
 
 
 def test_compiler():
@@ -26,6 +26,10 @@ def test_compiler():
     assert cc._output_flag == "-o"
     assert cc.flags == []
     assert cc.suite == "gnu"
+    with pytest.raises(NotImplementedError) as err:
+        cc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
+    assert ("The method `parse_version_output` must be provided using a mixin."
+            in str(err.value))
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", "-J")
     assert fc._compile_flag == "-c"
@@ -33,6 +37,10 @@ def test_compiler():
     assert fc.category == Category.FORTRAN_COMPILER
     assert fc.suite == "gnu"
     assert fc.flags == []
+    with pytest.raises(NotImplementedError) as err:
+        fc.parse_version_output(Category.FORTRAN_COMPILER, "NOT NEEDED")
+    assert ("The method `parse_version_output` must be provided using a mixin."
+            in str(err.value))
 
 
 def test_compiler_check_available():
@@ -169,7 +177,7 @@ def test_get_version_1_part_version():
     If the version is just one integer, that is invalid and we must raise an
     error. '''
     full_output = dedent("""
-        GNU Fortran (gcc) 77
+        GNU Fortran (gcc) 777
         Copyright (C) 2022 Foo Software Foundation, Inc.
     """)
     expected_error = "Unexpected version output format for compiler"
@@ -217,13 +225,19 @@ def test_get_version_4_part_version():
         assert c.get_version() == (19, 0, 0, 117)
 
 
-def test_get_version_non_int_version_format():
+@pytest.mark.parametrize("version", ["5.15f.2",
+                                     ".0.5.1",
+                                     "0.5.1.",
+                                     "0.5..1"])
+def test_get_version_non_int_version_format(version):
     '''
     Tests the get_version() method with an invalid format.
     If the version contains non-number characters, we must raise an error.
+    TODO: the current code does not detect an error in case of `1.2..`,
+    i.e. a trailing ".".
     '''
-    full_output = dedent("""
-        GNU Fortran (gcc) 5.1f.2g (Foo Hat 4.8.5)
+    full_output = dedent(f"""
+        GNU Fortran (gcc) {version} (Foo Hat 4.8.5)
         Copyright (C) 2022 Foo Software Foundation, Inc.
     """)
     expected_error = "Unexpected version output format for compiler"
@@ -544,6 +558,25 @@ def test_ifort_get_version_with_icc_string():
     with mock.patch.object(ifort, "run", mock.Mock(return_value=full_output)):
         with pytest.raises(RuntimeError) as err:
             ifort.get_version()
+        assert "Unexpected version output format for compiler" in str(err.value)
+
+
+@pytest.mark.parametrize("version", ["5.15f.2",
+                                     ".0.5.1",
+                                     "0.5.1.",
+                                     "0.5..1"])
+def test_ifort_get_version_invalid_version(version):
+    '''Tests the icc class with an icc version string that contains an invalid
+    version number.'''
+    full_output = dedent(f"""
+        icc (ICC) {version} 20230609
+        Copyright (C) 1985-2023 Intel Corporation.  All rights reserved.
+
+    """)
+    icc = Icc()
+    with mock.patch.object(icc, "run", mock.Mock(return_value=full_output)):
+        with pytest.raises(RuntimeError) as err:
+            icc.get_version()
         assert "Unexpected version output format for compiler" in str(err.value)
 
 
