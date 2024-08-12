@@ -566,16 +566,17 @@ def test_ifort_get_version_with_icc_string():
                                      "0.5.1.",
                                      "0.5..1"])
 def test_ifort_get_version_invalid_version(version):
-    '''Tests the ifort class with an icc version output.'''
+    '''Tests the icc class with an icc version string that contains an invalid
+    version number.'''
     full_output = dedent(f"""
         icc (ICC) {version} 20230609
         Copyright (C) 1985-2023 Intel Corporation.  All rights reserved.
 
     """)
-    ifort = Ifort()
-    with mock.patch.object(ifort, "run", mock.Mock(return_value=full_output)):
+    icc = Icc()
+    with mock.patch.object(icc, "run", mock.Mock(return_value=full_output)):
         with pytest.raises(RuntimeError) as err:
-            ifort.get_version()
+            icc.get_version()
         assert "Unexpected version output format for compiler" in str(err.value)
 
 
