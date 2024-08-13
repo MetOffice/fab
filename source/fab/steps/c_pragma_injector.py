@@ -20,23 +20,30 @@ DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.C_BUILD_FILES, '.c')
 
 # todo: test
 @step
-def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None, output_name=None):
+def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None,
+                      output_name=None):
     """
-    A build step to inject custom pragmas to mark blocks of user and system include statements.
+    A build step to inject custom pragmas to mark blocks of user and system
+    include statements.
 
-    By default, reads .c files from the *all_source* artefact and creates the *pragmad_c* artefact.
+    By default, reads .c files from the *INITIAL_SOURCE* artefact and creates
+    the *pragmad_c* artefact.
 
-    This step does not write to the build output folder, it creates the pragmad c in the same folder as the c file.
-    This is because a subsequent preprocessing step needs to look in the source folder for header files,
+    This step does not write to the build output folder, it creates the
+    pragmad c in the same folder as the c file. This is because a subsequent
+    preprocessing step needs to look in the source folder for header files,
     including in paths relative to the c file.
 
     :param config:
-        The :class:`fab.build_config.BuildConfig` object where we can read settings
-        such as the project workspace folder or the multiprocessing flag.
+        The :class:`fab.build_config.BuildConfig` object where we can
+        read settings such as the project workspace folder or the
+        multiprocessing flag.
     :param source:
-        An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files to process.
+        An :class:`~fab.artefacts.ArtefactsGetter` which give us our c files
+        to process.
     :param output_name:
-        The name of the artefact collection to create in the artefact store, with a sensible default
+        The name of the artefact collection to create in the artefact store,
+        with a sensible default
 
     """
     source_getter = source or DEFAULT_SOURCE_GETTER
