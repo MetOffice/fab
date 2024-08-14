@@ -58,10 +58,15 @@ class ToolBox:
         '''
 
         if category in self._all_tools:
+            # TODO: Should we test if the compiler has MPI support if
+            # required? The original LFRic setup compiled files without
+            # MPI support (and used an mpi wrapper at link time), so for
+            # now we don't raise an exception here to ease porting - but
+            # we probably should raise one tbh.
             return self._all_tools[category]
 
         # No tool was specified for this category, get the default tool
-        # from the ToolRepository, and at it, so we don't need to look
+        # from the ToolRepository, and add it, so we don't need to look
         # it up again later.
         tr = ToolRepository()
         tool = tr.get_default(category, mpi=mpi)
