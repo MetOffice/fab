@@ -261,7 +261,8 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
     with Timer() as timer:
         analysed_file, mp_common_args = arg
         config = mp_common_args.config
-        compiler = config.tool_box[Category.FORTRAN_COMPILER]
+        compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER,
+                                            config.mpi)
         if not isinstance(compiler, FortranCompiler):
             raise RuntimeError(f"Unexpected tool '{compiler.name}' of type "
                                f"'{type(compiler)}' instead of "
