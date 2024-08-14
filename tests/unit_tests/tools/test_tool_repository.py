@@ -74,18 +74,29 @@ def test_tool_repository_get_default():
     assert isinstance(ar, Ar)
 
 
-def test_tool_repository_get_default_error():
-    '''Tests error handling in get_default.'''
+def test_tool_repository_get_default_error_invalid_category():
+    '''Tests error handling in get_default, the category
+    must be a Category, not e.g. a string.'''
     tr = ToolRepository()
     with pytest.raises(RuntimeError) as err:
-        tr.get_default("unknown-category")
+        tr.get_default("unknown-category-type")
     assert "Invalid category type 'str'." in str(err.value)
 
+
+def test_tool_repository_get_default_error_missing_mpi():
+    '''Tests error handling in get_default when the optional MPI
+    parameter is missing (which is required for a compiler).'''
+    tr = ToolRepository()
     with pytest.raises(RuntimeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER)
     assert ("Invalid or missing mpi specification for 'FORTRAN_COMPILER'"
             in str(err.value))
 
+
+def test_tool_repository_get_default_error_missing_compiler():
+    '''Tests error handling in get_default when there is no compiler
+    that fulfils the requirements.'''
+    tr = ToolRepository()
     with mock.patch.dict(tr, {Category.FORTRAN_COMPILER: []}), \
             pytest.raises(RuntimeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
