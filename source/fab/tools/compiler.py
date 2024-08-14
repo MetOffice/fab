@@ -221,9 +221,12 @@ class CCompiler(Compiler):
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
-                 mpi: bool = False, compile_flag=None, output_flag=None,
+                 mpi: bool = False,
+                 compile_flag: Optional[str] = None,
+                 output_flag: Optional[str] = None,
                  openmp_flag: Optional[str] = None):
-        super().__init__(name, exec_name, suite, Category.C_COMPILER, mpi=mpi,
+        super().__init__(name, exec_name, suite,
+                         category=Category.C_COMPILER, mpi=mpi,
                          compile_flag=compile_flag, output_flag=output_flag,
                          openmp_flag=openmp_flag)
 
@@ -237,33 +240,36 @@ class FortranCompiler(Compiler):
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite.
-    :param module_folder_flag: the compiler flag to indicate where to
-        store created module files.
     :param mpi: whether the compiler or linker support MPI.
-    :param openmp_flag: the flag to use to enable OpenMP
-    :param syntax_only_flag: flag to indicate to only do a syntax check.
-        The side effect is that the module files are created.
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
         of the output file
+    :param module_folder_flag: the compiler flag to indicate where to
+        store created module files.
+    :param openmp_flag: the flag to use to enable OpenMP
+    :param syntax_only_flag: flag to indicate to only do a syntax check.
+        The side effect is that the module files are created.
     '''
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
-                 module_folder_flag: str, mpi: bool = False,
-                 openmp_flag: Optional[str] = None,
-                 syntax_only_flag: Optional[str] = None,
+                 mpi: bool = False,
                  compile_flag: Optional[str] = None,
-                 output_flag: Optional[str] = None):
+                 output_flag: Optional[str] = None,
+                 openmp_flag: Optional[str] = None,
+                 module_folder_flag: Optional[str] = None,
+                 syntax_only_flag: Optional[str] = None,
+                 ):
 
-        super().__init__(name=name, exec_name=exec_name, suite=suite, mpi=mpi,
+        super().__init__(name=name, exec_name=exec_name, suite=suite,
                          category=Category.FORTRAN_COMPILER,
-                         compile_flag=compile_flag,
+                         mpi=mpi, compile_flag=compile_flag,
                          output_flag=output_flag, openmp_flag=openmp_flag)
-        self._module_folder_flag = module_folder_flag
-        self._module_output_path = ""
+        self._module_folder_flag = (module_folder_flag if module_folder_flag
+                                    else "")
         self._syntax_only_flag = syntax_only_flag
+        self._module_output_path = ""
 
     @property
     def has_syntax_only(self) -> bool:
@@ -389,8 +395,8 @@ class Gfortran(GnuVersionHandling, FortranCompiler):
                  exec_name: str = "gfortran",
                  mpi: bool = False):
         super().__init__(name, exec_name, suite="gnu", mpi=mpi,
-                         module_folder_flag="-J",
                          openmp_flag="-fopenmp",
+                         module_folder_flag="-J",
                          syntax_only_flag="-fsyntax-only")
 
 
