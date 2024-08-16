@@ -124,7 +124,7 @@ def test_compiler_linker_add_compiler_flag(mock_c_compiler):
 
 
 def test_linker_add_compiler_flag():
-    '''Make sure linker flags work if a linker is created withoutW
+    '''Make sure linker flags work if a linker is created without
     a compiler:
     '''
     linker = Linker("no-compiler", "no-compiler.exe", "suite")
