@@ -8,7 +8,7 @@
 '''
 
 import warnings
-from typing import Dict
+from typing import Dict, Optional
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -46,19 +46,29 @@ class ToolBox:
                           f"'{tool}'.")
         self._all_tools[tool.category] = tool
 
-    def get_tool(self, category: Category) -> Tool:
+    def get_tool(self, category: Category, mpi: Optional[bool] = None) -> Tool:
         '''Returns the tool for the specified category.
 
         :param category: the name of the category in which to look
             for the tool.
+        :param mpi: if no compiler or linker is specified when requesting one,
+            use the MPI setting to find an appropriate default.
 
         :raises KeyError: if the category is not known.
         '''
 
         if category in self._all_tools:
+            # TODO: Should we test if the compiler has MPI support if
+            # required? The original LFRic setup compiled files without
+            # MPI support (and used an mpi wrapper at link time), so for
+            # now we don't raise an exception here to ease porting - but
+            # we probably should raise one tbh.
             return self._all_tools[category]
 
         # No tool was specified for this category, get the default tool
-        # from the ToolRepository:
+        # from the ToolRepository, and add it, so we don't need to look
+        # it up again later.
         tr = ToolRepository()
-        return tr.get_default(category)
+        tool = tr.get_default(category, mpi=mpi)
+        self._all_tools[category] = tool
+        return tool

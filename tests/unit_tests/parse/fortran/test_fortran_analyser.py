@@ -51,7 +51,8 @@ class TestAnalyser:
     @pytest.fixture
     def fortran_analyser(self, tmp_path):
         fortran_analyser = FortranAnalyser()
-        fortran_analyser._config = BuildConfig('proj', ToolBox(),
+        fortran_analyser._config = BuildConfig('proj', ToolBox(), mpi=False,
+                                               openmp=False,
                                                fab_workspace=tmp_path)
         return fortran_analyser
 
