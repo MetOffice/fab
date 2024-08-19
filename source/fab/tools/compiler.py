@@ -9,8 +9,9 @@ classes for gcc, gfortran, icc, ifort
 """
 
 import os
+import re
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 import zlib
 
 from fab.tools.category import Category
@@ -45,7 +46,7 @@ class Compiler(CompilerSuiteTool):
                  output_flag: Optional[str] = None,
                  omp_flag: Optional[str] = None):
         super().__init__(name, exec_name, suite, category)
-        self._version = None
+        self._version: Union[Tuple[int, ...], None] = None
         self._compile_flag = compile_flag if compile_flag else "-c"
         self._output_flag = output_flag if output_flag else "-o"
         self._omp_flag = omp_flag
@@ -55,7 +56,7 @@ class Compiler(CompilerSuiteTool):
         ''':returns: a hash based on the compiler name and version.
         '''
         return (zlib.crc32(self.name.encode()) +
-                zlib.crc32(str(self.get_version()).encode()))
+                zlib.crc32(self.get_version_string().encode()))
 
     def compile_file(self, input_file: Path, output_file: Path,
                      add_flags: Union[None, List[str]] = None):
@@ -92,67 +93,94 @@ class Compiler(CompilerSuiteTool):
             this by requesting the compiler version.
         '''
         try:
-            version = self.get_version()
-        except RuntimeError:
-            # Compiler does not exist:
+            self.get_version()
+            # A valid version means the compiler is available.
+            return True
+        except RuntimeError as err:
+            # Compiler does not exist, or version could not be handled:
+            self.logger.error(f'Error getting compiler version: {err}')
             return False
 
-        # An empty string is returned if some other error occurred when trying
-        # to get the compiler version.
-        return version != ""
-
-    def get_version(self):
+    def get_version(self) -> Tuple[int, ...]:
         """
         Try to get the version of the given compiler.
-        # TODO: why return "" when an error happened?
-        # TODO: we need to properly create integers for compiler versions
-        #       to (later) allow less and greater than comparisons.
 
         Expects a version in a certain part of the --version output,
         which must adhere to the n.n.n format, with at least 2 parts.
 
-        :Returns: a version string, e.g '6.10.1', or empty string if
-            a different error happened when trying to get the compiler version.
+        :returns: a tuple of at least 2 integers, representing the version
+            e.g. (6, 10, 1) for version '6.10.1'.
 
-        :raises RuntimeError: if the compiler was not found.
+        :raises RuntimeError: if the compiler was not found, or if it returned
+            an unrecognised output from the version command.
         """
-        if self._version:
+        if self._version is not None:
             return self._version
 
+        # Run the compiler to get the version and parse the output
+        # The implementations depend on vendor
+        output = self.run_version_command()
+        version_string = self.parse_version_output(self.category, output)
+
+        # Expect the version to be dot-separated integers.
+        # todo: Not all will be integers? but perhaps major and minor?
         try:
-            res = self.run("--version", capture_output=True)
-        except FileNotFoundError as err:
-            raise RuntimeError(f'Compiler not found: {self.name}') from err
-        except RuntimeError as err:
-            self.logger.warning(f"Error asking for version of compiler "
-                                f"'{self.name}': {err}")
-            return ''
+            version = tuple(int(x) for x in version_string.split('.'))
+        except ValueError as err:
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{self.name}'. Should be numeric "
+                               f"<n.n[.n, ...]>: {version_string}") from err
 
-        # Pull the version string from the command output.
-        # All the versions of gfortran and ifort we've tried follow the
-        # same pattern, it's after a ")".
-        try:
-            version = res.split(')')[1].split()[0]
-        except IndexError:
-            self.logger.warning(f"Unexpected version response from "
-                                f"compiler '{self.name}': {res}")
-            return ''
+        # Expect at least 2 integer components, i.e. major.minor[.patch, ...]
+        if len(version) < 2:
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{self.name}'. Should have at least "
+                               f"two parts, <n.n[.n, ...]>: {version_string}")
 
-        # expect major.minor[.patch, ...]
-        # validate - this may be overkill
-        split = version.split('.')
-        if len(split) < 2:
-            self.logger.warning(f"unhandled compiler version format for "
-                                f"compiler '{self.name}' is not "
-                                f"<n.n[.n, ...]>: {version}")
-            return ''
-
-        # todo: do we care if the parts are integers? Not all will be,
-        # but perhaps major and minor?
-
-        self.logger.info(f'Found compiler version for {self.name} = {version}')
+        self.logger.info(
+            f'Found compiler version for {self.name} = {version_string}')
         self._version = version
         return version
+
+    def run_version_command(
+            self, version_command: Optional[str] = '--version') -> str:
+        '''
+        Run the compiler's command to get its version.
+
+        :param version_command: The compiler argument used to get version info.
+
+        :returns: The output from the version command.
+
+        :raises RuntimeError: if the compiler was not found, or raised an
+            error.
+        '''
+        try:
+            return self.run(version_command, capture_output=True)
+        except RuntimeError as err:
+            raise RuntimeError(f"Error asking for version of compiler "
+                               f"'{self.name}'") from err
+
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
+        '''
+        Extract the numerical part from the version output.
+        Implemented in specific compilers.
+        '''
+        raise NotImplementedError("The method `parse_version_output` must be "
+                                  "provided using a mixin.")
+
+    def get_version_string(self) -> str:
+        """
+        Get a string representing the version of the given compiler.
+
+        :returns: a string of at least 2 numeric version components,
+            i.e. major.minor[.patch, ...]
+
+        :raises RuntimeError: if the compiler was not found, or if it returned
+            an unrecognised output from the version command.
+        """
+        version = self.get_version()
+        return '.'.join(str(x) for x in version)
 
 
 # ============================================================================
@@ -163,7 +191,6 @@ class CCompiler(Compiler):
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite.
-    :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
@@ -251,7 +278,45 @@ class FortranCompiler(Compiler):
 
 
 # ============================================================================
-class Gcc(CCompiler):
+class GnuVersionHandling():
+    '''Mixin to handle version information from GNU compilers'''
+
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
+        '''
+        Extract the numerical part from a GNU compiler's version output
+
+        :param name: the compiler's name
+        :param category: the compiler's Category
+        :param version_output: the full version output from the compiler
+        :returns: the actual version as a string
+
+        :raises RuntimeError: if the output is not in an expected format.
+        '''
+
+        # Expect the version to appear after some in parentheses, e.g.
+        # "GNU Fortran (...) n.n[.n, ...]" or # "gcc (...) n.n[.n, ...]"
+        if category is Category.FORTRAN_COMPILER:
+            name = "GNU Fortran"
+        else:
+            name = "gcc"
+        # A version number is a digit, followed by a sequence of digits and
+        # '.'', ending with a digit. It must then be followed by either the
+        # end of the string, or a space (e.g. "... 5.6 123456"). We can't use
+        # \b to determine the end, since then "1.2." would be matched
+        # excluding the dot (so it would become a valid 1.2)
+        exp = name + r" \(.*?\) (\d[\d\.]+\d)(?:$| )"
+        # Multiline is required in case that the version number is the
+        # end of the string, otherwise the $ would not match the end of line
+        matches = re.search(exp, version_output, re.MULTILINE)
+        if not matches:
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{name}': {version_output}")
+        return matches.groups()[0]
+
+
+# ============================================================================
+class Gcc(GnuVersionHandling, CCompiler):
     '''Class for GNU's gcc compiler.
 
     :param name: name of this compiler.
@@ -264,7 +329,7 @@ class Gcc(CCompiler):
 
 
 # ============================================================================
-class Gfortran(FortranCompiler):
+class Gfortran(GnuVersionHandling, FortranCompiler):
     '''Class for GNU's gfortran compiler.
 
     :param name: name of this compiler.
@@ -280,7 +345,41 @@ class Gfortran(FortranCompiler):
 
 
 # ============================================================================
-class Icc(CCompiler):
+class IntelVersionHandling():
+    '''Mixin to handle version information from Intel compilers'''
+
+    def parse_version_output(self, category: Category,
+                             version_output: str) -> str:
+        '''
+        Extract the numerical part from an Intel compiler's version output
+
+        :param name: the compiler's name
+        :param version_output: the full version output from the compiler
+        :returns: the actual version as a string
+
+        :raises RuntimeError: if the output is not in an expected format.
+        '''
+
+        # Expect the version to appear after some in parentheses, e.g.
+        # "icc (...) n.n[.n, ...]" or "ifort (...) n.n[.n, ...]"
+        if category == Category.C_COMPILER:
+            name = "icc"
+        else:
+            name = "ifort"
+
+        # A version number is a digit, followed by a sequence of digits and
+        # '.'', ending with a digit. It must then be followed by a space.
+        exp = name + r" \(.*?\) (\d[\d\.]+\d) "
+        matches = re.search(exp, version_output)
+
+        if not matches:
+            raise RuntimeError(f"Unexpected version output format for "
+                               f"compiler '{name}': {version_output}")
+        return matches.groups()[0]
+
+
+# ============================================================================
+class Icc(IntelVersionHandling, CCompiler):
     '''Class for the Intel's icc compiler.
 
     :param name: name of this compiler.
@@ -294,7 +393,7 @@ class Icc(CCompiler):
 
 
 # ============================================================================
-class Ifort(FortranCompiler):
+class Ifort(IntelVersionHandling, FortranCompiler):
     '''Class for Intel's ifort compiler.
 
     :param name: name of this compiler.

@@ -156,6 +156,6 @@ class TestGetObjComboHash:
         changes the hash.'''
         config, analysed_file, expect_hash = content
         compiler = config.tool_box[Category.C_COMPILER]
-        compiler._version = "9.8.7"
+        compiler._version = (9, 8, 7)
         result = _get_obj_combo_hash(compiler, analysed_file, flags)
         assert result != expect_hash
