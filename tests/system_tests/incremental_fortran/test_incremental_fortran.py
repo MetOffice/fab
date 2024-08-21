@@ -38,13 +38,15 @@ class TestIncremental():
     def config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
         logging.getLogger('fab').setLevel(logging.WARNING)
 
-        with BuildConfig(project_label=PROJECT_LABEL,
+        with BuildConfig(project_label=PROJECT_LABEL, mpi=False, openmp=False,
                          tool_box=ToolBox(), fab_workspace=tmp_path,
                          multiprocessing=False) as grab_config:
-            grab_folder(grab_config, Path(__file__).parent / 'project-source', dst_label='src')
+            grab_folder(grab_config, Path(__file__).parent / 'project-source',
+                        dst_label='src')
 
-        build_config = BuildConfig(project_label=PROJECT_LABEL,
-                                   tool_box=ToolBox(), fab_workspace=tmp_path,
+        build_config = BuildConfig(project_label=PROJECT_LABEL, mpi=False,
+                                   openmp=False, tool_box=ToolBox(),
+                                   fab_workspace=tmp_path,
                                    multiprocessing=False)
 
         return build_config
@@ -244,7 +246,7 @@ class TestCleanupPrebuilds():
     @pytest.mark.parametrize("kwargs,expect", in_out)
     def test_clean(self, tmp_path, kwargs, expect):
 
-        with BuildConfig(project_label=PROJECT_LABEL,
+        with BuildConfig(project_label=PROJECT_LABEL, mpi=False, openmp=False,
                          tool_box=ToolBox(),
                          fab_workspace=tmp_path, multiprocessing=False) as config:
             remaining = self._prune(config, kwargs=kwargs)
@@ -255,7 +257,7 @@ class TestCleanupPrebuilds():
         # pruning everything not current
 
         current_prebuilds = ArtefactSet.CURRENT_PREBUILDS
-        with BuildConfig(project_label=PROJECT_LABEL,
+        with BuildConfig(project_label=PROJECT_LABEL, mpi=False, openmp=False,
                          tool_box=ToolBox(), fab_workspace=tmp_path,
                          multiprocessing=False) as config:
             config._artefact_store = {current_prebuilds: {

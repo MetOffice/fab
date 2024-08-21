@@ -4,9 +4,9 @@ __pycache__/
 *$py.class
 
 # Build directory for documentation
-docs/build
-docs/source/api
-docs/source/apidoc
+Documentation/build
+Documentation/source/api
+Documentation/source/apidoc
 
 # C extensions
 *.so

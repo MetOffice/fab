@@ -12,7 +12,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Type
+from typing import Any, Optional, Type
 
 from fab.tools.tool import Tool
 from fab.tools.category import Category
@@ -43,6 +43,7 @@ class ToolRepository(dict):
         # time the instance is requested (since we overwrite __new__). But
         # we only want to initialise the instance once, so let the constructor
         # not do anything if the singleton already exists:
+        # pylint: disable=too-many-locals
         if ToolRepository._singleton:
             return
 
@@ -59,9 +60,11 @@ class ToolRepository(dict):
         # We get circular dependencies if imported at top of the file:
         # pylint: disable=import-outside-toplevel
         from fab.tools import (Ar, Cpp, CppFortran, Gcc, Gfortran,
-                               Icc, Ifort, Psyclone, Rsync)
+                               Icc, Ifort, MpiGcc, MpiGfortran,
+                               MpiIcc, MpiIfort, Psyclone, Rsync)
 
         for cls in [Gcc, Icc, Gfortran, Ifort, Cpp, CppFortran,
+                    MpiGcc, MpiGfortran, MpiIcc, MpiIfort,
                     Fcm, Git, Subversion, Ar, Psyclone, Rsync]:
             self.add_tool(cls)
 
@@ -117,26 +120,50 @@ class ToolRepository(dict):
         '''
         for category in [Category.FORTRAN_COMPILER, Category.C_COMPILER,
                          Category.LINKER]:
-            all_members = [tool for tool in self[category]
-                           if tool.suite == suite]
-            if len(all_members) == 0:
+            # Now sort the tools in this category to have all tools with the
+            # right suite at the front. We use the stable sorted function with
+            # the key being tool.suite != suite --> all tools with the right
+            # suite use False as key, all other tools True. Since False < True
+            # this results in all suite tools to be at the front of the list
+            self[category] = sorted(self[category],
+                                    key=lambda x: x.suite != suite)
+            if len(self[category]) > 0 and self[category][0].suite != suite:
                 raise RuntimeError(f"Cannot find '{category}' "
                                    f"in the suite '{suite}'.")
-            tool = all_members[0]
-            if tool != self[category][0]:
-                self[category].remove(tool)
-                self[category].insert(0, tool)
 
-    def get_default(self, category: Category):
-        '''Returns the default tool for a given category, which is just
-        the first tool in the category.
+    def get_default(self, category: Category,
+                    mpi: Optional[bool] = None):
+        '''Returns the default tool for a given category. For most tools
+        that will be the first entry in the list of tools. The exception
+        are compilers and linker: in this case it must be specified if
+        MPI support is required or not. And the default return will be
+        the first tool that either supports MPI or not.
 
         :param category: the category for which to return the default tool.
+        :param mpi: if a compiler or linker is required that supports MPI.
 
         :raises KeyError: if the category does not exist.
+        :raises RuntimeError: if no compiler/linker is found with the
+            requested level of MPI support (yes or no).
         '''
 
         if not isinstance(category, Category):
             raise RuntimeError(f"Invalid category type "
                                f"'{type(category).__name__}'.")
-        return self[category][0]
+
+        # If not a compiler or linker, return the first tool
+        if not category.is_compiler and category != Category.LINKER:
+            return self[category][0]
+
+        if not isinstance(mpi, bool):
+            raise RuntimeError(f"Invalid or missing mpi specification "
+                               f"for '{category}'.")
+
+        for tool in self[category]:
+            # If the tool supports/does not support MPI, return the first one
+            if mpi == tool.mpi:
+                return tool
+
+        # Don't bother returning an MPI enabled tool if no-MPI is requested -
+        # that seems to be an unlikely scenario.
+        raise RuntimeError(f"Could not find '{category}' that supports MPI.")

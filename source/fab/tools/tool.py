@@ -181,13 +181,20 @@ class CompilerSuiteTool(Tool):
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite.
     :param category: the Category to which this tool belongs.
+    :param mpi: whether the compiler or linker support MPI.
     '''
     def __init__(self, name: str, exec_name: Union[str, Path], suite: str,
-                 category: Category):
+                 category: Category, mpi: bool = False):
         super().__init__(name, exec_name, category)
         self._suite = suite
+        self._mpi = mpi
 
     @property
     def suite(self) -> str:
         ''':returns: the compiler suite of this tool.'''
         return self._suite
+
+    @property
+    def mpi(self) -> bool:
+        ''':returns: whether this tool supports MPI or not.'''
+        return self._mpi

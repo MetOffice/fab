@@ -62,12 +62,14 @@ class Linker(CompilerSuiteTool):
         return super().check_available()
 
     def link(self, input_files: List[Path], output_file: Path,
+             openmp: bool,
              add_libs: Optional[List[str]] = None) -> str:
         '''Executes the linker with the specified input files,
         creating `output_file`.
 
         :param input_files: list of input files to link.
         :param output_file: output file.
+        :param openm: whether OpenMP is requested or not.
         :param add_libs: additional linker flags.
 
         :returns: the stdout of the link command
@@ -75,6 +77,8 @@ class Linker(CompilerSuiteTool):
         if self._compiler:
             # Create a copy:
             params = self._compiler.flags[:]
+            if openmp:
+                params.append(self._compiler.openmp_flag)
         else:
             params = []
         # TODO: why are the .o files sorted? That shouldn't matter

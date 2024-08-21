@@ -26,6 +26,7 @@ def test_run(tool_box):
         project_workspace=Path('workspace'),
         build_output=Path("workspace"),
         artefact_store=ArtefactStore(),
+        openmp=False,
         tool_box=tool_box
     )
     config.artefact_store[ArtefactSet.OBJECT_FILES] = \

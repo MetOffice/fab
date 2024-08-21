@@ -33,7 +33,7 @@ if __name__ == '__main__':
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
     with BuildConfig(project_label='gungho $compiler $two_stage',
-                     tool_box=ToolBox()) as state:
+                     mpi=False, openmp=False, tool_box=ToolBox()) as state:
         grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')

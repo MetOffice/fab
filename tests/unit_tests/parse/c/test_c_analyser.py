@@ -16,7 +16,8 @@ from fab.tools import ToolBox
 
 def test_simple_result(tmp_path):
     c_analyser = CAnalyser()
-    c_analyser._config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
+    c_analyser._config = BuildConfig('proj', ToolBox(), mpi=False,
+                                     openmp=False, fab_workspace=tmp_path)
 
     with mock.patch('fab.parse.AnalysedFile.save'):
         fpath = Path(__file__).parent / "test_c_analyser.c"

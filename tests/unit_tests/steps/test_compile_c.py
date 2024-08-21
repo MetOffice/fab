@@ -27,7 +27,7 @@ def fixture_content(tmp_path, tool_box):
     analysed file and expected hash.'''
 
     config = BuildConfig('proj', tool_box, multiprocessing=False,
-                         fab_workspace=tmp_path)
+                         mpi=False, openmp=False, fab_workspace=tmp_path)
 
     analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
     config._artefact_store[ArtefactSet.BUILD_TREES] = \

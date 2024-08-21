@@ -22,9 +22,12 @@ class TestLinkExe:
         config = SimpleNamespace(
             project_workspace=Path('workspace'),
             artefact_store=ArtefactStore(),
-            tool_box=tool_box
+            tool_box=tool_box,
+            mpi=False,
+            openmp=False,
         )
-        config.artefact_store[ArtefactSet.OBJECT_FILES] = {'foo': {'foo.o', 'bar.o'}}
+        config.artefact_store[ArtefactSet.OBJECT_FILES] = \
+            {'foo': {'foo.o', 'bar.o'}}
 
         with mock.patch('os.getenv', return_value='-L/foo1/lib -L/foo2/lib'):
             # We need to create a linker here to pick up the env var:
@@ -35,8 +38,9 @@ class TestLinkExe:
             mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
             with mock.patch('fab.tools.tool.subprocess.run',
                             return_value=mock_result) as tool_run, \
-                    pytest.warns(UserWarning, match="_metric_send_conn not "
-                                                    "set, cannot send metrics"):
+                    pytest.warns(UserWarning,
+                                 match="_metric_send_conn not "
+                                       "set, cannot send metrics"):
                 link_exe(config, flags=['-fooflag', '-barflag'])
 
         tool_run.assert_called_with(

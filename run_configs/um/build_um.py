@@ -124,8 +124,9 @@ if __name__ == '__main__':
     revision = 'vn12.1'
     um_revision = revision.replace('vn', 'um')
 
-    state = BuildConfig(project_label=f'um atmos safe {revision} $compiler $two_stage',
-                        tool_box=ToolBox())
+    state = BuildConfig(
+        project_label=f'um atmos safe {revision} $compiler $two_stage',
+        mpi=False, openmp=False, tool_box=ToolBox())
 
     # compiler-specific flags
     compiler = state.tool_box[Category.FORTRAN_COMPILER]
