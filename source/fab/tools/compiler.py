@@ -211,7 +211,6 @@ class CCompiler(Compiler):
     :param exec_name: name of the executable to start.
     :param suite: name of the compiler suite.
     :param mpi: whether the compiler or linker support MPI.
-    :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
     :param compile_flag: the compilation flag to use when only requesting
         compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
