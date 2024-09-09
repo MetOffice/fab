@@ -9,69 +9,39 @@
 
 import os
 from pathlib import Path
-from typing import cast, Dict, List, Optional
+from typing import Dict, List, Optional, Union
 import warnings
 
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
-from fab.tools.tool import CompilerSuiteTool
+from fab.tools.compiler_wrapper import CompilerWrapper
 
 
-class Linker(CompilerSuiteTool):
+class Linker(CompilerWrapper):
     '''This is the base class for any Linker. If a compiler is specified,
     its name, executable, and compile suite will be used for the linker (if
     not explicitly set in the constructor).
 
-    :param name: the name of the linker.
-    :param exec_name: the name of the executable.
-    :param suite: optional, the name of the suite.
     :param compiler: optional, a compiler instance
     :param output_flag: flag to use to specify the output name.
     '''
 
-    # pylint: disable=too-many-arguments
-    def __init__(self, name: Optional[str] = None,
-                 exec_name: Optional[str] = None,
-                 suite: Optional[str] = None,
-                 compiler: Optional[Compiler] = None,
-                 output_flag: str = "-o"):
-        if (not name or not exec_name or not suite) and not compiler:
-            raise RuntimeError("Either specify name, exec name, and suite "
-                               "or a compiler when creating Linker.")
-        # Make mypy happy, since it can't work out otherwise if these string
-        # variables might still be None :(
-        compiler = cast(Compiler, compiler)
-        if not name:
-            name = compiler.name
-        if not exec_name:
-            exec_name = compiler.exec_name
-        if not suite:
-            suite = compiler.suite
+    def __init__(self, compiler: Compiler, output_flag: str = "-o"):
         self._output_flag = output_flag
-        super().__init__(name, exec_name, suite, Category.LINKER)
-        self._compiler = compiler
-        self.flags.extend(os.getenv("LDFLAGS", "").split())
+        super().__init__(
+            name=f"linker-{compiler.name}",
+            exec_name=compiler.exec_name,
+            compiler=compiler,
+            category=Category.LINKER,
+            mpi=compiler.mpi)
+
+        self._flags.extend(os.getenv("LDFLAGS", "").split())
 
         # Maintain a set of flags for common libraries.
         self._lib_flags: Dict[str, List[str]] = {}
         # Allow flags to include before or after any library-specific flags.
         self._pre_lib_flags: List[str] = []
         self._post_lib_flags: List[str] = []
-
-    @property
-    def mpi(self) -> bool:
-        ''':returns: whether the linker supports MPI or not.'''
-        return self._compiler.mpi
-
-    def check_available(self) -> bool:
-        '''
-        :returns: whether the linker is available or not. We do this
-            by requesting the linker version.
-        '''
-        if self._compiler:
-            return self._compiler.check_available()
-
-        return super().check_available()
 
     def get_lib_flags(self, lib: str) -> List[str]:
         '''Gets the standard flags for a standard library
@@ -131,13 +101,11 @@ class Linker(CompilerSuiteTool):
 
         :returns: the stdout of the link command
         '''
-        if self._compiler:
-            # Create a copy:
-            params = self._compiler.flags[:]
-            if openmp:
-                params.append(self._compiler.openmp_flag)
-        else:
-            params = []
+        # Don't need to add compiler's flags, they are added by CompilerWrapper.
+        params: List[Union[str, Path]] = []
+        if openmp:
+            params.append(self._compiler.openmp_flag)
+
         # TODO: why are the .o files sorted? That shouldn't matter
         params.extend(sorted(map(str, input_files)))
 

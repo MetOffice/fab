@@ -25,16 +25,19 @@ class CompilerWrapper(Compiler):
     :param name: name of the wrapper.
     :param exec_name: name of the executable to call.
     :param compiler: the compiler that is decorated.
+    :param category: the tool's category. Defaults to the compiler's category.
     :param mpi: whether MPI is supported by this compiler or not.
     '''
 
     def __init__(self, name: str, exec_name: str,
                  compiler: Compiler,
+                 category: Optional[Category] = None,
                  mpi: bool = False):
         self._compiler = compiler
+        category = category or self._compiler.category
         super().__init__(
             name=name, exec_name=exec_name,
-            category=self._compiler.category,
+            category=category,
             suite=self._compiler.suite,
             version_regex=self._compiler._version_regex,
             mpi=mpi,

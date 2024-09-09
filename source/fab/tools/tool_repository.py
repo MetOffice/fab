@@ -108,7 +108,7 @@ class ToolRepository(dict):
         # If we have a compiler, add the compiler as linker as well
         if tool.is_compiler:
             tool = cast(Compiler, tool)
-            linker = Linker(name=f"linker-{tool.name}", compiler=tool)
+            linker = Linker(compiler=tool)
             self[linker.category].append(linker)
 
     def get_tool(self, category: Category, name: str) -> Tool:
