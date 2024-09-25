@@ -18,7 +18,7 @@ from fab.tools import Linker
 import pytest
 
 
-def test_run(tool_box):
+def test_run(tool_box, mock_c_compiler):
     '''Ensure the command is formed correctly, with the flags at the
     end since they are typically libraries.'''
 
@@ -32,9 +32,9 @@ def test_run(tool_box):
     config.artefact_store[ArtefactSet.OBJECT_FILES] = \
         {None: {'foo.o', 'bar.o'}}
 
-    with mock.patch('os.getenv', return_value='-L/foo1/lib -L/foo2/lib'):
+    with mock.patch.dict("os.environ", {"FFLAGS": "-L/foo1/lib -L/foo2/lib"}):
         # We need to create a linker here to pick up the env var:
-        linker = Linker("mock_link", "mock_link.exe", "vendor")
+        linker = Linker(mock_c_compiler)
         # Mark the linker as available so it can added to the tool box:
         linker._is_available = True
         tool_box.add_tool(linker, silent_replace=True)
@@ -47,6 +47,6 @@ def test_run(tool_box):
                                flags=['-fooflag', '-barflag'])
 
     tool_run.assert_called_with(
-        ['mock_link.exe', '-L/foo1/lib', '-L/foo2/lib', 'bar.o', 'foo.o',
+        ['mock_c_compiler.exe', '-L/foo1/lib', '-L/foo2/lib', 'bar.o', 'foo.o',
          '-fooflag', '-barflag', '-fPIC', '-shared', '-o', '/tmp/lib_my.so'],
         capture_output=True, env=None, cwd=None, check=False)

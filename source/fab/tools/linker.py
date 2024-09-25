@@ -35,7 +35,7 @@ class Linker(CompilerWrapper):
             category=Category.LINKER,
             mpi=compiler.mpi)
 
-        self._flags.extend(os.getenv("LDFLAGS", "").split())
+        self.add_flags(os.getenv("LDFLAGS", "").split())
 
         # Maintain a set of flags for common libraries.
         self._lib_flags: Dict[str, List[str]] = {}

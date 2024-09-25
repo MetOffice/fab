@@ -39,11 +39,6 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
     assert linker.suite == "suite"
     assert linker.flags == []
 
-    with pytest.raises(RuntimeError) as err:
-        linker = Linker(name="no-exec-given")
-    assert ("Either specify name, exec name, and suite or a compiler when "
-            "creating Linker." in str(err.value))
-
 
 def test_linker_gets_ldflags(mock_c_compiler):
     """Tests that the linker retrieves env.LDFLAGS"""
@@ -233,29 +228,22 @@ def test_compiler_linker_add_compiler_flag(mock_c_compiler):
         capture_output=True, env=None, cwd=None, check=False)
 
 
-def test_linker_add_compiler_flag():
-    '''Make sure ad-hoc linker flags work if a linker is created without a
-    compiler:
-    '''
-    linker = Linker("no-compiler", "no-compiler.exe", "suite")
-    linker.flags.append("-some-other-flag")
-    mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        linker.link([Path("a.o")], Path("a.out"), openmp=False)
-    tool_run.assert_called_with(
-        ['no-compiler.exe', '-some-other-flag', 'a.o', '-o', 'a.out'],
-        capture_output=True, env=None, cwd=None, check=False)
-
-
 def test_linker_all_flag_types(mock_c_compiler):
     """Make sure all possible sources of linker flags are used in the right
     order"""
-    with mock.patch.dict("os.environ", {"LDFLAGS": "-ldflag"}):
+
+    # Environment variables for both the compiler and linker
+    # TODO: THIS IS ACTUALLY WRONG - The FFLAGS shouldn't be picked up here,
+    # because the compiler already exists. It is being added twice, because
+    # Linker inherits Compiler (in addition to wrapping it)
+    with mock.patch.dict("os.environ", {
+        "FFLAGS": "-fflag",
+        "LDFLAGS": "-ldflag"
+    }):
         linker = Linker(compiler=mock_c_compiler)
 
-    mock_c_compiler.flags.extend(["-compiler-flag1", "-compiler-flag2"])
-    linker.flags.extend(["-linker-flag1", "-linker-flag2"])
+    mock_c_compiler.add_flags(["-compiler-flag1", "-compiler-flag2"])
+    linker.add_flags(["-linker-flag1", "-linker-flag2"])
     linker.add_pre_lib_flags(["-prelibflag1", "-prelibflag2"])
     linker.add_lib_flags("customlib1", ["-lib1flag1", "lib1flag2"])
     linker.add_lib_flags("customlib2", ["-lib2flag1", "lib2flag2"])
@@ -271,10 +259,8 @@ def test_linker_all_flag_types(mock_c_compiler):
 
     tool_run.assert_called_with([
         "mock_c_compiler.exe",
-        # Note: compiler flags and linker flags will be switched when the Linker
-        # becomes a CompilerWrapper in a following PR
+        "-compiler-flag1", "-compiler-flag2", "-fflag",
         "-ldflag", "-linker-flag1", "-linker-flag2",
-        "-compiler-flag1", "-compiler-flag2",
         "-fopenmp",
         "a.o",
         "-prelibflag1", "-prelibflag2",

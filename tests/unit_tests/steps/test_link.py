@@ -21,8 +21,7 @@ import pytest
 class TestLinkExe:
     '''This class test the linking step.
     '''
-
-    def test_run(self, tool_box: ToolBox):
+    def test_run(self, tool_box: ToolBox, mock_fortran_compiler):
         ''' Ensure the command is formed correctly, with the flags at the
         end.
         '''
@@ -37,9 +36,9 @@ class TestLinkExe:
         config.artefact_store[ArtefactSet.OBJECT_FILES] = \
             {'foo': {'foo.o', 'bar.o'}}
 
-        with mock.patch('os.getenv', return_value='-L/foo1/lib -L/foo2/lib'):
+        with mock.patch.dict("os.environ", {"FFLAGS": "-L/foo1/lib -L/foo2/lib"}):
             # We need to create a linker here to pick up the env var:
-            linker = Linker("mock_link", "mock_link.exe", "mock-vendor")
+            linker = Linker(mock_fortran_compiler)
             # Mark the linker as available to it can be added to the tool box
             linker._is_available = True
 
@@ -56,7 +55,8 @@ class TestLinkExe:
                          flags=['-fooflag', '-barflag'])
 
         tool_run.assert_called_with(
-            ['mock_link.exe', '-L/foo1/lib', '-L/foo2/lib', 'bar.o', 'foo.o',
+            ['mock_fortran_compiler.exe', '-L/foo1/lib', '-L/foo2/lib',
+             'bar.o', 'foo.o',
              '-L/my/lib', '-lmylib', '-fooflag', '-barflag',
              '-o', 'workspace/foo'],
             capture_output=True, env=None, cwd=None, check=False)

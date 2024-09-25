@@ -63,7 +63,7 @@ class CppFortran(Preprocessor):
     '''
     def __init__(self):
         super().__init__("cpp", "cpp", Category.FORTRAN_PREPROCESSOR)
-        self.flags.extend(["-traditional-cpp", "-P"])
+        self.add_flags(["-traditional-cpp", "-P"])
 
 
 # ============================================================================
