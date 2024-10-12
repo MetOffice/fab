@@ -7,11 +7,13 @@ from typing import List, Tuple
 from unittest import mock
 from unittest.mock import Mock
 
-import clang  # type: ignore
+from pytest import importorskip
 
 from fab.build_config import BuildConfig
 from fab.parse.c import CAnalyser, AnalysedC
 from fab.tools import ToolBox
+
+clang = importorskip('clang')
 
 
 def test_simple_result(tmp_path):
