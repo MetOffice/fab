@@ -206,9 +206,10 @@ class TestSubversion:
 
     def test_svn_export(self):
         """
-        Check export svn functionality. The tests here will actually
-        mock the git results, so they will work even if subversion is not
-        installed. The system_tests will test an actual check out etc.
+        Ensures an export from repository works.
+
+        Subversion is mocked here to allow testing without the executable.
+        Testing with happens below in TestSubversionReal.
         """
         svn = Subversion()
         mock_result = mock.Mock(returncode=0)
