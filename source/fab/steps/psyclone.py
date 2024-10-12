@@ -15,18 +15,19 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple, Union, Callable
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 from fab.build_config import BuildConfig
 
-from fab.artefacts import ArtefactsGetter, CollectionConcat, SuffixFilter
+from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter)
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
 from fab.steps.preprocess import pre_processor
 from fab.tools import Category, Psyclone
-from fab.util import log_or_dot, input_to_output_fpath, file_checksum, file_walk, TimerLogger, \
-    string_checksum, suffix_filter, by_type, log_or_dot_finish
+from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
+                      file_walk, TimerLogger, string_checksum, suffix_filter,
+                      by_type, log_or_dot_finish)
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +38,22 @@ def preprocess_x90(config, common_flags: Optional[List[str]] = None):
 
     # get the tool from FPP
     fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
-    source_files = SuffixFilter('all_source', '.X90')(config.artefact_store)
+    source_files = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.X90')(config.artefact_store)
 
+    # Add the pre-processed now .x90 files into X90_BUILD_FILES
     pre_processor(
         config,
         preprocessor=fpp,
         files=source_files,
-        output_collection='preprocessed_x90',
+        output_collection=ArtefactSet.X90_BUILD_FILES,
         output_suffix='.x90',
         name='preprocess x90',
         common_flags=common_flags,
     )
+    # Then remove the .X90 files:
+    config.artefact_store.replace(ArtefactSet.X90_BUILD_FILES,
+                                  remove_files=source_files,
+                                  add_files=[])
 
 
 @dataclass
@@ -64,16 +70,14 @@ class MpCommonArgs:
     kernel_roots: List[Union[str, Path]]
     transformation_script: Optional[Callable[[Path, BuildConfig], Path]]
     cli_args: List[str]
-
+    api: Union[str, None]
     all_kernel_hashes: Dict[str, int]
     overrides_folder: Optional[Path]
     override_files: List[str]  # filenames (not paths) of hand crafted overrides
 
 
-DEFAULT_SOURCE_GETTER = CollectionConcat([
-    'preprocessed_x90',  # any X90 we've preprocessed this run
-    SuffixFilter('all_source', '.x90'),  # any already preprocessed x90 we pulled in
-])
+# any already preprocessed x90 we pulled in
+DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.x90')
 
 
 @step
@@ -81,7 +85,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
              transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
              cli_args: Optional[List[str]] = None,
              source_getter: Optional[ArtefactsGetter] = None,
-             overrides_folder: Optional[Path] = None):
+             overrides_folder: Optional[Path] = None,
+             api: Optional[str] = None):
     """
     Psyclone runner step.
 
@@ -128,7 +133,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
 
     # get the data in a payload object for child processes to calculate prebuild hashes
     mp_payload = _generate_mp_payload(
-        config, analysed_x90, all_kernel_hashes, overrides_folder, kernel_roots, transformation_script, cli_args)
+        config, analysed_x90, all_kernel_hashes, overrides_folder,
+        kernel_roots, transformation_script, cli_args, api=api)
 
     # run psyclone.
     # for every file, we get back a list of its output files plus a list of the prebuild copies.
@@ -140,11 +146,11 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     check_for_errors(outputs, caller_label='psyclone')
 
     # flatten the list of lists we got back from run_mp
-    output_files: List[Path] = list(chain(*by_type(outputs, List)))
+    output_files: Set[Path] = set(chain(*by_type(outputs, List)))
     prebuild_files: List[Path] = list(chain(*by_type(prebuilds, List)))
 
     # record the output files in the artefact store for further processing
-    config.artefact_store['psyclone_output'] = output_files
+    config.artefact_store.add(ArtefactSet.FORTRAN_BUILD_FILES, output_files)
     outputs_str = "\n".join(map(str, output_files))
     logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 
@@ -159,7 +165,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
 
 
 def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_folder, kernel_roots,
-                         transformation_script, cli_args) -> MpCommonArgs:
+                         transformation_script, cli_args,
+                         api: Union[str, None]) -> MpCommonArgs:
     override_files: List[str] = []
     if overrides_folder:
         override_files = [f.name for f in file_walk(overrides_folder)]
@@ -171,6 +178,7 @@ def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_fold
         cli_args=cli_args,
         analysed_x90=analysed_x90,
         all_kernel_hashes=all_kernel_hashes,
+        api=api,
         overrides_folder=overrides_folder,
         override_files=override_files,
     )
@@ -304,7 +312,7 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
             transformation_script = mp_payload.transformation_script
             logger.info(f"running psyclone on '{x90_file}'.")
             psyclone.process(config=mp_payload.config,
-                             api="dynamo0.3",
+                             api=mp_payload.api,
                              x90_file=x90_file,
                              psy_file=psy_file,
                              alg_file=modified_alg,
@@ -381,6 +389,9 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
 
         # command-line arguments
         string_checksum(str(mp_payload.cli_args)),
+
+        # the API
+        string_checksum(str(mp_payload.api)),
     ])
 
     return prebuild_hash

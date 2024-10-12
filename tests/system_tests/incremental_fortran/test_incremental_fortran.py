@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
-from fab.constants import PREBUILD, CURRENT_PREBUILDS, BUILD_OUTPUT
+from fab.constants import PREBUILD, BUILD_OUTPUT
 from fab.steps.analyse import analyse
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.compile_fortran import compile_fortran
@@ -21,7 +22,7 @@ from fab.util import file_walk, get_prebuild_file_groups
 PROJECT_LABEL = 'tiny_project'
 
 
-class TestIncremental(object):
+class TestIncremental():
     """
     Checks:
         - basic Fortran project build
@@ -223,7 +224,7 @@ class TestIncremental(object):
             assert clean_hashes[prebuild_folder / pb_fpath] == rebuild_hashes[prebuild_folder / pb_fpath]
 
 
-class TestCleanupPrebuilds(object):
+class TestCleanupPrebuilds():
     # Test cleanup of the incremental build artefacts
 
     in_out = [
@@ -253,10 +254,11 @@ class TestCleanupPrebuilds(object):
     def test_prune_unused(self, tmp_path):
         # pruning everything not current
 
+        current_prebuilds = ArtefactSet.CURRENT_PREBUILDS
         with BuildConfig(project_label=PROJECT_LABEL,
                          tool_box=ToolBox(), fab_workspace=tmp_path,
                          multiprocessing=False) as config:
-            config._artefact_store = {CURRENT_PREBUILDS: {
+            config._artefact_store = {current_prebuilds: {
                 tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.123.foo',
                 tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.456.foo',
             }}

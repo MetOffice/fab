@@ -17,6 +17,15 @@ CONTAINS
         RETURN
     END SUBROUTINE internal_sub
 
+    SUBROUTINE openmp_sentinel
+!$ USE compute_chunk_size_mod, ONLY: compute_chunk_size  ! Note OpenMP sentinel
+!$ USE test that is not a sentinel with a use statement inside
+!GCC$ unroll 6
+!DIR$ assume (mod(p, 6) == 0)
+!$omp do
+!$acc parallel copyin (array, scalar).
+    END SUBROUTINE openmp_sentinel
+
     INTEGER FUNCTION internal_func()
         internal_func = 456
     END FUNCTION internal_func

@@ -6,8 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
-from fab.constants import EXECUTABLES
 from fab.steps.analyse import analyse
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
@@ -37,15 +37,16 @@ def build(fab_workspace, fpp_flags=None):
 def test_FortranPreProcess(tmp_path):
 
     # stay
-    stay_config = build(fab_workspace=tmp_path, fpp_flags=['-P', '-DSHOULD_I_STAY=yes'])
+    stay_config = build(fab_workspace=tmp_path,
+                        fpp_flags=['-P', '-DSHOULD_I_STAY=yes'])
 
-    stay_exe = stay_config.artefact_store[EXECUTABLES][0]
+    stay_exe = list(stay_config.artefact_store[ArtefactSet.EXECUTABLES])[0]
     stay_res = subprocess.run(str(stay_exe), capture_output=True)
     assert stay_res.stdout.decode().strip() == 'I should stay'
 
     # go
     go_config = build(fab_workspace=tmp_path, fpp_flags=['-P'])
 
-    go_exe = go_config.artefact_store[EXECUTABLES][0]
+    go_exe = list(go_config.artefact_store[ArtefactSet.EXECUTABLES])[0]
     go_res = subprocess.run(str(go_exe), capture_output=True)
     assert go_res.stdout.decode().strip() == 'I should go now'

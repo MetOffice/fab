@@ -124,8 +124,9 @@ class Tool:
         Run the binary as a subprocess.
 
         :param additional_parameters:
-            List of strings to be sent to :func:`subprocess.run` as the
-            command.
+            List of strings or paths to be sent to :func:`subprocess.run`
+            as additional parameters for the command. Any path will be
+            converted to a normal string.
         :param env:
             Optional env for the command. By default it will use the current
             session's environment.

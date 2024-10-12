@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 
-from fab.artefacts import CollectionConcat, SuffixFilter
+from fab.artefacts import SuffixFilter
 from fab.util import input_to_output_fpath, suffix_filter, file_walk
 
 
@@ -18,30 +18,14 @@ def fpaths():
     ]
 
 
-class Test_suffix_filter(object):
+class Test_suffix_filter():
 
     def test_vanilla(self, fpaths):
         result = suffix_filter(fpaths=fpaths, suffixes=['.F90', '.f90'])
         assert result == [Path('foo.F90'), Path('foo.f90')]
 
 
-class TestCollectionConcat(object):
-
-    def test_vanilla(self):
-        getter = CollectionConcat(collections=[
-            'fooz',
-            SuffixFilter('barz', '.c')
-        ])
-
-        result = getter(artefact_store={
-            'fooz': ['foo1', 'foo2'],
-            'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')],
-        })
-
-        assert result == ['foo1', 'foo2', Path('bar.c')]
-
-
-class TestSuffixFilter(object):
+class TestSuffixFilter():
 
     def test_constructor_suffix_scalar(self):
         getter = SuffixFilter('barz', '.c')
@@ -54,7 +38,7 @@ class TestSuffixFilter(object):
         assert result == [Path('bar.b'), Path('bar.c')]
 
 
-class Test_file_walk(object):
+class Test_file_walk():
 
     @pytest.fixture
     def files(self, tmp_path):

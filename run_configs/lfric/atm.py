@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+'''Example LFRic_atm build script.
+'''
+
 import logging
 
 from fab.build_config import BuildConfig, AddFlags
@@ -16,7 +20,8 @@ from fab.steps.find_source_files import find_source_files, Exclude, Include
 from fab.tools import ToolBox
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import configurator, fparser_workaround_stop_concatenation
+from lfric_common import (API, configurator, fparser_workaround_stop_concatenation,
+                          get_transformation_script)
 
 logger = logging.getLogger('fab')
 
@@ -162,26 +167,6 @@ def file_filtering(config):
     ]
 
 
-def get_transformation_script(fpath, config):
-    ''':returns: the transformation script to be used by PSyclone.
-    :rtype: Path
-
-    '''
-    optimisation_path = config.source_root / 'optimisation' / 'meto-spice'
-    for base_path in [config.source_root, config.build_output]:
-        try:
-            relative_path = fpath.relative_to(base_path)
-        except ValueError:
-            pass
-    local_transformation_script = optimisation_path / (relative_path.with_suffix('.py'))
-    if local_transformation_script.exists():
-        return local_transformation_script
-    global_transformation_script = optimisation_path / 'global.py'
-    if global_transformation_script.exists():
-        return global_transformation_script
-    return ""
-
-
 if __name__ == '__main__':
     lfric_source = lfric_source_config.source_root / 'lfric'
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
@@ -262,6 +247,7 @@ if __name__ == '__main__':
             kernel_roots=[state.build_output / 'lfric' / 'kernel'],
             transformation_script=get_transformation_script,
             cli_args=[],
+            api=API,
         )
 
         # todo: do we need this one in here?

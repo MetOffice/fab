@@ -20,8 +20,8 @@ from pathlib import Path
 from string import Template
 from typing import List, Optional, Iterable
 
-from fab.artefacts import ArtefactStore
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD, CURRENT_PREBUILDS
+from fab.artefacts import ArtefactSet, ArtefactStore
+from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
 from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
@@ -169,7 +169,7 @@ class BuildConfig():
         Mark the given file paths as being current prebuilds, not to be cleaned during housekeeping.
 
         """
-        self.artefact_store[CURRENT_PREBUILDS].update(artefacts)
+        self.artefact_store[ArtefactSet.CURRENT_PREBUILDS].update(artefacts)
 
     def _run_prep(self):
         self._init_logging()

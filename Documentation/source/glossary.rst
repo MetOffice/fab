@@ -29,7 +29,7 @@ Glossary
         Fab's built-in steps come with sensible defaults so the user doesn't have to write unnecessary config.
 
         As an example, the Fortran preprocessor has a default artefact getter which reads *".F90"* files
-        from the :term:`Artefact Collection` called ``"all_source"``.
+        from the :term:`Artefact Collection` called ``"INITIAL_SOURCE"``.
 
         Artefact getters are derived from :class:`~fab.artefacts.ArtefactsGetter`.
 
@@ -65,7 +65,7 @@ Glossary
         A folder inside the :term:`Fab Workspace`, containing all source and output from a build config.
 
     Root Symbol
-        The name of a Fortran PROGRAM, or ``"main"`` for C code. Fab builds an exe for every root symbol it's given.
+        The name of a Fortran PROGRAM, or ``"main"`` for C code. Fab builds an executable for every root symbol it's given.
 
     Source Tree
         The :class:`~fab.steps.analyse.analyse` step produces a dependency tree of the entire project source.
