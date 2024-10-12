@@ -16,7 +16,7 @@ from typing import List, Tuple
 
 from pytest import TempPathFactory, fixture, mark, raises
 
-from fab.tools import Category, Fcm, Git, Subversion, Versioning
+from fab.tools import Category, Fcm, Git, Subversion
 
 
 class TestGit:
