@@ -3,28 +3,26 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-
-'''Tests the compiler implementation.
-'''
-
+"""
+Tests version control interfaces.
+"""
+from filecmp import cmpfiles, dircmp
+from pathlib import Path
+from shutil import which
 from unittest import mock
+from subprocess import Popen, run
+from time import sleep
+from typing import List, Tuple
 
-import pytest
+from pytest import TempPathFactory, fixture, mark, raises
 
-from fab.tools import Category, Fcm, Git, Subversion, Versioning
+from fab.tools import Category, Fcm, Git, Subversion
 
 
 class TestGit:
-    '''Contains all git related tests.'''
-
-    def test_versioning_constructor(self):
-        '''Test the versioning constructor.'''
-        versioning = Versioning("versioning", "versioning.exe", Category.GIT)
-        assert versioning.category == Category.GIT
-        assert versioning.name == "versioning"
-        assert versioning.flags == []
-        assert versioning.exec_name == "versioning.exe"
-
+    """
+    Tests of the Git repository interface.
+    """
     def test_git_constructor(self):
         '''Test the git constructor.'''
         git = Git()
@@ -116,7 +114,7 @@ class TestGit:
 
         with mock.patch.object(git, "run",
                                side_effect=RuntimeError("ERR")) as run:
-            with pytest.raises(RuntimeError) as err:
+            with raises(RuntimeError) as err:
                 git.fetch("/src", "/dst", revision="revision")
             assert "ERR" in str(err.value)
         run.assert_called_once_with(['fetch', "/src", "revision"], cwd="/dst",
@@ -143,7 +141,7 @@ class TestGit:
 
         with mock.patch.object(git, "run",
                                side_effect=RuntimeError("ERR")) as run:
-            with pytest.raises(RuntimeError) as err:
+            with raises(RuntimeError) as err:
                 git.checkout("/src", "/dst", revision="revision")
             assert "ERR" in str(err.value)
         run.assert_called_with(['fetch', "/src", "revision"], cwd="/dst",
@@ -173,7 +171,7 @@ class TestGit:
 
         with mock.patch.object(git, "run",
                                side_effect=raise_1st_time()) as run:
-            with pytest.raises(RuntimeError) as err:
+            with raises(RuntimeError) as err:
                 git.merge("/dst", revision="revision")
             assert "Error merging revision. Merge aborted." in str(err.value)
         run.assert_any_call(['merge', "FETCH_HEAD"], cwd="/dst",
@@ -184,7 +182,7 @@ class TestGit:
         # Test behaviour if both merge and merge --abort fail
         with mock.patch.object(git, "run",
                                side_effect=RuntimeError("ERR")) as run:
-            with pytest.raises(RuntimeError) as err:
+            with raises(RuntimeError) as err:
                 git.merge("/dst", revision="revision")
             assert "ERR" in str(err.value)
         run.assert_called_with(['merge', "--abort"], cwd="/dst",
@@ -192,22 +190,27 @@ class TestGit:
 
 
 # ============================================================================
-class TestSvn:
-    '''Contains all svn related tests.'''
-
+class TestSubversion:
+    """
+    Tests the Subversion interface.
+    """
     def test_svn_constructor(self):
-        '''Test the git constructor.'''
+        """
+        Test the git constructor.
+        """
         svn = Subversion()
         assert svn.category == Category.SUBVERSION
         assert svn.flags == []
-        assert svn.name == "subversion"
+        assert svn.name == "Subversion"
         assert svn.exec_name == "svn"
 
     def test_svn_export(self):
-        '''Check export svn functionality. The tests here will actually
-        mock the git results, so they will work even if subversion is not
-        installed. The system_tests will test an actual check out etc. '''
+        """
+        Ensures an export from repository works.
 
+        Subversion is mocked here to allow testing without the executable.
+        Testing with happens below in TestSubversionReal.
+        """
         svn = Subversion()
         mock_result = mock.Mock(returncode=0)
         with mock.patch('fab.tools.tool.subprocess.run',
@@ -282,14 +285,107 @@ class TestSvn:
             env=None, cwd="/dst", capture_output=True, check=False)
 
 
+def _tree_compare(first: Path, second: Path) -> None:
+    """
+    Compare two file trees to ensure they are identical.
+    """
+    tree_comparison = dircmp(str(first), str(second))
+    assert len(tree_comparison.left_only) == 0 \
+        and len(tree_comparison.right_only) == 0
+    _, mismatch, errors = cmpfiles(str(first), str(second),
+                                   tree_comparison.common_files,
+                                   shallow=False)
+    assert len(mismatch) == 0 and len(errors) == 0
+
+
+@mark.skipif(which('svn') is None,
+             reason="No Subversion executable found on path.")
+class TestSubversionReal:
+    """
+    Tests the Subversion interface against a real executable.
+    """
+    @fixture(scope='class')
+    def repo(self, tmp_path_factory: TempPathFactory) -> Tuple[Path, Path]:
+        """
+        Set up a repository and return its path along with the path of the
+        original file tree.
+        """
+        repo_path = tmp_path_factory.mktemp('repo', numbered=True)
+        command = ['svnadmin', 'create', str(repo_path)]
+        assert run(command).returncode == 0
+        tree_path = tmp_path_factory.mktemp('tree', numbered=True)
+        (tree_path / 'alpha').write_text("First file")
+        (tree_path / 'beta').mkdir()
+        (tree_path / 'beta' / 'gamma').write_text("Second file")
+        command = ['svn', 'import', '-m', "Initial import",
+                   str(tree_path), f'file://{repo_path}/trunk']
+        assert run(command).returncode == 0
+        return repo_path, tree_path
+
+    def test_extract_from_file(self, repo: Tuple[Path, Path], tmp_path: Path):
+        """
+        Checks that a source tree can be extracted from a Subversion
+        repository stored on disc.
+        """
+        test_unit = Subversion()
+        test_unit.export(f'file://{repo[0]}/trunk', tmp_path)
+        _tree_compare(repo[1], tmp_path)
+        assert not (tmp_path / '.svn').exists()
+
+    def test_extract_from_svn(self, repo: Tuple[Path, Path], tmp_path: Path):
+        """
+        Checks that a source tree can be extracted from a Subversion
+        repository accessed through its own protocol.
+        """
+        command: List[str] = ['svnserve', '-r', str(repo[0]), '-X']
+        process = Popen(command)
+
+        test_unit = Subversion()
+        #
+        # It seems there can be a delay between the server starting and the
+        # listen socket opening. Thus we have a number of retries.
+        #
+        # TODO: Is there a better solution such that we don't try to connect
+        #       until the socket is open?
+        #
+        for retry in range(3, 0, -1):
+            try:
+                test_unit.export('svn://localhost/trunk', tmp_path)
+            except Exception as ex:
+                if range == 0:
+                    raise ex
+                sleep(1.0)
+            else:
+                break
+        _tree_compare(repo[1], tmp_path)
+        assert not (tmp_path / '.svn').exists()
+
+        process.wait(timeout=1)
+        assert process.returncode == 0
+
+    @mark.skip(reason="Too hard to test at the moment.")
+    def test_extract_from_http(self, repo: Tuple[Path, Path], tmp_path: Path):
+        """
+        Checks that a source tree can be extracted from a Subversion
+        repository accessed through HTTP.
+
+        TODO: This is hard to test without a full Apache installation. For the
+              moment we forgo the test on the basis that it's too hard.
+        """
+        pass
+
+
 # ============================================================================
 class TestFcm:
-    '''Contains all FCM related tests.'''
-
+    """
+    Tests the FCM interface task.
+    """
     def test_fcm_constructor(self):
-        '''Test the fcb constructor.'''
+        """
+        Tests this constructor.
+        """
         fcm = Fcm()
         assert fcm.category == Category.FCM
         assert fcm.flags == []
-        assert fcm.name == "fcm"
+        assert fcm.name == "FCM"
         assert fcm.exec_name == "fcm"

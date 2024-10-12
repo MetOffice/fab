@@ -1,8 +1,0 @@
-Although this directory holds source it is not intended to be compiled.
-
-Instead it demonstrates the various aspects of a Fortran source tree. It is
-intended to exercise corner cases for tools like the database explorer. To
-that end there are multiple files containing identically named (but
-different) modules. Obviously these cannot be linked as there are ambiguous
-symbol names. But the source analysis stage has to be able to deal with
-things like this.

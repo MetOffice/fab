@@ -3,11 +3,10 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-
-"""This file contains the base class for versioning tools like git and
-subversion. It also contains derived classes Git, Subversion, and Fcm.
 """
-
+Versioning tools such as Subversion and Git.
+"""
+from abc import ABC
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -15,25 +14,29 @@ from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
-class Versioning(Tool):
-    '''This is the base class for versioning tools like git and svn.
-
-    :param name: the name of the tool.
-    :param exec_name: the name of the executable of this tool.
-    :param category: the category to which this tool belongs).
-    '''
-
+class Versioning(Tool, ABC):
+    """
+    Base class for versioning tools like Git and Subversion.
+    """
     def __init__(self, name: str,
                  exec_name: Union[str, Path],
                  category: Category):
+        """
+        Constructor.
+
+        :param name: Display name of this tool.
+        :param exec_name: Executable for this tool.
+        :param category: Tool belongs to this category.
+        """
         super().__init__(name, exec_name, category,
                          availablility_option="help")
 
 
 # =============================================================================
 class Git(Versioning):
-    '''This is the base class for git.
-    '''
+    """
+    Interface to Git version control system.
+    """
 
     def __init__(self):
         super().__init__("git", "git",
@@ -111,20 +114,23 @@ class Git(Versioning):
 
 # =============================================================================
 class Subversion(Versioning):
-    '''This is the base class for subversion. Note that this is also the
-    base class for FCM, so it allows overwriting name, exec_name and
-    category, but will default to use svn.
-
-    :param name: name of the tool, defaults to subversion.
-    :param exec_name: name of the executable, defaults to "svn".
-    :param category: the category, FCM or SUBVERSION (the latter is
-        the default)
-    '''
-
+    """
+    Interface to the Subversion version control system.
+    """
     def __init__(self, name: Optional[str] = None,
                  exec_name: Optional[Union[str, Path]] = None,
                  category: Category = Category.SUBVERSION):
-        name = name or "subversion"
+        """
+        Constructor.
+
+        This is class is extended by the FCM interface which is why name and
+        executable are mutable.
+
+        :param name: Tool name, defaults to "subversion."
+        :param exec_name: Tool executable, defaults to "svn."
+        :param category: Tool category, defaults to SUBVERSION.
+        """
+        name = name or "Subversion"
         exec_name = exec_name or "svn"
         super().__init__(name, exec_name, category=category)
 
@@ -166,7 +172,9 @@ class Subversion(Versioning):
         :param dst: destination path.
         :param revision: revision to export.
         '''
-        self.execute(['export', '--force'], revision, [str(src), str(dst)])
+        self.execute(['export', '--force'],
+                     revision,
+                     [str(src), str(dst)])
 
     def checkout(self, src: Union[str, Path],
                  dst: Union[str, Path],
@@ -214,4 +222,4 @@ class Fcm(Subversion):
     '''
 
     def __init__(self):
-        super().__init__("fcm", "fcm", Category.FCM)
+        super().__init__("FCM", "fcm", Category.FCM)
