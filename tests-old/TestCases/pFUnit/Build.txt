@@ -1,5 +1,0 @@
-stuff_test.o (Compile)
-  - stuff_test.F90 (pFUnit)
-    - stuff_test.pf
-module.o (Compile)
-  - module.f90
