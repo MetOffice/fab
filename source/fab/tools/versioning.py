@@ -117,8 +117,8 @@ class Subversion(Versioning):
     """
     Interface to the Subversion version control system.
     """
-    def __init__(self, name: Optional[str] = "Subversion",
-                 exec_name: Optional[Union[str, Path]] = "svn",
+    def __init__(self, name: Optional[str] = None,
+                 exec_name: Optional[Union[str, Path]] = None,
                  category: Category = Category.SUBVERSION):
         """
         Constructor.
@@ -130,6 +130,8 @@ class Subversion(Versioning):
         :param exec_name: Tool executable, defaults to "svn."
         :param category: Tool category, defaults to SUBVERSION.
         """
+        name = name or "Subversion"
+        exec_name = exec_name or "svn"
         super().__init__(name, exec_name, category=category)
 
     # pylint: disable-next=too-many-arguments
