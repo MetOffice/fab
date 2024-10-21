@@ -462,7 +462,7 @@ class TestGetModHashes:
             mock.Mock(module_defs=['foo', 'bar']),
         }
 
-        config = BuildConfig('proj', tool_box, 
+        config = BuildConfig('proj', tool_box,
                              fab_workspace=Path('/fab_workspace'))
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):
