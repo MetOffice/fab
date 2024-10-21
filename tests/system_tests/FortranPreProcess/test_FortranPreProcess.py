@@ -22,8 +22,7 @@ import pytest
 
 def build(fab_workspace, fpp_flags=None):
     with BuildConfig(fab_workspace=fab_workspace, tool_box=ToolBox(),
-                     mpi=False, openmp=False, project_label='foo',
-                     multiprocessing=False) as config:
+                     project_label='foo', multiprocessing=False) as config:
         grab_folder(config, Path(__file__).parent / 'project-source')
         find_source_files(config)
         preprocess_fortran(config, common_flags=fpp_flags)

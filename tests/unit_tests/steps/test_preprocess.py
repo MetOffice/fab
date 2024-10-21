@@ -18,8 +18,7 @@ class Test_preprocess_fortran:
     def test_big_little(self, tmp_path):
         # ensure big F90s are preprocessed and little f90s are copied
 
-        config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                             fab_workspace=tmp_path)
+        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
         big_f90 = Path(config.source_root / 'big.F90')
         little_f90 = Path(config.source_root / 'little.f90')
 

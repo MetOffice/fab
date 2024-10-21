@@ -18,10 +18,10 @@ LFRIC_REVISION = 41709
 tool_box = ToolBox()
 lfric_source_config = BuildConfig(
     project_label=f'lfric source {LFRIC_REVISION}',
-    mpi=False, openmp=False, tool_box=tool_box)
+    tool_box=tool_box)
 gpl_utils_source_config = BuildConfig(
     project_label=f'lfric source {LFRIC_REVISION}',
-    mpi=False, openmp=False, tool_box=tool_box)
+    tool_box=tool_box)
 
 
 if __name__ == '__main__':

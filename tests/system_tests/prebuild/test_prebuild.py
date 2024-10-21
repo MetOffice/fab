@@ -28,8 +28,7 @@ class TestFortranPrebuild(object):
 
         with BuildConfig(
                 project_label='test_prebuild', tool_box=ToolBox(),
-                mpi=False, openmp=False, fab_workspace=fab_workspace,
-                multiprocessing=False) as config:
+                fab_workspace=fab_workspace, multiprocessing=False) as config:
             grab_folder(config, Path(__file__).parent / 'project-source',
                         dst_label='src')
             # insert a prebuild grab step or don't insert anything

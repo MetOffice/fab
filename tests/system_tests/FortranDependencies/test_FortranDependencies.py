@@ -25,7 +25,6 @@ def test_fortran_dependencies(tmp_path):
 
     # build
     with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
-                     mpi=False, openmp=False,
                      project_label='foo', multiprocessing=False) as config:
         grab_folder(config, src=Path(__file__).parent / 'project-source')
         find_source_files(config)

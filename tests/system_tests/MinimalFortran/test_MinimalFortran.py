@@ -25,8 +25,7 @@ def test_minimal_fortran(tmp_path):
 
     # build
     with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
-                     mpi=False, openmp=False, project_label='foo',
-                     multiprocessing=False) as config:
+                     project_label='foo', multiprocessing=False) as config:
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
         preprocess_fortran(config)

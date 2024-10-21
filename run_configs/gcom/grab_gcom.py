@@ -14,7 +14,7 @@ revision = 'vn7.6'
 
 # we put this here so the two build configs can read its source_root
 grab_config = BuildConfig(project_label=f'gcom_source {revision}',
-                          mpi=False, openmp=False, tool_box=ToolBox())
+                          tool_box=ToolBox())
 
 
 if __name__ == '__main__':

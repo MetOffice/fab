@@ -31,7 +31,7 @@ if __name__ == '__main__':
     tool_box.add_tool(Linker(compiler=fc))
 
     with BuildConfig(project_label='tiny_fortran $compiler',
-                     mpi=False, openmp=False, tool_box=tool_box) as state:
+                     tool_box=tool_box) as state:
         git_checkout(state, src='https://github.com/metomi/fab-test-data.git',
                      revision='main', dst_label='src')
 

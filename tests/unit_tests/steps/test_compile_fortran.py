@@ -35,7 +35,7 @@ def fixture_artefact_store(analysed_files):
 def test_compile_cc_wrong_compiler(tool_box):
     '''Test if a non-C compiler is specified as c compiler.
     '''
-    config = BuildConfig('proj', tool_box, mpi=False, openmp=False)
+    config = BuildConfig('proj', tool_box)
     # Take the Fortran compiler
     cc = tool_box[Category.C_COMPILER]
     # And set its category to C_COMPILER
@@ -76,7 +76,7 @@ class TestCompilePass:
         # this gets filled in
         mod_hashes: Dict[str, int] = {}
 
-        config = BuildConfig('proj', tool_box, mpi=False, openmp=False)
+        config = BuildConfig('proj', tool_box)
         mp_common_args = MpCommonArgs(config, FlagsConfig(), {}, True)
         with mock.patch('fab.steps.compile_fortran.run_mp', return_value=run_mp_results):
             with mock.patch('fab.steps.compile_fortran.get_mod_hashes'):
@@ -161,8 +161,7 @@ def fixture_content(tool_box):
     obj_combo_hash = '17ef947fd'
     mods_combo_hash = '10867b4f3'
     mp_common_args = MpCommonArgs(
-        config=BuildConfig('proj', tool_box, mpi=False, openmp=False,
-                           fab_workspace=Path('/fab')),
+        config=BuildConfig('proj', tool_box, fab_workspace=Path('/fab')),
         flags=flags_config,
         mod_hashes={'mod_dep_1': 12345, 'mod_dep_2': 23456},
         syntax_only=False,
@@ -463,7 +462,7 @@ class TestGetModHashes:
             mock.Mock(module_defs=['foo', 'bar']),
         }
 
-        config = BuildConfig('proj', tool_box, mpi=False, openmp=False,
+        config = BuildConfig('proj', tool_box, 
                              fab_workspace=Path('/fab_workspace'))
 
         with mock.patch('pathlib.Path.exists', side_effect=[True, True]):

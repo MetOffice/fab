@@ -27,7 +27,7 @@ class TestArchiveObjects:
         '''
         targets = ['prog1', 'prog2']
 
-        config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False)
+        config = BuildConfig('proj', ToolBox())
         for target in targets:
             config.artefact_store.update_dict(
                 ArtefactSet.OBJECT_FILES, target,
@@ -58,7 +58,7 @@ class TestArchiveObjects:
         a shared library.
         '''
 
-        config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False)
+        config = BuildConfig('proj', ToolBox())
         config.artefact_store.update_dict(
             ArtefactSet.OBJECT_FILES, None, {'util1.o', 'util2.o'})
 
@@ -81,7 +81,7 @@ class TestArchiveObjects:
         '''Test that an incorrect archive tool is detected
         '''
 
-        config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False)
+        config = BuildConfig('proj', ToolBox())
         tool_box = config.tool_box
         cc = tool_box.get_tool(Category.C_COMPILER, config.mpi)
         # And set its category to C_COMPILER

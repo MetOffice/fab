@@ -42,8 +42,8 @@ class BuildConfig():
     """
     def __init__(self, project_label: str,
                  tool_box: ToolBox,
-                 mpi: bool,
-                 openmp: bool,
+                 mpi: bool = False,
+                 openmp: bool = False,
                  multiprocessing: bool = True,
                  n_procs: Optional[int] = None,
                  reuse_artefacts: bool = False,

@@ -133,8 +133,7 @@ class Test_parse_files(object):
              pytest.warns(UserWarning, match="deprecated 'DEPENDS ON:'"):
             # The warning "deprecated 'DEPENDS ON:' comment found in fortran
             # code" is in "def _parse_files" in "source/steps/analyse.py"
-            config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                                 fab_workspace=tmp_path)
+            config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
 
             # the exception should be suppressed (and logged) and this step
             # should run to completion

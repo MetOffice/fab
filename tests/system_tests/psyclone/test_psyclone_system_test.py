@@ -49,8 +49,7 @@ def test_make_parsable_x90(tmp_path):
     parsable_x90_path = make_parsable_x90(input_x90_path)
 
     x90_analyser = X90Analyser()
-    with BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                     fab_workspace=tmp_path) as config:
+    with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
         x90_analyser._config = config  # todo: code smell
         x90_analyser.run(parsable_x90_path)
 
@@ -74,8 +73,7 @@ class TestX90Analyser:
     def run(self, tmp_path):
         parsable_x90_path = self.expected_analysis_result.fpath
         x90_analyser = X90Analyser()
-        with BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                         fab_workspace=tmp_path) as config:
+        with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
             x90_analyser._config = config
             analysed_x90, _ = x90_analyser.run(parsable_x90_path)  # type: ignore
             # don't delete the prebuild
@@ -101,7 +99,6 @@ class Test_analysis_for_x90s_and_kernels:
 
     def test_analyse(self, tmp_path):
         with BuildConfig('proj', fab_workspace=tmp_path,
-                         mpi=False, openmp=False,
                          tool_box=ToolBox()) as config:
             analysed_x90 = _analyse_x90s(config, x90s=[SAMPLE_X90])
             all_kernel_hashes = _analyse_kernels(config, kernel_roots=[Path(__file__).parent])
@@ -130,8 +127,8 @@ class TestPsyclone:
     """
     @pytest.fixture
     def config(self, tmp_path):
-        config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                             fab_workspace=tmp_path, multiprocessing=False)
+        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path,
+                             multiprocessing=False)
         return config
 
     def steps(self, config, psyclone_lfric_api):

@@ -124,9 +124,11 @@ if __name__ == '__main__':
     revision = 'vn12.1'
     um_revision = revision.replace('vn', 'um')
 
+    # The original build script disabled openmp, so for now
+    # we keep this disabled.
     state = BuildConfig(
         project_label=f'um atmos safe {revision} $compiler $two_stage',
-        mpi=False, openmp=False, tool_box=ToolBox())
+        mpi=True, openmp=False, tool_box=ToolBox())
 
     # compiler-specific flags
     compiler = state.tool_box[Category.FORTRAN_COMPILER]

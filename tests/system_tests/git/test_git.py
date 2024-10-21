@@ -29,8 +29,7 @@ from fab.tools import Git, ToolBox
 
 @pytest.fixture
 def config(tmp_path):
-    return BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                       fab_workspace=tmp_path)
+    return BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
 
 
 class TestGitCheckout:
