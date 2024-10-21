@@ -34,7 +34,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     # Set the default Fortran compiler as linker (otherwise e.g. the
     # C compiler might be used in linking, requiring additional flags)
     tr = ToolRepository()
-    fc = tr.get_default(Category.FORTRAN_COMPILER)
+    fc = tr.get_default(Category.FORTRAN_COMPILER, mpi=False)
     # TODO: This assumes a mapping of compiler name to the corresponding
     # linker name (i.e. `linker-gfortran` or `linker-ifort`). Still, that's
     # better than hard-coding gnu here.
@@ -44,7 +44,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     tool_box.add_tool(linker)
     # Within the fab workspace, we'll create a project workspace.
     # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
-    with BuildConfig(project_label=project_label,
+    with BuildConfig(project_label=project_label, mpi=False, openmp=False,
                      tool_box=tool_box, **kwargs) as config:
         grab_folder(config, folder)
         find_source_files(config)

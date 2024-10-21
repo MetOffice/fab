@@ -15,7 +15,7 @@ from gcom_build_steps import common_build_steps
 if __name__ == '__main__':
 
     with BuildConfig(project_label='gcom object archive $compiler',
-                     tool_box=ToolBox()) as state:
+                     mpi=True, openmp=False, tool_box=ToolBox()) as state:
         common_build_steps(state)
         archive_objects(state, output_fpath='$output/libgcom.a')
         cleanup_prebuilds(state, all_unused=True)

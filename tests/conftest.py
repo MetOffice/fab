@@ -23,6 +23,7 @@ def fixture_mock_c_compiler():
     mock_compiler._version = (1, 2, 3)
     mock_compiler._name = "mock_c_compiler"
     mock_compiler._exec_name = "mock_c_compiler.exe"
+    mock_compiler._openmp_flag = "-fopenmp"
     return mock_compiler
 
 
@@ -32,7 +33,7 @@ def fixture_mock_fortran_compiler():
     mock_compiler = FortranCompiler("mock_fortran_compiler", "mock_exec",
                                     "suite", module_folder_flag="",
                                     syntax_only_flag=None, compile_flag=None,
-                                    output_flag=None, omp_flag=None)
+                                    output_flag=None, openmp_flag=None)
     mock_compiler.run = mock.Mock()
     mock_compiler._name = "mock_fortran_compiler"
     mock_compiler._exec_name = "mock_fortran_compiler.exe"

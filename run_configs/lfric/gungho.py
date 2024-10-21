@@ -33,7 +33,7 @@ if __name__ == '__main__':
     gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
 
     with BuildConfig(project_label='gungho $compiler $two_stage',
-                     tool_box=ToolBox()) as state:
+                     mpi=True, openmp=True, tool_box=ToolBox()) as state:
         grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components/driver/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components' / 'inventory' / 'source', dst_label='')
@@ -87,7 +87,7 @@ if __name__ == '__main__':
             state,
             common_flags=[
                 '-c',
-                '-ffree-line-length-none', '-fopenmp',
+                '-ffree-line-length-none',
                 '-g',
                 '-std=f2008',
 
@@ -104,8 +104,6 @@ if __name__ == '__main__':
         link_exe(
             state,
             flags=[
-                '-fopenmp',
-
                 '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
                 '-lxios',  # EXTERNAL_STATIC_LIBRARIES
                 '-lstdc++',

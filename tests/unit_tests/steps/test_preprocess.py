@@ -50,7 +50,7 @@ class Test_preprocess_fortran:
         cpp._category = Category.FORTRAN_PREPROCESSOR
         # Now overwrite the Fortran preprocessor with the re-categorised
         # C preprocessor:
-        tool_box.add_tool(cpp)
+        tool_box.add_tool(cpp, silent_replace=True)
 
         with pytest.raises(RuntimeError) as err:
             preprocess_fortran(config=config)

@@ -33,13 +33,13 @@ if __name__ == '__main__':
     with BuildConfig(project_label='tiny_fortran $compiler',
                      tool_box=tool_box) as state:
         git_checkout(state, src='https://github.com/metomi/fab-test-data.git',
-                     revision='main', dst_label='src'),
+                     revision='main', dst_label='src')
 
-        find_source_files(state),
+        find_source_files(state)
 
-        preprocess_fortran(state),
+        preprocess_fortran(state)
 
-        analyse(state, root_symbol='my_prog'),
+        analyse(state, root_symbol='my_prog')
 
-        compile_fortran(state),
-        link_exe(state),
+        compile_fortran(state)
+        link_exe(state)

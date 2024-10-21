@@ -83,7 +83,7 @@ class TestArchiveObjects:
 
         config = BuildConfig('proj', ToolBox())
         tool_box = config.tool_box
-        cc = tool_box[Category.C_COMPILER]
+        cc = tool_box.get_tool(Category.C_COMPILER, config.mpi)
         # And set its category to C_COMPILER
         cc._category = Category.AR
         # So overwrite the C compiler with the re-categories Fortran compiler

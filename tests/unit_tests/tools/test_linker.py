@@ -75,30 +75,38 @@ def test_linker_check_available(mock_c_compiler):
         ["ld", "--version"], capture_output=True, env=None,
         cwd=None, check=False)
 
-    # Third test: assume the tool does not exist, run will raise
-    # runtime error:
+    # Third test: assume the tool does not exist, check_available
+    # will return False (and not raise  an exception)
+    linker._is_available = None
     with mock.patch("fab.tools.tool.Tool.run",
                     side_effect=RuntimeError("")) as tool_run:
-        linker.check_available()
+        assert linker.check_available() is False
 
 
 def test_linker_c(mock_c_compiler):
-    '''Test the link command line.'''
+    '''Test the link command line when no additional libraries are
+    specified.'''
     linker = Linker(compiler=mock_c_compiler)
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        linker.link([Path("a.o")], Path("a.out"))
+        linker.link([Path("a.o")], Path("a.out"), openmp=False)
     tool_run.assert_called_with(
         ["mock_c_compiler.exe", 'a.o', '-o', 'a.out'], capture_output=True,
         env=None, cwd=None, check=False)
 
+
+def test_linker_c_with_libraries(mock_c_compiler):
+    '''Test the link command line when additional libraries are specified.'''
+    linker = Linker(compiler=mock_c_compiler)
     with mock.patch.object(linker, "run") as link_run:
-        linker.link([Path("a.o")], Path("a.out"), add_libs=["-L", "/tmp"])
-    link_run.assert_called_with(['a.o', '-L', '/tmp', '-o', 'a.out'])
+        linker.link([Path("a.o")], Path("a.out"), add_libs=["-L", "/tmp"],
+                    openmp=True)
+    link_run.assert_called_with(['-fopenmp', 'a.o', '-L', '/tmp',
+                                 '-o', 'a.out'])
 
 
-def test_linker_add_compiler_flag(mock_c_compiler):
+def test_compiler_linker_add_compiler_flag(mock_c_compiler):
     '''Test that a flag added to the compiler will be automatically
     added to the link line (even if the flags are modified after
     creating the linker ... in case that the user specifies additional
@@ -109,19 +117,22 @@ def test_linker_add_compiler_flag(mock_c_compiler):
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        linker.link([Path("a.o")], Path("a.out"))
+        linker.link([Path("a.o")], Path("a.out"), openmp=False)
     tool_run.assert_called_with(
         ['mock_c_compiler.exe', '-my-flag', 'a.o', '-o', 'a.out'],
         capture_output=True, env=None, cwd=None, check=False)
 
-    # Make also sure the code works if a linker is created without
-    # a compiler:
+
+def test_linker_add_compiler_flag():
+    '''Make sure linker flags work if a linker is created without
+    a compiler:
+    '''
     linker = Linker("no-compiler", "no-compiler.exe", "suite")
     linker.flags.append("-some-other-flag")
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        linker.link([Path("a.o")], Path("a.out"))
+        linker.link([Path("a.o")], Path("a.out"), openmp=False)
     tool_run.assert_called_with(
         ['no-compiler.exe', '-some-other-flag', 'a.o', '-o', 'a.out'],
         capture_output=True, env=None, cwd=None, check=False)

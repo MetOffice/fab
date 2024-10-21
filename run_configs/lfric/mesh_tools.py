@@ -25,7 +25,7 @@ if __name__ == '__main__':
     psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
 
     with BuildConfig(project_label='mesh tools $compiler $two_stage',
-                     tool_box=ToolBox()) as state:
+                     mpi=True, openmp=False, tool_box=ToolBox()) as state:
         grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'mesh_tools/source/', dst_label='')
         grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='')
