@@ -35,6 +35,8 @@ class Shell(Tool):
 
         :returns: stdout of the result.
         '''
+        # Make mypy happy:
+        params: List[Union[str, Path]]
         if isinstance(command, str):
             params = ["-c", command]
         else:
