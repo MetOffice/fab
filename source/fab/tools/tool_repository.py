@@ -63,7 +63,7 @@ class ToolRepository(dict):
         # Add the FAB default tools:
         # TODO: sort the defaults so that they actually work (since not all
         # tools FAB knows about are available). For now, disable Fpp (by not
-        # adding it). IF someone actually uses it it can added.
+        # adding it). If someone actually uses it it can added.
         for cls in [Craycc, Crayftn,
                     Gcc, Gfortran,
                     Icc, Icx, Ifort, Ifx,
@@ -104,9 +104,10 @@ class ToolRepository(dict):
 
     def add_tool(self, tool: Tool):
         '''Creates an instance of the specified class and adds it
-        to the tool repository.
+        to the tool repository. If the tool is a compiler, it automatically
+        adds the compiler as a linker as well (named "linker-{tool.name}").
 
-        :param cls: the tool to instantiate.
+        :param tool: the tool to add.
         '''
 
         # We do not test if a tool is actually available. The ToolRepository
@@ -164,15 +165,15 @@ class ToolRepository(dict):
     def get_default(self, category: Category,
                     mpi: Optional[bool] = None,
                     openmp: Optional[bool] = None):
-        '''Returns the default tool for a given category. For most tools
-        that will be the first entry in the list of tools. The exception
-        are compilers and linker: in this case it must be specified if
-        MPI support is required or not. And the default return will be
+        '''Returns the default tool for a given category that is available.
+        For most tools that will be the first entry in the list of tools. The
+        exception are compilers and linker: in this case it must be specified
+        if MPI support is required or not. And the default return will be
         the first tool that either supports MPI or not.
 
         :param category: the category for which to return the default tool.
         :param mpi: if a compiler or linker is required that supports MPI.
-        :param open: if a compiler or linker is required that supports OpenMP.
+        :param openmp: if a compiler or linker is required that supports OpenMP.
 
         :raises KeyError: if the category does not exist.
         :raises RuntimeError: if no tool in the requested category is
@@ -187,7 +188,12 @@ class ToolRepository(dict):
 
         # If not a compiler or linker, return the first tool
         if not category.is_compiler and category != Category.LINKER:
-            return self[category][0]
+            for tool in self[category]:
+                if tool.is_available:
+                    return tool
+            tool_names = ",".join(i.name for i in self[category])
+            raise RuntimeError(f"Can't find available '{category}' tool. "
+                               f"Tools are '{tool_names}'.")
 
         if not isinstance(mpi, bool):
             raise RuntimeError(f"Invalid or missing mpi specification "
@@ -202,8 +208,8 @@ class ToolRepository(dict):
             # ignore it.
             if openmp and not tool.openmp:
                 continue
-            # If the tool supports/does not support MPI, return it.
-            if mpi == tool.mpi:
+            # If the tool supports/does not support MPI, return the first one
+            if tool.is_available and mpi == tool.mpi:
                 return tool
 
         # Don't bother returning an MPI enabled tool if no-MPI is requested -
