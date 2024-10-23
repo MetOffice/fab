@@ -23,7 +23,7 @@ from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
 from fab.tools import (Ar, Cpp, CppFortran, Craycc, Crayftn,
                        Gcc, Gfortran, Icc, Icx, Ifort, Ifx,
-                       Nvc, Nvfortran, Psyclone, Rsync)
+                       Nvc, Nvfortran, Psyclone, Rsync, Shell)
 
 
 class ToolRepository(dict):
@@ -71,6 +71,13 @@ class ToolRepository(dict):
                     Cpp, CppFortran,
                     Ar, Fcm, Git, Psyclone, Rsync, Subversion]:
             self.add_tool(cls())
+
+        # Add the common shells. While Fab itself does not need this,
+        # it is a very convenient tool for user configuration (e.g. to
+        # query nc-config etc)
+        for shell_name in ["bash", "sh", "ksh", "dash"]:
+            self.add_tool(Shell(shell_name))
+            self.get_tool(Category.SHELL, shell_name)
 
         # Now create the potential mpif90 and Cray ftn wrapper
         all_fc = self[Category.FORTRAN_COMPILER][:]

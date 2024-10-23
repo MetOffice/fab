@@ -56,7 +56,7 @@ class Compiler(CompilerSuiteTool):
                  compile_flag: Optional[str] = None,
                  output_flag: Optional[str] = None,
                  openmp_flag: Optional[str] = None,
-                 availability_option: Optional[str] = None):
+                 availability_option: Optional[Union[str, List[str]]] = None):
         super().__init__(name, exec_name, suite, category=category,
                          availability_option=availability_option)
         self._version: Union[Tuple[int, ...], None] = None
