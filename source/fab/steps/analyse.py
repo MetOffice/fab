@@ -130,7 +130,9 @@ def analyse(
     unreferenced_deps = list(unreferenced_deps or [])
 
     # todo: these seem more like functions
-    fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
+    fortran_analyser = FortranAnalyser(config=config,
+                                       std=std,
+                                       ignore_mod_deps=ignore_mod_deps)
     c_analyser = CAnalyser()
 
     # Creates the *build_trees* artefact from the files in `self.source_getter`.

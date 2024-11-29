@@ -11,7 +11,6 @@ import logging
 from pathlib import Path
 from typing import Union, Optional, Iterable, Dict, Any, Set
 
-from fparser.common.readfortran import FortranStringReader   # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
@@ -21,6 +20,7 @@ from fparser.two.Fortran2003 import (  # type: ignore
 from fparser.two.Fortran2008 import (  # type: ignore
     Type_Declaration_Stmt, Attr_Spec_List)
 
+from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran_common import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
 from fab.util import file_checksum, string_checksum
@@ -167,15 +167,21 @@ class FortranAnalyser(FortranAnalyserBase):
     A build step which analyses a fortran file using fparser2, creating an :class:`~fab.dep_tree.AnalysedFortran`.
 
     """
-    def __init__(self, std=None, ignore_mod_deps: Optional[Iterable[str]] = None):
+    def __init__(self,
+                 config: BuildConfig,
+                 std: Optional[str]=None,
+                 ignore_mod_deps: Optional[Iterable[str]] = None):
         """
+        :param config: The BuildConfig to use.
         :param std:
             The Fortran standard.
         :param ignore_mod_deps:
             Module names to ignore in use statements.
 
         """
-        super().__init__(result_class=AnalysedFortran, std=std)
+        super().__init__(config=config,
+                         result_class=AnalysedFortran,
+                         std=std)
         self.ignore_mod_deps: Iterable[str] = list(ignore_mod_deps or [])
         self.depends_on_comment_found = False
 
@@ -295,33 +301,6 @@ class FortranAnalyser(FortranAnalyserBase):
             # without .o means a fortran symbol
             else:
                 analysed_file.add_symbol_dep(dep)
-        if comment[:2] == "!$":
-            # Check if it is a use statement with an OpenMP sentinel:
-            # Use fparser's string reader to discard potential comment
-            # TODO #327: once fparser supports reading the sentinels,
-            # this can be removed.
-            # fparser issue: https://github.com/stfc/fparser/issues/443
-            reader = FortranStringReader(comment[2:])
-            try:
-                line = reader.next()
-            except StopIteration:
-                # No other item, ignore
-                return
-            try:
-                # match returns a 5-tuple, the third one being the module name
-                module_name = Use_Stmt.match(line.strline)[2]
-                module_name = module_name.string
-            except Exception:
-                # Not a use statement in a sentinel, ignore:
-                return
-
-            # Register the module name
-            if module_name in self.ignore_mod_deps:
-                logger.debug(f"ignoring use of {module_name}")
-                return
-            if module_name.lower() not in self._intrinsic_modules:
-                # found a dependency on fortran
-                analysed_file.add_module_dep(module_name)
 
     def _process_subroutine_or_function(self, analysed_file, fpath, obj):
         # binding?
@@ -353,7 +332,7 @@ class FortranAnalyser(FortranAnalyserBase):
                 analysed_file.add_symbol_def(name.string)
 
 
-class FortranParserWorkaround(object):
+class FortranParserWorkaround():
     """
     Use this class to create a workaround when the third-party Fortran parser is unable to process a valid source file.
 

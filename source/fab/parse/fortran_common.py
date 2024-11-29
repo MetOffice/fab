@@ -10,13 +10,14 @@ Common functionality for both Fortran and (sanitised) X90 processing.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union, Tuple, Type
+from typing import Optional, Tuple, Type, Union
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import FortranSyntaxError  # type: ignore
 
 from fab import FabException
+from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse import EmptySourceFile
 from fab.util import log_or_dot, file_checksum
@@ -77,21 +78,26 @@ class FortranAnalyserBase(ABC):
     """
     _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
 
-    def __init__(self, result_class, std=None):
+    def __init__(self, config: BuildConfig,
+                 result_class,
+                 std: Optional[str] = None):
         """
+        :param config: The BuildConfig object.
         :param result_class:
             The type (class) of the analysis result. Defined by the subclass.
         :param std:
             The Fortran standard.
 
         """
+        self._config = config
         self.result_class = result_class
         self.f2008_parser = ParserFactory().create(std=std or "f2008")
 
-        # todo: this, and perhaps other runtime variables like it, might be better set at construction
-        #       if we construct these objects at runtime instead...
-        # runtime, for child processes to read
-        self._config = None
+    @property
+    def config(self) -> BuildConfig:
+        '''Returns the BuildConfig to use.
+        '''
+        return self._config
 
     def run(self, fpath: Path) \
             -> Union[Tuple[AnalysedDependent, Path], Tuple[EmptySourceFile, None], Tuple[Exception, None]]:
@@ -142,8 +148,12 @@ class FortranAnalyserBase(ABC):
 
     def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""
-        reader = FortranFileReader(str(fpath), ignore_comments=False)
-        reader.exit_on_error = False  # don't call sys.exit, it messes up the multi-processing
+        reader = FortranFileReader(
+            str(fpath),
+            ignore_comments=False,
+            include_omp_conditional_lines=self.config.openmp)
+        # don't call sys.exit, it messes up the multi-processing
+        reader.exit_on_error = False
 
         try:
             tree = self.f2008_parser(reader)

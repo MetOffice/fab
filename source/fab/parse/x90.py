@@ -9,6 +9,7 @@ from typing import Iterable, Set, Union, Optional, Dict, Any
 from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
 
 from fab.parse import AnalysedFile
+from fab.build_config import BuildConfig
 from fab.parse.fortran_common import FortranAnalyserBase, iter_content, logger, _typed_child
 from fab.util import by_type
 
@@ -64,8 +65,8 @@ class X90Analyser(FortranAnalyserBase):
     # Makes a parsable fortran version of x90.
     # todo: Use hashing to reuse previous analysis results.
 
-    def __init__(self):
-        super().__init__(result_class=AnalysedX90)
+    def __init__(self, config: BuildConfig):
+        super().__init__(config=config, result_class=AnalysedX90)
 
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:  # type: ignore
 
