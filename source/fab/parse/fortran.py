@@ -169,7 +169,7 @@ class FortranAnalyser(FortranAnalyserBase):
     """
     def __init__(self,
                  config: BuildConfig,
-                 std: Optional[str]=None,
+                 std: Optional[str] = None,
                  ignore_mod_deps: Optional[Iterable[str]] = None):
         """
         :param config: The BuildConfig to use.
