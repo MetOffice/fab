@@ -3,6 +3,11 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+
+'''Tests the Fortran analyser.
+'''
+
+
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from unittest import mock
@@ -17,9 +22,6 @@ from fab.parse import EmptySourceFile
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.fortran_common import iter_content
 from fab.tools import ToolBox
-
-'''Tests the Fortran analyser.
-'''
 
 # todo: test function binding
 
@@ -36,7 +38,7 @@ def module_expected(module_fpath) -> AnalysedFortran:
     test module.'''
     return AnalysedFortran(
         fpath=module_fpath,
-        file_hash=1757501304,
+        file_hash=3737289404,
         module_defs={'foo_mod'},
         symbol_defs={'external_sub', 'external_func', 'foo_mod'},
         module_deps={'bar_mod', 'compute_chunk_size_mod'},
@@ -50,9 +52,10 @@ class TestAnalyser:
 
     @pytest.fixture
     def fortran_analyser(self, tmp_path):
-        fortran_analyser = FortranAnalyser()
-        fortran_analyser._config = BuildConfig('proj', ToolBox(),
-                                               fab_workspace=tmp_path)
+        # Enable openmp, so fparser will handle the lines with omp sentinels
+        config = BuildConfig('proj', ToolBox(),
+                             fab_workspace=tmp_path, openmp=True)
+        fortran_analyser = FortranAnalyser(config=config)
         return fortran_analyser
 
     def test_empty_file(self, fortran_analyser):
@@ -71,6 +74,24 @@ class TestAnalyser:
         assert artefact == (fortran_analyser._config.prebuild_folder /
                             f'test_fortran_analyser.{analysis.file_hash}.an')
 
+    def test_module_file_no_openmp(self, fortran_analyser, module_fpath,
+                                   module_expected):
+        '''Disable OpenMP, meaning the dependency on compute_chunk_size_mod
+        should not be detected anymore.
+        '''
+        fortran_analyser.config._openmp = False
+        with mock.patch('fab.parse.AnalysedFile.save'):
+            analysis, artefact = fortran_analyser.run(fpath=module_fpath)
+
+        # Without parsing openmp sentinels, the compute_chunk... symbols
+        # must not be added:
+        module_expected.module_deps.remove('compute_chunk_size_mod')
+        module_expected.symbol_deps.remove('compute_chunk_size_mod')
+
+        assert analysis == module_expected
+        assert artefact == (fortran_analyser._config.prebuild_folder /
+                            f'test_fortran_analyser.{analysis.file_hash}.an')
+
     def test_program_file(self, fortran_analyser, module_fpath,
                           module_expected):
         # same as test_module_file() but replacing MODULE with PROGRAM
@@ -83,7 +104,7 @@ class TestAnalyser:
                     fpath=Path(tmp_file.name))
 
             module_expected.fpath = Path(tmp_file.name)
-            module_expected._file_hash = 3388519280
+            module_expected._file_hash = 325155675
             module_expected.program_defs = {'foo_mod'}
             module_expected.module_defs = set()
             module_expected.symbol_defs.update({'internal_func',
@@ -133,7 +154,7 @@ class TestProcessVariableBinding:
         # run our handler
         fpath = Path('foo')
         analysed_file = AnalysedFortran(fpath=fpath, file_hash=0)
-        analyser = FortranAnalyser()
+        analyser = FortranAnalyser(config=None)
         analyser._process_variable_binding(analysed_file=analysed_file,
                                            obj=var_decl)
 
