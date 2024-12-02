@@ -121,7 +121,8 @@ class Linker(CompilerWrapper):
         if self.compiler.category == Category.LINKER:
             # If we are wrapping a linker, get the wrapped linker's
             # pre-link flags and append them to the end (so the linker
-            # wrapper's settings come first)
+            # wrapper's settings come before the setting from the
+            # wrapped linker).
             linker = cast(Linker, self.compiler)
             params.extend(linker.get_pre_link_flags())
         return params
@@ -143,10 +144,12 @@ class Linker(CompilerWrapper):
         params: List[Union[str, Path]] = []
 
         if openmp:
+            # Find the compiler by following the (potentially
+            # layered) linker wrapper.
             compiler = self.compiler
             while compiler.category == Category.LINKER:
-                linker = cast(Linker, compiler)
-                compiler = linker.compiler
+                # Make mypy happy
+                compiler = cast(Linker, compiler).compiler
 
             params.append(compiler.openmp_flag)
 
