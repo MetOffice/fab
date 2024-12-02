@@ -21,19 +21,21 @@ class Linker(CompilerWrapper):
     '''This is the base class for any Linker.
 
     :param compiler: a compiler or linker instance
+    :param name: name of the linker
     :param output_flag: flag to use to specify the output name.
     '''
 
-    def __init__(self, compiler: Compiler, output_flag: str = "-o"):
+    def __init__(self, compiler: Compiler, name: Optional[str] = None,
+                 output_flag: Optional[str] = None):
 
         super().__init__(
-            name=f"linker-{compiler.name}",
+            name=name or f"linker-{compiler.name}",
             exec_name=compiler.exec_name,
             compiler=compiler,
             category=Category.LINKER,
             mpi=compiler.mpi)
 
-        self._output_flag = output_flag
+        self._output_flag = output_flag or ""
         self.add_flags(os.getenv("LDFLAGS", "").split())
 
         # Maintain a set of flags for common libraries.
@@ -48,7 +50,7 @@ class Linker(CompilerWrapper):
         if self._output_flag:
             return self._output_flag
         if not self.compiler.category == Category.LINKER:
-            raise RuntimeError(f"No output flag found for linker {self.name}.")
+            return self.compiler.output_flag
 
         linker = cast(Linker, self.compiler)
         return linker.get_output_flag()

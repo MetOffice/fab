@@ -83,6 +83,11 @@ class Compiler(CompilerSuiteTool):
         ''':returns: the flag to enable OpenMP.'''
         return self._openmp_flag
 
+    @property
+    def output_flag(self) -> str:
+        '''Returns the flag that specifies the output flag.'''
+        return self._output_flag
+
     def get_hash(self) -> int:
         ''':returns: a hash based on the compiler name and version.
         '''

@@ -17,8 +17,8 @@ from typing import cast, Optional
 from fab.tools.tool import Tool
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
-from fab.tools.compiler_wrapper import (CrayCcWrapper, CrayFtnWrapper,
-                                        Mpif90, Mpicc)
+from fab.tools.compiler_wrapper import (CompilerWrapper, CrayCcWrapper,
+                                        CrayFtnWrapper, Mpif90, Mpicc)
 from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
 from fab.tools import (Ar, Cpp, CppFortran, Craycc, Crayftn,
@@ -75,12 +75,12 @@ class ToolRepository(dict):
         # Now create the potential mpif90 and Cray ftn wrapper
         all_fc = self[Category.FORTRAN_COMPILER][:]
         for fc in all_fc:
-            mpif90 = Mpif90(fc)
-            self.add_tool(mpif90)
+            if not fc.mpi:
+                mpif90 = Mpif90(fc)
+                self.add_tool(mpif90)
             # I assume cray has (besides cray) only support for Intel and GNU
             if fc.name in ["gfortran", "ifort"]:
                 crayftn = CrayFtnWrapper(fc)
-                print("NEW NAME", crayftn, crayftn.name)
                 self.add_tool(crayftn)
 
         # Now create the potential mpicc and Cray cc wrapper
@@ -107,9 +107,27 @@ class ToolRepository(dict):
 
         # If we have a compiler, add the compiler as linker as well
         if tool.is_compiler:
-            tool = cast(Compiler, tool)
-            linker = Linker(compiler=tool)
-            self[linker.category].append(linker)
+            compiler = cast(Compiler, tool)
+            if isinstance(compiler, CompilerWrapper):
+                # If we have a compiler wrapper, create a new linker using
+                # the linker based on the wrappped compiler. For example, when
+                # creating linker-mpif90-gfortran, we want this to be based on
+                # linker-gfortran (and not on the compiler mpif90-gfortran),
+                # since the linker-gfortran might have library definitions
+                # that should be reused. So we first get the existing linker
+                # (since the compiler exists, a linker for this compiler was
+                # already created and must exist).
+                other_linker = self.get_tool(
+                    category=Category.LINKER,
+                    name=f"linker-{compiler.compiler.name}")
+                other_linker = cast(Linker, other_linker)
+                linker = Linker(compiler=other_linker,
+                                name=f"linker-{compiler.name}")
+                self[linker.category].append(linker)
+            else:
+                linker = Linker(compiler=compiler,
+                                name=f"linker-{compiler.name}")
+                self[linker.category].append(linker)
 
     def get_tool(self, category: Category, name: str) -> Tool:
         ''':returns: the tool with a given name in the specified category.

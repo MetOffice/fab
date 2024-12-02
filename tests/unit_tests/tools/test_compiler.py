@@ -25,7 +25,7 @@ def test_compiler():
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
     assert cc.category == Category.C_COMPILER
     assert cc._compile_flag == "-c"
-    assert cc._output_flag == "-o"
+    assert cc.output_flag == "-o"
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert cc.flags == []
     assert cc.suite == "gnu"
@@ -35,7 +35,7 @@ def test_compiler():
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
                          version_regex="something", module_folder_flag="-J")
     assert fc._compile_flag == "-c"
-    assert fc._output_flag == "-o"
+    assert fc.output_flag == "-o"
     assert fc.category == Category.FORTRAN_COMPILER
     assert fc.suite == "gnu"
     # pylint: disable-next=use-implicit-booleaness-not-comparison

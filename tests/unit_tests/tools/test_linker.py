@@ -13,7 +13,7 @@ import warnings
 
 import pytest
 
-from fab.tools import (Category, Linker)
+from fab.tools import (Category, Linker, ToolRepository)
 
 
 def test_linker(mock_c_compiler, mock_fortran_compiler):
@@ -22,12 +22,13 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
     assert mock_c_compiler.category == Category.C_COMPILER
     assert mock_c_compiler.name == "mock_c_compiler"
 
-    linker = Linker(mock_c_compiler)
+    linker = Linker(mock_c_compiler, output_flag="-o")
     assert linker.category == Category.LINKER
     assert linker.name == "linker-mock_c_compiler"
     assert linker.exec_name == "mock_c_compiler.exe"
     assert linker.suite == "suite"
     assert linker.flags == []
+    assert linker.get_output_flag() == "-o"
 
     assert mock_fortran_compiler.category == Category.FORTRAN_COMPILER
     assert mock_fortran_compiler.name == "mock_fortran_compiler"
@@ -299,3 +300,19 @@ def test_linker_nesting(mock_c_compiler):
                                  "b_from_2", "c_from_2", '-o', 'a.out'],
                                 capture_output=True, env=None, cwd=None,
                                 check=False)
+
+
+def test_linker_inheriting():
+    '''Make sure that libraries from a wrapper compiler will be
+    available for a wrapper.
+    '''
+    tr = ToolRepository()
+    linker_gfortran = tr.get_tool(Category.LINKER, "linker-gfortran")
+    linker_mpif90 = tr.get_tool(Category.LINKER, "linker-mpif90-gfortran")
+
+    linker_gfortran.add_lib_flags("lib_a", ["a_from_1"])
+    assert linker_mpif90.get_lib_flags("lib_a") == ["a_from_1"]
+
+    with pytest.raises(RuntimeError) as err:
+        linker_mpif90.get_lib_flags("does_not_exist")
+    assert "Unknown library name: 'does_not_exist'" in str(err.value)
