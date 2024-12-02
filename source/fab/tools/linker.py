@@ -7,6 +7,8 @@
 """This file contains the base class for any Linker.
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
 from typing import cast, Dict, List, Optional, Union
@@ -14,28 +16,49 @@ import warnings
 
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
-from fab.tools.compiler_wrapper import CompilerWrapper
+from fab.tools.tool import CompilerSuiteTool
 
 
-class Linker(CompilerWrapper):
-    '''This is the base class for any Linker.
+class Linker(CompilerSuiteTool):
+    '''This is the base class for any Linker. It takes either another linker
+    instance, or a compiler instance as parameter in the constructor. Exactly
+    one of these must be provided.
 
-    :param compiler: a compiler or linker instance
+    :param compiler: an optional compiler instance
+    :param linker: an optional linker instance
     :param name: name of the linker
-    :param output_flag: flag to use to specify the output name.
+
+    :raises RuntimeError: if both compiler and linker are specified.
+    :raises RuntimeError: if neither compiler nor linker is specified.
     '''
 
-    def __init__(self, compiler: Compiler, name: Optional[str] = None,
-                 output_flag: Optional[str] = None):
+    def __init__(self, compiler: Optional[Compiler] = None,
+                 linker: Optional[Linker] = None,
+                 name: Optional[str] = None):
+
+        if linker and compiler:
+            raise RuntimeError("Both compiler and linker is specified in "
+                               "linker constructor.")
+        if not linker and not compiler:
+            raise RuntimeError("Neither compiler nor linker is specified in "
+                               "linker constructor.")
+        self._compiler = compiler
+        self._linker = linker
+
+        search_linker = self
+        while search_linker._linker:
+            search_linker = search_linker._linker
+        final_compiler = search_linker._compiler
+        if not name:
+            assert final_compiler
+            name = f"linker-{final_compiler.name}"
 
         super().__init__(
-            name=name or f"linker-{compiler.name}",
-            exec_name=compiler.exec_name,
-            compiler=compiler,
-            category=Category.LINKER,
-            mpi=compiler.mpi)
+            name=name or f"linker-{name}",
+            exec_name=self.exec_name,
+            suite=self.suite,
+            category=Category.LINKER)
 
-        self._output_flag = output_flag or ""
         self.add_flags(os.getenv("LDFLAGS", "").split())
 
         # Maintain a set of flags for common libraries.
@@ -44,16 +67,35 @@ class Linker(CompilerWrapper):
         self._pre_lib_flags: List[str] = []
         self._post_lib_flags: List[str] = []
 
-    def get_output_flag(self) -> str:
+    def check_available(self):
+        return (self._compiler or self._linker).check_available()
+
+    @property
+    def exec_name(self) -> str:
+        if self._compiler:
+            return self._compiler.exec_name
+        assert self._linker   # make mypy happy
+        return self._linker.exec_name
+
+    @property
+    def suite(self) -> str:
+        return cast(CompilerSuiteTool, (self._compiler or self._linker)).suite
+
+    @property
+    def mpi(self) -> bool:
+        if self._compiler:
+            return self._compiler.mpi
+        assert self._linker
+        return self._linker.mpi
+
+    @property
+    def output_flag(self) -> str:
         ''':returns: the flag that is used to specify the output name.
         '''
-        if self._output_flag:
-            return self._output_flag
-        if not self.compiler.category == Category.LINKER:
-            return self.compiler.output_flag
-
-        linker = cast(Linker, self.compiler)
-        return linker.get_output_flag()
+        if self._compiler:
+            return self._compiler.output_flag
+        assert self._linker
+        return self._linker.output_flag
 
     def get_lib_flags(self, lib: str) -> List[str]:
         '''Gets the standard flags for a standard library
@@ -69,9 +111,8 @@ class Linker(CompilerWrapper):
         except KeyError:
             # If a lib is not defined here, but this is a wrapper around
             # another linker, return the result from the wrapped linker
-            if self.compiler.category is Category.LINKER:
-                linker = cast(Linker, self.compiler)
-                return linker.get_lib_flags(lib)
+            if self._linker:
+                return self._linker.get_lib_flags(lib)
             raise RuntimeError(f"Unknown library name: '{lib}'")
 
     def add_lib_flags(self, lib: str, flags: List[str],
@@ -117,16 +158,15 @@ class Linker(CompilerWrapper):
             wrapped linkers
         '''
         params: List[str] = []
-
+        print("gplf", self._pre_lib_flags, self, self._linker)
         if self._pre_lib_flags:
             params.extend(self._pre_lib_flags)
-        if self.compiler.category == Category.LINKER:
+        if self._linker:
             # If we are wrapping a linker, get the wrapped linker's
             # pre-link flags and append them to the end (so the linker
             # wrapper's settings come before the setting from the
             # wrapped linker).
-            linker = cast(Linker, self.compiler)
-            params.extend(linker.get_pre_link_flags())
+            params.extend(self._linker.get_pre_link_flags())
         return params
 
     def link(self, input_files: List[Path], output_file: Path,
@@ -145,14 +185,17 @@ class Linker(CompilerWrapper):
 
         params: List[Union[str, Path]] = []
 
-        if openmp:
-            # Find the compiler by following the (potentially
-            # layered) linker wrapper.
-            compiler = self.compiler
-            while compiler.category == Category.LINKER:
-                # Make mypy happy
-                compiler = cast(Linker, compiler).compiler
+        # Find the compiler by following the (potentially
+        # layered) linker wrapper.
+        linker = self
+        while linker._linker:
+            linker = linker._linker
+        # Now we must have a compiler
+        compiler = linker._compiler
+        assert compiler
+        params.extend(compiler.flags)
 
+        if openmp:
             params.append(compiler.openmp_flag)
 
         # TODO: why are the .o files sorted? That shouldn't matter
@@ -164,6 +207,6 @@ class Linker(CompilerWrapper):
 
         if self._post_lib_flags:
             params.extend(self._post_lib_flags)
-        params.extend([self.get_output_flag(), str(output_file)])
+        params.extend([self.output_flag, str(output_file)])
 
         return self.run(params)

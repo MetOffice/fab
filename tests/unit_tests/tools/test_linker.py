@@ -22,13 +22,13 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
     assert mock_c_compiler.category == Category.C_COMPILER
     assert mock_c_compiler.name == "mock_c_compiler"
 
-    linker = Linker(mock_c_compiler, output_flag="-o")
+    linker = Linker(mock_c_compiler)
     assert linker.category == Category.LINKER
     assert linker.name == "linker-mock_c_compiler"
     assert linker.exec_name == "mock_c_compiler.exe"
     assert linker.suite == "suite"
     assert linker.flags == []
-    assert linker.get_output_flag() == "-o"
+    assert linker.output_flag == "-o"
 
     assert mock_fortran_compiler.category == Category.FORTRAN_COMPILER
     assert mock_fortran_compiler.name == "mock_fortran_compiler"
@@ -263,8 +263,8 @@ def test_linker_all_flag_types(mock_c_compiler):
 
     tool_run.assert_called_with([
         "mock_c_compiler.exe",
-        "-compiler-flag1", "-compiler-flag2", "-fflag",
         "-ldflag", "-linker-flag1", "-linker-flag2",
+        "-compiler-flag1", "-compiler-flag2",
         "-fopenmp",
         "a.o",
         "-prelibflag1", "-prelibflag2",
@@ -283,7 +283,7 @@ def test_linker_nesting(mock_c_compiler):
     linker1.add_pre_lib_flags(["pre_lib1"])
     linker1.add_lib_flags("lib_a", ["a_from_1"])
     linker1.add_lib_flags("lib_c", ["c_from_1"])
-    linker2 = Linker(compiler=linker1)
+    linker2 = Linker(linker=linker1)
     linker2.add_pre_lib_flags(["pre_lib2"])
     linker2.add_lib_flags("lib_b", ["b_from_2"])
     linker2.add_lib_flags("lib_c", ["c_from_2"])

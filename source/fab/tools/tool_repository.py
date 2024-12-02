@@ -121,7 +121,7 @@ class ToolRepository(dict):
                     category=Category.LINKER,
                     name=f"linker-{compiler.compiler.name}")
                 other_linker = cast(Linker, other_linker)
-                linker = Linker(compiler=other_linker,
+                linker = Linker(linker=other_linker,
                                 name=f"linker-{compiler.name}")
                 self[linker.category].append(linker)
             else:

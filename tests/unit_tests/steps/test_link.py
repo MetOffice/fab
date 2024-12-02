@@ -38,7 +38,7 @@ class TestLinkExe:
 
         with mock.patch.dict("os.environ", {"FFLAGS": "-L/foo1/lib -L/foo2/lib"}):
             # We need to create a linker here to pick up the env var:
-            linker = Linker(mock_fortran_compiler)
+            linker = Linker(compiler=mock_fortran_compiler)
             # Mark the linker as available to it can be added to the tool box
             linker._is_available = True
 
