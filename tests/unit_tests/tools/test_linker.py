@@ -81,8 +81,8 @@ def test_linker_get_lib_flags(mock_linker):
 
 
 def test_linker_get_lib_flags_unknown(mock_c_compiler):
-    """Linker should raise an error if flags are requested for a library that is
-    unknown
+    """Linker should raise an error if flags are requested for a library
+    that is unknown.
     """
     linker = Linker(compiler=mock_c_compiler)
     with pytest.raises(RuntimeError) as err:
@@ -101,7 +101,8 @@ def test_linker_add_lib_flags(mock_c_compiler):
 
 
 def test_linker_add_lib_flags_overwrite_defaults(mock_linker):
-    """Linker should provide a way to replace the default flags for a library"""
+    """Linker should provide a way to replace the default flags for
+    a library"""
 
     # Initially we have the default netcdf flags
     result = mock_linker.get_lib_flags("netcdf")
@@ -142,7 +143,9 @@ def test_linker_add_lib_flags_overwrite_silent(mock_linker):
 # Linking:
 # ====================
 def test_linker_c(mock_c_compiler):
-    '''Test the link command line when no additional libraries are specified.'''
+    '''Test the link command line when no additional libraries are
+    specified.'''
+
     linker = Linker(compiler=mock_c_compiler)
     # Add a library to the linker, but don't use it in the link step
     linker.add_lib_flags("customlib", ["-lcustom", "-jcustom"])
@@ -269,3 +272,30 @@ def test_linker_all_flag_types(mock_c_compiler):
         "-postlibflag1", "-postlibflag2",
         "-o", "a.out"],
         capture_output=True, env=None, cwd=None, check=False)
+
+
+def test_linker_nesting(mock_c_compiler):
+    """Make sure all possible sources of linker flags are used in the right
+    order"""
+
+    linker1 = Linker(compiler=mock_c_compiler)
+    linker1.add_pre_lib_flags(["pre_lib1"])
+    linker1.add_lib_flags("lib_a", ["a_from_1"])
+    linker1.add_lib_flags("lib_c", ["c_from_1"])
+    linker2 = Linker(compiler=linker1)
+    linker2.add_pre_lib_flags(["pre_lib2"])
+    linker2.add_lib_flags("lib_b", ["b_from_2"])
+    linker2.add_lib_flags("lib_c", ["c_from_2"])
+
+    mock_result = mock.Mock(returncode=0)
+    with mock.patch("fab.tools.tool.subprocess.run",
+                    return_value=mock_result) as tool_run:
+        linker2.link(
+            [Path("a.o")], Path("a.out"),
+            libs=["lib_a", "lib_b", "lib_c"],
+            openmp=True)
+    tool_run.assert_called_with(['mock_c_compiler.exe', '-fopenmp',
+                                 'a.o', "pre_lib2", "pre_lib1", "a_from_1",
+                                 "b_from_2", "c_from_2", '-o', 'a.out'],
+                                capture_output=True, env=None, cwd=None,
+                                check=False)

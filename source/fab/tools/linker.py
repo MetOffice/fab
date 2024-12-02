@@ -9,7 +9,7 @@
 
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import cast, Dict, List, Optional, Union
 import warnings
 
 from fab.tools.category import Category
@@ -18,16 +18,14 @@ from fab.tools.compiler_wrapper import CompilerWrapper
 
 
 class Linker(CompilerWrapper):
-    '''This is the base class for any Linker. If a compiler is specified,
-    its name, executable, and compile suite will be used for the linker (if
-    not explicitly set in the constructor).
+    '''This is the base class for any Linker.
 
-    :param compiler: optional, a compiler instance
+    :param compiler: a compiler or linker instance
     :param output_flag: flag to use to specify the output name.
     '''
 
     def __init__(self, compiler: Compiler, output_flag: str = "-o"):
-        self._output_flag = output_flag
+
         super().__init__(
             name=f"linker-{compiler.name}",
             exec_name=compiler.exec_name,
@@ -35,6 +33,7 @@ class Linker(CompilerWrapper):
             category=Category.LINKER,
             mpi=compiler.mpi)
 
+        self._output_flag = output_flag
         self.add_flags(os.getenv("LDFLAGS", "").split())
 
         # Maintain a set of flags for common libraries.
@@ -42,6 +41,17 @@ class Linker(CompilerWrapper):
         # Allow flags to include before or after any library-specific flags.
         self._pre_lib_flags: List[str] = []
         self._post_lib_flags: List[str] = []
+
+    def get_output_flag(self) -> str:
+        ''':returns: the flag that is used to specify the output name.
+        '''
+        if self._output_flag:
+            return self._output_flag
+        if not self.compiler.category == Category.LINKER:
+            raise RuntimeError(f"No output flag found for linker {self.name}.")
+
+        linker = cast(Linker, self.compiler)
+        return linker.get_output_flag()
 
     def get_lib_flags(self, lib: str) -> List[str]:
         '''Gets the standard flags for a standard library
@@ -55,6 +65,11 @@ class Linker(CompilerWrapper):
         try:
             return self._lib_flags[lib]
         except KeyError:
+            # If a lib is not defined here, but this is a wrapper around
+            # another linker, return the result from the wrapped linker
+            if self.compiler.category is Category.LINKER:
+                linker = cast(Linker, self.compiler)
+                return linker.get_lib_flags(lib)
             raise RuntimeError(f"Unknown library name: '{lib}'")
 
     def add_lib_flags(self, lib: str, flags: List[str],
@@ -88,6 +103,29 @@ class Linker(CompilerWrapper):
         '''
         self._post_lib_flags.extend(flags)
 
+    def get_pre_link_flags(self) -> List[str]:
+        '''Returns the list of pre-link flags. It will concatenate the
+        flags for this instance with all potentially wrapper linkers.
+        This wrapper's flag will come first - the assumption is that
+        the pre-link flags are likely paths, so we need a wrapper to
+        be able to put a search path before the paths from a wrapped
+        linker.
+
+        :returns: List of pre-link flags of this linker and all
+            wrapped linkers
+        '''
+        params: List[str] = []
+
+        if self._pre_lib_flags:
+            params.extend(self._pre_lib_flags)
+        if self.compiler.category == Category.LINKER:
+            # If we are wrapping a linker, get the wrapped linker's
+            # pre-link flags and append them to the end (so the linker
+            # wrapper's settings come first)
+            linker = cast(Linker, self.compiler)
+            params.extend(linker.get_pre_link_flags())
+        return params
+
     def link(self, input_files: List[Path], output_file: Path,
              openmp: bool,
              libs: Optional[List[str]] = None) -> str:
@@ -101,19 +139,26 @@ class Linker(CompilerWrapper):
 
         :returns: the stdout of the link command
         '''
-        # Don't need to add compiler's flags, they are added by CompilerWrapper.
+
         params: List[Union[str, Path]] = []
+
         if openmp:
-            params.append(self._compiler.openmp_flag)
+            compiler = self.compiler
+            while compiler.category == Category.LINKER:
+                linker = cast(Linker, compiler)
+                compiler = linker.compiler
+
+            params.append(compiler.openmp_flag)
 
         # TODO: why are the .o files sorted? That shouldn't matter
         params.extend(sorted(map(str, input_files)))
+        params.extend(self.get_pre_link_flags())
 
-        if self._pre_lib_flags:
-            params.extend(self._pre_lib_flags)
         for lib in (libs or []):
             params.extend(self.get_lib_flags(lib))
+
         if self._post_lib_flags:
             params.extend(self._post_lib_flags)
-        params.extend([self._output_flag, str(output_file)])
+        params.extend([self.get_output_flag(), str(output_file)])
+
         return self.run(params)
