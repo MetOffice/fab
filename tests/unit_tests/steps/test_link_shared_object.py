@@ -13,12 +13,12 @@ from unittest import mock
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.steps.link import link_shared_object
-from fab.tools import Linker
+from fab.tools import FortranCompiler, Linker
 
 import pytest
 
 
-def test_run(tool_box, mock_c_compiler):
+def test_run(tool_box):
     '''Ensure the command is formed correctly, with the flags at the
     end since they are typically libraries.'''
 
@@ -33,8 +33,17 @@ def test_run(tool_box, mock_c_compiler):
         {None: {'foo.o', 'bar.o'}}
 
     with mock.patch.dict("os.environ", {"FFLAGS": "-L/foo1/lib -L/foo2/lib"}):
-        # We need to create a linker here to pick up the env var:
-        linker = Linker(mock_c_compiler)
+        # We need to create the compiler here in order to pick
+        # up the environment
+        mock_compiler = FortranCompiler("mock_fortran_compiler",
+                                        "mock_fortran_compiler.exe",
+                                        "suite", module_folder_flag="",
+                                        version_regex="something",
+                                        syntax_only_flag=None,
+                                        compile_flag=None, output_flag=None,
+                                        openmp_flag=None)
+        mock_compiler.run = mock.Mock()
+        linker = Linker(mock_compiler)
         # Mark the linker as available so it can added to the tool box:
         linker._is_available = True
         tool_box.add_tool(linker, silent_replace=True)
@@ -47,6 +56,7 @@ def test_run(tool_box, mock_c_compiler):
                                flags=['-fooflag', '-barflag'])
 
     tool_run.assert_called_with(
-        ['mock_c_compiler.exe', '-L/foo1/lib', '-L/foo2/lib', 'bar.o', 'foo.o',
-         '-fooflag', '-barflag', '-fPIC', '-shared', '-o', '/tmp/lib_my.so'],
+        ['mock_fortran_compiler.exe', '-L/foo1/lib', '-L/foo2/lib', 'bar.o',
+         'foo.o', '-fooflag', '-barflag', '-fPIC', '-shared',
+         '-o', '/tmp/lib_my.so'],
         capture_output=True, env=None, cwd=None, check=False)

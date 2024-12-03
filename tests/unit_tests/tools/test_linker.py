@@ -41,6 +41,31 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
     assert linker.flags == []
 
 
+def test_linker_constructor_error(mock_c_compiler):
+    '''Test the linker constructor with invalid parameters.'''
+
+    with pytest.raises(RuntimeError) as err:
+        Linker()
+    assert ("Neither compiler nor linker is specified in linker constructor."
+            in str(err.value))
+    with pytest.raises(RuntimeError) as err:
+        Linker(compiler=mock_c_compiler, linker=mock_c_compiler)
+    assert ("Both compiler and linker is specified in linker constructor."
+            in str(err.value))
+
+
+@pytest.mark.parametrize("mpi", [True, False])
+def test_linker_mpi(mock_c_compiler, mpi):
+    '''Test the linker constructor with invalid parameters.'''
+
+    mock_c_compiler._mpi = mpi
+    linker = Linker(compiler=mock_c_compiler)
+    assert linker.mpi == mpi
+
+    wrapped_linker = Linker(linker=linker)
+    assert wrapped_linker.mpi == mpi
+
+
 def test_linker_gets_ldflags(mock_c_compiler):
     """Tests that the linker retrieves env.LDFLAGS"""
     with mock.patch.dict("os.environ", {"LDFLAGS": "-lm"}):
@@ -236,14 +261,8 @@ def test_linker_all_flag_types(mock_c_compiler):
     """Make sure all possible sources of linker flags are used in the right
     order"""
 
-    # Environment variables for both the compiler and linker
-    # TODO: THIS IS ACTUALLY WRONG - The FFLAGS shouldn't be picked up here,
-    # because the compiler already exists. It is being added twice, because
-    # Linker inherits Compiler (in addition to wrapping it)
-    with mock.patch.dict("os.environ", {
-        "FFLAGS": "-fflag",
-        "LDFLAGS": "-ldflag"
-    }):
+    # Environment variables for both the linker
+    with mock.patch.dict("os.environ", {"LDFLAGS": "-ldflag"}):
         linker = Linker(compiler=mock_c_compiler)
 
     mock_c_compiler.add_flags(["-compiler-flag1", "-compiler-flag2"])
