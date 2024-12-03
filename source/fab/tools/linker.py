@@ -76,7 +76,10 @@ class Linker(CompilerSuiteTool):
         ''':returns: whether this linker is available by asking the wrapped
             linker or compiler.
         '''
-        return (self._compiler or self._linker).check_available()
+        if self._compiler:
+            return self._compiler.check_available()
+        assert self._linker   # make mypy ghappy
+        return self._linker.check_available()
 
     def get_exec_name(self) -> str:
         ''':returns: the name of the executable by asking the wrapped
