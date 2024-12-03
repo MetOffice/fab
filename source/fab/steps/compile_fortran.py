@@ -136,6 +136,8 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
     if compiler.category != Category.FORTRAN_COMPILER:
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
                            f"'{compiler.category}' instead of FortranCompiler")
+    # The ToolBox returns a Tool. In order to make mypy happy, we need to
+    # cast this to become a Compiler.
     compiler = cast(Compiler, compiler)
     logger.info(
         f'Fortran compiler is {compiler} {compiler.get_version_string()}')
@@ -268,6 +270,8 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
             raise RuntimeError(f"Unexpected tool '{compiler.name}' of "
                                f"category '{compiler.category}' instead of "
                                f"FortranCompiler")
+        # The ToolBox returns a Tool, but we need to tell mypy that
+        # this is a Compiler
         compiler = cast(Compiler, compiler)
         flags = Flags(mp_common_args.flags.flags_for_path(
             path=analysed_file.fpath, config=config))
