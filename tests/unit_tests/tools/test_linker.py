@@ -302,10 +302,12 @@ def test_linker_nesting(mock_c_compiler):
     linker1.add_pre_lib_flags(["pre_lib1"])
     linker1.add_lib_flags("lib_a", ["a_from_1"])
     linker1.add_lib_flags("lib_c", ["c_from_1"])
+    linker1.add_post_lib_flags(["post_lib1"])
     linker2 = Linker(linker=linker1)
     linker2.add_pre_lib_flags(["pre_lib2"])
     linker2.add_lib_flags("lib_b", ["b_from_2"])
     linker2.add_lib_flags("lib_c", ["c_from_2"])
+    linker1.add_post_lib_flags(["post_lib2"])
 
     mock_result = mock.Mock(returncode=0)
     with mock.patch("fab.tools.tool.subprocess.run",
@@ -314,9 +316,10 @@ def test_linker_nesting(mock_c_compiler):
             [Path("a.o")], Path("a.out"),
             libs=["lib_a", "lib_b", "lib_c"],
             openmp=True)
-    tool_run.assert_called_with(['mock_c_compiler.exe', '-fopenmp',
-                                 'a.o', "pre_lib2", "pre_lib1", "a_from_1",
-                                 "b_from_2", "c_from_2", '-o', 'a.out'],
+    tool_run.assert_called_with(["mock_c_compiler.exe", "-fopenmp",
+                                 "a.o", "pre_lib2", "pre_lib1", "a_from_1",
+                                 "b_from_2", "c_from_2",
+                                 "post_lib1", "post_lib2", "-o", "a.out"],
                                 capture_output=True, env=None, cwd=None,
                                 check=False)
 

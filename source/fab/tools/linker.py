@@ -34,6 +34,7 @@ class Linker(CompilerSuiteTool):
 
     def __init__(self, compiler: Optional[Compiler] = None,
                  linker: Optional[Linker] = None,
+                 exec_name: Optional[str] = None,
                  name: Optional[str] = None):
 
         if linker and compiler:
@@ -53,9 +54,13 @@ class Linker(CompilerSuiteTool):
             assert final_compiler
             name = f"linker-{final_compiler.name}"
 
+        if not exec_name:
+            # This will search for the name in linker or compiler
+            exec_name = self.get_exec_name()
+
         super().__init__(
             name=name or f"linker-{name}",
-            exec_name=self.exec_name,
+            exec_name=exec_name,
             suite=self.suite,
             category=Category.LINKER)
 
@@ -67,11 +72,15 @@ class Linker(CompilerSuiteTool):
         self._pre_lib_flags: List[str] = []
         self._post_lib_flags: List[str] = []
 
-    def check_available(self):
+    def check_available(self) -> bool:
+        ''':returns: whether this linker is available by asking the wrapped
+            linker or compiler.
+        '''
         return (self._compiler or self._linker).check_available()
 
-    @property
-    def exec_name(self) -> str:
+    def get_exec_name(self) -> str:
+        ''':returns: the name of the executable by asking the wrapped
+        linker or compiler.'''
         if self._compiler:
             return self._compiler.exec_name
         assert self._linker   # make mypy happy
@@ -79,10 +88,14 @@ class Linker(CompilerSuiteTool):
 
     @property
     def suite(self) -> str:
+        ''':returns: the suite this linker belongs to by getting it from
+            the wrapper compiler or linker.'''
         return cast(CompilerSuiteTool, (self._compiler or self._linker)).suite
 
     @property
     def mpi(self) -> bool:
+        ''':returns" whether this linker supports MPI or not by checking
+            with the wrapper compiler or linker.'''
         if self._compiler:
             return self._compiler.mpi
         assert self._linker
@@ -148,7 +161,7 @@ class Linker(CompilerSuiteTool):
 
     def get_pre_link_flags(self) -> List[str]:
         '''Returns the list of pre-link flags. It will concatenate the
-        flags for this instance with all potentially wrapper linkers.
+        flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will come first - the assumption is that
         the pre-link flags are likely paths, so we need a wrapper to
         be able to put a search path before the paths from a wrapped
@@ -166,6 +179,25 @@ class Linker(CompilerSuiteTool):
             # wrapper's settings come before the setting from the
             # wrapped linker).
             params.extend(self._linker.get_pre_link_flags())
+        return params
+
+    def get_post_link_flags(self) -> List[str]:
+        '''Returns the list of post-link flags. It will concatenate the
+        flags for this instance with all potentially wrapped linkers.
+        This wrapper's flag will be added to the end.
+
+        :returns: List of post-link flags of this linker and all
+            wrapped linkers
+        '''
+        params: List[str] = []
+        if self._linker:
+            # If we are wrapping a linker, get the wrapped linker's
+            # pre-link flags and append them to the end (so the linker
+            # wrapper's settings come before the setting from the
+            # wrapped linker).
+            params.extend(self._linker.get_post_link_flags())
+        if self._post_lib_flags:
+            params.extend(self._post_lib_flags)
         return params
 
     def link(self, input_files: List[Path], output_file: Path,
@@ -204,8 +236,7 @@ class Linker(CompilerSuiteTool):
         for lib in (libs or []):
             params.extend(self.get_lib_flags(lib))
 
-        if self._post_lib_flags:
-            params.extend(self._post_lib_flags)
+        params.extend(self.get_post_link_flags())
         params.extend([self.output_flag, str(output_file)])
 
         return self.run(params)
