@@ -39,11 +39,11 @@ def test_shell_check_available():
 
 def test_shell_exec_single_arg():
     '''Test running a shell script without additional parameters.'''
-    bash = Shell("ksh")
+    ksh = Shell("ksh")
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        bash.exec("echo")
+        ksh.exec("echo")
     tool_run.assert_called_with(['ksh', '-c', 'echo'],
                                 capture_output=True, env=None, cwd=None,
                                 check=False)
@@ -51,11 +51,11 @@ def test_shell_exec_single_arg():
 
 def test_shell_exec_multiple_args():
     '''Test running a shell script with parameters.'''
-    bash = Shell("ksh")
+    ksh = Shell("ksh")
     mock_result = mock.Mock(returncode=0)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
-        bash.exec(["some", "shell", "function"])
+        ksh.exec(["some", "shell", "function"])
     tool_run.assert_called_with(['ksh', '-c', 'some', 'shell', 'function'],
                                 capture_output=True, env=None, cwd=None,
                                 check=False)

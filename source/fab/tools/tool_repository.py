@@ -75,7 +75,7 @@ class ToolRepository(dict):
         # Add the common shells. While Fab itself does not need this,
         # it is a very convenient tool for user configuration (e.g. to
         # query nc-config etc)
-        for shell_name in ["bash", "sh", "ksh", "dash"]:
+        for shell_name in ["sh", "bash", "ksh", "dash"]:
             self.add_tool(Shell(shell_name))
             self.get_tool(Category.SHELL, shell_name)
 
@@ -173,6 +173,8 @@ class ToolRepository(dict):
         :param open: if a compiler or linker is required that supports OpenMP.
 
         :raises KeyError: if the category does not exist.
+        :raises RuntimeError: if no tool in the requested category is
+            available on the system.
         :raises RuntimeError: if no compiler/linker is found with the
             requested level of MPI support (yes or no).
         '''

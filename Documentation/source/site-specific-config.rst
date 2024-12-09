@@ -20,7 +20,12 @@ contains all the tools that will be used during the build process, but
 it can only store one tool per category. If a certain tool should not
 be defined in the toolbox, the default from the `ToolRepository` will
 be used. This is useful for many standard tools like `git`, `rsync`
-etc that de-facto will never be changed.
+etc that de-facto will never be changed. Fab will check if a tool
+is actually available on the system before adding it to a ToolBox.
+This is typically done by trying to run the tool with some testing
+parameters, for example requesting its version number. If this fails,
+the tool is considered not to be available and will not be used (unless
+the user explicitly puts a tool into the ToolBox).
 
 .. note:: If you need to use for example different compilers for
           different files, you would implement this as a `meta-compiler`:
