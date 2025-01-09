@@ -52,7 +52,7 @@ class CAnalyser:
 
         # runtime
         self._config = config
-        self._include_region = []
+        self._include_region: List[Tuple[int,str]] = []
 
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
