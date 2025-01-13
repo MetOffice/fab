@@ -9,7 +9,7 @@ Link an executable.
 """
 import logging
 from string import Template
-from typing import List, Optional, Union
+from typing import List, Optional
 
 from fab.artefacts import ArtefactSet
 from fab.steps import step
@@ -34,8 +34,8 @@ class DefaultLinkerSource(ArtefactsGetter):
 
 @step
 def link_exe(config,
-             libs: Union[List[str], None] = None,
-             flags: Union[List[str], None] = None,
+             libs: Optional[List[str]] = None,
+             flags: Optional[List[str]] = None,
              source: Optional[ArtefactsGetter] = None):
     """
     Link object files into an executable for every build target.
