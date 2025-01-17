@@ -56,7 +56,7 @@ def test_linker_constructor_error(mock_c_compiler):
 
 @pytest.mark.parametrize("mpi", [True, False])
 def test_linker_mpi(mock_c_compiler, mpi):
-    '''Test the linker constructor with invalid parameters.'''
+    '''Test that linker wrappers handle MPI as expected.'''
 
     mock_c_compiler._mpi = mpi
     linker = Linker(compiler=mock_c_compiler)
@@ -64,6 +64,24 @@ def test_linker_mpi(mock_c_compiler, mpi):
 
     wrapped_linker = Linker(linker=linker)
     assert wrapped_linker.mpi == mpi
+
+
+@pytest.mark.parametrize("openmp", [True, False])
+def test_linker_openmp(mock_c_compiler, openmp):
+    '''Test that linker wrappers handle openmp as expected. Note that
+    a compiler detects support for OpenMP by checking if an openmp flag
+    is defined.
+    '''
+
+    if openmp:
+        mock_c_compiler._openmp_flag = "-some-openmp-flag"
+    else:
+        mock_c_compiler._openmp_flag = ""
+    linker = Linker(compiler=mock_c_compiler)
+    assert linker.openmp == openmp
+
+    wrapped_linker = Linker(linker=linker)
+    assert wrapped_linker.openmp == openmp
 
 
 def test_linker_gets_ldflags(mock_c_compiler):
@@ -82,6 +100,13 @@ def test_linker_check_available(mock_c_compiler):
     with mock.patch('fab.tools.compiler.Compiler.get_version',
                     return_value=(1, 2, 3)):
         assert linker.check_available()
+
+    # Then test the usage of a linker wrapper. The linker will call the
+    # corresponding function in the wrapper linker:
+    wrapped_linker = Linker(linker=linker)
+    with mock.patch('fab.tools.compiler.Compiler.get_version',
+                    return_value=(1, 2, 3)):
+        assert wrapped_linker.check_available()
 
 
 def test_linker_check_unavailable(mock_c_compiler):

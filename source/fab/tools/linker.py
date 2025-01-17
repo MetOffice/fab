@@ -78,7 +78,7 @@ class Linker(CompilerSuiteTool):
         '''
         if self._compiler:
             return self._compiler.check_available()
-        assert self._linker   # make mypy ghappy
+        assert self._linker   # make mypy happy
         return self._linker.check_available()
 
     def get_exec_name(self) -> str:
@@ -103,6 +103,15 @@ class Linker(CompilerSuiteTool):
             return self._compiler.mpi
         assert self._linker
         return self._linker.mpi
+
+    @property
+    def openmp(self) -> bool:
+        ''':returns" whether this linker supports OpenMP or not by checking
+            with the wrapper compiler or linker.'''
+        if self._compiler:
+            return self._compiler.openmp
+        assert self._linker
+        return self._linker.openmp
 
     @property
     def output_flag(self) -> str:
