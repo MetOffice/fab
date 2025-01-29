@@ -51,7 +51,7 @@ class Linker(CompilerSuiteTool):
             search_linker = search_linker._linker
         final_compiler = search_linker._compiler
         if not name:
-            assert final_compiler
+            assert final_compiler   # make mypy happy
             name = f"linker-{final_compiler.name}"
 
         if not exec_name:
@@ -59,7 +59,7 @@ class Linker(CompilerSuiteTool):
             exec_name = self.get_exec_name()
 
         super().__init__(
-            name=name or f"linker-{name}",
+            name=name,
             exec_name=exec_name,
             suite=self.suite,
             category=Category.LINKER)
@@ -101,7 +101,7 @@ class Linker(CompilerSuiteTool):
             with the wrapper compiler or linker.'''
         if self._compiler:
             return self._compiler.mpi
-        assert self._linker
+        assert self._linker   # make mypy happy
         return self._linker.mpi
 
     @property
@@ -110,7 +110,7 @@ class Linker(CompilerSuiteTool):
             with the wrapper compiler or linker.'''
         if self._compiler:
             return self._compiler.openmp
-        assert self._linker
+        assert self._linker   # make mypy happy
         return self._linker.openmp
 
     @property
@@ -119,7 +119,7 @@ class Linker(CompilerSuiteTool):
         '''
         if self._compiler:
             return self._compiler.output_flag
-        assert self._linker
+        assert self._linker   # make mypy happy
         return self._linker.output_flag
 
     def get_lib_flags(self, lib: str) -> List[str]:
@@ -204,8 +204,8 @@ class Linker(CompilerSuiteTool):
         params: List[str] = []
         if self._linker:
             # If we are wrapping a linker, get the wrapped linker's
-            # pre-link flags and append them to the end (so the linker
-            # wrapper's settings come before the setting from the
+            # post-link flags and add them first (so this linker
+            # wrapper's settings come after the setting from the
             # wrapped linker).
             params.extend(self._linker.get_post_link_flags())
         if self._post_lib_flags:
