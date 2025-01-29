@@ -94,7 +94,7 @@ def test_linker_gets_ldflags(mock_c_compiler):
 def test_linker_check_available(mock_c_compiler):
     '''Tests the is_available functionality.'''
 
-    # First test if a compiler is given. The linker will call the
+    # First test when a compiler is given. The linker will call the
     # corresponding function in the compiler:
     linker = Linker(mock_c_compiler)
     with mock.patch('fab.tools.compiler.Compiler.get_version',
