@@ -217,19 +217,7 @@ the application only needs to specify the name of the libraries required, e.g.:
 
     link_exe(state, libs=["yaxt", "xios"])
 
-The linker will then use the specified options. Library definitions can
-also be removed:
-
-.. code-block::
-    :linenos:
-
-        tr = ToolRepository()
-        linker = tr.get_tool(Category.LINKER, "linker-ifort")
-
-        linker.remove_lib_flags("yaxt")
-
-Note that if a linker has no information for the specified library name, i.e.
-the definition was never added, no error will be raised when removing it.
+The linker will then use the specified options.
 
 A linker object also allows to define options that should always be added,
 either as options before any library details, or at the very end. For example:
