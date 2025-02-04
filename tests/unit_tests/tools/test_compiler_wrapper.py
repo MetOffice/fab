@@ -257,10 +257,14 @@ def test_compiler_wrapper_flags_independent():
     assert mpicc.flags == ["-a", "-b"]
     assert mpicc.openmp_flag == gcc.openmp_flag
 
-    # Test  a compiler wrapper correctly queries the wrapper compiler
-    # for openmp flag: Set the wrapper to have no _openmp_flag (which
-    # is actually the default, since it never sets this), but gcc
-    # does have a flag -s o mpicc should report that is supports openmp
+    # Test  a compiler wrapper correctly queries the wrapper compiler for
+    # openmp flag: Set the wrapper to have no _openmp_flag (which is
+    # actually the default, since the wrapper never sets its own flag), but
+    # gcc does have a flag, so mpicc should report that is supports openmp.
+    # mpicc.openmp calls openmp of its base class (Compiler), which queries
+    # if an openmp flag is defined. This query must go to the openmp property,
+    # since the wrapper overwrites this property to return the wrapped
+    # compiler's flag (and not the wrapper's flag, which would not be defined)
     with mock.patch.object(mpicc, "_openmp_flag", ""):
         assert mpicc._openmp_flag == ""
         assert mpicc.openmp
