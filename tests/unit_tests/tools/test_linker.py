@@ -41,28 +41,15 @@ def test_linker(mock_c_compiler, mock_fortran_compiler):
     assert linker.flags == []
 
 
-def test_linker_constructor_error(mock_c_compiler):
-    '''Test the linker constructor with invalid parameters.'''
-
-    with pytest.raises(RuntimeError) as err:
-        Linker()
-    assert ("Neither compiler nor linker is specified in linker constructor."
-            in str(err.value))
-    with pytest.raises(RuntimeError) as err:
-        Linker(compiler=mock_c_compiler, linker=mock_c_compiler)
-    assert ("Both compiler and linker is specified in linker constructor."
-            in str(err.value))
-
-
 @pytest.mark.parametrize("mpi", [True, False])
 def test_linker_mpi(mock_c_compiler, mpi):
     '''Test that linker wrappers handle MPI as expected.'''
 
     mock_c_compiler._mpi = mpi
-    linker = Linker(compiler=mock_c_compiler)
+    linker = Linker(mock_c_compiler)
     assert linker.mpi == mpi
 
-    wrapped_linker = Linker(linker=linker)
+    wrapped_linker = Linker(mock_c_compiler, linker=linker)
     assert wrapped_linker.mpi == mpi
 
 
@@ -80,7 +67,7 @@ def test_linker_openmp(mock_c_compiler, openmp):
     linker = Linker(compiler=mock_c_compiler)
     assert linker.openmp == openmp
 
-    wrapped_linker = Linker(linker=linker)
+    wrapped_linker = Linker(mock_c_compiler, linker=linker)
     assert wrapped_linker.openmp == openmp
 
 
@@ -103,7 +90,7 @@ def test_linker_check_available(mock_c_compiler):
 
     # Then test the usage of a linker wrapper. The linker will call the
     # corresponding function in the wrapper linker:
-    wrapped_linker = Linker(linker=linker)
+    wrapped_linker = Linker(mock_c_compiler, linker=linker)
     with mock.patch('fab.tools.compiler.Compiler.get_version',
                     return_value=(1, 2, 3)):
         assert wrapped_linker.check_available()
@@ -328,7 +315,7 @@ def test_linker_nesting(mock_c_compiler):
     linker1.add_lib_flags("lib_a", ["a_from_1"])
     linker1.add_lib_flags("lib_c", ["c_from_1"])
     linker1.add_post_lib_flags(["post_lib1"])
-    linker2 = Linker(linker=linker1)
+    linker2 = Linker(mock_c_compiler, linker=linker1)
     linker2.add_pre_lib_flags(["pre_lib2"])
     linker2.add_lib_flags("lib_b", ["b_from_2"])
     linker2.add_lib_flags("lib_c", ["c_from_2"])

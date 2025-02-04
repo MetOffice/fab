@@ -110,19 +110,19 @@ class ToolRepository(dict):
             compiler = cast(Compiler, tool)
             if isinstance(compiler, CompilerWrapper):
                 # If we have a compiler wrapper, create a new linker using
-                # the linker based on the wrappped compiler. For example, when
+                # the linker based on the wrapped compiler. For example, when
                 # creating linker-mpif90-gfortran, we want this to be based on
-                # linker-gfortran (and not on the compiler mpif90-gfortran),
-                # since the linker-gfortran might have library definitions
-                # that should be reused. So we first get the existing linker
-                # (since the compiler exists, a linker for this compiler was
-                # already created and must exist).
+                # linker-gfortran. The compiler mpif90-gfortran will be the
+                # wrapper compiler. Reason is that e.g. linker-gfortran might
+                # have library definitions that should be reused. So we first
+                # get the existing linker (since the compiler exists, a linker
+                # for this compiler was already created and must exist).
                 other_linker = self.get_tool(
                     category=Category.LINKER,
                     name=f"linker-{compiler.compiler.name}")
                 other_linker = cast(Linker, other_linker)
-                linker = Linker(linker=other_linker,
-                                exec_name=compiler.exec_name,
+                linker = Linker(compiler,
+                                linker=other_linker,
                                 name=f"linker-{compiler.name}")
                 self[linker.category].append(linker)
             else:

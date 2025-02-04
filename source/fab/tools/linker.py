@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import cast, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 import warnings
 
 from fab.tools.category import Category
@@ -20,11 +20,15 @@ from fab.tools.tool import CompilerSuiteTool
 
 
 class Linker(CompilerSuiteTool):
-    '''This is the base class for any Linker. It takes either another linker
-    instance, or a compiler instance as parameter in the constructor. Exactly
-    one of these must be provided.
+    '''This is the base class for any Linker. It takes an existing compiler
+    instance as parameter, and optional another linker. The latter is used
+    to get linker settings - for example, linker-mpif90-gfortran will use
+    mpif90-gfortran as compiler (i.e. to test if it is available and get
+    compilation flags), and linker-gfortran as linker. This way a user
+    only has to specify linker flags in the most basic class (gfortran),
+    all other linker wrapper will inherit the settings.
 
-    :param compiler: an optional compiler instance
+    :param compiler: a compiler instance
     :param linker: an optional linker instance
     :param name: name of the linker
 
@@ -32,35 +36,19 @@ class Linker(CompilerSuiteTool):
     :raises RuntimeError: if neither compiler nor linker is specified.
     '''
 
-    def __init__(self, compiler: Optional[Compiler] = None,
+    def __init__(self, compiler: Compiler,
                  linker: Optional[Linker] = None,
-                 exec_name: Optional[str] = None,
                  name: Optional[str] = None):
 
-        if linker and compiler:
-            raise RuntimeError("Both compiler and linker is specified in "
-                               "linker constructor.")
-        if not linker and not compiler:
-            raise RuntimeError("Neither compiler nor linker is specified in "
-                               "linker constructor.")
         self._compiler = compiler
         self._linker = linker
 
-        search_linker = self
-        while search_linker._linker:
-            search_linker = search_linker._linker
-        final_compiler = search_linker._compiler
         if not name:
-            assert final_compiler   # make mypy happy
-            name = f"linker-{final_compiler.name}"
-
-        if not exec_name:
-            # This will search for the name in linker or compiler
-            exec_name = self.get_exec_name()
+            name = f"linker-{compiler.name}"
 
         super().__init__(
             name=name,
-            exec_name=exec_name,
+            exec_name=compiler.exec_name,
             suite=self.suite,
             category=Category.LINKER)
 
@@ -76,51 +64,31 @@ class Linker(CompilerSuiteTool):
         ''':returns: whether this linker is available by asking the wrapped
             linker or compiler.
         '''
-        if self._compiler:
-            return self._compiler.check_available()
-        assert self._linker   # make mypy happy
-        return self._linker.check_available()
-
-    def get_exec_name(self) -> str:
-        ''':returns: the name of the executable by asking the wrapped
-        linker or compiler.'''
-        if self._compiler:
-            return self._compiler.exec_name
-        assert self._linker   # make mypy happy
-        return self._linker.exec_name
+        return self._compiler.check_available()
 
     @property
     def suite(self) -> str:
         ''':returns: the suite this linker belongs to by getting it from
-            the wrapper compiler or linker.'''
-        return cast(CompilerSuiteTool, (self._compiler or self._linker)).suite
+            the wrapped compiler.'''
+        return self._compiler.suite
 
     @property
     def mpi(self) -> bool:
         ''':returns" whether this linker supports MPI or not by checking
-            with the wrapper compiler or linker.'''
-        if self._compiler:
-            return self._compiler.mpi
-        assert self._linker   # make mypy happy
-        return self._linker.mpi
+            with the wrapped compiler.'''
+        return self._compiler.mpi
 
     @property
     def openmp(self) -> bool:
-        ''':returns" whether this linker supports OpenMP or not by checking
-            with the wrapper compiler or linker.'''
-        if self._compiler:
-            return self._compiler.openmp
-        assert self._linker   # make mypy happy
-        return self._linker.openmp
+        ''':returns: whether this linker supports OpenMP or not by checking
+            with the wrapped compiler.'''
+        return self._compiler.openmp
 
     @property
     def output_flag(self) -> str:
         ''':returns: the flag that is used to specify the output name.
         '''
-        if self._compiler:
-            return self._compiler.output_flag
-        assert self._linker   # make mypy happy
-        return self._linker.output_flag
+        return self._compiler.output_flag
 
     def get_lib_flags(self, lib: str) -> List[str]:
         '''Gets the standard flags for a standard library
@@ -228,18 +196,10 @@ class Linker(CompilerSuiteTool):
 
         params: List[Union[str, Path]] = []
 
-        # Find the compiler by following the (potentially
-        # layered) linker wrapper.
-        linker = self
-        while linker._linker:
-            linker = linker._linker
-        # Now we must have a compiler
-        compiler = linker._compiler
-        assert compiler   # make mypy happy
-        params.extend(compiler.flags)
+        params.extend(self._compiler.flags)
 
         if openmp:
-            params.append(compiler.openmp_flag)
+            params.append(self._compiler.openmp_flag)
 
         # TODO: why are the .o files sorted? That shouldn't matter
         params.extend(sorted(map(str, input_files)))
