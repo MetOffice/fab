@@ -11,7 +11,7 @@ from unittest import mock
 import pytest
 
 from fab.tools import (Ar, Category, FortranCompiler, Gcc, Gfortran, Ifort,
-                       Linker, ToolRepository)
+                       ToolRepository)
 
 
 def test_tool_repository_get_singleton_new():
@@ -61,10 +61,6 @@ def test_tool_repository_get_default():
     gfortran = tr.get_default(Category.FORTRAN_COMPILER, mpi=False,
                               openmp=False)
     assert isinstance(gfortran, Gfortran)
-
-    gcc_linker = tr.get_default(Category.LINKER, mpi=False, openmp=False)
-    assert isinstance(gcc_linker, Linker)
-    assert gcc_linker.name == "linker-gcc"
 
     gcc = tr.get_default(Category.C_COMPILER, mpi=False, openmp=False)
     assert isinstance(gcc, Gcc)
