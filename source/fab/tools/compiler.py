@@ -76,7 +76,9 @@ class Compiler(CompilerSuiteTool):
     def openmp(self) -> bool:
         ''':returns: if the compiler supports openmp or not
         '''
-        return self._openmp_flag != ""
+        # It is important not to use `_openmp_flag` directly, since a compiler
+        # wrapper overwrites `openmp_flag`.
+        return self.openmp_flag != ""
 
     @property
     def openmp_flag(self) -> str:
