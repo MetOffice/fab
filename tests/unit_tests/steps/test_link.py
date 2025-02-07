@@ -46,7 +46,6 @@ class TestLinkExe:
                                             syntax_only_flag=None,
                                             compile_flag=None,
                                             output_flag=None, openmp_flag=None)
-            mock_compiler.run = mock.Mock()
 
             linker = Linker(compiler=mock_compiler)
             # Mark the linker as available to it can be added to the tool box
