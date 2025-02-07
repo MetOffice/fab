@@ -22,8 +22,7 @@ from fab.steps.psyclone import psyclone, preprocess_x90
 from fab.tools import ToolBox
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import (API, configurator, fparser_workaround_stop_concatenation,
-                          get_transformation_script)
+from lfric_common import (API, configurator, get_transformation_script)
 
 logger = logging.getLogger('fab')
 
@@ -74,8 +73,6 @@ if __name__ == '__main__':
             cli_args=[],
             api=API,
         )
-
-        fparser_workaround_stop_concatenation(state)
 
         analyse(
             state,
