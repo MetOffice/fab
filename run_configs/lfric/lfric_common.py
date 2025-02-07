@@ -1,10 +1,8 @@
 import logging
 import os
-import shutil
 from typing import Optional
 from pathlib import Path
 
-from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.steps.find_source_files import find_source_files
