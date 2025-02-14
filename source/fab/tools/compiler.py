@@ -69,7 +69,7 @@ class Compiler(CompilerSuiteTool):
 
     @property
     def mpi(self) -> bool:
-        '''Returns whether this compiler supports MPI or not.'''
+        ''':returns: whether this compiler supports MPI or not.'''
         return self._mpi
 
     @property
@@ -82,7 +82,7 @@ class Compiler(CompilerSuiteTool):
 
     @property
     def openmp_flag(self) -> str:
-        '''Returns the flag to enable OpenMP.'''
+        ''':returns: the flag to enable OpenMP.'''
         return self._openmp_flag
 
     @property

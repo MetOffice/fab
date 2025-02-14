@@ -186,20 +186,75 @@ Linker flags
 ------------
 
 Probably the most common instance of the need to pass additional arguments is
-to specify 3rd party libraries at the link stage.
+to specify 3rd party libraries at the link stage. The linker tool allow
+for the definition of library-specific flags: for each library, the user can
+specify the required linker flags for this library. In the linking step,
+only the name of the libraries to be linked is then required. The linker
+object will then use the required linking flags. Typically, a site-specific
+setup set (see for example https://github.com/MetOffice/lfric-baf) will
+specify the right flags for each site, and the application itself only
+needs to list the name of the libraries. This way, the application-specific
+Fab script is independent from any site-specific settings. Still, an
+application-specific script can also overwrite any site-specific setting,
+for example if a newer version of a dependency is to be evaluated.
+
+The settings for a library are defined as follows:
 
 .. code-block::
     :linenos:
 
-    link_exe(state, flags=['-lm', '-lnetcdf'])
+        tr = ToolRepository()
+        linker = tr.get_tool(Category.LINKER, "linker-ifort")
 
-Linkers will be pre-configured with flags for common libraries. Where possible,
-a library name should be used to include the required flags for linking.
+        linker.add_lib_flags("yaxt", ["-L/some_path", "-lyaxt", "-lyaxt_c"])
+        linker.add_lib_flags("xios", ["-lxios"])
+
+This will define two libraries called ``yaxt`` and ``xios``. In the link step,
+the application only needs to specify the name of the libraries required, e.g.:
 
 .. code-block::
     :linenos:
 
-    link_exe(state, libs=['netcdf'])
+    link_exe(state, libs=["yaxt", "xios"])
+
+The linker will then use the specified options.
+
+A linker object also allows to define options that should always be added,
+either as options before any library details, or at the very end. For example:
+
+.. code-block::
+    :linenos:
+
+        linker.add_pre_lib_flags(["-L/my/common/library/path"])
+        linker.add_post_lib_flags(["-lstdc++"])
+
+The pre_lib_flags can be used to specify library paths that contain
+several libraries only once, and this makes it easy to evaluate a different
+set of libraries. Additionally, this can also be used to add common
+linking options, e.g. Cray's ``-Ktrap=fp``.
+
+The post_lib_flags can be used for additional common libraries that need
+to be linked in. For example, if the application contains a dependency to
+C++ but it is using the Fortran compiler for linking, then the C++ libraries
+need to be explicitly added. But if there are several libraries depending
+on it, you would have to specify this several times (forcing the linker to
+re-read the library several times). Instead, you can just add it to the
+post flags once.
+
+The linker step itself can also take optional flags:
+
+.. code-block::
+    :linenos:
+
+    link_exe(state, flags=['-Ktrap=fp'])
+
+These flags will be added to the very end of the the linker options,
+i.e. after any other library or post-lib flag. Note that the example above is
+not actually recommended to use, since the specified flag is only
+valid for certain linker, and a Fab application script should in general
+not hard-code flags for a specific linker. Adding the flag to the linker
+instance itself, as shown further above, is the better approach.
+
 
 Path-specific flags
 -------------------

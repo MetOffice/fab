@@ -177,20 +177,6 @@ def test_linker_add_lib_flags_overwrite_silent(mock_linker):
     assert result == ["-t", "-b"]
 
 
-def test_linker_remove_lib_flags(mock_linker):
-    """Linker should provide a way to remove the flags for a library"""
-    mock_linker.remove_lib_flags("netcdf")
-
-    with pytest.raises(RuntimeError) as err:
-        mock_linker.get_lib_flags("netcdf")
-    assert "Unknown library name: 'netcdf'" in str(err.value)
-
-
-def test_linker_remove_lib_flags_unknown(mock_linker):
-    """Linker should silently allow removing flags for unknown library"""
-    mock_linker.remove_lib_flags("unknown")
-
-
 # ====================
 # Linking:
 # ====================

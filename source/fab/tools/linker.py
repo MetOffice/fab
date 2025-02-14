@@ -125,16 +125,6 @@ class Linker(CompilerSuiteTool):
         # Make a copy to avoid modifying the caller's list
         self._lib_flags[lib] = flags[:]
 
-    def remove_lib_flags(self, lib: str):
-        '''Remove any flags configured for a standard library
-
-        :param lib: the library name
-        '''
-        try:
-            del self._lib_flags[lib]
-        except KeyError:
-            pass
-
     def add_pre_lib_flags(self, flags: List[str]):
         '''Add a set of flags to use before any library-specific flags
 

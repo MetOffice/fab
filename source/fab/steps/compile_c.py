@@ -127,6 +127,8 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     if compiler.category != Category.C_COMPILER:
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
                            f"'{compiler.category}' instead of CCompiler")
+    # Tool box returns a Tool, in order to make mypy happy, we need
+    # to cast it to be a Compiler.
     compiler = cast(Compiler, compiler)
     with Timer() as timer:
         flags = Flags(mp_payload.flags.flags_for_path(path=analysed_file.fpath,
