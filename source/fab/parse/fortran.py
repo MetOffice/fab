@@ -16,13 +16,14 @@ from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
     Type_Attr_Spec_List, Type_Attr_Spec, Type_Name)
+from fparser.two.utils import walk
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
 from fparser.two.Fortran2008 import (  # type: ignore
     Type_Declaration_Stmt, Attr_Spec_List)
 
 from fab.dep_tree import AnalysedDependent
-from fab.parse.fortran_common import iter_content, _has_ancestor_type, _typed_child, FortranAnalyserBase
+from fab.parse.fortran_common import _has_ancestor_type, _typed_child, FortranAnalyserBase
 from fab.util import file_checksum, string_checksum
 
 logger = logging.getLogger(__name__)
@@ -183,7 +184,7 @@ class FortranAnalyser(FortranAnalyserBase):
 
         # see what's in the tree
         analysed_fortran = AnalysedFortran(fpath=fpath, file_hash=file_hash)
-        for obj in iter_content(node_tree):
+        for obj in walk(node_tree):
             obj_type = type(obj)
             try:
 
