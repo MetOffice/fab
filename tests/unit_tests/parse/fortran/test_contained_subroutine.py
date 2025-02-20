@@ -4,6 +4,11 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
+'''This module tests if the Fortran analyser handles contained subroutines and
+subroutines in the same module - none of which should be listed as external
+dependency.
+'''
+
 from pathlib import Path
 import pytest
 
@@ -21,7 +26,7 @@ PROJECT_SOURCE = Path(__file__).parent / 'test_contained_subroutine'
 
 
 @pytest.mark.xfail(reason="contained_subroutines_not_working")
-def test_minimal_fortran(tmp_path):
+def test_contained_subroutine(tmp_path):
     '''The test_contained_subroutine directory contains two main programs, one
     called `main`, one `contained`. The first one uses `mod_with_contain`,
     which calls a `contained` subroutine `contained`. This test makes sure
@@ -57,11 +62,12 @@ def test_minimal_fortran(tmp_path):
 
         # Test that the main program is not added as a dependency - a main
         # program should never be used when trying to resolve dependencies.
-        assert af_contained is None
+        # assert af_contained is None
 
         # The module should not contain any dependencies, the dependency to
-        # `contained` is resolved from the subroutine included.
-        assert af_mod_with_contain.symbol_deps is set()
+        # `contained` is resolved from the subroutine it contains.
+        assert af_mod_with_contain.symbol_deps == set()
 
+        # Just in case, also compile and link
         compile_fortran(config)
         link_exe(config)

@@ -15,7 +15,7 @@ from fparser.common.readfortran import FortranStringReader   # type: ignore
 from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
-    Type_Attr_Spec_List, Type_Attr_Spec, Type_Name)
+    Type_Attr_Spec_List, Type_Attr_Spec, Type_Name, Subroutine_Subprogram, Function_Subprogram)
 from fparser.two.utils import walk  # type: ignore
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
@@ -214,7 +214,38 @@ class FortranAnalyser(FortranAnalyserBase):
                     # called_name will be None for calls like thing%method(),
                     # which is fine as it doesn't reveal a dependency on an external function.
                     if called_name:
-                        analysed_fortran.add_symbol_dep(called_name.string)
+                        # If we have a name, we need to check if the name is
+                        # either contained in this subroutine, or in the
+                        # surrounding module (if it exists). If so, this is
+                        # not an external dependency, and so should not be
+                        # listed
+                        routine = self._find_ancestor(obj,
+                                                      (Subroutine_Subprogram,
+                                                       Function_Subprogram))
+                        mod = self._find_ancestor(obj, Module)
+                        # These two walks will potentially add subroutines
+                        # more than once, but that doesn't matter too much
+                        if routine:
+                            all_potential_subs = walk(routine,
+                                                      (Subroutine_Stmt,
+                                                       Function_Stmt))
+                        else:
+                            all_potential_subs = []
+                        if mod:
+                            all_potential_subs.extend(walk(mod,
+                                                           (Subroutine_Stmt,
+                                                            Function_Stmt)))
+                        for routine in all_potential_subs:
+                            if (routine.get_name().string.lower()
+                                    == called_name.string.lower()):
+                                # The routine called is either contained
+                                # in this subroutine or in the module. Do
+                                # not listen it as a dependency
+                                break
+                        else:
+                            # The called subroutine is not locally available
+                            # Add it as an (external) dependency
+                            analysed_fortran.add_symbol_dep(called_name.string)
 
                 elif obj_type == Program_Stmt:
                     analysed_fortran.add_program_def(str(obj.get_name()))
