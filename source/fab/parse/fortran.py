@@ -23,7 +23,7 @@ from fparser.two.Fortran2008 import (  # type: ignore
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
-from fab.parse.fortran_common import _has_ancestor_type, _typed_child, FortranAnalyserBase
+from fab.parse.fortran_common import _typed_child, FortranAnalyserBase
 from fab.util import file_checksum, string_checksum
 
 logger = logging.getLogger(__name__)
@@ -186,6 +186,23 @@ class FortranAnalyser(FortranAnalyserBase):
         self.ignore_mod_deps: Iterable[str] = list(ignore_mod_deps or [])
         self.depends_on_comment_found = False
 
+    @staticmethod
+    def _find_ancestor(node, cls):
+        '''Checks if there is an ancestor in the tree that is of the given
+        type(s).
+
+        :param node: an fparser node.
+        :param cls: a type or list of types to be used with isinstance()
+
+        :return: The first node among the ancestors of the given node, or
+            None if no such ancestor exists.
+        '''
+        current = node
+        while current and not isinstance(current, cls):
+            current = current.parent
+        return current
+
+
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedFortran:
 
         # see what's in the tree
@@ -314,7 +331,7 @@ class FortranAnalyser(FortranAnalyserBase):
             bind_name = name.string.replace('"', '')
 
             # importing a c function into fortran, i.e binding within an interface block
-            if _has_ancestor_type(obj, Interface_Block):
+            if self._find_ancestor(obj, Interface_Block):
                 # found a dependency on C
                 logger.debug(f"found function binding import '{bind_name}'")
                 analysed_file.add_symbol_dep(bind_name)
@@ -325,7 +342,8 @@ class FortranAnalyser(FortranAnalyserBase):
 
         # not bound, just record the presence of the fortran symbol
         # we don't need to record stuff in modules (we think!)
-        elif not _has_ancestor_type(obj, Module) and not _has_ancestor_type(obj, Interface_Block):
+        elif (not self._find_ancestor(obj, Module) and
+              not self._find_ancestor(obj, Interface_Block)):
             if isinstance(obj, Subroutine_Stmt):
                 analysed_file.add_symbol_def(str(obj.get_name()))
             if isinstance(obj, Function_Stmt):
