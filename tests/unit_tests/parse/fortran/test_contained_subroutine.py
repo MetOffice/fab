@@ -3,7 +3,7 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-import subprocess
+
 from pathlib import Path
 
 from fab.artefacts import ArtefactSet
@@ -13,11 +13,7 @@ from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
-from fab.steps.preprocess import preprocess_fortran
 from fab.tools import Category, ToolBox, ToolRepository
-
-import pytest
-
 
 
 PROJECT_SOURCE = Path(__file__).parent / 'test_contained_subroutine'
@@ -47,5 +43,23 @@ def test_minimal_fortran(tmp_path):
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
         analyse(config, root_symbol='main')
+        build_tree = config.artefact_store[ArtefactSet.BUILD_TREES]["main"]
+
+        af_mod_with_contain = None
+        af_contained = None
+        for file_name in build_tree:
+            if "mod_with_contain" in str(file_name):
+                af_mod_with_contain = build_tree[file_name]
+            elif "contained" in str(file_name):
+                af_contained = build_tree[file_name]
+
+        # Test that the main program is not added as a dependency - a main
+        # program should never be used when trying to resolve dependencies.
+        assert af_contained is None
+
+        # The module should not contain any dependencies, the dependency to
+        # `contained` is resolved from the subroutine included.
+        assert af_mod_with_contain.symbol_deps is set()
+
         compile_fortran(config)
         link_exe(config)
