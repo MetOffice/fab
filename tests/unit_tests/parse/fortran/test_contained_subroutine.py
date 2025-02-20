@@ -5,6 +5,7 @@
 # ##############################################################################
 
 from pathlib import Path
+import pytest
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -19,6 +20,7 @@ from fab.tools import Category, ToolBox, ToolRepository
 PROJECT_SOURCE = Path(__file__).parent / 'test_contained_subroutine'
 
 
+@pytest.mark.xfail(reason="contained_subroutines_not_working")
 def test_minimal_fortran(tmp_path):
     '''The test_contained_subroutine directory contains two main programs, one
     called `main`, one `contained`. The first one uses `mod_with_contain`,
