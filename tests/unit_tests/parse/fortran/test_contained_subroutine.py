@@ -10,7 +10,6 @@ dependency.
 '''
 
 from pathlib import Path
-import pytest
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -25,14 +24,13 @@ from fab.tools import Category, ToolBox, ToolRepository
 PROJECT_SOURCE = Path(__file__).parent / 'test_contained_subroutine'
 
 
-@pytest.mark.xfail(reason="contained_subroutines_not_working")
 def test_contained_subroutine(tmp_path):
     '''The test_contained_subroutine directory contains two main programs, one
     called `main`, one `contained`. The first one uses `mod_with_contain`,
     which calls a `contained` subroutine `contained`. This test makes sure
     that:
     1. the main program `contained` is not linked in (otherwise we get
-        duplicated main symbols defined)
+        duplicated main symbols defined at link time)
     2. the `contained` subroutine `contained` is indeed not listed as a
         dependency
     '''
@@ -53,16 +51,10 @@ def test_contained_subroutine(tmp_path):
         build_tree = config.artefact_store[ArtefactSet.BUILD_TREES]["main"]
 
         af_mod_with_contain = None
-        af_contained = None
         for file_name in build_tree:
             if "mod_with_contain" in str(file_name):
                 af_mod_with_contain = build_tree[file_name]
-            elif "contained" in str(file_name):
-                af_contained = build_tree[file_name]
-
-        # Test that the main program is not added as a dependency - a main
-        # program should never be used when trying to resolve dependencies.
-        # assert af_contained is None
+                break
 
         # The module should not contain any dependencies, the dependency to
         # `contained` is resolved from the subroutine it contains.
