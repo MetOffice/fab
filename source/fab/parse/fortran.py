@@ -15,7 +15,7 @@ from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt, Function_Stmt, Language_Binding_Spec,
     Char_Literal_Constant, Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def, Derived_Type_Stmt,
     Type_Attr_Spec_List, Type_Attr_Spec, Type_Name)
-from fparser.two.utils import walk
+from fparser.two.utils import walk  # type: ignore
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
 from fparser.two.Fortran2008 import (  # type: ignore

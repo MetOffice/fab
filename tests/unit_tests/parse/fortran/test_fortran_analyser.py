@@ -15,7 +15,7 @@ from unittest import mock
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
-from fparser.two.utils import walk
+from fparser.two.utils import walk  # type: ignore
 import pytest
 
 from fab.build_config import BuildConfig

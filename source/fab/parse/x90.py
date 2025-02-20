@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable, Set, Union, Optional, Dict, Any
 
 from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
-from fparser.two.utils import walk
+from fparser.two.utils import walk  # type: ignore
 
 from fab.parse import AnalysedFile
 from fab.build_config import BuildConfig
