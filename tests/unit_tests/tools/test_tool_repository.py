@@ -151,17 +151,36 @@ def test_tool_repository_default_compiler_suite():
     '''Tests the setting of default suite for compiler and linker.'''
     tr = ToolRepository()
     tr.set_default_compiler_suite("gnu")
-    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
-                Category.LINKER]:
-        def_tool = tr.get_default(cat, mpi=False, openmp=False)
-        assert def_tool.suite == "gnu"
 
-    tr.set_default_compiler_suite("intel-classic")
-    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
-                Category.LINKER]:
-        def_tool = tr.get_default(cat, mpi=False, openmp=False)
-        assert def_tool.suite == "intel-classic"
-    with pytest.raises(RuntimeError) as err:
-        tr.set_default_compiler_suite("does-not-exist")
-    assert ("Cannot find 'FORTRAN_COMPILER' in the suite 'does-not-exist'"
-            in str(err.value))
+    # Mark all compiler and linker as available.
+    with mock.patch('fab.tools.tool.Tool.is_available',
+                    new_callable=mock.PropertyMock) as is_available:
+        is_available.return_value = True
+        for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
+                    Category.LINKER]:
+            def_tool = tr.get_default(cat, mpi=False, openmp=False)
+            assert def_tool.suite == "gnu"
+
+        tr.set_default_compiler_suite("intel-classic")
+        for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
+                    Category.LINKER]:
+            def_tool = tr.get_default(cat, mpi=False, openmp=False)
+            assert def_tool.suite == "intel-classic"
+        with pytest.raises(RuntimeError) as err:
+            tr.set_default_compiler_suite("does-not-exist")
+        assert ("Cannot find 'FORTRAN_COMPILER' in the suite 'does-not-exist'"
+                in str(err.value))
+
+
+def test_tool_repository_no_tool_available():
+    '''Tests error handling if no tool is available.'''
+
+    tr = ToolRepository()
+    tr.set_default_compiler_suite("gnu")
+    with mock.patch('fab.tools.tool.Tool.is_available',
+                    new_callable=mock.PropertyMock) as is_available:
+        is_available.return_value = False
+        with pytest.raises(RuntimeError) as err:
+            tr.get_default(Category.SHELL)
+        assert ("Can't find available 'SHELL' tool. Tools are 'sh'"
+                in str(err.value))
