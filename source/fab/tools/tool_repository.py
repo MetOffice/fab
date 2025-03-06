@@ -72,10 +72,12 @@ class ToolRepository(dict):
                     Ar, Fcm, Git, Psyclone, Rsync, Subversion]:
             self.add_tool(cls())
 
-        # Add the common shells. While Fab itself does not need this,
-        # it is a very convenient tool for user configuration (e.g. to
-        # query nc-config etc)
-        for shell_name in ["sh", "bash", "ksh", "dash"]:
+        # Add a standard shell. Additional shells (bash, ksh, dash)
+        # can be created by just adding their names to the list. While Fab
+        # itself does not need this, it is a very convenient tool for user
+        # configurations (e.g. to query `nf-config` etc), since we don't
+        # allow a shell to be used in Python's subprocess.
+        for shell_name in ["sh"]:
             self.add_tool(Shell(shell_name))
 
         # Now create the potential mpif90 and Cray ftn wrapper
