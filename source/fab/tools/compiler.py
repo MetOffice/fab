@@ -69,7 +69,7 @@ class Compiler(CompilerSuiteTool):
 
     @property
     def mpi(self) -> bool:
-        '''Returns whether this compiler supports MPI or not.'''
+        ''':returns: whether this compiler supports MPI or not.'''
         return self._mpi
 
     @property
@@ -82,7 +82,7 @@ class Compiler(CompilerSuiteTool):
 
     @property
     def openmp_flag(self) -> str:
-        '''Returns the flag to enable OpenMP.'''
+        ''':returns: the flag to enable OpenMP.'''
         return self._openmp_flag
 
     @property
@@ -474,21 +474,7 @@ class Nvc(CCompiler):
     def __init__(self, name: str = "nvc", exec_name: str = "nvc"):
         super().__init__(name, exec_name, suite="nvidia",
                          openmp_flag="-mp",
-                         version_regex=r"nvc (\d[\d\.-]+\d)")
-
-    def run_version_command(
-            self, version_command: Optional[str] = '--version') -> str:
-        '''Run the compiler's command to get its version. This implementation
-        runs the function in the base class, and changes any '-' into a
-        '.' to support nvidia version numbers which have dashes, e.g. 23.5-0.
-
-        :param version_command: The compiler argument used to get version info.
-
-        :returns: The output from the version command, with any '-' replaced
-            with '.'
-        '''
-        version_string = super().run_version_command()
-        return version_string.replace("-", ".")
+                         version_regex=r"nvc (\d[\d\.]+\d)")
 
 
 # ============================================================================
@@ -506,21 +492,7 @@ class Nvfortran(FortranCompiler):
                          module_folder_flag="-module",
                          openmp_flag="-mp",
                          syntax_only_flag="-Msyntax-only",
-                         version_regex=r"nvfortran (\d[\d\.-]+\d)")
-
-    def run_version_command(
-            self, version_command: Optional[str] = '--version') -> str:
-        '''Run the compiler's command to get its version. This implementation
-        runs the function in the base class, and changes any '-' into a
-        '.' to support nvidia version numbers which have dashes, e.g. 23.5-0.
-
-        :param version_command: The compiler argument used to get version info.
-
-        :returns: The output from the version command, with any '-' replaced
-            with '.'
-        '''
-        version_string = super().run_version_command()
-        return version_string.replace("-", ".")
+                         version_regex=r"nvfortran (\d[\d\.]+\d)")
 
 
 # ============================================================================
@@ -545,7 +517,7 @@ class Craycc(CCompiler):
     def __init__(self, name: str = "craycc-cc", exec_name: str = "cc"):
         super().__init__(name, exec_name, suite="cray", mpi=True,
                          openmp_flag="-homp",
-                         version_regex=r"Cray [Cc][^\d]* (\d[\d\.]+\d)  ")
+                         version_regex=r"Cray [Cc][^\d]* (\d[\d\.]+\d)")
 
 
 # ============================================================================
@@ -564,4 +536,4 @@ class Crayftn(FortranCompiler):
                          openmp_flag="-homp",
                          syntax_only_flag="-syntax-only",
                          version_regex=(r"Cray Fortran : Version "
-                                        r"(\d[\d\.]+\d)  "))
+                                        r"(\d[\d\.]+\d)"))

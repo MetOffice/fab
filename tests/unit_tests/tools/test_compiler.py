@@ -778,7 +778,7 @@ Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
     """)
     nvc = Nvc()
     with mock.patch.object(nvc, "run", mock.Mock(return_value=full_output)):
-        assert nvc.get_version() == (23, 5, 0)
+        assert nvc.get_version() == (23, 5)
 
 
 def test_nvc_get_version_with_icc_string():
@@ -819,7 +819,7 @@ Copyright (c) 2022, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
     nvfortran = Nvfortran()
     with mock.patch.object(nvfortran, "run",
                            mock.Mock(return_value=full_output)):
-        assert nvfortran.get_version() == (23, 5, 0)
+        assert nvfortran.get_version() == (23, 5)
 
 
 def test_nvfortran_get_version_with_ifort_string():

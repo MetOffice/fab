@@ -14,7 +14,7 @@ from unittest import mock
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.steps.link import link_exe
-from fab.tools import FortranCompiler, Linker
+from fab.tools import FortranCompiler, Linker, ToolBox
 
 import pytest
 
@@ -22,10 +22,11 @@ import pytest
 class TestLinkExe:
     '''Test class for linking an executable.
     '''
-    def test_run(self, tool_box):
+    def test_run(self, tool_box: ToolBox):
         '''Ensure the command is formed correctly, with the flags at the
         end and that environment variable FFLAGS is picked up.
         '''
+
         config = SimpleNamespace(
             project_workspace=Path('workspace'),
             artefact_store=ArtefactStore(),
@@ -47,14 +48,13 @@ class TestLinkExe:
                                             syntax_only_flag=None,
                                             compile_flag=None,
                                             output_flag=None, openmp_flag=None)
-            mock_compiler.run = mock.Mock()
 
             linker = Linker(compiler=mock_compiler)
             # Mark the linker as available to it can be added to the tool box
             linker._is_available = True
 
             # Add a custom library to the linker
-            linker.add_lib_flags('mylib', ['-L/my/lib', '-mylib'])
+            linker.add_lib_flags('mylib', ['-L/my/lib', '-lmylib'])
             tool_box.add_tool(linker, silent_replace=True)
             mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
             with mock.patch('fab.tools.tool.subprocess.run',
@@ -68,6 +68,6 @@ class TestLinkExe:
         tool_run.assert_called_with(
             ['mock_fortran_compiler.exe', '-L/foo1/lib', '-L/foo2/lib',
              'bar.o', 'foo.o',
-             '-L/my/lib', '-mylib', '-fooflag', '-barflag',
+             '-L/my/lib', '-lmylib', '-fooflag', '-barflag',
              '-o', 'workspace/foo'],
             capture_output=True, env=None, cwd=None, check=False)

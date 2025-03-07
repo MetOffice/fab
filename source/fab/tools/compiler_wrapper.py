@@ -148,6 +148,9 @@ class CompilerWrapper(Compiler):
             a syntax check
         '''
 
+        # TODO #370: replace change_exec_name, and instead provide
+        # a function that returns the whole command line, which can
+        # then be modified here.
         orig_compiler_name = self._compiler.exec_name
         self._compiler.change_exec_name(self.exec_name)
         if add_flags is None:

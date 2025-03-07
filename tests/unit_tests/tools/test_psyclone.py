@@ -40,69 +40,23 @@ def test_psyclone_constructor():
     assert psyclone.flags == []
 
 
-def test_psyclone_check_available_2_4_0():
-    '''Tests the is_available functionality with version 2.4.0.
-    We get only one call.
+@pytest.mark.parametrize("version", ["2.4.0", "2.5.0", "3.0.0", "3.1.0"])
+def test_psyclone_check_available_and_version(version):
+    '''Tests the is_available functionality and version number detection
+    with PSyclone. Note that the version number is only used internally,
+    so we test with the private attribute.
     '''
     psyclone = Psyclone()
-
-    mock_result = get_mock_result("2.4.0")
+    version_tuple = tuple(int(i) for i in version.split("."))
+    mock_result = get_mock_result(version)
     with mock.patch('fab.tools.tool.subprocess.run',
                     return_value=mock_result) as tool_run:
         assert psyclone.check_available()
+        assert psyclone._version == version_tuple
+
     tool_run.assert_called_once_with(
-        ["psyclone", "--version", mock.ANY], capture_output=True,
+        ["psyclone", "--version"], capture_output=True,
         env=None, cwd=None, check=False)
-
-
-def test_psyclone_check_available_2_5_0():
-    '''Tests the is_available functionality with PSyclone 2.5.0.
-    We get two calls. First version, then check if nemo API exists
-    '''
-    psyclone = Psyclone()
-
-    mock_result = get_mock_result("2.5.0")
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        assert psyclone.check_available()
-    tool_run.assert_any_call(
-        ["psyclone", "--version", mock.ANY], capture_output=True,
-        env=None, cwd=None, check=False)
-    tool_run.assert_any_call(
-        ["psyclone", "-api", "nemo", mock.ANY], capture_output=True,
-        env=None, cwd=None, check=False)
-
-    # Test behaviour if a runtime error happens:
-    with mock.patch("fab.tools.tool.Tool.run",
-                    side_effect=RuntimeError("")) as tool_run:
-        with pytest.warns(UserWarning,
-                          match="Unexpected version information "
-                                "for PSyclone: ''."):
-            assert not psyclone.check_available()
-
-
-def test_psyclone_check_available_after_2_5_0():
-    '''Tests the is_available functionality with releases after 2.5.0.
-    We get two calls. First version, then check if nemo API exists
-    '''
-    psyclone = Psyclone()
-
-    # We detect the dummy version '2.5.0.1' if psyclone reports 2.5.0
-    # but the command line option "-api nemo" is not accepted.
-    # So we need to return two results from our mock objects: first
-    # success for version 2.5.0, then a failure with an appropriate
-    # error message:
-    mock_result1 = get_mock_result("2.5.0")
-    mock_result2 = get_mock_result("Unsupported PSyKAL DSL / "
-                                   "API 'nemo' specified")
-    mock_result2.returncode = 1
-
-    # "Unsupported PSyKAL DSL / API 'nemo' specified"
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result1) as tool_run:
-        tool_run.side_effect = [mock_result1, mock_result2]
-        assert psyclone.check_available()
-        assert psyclone._version == (2, 5, 0, 1)
 
 
 def test_psyclone_check_available_errors():
@@ -270,14 +224,12 @@ def test_psyclone_process_nemo_api_old_psyclone(version):
                                  ("gocean", "gocean")
                                  ])
 def test_psyclone_process_api_new_psyclone(api):
-    '''Test running the new PSyclone version. Since this version is not
-    yet released, we use the Fab internal version number 2.5.0.1 for
-    now. It uses new API names, and we need to check that the old style
-    names are converted to the new names.
+    '''Test running PSyclone 3.0.0. It uses new API names, and we need to
+    check that the old style names are converted to the new names.
     '''
     api_in, api_out = api
     psyclone = Psyclone()
-    mock_result = get_mock_result("2.5.0.1")
+    mock_result = get_mock_result("3.0.0")
     transformation_function = mock.Mock(return_value="script_called")
     config = mock.Mock()
     with mock.patch('fab.tools.tool.subprocess.run',
@@ -298,12 +250,11 @@ def test_psyclone_process_api_new_psyclone(api):
 
 
 def test_psyclone_process_no_api_new_psyclone():
-    '''Test running the new PSyclone version without an API. Since this
-    version is not yet released, we use the Fab internal version number
-    2.5.0.1 for now.
+    '''Test running the PSyclone 3.0.0 without an API, i.e. as transformation
+    only.
     '''
     psyclone = Psyclone()
-    mock_result = get_mock_result("2.5.0.1")
+    mock_result = get_mock_result("3.0.0")
     transformation_function = mock.Mock(return_value="script_called")
     config = mock.Mock()
 
@@ -324,13 +275,11 @@ def test_psyclone_process_no_api_new_psyclone():
 
 
 def test_psyclone_process_nemo_api_new_psyclone():
-    '''Test running PSyclone. Since this version is not yet released, we use
-    the Fab internal version number 2.5.0.1 for now. This tests that
-    backwards compatibility of using the nemo api works, i.e. '-api nemo' is
-    just removed.
+    '''Test running PSyclone 3.0.0 and test that backwards compatibility of
+    using the nemo api works, i.e. '-api nemo' is just removed.
     '''
     psyclone = Psyclone()
-    mock_result = get_mock_result("2.5.0.1")
+    mock_result = get_mock_result("3.0.0")
     transformation_function = mock.Mock(return_value="script_called")
     config = mock.Mock()
 

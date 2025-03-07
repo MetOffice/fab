@@ -38,20 +38,10 @@ class Psyclone(Tool):
 
         # First get the version (and confirm that PSyclone is installed):
         try:
-            # Older versions of PSyclone (2.3.1 and earlier) expect a filename
-            # even when --version is used, and won't produce version info
-            # without this. So provide a dummy file (which does not need to
-            # exist), and check the error for details to see if PSyclone does
-            # not exist, or if the error is because of the non-existing file
-            version_output = self.run(["--version", "does_not_exist"],
-                                      capture_output=True)
-        except RuntimeError as err:
-            # If the command is not found, the error contains the following:
-            if "could not be executed" in str(err):
-                return False
-            # Otherwise, psyclone likely complained about the not existing
-            # file. Continue and try to find version information in the output:
-            version_output = str(err)
+            version_output = self.run(["--version"], capture_output=True)
+        except RuntimeError:
+            # Something is wrong, report as not available
+            return False
 
         # Search for the version info:
         exp = r"PSyclone version: (\d[\d.]+\d)"
@@ -64,29 +54,8 @@ class Psyclone(Tool):
 
         # Now convert the version info to integer. The regular expression
         # match guarantees that we have integer numbers now:
-        version = tuple(int(x) for x in matches.groups()[0].split('.'))
+        self._version = tuple(int(x) for x in matches.groups()[0].split('.'))
 
-        if version == (2, 5, 0):
-            # The behaviour of PSyclone changes from 2.5.0 to the next
-            # release. But since head-of-trunk still reports 2.5.0, we
-            # need to run additional tests to see if we have the official
-            # 2.5.0 release, or current trunk (which already has the new
-            # command line options). PSyclone needs an existing file
-            # in order to work, so use __file__ to present this file.
-            # PSyclone will obviously abort since this is not a Fortran
-            # file, but we only need to check the error message to
-            # see if the domain name is incorrect (--> current trunk)
-            # or not (2.5.0 release)
-            try:
-                self.run(["-api", "nemo", __file__], capture_output=True)
-            except RuntimeError as err:
-                if "Unsupported PSyKAL DSL / API 'nemo' specified" in str(err):
-                    # It is current development. Just give it a version number
-                    # greater than 2.5.0 for now, till the official release
-                    # is done.
-                    version = (2, 5, 0, 1)
-
-        self._version = version
         return True
 
     def process(self,
@@ -156,7 +125,7 @@ class Psyclone(Tool):
         # transformation tool only, so calling PSyclone without api is
         # actually valid.
         if api:
-            if self._version > (2, 5, 0):
+            if self._version >= (3, 0, 0):
                 api_param = "--psykal-dsl"
                 # Mapping from old names to new names:
                 mapping = {"dynamo0.3": "lfric",
@@ -176,7 +145,7 @@ class Psyclone(Tool):
             # Make mypy happy - we tested above that transformed_file is
             # specified when no api is specified.
             assert transformed_file
-            if self._version > (2, 5, 0):
+            if self._version >= (3, 0, 0):
                 # New version: no API, parameter, but -o for output name:
                 parameters.extend(["-o", transformed_file])
             else:
