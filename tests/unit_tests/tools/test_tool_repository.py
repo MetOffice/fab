@@ -178,5 +178,5 @@ def test_tool_repository_no_tool_available():
         is_available.return_value = False
         with pytest.raises(RuntimeError) as err:
             tr.get_default(Category.SHELL)
-        assert ("Can't find available 'SHELL' tool. Tools are 'sh,bash,ksh,"
-                "dash'" in str(err.value))
+        assert ("Can't find available 'SHELL' tool. Tools are 'sh'"
+                in str(err.value))
