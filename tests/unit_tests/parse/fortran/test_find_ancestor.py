@@ -33,8 +33,10 @@ class TestFindAncestor():
         assert FortranAnalyser._find_ancestor(thing, Thing2)
         assert FortranAnalyser._find_ancestor(thing, Thing2) is t2
 
-        thing = Thing1(parent=Thing1(parent=Thing2(None)))
+        # Test searching for more than one class.
         assert FortranAnalyser._find_ancestor(thing, (Thing1, Thing2))
+        # Since thing is a Thing1, it will be returned itself
+        assert FortranAnalyser._find_ancestor(thing, (Thing1, Thing2)) is thing
 
     def test_false(self):
         '''Test if the class is not found.'''

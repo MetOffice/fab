@@ -62,7 +62,7 @@ class TestArchiveObjects:
         # Make sure that 'ar' is initialised, which means `ar --version` was
         # called. Otherwise (esp. in parallel runs) the test below can report
         # two calls, the first one to determine the version. Note that the
-        # previous tests has does not have this problem since it uses
+        # previous test does not have this problem since it uses
         # `assert_has_calls`. It is sufficient to just get ar from a ToolBox,
         # this will make sure ar actually works, so `ar --version` is called.
         tool_box = ToolBox()
