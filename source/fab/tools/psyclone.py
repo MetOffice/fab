@@ -149,7 +149,7 @@ class Psyclone(Tool):
                 # New version: no API, parameter, but -o for output name:
                 parameters.extend(["-o", transformed_file])
             else:
-                # 2.5.0 or earlier: needs api nemo, output name is -oalg
+                # 2.5.0 or earlier: needs api nemo, output name is -opsy
                 parameters.extend(["-api", "nemo", "-opsy", transformed_file])
         parameters.extend(["-l", "all"])
 
