@@ -15,12 +15,12 @@ from unittest import mock
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.Fortran2008 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
+from fparser.two.utils import walk  # type: ignore
 import pytest
 
 from fab.build_config import BuildConfig
 from fab.parse import EmptySourceFile
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
-from fab.parse.fortran_common import iter_content
 from fab.tools import ToolBox
 
 # todo: test function binding
@@ -148,7 +148,7 @@ class TestProcessVariableBinding:
         tree = f2008_parser(reader)
 
         # find the tree node representing the variable binding
-        var_decl = next(obj for obj in iter_content(tree)
+        var_decl = next(obj for obj in walk(tree)
                         if isinstance(obj, Type_Declaration_Stmt))
 
         # run our handler
