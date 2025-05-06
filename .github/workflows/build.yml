@@ -56,10 +56,10 @@ jobs:
 
       - name: Unit tests with Pytest
         run: |
-          pip install .[tests]
+          pip install .[dev]
           python -m pytest --cov=fab tests/unit_tests
 
       - name: System tests with Pytest
         run: |
-          pip install .[tests]
+          pip install .[dev]
           python -m pytest --cov=fab tests/system_tests

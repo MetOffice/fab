@@ -5,96 +5,135 @@
 # ##############################################################################
 from datetime import timedelta, datetime
 from pathlib import Path
-from unittest import mock
-from unittest.mock import call
 
-import pytest
+from pytest import raises, warns
 
 from fab.artefacts import ArtefactSet
-from fab.steps.cleanup_prebuilds import by_age, by_version_age, cleanup_prebuilds, remove_all_unused
+from fab.build_config import BuildConfig
+from fab.steps.cleanup_prebuilds import (by_age, by_version_age,
+                                         cleanup_prebuilds, remove_all_unused)
+from fab.tools.tool_box import ToolBox
 from fab.util import get_prebuild_file_groups
 
 
 class TestCleanupPrebuilds(object):
+    """
+    Tests the prebuild cleaning step.
+    """
+    def test_init_no_args(self, tmp_path: Path) -> None:
+        """
+        Tests no arguments default to "all unused" functionality.
+        """
+        test_file = tmp_path / 'project/build_output/_prebuild/bar.o'
+        test_file.parent.mkdir(parents=True)
+        test_file.touch()
+        unused_file = tmp_path / 'project/build_output/_prebuild/foo.o'
+        unused_file.touch()
 
-    def test_init_no_args(self):
-        current_prebuilds = ArtefactSet.CURRENT_PREBUILDS
-        with mock.patch('fab.steps.cleanup_prebuilds.file_walk', return_value=[Path('foo.o')]), \
-             pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            with mock.patch('fab.steps.cleanup_prebuilds.remove_all_unused') as mock_remove_all_unused:
-                cleanup_prebuilds(config=mock.Mock(artefact_store={current_prebuilds: [Path('bar.o')]}))
-        mock_remove_all_unused.assert_called_once_with(found_files=[Path('foo.o')], current_files=[Path('bar.o')])
+        configuration = BuildConfig('project', ToolBox(),
+                                    fab_workspace=tmp_path)
+        configuration.artefact_store[ArtefactSet.CURRENT_PREBUILDS] = [test_file]
+
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            cleanup_prebuilds(config=configuration)
+        assert test_file.exists()
+        assert not unused_file.exists()
 
     def test_init_bad_args(self):
-        with pytest.raises(ValueError):
+        """
+        Tests clean-up with random bad arguments.
+        """
+        with raises(ValueError):
             cleanup_prebuilds(config=None, all_unused=False)
 
     def test_by_age(self):
+        """
+        Tests expiration date helper function.
+        """
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_age(older_than=timedelta(days=15), prebuilds_ts=prebuilds_ts, current_files=[])
+        result = by_age(older_than=timedelta(days=15),
+                        prebuilds_ts=prebuilds_ts,
+                        current_files=[])
         assert result == {Path('foo.234.o'), }
 
     def test_by_age_current(self):
-        # same as test_by_age except all files are current so won't be deleted
+        """
+        Tests expiration of up-to-date files.
+        """
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_age(older_than=timedelta(days=15), prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
+        result = by_age(older_than=timedelta(days=15),
+                        prebuilds_ts=prebuilds_ts,
+                        current_files=prebuilds_ts.keys())
         assert result == set()
 
     def test_by_version_age(self):
+        """
+        Tests expiration of older versions of files.
+        """
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_version_age(n_versions=1, prebuilds_ts=prebuilds_ts, current_files=[])
+        result = by_version_age(n_versions=1,
+                                prebuilds_ts=prebuilds_ts,
+                                current_files=[])
         assert result == {Path('foo.234.o'), }
 
     def test_by_version_age_current(self):
-        # same as test_by_age except all files are current so won't be deleted
+        """
+        Tests old version expiration when all files are current.
+        """
         prebuilds_ts = {
             Path('foo.123.o'): datetime(2022, 10, 31),
             Path('foo.234.o'): datetime(2022, 10, 1),
         }
 
-        result = by_version_age(n_versions=1, prebuilds_ts=prebuilds_ts, current_files=prebuilds_ts.keys())
+        result = by_version_age(n_versions=1,
+                                prebuilds_ts=prebuilds_ts,
+                                current_files=prebuilds_ts.keys())
         assert result == set()
 
 
-def test_remove_all_unused():
-
-    found_files = [
-        Path('michael.1943.o'),
-        Path('eric.1943.o'),
-        Path('terry.1942.o'),
-        Path('graham.1941.o'),
-        Path('john.1939.o'),
+def test_remove_all_unused(tmp_path: Path) -> None:
+    """
+    Tests removal of unused files.
+    """
+    starting_files = [
+        tmp_path / 'michael.1943.o',
+        tmp_path / 'eric.1943.o',
+        tmp_path / 'terry.1942.o',
+        tmp_path / 'graham.1941.o',
+        tmp_path / 'john.1939.o',
     ]
+    for fname in starting_files:
+        fname.touch()
+
     current_files = [
-        Path('michael.1943.o'),
-        Path('eric.1943.o'),
+        tmp_path / 'michael.1943.o',
+        tmp_path / 'eric.1943.o'
     ]
 
-    # using autospec makes our mock recieve the self param, which we want to check
-    with mock.patch('os.remove', autospec=True) as mock_remove:
-        num_removed = remove_all_unused(found_files, current_files)
+    num_removed = remove_all_unused(starting_files, current_files)
 
     assert num_removed == 3
-    mock_remove.assert_has_calls([
-        call(Path('terry.1942.o')),
-        call(Path('graham.1941.o')),
-        call(Path('john.1939.o')),
-    ])
+
+    assert sorted([fobject for fobject in tmp_path.iterdir()]) == sorted(current_files)
 
 
 def test_get_prebuild_file_groups():
+    """
+    Tests grouping of filenames.
+    """
     prebuild_files = [
         Path('foo.123.an'), Path('foo.234.an'), Path('foo.345.an'),
         Path('foo.123.o'), Path('foo.234.o'), Path('foo.345.o'),

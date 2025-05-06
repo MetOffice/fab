@@ -3,18 +3,22 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-
-'''Tests the ar implementation.
-'''
-
+"""
+Tests 'ar' archiver tool.
+"""
 from pathlib import Path
-from unittest import mock
+
+from pytest_subprocess.fake_process import FakeProcess
+
+from tests.conftest import ExtendedRecorder, call_list
 
 from fab.tools import Category, Ar
 
 
-def test_ar_constructor():
-    '''Test the ar constructor.'''
+def test_constructor() -> None:
+    """
+    Tests default constructor.
+    """
     ar = Ar()
     assert ar.category == Category.AR
     assert ar.name == "ar"
@@ -22,30 +26,40 @@ def test_ar_constructor():
     assert ar.get_flags() == []
 
 
-def test_ar_check_available():
-    '''Tests the is_available functionality.'''
+def test_check_available(subproc_record: ExtendedRecorder) -> None:
+    """
+    Tests availability functionality.
+    """
     ar = Ar()
-    mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        assert ar.check_available()
-    tool_run.assert_called_once_with(
-        ["ar", "--version"], capture_output=True, env=None,
-        cwd=None, check=False)
-
-    # Test behaviour if a runtime error happens:
-    with mock.patch("fab.tools.tool.Tool.run",
-                    side_effect=RuntimeError("")) as tool_run:
-        assert not ar.check_available()
+    assert ar.check_available()
+    assert subproc_record.invocations() == [["ar", "--version"]]
+    assert subproc_record.extras() == [{'cwd': None,
+                                        'env': None,
+                                        'stdout': None,
+                                        'stderr': None}]
 
 
-def test_ar_create():
-    '''Test creating an archive.'''
+def test_check_unavailable(fake_process: FakeProcess) -> None:
+    """
+    Tests availability failure.
+    """
+    fake_process.register(['ar', '--version'],
+                          returncode=1,
+                          stderr="Something went wrong.")
     ar = Ar()
-    mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        ar.create(Path("out.a"), [Path("a.o"), "b.o"])
-    tool_run.assert_called_with(['ar', 'cr', 'out.a', 'a.o', 'b.o'],
-                                capture_output=True, env=None, cwd=None,
-                                check=False)
+    assert not ar.check_available()
+    assert call_list(fake_process) == [["ar", "--version"]]
+
+
+def test_ar_create(subproc_record: ExtendedRecorder) -> None:
+    """
+    Tests creation of a new archive file.
+    """
+    ar = Ar()
+    ar.create(Path("out.a"), [Path("a.o"), "b.o"])
+    assert subproc_record.invocations() \
+           == [['ar', 'cr', 'out.a', 'a.o', 'b.o']]
+    assert subproc_record.extras() == [{'cwd': None,
+                                        'env': None,
+                                        'stderr': None,
+                                        'stdout': None}]

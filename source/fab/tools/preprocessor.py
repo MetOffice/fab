@@ -27,7 +27,8 @@ class Preprocessor(Tool):
     def __init__(self, name: str, exec_name: Union[str, Path],
                  category: Category,
                  availability_option: Optional[str] = None):
-        super().__init__(name, exec_name, category)
+        super().__init__(name, exec_name, category,
+                         availability_option=availability_option)
         self._version = None
 
     def preprocess(self, input_file: Path, output_file: Path,

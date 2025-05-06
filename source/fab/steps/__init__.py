@@ -5,9 +5,9 @@
 ##############################################################################
 """
 Predefined build steps with sensible defaults.
-
 """
 import multiprocessing
+from typing import Iterable, Optional, Union
 
 from fab.metrics import send_metric
 from fab.util import by_type, TimerLogger
@@ -79,7 +79,8 @@ def run_mp_imap(config, items, func, result_handler):
         result_handler(analysis_results)
 
 
-def check_for_errors(results, caller_label=None):
+def check_for_errors(results: Iterable[Union[str, Exception]],
+                     caller_label: Optional[str] = None) -> None:
     """
     Check an iterable of results for any exceptions and handle them gracefully.
 
@@ -90,7 +91,6 @@ def check_for_errors(results, caller_label=None):
         An iterable of results.
     :param caller_label:
         Optional human-friendly name of the caller for logging.
-
     """
     caller_label = f'during {caller_label}' if caller_label else ''
 

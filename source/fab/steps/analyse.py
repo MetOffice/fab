@@ -38,7 +38,7 @@ import logging
 import sys
 import warnings
 from pathlib import Path
-from typing import Dict, List, Iterable, Set, Optional, Union
+from typing import Dict, Iterable, List, Optional, Set, Union
 
 from fab import FabException
 from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat

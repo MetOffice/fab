@@ -82,13 +82,16 @@ class ArtefactStore(dict):
         self[collection].update(files)
 
     def update_dict(self, collection: Union[str, ArtefactSet],
-                    key: str, values: Union[str, Iterable]):
-        '''For ArtefactSets that are a dictionary of sets: update
-        the set with the specified values.
-        :param collection: the name of the collection to add this to.
-        :param key: the key in the dictionary to update.
-        :param values: the values to update with.
-        '''
+                    values: Union[str, Iterable],
+                    key: Optional[str] = None):
+        """
+        Modifies data associated with artefact set.
+
+        :param collection: Name or enumeration of set to modify.
+        :param values: New data for set.
+        :param key: Executable name associated with data. Do not specify for
+                    libraries.
+        """
         self[collection][key].update([values] if isinstance(values, str)
                                      else values)
 

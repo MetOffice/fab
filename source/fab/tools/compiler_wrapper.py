@@ -136,7 +136,6 @@ class CompilerWrapper(Compiler):
                      config: "BuildConfig",
                      add_flags: Union[None, List[str]] = None,
                      syntax_only: Optional[bool] = None):
-        # pylint: disable=too-many-arguments
         '''Compiles a file using the wrapper compiler. It will temporarily
         change the executable name of the wrapped compiler, and then calls
         the original compiler (to get all its parameters)
@@ -165,7 +164,7 @@ class CompilerWrapper(Compiler):
             # which also supports the syntax_only flag anyway)
             self._compiler = cast(FortranCompiler, self._compiler)
             self._compiler.compile_file(input_file, output_file, config=config,
-                                        add_flags=self.get_flags() + add_flags,
+                                        add_flags=super().get_flags() + add_flags,
                                         syntax_only=syntax_only,
                                         )
         else:
@@ -173,7 +172,7 @@ class CompilerWrapper(Compiler):
                 raise RuntimeError(f"Syntax-only cannot be used with compiler "
                                    f"'{self.name}'.")
             self._compiler.compile_file(input_file, output_file, config=config,
-                                        add_flags=self.get_flags()+add_flags
+                                        add_flags=super().get_flags()+add_flags
                                         )
         self._compiler.change_exec_name(orig_compiler_name)
 

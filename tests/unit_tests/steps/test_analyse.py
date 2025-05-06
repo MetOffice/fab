@@ -1,7 +1,8 @@
 from pathlib import Path
-from unittest import mock
+from typing import Dict, List, Set
+from unittest.mock import Mock
 
-import pytest
+from pytest import fixture, warns
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
@@ -13,15 +14,20 @@ from fab.util import HashedFile
 
 
 class Test_gen_symbol_table(object):
-
-    @pytest.fixture
-    def analysed_files(self):
+    """
+    Tests source symbol management.
+    """
+    @fixture
+    def analysed_files(self) -> List[AnalysedDependent]:
         return [AnalysedDependent(fpath=Path('foo.c'),
-                                  symbol_defs=['foo_1', 'foo_2'], file_hash=0),
+                                  symbol_defs=['foo_1', 'foo_2'], file_hash=1),
                 AnalysedDependent(fpath=Path('bar.c'),
-                                  symbol_defs=['bar_1', 'bar_2'], file_hash=0)]
+                                  symbol_defs=['bar_1', 'bar_2'], file_hash=2)]
 
-    def test_vanilla(self, analysed_files):
+    def test_vanilla(self, analysed_files: List[AnalysedDependent]) -> None:
+        """
+        Tests symbol table generation.
+        """
         result = _gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
@@ -31,11 +37,14 @@ class Test_gen_symbol_table(object):
             'bar_2': Path('bar.c'),
         }
 
-    def test_duplicate_symbol(self, analysed_files):
-        # duplicate a symbol from the first file in the second file
+    def test_duplicate_symbol(self,
+                              analysed_files: List[AnalysedDependent]) -> None:
+        """
+        Tests duplicate symbols in different files.
+        """
         analysed_files[1].symbol_defs.add('foo_1')
 
-        with pytest.warns(UserWarning):
+        with warns(UserWarning):
             result = _gen_symbol_table(analysed_files=analysed_files)
 
         assert result == {
@@ -47,9 +56,15 @@ class Test_gen_symbol_table(object):
 
 
 class Test_gen_file_deps(object):
+    """
+    Tests file dpendency management.
+    """
+    def test_vanilla(self) -> None:
+        """
+        Tests analysing files.
 
-    def test_vanilla(self):
-
+        ToDo: Messing with "private" state.
+        """
         my_file = Path('my_file.f90')
         symbols = {
             'my_mod': my_file,
@@ -59,9 +74,11 @@ class Test_gen_file_deps(object):
         }
 
         analysed_files = [
-            mock.Mock(
-                spec=AnalysedDependent, fpath=my_file,
-                symbol_deps={'my_func', 'dep1_mod', 'dep2'}, file_deps=set()),
+            AnalysedDependent(my_file,
+                              3,
+                              None,
+                              {'my_func', 'dep1_mod', 'dep2'},
+                              set())
         ]
 
         _gen_file_deps(analysed_files=analysed_files, symbols=symbols)
@@ -72,10 +89,15 @@ class Test_gen_file_deps(object):
 
 # todo: this is fortran-ey, move it?
 class Test_add_unreferenced_deps(object):
+    """
+    Tests handling unrefrenced dependencies.
+    """
+    def test_vanilla(self) -> None:
+        """
+        Tests
 
-    def test_vanilla(self):
-        # analyser = Analyse(root_symbol=None)
-
+        ToDo: Messing with "private" methods.
+        """
         # we analysed the source folder and found these symbols
         symbol_table = {
             "root": Path("root.f90"),
@@ -85,9 +107,9 @@ class Test_add_unreferenced_deps(object):
         }
 
         # we extracted the build tree
-        build_tree = {
-            Path('root.f90'): AnalysedFortran(fpath=Path(), file_hash=0),
-            Path('root_dep.f90'): AnalysedFortran(fpath=Path(), file_hash=0),
+        build_tree: Dict[Path, AnalysedDependent] = {
+            Path('root.f90'): AnalysedFortran(fpath=Path(), file_hash=1),
+            Path('root_dep.f90'): AnalysedFortran(fpath=Path(), file_hash=2),
         }
 
         # we want to force this symbol into the build (because it's not used
@@ -95,14 +117,14 @@ class Test_add_unreferenced_deps(object):
         unreferenced_deps = ['util']
 
         # the stuff to add to the build tree will be found in here
-        all_analysed_files = {
+        all_analysed_files: Dict[Path, AnalysedDependent] = {
             # root.f90 and root_util.f90 would also be in here but the test
             # doesn't need them
             Path('util.f90'): AnalysedFortran(fpath=Path('util.f90'),
                                               file_deps={Path('util_dep.f90')},
-                                              file_hash=0),
+                                              file_hash=3),
             Path('util_dep.f90'): AnalysedFortran(fpath=Path('util_dep.f90'),
-                                                  file_hash=0),
+                                                  file_hash=4),
         }
 
         _add_unreferenced_deps(
@@ -121,44 +143,56 @@ class Test_add_unreferenced_deps(object):
 
 
 class Test_parse_files(object):
+    """
+    Tests examining a file.
 
-    # todo: test the correct artefacts are marked as current for the
-    #       cleanup step
-    # todo: this method should be tested a bit more thoroughly
+    todo: test the correct artefacts are marked as current for the
+          cleanup step.
+    todo: this method should be tested a bit more thoroughly.
+    """
+    def test_exceptions(self, tmp_path: Path, monkeypatch) -> None:
+        """
+        Tests exceptions thrown from processing do not halt build.
 
-    def test_exceptions(self, tmp_path):
-        # make sure parse exceptions do not stop the build
-        with mock.patch('fab.steps.run_mp',
-                        return_value=[(Exception('foo'), None)]), \
-             pytest.warns(UserWarning, match="deprecated 'DEPENDS ON:'"):
-            # The warning "deprecated 'DEPENDS ON:' comment found in fortran
-            # code" is in "def _parse_files" in "source/steps/analyse.py"
-            config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
+        ToDo: Do we want this? Shouldn't exceptions stop build?
 
+        ToDo: Messing with "private" methods.
+        """
+        def raises(*args, **kwargs):
+            raise Exception("foo")
+
+        # The warning "deprecated 'DEPENDS ON:' comment found in fortran
+        # code" is in "def _parse_files" in "source/steps/analyse.py"
+        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
+
+        monkeypatch.setattr('fab.steps.run_mp', raises)
+        with warns(UserWarning, match="deprecated 'DEPENDS ON:'"):
             # the exception should be suppressed (and logged) and this step
             # should run to completion
-            _parse_files(config, files=[], fortran_analyser=mock.Mock(),
-                         c_analyser=mock.Mock())
+            _parse_files(config, files=[],
+                         fortran_analyser=Mock(),
+                         c_analyser=Mock())
 
 
 class TestAddManualResults:
-    '''test user-specified analysis results, for when fparser fails to parse a
-    valid file.
-    '''
+    """
+    Tests user over-ridden results. Covers parser failures.
+    """
+    def test_vanilla(self, monkeypatch) -> None:
+        """
+        Tests simple replacement.
 
-    def test_vanilla(self):
-        # test normal usage of manual analysis results
+        ToDo: Messing with "private" methods.
+        """
         workaround = FortranParserWorkaround(fpath=Path('foo.f'),
                                              symbol_defs={'foo', })
-        analysed_files = set()
+        analysed_files: Set[AnalysedDependent] = set()
 
-        with mock.patch('fab.parse.fortran.file_checksum',
-                        return_value=HashedFile(None, 123)), \
-             pytest.warns(UserWarning, match="SPECIAL MEASURE: injecting user-"
-                                             "defined analysis results"):
-            # This warning "UserWarning: SPECIAL MEASURE: injecting
-            # user-defined analysis results" is in "def _add_manual_results"
-            # in "source/steps/analyse.py"
+        monkeypatch.setattr('fab.parse.fortran.file_checksum',
+                            lambda x: HashedFile(None, 123))
+        with warns(UserWarning,
+                   match="SPECIAL MEASURE: "
+                         "injecting user-defined analysis results"):
             _add_manual_results(special_measure_analysis_results=[workaround],
                                 analysed_files=analysed_files)
 

@@ -3,43 +3,52 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-
-'''Tests the compile_c.py step.
-'''
-
-import os
+"""
+Exercises the compiler step.
+"""
 from pathlib import Path
-from unittest import mock
+from unittest.mock import Mock
 
-import pytest
+from pytest import fixture, raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import AddFlags, BuildConfig
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, _compile_file, compile_c
-from fab.tools import Category, Flags
+from fab.tools.category import Category
+from fab.tools.flags import Flags
+from fab.tools.tool_box import ToolBox
 
 
-# This avoids pylint warnings about Redefining names from outer scope
-@pytest.fixture(name="content")
-def fixture_content(tmp_path, tool_box):
-    '''Provides a test environment consisting of a config instance,
-    analysed file and expected hash.'''
-
-    config = BuildConfig('proj', tool_box, multiprocessing=False,
+@fixture(scope='function')
+def content(tmp_path: Path, stub_tool_box: ToolBox):
+    """
+    Provides a test environment consisting of a config instance, analysed
+    file.
+    """
+    config = BuildConfig('proj',
+                         stub_tool_box,
+                         multiprocessing=False,
                          fab_workspace=tmp_path)
 
-    analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'), file_hash=0)
+    analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'),
+                              file_hash=0)
     config._artefact_store[ArtefactSet.BUILD_TREES] = \
         {None: {analysed_file.fpath: analysed_file}}
-    expect_hash = 7658557451
-    return config, analysed_file, expect_hash
+    return config, analysed_file
 
 
-def test_compile_c_wrong_compiler(content):
-    '''Test if a non-C compiler is specified as c compiler.
-    '''
+def test_compile_c_wrong_compiler(content, fake_process: FakeProcess) -> None:
+    """
+    Tests wrong kind of compiler.
+
+    ToDo: Can this ever happen? And monkeying with "private" state again.
+    """
     config = content[0]
+
+    fake_process.register(['scc', '--version'], stdout='1.2.3')
+
     tb = config.tool_box
     # Take the Fortran compiler
     cc = tb[Category.C_COMPILER]
@@ -50,111 +59,138 @@ def test_compile_c_wrong_compiler(content):
 
     # Now check that _compile_file detects the incorrect class of the
     # C compiler
-    mp_common_args = mock.Mock(config=config)
-    with pytest.raises(RuntimeError) as err:
-        _compile_file((None, mp_common_args))
-    assert ("Unexpected tool 'mock_c_compiler' of category "
-            "'FORTRAN_COMPILER' instead of CCompiler" in str(err.value))
+    mp_common_args = Mock(config=config)
+    with raises(RuntimeError) as err:
+        _compile_file((Mock(), mp_common_args))
+    assert str(err.value) == ("Unexpected tool 'some C compiler' of category "
+                              "'FORTRAN_COMPILER' instead of CCompiler")
 
 
 # This is more of an integration test than a unit test
 class TestCompileC:
     '''Test various functionalities of the C compilation step.'''
 
-    def test_vanilla(self, content):
-        '''Ensure the command is formed correctly.'''
-        config, _, expect_hash = content
-        compiler = config.tool_box[Category.C_COMPILER]
-        # run the step
-        with mock.patch("fab.steps.compile_c.send_metric") as send_metric:
-            with mock.patch('pathlib.Path.mkdir'):
-                with mock.patch.dict(os.environ, {'CFLAGS': '-Denv_flag'}), \
-                     pytest.warns(UserWarning, match="_metric_send_conn not set, "
-                                                     "cannot send metrics"):
-                    compile_c(config=config,
-                              path_flags=[AddFlags(match='$source/*',
-                                                   flags=['-I', 'foo/include', '-Dhello'])])
+    def test_vanilla(self, content,
+                     fake_process: FakeProcess, monkeypatch) -> None:
+        """
+        Tests correct use of compiler.
+        """
+        config, _ = content
 
-        # ensure it made the correct command-line call from the child process
-        compiler.run.assert_called_with(
-            cwd=Path(config.source_root),
-            profile="",
-            additional_parameters=['-c', '-Denv_flag', '-I', 'foo/include',
-                                   '-Dhello', 'foo.c',
-                                   '-o', str(config.prebuild_folder /
-                                             f'foo.{expect_hash:x}.o')],
-        )
+        monkeypatch.setenv('CFLAGS', '-Denv_flag')
 
-        # ensure it sent a metric from the child process
-        send_metric.assert_called_once()
+        fake_process.register(['scc', '--version'], stdout='1.2.3')
+        fake_process.register([
+            'scc', '-c', '-Denv_flag', '-I', 'foo/include',
+            '-Dhello', 'foo.c',
+            '-o', str(config.prebuild_folder / 'foo.13b443ed6.o')
+        ])
+        with warns(UserWarning, match="_metric_send_conn not set, "
+                                      "cannot send metrics"):
+            compile_c(config=config,
+                      path_flags=[AddFlags(match='$source/*',
+                                           flags=['-I', 'foo/include', '-Dhello'])])
 
         # ensure it created the correct artefact collection
         assert config.artefact_store[ArtefactSet.OBJECT_FILES] == {
-            None: {config.prebuild_folder / f'foo.{expect_hash:x}.o', }
+            None: {config.prebuild_folder / 'foo.13b443ed6.o', }
         }
 
-    def test_exception_handling(self, content):
-        '''Test exception handling if the compiler fails.'''
-        config, _, _ = content
-        compiler = config.tool_box[Category.C_COMPILER]
-        # mock the run command to raise an exception
-        with pytest.raises(RuntimeError):
-            with mock.patch.object(compiler, "run", side_effect=RuntimeError):
-                with mock.patch('fab.steps.compile_c.send_metric') as mock_send_metric:
-                    with mock.patch('pathlib.Path.mkdir'):
-                        compile_c(config=config)
+    def test_exception_handling(self, content,
+                                fake_process: FakeProcess) -> None:
+        """
+        Tests compiler failure.
+        """
+        config, _ = content
 
-        # ensure no metric was sent from the child process
-        mock_send_metric.assert_not_called()
+        fake_process.register(['scc', '--version'], stdout='1.2.3')
+        fake_process.register([
+            'scc', '-c', 'foo.c',
+            '-o', str(config.build_output / '_prebuild/foo.101865856.o')
+        ], returncode=1)
+        with raises(RuntimeError):
+            compile_c(config=config)
 
 
 class TestGetObjComboHash:
     '''Tests the object combo hash functionality.'''
 
-    @pytest.fixture
+    @fixture(scope='function')
     def flags(self):
         '''Returns the flag for these tests.'''
         return Flags(['-Denv_flag', '-I', 'foo/include', '-Dhello'])
 
-    def test_vanilla(self, content, flags):
-        '''Test that we get the expected hashes in this test setup.'''
-        config, analysed_file, expect_hash = content
-        compiler = config.tool_box[Category.C_COMPILER]
-        result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
-        assert result == expect_hash
+    def test_vanilla(self, content, flags, fake_process: FakeProcess) -> None:
+        """
+        Tests hashing.
+        """
+        config, analysed_file = content
 
-    def test_change_file(self, content, flags):
-        '''Check that a change in the file (simulated by changing
-        the hash) changes the obj combo hash.'''
-        config, analysed_file, expect_hash = content
+        fake_process.register(['scc', '--version'], stdout='1.2.3')
         compiler = config.tool_box[Category.C_COMPILER]
+        #
+        # ToDo: Messing with "private" members.
+        #
+        result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
+        assert result == 5289295574
+
+    def test_change_file(self, content, flags,
+                         fake_process: FakeProcess) -> None:
+        """
+        Tests changes to source file changes the hash.
+        """
+        config, analysed_file = content
+
+        fake_process.register(['scc', '--version'], stdout='1.2.3')
+        compiler = config.tool_box[Category.C_COMPILER]
+        #
+        # ToDo: Messing with "private" members.
+        #
         analysed_file._file_hash += 1
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
-        assert result == expect_hash + 1
+        assert result == 5289295575
 
-    def test_change_flags(self, content, flags):
-        '''Test that changing the flags changes the hash.'''
-        config, analysed_file, expect_hash = content
+    def test_change_flags(self, content, flags,
+                          fake_process: FakeProcess) -> None:
+        """
+        Tests changing compiler arguments changes the hash.
+        """
+        config, analysed_file = content
+
+        fake_process.register(['scc', '--version'], stdout='1.2.3')
         compiler = config.tool_box[Category.C_COMPILER]
         flags = Flags(['-Dfoo'] + flags)
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
-        assert result != expect_hash
+        assert result != 5066163117
 
-    def test_change_compiler(self, content, flags):
-        '''Test that a change in the name of the compiler changes
-        the hash.'''
-        config, analysed_file, expect_hash = content
+    def test_change_compiler(self, content, flags,
+                             fake_process: FakeProcess) -> None:
+        """
+        Tests a change in compiler name changes the hash.
+        """
+        config, analysed_file = content
+
+        fake_process.register(['scc', '--version'], stdout='1.2.3')
         compiler = config.tool_box[Category.C_COMPILER]
+        #
         # Change the name of the compiler
+        #
+        # ToDo: Is this something which can ever happen and we shouldn't be
+        #       messing with "private" members.
+        #
         compiler._name = compiler.name + "XX"
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
-        assert result != expect_hash
+        assert result != 5066163117
 
-    def test_change_compiler_version(self, content, flags):
-        '''Test that a change in the version number of the compiler
-        changes the hash.'''
-        config, analysed_file, expect_hash = content
+    def test_change_compiler_version(self, content, flags) -> None:
+        """
+        Tests a change in the compiler version number changes the hash.
+        """
+        config, analysed_file = content
         compiler = config.tool_box[Category.C_COMPILER]
         compiler._version = (9, 8, 7)
+        #
+        # ToDo: Messing with "private" members.
+        #
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
-        assert result != expect_hash
+        assert result != 5066163117

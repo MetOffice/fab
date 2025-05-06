@@ -1,19 +1,17 @@
-from sys import version_info as python_version
+from pathlib import Path
 from textwrap import dedent
-from unittest import mock
-from unittest.mock import mock_open
-
-import pytest
 
 from fab.steps.c_pragma_injector import inject_pragmas
 
 
 class Test_inject_pragmas(object):
-
-    @pytest.mark.skipif(python_version < (3, 8),
-                        reason="Requires python version 3.8 or higher for "
-                               "mock_open iteration")
-    def test_vanilla(self):
+    """
+    Tests injection of C inclusion bracketing.
+    """
+    def test_vanilla(self, fs):
+        """
+        Tests straight forward bracketing.
+        """
         source = dedent(
             """
             // C++ style comment, ignore this.
@@ -28,13 +26,12 @@ class Test_inject_pragmas(object):
             #include "final_user_include.h"
             """
         )
+        test_file = Path('/foo.c')
+        test_file.write_text(source)
 
-        with mock.patch('fab.steps.c_pragma_injector.open',
-                        mock_open(read_data=source)):
-            result = inject_pragmas(fpath="foo")
-            output = list(result)
+        result = inject_pragmas(fpath=test_file)
 
-        assert output == [
+        assert [line for line in result] == [
             '\n',
             '// C++ style comment, ignore this.\n',
             '#pragma FAB UsrIncludeStart\n',

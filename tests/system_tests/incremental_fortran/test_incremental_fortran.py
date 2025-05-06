@@ -1,14 +1,17 @@
+from datetime import timedelta, datetime
 import logging
 import os
-import zlib
-from datetime import timedelta, datetime
 from pathlib import Path
+from typing import List
+from unittest.mock import Mock
+import zlib
 
-import pytest
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import fixture, mark
 
-from fab.artefacts import ArtefactSet
+from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.build_config import BuildConfig
-from fab.constants import PREBUILD, BUILD_OUTPUT
+from fab.constants import PREBUILD
 from fab.steps.analyse import analyse
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.compile_fortran import compile_fortran
@@ -22,7 +25,7 @@ from fab.util import file_walk, get_prebuild_file_groups
 PROJECT_LABEL = 'tiny_project'
 
 
-class TestIncremental():
+class TestIncremental:
     """
     Checks:
         - basic Fortran project build
@@ -34,7 +37,7 @@ class TestIncremental():
 
     # todo: check incremental build of other file types as Fab is upgraded
 
-    @pytest.fixture
+    @fixture(scope='function')
     def config(self, tmp_path):  # tmp_path is a pytest fixture which differs per test, per run
         logging.getLogger('fab').setLevel(logging.WARNING)
 
@@ -226,8 +229,44 @@ class TestIncremental():
             assert clean_hashes[prebuild_folder / pb_fpath] == rebuild_hashes[prebuild_folder / pb_fpath]
 
 
-class TestCleanupPrebuilds():
-    # Test cleanup of the incremental build artefacts
+class TestCleanupPrebuilds:
+    """
+    Tests cleanup of the incremental build artefacts.
+    """
+    @fixture(scope='function')
+    def example_config(self, fs: FakeFilesystem) -> BuildConfig:
+        """
+        Creates several versions of the same artefact.
+        """
+        artefacts = [
+            ('a.123.foo', datetime(2022, 10, 31)),
+            ('a.234.foo', datetime(2022, 10, 21)),
+            ('a.345.foo', datetime(2022, 10, 11)),
+            ('a.456.foo', datetime(2022, 10, 1)),
+        ]
+        configuration = BuildConfig(PROJECT_LABEL, Mock(),
+                                    fab_workspace=Path('/fab'),
+                                    multiprocessing=False)
+
+        configuration.prebuild_folder.mkdir(parents=True, exist_ok=True)
+        for filename, create_datetime in artefacts:
+            path = configuration.prebuild_folder / filename
+            path.touch(exist_ok=False)
+            os.utime(path, (create_datetime.timestamp(),
+                            create_datetime.timestamp()))
+        return configuration
+
+    @staticmethod
+    def prebuilt_files(configuration: BuildConfig) -> List[str]:
+        """
+        Determines a list of files in the pre-build directory.
+
+        Paths are given relative to the pre-build directory to avoid having to
+        deal with tmp_path. Paths are also sorted for reliable comparison.
+        """
+        files = file_walk(configuration.prebuild_folder)
+        filenames = [str(f.name) for f in files]
+        return sorted(filenames)
 
     in_out = [
         # prune artefacts by age
@@ -243,51 +282,29 @@ class TestCleanupPrebuilds():
         ({'older_than': timedelta(days=15), 'n_versions': 2}, ['a.123.foo', 'a.234.foo']),
     ]
 
-    @pytest.mark.parametrize("kwargs,expect", in_out)
-    def test_clean(self, tmp_path, kwargs, expect):
+    @mark.parametrize("kwargs, expect", in_out)
+    def test_clean(self, kwargs, expect, example_config: BuildConfig) -> None:
+        """
+        Tests expiry of prebuild files.
+        """
+        cleanup_prebuilds(example_config, **kwargs)
+        assert self.prebuilt_files(example_config) == expect
 
-        with BuildConfig(project_label=PROJECT_LABEL, tool_box=ToolBox(),
-                         fab_workspace=tmp_path, multiprocessing=False) as config:
-            remaining = self._prune(config, kwargs=kwargs)
+    def test_prune_unused(self, example_config: BuildConfig) -> None:
+        """
+        Tests pruning everything not current.
 
-        assert sorted(remaining) == expect
-
-    def test_prune_unused(self, tmp_path):
-        # pruning everything not current
-
+        Todo: Monkeying with private state.
+        """
         current_prebuilds = ArtefactSet.CURRENT_PREBUILDS
-        with BuildConfig(project_label=PROJECT_LABEL, tool_box=ToolBox(),
-                         fab_workspace=tmp_path,
-                         multiprocessing=False) as config:
-            config._artefact_store = {current_prebuilds: {
-                tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.123.foo',
-                tmp_path / PROJECT_LABEL / BUILD_OUTPUT / PREBUILD / 'a.456.foo',
-            }}
+        store = ArtefactStore()
+        store.add(current_prebuilds, example_config.prebuild_folder / 'a.123.foo')
+        store.add(current_prebuilds, example_config.prebuild_folder / 'a.456.foo')
+        example_config._artefact_store = store
 
-            remaining = self._prune(config, kwargs={'all_unused': True})
+        cleanup_prebuilds(example_config, all_unused=True)
 
-        assert sorted(remaining) == [
+        assert self.prebuilt_files(example_config) == [
             'a.123.foo',
             'a.456.foo',
         ]
-
-    def _prune(self, config, kwargs):
-
-        # create several versions of the same artefact
-        artefacts = [
-            ('a.123.foo', datetime(2022, 10, 31)),
-            ('a.234.foo', datetime(2022, 10, 21)),
-            ('a.345.foo', datetime(2022, 10, 11)),
-            ('a.456.foo', datetime(2022, 10, 1)),
-        ]
-        for a, t in artefacts:
-            path = config.prebuild_folder / a
-            path.touch(exist_ok=False)
-            os.utime(path, (t.timestamp(), t.timestamp()))
-
-        cleanup_prebuilds(config, **kwargs)
-
-        remaining_artefacts = file_walk(config.prebuild_folder)
-        # pull out just the filenames so we can parameterise the tests without knowing tmp_path
-        remaining_artefacts = [str(f.name) for f in remaining_artefacts]
-        return remaining_artefacts

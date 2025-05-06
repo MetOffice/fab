@@ -135,5 +135,4 @@ def archive_objects(config: BuildConfig,
         except RuntimeError as err:
             raise RuntimeError(f"error creating object archive:\n{err}") from err
 
-        config.artefact_store.update_dict(output_collection, root,
-                                          output_fpath)
+        config.artefact_store.update_dict(output_collection, output_fpath, root)

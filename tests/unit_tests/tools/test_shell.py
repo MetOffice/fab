@@ -3,59 +3,63 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+"""
+Tests Shell tools.
+"""
+from pytest_subprocess.fake_process import FakeProcess
 
-'''Tests the shell implementation.
-'''
+from tests.conftest import ExtendedRecorder, call_list, not_found_callback
 
-from unittest import mock
-
-from fab.tools import Category, Shell
+from fab.tools.category import Category
+from fab.tools.shell import Shell
 
 
-def test_shell_constructor():
-    '''Test the Shell constructor.'''
-    bash = Shell("bash")
+def test_constructor() -> None:
+    """
+    Tests construction from an argument list.
+    """
+    bash = Shell("nish")
     assert bash.category == Category.SHELL
-    assert bash.name == "bash"
-    assert bash.exec_name == "bash"
+    assert bash.name == "nish"
+    assert bash.exec_name == "nish"
 
 
-def test_shell_check_available():
-    '''Tests the is_available functionality.'''
-    bash = Shell("bash")
-    mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        assert bash.check_available()
-    tool_run.assert_called_once_with(
-        ["bash", "-c", "echo hello"], capture_output=True, env=None,
-        cwd=None, check=False)
+def test_check_available(fake_process: FakeProcess) -> None:
+    """
+    Tests availability functionality.
+    """
+    fake_process.register(["nish", "-c", "echo hello"])
+    fake_process.register(["nish", "-c", "echo hello"], callback=not_found_callback)
+
+    shell = Shell("nish")
+    assert shell.check_available()
 
     # Test behaviour if a runtime error happens:
-    with mock.patch("fab.tools.tool.Tool.run",
-                    side_effect=RuntimeError("")) as tool_run:
-        assert not bash.check_available()
+    assert not shell.check_available()
+
+    assert call_list(fake_process) == [
+        ['nish', '-c', 'echo hello'],
+        ['nish', '-c', 'echo hello']
+    ]
 
 
-def test_shell_exec_single_arg():
-    '''Test running a shell script without additional parameters.'''
+def test_exec_single_arg(subproc_record: ExtendedRecorder) -> None:
+    """
+    Tests shell script without additional parameters.
+    """
     ksh = Shell("ksh")
-    mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        ksh.exec("echo")
-    tool_run.assert_called_with(['ksh', '-c', 'echo'],
-                                capture_output=True, env=None, cwd=None,
-                                check=False)
+    ksh.exec("echo")
+    assert subproc_record.invocations() == [
+        ['ksh', '-c', 'echo']
+    ]
 
 
-def test_shell_exec_multiple_args():
-    '''Test running a shell script with parameters.'''
-    ksh = Shell("ksh")
-    mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        ksh.exec(["some", "shell", "function"])
-    tool_run.assert_called_with(['ksh', '-c', 'some', 'shell', 'function'],
-                                capture_output=True, env=None, cwd=None,
-                                check=False)
+def test_shell_exec_multiple_args(subproc_record: ExtendedRecorder) -> None:
+    """
+    Tests shell script with parameters.
+    """
+    csh = Shell("csh")
+    csh.exec(["some", "shell", "function"])
+    assert subproc_record.invocations() == [
+        ['csh', '-c', 'some', 'shell', 'function']
+    ]

@@ -3,22 +3,26 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-
-'''Tests the tool class.
-'''
-
-
+"""
+Tests tooling base classes.
+"""
 import logging
 from pathlib import Path
-from unittest import mock
 
-import pytest
+from pytest import raises
+from pytest_subprocess.fake_process import FakeProcess
 
-from fab.tools import Category, CompilerSuiteTool, ProfileFlags, Tool
+from tests.conftest import ExtendedRecorder, call_list, not_found_callback
+
+from fab.tools.category import Category
+from fab.tools.flags import ProfileFlags
+from fab.tools.tool import Tool
 
 
-def test_tool_constructor():
-    '''Test the constructor.'''
+def test_constructor() -> None:
+    """
+    Tests comstruction from argument list.
+    """
     tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
     assert str(tool) == "Tool - gnu: gfortran"
     assert tool.exec_name == "gfortran"
@@ -50,50 +54,54 @@ def test_tool_constructor():
     assert misc.category == Category.MISC
 
 
-def test_tool_chance_exec_name():
-    '''Test that we can change the name of the executable.
-    '''
+def test_chance_exec_name() -> None:
+    """
+    Tests changing the executable.
+
+    ToDo: Shouldn't the executable be inviolable?
+    """
     tool = Tool("gfortran", "gfortran", Category.FORTRAN_COMPILER)
     assert tool.exec_name == "gfortran"
     tool.change_exec_name("start_me_instead")
     assert tool.exec_name == "start_me_instead"
 
 
-def test_tool_is_available():
-    '''Test that is_available works as expected.'''
+def test_is_available(fake_process: FakeProcess) -> None:
+    """
+    Tests tool availability checking.
+    """
+    fake_process.register(['gfortran', '--version'], stdout="1.2.3")
     tool = Tool("gfortran", "gfortran", Category.FORTRAN_COMPILER)
-    with mock.patch.object(tool, "check_available", return_value=True):
-        assert tool.is_available
-    tool._is_available = False
+    assert tool.is_available
 
-    # Test the exception when trying to use in a non-existent tool:
-    with pytest.raises(RuntimeError) as err:
-        tool.run("--ops")
-    assert ("Tool 'gfortran' is not available to run '['gfortran', '--ops']'"
-            in str(err.value))
 
-    # Test setting the option and the getter
-    tool = Tool("gfortran", "gfortran", Category.FORTRAN_COMPILER,
+def test_availability_argument() -> None:
+    """
+    Tests setting the argument used to detect availability.
+    """
+    tool = Tool("ftool", "ftool", Category.FORTRAN_COMPILER,
                 availability_option="am_i_here")
     assert tool.availability_option == "am_i_here"
 
-    # Test that the actual check_available function works. Return 0 to
-    # indicate no error when running the tool:
-    mock_result = mock.Mock(returncode=0)
-    with mock.patch('fab.tools.tool.subprocess.run',
-                    return_value=mock_result) as tool_run:
-        assert tool.check_available()
-    tool_run.assert_called_once_with(['gfortran', 'am_i_here'],
-                                     capture_output=True, env=None,
-                                     cwd=None, check=False)
-    with mock.patch.object(tool, "run", side_effect=RuntimeError("")):
-        assert not tool.check_available()
+
+def test_run_missing(fake_process: FakeProcess) -> None:
+    """
+    Tests attempting to run an missing tool.
+    """
+    fake_process.register(['stool', '--ops'], callback=not_found_callback)
+    tool = Tool("some tool", "stool", Category.MISC)
+    with raises(RuntimeError) as err:
+        tool.run("--ops")
+    assert str(err.value).startswith(
+        "Unable to execute command: ['stool', '--ops']"
+    )
 
 
-def test_tool_flags_no_profile():
-    '''Test that flags without using a profile work as expected.'''
-    tool = Tool("gfortran", "gfortran", Category.FORTRAN_COMPILER)
-    # pylint: disable-next=use-implicit-booleaness-not-comparison
+def test_arguments():
+    """
+    Tests tool arguments.
+    """
+    tool = Tool("some tool", "stool", Category.MISC)
     assert tool.get_flags() == []
     tool.add_flags("-a")
     assert tool.get_flags() == ["-a"]
@@ -126,76 +134,56 @@ def test_tool_profiles():
 
 
 class TestToolRun:
-    '''Test the run method of Tool.'''
+    """
+    Tests tool run method.
+    """
+    def test_no_error_no_args(self, fake_process: FakeProcess) -> None:
+        """
+        Tests run with no aruments.
+        """
+        fake_process.register(['stool'], stdout="123")
+        fake_process.register(['stool'], stdout="123")
+        tool = Tool("some tool", "stool", Category.MISC)
+        assert tool.run(capture_output=True) == "123"
+        assert tool.run(capture_output=False) == ""
+        assert call_list(fake_process) == [['stool'], ['stool']]
 
-    def test_no_error_no_args(self,):
-        '''Test usage of `run` without any errors when no additional
-        command line argument is provided.'''
-        tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
-        mock_result = mock.Mock(returncode=0, return_value=123)
-        mock_result.stdout.decode = mock.Mock(return_value="123")
+    def test_run_with_single_args(self,
+                                  subproc_record: ExtendedRecorder) -> None:
+        """
+        Tets run with single argument.
+        """
+        tool = Tool("some tool", "tool", Category.MISC)
+        tool.run("a")
+        assert subproc_record.invocations() == [['tool', 'a']]
 
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        return_value=mock_result):
-            assert tool.run(capture_output=True) == "123"
-            assert tool.run(capture_output=False) == ""
+    def test_run_with_multiple_args(self,
+                                    subproc_record: ExtendedRecorder) -> None:
+        """
+        Tests run with multiple arguments.
+        """
+        tool = Tool("some tool", "tool", Category.MISC)
+        tool.run(["a", "b"])
+        assert subproc_record.invocations() == [['tool', 'a', 'b']]
 
-    def test_no_error_with_single_args(self):
-        '''Test usage of `run` without any errors when a single
-        command line argument is provided as string.'''
-        tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
-        mock_result = mock.Mock(returncode=0)
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        return_value=mock_result) as tool_run:
-            tool.run("a")
-        tool_run.assert_called_once_with(
-            ["gfortran", "a"], capture_output=True, env=None,
-            cwd=None, check=False)
+    def test_error(self, fake_process: FakeProcess) -> None:
+        """
+        Tests running a failing tool.
+        """
+        fake_process.register(['tool'], returncode=1)
+        tool = Tool("some tool", "tool", Category.MISC)
+        with raises(RuntimeError) as err:
+            tool.run()
+        assert str(err.value).startswith("Command failed with return code 1")
+        assert call_list(fake_process) == [['tool']]
 
-    def test_no_error_with_multiple_args(self):
-        '''Test usage of `run` without any errors when more than
-        one command line argument is provided as a list.'''
-        tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
-        mock_result = mock.Mock(returncode=0)
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        return_value=mock_result) as tool_run:
-            tool.run(["a", "b"])
-        tool_run.assert_called_once_with(
-            ["gfortran", "a", "b"], capture_output=True, env=None,
-            cwd=None, check=False)
-
-    def test_error(self):
-        '''Tests the error handling of `run`. '''
-        tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
-        result = mock.Mock(returncode=1)
-        mocked_error_message = 'mocked error message'
-        result.stderr.decode = mock.Mock(return_value=mocked_error_message)
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        return_value=result):
-            with pytest.raises(RuntimeError) as err:
-                tool.run()
-            assert mocked_error_message in str(err.value)
-            assert "Command failed with return code 1" in str(err.value)
-
-    def test_error_file_not_found(self):
-        '''Tests the error handling of `run`. '''
-        tool = Tool("does_not_exist", "does_not_exist",
-                    Category.FORTRAN_COMPILER)
-        with mock.patch('fab.tools.tool.subprocess.run',
-                        side_effect=FileNotFoundError("not found")):
-            with pytest.raises(RuntimeError) as err:
-                tool.run()
-            assert ("Command '['does_not_exist']' could not be executed."
-                    in str(err.value))
-
-
-def test_suite_tool():
-    '''Test the constructor.'''
-    tool = CompilerSuiteTool("gnu", "gfortran", "gnu",
-                             Category.FORTRAN_COMPILER)
-    assert str(tool) == "CompilerSuiteTool - gnu: gfortran"
-    assert tool.exec_name == "gfortran"
-    assert tool.name == "gnu"
-    assert tool.suite == "gnu"
-    assert tool.category == Category.FORTRAN_COMPILER
-    assert isinstance(tool.logger, logging.Logger)
+    def test_error_file_not_found(self, fake_process: FakeProcess) -> None:
+        """
+        Tests running a missing tool.
+        """
+        fake_process.register(['tool'], callback=not_found_callback)
+        tool = Tool('some tool', 'tool', Category.MISC)
+        with raises(RuntimeError) as err:
+            tool.run()
+        assert str(err.value) == "Unable to execute command: ['tool']"
+        assert call_list(fake_process) == [['tool']]

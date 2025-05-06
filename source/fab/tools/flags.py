@@ -119,7 +119,7 @@ class ProfileFlags:
 
         :raises KeyError: if a profile is specified it is not defined
         '''
-        if not profile:
+        if profile is None:
             profile = ""
         else:
             profile = profile.lower()

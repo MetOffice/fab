@@ -163,11 +163,12 @@ class ToolRepository(dict):
                        f"in ToolRepository.")
 
     def set_default_compiler_suite(self, suite: str):
-        '''Sets the default for linker and compilers to be of the
+        """
+        Sets the default for linker and compilers to be of the
         given compiler suite.
 
         :param suite: the name of the compiler suite to make the default.
-        '''
+        """
         for category in [Category.FORTRAN_COMPILER, Category.C_COMPILER,
                          Category.LINKER]:
             # Now sort the tools in this category to have all tools with the

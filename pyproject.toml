@@ -6,7 +6,7 @@ authors = [
 ]
 license = {file = 'LICENSE.txt'}
 dynamic = ['version', 'readme']
-requires-python = '>=3.7, <4'
+requires-python = '>=3.9, <4'
 dependencies = ['fparser >= 0.2']
 classifiers = [
     'Development Status :: 1 - Planning',
@@ -21,13 +21,19 @@ classifiers = [
 [project.optional-dependencies]
 c-language = ['libclang']
 plots = ['matplotlib']
-tests = ['pytest', 'pytest-cov', 'pytest-mock']
-checks = ['flake8>=5.0.4', 'mypy']
 docs = ['sphinx',
         'pydata-sphinx-theme>=0.13.3',
         'sphinx-autodoc-typehints',
         'sphinx-copybutton']
-dev = ['sci-fab[plots, tests, checks, docs]']
+dev = [
+    'pytest >= 8.3.0',
+    'pytest-cov',
+    'pytest-mock',
+    'pytest-subprocess >= 1.5.3',
+    'pyfakefs',
+    'flake8 >= 5.0.4',
+    'mypy'
+]
 
 [project.scripts]
 fab = 'fab.cli:cli_fab'

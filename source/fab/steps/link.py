@@ -103,7 +103,6 @@ def link_shared_object(config, output_fpath: str, flags=None,
     :param source:
         An optional :class:`~fab.artefacts.ArtefactsGetter`.
         Typically not required, as there is a sensible default.
-
     """
     linker = config.tool_box[Category.LINKER]
     logger.info(f'linker is {linker}')

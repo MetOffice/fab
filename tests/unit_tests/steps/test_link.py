@@ -3,73 +3,61 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-
-'''
-Tests linking an executable.
-'''
-
+"""
+Exercises executable linkage step.
+"""
 from pathlib import Path
-from types import SimpleNamespace
-from unittest import mock
 
-from fab.artefacts import ArtefactSet, ArtefactStore
+from pytest import warns
+from pytest_subprocess.fake_process import FakeProcess
+
+from tests.conftest import call_list
+
+from fab.artefacts import ArtefactSet
+from fab.build_config import BuildConfig
 from fab.steps.link import link_exe
-from fab.tools import FortranCompiler, Linker, ToolBox
-
-import pytest
+from fab.tools.compiler import FortranCompiler
+from fab.tools.linker import Linker
+from fab.tools.tool_box import ToolBox
 
 
 class TestLinkExe:
-    '''Test class for linking an executable.
-    '''
-    def test_run(self, tool_box: ToolBox):
-        '''Ensure the command is formed correctly, with the flags at the
-        end and that environment variable FFLAGS is picked up.
-        '''
-        config = SimpleNamespace(
-            project_workspace=Path('workspace'),
-            artefact_store=ArtefactStore(),
-            tool_box=tool_box,
-            mpi=False,
-            openmp=False,
-            profile="default"
-        )
+    """
+    Tests linking an executable.
+    """
+    def test_run(self, fake_process: FakeProcess, monkeypatch) -> None:
+        """
+        Tests correct formation of command including FFLAGS.
+        """
+        monkeypatch.setenv('FFLAGS', '-L/foo1/lib -L/foo2/lib')
+
+        version_command = ['sfc', '--version']
+        fake_process.register(version_command, stdout='1.2.3')
+        link_command = ['sfc', '-L/foo1/lib', '-L/foo2/lib',
+                        'bar.o', 'foo.o',
+                        '-L/my/lib', '-lmylib', '-fooflag', '-barflag',
+                        '-o', '/fab/link_test/foo']
+        fake_process.register(link_command, stdout='abc\ndef')
+
+        compiler = FortranCompiler("some Fortran compiler", 'sfc', 'some',
+                                   r'([\d.]+)')
+        linker = Linker(compiler=compiler)
+        linker.add_lib_flags('mylib', ['-L/my/lib', '-lmylib'])
+
+        def get_tool(category, mpi, openmp):
+            return linker
+        #
+        # ToDo: Mockery of this nature is not ideal.
+        #
+        tool_box = ToolBox()
+        monkeypatch.setattr(tool_box, 'get_tool', get_tool)
+
+        config = BuildConfig('link_test', tool_box, fab_workspace=Path('/fab'),
+                             mpi=False, openmp=False, multiprocessing=False)
         config.artefact_store[ArtefactSet.OBJECT_FILES] = \
             {'foo': {'foo.o', 'bar.o'}}
 
-        with mock.patch.dict("os.environ",
-                             {"FFLAGS": "-L/foo1/lib -L/foo2/lib"}):
-            # We need to create the compiler here in order to pick
-            # up the environment
-            mock_compiler = FortranCompiler("mock_fortran_compiler",
-                                            "mock_fortran_compiler.exe",
-                                            "suite", module_folder_flag="",
-                                            version_regex="something",
-                                            syntax_only_flag=None,
-                                            compile_flag=None,
-                                            output_flag=None, openmp_flag=None)
-
-            linker = Linker(compiler=mock_compiler)
-            # Mark the linker as available so it can be added to the tool box
-            linker._is_available = True
-            mock_compiler.define_profile("default")
-            linker.define_profile("default")
-
-            # Add a custom library to the linker
-            linker.add_lib_flags('mylib', ['-L/my/lib', '-lmylib'])
-            tool_box.add_tool(linker, silent_replace=True)
-            mock_result = mock.Mock(returncode=0, stdout="abc\ndef".encode())
-            with mock.patch('fab.tools.tool.subprocess.run',
-                            return_value=mock_result) as tool_run, \
-                    pytest.warns(UserWarning,
-                                 match="_metric_send_conn not "
-                                       "set, cannot send metrics"):
-                link_exe(config, libs=['mylib'],
-                         flags=['-fooflag', '-barflag'])
-
-        tool_run.assert_called_with(
-            ['mock_fortran_compiler.exe', '-L/foo1/lib', '-L/foo2/lib',
-             'bar.o', 'foo.o',
-             '-L/my/lib', '-lmylib', '-fooflag', '-barflag',
-             '-o', 'workspace/foo'],
-            capture_output=True, env=None, cwd=None, check=False)
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
+        assert call_list(fake_process) == [link_command]

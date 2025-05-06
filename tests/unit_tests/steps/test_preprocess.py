@@ -4,46 +4,59 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from unittest import mock
 
-import pytest
+from pytest import raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 from fab.build_config import BuildConfig
 from fab.steps.preprocess import preprocess_fortran
-from fab.tools import Category, ToolBox
+from fab.tools.category import Category
+from fab.tools.tool_box import ToolBox
 
 
 class Test_preprocess_fortran:
 
-    def test_big_little(self, tmp_path):
-        # ensure big F90s are preprocessed and little f90s are copied
+    def test_big_little(self, tmp_path: Path,
+                        fake_process: FakeProcess) -> None:
+        """
+        Tests big F90 files are preprocessed and little f90 files are copied.
+        """
+        version_command = ['cpp', '-traditional-cpp', '-P', '--version']
+        fake_process.register(version_command, stdout='1.2.3')
+        process_command = ['cpp', '-traditional-cpp', '-P',
+                           str(tmp_path / 'proj/source/big.F90'),
+                           str(tmp_path / 'proj/build_output/big.f90')]
+        fake_process.register(process_command)
 
-        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
+        config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path,
+                             multiprocessing=False)
+        config.source_root.mkdir(parents=True)
         big_f90 = Path(config.source_root / 'big.F90')
+        big_f90.write_text("Big F90 file.")
         little_f90 = Path(config.source_root / 'little.f90')
+        little_f90.write_text("Little f90 file.")
 
         def source_getter(artefact_store):
             return [big_f90, little_f90]
 
-        with mock.patch('fab.steps.preprocess.pre_processor') as mock_pp:
-            with mock.patch('shutil.copyfile') as mock_copy:
-                with config:
-                    preprocess_fortran(config=config, source=source_getter)
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            preprocess_fortran(config=config, source=source_getter)
 
-        mock_pp.assert_called_once_with(
-            config,
-            preprocessor=mock.ANY,
-            common_flags=mock.ANY,
-            files=[big_f90],
-            output_collection=mock.ANY,
-            output_suffix='.f90',
-            name='preprocess fortran',
-        )
+        assert (config.build_output / 'little.f90').read_text() \
+            == "Little f90 file."
+        assert fake_process.call_count(process_command) == 1
 
-        mock_copy.assert_called_once_with(str(little_f90), mock.ANY)
+    def test_wrong_exe(self, tmp_path: Path,
+                       fake_process: FakeProcess) -> None:
+        """
+        Tests detection of wrong executable.
 
-        # Now test that an incorrect preprocessor is detected:
-        tool_box = config.tool_box
+        ToDo: Can this ever happen? Don't like messing with "private" state.
+        """
+        fake_process.register(['cpp', '-traditional-cpp', '-P', '--version'])
+        fake_process.register(['cpp', '--version'])
+        tool_box = ToolBox()
         # Take the C preprocessor
         cpp = tool_box[Category.C_PREPROCESSOR]
         # And set its category to FORTRAN_PREPROCESSOR
@@ -52,8 +65,8 @@ class Test_preprocess_fortran:
         # C preprocessor:
         tool_box.add_tool(cpp, silent_replace=True)
 
-        with pytest.raises(RuntimeError) as err:
+        config = BuildConfig('proj', tool_box, fab_workspace=tmp_path)
+        with raises(RuntimeError) as err:
             preprocess_fortran(config=config)
-        assert ("Unexpected tool 'cpp' of type '<class "
-                "'fab.tools.preprocessor.Cpp'>' instead of CppFortran"
-                in str(err.value))
+        assert str(err.value) == "Unexpected tool 'cpp' of type '<class " \
+            "'fab.tools.preprocessor.Cpp'>' instead of CppFortran"

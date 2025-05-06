@@ -12,7 +12,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 from abc import ABC
 import logging
 from pathlib import Path
-from typing import Set, Dict, Iterable, List, Union, Optional, Any
+from typing import Any, Dict, Iterable, List, Optional, Set, Union
 
 from fab.parse import AnalysedFile
 
@@ -98,7 +98,8 @@ class AnalysedDependent(AnalysedFile, ABC):
         return result
 
 
-def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, verbose=False)\
+def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent],
+                     root: Path, verbose=False)\
         -> Dict[Path, AnalysedDependent]:
     """
     Extract the subtree required to build the target, from the full source tree of all analysed source files.
@@ -114,7 +115,11 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, ver
     result: Dict[Path, AnalysedDependent] = dict()
     missing: Set[Path] = set()
 
-    _extract_sub_tree(src_tree=source_tree, key=root, dst_tree=result, missing=missing, verbose=verbose)
+    _extract_sub_tree(src_tree=source_tree,
+                      key=root,
+                      dst_tree=result,
+                      missing=missing,
+                      verbose=verbose)
 
     if missing:
         logger.warning(f"{root} has missing deps: {missing}")
@@ -122,8 +127,12 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent], root: Path, ver
     return result
 
 
-def _extract_sub_tree(src_tree: Dict[Path, AnalysedDependent], key: Path,
-                      dst_tree: Dict[Path, AnalysedDependent], missing: Set[Path], verbose: bool, indent: int = 0):
+def _extract_sub_tree(src_tree: Dict[Path, AnalysedDependent],
+                      key: Path,
+                      dst_tree: Dict[Path, AnalysedDependent],
+                      missing: Set[Path],
+                      verbose: bool,
+                      indent: int = 0):
     # is this node already in the sub tree?
     if key in dst_tree:
         return

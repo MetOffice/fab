@@ -65,10 +65,9 @@ def test_artefact_store_copy() -> None:
 def test_artefact_store_update_dict() -> None:
     '''Tests the update_dict function.'''
     artefact_store = ArtefactStore()
-    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, "a", [Path("AA")])
+    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, [Path("AA")], "a")
     assert artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {Path("AA")}}
-    artefact_store.update_dict(ArtefactSet.OBJECT_FILES,
-                               "b", set([Path("BB")]))
+    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, set([Path("BB")]), "b")
     assert (artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {Path("AA")},
                                                          "b": {Path("BB")}})
 
