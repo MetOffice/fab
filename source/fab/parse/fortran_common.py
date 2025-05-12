@@ -26,35 +26,6 @@ from fab.util import log_or_dot, file_checksum
 logger = logging.getLogger(__name__)
 
 
-def iter_content(obj):
-    """
-    Return a generator which yields every node in the tree.
-    """
-    yield obj
-    if hasattr(obj, "content"):
-        for child in _iter_content(obj.content):
-            yield child
-
-
-def _iter_content(content):
-    for obj in content:
-        yield obj
-        if hasattr(obj, "content"):
-            for child in _iter_content(obj.content):
-                yield child
-
-
-def _has_ancestor_type(obj, obj_type):
-    # Recursively check if an object has an ancestor of the given type.
-    if not obj.parent:
-        return False
-
-    if isinstance(obj.parent, obj_type):
-        return True
-
-    return _has_ancestor_type(obj.parent, obj_type)
-
-
 def _typed_child(parent, child_type: Type, must_exist=False):
     # Look for a child of a certain type.
     # Returns the child or None.

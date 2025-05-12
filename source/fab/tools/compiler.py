@@ -449,7 +449,7 @@ class Ifx(FortranCompiler):
                          module_folder_flag="-module",
                          openmp_flag="-qopenmp",
                          syntax_only_flag="-syntax-only",
-                         version_regex=r"ifx \(IFORT\) (\d[\d\.]+\d) ")
+                         version_regex=r"ifx \(IFX\) (\d[\d\.]+\d) ")
 
 
 # ============================================================================

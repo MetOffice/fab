@@ -40,9 +40,6 @@ class CompilerWrapper(Compiler):
             mpi=mpi,
             availability_option=self._compiler.availability_option)
 
-    def __str__(self):
-        return f"{type(self).__name__}({self._compiler.name})"
-
     def get_version(self) -> Tuple[int, ...]:
         """Determines the version of the compiler. The implementation in the
         compiler wrapper additionally ensures that the wrapper compiler and
