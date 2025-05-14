@@ -62,8 +62,8 @@ def test_compiler_wrapper_version_consistency():
             with pytest.raises(RuntimeError) as err:
                 mpicc.get_version()
             assert ("Different version for compiler 'Gcc - gcc: gcc' (8.5.0) "
-                    "and compiler wrapper 'Mpicc(gcc)' (8.6.0)" in
-                    str(err.value))
+                    "and compiler wrapper 'Mpicc - mpicc-gcc: mpicc' (8.6.0)"
+                    in str(err.value))
 
 
 def test_compiler_wrapper_version_compiler_unavailable():
@@ -309,7 +309,7 @@ def test_compiler_wrapper_mpi_gcc():
     '''Tests the MPI enables gcc class.'''
     mpi_gcc = Mpicc(Gcc())
     assert mpi_gcc.name == "mpicc-gcc"
-    assert str(mpi_gcc) == "Mpicc(gcc)"
+    assert str(mpi_gcc) == "Mpicc - mpicc-gcc: mpicc"
     assert isinstance(mpi_gcc, CompilerWrapper)
     assert mpi_gcc.category == Category.C_COMPILER
     assert mpi_gcc.mpi
@@ -320,7 +320,7 @@ def test_compiler_wrapper_mpi_gfortran():
     '''Tests the MPI enabled gfortran class.'''
     mpi_gfortran = Mpif90(Gfortran())
     assert mpi_gfortran.name == "mpif90-gfortran"
-    assert str(mpi_gfortran) == "Mpif90(gfortran)"
+    assert str(mpi_gfortran) == "Mpif90 - mpif90-gfortran: mpif90"
     assert isinstance(mpi_gfortran, CompilerWrapper)
     assert mpi_gfortran.category == Category.FORTRAN_COMPILER
     assert mpi_gfortran.mpi
@@ -331,7 +331,7 @@ def test_compiler_wrapper_mpi_icc():
     '''Tests the MPI enabled icc class.'''
     mpi_icc = Mpicc(Icc())
     assert mpi_icc.name == "mpicc-icc"
-    assert str(mpi_icc) == "Mpicc(icc)"
+    assert str(mpi_icc) == "Mpicc - mpicc-icc: mpicc"
     assert isinstance(mpi_icc, CompilerWrapper)
     assert mpi_icc.category == Category.C_COMPILER
     assert mpi_icc.mpi
@@ -342,7 +342,7 @@ def test_compiler_wrapper_mpi_ifort():
     '''Tests the MPI enabled ifort class.'''
     mpi_ifort = Mpif90(Ifort())
     assert mpi_ifort.name == "mpif90-ifort"
-    assert str(mpi_ifort) == "Mpif90(ifort)"
+    assert str(mpi_ifort) == "Mpif90 - mpif90-ifort: mpif90"
     assert isinstance(mpi_ifort, CompilerWrapper)
     assert mpi_ifort.category == Category.FORTRAN_COMPILER
     assert mpi_ifort.mpi
@@ -353,7 +353,7 @@ def test_compiler_wrapper_cray_icc():
     '''Tests the Cray wrapper for icc.'''
     craycc = CrayCcWrapper(Icc())
     assert craycc.name == "craycc-icc"
-    assert str(craycc) == "CrayCcWrapper(icc)"
+    assert str(craycc) == "CrayCcWrapper - craycc-icc: cc"
     assert isinstance(craycc, CompilerWrapper)
     assert craycc.category == Category.C_COMPILER
     assert craycc.mpi
@@ -364,7 +364,7 @@ def test_compiler_wrapper_cray_ifort():
     '''Tests the Cray wrapper for ifort.'''
     crayftn = CrayFtnWrapper(Ifort())
     assert crayftn.name == "crayftn-ifort"
-    assert str(crayftn) == "CrayFtnWrapper(ifort)"
+    assert str(crayftn) == "CrayFtnWrapper - crayftn-ifort: ftn"
     assert isinstance(crayftn, CompilerWrapper)
     assert crayftn.category == Category.FORTRAN_COMPILER
     assert crayftn.mpi
@@ -375,7 +375,8 @@ def test_compiler_wrapper_cray_gcc():
     '''Tests the Cray wrapper for gcc.'''
     craycc = CrayCcWrapper(Gcc())
     assert craycc.name == "craycc-gcc"
-    assert str(craycc) == "CrayCcWrapper(gcc)"
+
+    assert str(craycc) == "CrayCcWrapper - craycc-gcc: cc"
     assert isinstance(craycc, CompilerWrapper)
     assert craycc.category == Category.C_COMPILER
     assert craycc.mpi
@@ -386,7 +387,7 @@ def test_compiler_wrapper_cray_gfortran():
     '''Tests the Cray wrapper for gfortran.'''
     crayftn = CrayFtnWrapper(Gfortran())
     assert crayftn.name == "crayftn-gfortran"
-    assert str(crayftn) == "CrayFtnWrapper(gfortran)"
+    assert str(crayftn) == "CrayFtnWrapper - crayftn-gfortran: ftn"
     assert isinstance(crayftn, CompilerWrapper)
     assert crayftn.category == Category.FORTRAN_COMPILER
     assert crayftn.mpi

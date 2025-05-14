@@ -48,9 +48,8 @@ def test_make_parsable_x90(tmp_path):
 
     parsable_x90_path = make_parsable_x90(input_x90_path)
 
-    x90_analyser = X90Analyser()
     with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
-        x90_analyser._config = config  # todo: code smell
+        x90_analyser = X90Analyser(config=config)
         x90_analyser.run(parsable_x90_path)
 
     # ensure the files are as expected
@@ -72,9 +71,8 @@ class TestX90Analyser:
 
     def run(self, tmp_path):
         parsable_x90_path = self.expected_analysis_result.fpath
-        x90_analyser = X90Analyser()
         with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
-            x90_analyser._config = config
+            x90_analyser = X90Analyser(config=config)
             analysed_x90, _ = x90_analyser.run(parsable_x90_path)  # type: ignore
             # don't delete the prebuild
             cleanup_prebuilds(config, n_versions=999)

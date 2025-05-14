@@ -130,8 +130,10 @@ def analyse(
     unreferenced_deps = list(unreferenced_deps or [])
 
     # todo: these seem more like functions
-    fortran_analyser = FortranAnalyser(std=std, ignore_mod_deps=ignore_mod_deps)
-    c_analyser = CAnalyser()
+    fortran_analyser = FortranAnalyser(config=config,
+                                       std=std,
+                                       ignore_mod_deps=ignore_mod_deps)
+    c_analyser = CAnalyser(config=config)
 
     # Creates the *build_trees* artefact from the files in `self.source_getter`.
 
@@ -143,10 +145,6 @@ def analyse(
     #     - Work out the file dependencies from the symbol dependencies.
     #         - At this point we have a source tree for the entire source.
     #     - (Optionally) Extract a sub tree for every root symbol, if provided. For building executables.
-
-    # todo: code smell - refactor (in another PR to keep things small)
-    fortran_analyser._config = config
-    c_analyser._config = config
 
     # parse
     files: List[Path] = source_getter(config.artefact_store)

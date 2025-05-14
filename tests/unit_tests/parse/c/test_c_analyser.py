@@ -17,9 +17,9 @@ clang = importorskip('clang')
 
 
 def test_simple_result(tmp_path):
-    c_analyser = CAnalyser()
-    c_analyser._config = BuildConfig('proj', ToolBox(), mpi=False,
-                                     openmp=False, fab_workspace=tmp_path)
+    config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
+                         fab_workspace=tmp_path)
+    c_analyser = CAnalyser(config)
 
     with mock.patch('fab.parse.AnalysedFile.save'):
         fpath = Path(__file__).parent / "test_c_analyser.c"
@@ -72,7 +72,7 @@ class Test__locate_include_regions:
         mock_trans_unit = Mock()
         mock_trans_unit.cursor.get_tokens.return_value = tokens
 
-        analyser = CAnalyser()
+        analyser = CAnalyser(config=None)
         analyser._locate_include_regions(mock_trans_unit)
 
         assert analyser._include_region == expect
@@ -81,7 +81,7 @@ class Test__locate_include_regions:
 class Test__check_for_include:
 
     def test_vanilla(self):
-        analyser = CAnalyser()
+        analyser = CAnalyser(config=None)
         analyser._include_region = [
             (10, "sys_include_start"),
             (20, "sys_include_end"),
@@ -113,7 +113,7 @@ class Test_process_symbol_declaration:
         node.linkage = linkage
         node.spelling = spelling
 
-        analyser = CAnalyser()
+        analyser = CAnalyser(config=None)
         analysed_file = Mock()
 
         analyser._process_symbol_declaration(analysed_file=analysed_file, node=node, usr_symbols=None)
@@ -134,7 +134,7 @@ class Test_process_symbol_declaration:
         node.is_definition.return_value = False
         node.spelling = spelling
 
-        analyser = CAnalyser()
+        analyser = CAnalyser(config=None)
         analyser._check_for_include = Mock(return_value=include_type)
 
         usr_symbols = []
@@ -155,7 +155,7 @@ class Test_process_symbol_dependency:
         analysed_file.add_symbol_dep.assert_not_called()
 
     def _dependency(self, spelling, usr_symbols):
-        analyser = CAnalyser()
+        analyser = CAnalyser(config=None)
         analysed_file = Mock()
         node = Mock(spelling=spelling)
 
@@ -168,7 +168,8 @@ def test_clang_disable():
 
     with mock.patch('fab.parse.c.clang', None):
         with mock.patch('fab.parse.c.file_checksum') as mock_file_checksum:
-            result = CAnalyser().run(Path(__file__).parent / "test_c_analyser.c")
+            c_analyser = CAnalyser(config=None)
+            result = c_analyser.run(Path(__file__).parent / "test_c_analyser.c")
 
     assert isinstance(result[0], ImportWarning)
     mock_file_checksum.assert_not_called()
