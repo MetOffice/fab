@@ -3,24 +3,40 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from fab.parse.fortran_common import _has_ancestor_type
+
+'''Test the find_ancestor function.
+'''
+
+from fab.parse.fortran import FortranAnalyser
 
 
-class Thing1(object):
+class Thing1():
+    # pylint: disable=too-few-public-methods
+    '''A dummy class mirroring the fparser design - have a parent attribute.'''
     def __init__(self, parent):
         self.parent = parent
 
 
 class Thing2(Thing1):
-    pass
+    # pylint: disable=too-few-public-methods
+    '''Dummy class for testing.'''
 
 
-class Test_has_ancestor_type(object):
+class TestFindAncestor():
+    '''Test the find_ancerstor functionality of the FortranAnalyser.'''
 
     def test_true(self):
+        '''Test to successfully find the class'''
+        t2 = Thing2(None)
+        thing = Thing1(parent=Thing1(parent=t2))
+        # Test that it evaluates to true, and also that it is the right type
+        assert FortranAnalyser._find_ancestor(thing, Thing2)
+        assert FortranAnalyser._find_ancestor(thing, Thing2) is t2
+
         thing = Thing1(parent=Thing1(parent=Thing2(None)))
-        assert _has_ancestor_type(thing, Thing2)
+        assert FortranAnalyser._find_ancestor(thing, (Thing1, Thing2))
 
     def test_false(self):
+        '''Test if the class is not found.'''
         thing = Thing1(parent=Thing1(parent=Thing1(None)))
-        assert not _has_ancestor_type(thing, Thing2)
+        assert not FortranAnalyser._find_ancestor(thing, Thing2)

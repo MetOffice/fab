@@ -102,7 +102,7 @@ class BuildConfig():
             fab_workspace = get_fab_workspace()
         logger.info(f"fab workspace is {fab_workspace}")
 
-        self.project_workspace: Path = fab_workspace / self.project_label
+        self._project_workspace: Path = fab_workspace / self.project_label
         self.metrics_folder: Path = (self.project_workspace / 'metrics' /
                                      self.project_label)
 
@@ -182,6 +182,12 @@ class BuildConfig():
         ''':returns: the Artefact instance for this configuration.
         '''
         return self._artefact_store
+
+    @property
+    def project_workspace(self) -> Path:
+        ''':returns: the project workspace path.
+        '''
+        return self._project_workspace
 
     @property
     def build_output(self) -> Path:

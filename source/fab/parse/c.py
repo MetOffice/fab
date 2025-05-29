@@ -11,14 +11,14 @@ from collections import deque
 from pathlib import Path
 from typing import List, Optional, Union, Tuple
 
-from fab.dep_tree import AnalysedDependent
-
 try:
     import clang  # type: ignore
     import clang.cindex  # type: ignore
 except ImportError:
     clang = None
 
+from fab.build_config import BuildConfig
+from fab.dep_tree import AnalysedDependent
 from fab.util import log_or_dot, file_checksum
 
 logger = logging.getLogger(__name__)
@@ -26,29 +26,33 @@ logger = logging.getLogger(__name__)
 
 class AnalysedC(AnalysedDependent):
     """
-    An analysis result for a single C file, containing symbol definitions and dependencies.
+    An analysis result for a single C file, containing symbol definitions and
+    dependencies.
 
-    Note: We don't need to worry about compile order with pure C projects; we can compile all in one go.
-          However, with a *Fortran -> C -> Fortran* dependency chain, we do need to ensure that one Fortran file
-          is compiled before another, so this class must be part of the dependency tree analysis.
+    Note: We don't need to worry about compile order with pure C projects; we
+          can compile all in one go. However, with a *Fortran -> C -> Fortran*
+          dependency chain, we do need to ensure that one Fortran file is
+          compiled before another, so this class must be part of the
+          dependency tree analysis.
 
     """
-    # Note: This subclass adds nothing to it's parent, which provides everything it needs.
-    #       We'd normally remove an irrelevant class like this but we want to keep the door open
-    #       for filtering analysis results by type, rather than suffix.
-    pass
+    # Note: This subclass adds nothing to it's parent, which provides
+    #       everything it needs. We'd normally remove an irrelevant class
+    #       like this but we want to keep the door open for filtering
+    #       analysis results by type, rather than suffix.
 
 
-class CAnalyser(object):
+class CAnalyser:
     """
     Identify symbol definitions and dependencies in a C file.
 
     """
 
-    def __init__(self):
+    def __init__(self, config: BuildConfig):
 
         # runtime
-        self._config = None
+        self._config = config
+        self._include_region: List[Tuple[int, str]] = []
 
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
@@ -100,8 +104,7 @@ class CAnalyser(object):
                 include_stack.pop()
         if include_stack:
             return include_stack[-1]
-        else:
-            return None
+        return None
 
     def run(self, fpath: Path) \
             -> Union[Tuple[AnalysedC, Path], Tuple[Exception, None]]:
@@ -149,9 +152,11 @@ class CAnalyser(object):
                     continue
                 logger.debug('Considering node: %s', node.spelling)
 
-                if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL, clang.cindex.CursorKind.VAR_DECL}:
+                if node.kind in {clang.cindex.CursorKind.FUNCTION_DECL,
+                                 clang.cindex.CursorKind.VAR_DECL}:
                     self._process_symbol_declaration(analysed_file, node, usr_symbols)
-                elif node.kind in {clang.cindex.CursorKind.CALL_EXPR, clang.cindex.CursorKind.DECL_REF_EXPR}:
+                elif node.kind in {clang.cindex.CursorKind.CALL_EXPR,
+                                   clang.cindex.CursorKind.DECL_REF_EXPR}:
                     self._process_symbol_dependency(analysed_file, node, usr_symbols)
         except Exception as err:
             logger.exception(f'error walking parsed nodes {fpath}')
@@ -166,7 +171,8 @@ class CAnalyser(object):
         if node.is_definition():
             # only global symbols can be used by other files, not static symbols
             if node.linkage == clang.cindex.LinkageKind.EXTERNAL:
-                # This should catch function definitions which are exposed to the rest of the application
+                # This should catch function definitions which are exposed to
+                # the rest of the application
                 logger.debug('  * Is defined in this file')
                 # todo: ignore if inside user pragmas?
                 analysed_file.add_symbol_def(node.spelling)

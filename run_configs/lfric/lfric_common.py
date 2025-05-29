@@ -1,10 +1,8 @@
 import logging
 import os
-import shutil
 from typing import Optional
 from pathlib import Path
 
-from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.steps.find_source_files import find_source_files
@@ -82,36 +80,6 @@ def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_c
                                    '-output', feign_config_mod_fpath])
 
     find_source_files(config, source_root=config_dir)
-
-
-# ============================================================================
-@step
-def fparser_workaround_stop_concatenation(config):
-    """
-    fparser can't handle string concat in a stop statement. This step is
-    a workaround.
-
-    https://github.com/stfc/fparser/issues/330
-
-    """
-    feign_path = None
-    for file_path in config.artefact_store[ArtefactSet.FORTRAN_BUILD_FILES]:
-        if file_path.name == 'feign_config_mod.f90':
-            feign_path = file_path
-            break
-    else:
-        raise RuntimeError("Could not find 'feign_config_mod.f90'.")
-
-    # rename "broken" version
-    broken_version = feign_path.with_suffix('.broken')
-    shutil.move(feign_path, broken_version)
-
-    # make fixed version
-    bad = "_config: '// &\n        'Unable to close temporary file'"
-    good = "_config: Unable to close temporary file'"
-
-    open(feign_path, 'wt').write(
-        open(broken_version, 'rt').read().replace(bad, good))
 
 
 # ============================================================================

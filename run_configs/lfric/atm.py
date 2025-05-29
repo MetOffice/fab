@@ -20,8 +20,7 @@ from fab.steps.find_source_files import find_source_files, Exclude, Include
 from fab.tools import ToolBox
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import (API, configurator, fparser_workaround_stop_concatenation,
-                          get_transformation_script)
+from lfric_common import (API, configurator, get_transformation_script)
 
 logger = logging.getLogger('fab')
 
@@ -249,9 +248,6 @@ if __name__ == '__main__':
             cli_args=[],
             api=API,
         )
-
-        # todo: do we need this one in here?
-        fparser_workaround_stop_concatenation(state)
 
         analyse(
             state,

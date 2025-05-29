@@ -732,7 +732,7 @@ def test_ifx():
 def test_ifx_get_version_2023():
     '''Test ifx 2023.0.0 version detection.'''
     full_output = dedent("""
-ifx (IFORT) 2023.0.0 20221201
+ifx (IFX) 2023.0.0 20221201
 Copyright (C) 1985-2022 Intel Corporation. All rights reserved.
 
     """)

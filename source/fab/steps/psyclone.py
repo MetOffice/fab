@@ -192,8 +192,7 @@ def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
         parsable_x90s = run_mp(config, items=x90s, func=make_parsable_x90)
 
     # parse
-    x90_analyser = X90Analyser()
-    x90_analyser._config = config
+    x90_analyser = X90Analyser(config=config)
     with TimerLogger(f"analysing {len(parsable_x90s)} parsable x90 files"):
         x90_results = run_mp(config, items=parsable_x90s, func=x90_analyser.run)
     log_or_dot_finish(logger)
@@ -209,7 +208,7 @@ def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
     analysed_x90 = {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
 
     # make the hashes from the original x90s, not the parsable versions which have invoke names removed.
-    for p, r in analysed_x90.items():
+    for p in analysed_x90:
         analysed_x90[p]._file_hash = file_checksum(p).file_hash
 
     return analysed_x90
@@ -249,8 +248,7 @@ def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
     # We use the normal Fortran analyser, which records psyclone kernel metadata.
     # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
     # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
-    fortran_analyser = FortranAnalyser()
-    fortran_analyser._config = config
+    fortran_analyser = FortranAnalyser(config=config)
     with TimerLogger(f"analysing {len(kernel_files)} potential psyclone kernel files"):
         fortran_results = run_mp(config, items=kernel_files, func=fortran_analyser.run)
     log_or_dot_finish(logger)
