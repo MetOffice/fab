@@ -19,6 +19,7 @@ from fab.tools.linker import Linker
 from fab.tools.psyclone import Psyclone
 from fab.tools.rsync import Rsync
 from fab.tools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
+from fab.tools.shell import Shell
 from fab.tools.tool import Tool, CompilerSuiteTool
 # Order here is important to avoid a circular import
 from fab.tools.tool_repository import ToolRepository
@@ -56,6 +57,7 @@ __all__ = ["Ar",
            "Preprocessor",
            "Psyclone",
            "Rsync",
+           "Shell",
            "Subversion",
            "Tool",
            "ToolBox",

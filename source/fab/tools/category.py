@@ -25,6 +25,7 @@ class Category(Enum):
     SUBVERSION = auto()
     AR = auto()
     RSYNC = auto()
+    SHELL = auto()
     MISC = auto()
 
     def __str__(self):
