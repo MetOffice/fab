@@ -154,10 +154,14 @@ class Linker(CompilerSuiteTool):
         if self._pre_lib_flags:
             params.extend(self._pre_lib_flags)
         if self._linker:
-            # If we are wrapping a linker, get the wrapped linker's
-            # pre-link flags and append them to the end (so the linker
-            # wrapper's settings come before the setting from the
-            # wrapped linker).
+            # If we are wrapping a linker (e.g. linker-mpif90-gfortran
+            # wrapping linker-gfortran), get the wrapped linker's
+            # pre-link flags and append them to the end. In the example
+            # this means that any flags from linker-mpif90-gfortran come
+            # before any flags from linker-gfortran, which makes sure
+            # that a wrapper can insert new/different search paths
+            # (i.e. -L directives) before the wrapper - allowing a
+            # wrapper to overwrite libraries from.
             params.extend(self._linker.get_pre_link_flags())
         return params
 
