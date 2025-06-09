@@ -388,7 +388,7 @@ def test_linker_profile_flags_inheriting(mock_c_compiler):
         compiler.add_flags(f"-f{count+1}", "derived")
         count += 2
 
-    # One set f1-f4 from the compiler wrapper, one from the wrapped linker
+    # One set f0-f3 from the compiler wrapper, one from the wrapped linker
     assert (linker_wrapper.get_profile_flags("derived") ==
             ["-f0", "-f1", "-f2", "-f3", "-f0", "-f1", "-f2", "-f3"])
 
