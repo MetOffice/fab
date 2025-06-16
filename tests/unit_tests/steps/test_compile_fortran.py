@@ -1,10 +1,9 @@
 from pathlib import Path
 from typing import Dict
 from unittest.mock import Mock
-from warnings import catch_warnings
 
 from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import fixture, mark, raises
+from pytest import fixture, mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
 from fab.artefacts import ArtefactSet, ArtefactStore
@@ -208,7 +207,8 @@ class TestProcessFile:
         Path('/fab/proj/build_output/mod_def_1.mod').write_text("First module")
         Path('/fab/proj/build_output/mod_def_2.mod').write_text("Second module")
 
-        with catch_warnings():
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
             res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(
@@ -264,7 +264,8 @@ class TestProcessFile:
             '/fab/proj/build_output/_prebuild/foofile.1ff6e93b2.o'
         ).write_text("Object file")
 
-        with catch_warnings():
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
             res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(
@@ -315,7 +316,8 @@ class TestProcessFile:
             '/fab/proj/build_output/_prebuild/mod_def_2.188dd00a9.mod'
         ).write_text("Second module")
 
-        with catch_warnings():
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
             res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(
@@ -370,7 +372,8 @@ class TestProcessFile:
             '/fab/proj/build_output/_prebuild/mod_def_2.188dd00a8.mod'
         ).write_text("Second module")
 
-        with catch_warnings():
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
             res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(
@@ -426,7 +429,8 @@ class TestProcessFile:
             '/fab/proj/build_output/_prebuild/mod_def_2.188dd00a8.mod'
         ).write_text("Second module")
 
-        with catch_warnings():
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
             res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(
@@ -478,7 +482,8 @@ class TestProcessFile:
             '/fab/proj/build_output/_prebuild/foofile.1ff6e93b2.o'
         ).write_text("Object file")
 
-        with catch_warnings():
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
             res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(
@@ -536,7 +541,8 @@ class TestProcessFile:
             f'/fab/proj/build_output/_prebuild/mod_def_2.{mod_hash}.mod'
         ).write_text("Second module")
 
-        with catch_warnings():
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
             res, artefacts = process_file((analysed_file, mp_common_args))
 
         expect_object_fpath = Path(

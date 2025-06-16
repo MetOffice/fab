@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import zlib
 
 from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import fixture, mark
+from pytest import fixture, mark, warns
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.build_config import BuildConfig
@@ -287,7 +287,9 @@ class TestCleanupPrebuilds:
         """
         Tests expiry of prebuild files.
         """
-        cleanup_prebuilds(example_config, **kwargs)
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            cleanup_prebuilds(example_config, **kwargs)
         assert self.prebuilt_files(example_config) == expect
 
     def test_prune_unused(self, example_config: BuildConfig) -> None:
@@ -302,7 +304,9 @@ class TestCleanupPrebuilds:
         store.add(current_prebuilds, example_config.prebuild_folder / 'a.456.foo')
         example_config._artefact_store = store
 
-        cleanup_prebuilds(example_config, all_unused=True)
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            cleanup_prebuilds(example_config, all_unused=True)
 
         assert self.prebuilt_files(example_config) == [
             'a.123.foo',
