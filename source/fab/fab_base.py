@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # ##############################################################################
 #  (c) Crown copyright Met Office. All rights reserved.
@@ -49,7 +48,7 @@ class FabBase:
     # pylint: disable=too-many-instance-attributes
     def __init__(self,
                  name: str,
-                 link_target: Optional[str] = "executable"):
+                 link_target: str = "executable"):
         link_target = link_target.lower()
         valid_targets = ["executable", "static-library", "shared-library"]
         if link_target not in valid_targets:
@@ -247,8 +246,8 @@ class FabBase:
             # path, so it doesn't need to be added), so site-specific
             # will be added below.
             dir_caller = Path(".")
-            self.logger.warning(f"Could not find caller directory, "
-                                f"defaulting to '.'.")
+            self.logger.warning("Could not find caller directory, "
+                                "defaulting to '.'.")
 
         # We need to add the 'site_specific' directory to the path, so
         # each config can import from 'default' (instead of having to

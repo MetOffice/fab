@@ -39,7 +39,7 @@ def setup_nvidia(build_config: BuildConfig, args: argparse.Namespace) -> None:
     flags = ["-Mextend",           # 132 characters line length
              "-g", "-traceback",
              ]
-
+    nvfortran.add_flags(flags, "base")
 
     # Full debug
     # ==========

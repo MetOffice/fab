@@ -35,7 +35,7 @@ def setup_gnu(build_config: BuildConfig, args: argparse.Namespace) -> None:
     # The base flags
     # ==============
     gfortran.add_flags(['-ffree-line-length-none', '-Wall', '-g'],
-        "base")
+                       "base")
     runtime = ["-fcheck=all", "-ffpe-trap=invalid,zero,overflow"]
     init = ["-finit-integer=31173",  "-finit-real=snan",
             "-finit-logical=true", "-finit-character=85"]
