@@ -1,6 +1,6 @@
-Introduction to BAF
-===================
-BAF, short for Build Architecture with Fab, is a command line interface
+Introduction to the Fab Base Class
+==================================
+Fab provides a base class, which provides a command line interface
 to the Fab build system. It is written in Python, and provides a pre-defined
 framework for building binary files and libraries. It adds the following
 features:
@@ -12,20 +12,16 @@ features:
 - It supports site-specific configuration.
 - It is very easy to extend.
 
-Creating a build script using BAF will require writing a Python script,
-and building an executable or library means executing this Python script.
-BAF is just a wrapper around Fab, which on one hands makes it easier
-to write scripts from scratch, but also means that if required the full
-power of the Fab build system can be used.
-As a consequence, knowledge of Fab is required, since certain operations
-like checking out source files will use Fab commands.
+Creating a build script using the Fab base class will require writing a Python
+script, and building an executable or library means executing this Python
+script. Knowledge of Fab is required when using the base class, since certain
+operations like checking out source files will use Fab commands.
 
 Object-Oriented Design
 ----------------------
-BAF itself is mostly a base class which is used to derive
-application-specific build script from. These build scripts
-can (and in general will need to) overwrite certain functions to tune
-the behaviour. For example, the BAF base class provides a list
+The Fab base class is used to derive application-specific build script from.
+These build scripts can (and in general will need to) overwrite certain functions
+to tune the behaviour. For example, the base class provides a list
 of useful command line options. But any application-specific script
 can add additional command line options.
 
@@ -33,17 +29,17 @@ can add additional command line options.
 
 Command Line Options
 --------------------
-The BAF base class provides a list of commonly needed command line options.
+The base class provides a list of commonly needed command line options.
 Any application-specific build script can add additional command line options.
-Invoking the BAF base class with the ``-h`` command line option gives a
+Invoking the base class itself with the ``-h`` command line option gives a
 description of the all options:
 
 .. parsed-literal::
 
-    usage: baf_base.py [-h] [--suite SUITE] [--available-compilers] [--fc FC] [--cc CC] [--ld LD] [--fflags FFLAGS] [--cflags CFLAGS] [--ldflags LDFLAGS] [--nprocs NPROCS] [--mpi] [--no-mpi]
-                      [--openmp] [--no-openmp] [--openacc] [--host HOST] [--site SITE] [--platform PLATFORM] [--profile PROFILE]
+    usage: fab_base.py [-h] [--suite SUITE] [--available-compilers] [--fc FC] [--cc CC] [--ld LD] [--fflags FFLAGS] [--cflags CFLAGS] [--ldflags LDFLAGS] [--nprocs NPROCS]
+                       [--mpi] [--no-mpi] [--openmp] [--no-openmp] [--openacc] [--host HOST] [--site SITE] [--platform PLATFORM]
 
-    A Baf-based build system. Note that if --suite is specified, this will change the default for compiler and linker
+    A Fab-based build system. Note that if --suite is specified, this will change the default for compiler and linker
 
     options:
       -h, --help            show this help message and exit
@@ -55,14 +51,14 @@ description of the all options:
       --cc CC, -cc CC       Name of the C compiler to use (default: $CC)
       --ld LD, -ld LD       Name of the linker to use (default: $LD)
       --fflags FFLAGS, -fflags FFLAGS
-                            Flags to be used by the Fortran compiler. The command line flags are appended after compiler flags defined in a site-specific setup and after getting flags from
-                            the environment variable $FFLAGS. Therefore, this can be used to overwrite certain flags. (default: None)
+                            Flags to be used by the Fortran compiler. The command line flags are appended after compiler flags defined in a site-specific setup and after getting
+                            flags from the environment variable $FFLAGS. Therefore, this can be used to overwrite certain flags. (default: None)
       --cflags CFLAGS, -cflags CFLAGS
-                            Flags to be used by the C compiler. The command line flags are appended after compiler flags defined in a site-specific setup and after getting flags from the
-                            environment variable $CFLAGS. Therefore, this can be used to overwrite certain flags. (default: None)
+                            Flags to be used by the C compiler. The command line flags are appended after compiler flags defined in a site-specific setup and after getting flags
+                            from the environment variable $CFLAGS. Therefore, this can be used to overwrite certain flags. (default: None)
       --ldflags LDFLAGS, -ldflags LDFLAGS
-                            Flags to be used by the linker. The command line flags are appended after linker flags defined in a site-specific setup and after getting flags from the
-                            environment variable $LDFLAGS. Therefore, this can be used to overwrite certain flags. (default: None)
+                            Flags to be used by the linker. The command line flags are appended after linker flags defined in a site-specific setup and after getting flags from
+                            the environment variable $LDFLAGS. Therefore, this can be used to overwrite certain flags. (default: None)
       --nprocs NPROCS, -n NPROCS
                             Number of processes (default is 1) (default: 1)
       --mpi, -mpi           Enable MPI (default: True)
@@ -76,8 +72,7 @@ description of the all options:
       --site SITE, -s SITE  Name of the site to use. (default: $SITE or 'default')
       --platform PLATFORM, -p PLATFORM
                             Name of the platform of the site to use. (default: $PLATFORM or 'default')
-      --profile PROFILE, -pro PROFILE
-                            Sets the compiler profile, choose from '['full-debug', 'fast-debug', 'production', 'unit-tests']'. (default: full-debug)
+
 
 Some command line option have an environment variable as default
 (e.g. ``-cc`` uses ``$CC`` as default). If the corresponding

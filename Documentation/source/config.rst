@@ -9,11 +9,12 @@ includes some examples.
 
 Concepts for site-specific setup
 --------------------------------
-BAF's support for site-specific setup is based on using a site name
-and a platform name. For example, The UK Met Office traditionally
+Fab's base class supports site-specific setup, and it is is based on
+using a site name and a platform name.
+For example, The UK Met Office traditionally
 uses ``meto`` as site name, and then a different platform name, e.g.
-``xc40`` or ``ex1a``. BAF uses a specific setup directory based on the
-concatenation of these names. In the example above, this would be
+``xc40`` or ``ex1a``. The Fab base class uses a specific setup directory
+based on the concatenation of these names. In the example above, this would be
 ``site_specific/meto_xc40`` or ``site_specific/meto_ex1a``.
 The site and platform can be specified as command line option (see
 :ref:`Command Line Options<command_line_options>`). All these
@@ -24,6 +25,9 @@ If no site name is specified, ``default`` is used as site. And
 similarly, if no platform is specified, ``default`` is used as platform
 (resulting e.g. in ``site_specific/meto-default`` etc). If neither site
 nor platform is specified, the name ``site_specific/default`` is used.
+
+Fab comes with a template for a ``site_specific`` setup. It only
+contains setting for the ``default`` site.
 
 .. _use_default_configuration:
 
@@ -57,21 +61,21 @@ setup done by the default.
 
 Callbacks in configuration files
 --------------------------------
-The BAF base class adds several calls to the site-specific
+The base class adds several calls to the site-specific
 configuration file, allowing site-specific changes to the build
 process. These callbacks are described here.
 
 Constructor
 ~~~~~~~~~~~
 The constructor receives no parameter, and happens rather early in the
-BAF processing chain (see :ref:`site_and_platform`), i.e. at a stage
+processing chain (see :ref:`site_and_platform`), i.e. at a stage
 where not even all command line options have been defined. Besides
 general setting up the object, adding new tools to Fab's
 ``ToolRepository`` can be done here.
 
 ``get_valid_profiles``
 ----------------------
-This method is called by BafBase when defining the command line options.
+This method is called by ``FabBase`` when defining the command line options.
 It defines the list of valid compilation profile modes. This is used
 in setting up Python's ``ArgumentParser`` to only allow valid arguments.
 

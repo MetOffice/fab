@@ -216,6 +216,4 @@ be used with a certain compiler by replacing or updating a compiler
 instance in the Tool Repository
 
 Also, a lot of content in this chapter is not actually about site-specific
-configuration. This should likely be renamed or split (once we
-have details about the using site-specific configuration, which might be
-once the Baf base script is added to Fab).
+configuration. This should likely be renamed or split.
