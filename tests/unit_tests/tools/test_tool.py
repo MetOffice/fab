@@ -86,15 +86,13 @@ def test_availability_argument() -> None:
 
 def test_run_missing(fake_process: FakeProcess) -> None:
     """
-    Tests attempting to run an missing tool.
+    Tests attempting to run a missing tool.
     """
     fake_process.register(['stool', '--ops'], callback=not_found_callback)
     tool = Tool("some tool", "stool", Category.MISC)
     with raises(RuntimeError) as err:
         tool.run("--ops")
-    assert str(err.value).startswith(
-        "Unable to execute command: ['stool', '--ops']"
-    )
+    assert str(err.value) == ("Unable to execute command: ['stool', '--ops']")
 
 
 def test_arguments():
@@ -170,11 +168,12 @@ class TestToolRun:
         """
         Tests running a failing tool.
         """
-        fake_process.register(['tool'], returncode=1)
+        fake_process.register(['tool'], returncode=1, stdout="Beef.")
         tool = Tool("some tool", "tool", Category.MISC)
         with raises(RuntimeError) as err:
             tool.run()
-        assert str(err.value).startswith("Command failed with return code 1")
+        assert str(err.value) == ("Command failed with return code 1:\n"
+                                  "['tool']\nBeef.")
         assert call_list(fake_process) == [['tool']]
 
     def test_error_file_not_found(self, fake_process: FakeProcess) -> None:
