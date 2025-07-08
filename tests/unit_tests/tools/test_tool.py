@@ -54,7 +54,7 @@ def test_constructor() -> None:
     assert misc.category == Category.MISC
 
 
-def test_chance_exec_name() -> None:
+def test_change_exec_name() -> None:
     """
     Tests changing the executable.
 
