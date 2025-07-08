@@ -209,6 +209,9 @@ def test_linker_add_lib_flags_overwrite_silent(stub_linker: Linker) -> None:
         """
         linker = Linker(stub_c_compiler)
         linker.remove_lib_flags("unknown")  # type: ignore[attr-defined]
+        #
+        # The test here is that no exception is thrown. Since the library
+        # was never in the list to start with no `assert` is possible.
 
 
 class TestLinkerLinking:
