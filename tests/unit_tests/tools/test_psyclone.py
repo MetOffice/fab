@@ -9,7 +9,7 @@ Tests the PSyclone tool.
 from importlib import reload
 from pathlib import Path
 import typing  # Needed for monkey patching
-from typing import Tuple
+from typing import Optional, Tuple
 from unittest.mock import Mock
 
 from pytest import mark, raises, warns
@@ -221,39 +221,9 @@ def test_process_api_old_psyclone(api: Tuple[str, str], version: str,
     ]
 
 
-@mark.parametrize("version", ["2.4.0", "2.5.0"])
-def test_process_no_api_old_psyclone(version: str,
-                                     fake_process: FakeProcess) -> None:
-    """
-    Tests unspecified API for PSyclone 2.5.0 and older.
-    """
-    version_command = ['psyclone', '--version']
-    fake_process.register(version_command,
-                          stdout='PSyclone version: ' + version)
-    process_command = ['psyclone', '-api', 'nemo', '-opsy', 'psy_file',
-                       '-l', 'all', '-s', 'script_called',
-                       '-c', 'psyclone.cfg', '-d', 'root1', '-d', 'root2',
-                       'x90_file']
-    fake_process.register(process_command)
-
-    psyclone = Psyclone()
-    config = Mock()
-
-    psyclone.process(config=config,
-                     api="",
-                     x90_file=Path("x90_file"),
-                     transformed_file=Path("psy_file"),
-                     transformation_script=lambda x, y: Path('script_called'),
-                     kernel_roots=["root1", "root2"],
-                     additional_parameters=["-c", "psyclone.cfg"])
-
-    assert call_list(fake_process) == [
-        version_command, process_command
-    ]
-
-
-@mark.parametrize("version", ["2.4.0", "2.5.0"])
-def test_process_nemo_api_old_psyclone(version: str,
+@mark.parametrize('version', ['2.4.0', '2.5.0'])
+@mark.parametrize('api', [None, 'nemo'])
+def test_process_nemo_api_old_psyclone(version: str, api: Optional[str],
                                        fake_process: FakeProcess) -> None:
     """
     Tests NEMO API with PSyclone 2.5.0 or earlier.
@@ -278,7 +248,7 @@ def test_process_nemo_api_old_psyclone(version: str,
     config = Mock()
 
     psyclone.process(config=config,
-                     api="nemo",
+                     api=api,
                      x90_file=Path('x90_file'),
                      transformed_file=Path('psy_file'),
                      transformation_script=lambda x, y: Path('script_called'),
