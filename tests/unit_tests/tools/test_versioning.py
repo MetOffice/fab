@@ -264,7 +264,7 @@ class TestSubversion:
     def test_svn_checkout(self, subproc_record: ExtendedRecorder) -> None:
         """
         Check checkout svn functionality. The tests here will actually
-        mock the git results, so they will work even if subversion is not
+        mock the svn results, so they will work even if subversion is not
         installed. The system_tests will test an actual check out etc.
         """
         svn = Subversion()
