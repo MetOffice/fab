@@ -11,11 +11,11 @@ from typing import List
 from fab.build_config import BuildConfig
 from fab.tools import Category, ToolRepository
 
-from default.setup_cray import setup_cray
-from default.setup_gnu import setup_gnu
-from default.setup_intel_classic import setup_intel_classic
-from default.setup_intel_llvm import setup_intel_llvm
-from default.setup_nvidia import setup_nvidia
+from fab.site_specific.default.setup_cray import setup_cray
+from fab.site_specific.default.setup_gnu import setup_gnu
+from fab.site_specific.default.setup_intel_classic import setup_intel_classic
+from fab.site_specific.default.setup_intel_llvm import setup_intel_llvm
+from fab.site_specific.default.setup_nvidia import setup_nvidia
 
 
 class Config:
