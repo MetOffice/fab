@@ -1,4 +1,4 @@
 Examples
 ========
 
-This chapter contains some commented examples of BAF-based scripts.
+This chapter contains some commented examples using the Fab base class.

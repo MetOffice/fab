@@ -1,8 +1,8 @@
-BAF Processing
-==============
+Processing in the Fab Base Class
+================================
 
 This chapter describes the processing of an application script
-by the BAF base class.
+using the Fab base class.
 The knowledge of this process will indicate how a derived, application-specific
 build script can overwrite methods to customise the build process.
 
@@ -15,7 +15,7 @@ and it is also the default ``root_symbol`` when analysing the source code
 if the script creates an executable (see :ref:`analyse_step`).
 
 The actual build is then started calling the ``build`` method
-of the created script. A typical outline of a BAF-based build script is
+of the created script. A typical outline of a build script is
 therefore::
 
     from fab.fab_base import FabBase
@@ -65,8 +65,8 @@ property getters can be used to access the values:
 Site-specific Configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 After defining the site and platform, a site- and platform-specific
-configuration script is executed (if available). By default, BAF will
-try to import a module called ``config`` from the path
+configuration script is executed (if available). By default, the base
+class will try to import a module called ``config`` from the path
 ``"site_specific/{target}"`` (see :ref:`above<site_and_platform>`
 for the definition of ``target``), relative to the directory
 in which the application script is located. By overwriting the method
@@ -76,8 +76,8 @@ own directories by adding paths to ``sys.path``.
 .. automethod:: fab.fab_base.FabBase.setup_site_specific_location
     :noindex:
 
-If the import is successful, BAF creates an instance of the ``Config``
-class from the module. This all happens here:
+If the import is successful, the base class creates an instance of the
+``Config`` class from the module. This all happens here:
 
 .. automethod:: fab.fab_base.FabBase.site_specific_setup
     :noindex:
@@ -111,9 +111,9 @@ message for the argument parser's help message. See
 :ref:`here<better_help_messages>` for an example.
 
 A special case is the definition of compilation profiles (like
-``fast-debug`` etc). BAF will query the site-specific configuration
-object using ``get_valid_profiles()`` to receive a list of all
-valid compilation profile names. This allows each site to
+``fast-debug`` etc). The base class will query the site-specific
+configuration object using ``get_valid_profiles()`` to receive a list
+of all valid compilation profile names. This allows each site to
 specify its own profile modes.
 
 Parsing command line options
@@ -125,7 +125,7 @@ the parsing of the command line options happens in:
     :noindex:
 
 The result of the parsing is stored in an attribute, which can
-be accessed using the ``args`` property of the BAF script.
+be accessed using the ``args`` property of the script instance.
 
 Again, this method can be overwritten to handle the added
 application-specific command line options. 
@@ -145,7 +145,7 @@ doing this.
 
 Defining project name
 ~~~~~~~~~~~~~~~~~~~~~
-By default, Baf will use ``"{name}-{self.args.profile}-$compiler"``
+By default, the base class will use ``"{name}-{self.args.profile}-$compiler"``
 as the name for the project directory, i.e. the name of the
 project as specified in the constructor, followed by the compilation
 profile and compiler name (``$compiler`` is a Python template parameter
@@ -172,7 +172,7 @@ add the compilation profile and compiler name.
 
 ``BuildConfig`` creation
 ~~~~~~~~~~~~~~~~~~~~~~~~
-After parsing the command line options, BAF will first
+After parsing the command line options, the base class will first
 create a Fab ``ToolBox`` which contains the compiler and
 linker selected by the user (see Fab documentation for
 details). Then it will create the ``BuildConfig`` object,
@@ -189,15 +189,11 @@ options::
                                profile=self.args.profile,
                                )
 
-.. note:: There is a TODO
-    (https://github.com/MetOffice/lfric-baf/issues/52) which will 
-    allow an application the option to design its own naming scheme.
-
 
 Building
 --------
 While Fab provides a very flexible way in which the different phases
-of the build process can be executed, BAF provides a fixed order
+of the build process can be executed, the base clas provides a fixed order
 in which these steps happen (though of course the user could overwrite
 the ``build`` method to provide their own order). If additional
 phases need to be inserted into the build process, this can be done
@@ -298,7 +294,7 @@ into a complex build environment based on many source repositories.
         src/atmosphere/aerosols/aero_params_mod.F90      \
         ...
 
-While Fab is not yet the main build system, BAF provides a small tool to
+For convenience during porting, Fab  provides a small tool to
 interface with existing FCM configuration files. This tool can read
 existing FCM configuration files, and convert the ``path-incl`` and
 ``path-excl`` directives into Fab's ``Exclude`` and ``Include``
@@ -339,7 +335,7 @@ to specify all flags required for preprocessing all C, and Fortran files.
 .. automethod:: fab.fab_base.FabBase.define_preprocessor_flags_step
     :noindex:
 
-BAF provides its own method of adding preprocessor flags:
+The base class provides its own method of adding preprocessor flags:
 
 .. automethod:: fab.fab_base.FabBase.add_preprocessor_flags
     :noindex:

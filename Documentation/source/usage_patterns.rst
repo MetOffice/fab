@@ -4,8 +4,8 @@ Common Usage Pattern
 Creating a new site and platform
 ---------------------------------
 To define a new site and platform, first create a directory with
+Fab base class is. In this directory, create a file called
 the name ``f"{site}_{platform}"`` in the directory in which the
-BAF base class is. In this directory, create a file called
 ``config.py``, which must define a class called ``Config``.
 
 In general, it is recommended that any new config should inherit
@@ -37,7 +37,7 @@ As outlined in :ref:`define_command_line_options`, an
 application can implement its own ``define_command_line_options``
 method. An example which adds a new ``revision`` flag::
 
-    class JulesBuild(BafBase):
+    class JulesBuild(FabBase):
 
         def define_command_line_options(self,
                                         parser: Optional[ArgumentParser] = None
@@ -58,7 +58,7 @@ a better message::
 
     import argparse
 
-    class JulesBuild(BafBase):
+    class JulesBuild(FabBase):
 
         def define_command_line_options(self,
                                         parser: Optional[ArgumentParser] = None
@@ -73,7 +73,7 @@ a better message::
             # description:
             if not parser:
                 parser = argparse.ArgumentParser(
-                    description=("A BAF-based build system for Jules."),
+                    description=("A Fab-based build system for Jules."),
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
             super().define_command_line_options(parser)
@@ -92,7 +92,7 @@ newly added command line options. Extending the previous
 examples of a Jules build script, here is how the revision of
 Jules is stored and then used::
 
-    class JulesBuild(BafBase):
+    class JulesBuild(FabBase):
 
         def handle_command_line_options(self, parser):
             """
