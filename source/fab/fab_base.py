@@ -571,11 +571,9 @@ class FabBase:
 
     def grab_files_step(self) -> None:
         '''
-        This should be overwritten by an application, since without this
-        there are no source files.
+        This should typically be overwritten by an application to
+        get files e.g. from a repository.
         '''
-        raise RuntimeError("You have to overwrite `grab_files` to define "
-                           "the source code")
 
     def find_source_files_step(
             self,
