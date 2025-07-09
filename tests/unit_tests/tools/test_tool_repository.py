@@ -9,8 +9,13 @@ Tests ToolBox class.
 from pytest import mark, raises
 from pytest_subprocess.fake_process import FakeProcess
 
-from fab.tools import (Ar, Category, FortranCompiler, Gcc, Gfortran, Ifort,
-                       Mpif90, ToolRepository)
+from tests.conftest import ExtendedRecorder
+
+from fab.tools.ar import Ar
+from fab.tools.category import Category
+from fab.tools.compiler import FortranCompiler, Gcc, Gfortran, Ifort
+from fab.tools.compiler_wrapper import Mpif90
+from fab.tools.tool_repository import ToolRepository
 
 
 def test_tool_repository_get_singleton_new():
@@ -116,7 +121,9 @@ def test_get_default() -> None:
     assert isinstance(ar, Ar)
 
 
-def test_get_default_error_invalid_category() -> None:
+def test_get_default_error_invalid_category(
+        subproc_record: ExtendedRecorder
+) -> None:
     """
     Tests error handling in get_default, the category must be a Category,
     not e.g. a string.
@@ -127,7 +134,8 @@ def test_get_default_error_invalid_category() -> None:
     assert "Invalid category type 'str'." in str(err.value)
 
 
-def test_get_default_error_missing_mpi() -> None:
+def test_get_default_error_missing_mpi(subproc_record: ExtendedRecorder)\
+        -> None:
     """
     Tests error handling in get_default when the optional MPI
     parameter is missing (which is required for a compiler).
@@ -144,7 +152,9 @@ def test_get_default_error_missing_mpi() -> None:
                               "for 'FORTRAN_COMPILER'.")
 
 
-def test_get_default_error_missing_openmp() -> None:
+def test_get_default_error_missing_openmp(
+        subproc_record: ExtendedRecorder
+) -> None:
     """
     Tests error handling in get_default when the optional openmp
     parameter is missing (which is required for a compiler).
@@ -171,6 +181,7 @@ def test_get_default_error_missing_openmp() -> None:
                    (True, True, "'FORTRAN_COMPILER' that supports MPI "
                     "and OpenMP.")])
 def test_get_default_error_missing_compiler(mpi, openmp, message,
+                                            subproc_record: ExtendedRecorder,
                                             monkeypatch) -> None:
     """
     Tests error handling in get_default when there is no compiler
@@ -238,6 +249,7 @@ def test_default_intel_suite(category, fake_process: FakeProcess) -> None:
     assert def_tool.suite == 'intel-classic'
 
 
+#def test_default_suite_unknown(subproc_record: ExtendedRecorder) -> None:
 def test_default_suite_unknown() -> None:
     """
     Tests handling if a compiler suite is selected that does not exist.

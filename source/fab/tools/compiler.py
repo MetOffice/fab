@@ -106,8 +106,9 @@ class Compiler(CompilerSuiteTool):
         return self._output_flag
 
     def get_hash(self, profile: Optional[str] = None) -> int:
-        ''':returns: a hash based on the compiler name and version.
-        '''
+        """
+        :returns: hash of compiler name and version.
+        """
         return (zlib.crc32(self.name.encode()) +
                 zlib.crc32(str(self.get_flags(profile)).encode()) +
                 zlib.crc32(self.get_version_string().encode()))

@@ -113,9 +113,12 @@ class Linker(CompilerSuiteTool):
         self._post_lib_flags.define_profile(name, inherit_from)
 
     def get_profile_flags(self, profile: str) -> List[str]:
-        ''':returns: the ProfileFlags for the given profile, combined
-        from the wrapped compiler and this wrapper.
-        :param profile: the profile to use.'''
+        '''
+        :returns: the ProfileFlags for the given profile, combined
+            from the wrapped compiler and this wrapper.
+
+        :param profile: the profile to use.
+        '''
         if self._linker:
             flags = self._linker.get_profile_flags(profile)[:]
         else:
