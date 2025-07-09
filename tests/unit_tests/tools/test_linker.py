@@ -190,7 +190,7 @@ def test_linker_add_lib_flags_overwrite_silent(stub_linker: Linker) -> None:
     # Test that we can see our custom flags
     result = stub_linker.get_lib_flags("customlib")
     assert result == ["-t", "-b"]
-    
+
 
 class TestLinkerLinking:
     def test_c(self, stub_c_compiler: CCompiler,

@@ -249,7 +249,6 @@ def test_default_intel_suite(category, fake_process: FakeProcess) -> None:
     assert def_tool.suite == 'intel-classic'
 
 
-#def test_default_suite_unknown(subproc_record: ExtendedRecorder) -> None:
 def test_default_suite_unknown() -> None:
     """
     Tests handling if a compiler suite is selected that does not exist.
