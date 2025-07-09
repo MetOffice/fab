@@ -9,8 +9,6 @@ Tests ToolBox class.
 from pytest import mark, raises
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder
-
 from fab.tools.ar import Ar
 from fab.tools.category import Category
 from fab.tools.compiler import FortranCompiler, Gcc, Gfortran, Ifort
@@ -121,9 +119,7 @@ def test_get_default() -> None:
     assert isinstance(ar, Ar)
 
 
-def test_get_default_error_invalid_category(
-        subproc_record: ExtendedRecorder
-) -> None:
+def test_get_default_error_invalid_category() -> None:
     """
     Tests error handling in get_default, the category must be a Category,
     not e.g. a string.
@@ -134,8 +130,7 @@ def test_get_default_error_invalid_category(
     assert "Invalid category type 'str'." in str(err.value)
 
 
-def test_get_default_error_missing_mpi(subproc_record: ExtendedRecorder)\
-        -> None:
+def test_get_default_error_missing_mpi() -> None:
     """
     Tests error handling in get_default when the optional MPI
     parameter is missing (which is required for a compiler).
@@ -152,9 +147,7 @@ def test_get_default_error_missing_mpi(subproc_record: ExtendedRecorder)\
                               "for 'FORTRAN_COMPILER'.")
 
 
-def test_get_default_error_missing_openmp(
-        subproc_record: ExtendedRecorder
-) -> None:
+def test_get_default_error_missing_openmp() -> None:
     """
     Tests error handling in get_default when the optional openmp
     parameter is missing (which is required for a compiler).
@@ -181,7 +174,6 @@ def test_get_default_error_missing_openmp(
                    (True, True, "'FORTRAN_COMPILER' that supports MPI "
                     "and OpenMP.")])
 def test_get_default_error_missing_compiler(mpi, openmp, message,
-                                            subproc_record: ExtendedRecorder,
                                             monkeypatch) -> None:
     """
     Tests error handling in get_default when there is no compiler
