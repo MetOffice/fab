@@ -30,7 +30,6 @@ def test_constructor():
     assert psyclone.category == Category.PSYCLONE
     assert psyclone.name == "psyclone"
     assert psyclone.exec_name == "psyclone"
-    # pylint: disable=use-implicit-booleaness-not-comparison
     assert psyclone.get_flags() == []
 
 

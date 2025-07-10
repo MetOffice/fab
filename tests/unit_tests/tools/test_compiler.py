@@ -197,8 +197,7 @@ def test_compiler_without_openmp(stub_fortran_compiler: FortranCompiler,
     stub_configuration._openmp = False
 
     stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
-                                       config=stub_configuration,
-                                       syntax_only=True)
+                                       config=stub_configuration)
     assert call_list(fake_process) == [command]
     assert arg_list(record)[0]['cwd'] == '.'
 
@@ -218,8 +217,7 @@ def test_compiler_with_openmp(stub_fortran_compiler: FortranCompiler,
     stub_configuration._openmp = True
 
     stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
-                                       config=stub_configuration,
-                                       syntax_only=False)
+                                       config=stub_configuration)
     assert call_list(fake_process) == [command]
     assert arg_list(record)[0]['cwd'] == '.'
 
@@ -237,8 +235,7 @@ def test_compiler_module_output(stub_fortran_compiler: FortranCompiler,
     assert stub_fortran_compiler._module_output_path == "/module_out"
 
     stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
-                                       config=stub_configuration,
-                                       syntax_only=True)
+                                       config=stub_configuration)
     assert call_list(fake_process) == [command]
     assert arg_list(record)[0]['cwd'] == '.'
 
@@ -264,8 +261,7 @@ def test_compiler_with_add_args(stub_configuration: BuildConfig,
     with warns(UserWarning, match="Removing managed flag"):
         stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
                                            add_flags=["-mods", "/b", "-O3"],
-                                           config=stub_configuration,
-                                           syntax_only=True)
+                                           config=stub_configuration)
     # Notice that "-J/b" has been removed
     assert arg_list(nomp_record)[0]['cwd'] == '.'
 
@@ -275,8 +271,7 @@ def test_compiler_with_add_args(stub_configuration: BuildConfig,
                      "the BuildConfiguration"):
         stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
                                            add_flags=["-omp", "-O3"],
-                                           config=stub_configuration,
-                                           syntax_only=True)
+                                           config=stub_configuration)
     assert arg_list(omp_record)[0]['cwd'] == '.'
 
     assert call_list(fake_process) == [command_nomp, command_omp]

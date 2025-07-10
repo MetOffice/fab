@@ -81,7 +81,6 @@ def test_linker_openmp(openmp: bool) -> None:
 def test_gets_ldflags(stub_c_compiler: CCompiler, monkeypatch) -> None:
     """
     Tests linker retrieves LDFLAGS environment variable.
-
     """
     monkeypatch.setenv('LDFLAGS', '-lm')
     linker = Linker(compiler=stub_c_compiler)
