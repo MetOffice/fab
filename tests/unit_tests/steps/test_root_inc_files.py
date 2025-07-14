@@ -92,7 +92,7 @@ class TestRootIncFiles:
                                     Path('/foo/source/bar.inc')]
 
     def test_name_clash(self, stub_tool_box: ToolBox,
-                        fs:FakeFilesystem) -> None:
+                        fs: FakeFilesystem) -> None:
         """
         Tests duplicate file leaf names.
         """
