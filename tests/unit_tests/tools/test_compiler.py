@@ -26,7 +26,7 @@ from fab.tools.compiler import (Compiler, CCompiler, FortranCompiler,
                                 Nvc, Nvfortran)
 
 
-def test_compiler():
+def test_compiler() -> None:
     '''Test the compiler constructor.'''
     cc = Compiler("gcc", "gcc", "gnu", version_regex="some_regex",
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
@@ -51,42 +51,42 @@ def test_compiler():
     assert fc.openmp_flag == "-fopenmp"
 
 
-def test_compiler_exec_paths():
+def test_compiler_exec_paths() -> None:
     '''Tests compiler with absolute paths.
     '''
     cc = Compiler("gcc", "gcc", "gnu", version_regex="some_regex",
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
     assert cc.exec_name == "gcc"
     assert cc.exec_path == Path("gcc")
-    cc.set_full_path("/usr/bin/gcc")
+    cc.set_full_path(Path("/usr/bin/gcc"))
     assert cc.exec_name == "gcc"
     assert cc.exec_path == Path("/usr/bin/gcc")
 
 
-def test_compiler_openmp():
+def test_compiler_openmp() -> None:
     '''Test that the openmp flag is correctly reflected in the test if
     a compiler supports OpenMP or not.'''
     cc = CCompiler("gcc", "gcc", "gnu", openmp_flag="-fopenmp",
-                   version_regex=None)
+                   version_regex="")
     assert cc.openmp_flag == "-fopenmp"
     assert cc.openmp
-    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag=None, version_regex=None)
+    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag=None, version_regex="")
     assert cc.openmp_flag == ""
     assert not cc.openmp
-    cc = CCompiler("gcc", "gcc", "gnu", version_regex=None)
+    cc = CCompiler("gcc", "gcc", "gnu", version_regex="")
     assert cc.openmp_flag == ""
     assert not cc.openmp
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         module_folder_flag="-J", version_regex=None)
+                         module_folder_flag="-J", version_regex="")
     assert fc.openmp_flag == "-fopenmp"
     assert fc.openmp
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag=None,
-                         module_folder_flag="-J", version_regex=None)
+                         module_folder_flag="-J", version_regex="")
     assert fc.openmp_flag == ""
     assert not fc.openmp
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         module_folder_flag="-J", version_regex=None)
+                         module_folder_flag="-J", version_regex="")
     assert fc.openmp_flag == ""
     assert not fc.openmp
 
