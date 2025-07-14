@@ -12,11 +12,11 @@ from pathlib import Path
 from pytest import raises
 from pytest_subprocess.fake_process import FakeProcess
 
+from tests.conftest import ExtendedRecorder, call_list, not_found_callback
+
 from fab.tools.category import Category
 from fab.tools.flags import ProfileFlags
 from fab.tools.tool import CompilerSuiteTool, Tool
-
-from tests.conftest import ExtendedRecorder, call_list, not_found_callback
 
 
 def test_constructor() -> None:
@@ -55,12 +55,12 @@ def test_constructor() -> None:
     assert misc.category == Category.MISC
 
 
-def test_tool_set_path():
+def test_tool_set_path() -> None:
     '''Test that we can add an absolute path for a tool,
     e.g. in cases that a known compiler is not in the user's path.
     '''
     gfortran = Tool("gfortran", "gfortran", Category.FORTRAN_COMPILER)
-    gfortran.set_full_path("/usr/bin/gfortran1.2.3")
+    gfortran.set_full_path(Path("/usr/bin/gfortran1.2.3"))
     # Exec name should now return the full path
     assert gfortran.exec_path == Path("/usr/bin/gfortran1.2.3")
     # Path the name of the compiler is unchanged
@@ -127,7 +127,7 @@ def test_run_missing(fake_process: FakeProcess) -> None:
     assert "this is stderr" in str(err.value)
 
 
-def test_tool_flags_no_profile():
+def test_tool_flags_no_profile() -> None:
     """
     Test that flags without using a profile work as expected.
     """
@@ -139,7 +139,7 @@ def test_tool_flags_no_profile():
     assert tool.get_flags() == ["-a", "-b", "-c"]
 
 
-def test_tool_profiles():
+def test_tool_profiles() -> None:
     '''Test that profiles work as expected. These tests use internal
     implementation details of ProfileFlags, but we need to test that the
     exposed flag-related API works as expected
@@ -220,7 +220,7 @@ class TestToolRun:
         assert call_list(fake_process) == [['tool']]
 
 
-def test_suite_tool():
+def test_suite_tool() -> None:
     '''Test the constructor.'''
     tool = CompilerSuiteTool("gnu", "gfortran", "gnu",
                              Category.FORTRAN_COMPILER)
