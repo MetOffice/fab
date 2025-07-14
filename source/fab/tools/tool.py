@@ -68,7 +68,7 @@ class Tool:
             return False
         return True
 
-    def set_full_path(self, full_path: str):
+    def set_full_path(self, full_path: Path):
         '''This function adds the full path to a tool. This allows
         tools to be used that are not in the user's PATH. The ToolRepository
         will automatically update the path for a tool if the user specified
@@ -76,7 +76,7 @@ class Tool:
 
         :param full_path: the full path to the executable.
         '''
-        self._exec_path = Path(full_path)
+        self._exec_path = full_path
 
     @property
     def is_available(self) -> bool:
