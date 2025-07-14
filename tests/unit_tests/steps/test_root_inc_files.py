@@ -8,9 +8,10 @@ Exercises
 """
 from os import walk as os_walk
 from pathlib import Path
+from pyfakefs.fake_filesystem import FakeFilesystem
 from typing import List
 
-from pytest import raises, warns
+from pytest import raises, warns, WarningsRecorder
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -22,7 +23,7 @@ class TestRootIncFiles:
     """
     Tests include files are handled correctly.
     """
-    def test_vanilla(self, tmp_path: Path, recwarn) -> None:
+    def test_vanilla(self, tmp_path: Path, recwarn: WarningsRecorder) -> None:
         """
         Tests include files is coped to work directory.
         """
@@ -40,17 +41,18 @@ class TestRootIncFiles:
 
         assert len(recwarn) == 2
         user_warning = recwarn.pop(UserWarning)
-        assert ("_metric_send_conn not set, cannot send metrics" in
+        assert ("_metric_send_conn not set, cannot send metrics" ==
                 str(user_warning.message))
         dep_warning = recwarn.pop(DeprecationWarning)
         assert ("RootIncFiles is deprecated as .inc files are due to be "
-                "removed." in str(dep_warning.message))
+                "removed." == str(dep_warning.message))
 
         assert (config.build_output / inc_files[0]).read_text() \
             == "Some include file."
 
     def test_skip_output_folder(self, stub_tool_box: ToolBox,
-                                fs, recwarn) -> None:
+                                fs: FakeFilesystem,
+                                recwarn: WarningsRecorder) -> None:
         """
         Tests files already in output directory not copied.
         """
@@ -69,7 +71,7 @@ class TestRootIncFiles:
                 str(user_warning.message))
         dep_warning = recwarn.pop(DeprecationWarning)
         assert ("RootIncFiles is deprecated as .inc files are due to be "
-                "removed." in str(dep_warning.message))
+                "removed." == str(dep_warning.message))
 
         # From https://pytest-pyfakefs.readthedocs.io/en/stable/
         # troubleshooting.html#os-temporary-directories  :
@@ -89,7 +91,8 @@ class TestRootIncFiles:
         assert sorted(filetree) == [Path('/fab/proj/build_output/bar.inc'),
                                     Path('/foo/source/bar.inc')]
 
-    def test_name_clash(self, stub_tool_box: ToolBox, fs) -> None:
+    def test_name_clash(self, stub_tool_box: ToolBox,
+                        fs:FakeFilesystem) -> None:
         """
         Tests duplicate file leaf names.
         """
