@@ -26,8 +26,7 @@ def test_constructor() -> None:
     tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
     assert str(tool) == "Tool - gnu: gfortran"
     assert tool.exec_name == "gfortran"
-    assert tool._exec_name == "gfortran"
-    assert tool._full_path == ""
+    assert tool.exec_path == Path("gfortran")
     assert tool.name == "gnu"
     assert tool.category == Category.FORTRAN_COMPILER
     assert isinstance(tool.logger, logging.Logger)
@@ -46,7 +45,7 @@ def test_constructor() -> None:
     assert mytool.name == "MyTool"
     # A path should be converted to a string, since this
     # is later passed to the subprocess command
-    assert mytool.exec_name == "/bin/mytool"
+    assert mytool.exec_path == Path("/bin/mytool")
     assert mytool.category == Category.MISC
 
     # Check that if we specify no category, we get the default:
@@ -63,7 +62,7 @@ def test_tool_set_path():
     gfortran = Tool("gfortran", "gfortran", Category.FORTRAN_COMPILER)
     gfortran.set_full_path("/usr/bin/gfortran1.2.3")
     # Exec name should now return the full path
-    assert gfortran.exec_name == "/usr/bin/gfortran1.2.3"
+    assert gfortran.exec_path == Path("/usr/bin/gfortran1.2.3")
     # Path the name of the compiler is unchanged
     assert gfortran.name == "gfortran"
 

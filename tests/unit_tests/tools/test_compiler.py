@@ -56,11 +56,11 @@ def test_compiler_exec_paths():
     '''
     cc = Compiler("gcc", "gcc", "gnu", version_regex="some_regex",
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
-    assert cc._exec_name == "gcc"
     assert cc.exec_name == "gcc"
+    assert cc.exec_path == Path("gcc")
     cc.set_full_path("/usr/bin/gcc")
-    assert cc._exec_name == "gcc"
-    assert cc.exec_name == "/usr/bin/gcc"
+    assert cc.exec_name == "gcc"
+    assert cc.exec_path == Path("/usr/bin/gcc")
 
 
 def test_compiler_openmp():
