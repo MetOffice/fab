@@ -28,7 +28,7 @@ from fab.tools.compiler import (Compiler, CCompiler, FortranCompiler,
 
 def test_compiler() -> None:
     '''Test the compiler constructor.'''
-    cc = Compiler("gcc", "gcc", "gnu", version_regex="some_regex",
+    cc = Compiler("gcc", "gcc", "gnu", version_regex="",
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
     assert cc.category == Category.C_COMPILER
     assert cc._compile_flag == "-c"
@@ -40,7 +40,7 @@ def test_compiler() -> None:
     assert cc.openmp_flag == "-fopenmp"
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="something", module_folder_flag="-J")
+                         version_regex="", module_folder_flag="-J")
     assert fc._compile_flag == "-c"
     assert fc.output_flag == "-o"
     assert fc.category == Category.FORTRAN_COMPILER
@@ -54,7 +54,7 @@ def test_compiler() -> None:
 def test_compiler_exec_paths() -> None:
     '''Tests compiler with absolute paths.
     '''
-    cc = Compiler("gcc", "gcc", "gnu", version_regex="some_regex",
+    cc = Compiler("gcc", "gcc", "gnu", version_regex="",
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
     assert cc.exec_name == "gcc"
     assert cc.exec_path == Path("gcc")
@@ -162,19 +162,19 @@ def test_compiler_with_env_fflags():
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="something",
+                         version_regex="",
                          openmp_flag="-fopenmp", module_folder_flag="-J")
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="something", module_folder_flag="-J",
+                         version_regex="", module_folder_flag="-J",
                          syntax_only_flag=None)
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="something",
+                         version_regex="",
                          openmp_flag="-fopenmp",
                          module_folder_flag="-J",
                          syntax_only_flag="-fsyntax-only")
