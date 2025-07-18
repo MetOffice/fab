@@ -97,6 +97,12 @@ class FabBase:
             self._site_config.handle_command_line_options(self.args)
 
         label = self.define_project_name(name=name)
+        if self.args.fab_workspace:
+            fab_workspace = Path(self.args.fab_workspace)
+        else:
+            # If not specified, set it to None, in which case the
+            # Fab default will be used.
+            fab_workspace = None
         self._config = BuildConfig(tool_box=self._tool_box,
                                    project_label=label,
                                    verbose=True,
@@ -104,6 +110,7 @@ class FabBase:
                                    mpi=self.args.mpi,
                                    openmp=self.args.openmp,
                                    profile=self.args.profile,
+                                   fab_workspace=fab_workspace,
                                    )
 
         if self._site_config:
@@ -402,6 +409,10 @@ class FabBase:
         parser.add_argument("--platform", "-p", type=str,
                             default="$PLATFORM or 'default'",
                             help="Name of the platform of the site to use.")
+        parser.add_argument("--fab-workspace", type=str,
+                            default=None,
+                            help="Fab workspace, in which the build "
+                                 "directory will be created.")
         if self._site_config:
             valid_profiles = self._site_config.get_valid_profiles()
             parser.add_argument(
@@ -425,7 +436,8 @@ class FabBase:
         self._args = parser.parse_args(sys.argv[1:])
         if self.args.host.lower() not in ["", "cpu", "gpu"]:
             raise RuntimeError(f"Invalid host directive "
-                               f"'{self.args.host}'.")
+                               f"'{self.args.host}'. Must be "
+                               f"'cpu' or 'gpu'.")
 
         tr = ToolRepository()
         if self.args.available_compilers:
@@ -452,13 +464,11 @@ class FabBase:
             self.args.profile = ""
         else:
             # Otherwise make sure the selected profile is supported:
+            # If no --profile is supported, it will default to the first
+            # profile in the site config file.
             if (self.args.profile and self.args.profile
                     not in self._site_config.get_valid_profiles()):
                 raise RuntimeError(f"Invalid profile '{self.args.profile}")
-            if not self.args.profile:
-                # If no default was selected, set the profile to be the
-                # default, which is the first entry of all valid profiles:
-                self.args.profile = self._site_config.get_valid_profiles()[0]
 
         if self.args.suite:
             tr.set_default_compiler_suite(self.args.suite)

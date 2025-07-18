@@ -6,6 +6,7 @@
 """
 Fixtures and helpers for testing.
 """
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -172,3 +173,18 @@ def stub_configuration(stub_tool_box: ToolBox, tmp_path: Path) -> BuildConfig:
     """
     return BuildConfig("Stub config", stub_tool_box,
                        fab_workspace=tmp_path / 'fab')
+
+
+@fixture(scope="function")
+def change_into_tmpdir(tmp_path):
+    '''
+    This fixture changes into a temporary working directory,
+    and changes automatically back at the end. The path can
+    be queried in a test: tmp_path = change_into_tmpdir
+    '''
+    prev_dir = Path(".")
+    os.chdir(tmp_path)
+    try:
+        yield tmp_path
+    finally:
+        os.chdir(prev_dir)
