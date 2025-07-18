@@ -71,7 +71,7 @@ class TestAnalyser:
         with mock.patch('fab.parse.AnalysedFile.save'):
             analysis, artefact = fortran_analyser.run(fpath=module_fpath)
         assert analysis == module_expected
-        assert artefact == (fortran_analyser.config.prebuild_folder /
+        assert artefact == (fortran_analyser._config.prebuild_folder /
                             f'test_fortran_analyser.{analysis.file_hash}.an')
 
     def test_module_file_no_openmp(self, fortran_analyser, module_fpath,

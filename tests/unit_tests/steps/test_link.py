@@ -27,7 +27,7 @@ class TestLinkExe:
     """
     def test_run(self, fake_process: FakeProcess, monkeypatch) -> None:
         """
-        Tests correct formation of command including FFLAGS.
+        Tests correct formation of command.
         """
 
         version_command = ['sfc', '--version']

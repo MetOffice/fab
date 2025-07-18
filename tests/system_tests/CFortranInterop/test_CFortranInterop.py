@@ -6,6 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from pytest import importorskip, warns
+
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
@@ -18,7 +20,7 @@ from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran, preprocess_c
 from fab.tools import ToolBox
 
-import pytest
+clang = importorskip('clang', reason="Clang bindings not found.")
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 
@@ -35,7 +37,7 @@ def test_CFortranInterop(tmp_path):
         preprocess_fortran(config)
         analyse(config, root_symbol='main')
         compile_c(config, common_flags=['-c', '-std=c99'])
-        with pytest.warns(UserWarning, match="Removing managed flag"):
+        with warns(UserWarning, match="Removing managed flag"):
             compile_fortran(config, common_flags=['-c'])
         link_exe(config, flags=['-lgfortran'])
         # todo: on an ubuntu vm, we needed these before the object files - investigate further

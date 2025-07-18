@@ -12,10 +12,13 @@ import warnings
 from pytest import mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from fab.build_config import BuildConfig
-from fab.tools import (Category, CCompiler, CompilerWrapper, FortranCompiler,
-                       Mpif90, Linker)
 from tests.conftest import ExtendedRecorder, not_found_callback
+
+from fab.build_config import BuildConfig
+from fab.tools.category import Category
+from fab.tools.compiler import CCompiler, FortranCompiler
+from fab.tools.compiler_wrapper import CompilerWrapper, Mpif90
+from fab.tools.linker import Linker
 
 
 def test_c_linker(stub_c_compiler: CCompiler) -> None:
@@ -178,30 +181,6 @@ def test_linker_add_lib_flags_overwrite_silent(stub_linker: Linker) -> None:
     result = stub_linker.get_lib_flags("customlib")
     assert result == ["-t", "-b"]
 
-    def test_linker_remove_lib_flags(self,
-                                     stub_c_compiler: CCompiler) -> None:
-        """
-        Tests removing library not known to linker.
-        """
-        linker = Linker(stub_c_compiler)
-        linker.remove_lib_flags("netcdf")  # type: ignore[attr-defined]
-
-        with raises(RuntimeError) as err:
-            linker.get_lib_flags("netcdf")
-        assert str(err.value).startswith("Unknown library name: 'netcdf'")
-
-    def test_remove_lib_flags_unknown(self,
-                                      stub_c_compiler: CCompiler) -> None:
-        """
-        Tests silent removal of unknown library.
-        """
-        linker = Linker(stub_c_compiler)
-        linker.remove_lib_flags("unknown")  # type: ignore[attr-defined]
-
-
-# ====================
-# Linking:
-# ====================
 
 class TestLinkerLinking:
     def test_c(self, stub_c_compiler: CCompiler,
@@ -310,6 +289,7 @@ def test_linker_all_flag_types(stub_c_compiler: CCompiler,
     """
     Tests linker arguments are used in the correct order.
 
+    Todo: Monkeying with private state.
     """
 
     linker = Linker(compiler=stub_c_compiler)
@@ -358,6 +338,7 @@ def test_linker_nesting(stub_c_compiler: CCompiler,
     linker2.add_lib_flags("lib_c", ["c_from_2"])
 
     linker1.add_post_lib_flags(["post_lib2"])
+
     stub_configuration._openmp = True
     linker2.link([Path("a.o")], Path("a.out"),
                  libs=["lib_a", "lib_b", "lib_c"], config=stub_configuration)
@@ -386,14 +367,15 @@ def test_linker_inheriting() -> None:
 
 
 def test_linker_profile_flags_inheriting(stub_c_compiler):
-    '''Test nested compiler and nested linker with inherited profiling flags.
-
-    '''
+    """
+    Tests nested compiler and nested linker with inherited profiling flags.
+    """
     stub_c_compiler_wrapper = CompilerWrapper(name="stub_c_compiler_wrapper",
                                               compiler=stub_c_compiler,
                                               exec_name="exec_name")
     linker = Linker(stub_c_compiler_wrapper)
     linker_wrapper = Linker(stub_c_compiler_wrapper, linker=linker)
+
     count = 0
     for compiler in [stub_c_compiler, stub_c_compiler_wrapper]:
         compiler.define_profile("base")
@@ -402,7 +384,7 @@ def test_linker_profile_flags_inheriting(stub_c_compiler):
         compiler.add_flags(f"-f{count+1}", "derived")
         count += 2
 
-    # One set f1-f4 from the compiler wrapper, one from the wrapped linker
+    # One set f0-f3 from the compiler wrapper, one from the wrapped linker
     assert (linker_wrapper.get_profile_flags("derived") ==
             ["-f0", "-f1", "-f2", "-f3", "-f0", "-f1", "-f2", "-f3"])
 
@@ -410,6 +392,8 @@ def test_linker_profile_flags_inheriting(stub_c_compiler):
 def test_linker_profile_modes(stub_linker):
     '''Test that defining a profile mode in a linker will also define
     the same modes in post- and pre-flags
+
+    ToDo: Monkeying with internal state.
     '''
 
     # Make sure that we get the expected errors at the start:

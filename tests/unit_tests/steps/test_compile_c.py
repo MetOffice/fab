@@ -121,10 +121,10 @@ class TestGetObjComboHash:
 
     def test_vanilla(self, content, flags, fake_process: FakeProcess) -> None:
         """
-        Test that we get the expected hashes in this test setup.
+        Tests hashing.
         """
-
         config, analysed_file = content
+
         fake_process.register(['scc', '--version'], stdout='1.2.3')
         compiler = config.tool_box[Category.C_COMPILER]
         #

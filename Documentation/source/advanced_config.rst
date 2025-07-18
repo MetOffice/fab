@@ -163,9 +163,10 @@ string that represents a set of compilation and linking flags to be used.
 For example, an application might have profiles for `full-debug`, `fast-debug`,
 and `production`. Compilation profiles can inherit settings, for example
 `fast-debug` might inherit from `full-debug`, but add optimisations.
+Compilation profile names are not case sensitive.
 
 Any flag for any tool can make use of a profile, but in many cases this is
-not necessary (think of options for `rsync`, `git`, `svn`, ...). Fab will
+not necessary (think of options for ``rsync``, ``git``, ``svn``, ...). Fab will
 internally create a dummy profile, indicated by an empty string `""`. If no
 profile is specified, this default profile will be used.
 
@@ -181,8 +182,8 @@ A profile is defined as follows:
     gfortran.define_profile("fast-debug", inherit_from="base")
     gfortran.define_profile("full-debug", inherit_from="fast-debug")
 
-    gfortran.add_flags(["-g", '-std=f2008'], "base")
-    gfortran.add_flags(["-O2], "fast-debug")
+    gfortran.add_flags(["-g", "-std=f2008"], "base")
+    gfortran.add_flags(["-O2"], "fast-debug")
     gfortran.add_flags(["-O0", "-fcheck=all"], "full-debug")
 
 Line 3 defines a profile called ``base``, which does not inherit from any
@@ -195,8 +196,8 @@ Due to the inheritance, it will be using the options
 of compiler flags, the no-optimisation flag ``-O0`` will overwrite the
 valued of ``-O2``.
 
-Tools that do not want to use a profile just do not specify the
-profile parameter when defining flags:
+Tools that do not require a profile can omit the parameter
+when defining flags:
 
 .. code-block::
     :linenos:
@@ -204,14 +205,14 @@ profile parameter when defining flags:
     git = config.tool_box[Category.GIT]
     git.add_flags(["-c", "foo.bar=123"])
 
-This will internally add these flags to the dummy profile ``""``, and
-this will be used by various Fab functions.
+This effectively adds the flags to the to the dummy profile, allowing
+them to be used by other Fab functions.
 
 By default, the dummy profile ``""`` is not used as a base class for
 any other profile. But it can be convenient to set this up to make
 user scripts slightly easier. Here is an example of the usage
 in LFRic, where at startup time a consistent set of profile modes are
-defined for any compiler and linker:
+defined for each compiler and linker:
 
 .. code-block::
     :linenos:
@@ -225,8 +226,8 @@ defined for any compiler and linker:
             compiler.define_profile(profile, inherit_from="base")
 
 Line 5 defines a ``base`` profile, which inherits from the dummy
-profile ``""``. Then a set of three profiles are defined, each
-inheriting from ``base`` (and therefore in turn from ``""``).
+profile. Then a set of three profiles are defined, each
+inheriting from ``base``, and therefore in turn from the dummy profile.
 
 Later, the Intel Fortran compiler and linker ``ifort`` are setup as follows:
 
@@ -245,12 +246,12 @@ Later, the Intel Fortran compiler and linker ``ifort`` are setup as follows:
     linker.add_lib_flags("yaxt", ["-lyaxt", "-lyaxt_c"])
     linker.add_post_lib_flags(["-lstdc++"])
 
-The setup of the compiler does not use the dummy profile ``""`` at all,
+The setup of the compiler does not use the dummy profile at all,
 so it will stay empty. It is up to the user to decide how to use the
 profiles, it would be entirely valid not to use the ``base`` profile, but
-instead to use ``""``. But when setting up the linker, no profile is specified.
-So line 10 and 11 will set these flags for ``""``. Because of ``base``
-inheriting from ``""``, and any other profile inheriting from ``base``,
+instead to use the dummy. But when setting up the linker, no profile is specified.
+So line 10 and 11 will set these flags for the dummy. Because of ``base``
+inheriting from the dummy, and any other profile inheriting from ``base``,
 this means these linker flags will be used for all profiles. It would
 be equally valid to define these flags for the ``base`` profile:
 
@@ -261,10 +262,10 @@ be equally valid to define these flags for the ``base`` profile:
     linker.add_lib_flags("yaxt", ["-lyaxt", "-lyaxt_c"], "base")
     linker.add_post_lib_flags(["-lstdc++"], "base")
 
-This design was chosen, since the most common use case for compiler
-profiles is in changing compiler flags, linker flags are typically
-not affected. So it is more intuitive for a user not to specify
-the profile modes for linker.
+This design was chosen because the most common use case for
+profiles involves changing compiler flags. Linker flags are typically
+left unaltered, so it is more intuitive for a user to omit profile modes
+for the linker.
 
 The advantage of supporting the profile modes for linker is that
 you can specify profile modes that require additional linking options.
