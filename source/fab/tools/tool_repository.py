@@ -178,18 +178,13 @@ class ToolRepository(dict):
                            f"in ToolRepository.get_tool().")
 
         path_name = Path(name)
-        full_path = None
-        if path_name.is_absolute():
-            # We have a full path:
-            name = path_name.name
-            full_path = str(path_name)
         all_tools = self[category]
         # First check if the name is a Fab compiler name, e.g.
         # `mpif90-gfortran`:
         for tool in all_tools:
             if tool.name == name:
-                if full_path:
-                    tool.set_full_path(full_path)
+                if path_name.is_absolute():
+                    tool.set_full_path(path_name)
                 return tool
         # Otherwise, check if we have an executable with the given
         # name. This will allow to specify `mpif90` as linker or compiler
@@ -198,9 +193,9 @@ class ToolRepository(dict):
         # tool returned might be mpif90-ifort when the user has actually
         # mpif90-gfortran available)
         for tool in all_tools:
-            if tool.exec_name == name and tool.is_available:
-                if full_path:
-                    tool.set_full_path(full_path)
+            if tool.exec_name == path_name.name and tool.is_available:
+                if path_name.is_absolute():
+                    tool.set_full_path(path_name)
                 return tool
 
         raise KeyError(f"Unknown tool '{name}' in category '{category}' "

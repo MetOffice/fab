@@ -6,6 +6,8 @@
 import subprocess
 from pathlib import Path
 
+from pytest import importorskip
+
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
@@ -16,6 +18,8 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c
 from fab.tools import ToolBox
+
+clang = importorskip('clang', reason="Clang bindings not found.")
 
 PROJECT_SOURCE = Path(__file__).parent / 'project-source'
 

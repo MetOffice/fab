@@ -4,9 +4,10 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 import filecmp
-import shutil
 from os import unlink
 from pathlib import Path
+import shutil
+from typing import Any, Dict
 from unittest import mock
 
 from pytest import fixture, mark, warns
@@ -174,10 +175,25 @@ class TestPsyclone:
         # So use a list instead:
         assert all(list(config.prebuild_folder.glob(f)) == [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) == [] for f in expect_build_files)
-        with warns(UserWarning, match="no transformation script specified"):
+        with warns(UserWarning, match="no transformation script specified"), \
+                warns(UserWarning, match="_metric_send_conn not set.*"):
             self.steps(config)
         assert all(list(config.prebuild_folder.glob(f)) != [] for f in expect_prebuild_files)
         assert all(list(config.build_output.glob(f)) != [] for f in expect_build_files)
+
+    @staticmethod
+    def __file_stats(path: Path) -> Dict[str, Dict[str, Any]]:
+        stat_map: Dict[str, Dict[str, Any]] = {}
+        for file in path.iterdir():
+            stats = file.stat()
+            stat_map[str(file)] = {key: getattr(stats, key) for key in dir(stats) if key.startswith('st_')}
+            #
+            # We remove atime (time of most recent access) as we aren't
+            # interested in accesses, only modifications.
+            #
+            del stat_map[str(file)]['st_atime']
+            del stat_map[str(file)]['st_atime_ns']
+        return stat_map
 
     def test_prebuild(self, config: BuildConfig) -> None:
         """
@@ -185,13 +201,15 @@ class TestPsyclone:
         """
         config.prebuild_folder.mkdir(parents=True)
 
-        with warns(UserWarning, match="no transformation script specified"):
+        with warns(UserWarning, match="no transformation script specified"), \
+                warns(UserWarning, match="_metric_send_conn not set.*"):
             self.steps(config)
-        first_timestamps = {file: file.stat().st_mtime for file in config.prebuild_folder.iterdir()}
+        first_timestamps = self.__file_stats(config.prebuild_folder)
 
-        with warns(UserWarning, match="no transformation script specified"):
+        with warns(UserWarning, match="no transformation script specified"), \
+                warns(UserWarning, match="_metric_send_conn not set.*"):
             self.steps(config)
-        second_timestamps = {file: file.stat().st_mtime for file in config.prebuild_folder.iterdir()}
+        second_timestamps = self.__file_stats(config.prebuild_folder)
 
         assert second_timestamps == first_timestamps
 

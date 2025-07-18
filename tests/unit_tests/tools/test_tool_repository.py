@@ -6,11 +6,15 @@
 """
 Tests ToolBox class.
 """
+from pathlib import Path
 from pytest import mark, raises
 from pytest_subprocess.fake_process import FakeProcess
 
-from fab.tools import (Ar, Category, FortranCompiler, Gcc, Gfortran, Ifort,
-                       Mpif90, ToolRepository)
+from fab.tools.ar import Ar
+from fab.tools.category import Category
+from fab.tools.compiler import FortranCompiler, Gcc, Gfortran, Ifort
+from fab.tools.compiler_wrapper import Mpif90
+from fab.tools.tool_repository import ToolRepository
 
 
 def test_tool_repository_get_singleton_new():
@@ -81,7 +85,7 @@ def test_tool_repository_get_tool_with_exec_name(stub_fortran_compiler):
     # Then verify using the full path
     f90 = tr.get_tool(Category.FORTRAN_COMPILER, "/some/where/mpif90")
     assert f90 is mpif90_gfortran
-    assert f90._full_path == "/some/where/mpif90"
+    assert f90.exec_path == Path("/some/where/mpif90")
     # Reset the repository, since this test messed up the compilers.
     ToolRepository._singleton = None
 
@@ -275,7 +279,8 @@ def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "/usr/bin/gfortran")
     assert isinstance(gfortran, Gfortran)
     assert gfortran.name == "gfortran"
-    assert gfortran.exec_name == "/usr/bin/gfortran"
+    assert gfortran.exec_name == "gfortran"
+    assert gfortran.exec_path == Path("/usr/bin/gfortran")
 
     fake_process.register(['/usr/bin/gfortran', 'a'])
     gfortran.run("a")
