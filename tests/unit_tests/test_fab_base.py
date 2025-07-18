@@ -341,7 +341,8 @@ def test_build_binary(monkeypatch) -> None:
     need compiler, rsync)
     '''
 
-    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--fflags",
+                                      "some-fflags"])
 
     fab_base = FabBase(name="test")
 
@@ -370,7 +371,7 @@ def test_build_binary(monkeypatch) -> None:
 
     mocks["compile_fortran"][0].stop()
     mocks["compile_fortran"][1].assert_called_once_with(
-        fab_base.config, common_flags=[], path_flags=None)
+        fab_base.config, common_flags=['some-fflags'], path_flags=None)
 
     mocks["compile_c"][0].stop()
     mocks["compile_c"][1].assert_called_once_with(
