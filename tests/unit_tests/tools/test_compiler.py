@@ -26,9 +26,9 @@ from fab.tools.compiler import (Compiler, CCompiler, FortranCompiler,
                                 Nvc, Nvfortran)
 
 
-def test_compiler():
+def test_compiler() -> None:
     '''Test the compiler constructor.'''
-    cc = Compiler("gcc", "gcc", "gnu", version_regex="some_regex",
+    cc = Compiler("gcc", "gcc", "gnu", version_regex="",
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
     assert cc.category == Category.C_COMPILER
     assert cc._compile_flag == "-c"
@@ -40,7 +40,7 @@ def test_compiler():
     assert cc.openmp_flag == "-fopenmp"
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="something", module_folder_flag="-J")
+                         version_regex="", module_folder_flag="-J")
     assert fc._compile_flag == "-c"
     assert fc.output_flag == "-o"
     assert fc.category == Category.FORTRAN_COMPILER
@@ -51,42 +51,42 @@ def test_compiler():
     assert fc.openmp_flag == "-fopenmp"
 
 
-def test_compiler_exec_paths():
+def test_compiler_exec_paths() -> None:
     '''Tests compiler with absolute paths.
     '''
-    cc = Compiler("gcc", "gcc", "gnu", version_regex="some_regex",
+    cc = Compiler("gcc", "gcc", "gnu", version_regex="",
                   category=Category.C_COMPILER, openmp_flag="-fopenmp")
-    assert cc._exec_name == "gcc"
     assert cc.exec_name == "gcc"
-    cc.set_full_path("/usr/bin/gcc")
-    assert cc._exec_name == "gcc"
-    assert cc.exec_name == "/usr/bin/gcc"
+    assert cc.exec_path == Path("gcc")
+    cc.set_full_path(Path("/usr/bin/gcc"))
+    assert cc.exec_name == "gcc"
+    assert cc.exec_path == Path("/usr/bin/gcc")
 
 
-def test_compiler_openmp():
+def test_compiler_openmp() -> None:
     '''Test that the openmp flag is correctly reflected in the test if
     a compiler supports OpenMP or not.'''
     cc = CCompiler("gcc", "gcc", "gnu", openmp_flag="-fopenmp",
-                   version_regex=None)
+                   version_regex="")
     assert cc.openmp_flag == "-fopenmp"
     assert cc.openmp
-    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag=None, version_regex=None)
+    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag=None, version_regex="")
     assert cc.openmp_flag == ""
     assert not cc.openmp
-    cc = CCompiler("gcc", "gcc", "gnu", version_regex=None)
+    cc = CCompiler("gcc", "gcc", "gnu", version_regex="")
     assert cc.openmp_flag == ""
     assert not cc.openmp
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         module_folder_flag="-J", version_regex=None)
+                         module_folder_flag="-J", version_regex="")
     assert fc.openmp_flag == "-fopenmp"
     assert fc.openmp
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag=None,
-                         module_folder_flag="-J", version_regex=None)
+                         module_folder_flag="-J", version_regex="")
     assert fc.openmp_flag == ""
     assert not fc.openmp
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         module_folder_flag="-J", version_regex=None)
+                         module_folder_flag="-J", version_regex="")
     assert fc.openmp_flag == ""
     assert not fc.openmp
 
@@ -162,19 +162,19 @@ def test_compiler_with_env_fflags():
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="something",
+                         version_regex="",
                          openmp_flag="-fopenmp", module_folder_flag="-J")
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="something", module_folder_flag="-J",
+                         version_regex="", module_folder_flag="-J",
                          syntax_only_flag=None)
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="something",
+                         version_regex="",
                          openmp_flag="-fopenmp",
                          module_folder_flag="-J",
                          syntax_only_flag="-fsyntax-only")
@@ -197,8 +197,7 @@ def test_compiler_without_openmp(stub_fortran_compiler: FortranCompiler,
     stub_configuration._openmp = False
 
     stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
-                                       config=stub_configuration,
-                                       syntax_only=True)
+                                       config=stub_configuration)
     assert call_list(fake_process) == [command]
     assert arg_list(record)[0]['cwd'] == '.'
 
@@ -218,8 +217,7 @@ def test_compiler_with_openmp(stub_fortran_compiler: FortranCompiler,
     stub_configuration._openmp = True
 
     stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
-                                       config=stub_configuration,
-                                       syntax_only=False)
+                                       config=stub_configuration)
     assert call_list(fake_process) == [command]
     assert arg_list(record)[0]['cwd'] == '.'
 
@@ -237,8 +235,7 @@ def test_compiler_module_output(stub_fortran_compiler: FortranCompiler,
     assert stub_fortran_compiler._module_output_path == "/module_out"
 
     stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
-                                       config=stub_configuration,
-                                       syntax_only=True)
+                                       config=stub_configuration)
     assert call_list(fake_process) == [command]
     assert arg_list(record)[0]['cwd'] == '.'
 
@@ -264,8 +261,7 @@ def test_compiler_with_add_args(stub_configuration: BuildConfig,
     with warns(UserWarning, match="Removing managed flag"):
         stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
                                            add_flags=["-mods", "/b", "-O3"],
-                                           config=stub_configuration,
-                                           syntax_only=True)
+                                           config=stub_configuration)
     # Notice that "-J/b" has been removed
     assert arg_list(nomp_record)[0]['cwd'] == '.'
 
@@ -275,8 +271,7 @@ def test_compiler_with_add_args(stub_configuration: BuildConfig,
                      "the BuildConfiguration"):
         stub_fortran_compiler.compile_file(Path("a.f90"), Path("a.o"),
                                            add_flags=["-omp", "-O3"],
-                                           config=stub_configuration,
-                                           syntax_only=True)
+                                           config=stub_configuration)
     assert arg_list(omp_record)[0]['cwd'] == '.'
 
     assert call_list(fake_process) == [command_nomp, command_omp]

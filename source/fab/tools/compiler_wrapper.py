@@ -74,7 +74,9 @@ class CompilerWrapper(Compiler):
     def get_flags(self, profile: Optional[str] = None) -> List[str]:
         ''':returns: the ProfileFlags for the given profile, combined
         from the wrapped compiler and this wrapper.
-        :param profile: the profile to use.'''
+
+        :param profile: the profile to use.
+        '''
         return (self._compiler.get_flags(profile) +
                 super().get_flags(profile))
 
@@ -119,10 +121,14 @@ class CompilerWrapper(Compiler):
         '''
 
         # We need to distinguish between Fortran and non-Fortran compiler,
-        # since inly a Fortran compiler supports the syntax-only flag.
+        # since only a Fortran compiler supports the syntax-only flag.
         new_flags = Flags(add_flags)
         if self._compiler.category is Category.FORTRAN_COMPILER:
-            # Make mypy happy
+            # Mypy complains that self._compiler does not take the syntax
+            # only parameter. Since we know it's a FortranCompiler.
+            # do a cast to tell mypy that this is now a Fortran compiler
+            # (or a CompilerWrapper in case of nested CompilerWrappers,
+            # which also supports the syntax_only flag anyway).
             self._compiler = cast(FortranCompiler, self._compiler)
             if self._compiler._module_folder_flag:
                 # Remove a user's module flag, which would interfere

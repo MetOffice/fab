@@ -39,8 +39,7 @@ class Tool:
                  availability_option: Optional[Union[str, List[str]]] = None):
         self._logger = logging.getLogger(__name__)
         self._name = name
-        self._exec_name = str(exec_name)
-        self._full_path = ""
+        self._exec_path = Path(exec_name)
         self._flags = ProfileFlags()
         self._category = category
         if availability_option:
@@ -69,7 +68,7 @@ class Tool:
             return False
         return True
 
-    def set_full_path(self, full_path: str):
+    def set_full_path(self, full_path: Path):
         '''This function adds the full path to a tool. This allows
         tools to be used that are not in the user's PATH. The ToolRepository
         will automatically update the path for a tool if the user specified
@@ -77,7 +76,7 @@ class Tool:
 
         :param full_path: the full path to the executable.
         '''
-        self._full_path = full_path
+        self._exec_path = full_path
 
     @property
     def is_available(self) -> bool:
@@ -98,11 +97,14 @@ class Tool:
         return self._category.is_compiler
 
     @property
+    def exec_path(self) -> Path:
+        ''':returns: the path of the executable.'''
+        return self._exec_path
+
+    @property
     def exec_name(self) -> str:
         ''':returns: the name of the executable.'''
-        if self._full_path:
-            return self._full_path
-        return self._exec_name
+        return self.exec_path.name
 
     @property
     def name(self) -> str:
@@ -150,10 +152,9 @@ class Tool:
         return self._logger
 
     def __str__(self):
-        '''Returns a name for this string. It uses _exec_name to
-        avoid adding a full path (if set by the user).
+        '''Returns a name for this string.
         '''
-        return f"{type(self).__name__} - {self._name}: {self._exec_name}"
+        return f"{type(self).__name__} - {self._name}: {self._exec_path}"
 
     def run(self,
             additional_parameters: Optional[
@@ -179,7 +180,7 @@ class Tool:
         :raises RuntimeError: if the code is not available.
         :raises RuntimeError: if the return code of the executable is not 0.
         """
-        command = [self.exec_name] + self.get_flags(profile)
+        command = [str(self.exec_path)] + self.get_flags(profile)
         if additional_parameters:
             if isinstance(additional_parameters, str):
                 command.append(additional_parameters)
