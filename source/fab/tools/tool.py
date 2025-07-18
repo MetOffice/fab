@@ -154,7 +154,7 @@ class Tool:
     def __str__(self):
         '''Returns a name for this string.
         '''
-        return f"{type(self).__name__} - {self._name}: {self.exec_name}"
+        return f"{type(self).__name__} - {self._name}: {self._exec_path}"
 
     def run(self,
             additional_parameters: Optional[
