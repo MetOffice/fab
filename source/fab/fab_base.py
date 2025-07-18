@@ -26,6 +26,7 @@ from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files, Exclude, Include
+from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe, link_shared_object
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.tools import Category, ToolBox, ToolRepository
@@ -194,6 +195,13 @@ class FabBase:
         return self._args
 
     @property
+    def project_workspace(self) -> Path:
+        '''
+        :returns: the Fab workspace for this build.
+        '''
+        return self._config.project_workspace
+
+    @property
     def preprocess_flags_common(self) -> List[str]:
         """
         :returns: the list of all common preprocessor flags.
@@ -281,17 +289,13 @@ class FabBase:
         args = parser.parse_known_args()[0]   # Ignore element [1]=unknown args
         if args.site == "$SITE":
             self._site = os.environ.get("SITE", "default")
-        elif args.site:
-            self._site = args.site
         else:
-            self._site = "default"
+            self._site = args.site
 
         if args.platform == "$PLATFORM":
             self._platform = os.environ.get("PLATFORM", "default")
-        elif args.platform:
-            self._platform = args.platform
         else:
-            self._platform = "default"
+            self._platform = args.platform
 
         # Define target attribute for site&platform-specific files
         # If none are specified, just use a single default (instead of
@@ -584,6 +588,11 @@ class FabBase:
         This should typically be overwritten by an application to
         get files e.g. from a repository.
         '''
+        print("XX", type(self).__name__)
+        if type(self).__name__ == "FabBase":
+            # Do a simple build based on files in "." if FabBase is
+            # started by itself (and not inherited):
+            grab_folder(self.config, src=".")
 
     def find_source_files_step(
             self,
@@ -652,13 +661,6 @@ class FabBase:
                         common_flags=self.fortran_compiler_flags_commandline,
                         path_flags=path_flags)
 
-    def archive_objects_step(self) -> None:
-        """
-        Calls Fab's archive_objects. At the moment, the config is passed
-        to Fab to create an object archive.
-        """
-        archive_objects(self.config)
-
     def link_step(self) -> None:
         """
         Calls Fab's archive_objects for creating static libraries, or
@@ -704,10 +706,6 @@ class FabBase:
             self.compile_fortran_step()
             # Disable archiving due to
             # https://github.com/MetOffice/fab/issues/310
-            # Archives can contain several versions of a file (with different)
-            # hashes, meaning at link time an older version might be used,
-            # even if a newer one is available.
-            # self.archive_objects()
             self.link_step()
 
 
@@ -717,3 +715,4 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     fab_base = FabBase(name="command-line-test")
+    fab_base.build()

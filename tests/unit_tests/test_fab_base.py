@@ -6,13 +6,13 @@
 """
 Tests the FabBase class
 """
+import inspect
 import os
+from pathlib import Path
 import sys
-
-import pytest
 from unittest import mock
 
-from pytest_subprocess.fake_process import FakeProcess
+import pytest
 
 from fab.build_config import AddFlags
 from fab.fab_base import FabBase
@@ -27,6 +27,7 @@ def setup_tool_repository(stub_fortran_compiler, stub_c_compiler,
     to proceed without raising errors. This fixture is automatically
     executed for any test in this file.
     '''
+    # pylint: disable=protected-access
     # Make sure we always get a new ToolRepo to be not affected by
     # other tests:
     ToolRepository._singleton = None
@@ -54,7 +55,7 @@ def setup_tool_repository(stub_fortran_compiler, stub_c_compiler,
         yield
 
 
-def test_constructor() -> None:
+def test_constructor(monkeypatch) -> None:
     '''
     Tests constructor.
     '''
@@ -62,6 +63,13 @@ def test_constructor() -> None:
         _ = FabBase(name="test_name", link_target="wrong")
     assert ("Invalid parameter 'wrong', must be one of 'executable, "
             "static-library, shared-library'." in str(err.value))
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    fab_base = FabBase(name="test_name", link_target="executable")
+
+    # Check other settings and functions
+    # pylint: disable=use-implicit-booleaness-not-comparison
+    assert fab_base.get_linker_flags() == []
 
 
 def test_help(monkeypatch, capsys) -> None:
@@ -76,19 +84,19 @@ def test_help(monkeypatch, capsys) -> None:
 
 
 @pytest.mark.parametrize("arg", [(["--site", "testsite"], "site"),
-                                 (["--platform", "testplatf"], "platform"),
+                                 (["--platform", "testplatform"], "platform"),
                                  ])
-def test_args(change_into_tmpdir, monkeypatch, arg) -> None:
+def test_site_platform(monkeypatch, arg) -> None:
     '''
-    Tests that command line arguments are accessible as expected.
+    Tests that command line arguments for site and platform work
     '''
     flag_list, attribute = arg
     monkeypatch.setattr(sys, "argv", ["fab_base.py"]+flag_list)
     fab_base = FabBase(name="test-help")
-    assert getattr(fab_base.args, attribute) == flag_list[1]
+    assert getattr(fab_base, attribute) == flag_list[1]
 
 
-def test_arg_error(change_into_tmpdir, monkeypatch) -> None:
+def test_arg_error(monkeypatch) -> None:
     '''
     Tests handling of errors in the command line.
     '''
@@ -97,20 +105,6 @@ def test_arg_error(change_into_tmpdir, monkeypatch) -> None:
         _ = FabBase(name="test-help")
     assert ("Invalid host directive 'invalid'. Must be 'cpu' or 'gpu'." ==
             str(err.value))
-
-
-@pytest.mark.parametrize("arg", [(["--fflags", "fflag"], "fflags"),
-                                 (["--cflags", "cflag"], "cflags"),
-                                 (["--ldflags", "ldflag"], "ldflags"),
-                                 ])
-def test_compiler_flags(change_into_tmpdir, monkeypatch, arg) -> None:
-    '''
-    Tests that command line arguments are accessible as expected.
-    '''
-    flag_list, attribute = arg
-    monkeypatch.setattr(sys, "argv", ["fab_base.py"]+flag_list)
-    fab_base = FabBase(name="test-help")
-    assert getattr(fab_base.args, attribute) == flag_list[1]
 
 
 def test_available_compilers(monkeypatch, capsys) -> None:
@@ -234,6 +228,7 @@ def test_preprocessor_flags(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     fab_base = FabBase(name="test-help")
     # Initially there should be no flags
+    # pylint: disable=use-implicit-booleaness-not-comparison
     assert fab_base.preprocess_flags_common == []
     assert fab_base.preprocess_flags_path == []
 
@@ -259,3 +254,233 @@ def test_preprocessor_flags(monkeypatch) -> None:
     fab_base.add_preprocessor_flags([af2, af3])
     assert fab_base.preprocess_flags_common == ["-f1", "-f2", "-f3"]
     assert fab_base.preprocess_flags_path == [af1, af2, af3]
+
+
+def test_workspace(monkeypatch, change_into_tmpdir) -> None:
+    '''
+    Tests setting the working space on the command line
+    '''
+
+    tmpdir = change_into_tmpdir
+    new_workspace = "new_workspace"
+    new_workspace = tmpdir / new_workspace
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--fab-workspace",
+                                      str(new_workspace)])
+    fab_base = FabBase(name="root_symbol_does_not_exit")
+
+    # Note that the project directories are only created once
+    # build is called.
+    with pytest.raises(KeyError) as err:
+        fab_base.build()
+
+    # The build will abort since we have no source files, ignore this error:
+    assert "root_symbol_does_not_exit" in str(err.value)
+
+    # Check that the project workspace is as expected:
+    project_dir = fab_base.project_workspace
+    assert (f"{new_workspace}/root_symbol_does_not_exit-default-profile-"
+            f"some_Fortran_compiler" in str(project_dir))
+
+
+@pytest.mark.parametrize("arg", [(["--fflags", "fflag"], "fflags"),
+                                 (["--cflags", "cflag"], "cflags"),
+                                 (["--ldflags", "ldflag"], "ldflags"),
+                                 ])
+def test_compiler_flags(monkeypatch, arg) -> None:
+    '''
+    Tests that command line arguments are accessible as expected.
+    '''
+    flag_list, attribute = arg
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"]+flag_list)
+    fab_base = FabBase(name="test-help")
+    assert getattr(fab_base.args, attribute) == flag_list[1]
+    if flag_list[0] == "--fflags":
+        assert fab_base.fortran_compiler_flags_commandline == [flag_list[1]]
+    elif flag_list[0] == "--cflags":
+        assert fab_base.c_compiler_flags_commandline == [flag_list[1]]
+    elif flag_list[0] == "--ldflags":
+        assert fab_base.linker_flags_commandline == [flag_list[1]]
+
+
+def test_site_specific_outside_dir(monkeypatch) -> None:
+    '''
+    Tests site-specific settings if the call is initiated from a different
+    directory. In this case, the `cwd` and `cwd/site_specific` should
+    be added to the Python path (to allow importing the site-specific
+    settings.
+    '''
+    this_dir = Path(__file__).parent
+    old_path = sys.path[:]
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    _ = FabBase(name="test-help")
+    assert sys.path[2:] == old_path
+    assert str(this_dir / "site_specific") in sys.path[0]
+    assert str(this_dir) in sys.path[1]
+
+
+def test_site_specific_inside_dir(monkeypatch) -> None:
+    '''
+    Tests site-specific settings if the call is initiated from the
+    same directory as FabBase. This is done by patching inspect
+    to return an empty list. In this case, only one directory
+    should be added the search path
+    '''
+    old_path = sys.path[:]
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    monkeypatch.setattr(inspect, "stack", lambda: [])
+    _ = FabBase(name="test-help")
+    assert sys.path[1:] == old_path
+    assert "site_specific" == sys.path[0]
+
+
+def test_build_binary(monkeypatch) -> None:
+    '''
+    Tests an actual trivial build. We patch all fab functions called
+    by the FabBase class, so no actual work will be done (e.g. we don't
+    need compiler, rsync)
+    '''
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+
+    fab_base = FabBase(name="test")
+
+    # We need to patch a lot of Fab functions (to avoid dependencies
+    # on the runtime environment):
+    mocks = {}
+    for function_name in ["grab_folder", "find_source_files",
+                          "preprocess_c", "preprocess_fortran",
+                          "compile_fortran", "compile_c", "analyse"]:
+        patcher = mock.patch(f"fab.fab_base.{function_name}")
+        mocks[function_name] = (patcher, patcher.start())
+
+    fab_base.build()
+
+    mocks["grab_folder"][0].stop()
+    mocks["grab_folder"][1].assert_called_once_with(
+        fab_base.config, src=".")
+
+    mocks["find_source_files"][0].stop()
+    mocks["find_source_files"][1].assert_called_once_with(
+        fab_base.config, path_filters=None)
+
+    mocks["preprocess_fortran"][0].stop()
+    mocks["preprocess_fortran"][1].assert_called_once_with(
+        fab_base.config, common_flags=[], path_flags=[])
+
+    mocks["compile_fortran"][0].stop()
+    mocks["compile_fortran"][1].assert_called_once_with(
+        fab_base.config, common_flags=[], path_flags=None)
+
+    mocks["compile_c"][0].stop()
+    mocks["compile_c"][1].assert_called_once_with(
+        fab_base.config, common_flags=[])
+
+    mocks["analyse"][0].stop()
+    mocks["analyse"][1].assert_called_once_with(
+        fab_base.config, root_symbol=["test"])
+
+
+def test_build_static_lib(monkeypatch) -> None:
+    '''
+    Tests an actual trivial build. We patch all fab functions called
+    by the FabBase class, so no actual work will be done (e.g. we don't
+    need compiler, rsync)
+    '''
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+
+    fab_base = FabBase(name="test", link_target="static-library")
+    workspace = fab_base.project_workspace
+
+    # We need to patch a lot of Fab functions (to avoid dependencies
+    # on the runtime environment):
+    mocks = {}
+    for function_name in ["grab_folder", "find_source_files", "preprocess_c",
+                          "preprocess_fortran", "compile_fortran",
+                          "compile_c", "analyse", "archive_objects"]:
+        patcher = mock.patch(f"fab.fab_base.{function_name}")
+        mocks[function_name] = (patcher, patcher.start())
+
+    fab_base.build()
+
+    mocks["grab_folder"][0].stop()
+    mocks["grab_folder"][1].assert_called_once_with(
+        fab_base.config, src=".")
+
+    mocks["find_source_files"][0].stop()
+    mocks["find_source_files"][1].assert_called_once_with(
+        fab_base.config, path_filters=None)
+
+    mocks["preprocess_fortran"][0].stop()
+    mocks["preprocess_fortran"][1].assert_called_once_with(
+        fab_base.config, common_flags=[], path_flags=[])
+
+    mocks["compile_fortran"][0].stop()
+    mocks["compile_fortran"][1].assert_called_once_with(
+        fab_base.config, common_flags=[], path_flags=None)
+
+    mocks["compile_c"][0].stop()
+    mocks["compile_c"][1].assert_called_once_with(
+        fab_base.config, common_flags=[])
+
+    mocks["analyse"][0].stop()
+    mocks["analyse"][1].assert_called_once_with(
+        fab_base.config, root_symbol=None)
+
+    mocks["archive_objects"][0].stop()
+    mocks["archive_objects"][1].assert_called_once_with(
+        fab_base.config, output_fpath=str(workspace / 'libtest.a'))
+
+
+def test_build_shared_lib(monkeypatch) -> None:
+    '''
+    Tests an actual trivial build. We patch all fab functions called
+    by the FabBase class, so no actual work will be done (e.g. we don't
+    need compiler, rsync)
+    '''
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+
+    fab_base = FabBase(name="test", link_target="shared-library")
+    workspace = fab_base.project_workspace
+
+    # We need to patch a lot of Fab functions (to avoid dependencies
+    # on the runtime environment):
+    mocks = {}
+    for function_name in ["grab_folder", "find_source_files", "preprocess_c",
+                          "preprocess_fortran", "compile_fortran",
+                          "compile_c", "analyse", "link_shared_object"]:
+        patcher = mock.patch(f"fab.fab_base.{function_name}")
+        mocks[function_name] = (patcher, patcher.start())
+
+    fab_base.build()
+
+    mocks["grab_folder"][0].stop()
+    mocks["grab_folder"][1].assert_called_once_with(
+        fab_base.config, src=".")
+
+    mocks["find_source_files"][0].stop()
+    mocks["find_source_files"][1].assert_called_once_with(
+        fab_base.config, path_filters=None)
+
+    mocks["preprocess_fortran"][0].stop()
+    mocks["preprocess_fortran"][1].assert_called_once_with(
+        fab_base.config, common_flags=[], path_flags=[])
+
+    mocks["compile_fortran"][0].stop()
+    mocks["compile_fortran"][1].assert_called_once_with(
+        fab_base.config, common_flags=[], path_flags=None)
+
+    mocks["compile_c"][0].stop()
+    mocks["compile_c"][1].assert_called_once_with(
+        fab_base.config, common_flags=[])
+
+    mocks["analyse"][0].stop()
+    mocks["analyse"][1].assert_called_once_with(
+        fab_base.config, root_symbol=None)
+
+    mocks["link_shared_object"][0].stop()
+    mocks["link_shared_object"][1].assert_called_once_with(
+        fab_base.config, output_fpath=str(workspace / 'libtest.so'),
+        flags=[])
