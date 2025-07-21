@@ -3,8 +3,9 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-import shutil
+from inspect import signature
 from pathlib import Path
+from shutil import unpack_archive
 from typing import Union
 
 from fab.steps import step
@@ -27,4 +28,17 @@ def grab_archive(config, src: Union[Path, str], dst_label: str = ''):
     dst: Path = config.source_root / dst_label
     dst.mkdir(parents=True, exist_ok=True)
 
-    shutil.unpack_archive(src, dst)
+    # The filtering was added at v3.12 so this check may be removed once we
+    # nolonger support earlier versions. It must be specified as default
+    # behaviour of the filter changes at v3.14.
+    #
+    unpack_archive_sig = signature(unpack_archive)
+    if 'filter' in unpack_archive_sig.parameters:
+        #
+        # The "data" filter does a number of things including disallowing
+        # symlinks. It also does not recreate ownership or permissions from
+        # the archive.
+        #
+        unpack_archive(src, dst, filter='data')
+    else:
+        unpack_archive(src, dst)
