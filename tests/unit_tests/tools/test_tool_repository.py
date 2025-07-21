@@ -12,7 +12,7 @@ from pytest_subprocess.fake_process import FakeProcess
 
 from fab.tools.ar import Ar
 from fab.tools.category import Category
-from fab.tools.compiler import FortranCompiler, Gcc, Gfortran, Ifort
+from fab.tools.compiler import FortranCompiler, Gfortran, Ifort
 from fab.tools.compiler_wrapper import Mpif90
 from fab.tools.tool_repository import ToolRepository
 
