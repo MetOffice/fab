@@ -588,7 +588,6 @@ class FabBase:
         This should typically be overwritten by an application to
         get files e.g. from a repository.
         '''
-        print("XX", type(self).__name__)
         if type(self).__name__ == "FabBase":
             # Do a simple build based on files in "." if FabBase is
             # started by itself (and not inherited):

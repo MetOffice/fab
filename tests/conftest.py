@@ -17,6 +17,7 @@ from fab.build_config import BuildConfig
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.linker import Linker
 from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 
 
 def not_found_callback(process):
@@ -164,6 +165,26 @@ def stub_tool_box(stub_fortran_compiler,
     toolbox.add_tool(stub_c_compiler)
     toolbox.add_tool(stub_linker)
     return toolbox
+
+
+@fixture(scope='function')
+def stub_tool_repository(stub_fortran_compiler,
+                         stub_c_compiler,
+                         stub_linker,
+                         monkeypatch) -> ToolRepository:
+    """
+    Provides a minimal ToolRepository containing just Fortran and C compilers and a
+    linker.
+    """
+    monkeypatch.setattr(stub_fortran_compiler, 'check_available', return_true)
+    monkeypatch.setattr(stub_c_compiler, 'check_available', return_true)
+    monkeypatch.setattr(stub_linker, 'check_available', return_true)
+    tool_repository = ToolRepository()
+    tool_repository.add_tool(stub_fortran_compiler)
+    tool_repository.add_tool(stub_c_compiler)
+    tool_repository.add_tool(stub_linker)
+    tool_repository.set_default_compiler_suite("stub")
+    return tool_repository
 
 
 @fixture(scope='function')
