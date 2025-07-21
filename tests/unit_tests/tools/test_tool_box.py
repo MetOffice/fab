@@ -29,15 +29,22 @@ def test_constructor() -> None:
     assert isinstance(tb._all_tools, dict)
 
 
-def test_add_get_tool() -> None:
+def test_add_get_tool(monkeypatch) -> None:
     """
     Tests adding and retrieving tools.
 
     ToDo: There seems to be a lot of collusion between objects. Is there a
           looser way to couple this stuff?
     """
+
+    # Mark gfortran as available for now
+    tr = ToolRepository()
+    gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "gfortran")
+    monkeypatch.setattr(gfortran, 'check_available', lambda: True)
+
     tb = ToolBox()
-    # No tool is defined, so the default Fortran compiler must be returned:
+    # No tool is defined, so the default Fortran compiler from the
+    # ToolRepository must be returned:
     default_compiler = tb.get_tool(Category.FORTRAN_COMPILER,
                                    mpi=False, openmp=False)
     tr = ToolRepository()
