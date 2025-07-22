@@ -28,7 +28,7 @@ def setup_tool_repository(stub_fortran_compiler, stub_c_compiler,
     executed for any test in this file.
     '''
     # pylint: disable=protected-access
-    # Make sure we always get a new ToolRepo to be not affected by
+    # Make sure we always get a new ToolRepository to be not affected by
     # other tests:
     ToolRepository._singleton = None
 
@@ -39,7 +39,7 @@ def setup_tool_repository(stub_fortran_compiler, stub_c_compiler,
                      Category.LINKER]:
         tr[category] = []
 
-    # Add a compilers and linkers, and mark them all as available,
+    # Add compilers and linkers, and mark them all as available,
     # as well as supporting MPI and OpenMP (to reduce number of
     # command line options required).
     for tool in [stub_c_compiler, stub_fortran_compiler, stub_linker]:
