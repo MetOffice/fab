@@ -50,12 +50,7 @@ class FabBase:
     def __init__(self,
                  name: str,
                  link_target: str = "executable"):
-        link_target = link_target.lower()
-        valid_targets = ["executable", "static-library", "shared-library"]
-        if link_target not in valid_targets:
-            raise ValueError(f"Invalid parameter '{link_target}', must be "
-                             f"one of '{', '.join(valid_targets)}'.")
-        self._link_target = link_target
+        self.set_link_target(link_target)
         self._logger = logging.getLogger(__name__)
         self._site = None
         self._platform = None
@@ -116,6 +111,22 @@ class FabBase:
 
         if self._site_config:
             self._site_config.update_toolbox(self._config)
+
+    def set_link_target(self, link_target: str):
+        '''
+        Sets the link target.
+
+        :param link_target: what target should be created. Must be one of
+            "executable"s, "static-library", or "shared-library".
+
+        :raises ValueError: if the link_target is invalid
+        '''
+        link_target = link_target.lower()
+        valid_targets = ["executable", "static-library", "shared-library"]
+        if link_target not in valid_targets:
+            raise ValueError(f"Invalid parameter '{link_target}', must be "
+                             f"one of '{', '.join(valid_targets)}'.")
+        self._link_target = link_target
 
     def define_project_name(self, name: str) -> str:
         '''
