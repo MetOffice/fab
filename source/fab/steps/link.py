@@ -104,7 +104,8 @@ def link_shared_object(config, output_fpath: str, flags=None,
         An optional :class:`~fab.artefacts.ArtefactsGetter`.
         Typically not required, as there is a sensible default.
     """
-    linker = config.tool_box[Category.LINKER]
+    linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
+                                      openmp=config.openmp)
     logger.info(f'linker is {linker}')
 
     flags = flags or []
