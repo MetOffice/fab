@@ -49,10 +49,14 @@ def setup_tool_repository(stub_fortran_compiler, stub_c_compiler,
         tool._version = (1, 2, 3)
         tr.add_tool(tool)
 
-    # Remove all environment variables to make sure FC etc does not
-    # influence results
+    # Remove all environment variables to make sure FC etc (which will
+    # be picked up by FabBase) do not influence results
     with mock.patch.dict(os.environ, clear=True):
         yield
+
+    # Now reset the tool repository, so that other tests get
+    # the expected state.
+    ToolRepository._singleton = None
 
 
 def test_constructor(monkeypatch) -> None:
