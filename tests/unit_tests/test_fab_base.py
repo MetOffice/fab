@@ -379,7 +379,7 @@ def test_build_binary(monkeypatch) -> None:
 
     mocks["compile_c"][0].stop()
     mocks["compile_c"][1].assert_called_once_with(
-        fab_base.config, common_flags=[])
+        fab_base.config, common_flags=[], path_flags=None)
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
@@ -427,7 +427,7 @@ def test_build_static_lib(monkeypatch) -> None:
 
     mocks["compile_c"][0].stop()
     mocks["compile_c"][1].assert_called_once_with(
-        fab_base.config, common_flags=[])
+        fab_base.config, common_flags=[], path_flags=None)
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
@@ -479,7 +479,7 @@ def test_build_shared_lib(monkeypatch) -> None:
 
     mocks["compile_c"][0].stop()
     mocks["compile_c"][1].assert_called_once_with(
-        fab_base.config, common_flags=[])
+        fab_base.config, common_flags=[], path_flags=None)
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(

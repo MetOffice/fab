@@ -634,17 +634,27 @@ class FabBase:
         else:
             analyse(self.config, root_symbol=None)
 
-    def compile_c_step(self) -> None:
+    def compile_c_step(
+            self,
+            common_flags: Optional[List[str]] = None,
+            path_flags: Optional[List[AddFlags]] = None
+            ) -> None:
         """
         Calls Fab's compile_c. It passes the config for Fab to compile
         all C files. Optionally, common flags, path-specific flags and
         alternative source can also be passed to Fab for compilation.
         """
+        if not common_flags:
+            common_flags = []
+            assert isinstance(common_flags, list)
         compile_c(self.config,
-                  common_flags=self.c_compiler_flags_commandline)
+                  common_flags=(common_flags +
+                                self.c_compiler_flags_commandline),
+                  path_flags=path_flags)
 
     def compile_fortran_step(
             self,
+            common_flags: Optional[List[str]] = None,
             path_flags: Optional[List[AddFlags]] = None
             ) -> None:
         """
@@ -656,8 +666,11 @@ class FabBase:
         :param path_flags: optional list of path-specific flags to be passed
             to Fab compile_fortran, default is None.
         """
+        if not common_flags:
+            common_flags = []
         compile_fortran(self.config,
-                        common_flags=self.fortran_compiler_flags_commandline,
+                        common_flags=(common_flags +
+                                      self.fortran_compiler_flags_commandline),
                         path_flags=path_flags)
 
     def link_step(self) -> None:
