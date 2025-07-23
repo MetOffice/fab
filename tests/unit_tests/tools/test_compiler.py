@@ -190,7 +190,8 @@ def test_compiler_without_openmp(stub_fortran_compiler: FortranCompiler,
 
     Todo: Monkeying with private state.
     """
-    command = ['sfc', '-c', 'a.f90', '-o', 'a.o', '-mods', '/tmp', ]
+    command = ['sfc', '-I', '/tmp', '-mods', '/tmp',
+               '-c', 'a.f90', '-o', 'a.o']
     record = fake_process.register(command)
 
     stub_fortran_compiler.set_module_output_path(Path("/tmp"))
@@ -210,7 +211,8 @@ def test_compiler_with_openmp(stub_fortran_compiler: FortranCompiler,
 
     Todo: Monkeying with private state.
     """
-    command = ['sfc', '-c', '-omp', 'a.f90', '-o', 'a.o', '-mods', '/tmp']
+    command = ['sfc', '-I', '/tmp', '-mods', '/tmp',
+               '-c', '-omp', 'a.f90', '-o', 'a.o']
     record = fake_process.register(command)
 
     stub_fortran_compiler.set_module_output_path(Path("/tmp"))
@@ -228,7 +230,8 @@ def test_compiler_module_output(stub_fortran_compiler: FortranCompiler,
     """
     Tests handling of module output_flags.
     """
-    command = ['sfc', '-c', 'a.f90', '-o', 'a.o', '-mods', '/module_out']
+    command = ['sfc', '-I', '/module_out', '-mods', '/module_out',
+               '-c', 'a.f90', '-o', 'a.o']
     record = fake_process.register(command)
 
     stub_fortran_compiler.set_module_output_path(Path("/module_out"))
@@ -248,9 +251,11 @@ def test_compiler_with_add_args(stub_configuration: BuildConfig,
 
     Todo: Monkeying with private state.
     """
-    command_nomp = ['sfc', '-c', '-O3', 'a.f90', '-o', 'a.o',  '-mods', '/module_out']
+    command_nomp = ['sfc', '-I', '/module_out', '-mods', '/module_out',
+                    '-c', '-O3', 'a.f90', '-o', 'a.o']
     nomp_record = fake_process.register(command_nomp)
-    command_omp = ['sfc', '-c', '-omp', '-omp', '-O3', 'a.f90', '-o', 'a.o', '-mods', '/module_out']
+    command_omp = ['sfc',  '-I', '/module_out', '-mods', '/module_out',
+                   '-c', '-omp', '-omp', '-O3', 'a.f90', '-o', 'a.o']
     omp_record = fake_process.register(command_omp)
 
     stub_fortran_compiler.set_module_output_path(Path("/module_out"))

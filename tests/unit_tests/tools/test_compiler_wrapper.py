@@ -183,7 +183,8 @@ def test_fortran_with_add_args(stub_fortran_compiler: FortranCompiler,
                             config=stub_configuration)
     # Notice that "-mods /b" has been removed
     assert subproc_record.invocations() == [
-        ['mpif90', '-c', "-O3", 'a.f90', '-o', 'a.o', '-mods', '/module_out']
+        ['mpif90', '-I', '/module_out', '-mods', '/module_out',
+         '-c', '-O3', 'a.f90', '-o', 'a.o']
     ]
     assert subproc_record.extras()[0]['cwd'] == '.'
 
@@ -205,8 +206,8 @@ def test_fortran_unnecessary_openmp(stub_fortran_compiler: FortranCompiler,
                             add_flags=["-omp", "-O3"],
                             config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['mpif90', '-c', '-omp', '-O3', 'a.f90', '-o', 'a.o',
-         '-mods', '/module_out']
+        ['mpif90', '-I', '/module_out', '-mods', '/module_out', '-c', '-omp',
+         '-O3', 'a.f90', '-o', 'a.o']
     ]
     assert subproc_record.extras()[0]['cwd'] == '.'
 
