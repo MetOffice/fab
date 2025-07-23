@@ -273,13 +273,12 @@ def test_workspace(monkeypatch, change_into_tmpdir) -> None:
                                       str(new_workspace)])
     fab_base = FabBase(name="root_symbol_does_not_exit")
 
+    # Since FabBase itself requests Fab to find programs, Fab will happy
+    # do nothing if no main program is found. So this build will actually
+    # succeed.
     # Note that the project directories are only created once
     # build is called.
-    with pytest.raises(KeyError) as err:
-        fab_base.build()
-
-    # The build will abort since we have no source files, ignore this error:
-    assert "root_symbol_does_not_exit" in str(err.value)
+    fab_base.build()
 
     # Check that the project workspace is as expected:
     project_dir = fab_base.project_workspace
@@ -381,9 +380,12 @@ def test_build_binary(monkeypatch) -> None:
     mocks["compile_c"][1].assert_called_once_with(
         fab_base.config, common_flags=[], path_flags=None)
 
+    # When using FabBase directly (as we do here), it will request
+    # Fab to search for all programs to support zero-config. Check
+    # that indeed this flag is passed in.
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, root_symbol=["test"])
+        fab_base.config, find_programs=True)
 
 
 def test_build_static_lib(monkeypatch) -> None:
