@@ -639,9 +639,14 @@ class FabBase:
         """
         Calls Fab's analyse. It passes the config and root symbol for
         Fab to analyze the source code dependencies.
+
+        :find_programs: if set and an executable is created (see link_target),
+            the flag will be set in Fab's analyse step, which means it will
+            identify all main programs automatically.
         """
         if self._link_target == "executable":
-            if find_programs:
+            if find_programs or type(self).__name__ == "FabBase":
+                # Automatically find the main programs:
                 analyse(self.config, find_programs=True)
             else:
                 analyse(self.config, root_symbol=self.root_symbol)
