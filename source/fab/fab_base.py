@@ -49,7 +49,7 @@ class FabBase:
     # pylint: disable=too-many-instance-attributes
     def __init__(self,
                  name: str,
-                 link_target: str = "executable"):
+                 link_target: str = "executable") -> None:
         self.set_link_target(link_target)
         self._logger = logging.getLogger(__name__)
         self._site = None
@@ -59,7 +59,7 @@ class FabBase:
         self._target = ""
         # Set the given name as root symbol, it can be set explicitly
         # using set_root_symbol()
-        self._root_symbol = [name]
+        self._root_symbol: List[str] = [name]
 
         # The preprocessor flags to be used. One stores the common flags
         # (without path-specific component), the other the path-specific
@@ -112,7 +112,7 @@ class FabBase:
         if self._site_config:
             self._site_config.update_toolbox(self._config)
 
-    def set_link_target(self, link_target: str):
+    def set_link_target(self, link_target: str) -> None:
         '''
         Sets the link target.
 
@@ -247,7 +247,7 @@ class FabBase:
         """
         return self._linker_flags_commandline
 
-    def setup_site_specific_location(self):
+    def setup_site_specific_location(self) -> None:
         '''
         This method adds the required directories for site-specific
         configurations to the Python search path. This implementation will
@@ -635,13 +635,16 @@ class FabBase:
                            common_flags=self.preprocess_flags_common,
                            path_flags=self.preprocess_flags_path)
 
-    def analyse_step(self) -> None:
+    def analyse_step(self, find_programs: bool = False) -> None:
         """
         Calls Fab's analyse. It passes the config and root symbol for
         Fab to analyze the source code dependencies.
         """
         if self._link_target == "executable":
-            analyse(self.config, root_symbol=self.root_symbol)
+            if find_programs:
+                analyse(self.config, find_programs=True)
+            else:
+                analyse(self.config, root_symbol=self.root_symbol)
         else:
             analyse(self.config, root_symbol=None)
 
