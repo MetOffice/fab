@@ -360,6 +360,8 @@ class FortranCompiler(Compiler):
                                     else "")
         self._syntax_only_flag = syntax_only_flag
         self._module_output_path = ""
+        # I am not aware of any compiler not supporting -I, so it's hardcoded:
+        self._module_search_path_flag = "-I"
 
     @property
     def has_syntax_only(self) -> bool:
@@ -414,8 +416,19 @@ class FortranCompiler(Compiler):
 
         # Append module output path
         if self._module_folder_flag and self._module_output_path:
-            params.append(self._module_folder_flag)
-            params.append(self._module_output_path)
+            # Make sure to add the Fab module flags first, so that they
+            # will overwrite what is set up otherwise. An example of this
+            # is Jules, which provides its own dummy NetCDF module if
+            # NetCDF is disabled. The Fab flags must come before any
+            # module search path from the environment, otherwise
+            # a potentially existing NetCDF module would be found.
+            params.insert(0, self._module_folder_flag)
+            params.insert(1, self._module_output_path)
+            # It also looks like gfortran searches the module output
+            # path last, independent of the order. So just in case,
+            # also add an explicit include path:
+            params.insert(0, self._module_search_path_flag)
+            params.insert(1, self._module_output_path)
 
         return params
 
