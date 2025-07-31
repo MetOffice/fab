@@ -23,7 +23,7 @@ class TestRootIncFiles:
     """
     Tests include files are handled correctly.
     """
-    def test_vanilla(self, tmp_path: Path, recwarn) -> None:
+    def test_vanilla(self, tmp_path: Path, recwarn: WarningsRecorder) -> None:
         """
         Tests include files is coped to work directory.
         """
