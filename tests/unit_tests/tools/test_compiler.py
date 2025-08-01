@@ -6,15 +6,12 @@
 """
 Exercise compiler tools.
 """
-import os
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
 
 from pytest import mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
-
-from tests.conftest import arg_list, call_list
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -24,6 +21,8 @@ from fab.tools.compiler import (Compiler, CCompiler, FortranCompiler,
                                 Icc, Ifort,
                                 Icx, Ifx,
                                 Nvc, Nvfortran)
+
+from tests.conftest import arg_list, call_list
 
 
 def test_compiler() -> None:
@@ -148,15 +147,6 @@ def test_compiler_hash_invalid_version():
             cc.get_hash()
         assert ("Unexpected version output format for compiler 'gcc'"
                 in str(err.value))
-
-
-def test_compiler_with_env_fflags():
-    '''Test that content of FFLAGS is added to the compiler flags.'''
-    with mock.patch.dict(os.environ, FFLAGS='--foo --bar'):
-        cc = Gcc()
-        fc = Gfortran()
-        assert cc.get_flags() == ["--foo", "--bar"]
-        assert fc.get_flags() == ["--foo", "--bar"]
 
 
 def test_compiler_syntax_only():

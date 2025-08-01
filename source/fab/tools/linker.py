@@ -9,7 +9,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Dict, List, Optional, TYPE_CHECKING, Union
 import warnings
@@ -54,8 +53,6 @@ class Linker(CompilerSuiteTool):
             exec_name=compiler.exec_path,
             suite=self.suite,
             category=Category.LINKER)
-
-        self.add_flags(os.getenv("LDFLAGS", "").split())
 
         # Maintain a set of flags for common libraries.
         self._lib_flags: Dict[str, List[str]] = {}

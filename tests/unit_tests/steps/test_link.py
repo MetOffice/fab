@@ -27,14 +27,12 @@ class TestLinkExe:
     """
     def test_run(self, fake_process: FakeProcess, monkeypatch) -> None:
         """
-        Tests correct formation of command including FFLAGS.
+        Tests correct formation of command.
         """
-        monkeypatch.setenv('FFLAGS', '-L/foo1/lib -L/foo2/lib')
 
         version_command = ['sfc', '--version']
         fake_process.register(version_command, stdout='1.2.3')
-        link_command = ['sfc', '-L/foo1/lib', '-L/foo2/lib',
-                        'bar.o', 'foo.o',
+        link_command = ['sfc', 'bar.o', 'foo.o',
                         '-L/my/lib', '-lmylib', '-fooflag', '-barflag',
                         '-o', '/fab/link_test/foo']
         fake_process.register(link_command, stdout='abc\ndef')

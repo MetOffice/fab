@@ -35,9 +35,8 @@ def test_constructor() -> None:
 @mark.parametrize('rc', [0, 1])
 def test_fpp_is_available(rc, fake_process: FakeProcess) -> None:
     """
-    Tests availability check for "fpp" tool.
+    Tests availability check for Intel's "fpp" tool.
     """
-    # ToDo: This is Intel FPP syntax. Does it hold for other implementations?
     command = ['fpp', '-what']
     fake_process.register(command, returncode=rc)
 

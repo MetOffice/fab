@@ -8,9 +8,9 @@ Exercises
 """
 from os import walk as os_walk
 from pathlib import Path
-from pyfakefs.fake_filesystem import FakeFilesystem
 from typing import List
 
+from pyfakefs.fake_filesystem import FakeFilesystem
 from pytest import raises, warns, WarningsRecorder
 
 from fab.artefacts import ArtefactSet

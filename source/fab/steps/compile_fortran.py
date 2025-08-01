@@ -9,7 +9,6 @@ Fortran file compilation.
 """
 
 import logging
-import os
 import shutil
 from dataclasses import dataclass
 from itertools import chain
@@ -143,8 +142,7 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
         f'Fortran compiler is {compiler} {compiler.get_version_string()}')
 
     # Collate the flags from 1) flags env and 2) parameters.
-    env_flags = os.getenv('FFLAGS', '').split()
-    common_flags = env_flags + (common_flags or [])
+    common_flags = common_flags or []
     flags_config = FlagsConfig(common_flags=common_flags,
                                path_flags=path_flags)
 

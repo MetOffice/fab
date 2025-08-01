@@ -102,9 +102,6 @@ It filters just the (uppercase) ``.F90`` files.
 
     Uppercase ``.F90`` are preprocessed into lowercase ``.f90``.
 
-The Fortran preprocessor will read the :ref:`FPP<env_vars>` environment variable to determine which tool to call.
-
-
 .. code-block::
     :linenos:
     :caption: build_it.py
