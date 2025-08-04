@@ -375,7 +375,7 @@ class TestSubversionReal:
             try:
                 test_unit.export('svn://localhost/trunk', tmp_path)
             except Exception as ex:
-                if range == 0:
+                if retry == 0:
                     raise ex
                 sleep(1.0)
             else:
