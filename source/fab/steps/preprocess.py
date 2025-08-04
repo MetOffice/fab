@@ -137,8 +137,6 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
 
     Params as per :func:`~fab.steps.preprocess._pre_processor`.
 
-    The preprocessor is taken from the `FPP` environment, or falls back to `fpp -P`.
-
     If source is not provided, it defaults to
     `SuffixFilter(ArtefactStore.FORTRAN_BUILD_FILES, '.F90')`.
 
@@ -155,7 +153,6 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         raise RuntimeError(f"Unexpected tool '{fpp.name}' of type "
                            f"'{type(fpp)}' instead of CppFortran")
 
-    # make sure any flags from FPP are included in any common flags specified by the config
     try:
         common_flags = kwargs.pop('common_flags')
     except KeyError:
