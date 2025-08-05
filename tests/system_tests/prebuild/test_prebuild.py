@@ -20,9 +20,6 @@ from fab.util import file_walk
 class TestFortranPrebuild(object):
 
     def build_config(self, fab_workspace, grab_prebuild_folder=None):
-        # remove FFLAGS from the *mocked*, i.e copy of, the environment variables
-        if os.getenv('FFLAGS'):
-            del os.environ['FFLAGS']
 
         logging.getLogger('fab').setLevel(logging.WARNING)
 

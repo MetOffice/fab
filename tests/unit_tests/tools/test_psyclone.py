@@ -15,11 +15,11 @@ from unittest.mock import Mock
 from pytest import mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import call_list, not_found_callback
-
 from fab.tools.category import Category
 import fab.tools.psyclone  # Needed for mockery
 from fab.tools.psyclone import Psyclone
+
+from tests.conftest import call_list, not_found_callback
 
 
 def test_constructor():
@@ -30,6 +30,7 @@ def test_constructor():
     assert psyclone.category == Category.PSYCLONE
     assert psyclone.name == "psyclone"
     assert psyclone.exec_name == "psyclone"
+    # pylint: disable=use-implicit-booleaness-not-comparison
     assert psyclone.get_flags() == []
 
 

@@ -119,10 +119,10 @@ class CompilerWrapper(Compiler):
         :raises RuntimeError: if syntax_only is requested for a non-Fortran
             compiler.
         '''
-
         # We need to distinguish between Fortran and non-Fortran compiler,
         # since only a Fortran compiler supports the syntax-only flag.
         new_flags = Flags(add_flags)
+
         if self._compiler.category is Category.FORTRAN_COMPILER:
             # Mypy complains that self._compiler does not take the syntax
             # only parameter. Since we know it's a FortranCompiler.

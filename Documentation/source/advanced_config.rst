@@ -11,29 +11,9 @@ aspects of software building may require more esoteric Fab features.
 
 Understanding the Environment
 =============================
-
-Fab uses well-known environment variables to identify tools and configure them.
-
-
-.. list-table:: Environment variables
-
-   * - FPP
-     - Fortran preprocessor, e.g ``fpp`` or ``cpp -traditional-cpp -P``.
-       Fab imposes the ``-P``.
-   * - FC
-     - Fortran compiler, e.g ``gfortran`` or ``ifort -c``.
-       Fab imposes the ``-c``.
-   * - FFLAGS
-     - Fortran compiler flags..
-   * - CC
-     - C compiler.
-   * - CFLAGS
-     - C compiler flags.
-   * - LD
-     - Linker, e.g ``ld``.
-   * - LFLAGS
-     - Linker flags.
-
+Fab itself does not support any environment variables. But a user
+script can obviously query the environment and make use of environment
+variables, and provide their values to Fab.
 
 Configuration Reuse
 ===================
