@@ -253,7 +253,7 @@ def by_type(iterable, cls):
 def get_fab_workspace() -> Path:
     """
     Read the Fab workspace from the `FAB_WORKSPACE` environment variable,
-    defaulting to *~/fab-workspace*.
+    defaulting to ./fab-workspace*.
 
     """
     if os.getenv("FAB_WORKSPACE"):
