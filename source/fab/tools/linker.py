@@ -76,6 +76,12 @@ class Linker(CompilerSuiteTool):
         return self._compiler.suite
 
     @property
+    def compiler(self) -> Compiler:
+        '''
+        :returns: the wrapped compiler.'''
+        return self._compiler
+
+    @property
     def mpi(self) -> bool:
         '''
         :returns: whether this linker supports MPI or not by checking

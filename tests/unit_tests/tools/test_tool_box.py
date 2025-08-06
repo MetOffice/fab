@@ -53,6 +53,18 @@ def test_add_get_tool() -> None:
     assert gfortran is tr_gfortran
 
 
+def test_has(stub_fortran_compiler) -> None:
+    """
+    Tests checking if a tool is specified in a tool box or not.
+    """
+    tb = ToolBox()
+
+    assert tb.has(Category.FORTRAN_COMPILER) is False
+    stub_fortran_compiler._is_available = True
+    tb.add_tool(stub_fortran_compiler)
+    assert tb.has(Category.FORTRAN_COMPILER) is True
+
+
 def test_tool_replacement() -> None:
     """
     Tests tool replacement functionality.
