@@ -7,12 +7,14 @@
 Tests ToolBox class.
 """
 from pathlib import Path
+from typing import cast
+
 from pytest import mark, raises
 from pytest_subprocess.fake_process import FakeProcess
 
 from fab.tools.ar import Ar
 from fab.tools.category import Category
-from fab.tools.compiler import FortranCompiler, Gcc, Gfortran, Ifort
+from fab.tools.compiler import Compiler, FortranCompiler, Gcc, Gfortran, Ifort
 from fab.tools.compiler_wrapper import Mpif90
 from fab.tools.tool_repository import ToolRepository
 
@@ -222,6 +224,7 @@ def test_default_gcc_suite(category, fake_process: FakeProcess) -> None:
     tr = ToolRepository()
     tr.set_default_compiler_suite('gnu')
     def_tool = tr.get_default(category, mpi=False, openmp=False)
+    def_tool = cast(Compiler, def_tool)
     assert def_tool.suite == 'gnu'
 
 
@@ -239,6 +242,7 @@ def test_default_intel_suite(category, fake_process: FakeProcess) -> None:
     tr = ToolRepository()
     tr.set_default_compiler_suite('intel-classic')
     def_tool = tr.get_default(category, mpi=False, openmp=False)
+    def_tool = cast(Compiler, def_tool)
     assert def_tool.suite == 'intel-classic'
 
 
