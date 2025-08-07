@@ -15,7 +15,7 @@ from unittest import mock
 import pytest
 
 from fab.build_config import AddFlags
-from fab.fab_base import FabBase
+from fab.fab_base.fab_base import FabBase
 from fab.tools import Category, ToolRepository
 
 
@@ -355,7 +355,7 @@ def test_build_binary(monkeypatch) -> None:
     for function_name in ["grab_folder", "find_source_files",
                           "preprocess_c", "preprocess_fortran",
                           "compile_fortran", "compile_c", "analyse"]:
-        patcher = mock.patch(f"fab.fab_base.{function_name}")
+        patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
         mocks[function_name] = (patcher, patcher.start())
 
     fab_base.build()
@@ -406,7 +406,7 @@ def test_build_static_lib(monkeypatch) -> None:
     for function_name in ["grab_folder", "find_source_files", "preprocess_c",
                           "preprocess_fortran", "compile_fortran",
                           "compile_c", "analyse", "archive_objects"]:
-        patcher = mock.patch(f"fab.fab_base.{function_name}")
+        patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
         mocks[function_name] = (patcher, patcher.start())
 
     fab_base.build()
@@ -458,7 +458,7 @@ def test_build_shared_lib(monkeypatch) -> None:
     for function_name in ["grab_folder", "find_source_files", "preprocess_c",
                           "preprocess_fortran", "compile_fortran",
                           "compile_c", "analyse", "link_shared_object"]:
-        patcher = mock.patch(f"fab.fab_base.{function_name}")
+        patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
         mocks[function_name] = (patcher, patcher.start())
 
     fab_base.build()

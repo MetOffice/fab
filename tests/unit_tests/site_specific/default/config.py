@@ -11,12 +11,6 @@ from typing import List
 from fab.build_config import BuildConfig
 from fab.tools import Category, ToolRepository
 
-from fab.site_specific.default.setup_cray import setup_cray
-from fab.site_specific.default.setup_gnu import setup_gnu
-from fab.site_specific.default.setup_intel_classic import setup_intel_classic
-from fab.site_specific.default.setup_intel_llvm import setup_intel_llvm
-from fab.site_specific.default.setup_nvidia import setup_nvidia
-
 
 class Config:
     '''
@@ -89,63 +83,3 @@ class Config:
         # Keep a copy of the args, so they can be used when
         # initialising compilers
         self._args = args
-
-    def setup_cray(self, build_config: BuildConfig) -> None:
-        '''
-        This method sets up the Cray compiler and linker flags.
-        For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
-
-        :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
-        '''
-        setup_cray(build_config, self.args)
-
-    def setup_gnu(self, build_config: BuildConfig) -> None:
-        '''
-        This method sets up the Gnu compiler and linker flags.
-        For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
-
-        :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
-        '''
-        setup_gnu(build_config, self.args)
-
-    def setup_intel_classic(self, build_config: BuildConfig) -> None:
-        '''
-        This method sets up the Intel classic compiler and linker flags.
-        For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
-
-        :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
-        '''
-        setup_intel_classic(build_config, self.args)
-
-    def setup_intel_llvm(self, build_config: BuildConfig) -> None:
-        '''
-        This method sets up the Intel LLVM compiler and linker flags.
-        For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
-
-        :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
-        '''
-        setup_intel_llvm(build_config, self.args)
-
-    def setup_nvidia(self, build_config: BuildConfig) -> None:
-        '''
-        This method sets up the Nvidia compiler and linker flags.
-        For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
-
-        :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
-        '''
-        setup_nvidia(build_config, self.args)
