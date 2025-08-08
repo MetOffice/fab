@@ -82,11 +82,11 @@ See also
    advanced_config
    site-specific-config
    features
-   introduction
-   processing
-   config
-   examples
-   usage_patterns
+   fab_base/introduction
+   fab_base/processing
+   fab_base/config
+   fab_base/examples
+   fab_base/usage_patterns
    Api Reference <api>
    development
    glossary

@@ -323,9 +323,6 @@ objects. Example usage:
                         path_filters.append(Include(science_root /
                                                     section / path))
 
-This class is described in more details in the
-:ref:`Tools Section<fcm_extract>`.
-
 ``define_preprocessor_flags_step``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

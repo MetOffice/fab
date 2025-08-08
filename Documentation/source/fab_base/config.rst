@@ -1,4 +1,4 @@
-.. _site_specific_config:
+.. _site_specific_configuration_files:
 
 Site-specific Configuration Files
 =================================
