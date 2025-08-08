@@ -108,16 +108,16 @@ def test_get_tool_error():
 def test_get_default(stub_tool_repository, stub_fortran_compiler,
                      stub_c_compiler) -> None:
     '''Tests get_default.'''
-    tr = stub_tool_repository
-    fc = tr.get_default(Category.FORTRAN_COMPILER, mpi=False,
-                        openmp=False)
+    fc = stub_tool_repository.get_default(Category.FORTRAN_COMPILER, mpi=False,
+                                          openmp=False)
     assert fc is stub_fortran_compiler
 
-    cc = tr.get_default(Category.C_COMPILER, mpi=False, openmp=False)
+    cc = stub_tool_repository.get_default(Category.C_COMPILER, mpi=False,
+                                          openmp=False)
     assert cc is stub_c_compiler
 
     # Test a non-compiler
-    ar = tr.get_default(Category.AR)
+    ar = stub_tool_repository.get_default(Category.AR)
     assert isinstance(ar, Ar)
 
 
