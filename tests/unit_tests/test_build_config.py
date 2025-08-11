@@ -55,17 +55,17 @@ class TestBuildConfig:
 
         this_dir = Path.cwd()
         config = BuildConfig('proj', ToolBox())
-        assert config.project_workspace == this_dir / "fab-workspace" / "proj"
+        assert config.project_workspace == this_dir / 'fab-workspace' / 'proj'
 
-        some_dir = Path("/some_dir")
+        some_dir = Path('/some_dir')
         config = BuildConfig('proj', ToolBox(), fab_workspace=some_dir)
-        assert config.project_workspace == some_dir / "proj"
+        assert config.project_workspace == some_dir / 'proj'
 
         # Test again the expected behaviour from a different directory,
-        # to ensure that Fab correctly querier cwd
+        # to ensure that Fab correctly queries cwd
         os.chdir(tmpdir)
         config = BuildConfig('proj', ToolBox())
-        assert config.project_workspace == tmpdir / "fab-workspace" / "proj"
+        assert config.project_workspace == tmpdir / 'fab-workspace' / 'proj'
 
     @mock.patch.dict('os.environ', {'FAB_WORKSPACE': '/FAB'})
     def test_fab_workspace_with_env(self):
@@ -74,11 +74,10 @@ class TestBuildConfig:
         variable FAB_WORKSPACE is defined.
         '''
 
-        fab_dir = Path("/FAB")
         config = BuildConfig('proj', ToolBox())
-        assert config.project_workspace == fab_dir / "proj"
+        assert config.project_workspace == Path('/FAB') / 'proj'
 
         # An explicit option should overwrite FAB_WORKSPACE
-        some_dir = Path("/some_dir")
+        some_dir = Path('/some_dir')
         config = BuildConfig('proj', ToolBox(), fab_workspace=some_dir)
-        assert config.project_workspace == some_dir / "proj"
+        assert config.project_workspace == some_dir / 'proj'
