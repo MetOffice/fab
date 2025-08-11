@@ -107,6 +107,11 @@ class BuildConfig():
         # workspace folder
         if not fab_workspace:
             fab_workspace = get_fab_workspace()
+
+        # Make sure fab_workspace is an absolute path, some tools
+        # (esp. compiler) change working directory and so need
+        # absolute paths.
+        fab_workspace = fab_workspace.resolve()
         logger.info(f"fab workspace is {fab_workspace}")
 
         self._project_workspace: Path = fab_workspace / self.project_label
