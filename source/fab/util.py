@@ -259,7 +259,7 @@ def get_fab_workspace() -> Path:
     if os.getenv("FAB_WORKSPACE"):
         fab_workspace = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
     else:
-        fab_workspace = Path(os.path.expanduser("./fab-workspace"))
+        fab_workspace = Path("./fab-workspace")
     return fab_workspace
 
 
