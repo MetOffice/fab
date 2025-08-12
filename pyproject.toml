@@ -39,10 +39,10 @@ dev = [
 fab = 'fab.cli:cli_fab'
 
 [project.urls]
-homepage = 'https://github.com/Metomi/fab'
-documentation = 'https://metomi.github.io/fab/'
-repository = 'https://github.com/metomi/fab'
-'Bug Reports' = 'https://github.com/metomi/fab/issues'
+homepage = 'https://github.com/MetOffice/fab'
+documentation = 'https://MetOffice.github.io/fab'
+repository = 'https://github.com/MetOffice/fab'
+'Bug Reports' = 'https://github.com/MetOffice/fab/issues'
 
 [tool.setuptools.packages.find]
 where = ['source']

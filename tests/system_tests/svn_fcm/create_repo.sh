@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # I had to do this a few times to get it right. It was a bit time consuming,
 # and I realised it might be useful to put it in a script so we can
 # reproduce it quickly and easily, and so others can see what's in the repo
@@ -6,18 +7,20 @@ set -e
 
 svnadmin create repo
 
-# Create the inital files in trunk.
+# Create the initial files in trunk.
 mkdir import
 
-echo "This is sentence one in file one." >> import/file1.txt
-echo "" >> import/file1.txt
-echo "This is sentence two in file one." >> import/file1.txt
-echo "" >> import/file1.txt
+echo "This is sentence one in file one.
 
-echo "This is sentence one in file two." >> import/file2.txt
-echo "" >> import/file2.txt
-echo "This is sentence two in file two." >> import/file2.txt
-echo "" >> import/file2.txt
+This is sentence two in file one.
+
+" >> import/file1.txt
+
+echo "This is sentence one in file two.
+
+This is sentence two in file two.
+
+" >> import/file2.txt
 
 svn import import/ file://$PWD/repo/proj/main/trunk -m "initial commit"
 rm -rf import

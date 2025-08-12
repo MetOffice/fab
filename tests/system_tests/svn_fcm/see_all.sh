@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # use this to see all the branches we expect to be created by create_repo.sh
 set -e
 

@@ -9,19 +9,18 @@ Tests tooling base classes.
 import logging
 from pathlib import Path
 
+from fab.tools.category import Category
+from fab.tools.flags import ProfileFlags
+from fab.tools.tool import CompilerSuiteTool, Tool
 from pytest import raises
 from pytest_subprocess.fake_process import FakeProcess
 
 from tests.conftest import ExtendedRecorder, call_list, not_found_callback
 
-from fab.tools.category import Category
-from fab.tools.flags import ProfileFlags
-from fab.tools.tool import CompilerSuiteTool, Tool
-
 
 def test_constructor() -> None:
     """
-    Tests comstruction from argument list.
+    Tests construction from argument list.
     """
     tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
     assert str(tool) == "Tool - gnu: gfortran"
