@@ -105,9 +105,10 @@ class TestArchiveObjects:
         config = BuildConfig('proj', stub_tool_box)
         cc = stub_tool_box.get_tool(Category.C_COMPILER, config.mpi,
                                     config.openmp)
-        # And set its category to be AR. Use monkeypatch (https://docs.pytest.org/en/6.2.x/monkeypatch.html) since the compiler
-        # might come from the ToolRepository (in which case it could be
-        # shared with other, parallel running tests).
+        # And set its category to be AR. Use monkeypatch
+        # (https://docs.pytest.org/en/6.2.x/monkeypatch.html) since the
+        # compiler might come from the ToolRepository (in which case it
+        # could be shared with other, parallel running tests).
         monkeypatch.setattr(cc, "_category", Category.AR)
         # Now add this 'ar' tool to the tool box
         stub_tool_box.add_tool(cc)
