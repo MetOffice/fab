@@ -78,15 +78,6 @@ def test_linker_openmp(openmp: bool) -> None:
     assert wrapped_linker.openmp == openmp
 
 
-def test_gets_ldflags(stub_c_compiler: CCompiler, monkeypatch) -> None:
-    """
-    Tests linker retrieves LDFLAGS environment variable.
-    """
-    monkeypatch.setenv('LDFLAGS', '-lm')
-    linker = Linker(compiler=stub_c_compiler)
-    assert "-lm" in linker.get_flags()
-
-
 def test_check_available(stub_c_compiler: CCompiler,
                          fake_process: FakeProcess) -> None:
     """
@@ -300,8 +291,6 @@ def test_linker_all_flag_types(stub_c_compiler: CCompiler,
 
     Todo: Monkeying with private state.
     """
-    # Environment variables for both the linker
-    monkeypatch.setenv('LDFLAGS', '-ldflag')
 
     linker = Linker(compiler=stub_c_compiler)
 
@@ -317,7 +306,7 @@ def test_linker_all_flag_types(stub_c_compiler: CCompiler,
     linker.link([Path("a.o")], Path("a.out"),
                 libs=["customlib2", "customlib1"], config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['scc', "-ldflag", "-linker-flag1", "-linker-flag2",
+        ['scc', "-linker-flag1", "-linker-flag2",
          "-compiler-flag1", "-compiler-flag2",
          "-omp",
          "a.o",
@@ -381,14 +370,14 @@ def test_linker_profile_flags_inheriting(stub_c_compiler):
     """
     Tests nested compiler and nested linker with inherited profiling flags.
     """
-    compiler_wrapper = CompilerWrapper(name="mock_c_compiler_wrapper",
-                                       compiler=stub_c_compiler,
-                                       exec_name="exec_name")
-    linker = Linker(compiler_wrapper)
-    linker_wrapper = Linker(compiler_wrapper, linker=linker)
+    stub_c_compiler_wrapper = CompilerWrapper(name="stub_c_compiler_wrapper",
+                                              compiler=stub_c_compiler,
+                                              exec_name="exec_name")
+    linker = Linker(stub_c_compiler_wrapper)
+    linker_wrapper = Linker(stub_c_compiler_wrapper, linker=linker)
 
     count = 0
-    for compiler in [stub_c_compiler, compiler_wrapper]:
+    for compiler in [stub_c_compiler, stub_c_compiler_wrapper]:
         compiler.define_profile("base")
         compiler.define_profile("derived", "base")
         compiler.add_flags(f"-f{count}", "base")
@@ -400,31 +389,29 @@ def test_linker_profile_flags_inheriting(stub_c_compiler):
             ["-f0", "-f1", "-f2", "-f3", "-f0", "-f1", "-f2", "-f3"])
 
 
-def test_linker_profile_modes(stub_fortran_compiler):
-    """
-    Tests defining a profile mode in a linker will also define
+def test_linker_profile_modes(stub_linker):
+    '''Test that defining a profile mode in a linker will also define
     the same modes in post- and pre-flags
 
     ToDo: Monkeying with internal state.
-    """
-    linker = Linker(stub_fortran_compiler)
+    '''
 
     # Make sure that we get the expected errors at the start:
     with raises(KeyError) as err:
-        _ = linker._pre_lib_flags["base"]
+        stub_linker._pre_lib_flags["base"]
     assert "Profile 'base' is not defined" in str(err.value)
     with raises(KeyError) as err:
-        _ = linker._post_lib_flags["base"]
+        stub_linker._post_lib_flags["base"]
     assert "Profile 'base' is not defined" in str(err.value)
 
-    linker.define_profile("base")
-    assert linker._pre_lib_flags["base"] == []
-    assert "base" not in linker._pre_lib_flags._inherit_from
-    assert linker._post_lib_flags["base"] == []
-    assert "base" not in linker._post_lib_flags._inherit_from
+    stub_linker.define_profile("base")
+    assert stub_linker._pre_lib_flags["base"] == []
+    assert "base" not in stub_linker._pre_lib_flags._inherit_from
+    assert stub_linker._post_lib_flags["base"] == []
+    assert "base" not in stub_linker._post_lib_flags._inherit_from
 
-    linker.define_profile("full-debug", "base")
-    assert linker._pre_lib_flags["full-debug"] == []
-    assert linker._pre_lib_flags._inherit_from["full-debug"] == "base"
-    assert linker._post_lib_flags["full-debug"] == []
-    assert linker._post_lib_flags._inherit_from["full-debug"] == "base"
+    stub_linker.define_profile("full-debug", "base")
+    assert stub_linker._pre_lib_flags["full-debug"] == []
+    assert stub_linker._pre_lib_flags._inherit_from["full-debug"] == "base"
+    assert stub_linker._post_lib_flags["full-debug"] == []
+    assert stub_linker._post_lib_flags._inherit_from["full-debug"] == "base"

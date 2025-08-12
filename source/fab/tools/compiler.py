@@ -8,7 +8,6 @@
 classes for gcc, gfortran, icc, ifort
 """
 
-import os
 import re
 from pathlib import Path
 import warnings
@@ -114,12 +113,10 @@ class Compiler(CompilerSuiteTool):
                 zlib.crc32(self.get_version_string().encode()))
 
     def get_flags(self, profile: Optional[str] = None) -> List[str]:
-        '''Determines the flags to be used. We should always add $FFLAGS,so
-        we always add them in here.
+        '''Determines the flags to be used.
 
         :returns: the flags to be used with this tool.'''
-        fflags = os.getenv("FFLAGS", "").split()
-        return self._flags[profile] + fflags
+        return self._flags[profile]
 
     def get_all_commandline_options(
             self,

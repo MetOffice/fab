@@ -36,7 +36,6 @@ logger = logging.getLogger(__name__)
 def preprocess_x90(config, common_flags: Optional[List[str]] = None):
     common_flags = common_flags or []
 
-    # get the tool from FPP
     fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
     source_files = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.X90')(config.artefact_store)
 

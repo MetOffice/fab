@@ -8,7 +8,6 @@ C file compilation.
 
 """
 import logging
-import os
 from dataclasses import dataclass
 from typing import cast, Dict, List, Optional, Tuple
 
@@ -66,8 +65,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     """
     # todo: tell the compiler (and other steps) which artefact name to create?
 
-    env_flags = os.getenv('CFLAGS', '').split()
-    common_flags = env_flags + (common_flags or [])
+    common_flags = common_flags or []
 
     flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
     source_getter = source or DEFAULT_SOURCE_GETTER

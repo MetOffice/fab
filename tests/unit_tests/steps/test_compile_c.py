@@ -71,19 +71,17 @@ class TestCompileC:
     '''Test various functionalities of the C compilation step.'''
 
     def test_vanilla(self, content,
-                     fake_process: FakeProcess, monkeypatch) -> None:
+                     fake_process: FakeProcess) -> None:
         """
         Tests correct use of compiler.
         """
         config, _ = content
 
-        monkeypatch.setenv('CFLAGS', '-Denv_flag')
-
         fake_process.register(['scc', '--version'], stdout='1.2.3')
         fake_process.register([
-            'scc', '-c', '-Denv_flag', '-I', 'foo/include',
+            'scc', '-c', '-I', 'foo/include',
             '-Dhello', 'foo.c',
-            '-o', str(config.prebuild_folder / 'foo.13b443ed6.o')
+            '-o', str(config.prebuild_folder / 'foo.18f203cab.o')
         ])
         with warns(UserWarning, match="_metric_send_conn not set, "
                                       "cannot send metrics"):
@@ -94,7 +92,7 @@ class TestCompileC:
 
         # ensure it created the correct artefact collection
         assert config.artefact_store[ArtefactSet.OBJECT_FILES] == {
-            None: {config.prebuild_folder / 'foo.13b443ed6.o', }
+            None: {config.prebuild_folder / 'foo.18f203cab.o', }
         }
 
     def test_exception_handling(self, content,

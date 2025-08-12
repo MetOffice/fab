@@ -9,26 +9,24 @@ Tests linking a shared library.
 from pytest import warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import call_list
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.link import link_shared_object
 from fab.tools.compiler import FortranCompiler
 from fab.tools.linker import Linker
 
+from tests.conftest import call_list
+
 
 def test_run(stub_configuration: BuildConfig,
              stub_fortran_compiler: FortranCompiler,
-             fake_process: FakeProcess, monkeypatch) -> None:
+             fake_process: FakeProcess) -> None:
     """
     Tests the construction of the command.
     """
-    monkeypatch.setenv('FFLAGS', '-L/foo1/lib -L/foo2/lib')
-
     version_command = ['sfc', '-L/foo1/lib', '-L/foo2/lib', '--version']
     fake_process.register(version_command, stdout='1.2.3')
-    link_command = ['sfc', '-L/foo1/lib', '-L/foo2/lib', 'bar.o', 'foo.o',
+    link_command = ['sfc', 'bar.o', 'foo.o',
                     '-fooflag', '-barflag', '-fPIC', '-shared',
                     '-o', '/tmp/lib_my.so']
     fake_process.register(link_command, stdout='abc\ndef')
