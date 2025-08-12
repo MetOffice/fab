@@ -13,13 +13,11 @@ mkdir import
 echo "This is sentence one in file one.
 
 This is sentence two in file one.
-
 " >> import/file1.txt
 
 echo "This is sentence one in file two.
 
 This is sentence two in file two.
-
 " >> import/file2.txt
 
 svn import import/ file://$PWD/repo/proj/main/trunk -m "initial commit"

@@ -10,7 +10,6 @@ git init .
 echo "This is sentence one in file one.
 
 This is sentence two in file one.
-
 " >> file1.txt
 
 git add file1.txt
