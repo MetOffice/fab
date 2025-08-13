@@ -4,7 +4,7 @@ description = "Build system for scientific software"
 authors = [
     {name = "Core Capabilities Development Team", email = 'CoreCapabilityDevelopmentTeam@metoffice.gov.uk'}
 ]
-license = {file = 'LICENSE.txt'}
+license = {file = 'LICENSE'}
 dynamic = ['version', 'readme']
 requires-python = '>=3.9, <4'
 dependencies = ['fparser >= 0.2']

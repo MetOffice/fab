@@ -29,11 +29,25 @@ jobs:
     - name: Install documentation tools
       run: pip install .[docs]
 
+    - name: Install LaTeX packages
+      run: |
+        sudo apt update -y
+        sudo apt install -y \
+          texlive-latex-base \
+          texlive-latex-recommended \
+          texlive-fonts-recommended
+          # texlive-latex-extra
+
     - name: Generate documentation
       run: |
         cd Documentation
-        sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
-        make html
+        # sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
+        make clean html latexpdf
+
+    - name: Copy PDF to HTML build directory
+      run: |
+        PDF=$(ls Documentation/build/latex/*.pdf | head -n 1)
+        cp "$PDF" Documentation/build/html/
 
     - name: Prepare and upload asset
       uses: actions/upload-pages-artifact@v3
@@ -47,7 +61,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{steps.deploy-documentation.outputs.page_url}}
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     needs: sphinx-build
     steps:
