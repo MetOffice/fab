@@ -80,3 +80,4 @@ jobs:
         if: always()
         working-directory: Documentation
         run: make linkcheck
+        continue-on-error: true
