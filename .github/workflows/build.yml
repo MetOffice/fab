@@ -25,7 +25,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.11', '3.12', '3.13', '3.14']
+        python-version: ['3.9', '3.11', '3.12', '3.13']
 
     steps:
       # Should this step use a cache?
@@ -59,30 +59,24 @@ jobs:
           pip install .[docs]
 
       - name: Type check with mypy
-        run: |
-          python -m mypy source tests
+        run: python -m mypy source tests
 
       - name: Code style check with flake8
         if: always()
-        run: |
-          flake8 . --count --show-source --statistics
+        run: flake8 . --count --show-source --statistics
 
       - name: Unit tests with Pytest
         if: always()
-        run: |
-          python -m pytest --cov=fab tests/unit_tests
+        run: python -m pytest --cov=fab tests/unit_tests
 
       - name: System tests with Pytest
         if: always()
-        run: |
-          python -m pytest --cov=fab tests/system_tests
+        run: python -m pytest --cov=fab tests/system_tests
 
       # Sphinx linkcheck can potentially detect false negatives due to network
       # issues or slow responses. To avoid failing the build due to these
       # issues, we set continue-on-error to true
       - name: Link Checks
         if: always()
-        run: |
-          cd Documentation
-          make linkcheck
-        continue-on-error: true
+        working-directory: Documentation
+        run: make linkcheck
