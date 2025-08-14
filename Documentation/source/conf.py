@@ -110,7 +110,7 @@ typehints_defaults = 'braces-after'
 
 # linkcheck (too slow, prone to false positives)
 linkcheck_anchors = False  # Disable anchor checking, as it is too slow and not
-linkcheck_allow_redirects = True # Allow redirects to pass
+linkcheck_allow_redirects = True  # Allow redirects to pass
 linkcheck_ignore = [
     "https://metoffice.sharepoint.com",  # Ignore SharePoint links
     r'.*\.py$',  # Ignores URLs ending with .py

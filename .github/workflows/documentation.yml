@@ -3,8 +3,12 @@ name: Build Documentation
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   sphinx-build:
