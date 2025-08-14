@@ -17,14 +17,19 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.11', '3.12', '3.13', '3.14']
 
     steps:
       # Should this step use a cache?
       #
+      # No, this step does not need a cache. It is only installing system
+      # packages (compilers and libraries) using apt, which is not affected
+      # by GitHub Actions cache actions. Caching is more useful for
+      # dependencies installed via pip or other package managers that support
+      # caching.
       - name: Setup Compiler
         run: |
-          sudo apt-get -y install llvm clang libclang-dev gcc gfortran
+          sudo apt install -y llvm clang libclang-dev gcc gfortran
 
       - uses: actions/checkout@v4
         with:
@@ -41,7 +46,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-          pip install clang==14.0
+          pip install clang==18.1.8
 
       - name: Type check with mypy
         run: |
@@ -63,3 +68,14 @@ jobs:
         run: |
           pip install .[dev]
           python -m pytest --cov=fab tests/system_tests
+
+      # Sphinx linkcheck can potentially detect false negatives due to network
+      # issues or slow responses. To avoid failing the build due to these
+      # issues, we set continue-on-error to true
+      - name: Link Checks
+        if: always()
+        run: |
+          pip install .[docs]
+          cd Documentation
+          make linkcheck
+        continue-on-error: true
