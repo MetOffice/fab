@@ -1,6 +1,0 @@
-features.rst:124: [broken] https://github.com/metomi/fab/issues/192: 404 Client Error: Not Found for url: https://github.com/metomi/fab/issues/192
-features.rst:84: [redirected permanently] https://github.com/metomi/fab/issues to https://github.com/MetOffice/fab/issues
-environment.rst:121: [redirected with Found] https://github.com/metomi/fab/tree/master/envs/docker to https://github.com/MetOffice/fab/tree/main/envs/docker
-advanced_config.rst:25: [redirected with Found] https://github.com/metomi/fab/tree/master/run_configs to https://github.com/MetOffice/fab/tree/main/run_configs
-index.rst:68: [redirected permanently] https://github.com/metomi/fab/wiki to https://github.com/MetOffice/fab/wiki
-environment.rst:38: [redirected permanently] https://github.com/metomi/fab to https://github.com/MetOffice/fab
