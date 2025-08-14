@@ -109,7 +109,7 @@ autosectionlabel_prefix_document = True
 typehints_defaults = 'braces-after'
 
 # linkcheck (too slow, prone to false positives)
-linkcheck_anchors = False  # Disable anchor checking, as it is too slow and not
+# linkcheck_anchors = False  # Disable anchor checking, as it is too slow and not
 linkcheck_allow_redirects = True  # Allow redirects to pass
 linkcheck_ignore = [
     "https://metoffice.sharepoint.com",  # Ignore SharePoint links
