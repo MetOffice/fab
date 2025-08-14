@@ -108,7 +108,7 @@ class FabLogFilter(logging.Filter):
             # Filter out everything except errors in quiet mode
             return False
 
-        if level <= 0 and record.levelno < logging.WARNING:
+        if (level is None or level <= 0) and record.levelno < logging.WARNING:
             # Filter out anything below warning
             return False
 
