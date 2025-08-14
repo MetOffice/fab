@@ -81,7 +81,7 @@ jobs:
         working-directory: Documentation
         run: |
           sphinx-build -q -b linkcheck \
-            -d _build/doctrees source _build/linkcheck || true
+            -d build/doctrees source build/linkcheck || true
           echo "== Ignored links, if any =="
-          jq -c 'select(.status == "ignored")' _build/linkcheck/output.json
+          jq -c 'select(.status == "ignored")' build/linkcheck/output.json
         continue-on-error: true
