@@ -51,7 +51,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-          pip install clang==18
+          pip install clang==18.1.8
           pip install .[dev]
           pip install .[docs]
 
