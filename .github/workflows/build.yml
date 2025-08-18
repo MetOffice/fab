@@ -11,6 +11,8 @@ on:
       - v*.*
 
 concurrency:
+  # cancel any in-progress runs for the same group (branch/tag) {{github.ref}}
+  # if a new run is triggered, except for the main branch
   group: ${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
@@ -21,22 +23,17 @@ jobs:
       contents: read
       pull-requests: write
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       max-parallel: 4
       matrix:
         python-version: ['3.9', '3.11', '3.12', '3.13']
 
     steps:
-      # Should this step use a cache?
-      #
-      # No, this step does not need a cache. It is only installing system
-      # packages (compilers and libraries) using apt, which is not affected
-      # by GitHub Actions cache actions. Caching is more useful for
-      # dependencies installed via pip or other package managers that support
-      # caching.
+      # This step does not need a GA cache
       - name: Setup Compiler
         run: |
+          sudo apt update -y
           sudo apt install -y llvm clang libclang-dev gcc gfortran
 
       - uses: actions/checkout@v4
@@ -53,9 +50,9 @@ jobs:
       - name: Install Python libraries
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install clang==14.0
-          pip install -e .[dev]
+          pip install .
+          pip install clang==18
+          pip install .[dev]
           pip install .[docs]
 
       - name: Type check with mypy
@@ -82,6 +79,7 @@ jobs:
         run: |
           sphinx-build -q -b linkcheck \
             -d build/doctrees source build/linkcheck || true
-          echo "== Ignored links, if any =="
-          jq -c 'select(.status == "ignored")' build/linkcheck/output.json
+          echo "== Ignored and Redirected links, if any =="
+          jq -c 'select([.status] | inside(["ignored", "redirected"]))' \
+            build/linkcheck/output.json
         continue-on-error: true

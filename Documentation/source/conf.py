@@ -108,11 +108,11 @@ autosectionlabel_prefix_document = True
 # include default values in argument descriptions
 typehints_defaults = 'braces-after'
 
-# linkcheck (too slow, prone to false positives)
-# linkcheck_anchors = False  # Disable anchor checking, as it is too slow and not
+# linkcheck builder
 linkcheck_allow_redirects = True  # Allow redirects to pass
 linkcheck_ignore = [
     "https://metoffice.sharepoint.com",  # Ignore SharePoint links
     r'.*\.py$',  # Ignores URLs ending with .py
 ]
 linkcheck_timeout = 2
+linkcheck_allow_unauthorized = True  # Allow unauthorized links to pass

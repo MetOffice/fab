@@ -15,6 +15,9 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    env:
+      cache-name: python-docs-cache
+
     steps:
     - name: Cache Python packages
       uses: actions/cache@v4
@@ -44,8 +47,8 @@ jobs:
           # texlive-latex-extra
 
     - name: Generate documentation
+      working-directory: Documentation
       run: |
-        cd Documentation
         # sphinx build already creates separates packages and modules tree
         # is this really necessary?
         # sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
