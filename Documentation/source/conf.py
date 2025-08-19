@@ -41,7 +41,7 @@ extensions = [
     'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
-    'sphinx.ext.imgconverter',
+    'sphinxcontrib.rsvgconverter',
     'sphinx_autodoc_typehints',
     'sphinx_copybutton',
 ]

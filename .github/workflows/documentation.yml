@@ -40,7 +40,7 @@ jobs:
       run: |
         sudo apt update -y
         sudo apt install -y \
-          imagemagick \
+          librsvg2-bin \
           texlive-latex-base \
           texlive-latex-recommended \
           texlive-fonts-recommended
@@ -48,11 +48,7 @@ jobs:
 
     - name: Generate documentation
       working-directory: Documentation
-      run: |
-        # sphinx build already creates separates packages and modules tree
-        # is this really necessary?
-        # sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
-        make clean html latexpdf
+      run: make clean html latexpdf
 
     - name: Copy PDF to HTML build directory
       run: |

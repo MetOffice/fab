@@ -27,27 +27,28 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.13']  #, '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.11', '3.12', '3.13']
 
     steps:
       # This step does not need a GA cache
       - name: Setup Compiler
         run: |
+          sudo apt-get install -y clang libclang-dev gcc gfortran
+
+          LLVM_VN=$(clang --version | head -n 1 | sed -E 's/.*version ([0-9]+)\..*/\1/')
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-${LLVM_VN}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+          # xxxx (for reference only)
+          # Uncomment the following lines to install LLVM 20
           # wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
           # sudo apt-get update -y
           # sudo apt-get install -y gcc gfortran clang-20 libclang-20-dev
-
-          # Set clang-20 as the default version
           # ALT_LLVM_PATH=/usr/lib/llvm-20
           # sudo update-alternatives --install \
           #  /usr/bin/clang clang "${ALT_LLVM_PATH}/bin/clang-20" 200
           # sudo update-alternatives --config clang
           # echo "LD_LIBRARY_PATH=${ALT_LLVM_PATH}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
-
-          sudo apt-get install -y clang libclang-dev gcc gfortran
-
-          LLVM_VN=$(clang --version | head -n 1 | sed -E 's/.*version ([0-9]+)\..*/\1/')
-          echo "LD_LIBRARY_PATH=/usr/lib/llvm-${LLVM_VN}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          # xxxx
 
       - uses: actions/checkout@v4
         with:
