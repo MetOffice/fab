@@ -292,8 +292,6 @@ class ToolRepository(dict):
                 if (not enforce_fortran_linker and
                         isinstance(compiler, FortranCompiler)):
                     continue
-                if not isinstance(compiler, FortranCompiler):
-                    continue
             # If the tool supports/does not support MPI, return the first one
             if tool.is_available and mpi == tool.mpi:
                 return tool
