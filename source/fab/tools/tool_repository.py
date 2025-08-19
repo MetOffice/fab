@@ -274,9 +274,9 @@ class ToolRepository(dict):
                                f"specification for '{category}'.")
 
         for tool in self[category]:
-            # If OpenMP is request, but the tool does not support openmp,
-            # ignore it.
             tool = cast(Union[Compiler, Linker], tool)   # make mypy happy
+            # If OpenMP is requested, but the tool does not support openmp,
+            # ignore the tool.
             if openmp and not tool.openmp:
                 continue
 
