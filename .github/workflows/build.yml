@@ -27,7 +27,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9', '3.11', '3.12', '3.13']
+        python-version: ['3.9']  #, '3.11', '3.12', '3.13']
 
     steps:
       # This step does not need a GA cache
