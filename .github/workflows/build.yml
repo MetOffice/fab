@@ -34,8 +34,8 @@ jobs:
       - name: Setup Compiler
         run: |
           # wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
-          # sudo apt update -y
-          # sudo apt install -y gcc gfortran clang-20 libclang-20-dev
+          # sudo apt-get update -y
+          # sudo apt-get install -y gcc gfortran clang-20 libclang-20-dev
 
           # Set clang-20 as the default version
           # ALT_LLVM_PATH=/usr/lib/llvm-20
@@ -44,7 +44,7 @@ jobs:
           # sudo update-alternatives --config clang
           # echo "LD_LIBRARY_PATH=${ALT_LLVM_PATH}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
-          sudo apt install -y llvm clang libclang-dev gcc gfortran
+          sudo apt-get install -y clang libclang-dev gcc gfortran
 
           LLVM_VN=$(clang --version | head -n 1 | sed -E 's/.*version ([0-9]+)\..*/\1/')
           echo "LD_LIBRARY_PATH=/usr/lib/llvm-${LLVM_VN}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
