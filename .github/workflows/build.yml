@@ -48,10 +48,6 @@ jobs:
 
           # clang 20
 
-          sudo apt purge clang-18.1.3 libclang-18.1.3-dev libllvm-18.1.3-dev
-          sudo apt autoremove
-          sudo apt clean
-
           wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
           sudo apt update -y
           sudo apt install -y gcc gfortran
