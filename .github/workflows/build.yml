@@ -33,17 +33,25 @@ jobs:
       # This step does not need a GA cache
       - name: Setup Compiler
         run: |
-          wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
-          sudo apt update -y
-          sudo apt install -y gcc gfortran clang-20 libclang-20-dev
+          # wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
+          # sudo apt update -y
+          # sudo apt install -y gcc gfortran clang-20 libclang-20-dev
 
-          # Set clang-20 as the default version
-          sudo update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-20/bin/clang-20 200
-          sudo update-alternatives --config clang
+          # # Set clang-20 as the default version
+          # sudo update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-20/bin/clang-20 200
+          # sudo update-alternatives --config clang
 
-          echo "LD_LIBRARY_PATH=/usr/lib/llvm-20/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          # echo "LD_LIBRARY_PATH=/usr/lib/llvm-20/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
-          # sudo apt install -y llvm clang libclang-dev gcc gfortran
+          sudo apt install -y llvm clang libclang-dev gcc gfortran plocate
+          sudo updatedb
+
+          set -x
+          type clang
+          locate libclang.so
+          clang --version
+          set +x
+          #| grep -v '\.so\.' | head -n 1 | xargs -I {} echo "LD_LIBRARY_PATH={}:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
         with:
