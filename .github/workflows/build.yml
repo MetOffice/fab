@@ -35,10 +35,9 @@ jobs:
         run: |
           wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
           sudo apt update -y
-          sudo apt install -y gcc gfortran
-          sudo apt install -y clang-20  # libclang-20-dev
+          sudo apt install -y gcc gfortran clang-20 libclang-20-dev
 
-          # Set clang-20 as the default clang version
+          # Set clang-20 as the default version
           sudo update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-20/bin/clang-20 200
           sudo update-alternatives --config clang
 
@@ -73,7 +72,7 @@ jobs:
       - name: Unit tests with Pytest
         if: always()
         run: |
-          export LD_LIBRARY_PATH=/usr/lib/llvm-20/lib:$LD_LIBRARY_PATH
+          export LIBCLANG_PATH=/usr/lib/llvm-20/lib
           python -m pytest --cov=fab tests/unit_tests
 
       - name: System tests with Pytest
