@@ -86,7 +86,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-          pip install clang==19.1.7
+          pip install clang==20.1.5
           pip install .[dev]
           pip install .[docs]
 
