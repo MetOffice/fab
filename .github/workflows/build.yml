@@ -27,47 +27,20 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.9']  #, '3.11', '3.12', '3.13']
+        python-version: ['3.13']  #, '3.11', '3.12', '3.13']
 
     steps:
       # This step does not need a GA cache
       - name: Setup Compiler
         run: |
-          # clang-19 (no matching version in PyPi)
-          # sudo wget -qO /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
-          #   https://apt.llvm.org/llvm-snapshot.gpg.key
-          # echo "deb http://apt.llvm.org/$(lsb_release -sc)/ llvm-toolchain-$(lsb_release -sc) main" \
-          #   | sudo tee /etc/apt/sources.list.d/apt.llvm.org.list
-          # sudo apt update -y
-          # sudo apt install -y gcc gfortran
-          # sudo apt install -y clang-19 libclang-19-dev
-
-          # echo "Installed Clang versions:"
-          # clang --version
-          # clang-19 --version
-
-          # clang 20
-
           wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
           sudo apt update -y
-          sudo apt install -y gcc gfortran  # plocate
-          sudo apt install -y clang-20 libclang-20-dev
-          # sudo updatedb
+          sudo apt install -y gcc gfortran
+          sudo apt install -y clang-20  # libclang-20-dev
 
           # Set clang-20 as the default clang version
           sudo update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-20/bin/clang-20 200
           sudo update-alternatives --config clang
-
-          echo "===Installed Compiler versions:"
-          set -x
-          clang --version
-          clang-20 --version
-          gcc --version
-          gfortran --version
-
-          # locate libclang.so
-          # locate libclang-20.so
-          set +x
 
           # sudo apt install -y llvm clang libclang-dev gcc gfortran
 
@@ -105,7 +78,9 @@ jobs:
 
       - name: System tests with Pytest
         if: always()
-        run: python -m pytest --cov=fab tests/system_tests
+        run: |
+          export LD_LIBRARY_PATH=/usr/lib/llvm-20/lib:$LD_LIBRARY_PATH
+          python -m pytest --cov=fab tests/system_tests
 
       # Sphinx linkcheck can potentially detect false negatives due to network
       # issues or slow responses. To avoid failing the build due to these
