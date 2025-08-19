@@ -76,8 +76,9 @@ def link_exe(config,
         analysed_files = config.artefact_store[ArtefactSet.BUILD_TREES][target]
         is_fortran = False
         for analysis in analysed_files.values():
-            if analysis.program_defs:
-                is_fortran = isinstance(analysis, AnalysedFortran)
+            # C files do not have program_defs
+            if isinstance(analysis, AnalysedFortran) and analysis.program_defs:
+                is_fortran = True
                 break
 
         linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
