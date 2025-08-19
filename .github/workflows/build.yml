@@ -33,12 +33,27 @@ jobs:
       # This step does not need a GA cache
       - name: Setup Compiler
         run: |
-          sudo wget -qO /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
-            https://apt.llvm.org/llvm-snapshot.gpg.key
-          echo "deb http://apt.llvm.org/$(lsb_release -sc)/ llvm-toolchain-$(lsb_release -sc) main" \
-            | sudo tee /etc/apt/sources.list.d/apt.llvm.org.list
+          # clang-19 (no matching version in PyPi)
+          # sudo wget -qO /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
+          #   https://apt.llvm.org/llvm-snapshot.gpg.key
+          # echo "deb http://apt.llvm.org/$(lsb_release -sc)/ llvm-toolchain-$(lsb_release -sc) main" \
+          #   | sudo tee /etc/apt/sources.list.d/apt.llvm.org.list
+          # sudo apt update -y
+          # sudo apt install -y gcc gfortran
+          # sudo apt install -y clang-19 libclang-19-dev
+
+          # echo "Installed Clang versions:"
+          # clang --version
+          # clang-19 --version
+
+          # clang 20
+          wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
           sudo apt update -y
-          sudo apt install -y clang-19 libclang-19-dev gcc gfortran
+          sudo apt install -y gcc gfortran
+          sudo apt install -y clang-20 lldb-20 lld-20 clangd-20 libclang-20-dev
+          clang --version
+          clang-20 --version
+
 
           # sudo apt install -y llvm clang libclang-dev gcc gfortran
 
