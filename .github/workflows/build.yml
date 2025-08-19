@@ -41,6 +41,8 @@ jobs:
           sudo update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-20/bin/clang-20 200
           sudo update-alternatives --config clang
 
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-20/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
           # sudo apt install -y llvm clang libclang-dev gcc gfortran
 
       - uses: actions/checkout@v4
@@ -71,19 +73,16 @@ jobs:
 
       - name: Unit tests with Pytest
         if: always()
-        run: |
-          export LIBCLANG_PATH=/usr/lib/llvm-20/lib
-          python -m pytest --cov=fab tests/unit_tests
+        run: python -m pytest --cov=fab tests/unit_tests
 
       - name: System tests with Pytest
         if: always()
-        run: |
-          export LD_LIBRARY_PATH=/usr/lib/llvm-20/lib:$LD_LIBRARY_PATH
-          python -m pytest --cov=fab tests/system_tests
+        run: python -m pytest --cov=fab tests/system_tests
 
       # Sphinx linkcheck can potentially detect false negatives due to network
       # issues or slow responses. To avoid failing the build due to these
-      # issues, we set continue-on-error to true
+      # issues, we set continue-on-error to true. Review the output for any
+      # actual issues.
       - name: Link Checks
         if: always()
         working-directory: Documentation
