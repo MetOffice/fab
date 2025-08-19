@@ -253,14 +253,14 @@ def by_type(iterable, cls):
 def get_fab_workspace() -> Path:
     """
     Read the Fab workspace from the `FAB_WORKSPACE` environment variable,
-    defaulting to ./fab-workspace*.
+    defaulting to ./fab-workspace.
 
     """
-    if os.getenv("FAB_WORKSPACE"):
-        fab_workspace = Path(os.getenv("FAB_WORKSPACE"))  # type: ignore
-    else:
-        fab_workspace = Path(os.path.expanduser("./fab-workspace"))
-    return fab_workspace
+    workspace = os.getenv("FAB_WORKSPACE")
+    if not workspace:
+        workspace = "./fab-workspace"
+
+    return Path(workspace)
 
 
 def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set]:
