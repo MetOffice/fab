@@ -50,9 +50,12 @@ jobs:
           wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
           sudo apt update -y
           sudo apt install -y gcc gfortran
-          sudo apt install -y clang-20 lldb-20 lld-20 clangd-20 libclang-20-dev
+          sudo apt install -y clang-20 libclang-20-dev
+          echo "Installed Compiler versions:"
           clang --version
           clang-20 --version
+          gcc --version
+          gfortran --version
 
 
           # sudo apt install -y llvm clang libclang-dev gcc gfortran
