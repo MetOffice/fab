@@ -99,7 +99,9 @@ jobs:
 
       - name: Unit tests with Pytest
         if: always()
-        run: python -m pytest --cov=fab tests/unit_tests
+        run: |
+          export LD_LIBRARY_PATH=/usr/lib/llvm-20/lib:$LD_LIBRARY_PATH
+          python -m pytest --cov=fab tests/unit_tests
 
       - name: System tests with Pytest
         if: always()
