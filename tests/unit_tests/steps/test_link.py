@@ -11,21 +11,21 @@ from pathlib import Path
 from pytest import warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import call_list
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.link import link_exe
-from fab.tools.compiler import FortranCompiler
 from fab.tools.linker import Linker
 from fab.tools.tool_box import ToolBox
+
+from tests.conftest import call_list
 
 
 class TestLinkExe:
     """
     Tests linking an executable.
     """
-    def test_run(self, fake_process: FakeProcess, monkeypatch) -> None:
+    def test_run(self, fake_process: FakeProcess,
+                 stub_fortran_compiler) -> None:
         """
         Tests correct formation of command.
         """
@@ -37,18 +37,12 @@ class TestLinkExe:
                         '-o', '/fab/link_test/foo']
         fake_process.register(link_command, stdout='abc\ndef')
 
-        compiler = FortranCompiler("some Fortran compiler", 'sfc', 'some',
-                                   r'([\d.]+)')
-        linker = Linker(compiler=compiler)
+        linker = Linker(compiler=stub_fortran_compiler)
         linker.add_lib_flags('mylib', ['-L/my/lib', '-lmylib'])
 
-        def get_tool(category, mpi, openmp):
-            return linker
-        #
-        # ToDo: Mockery of this nature is not ideal.
-        #
         tool_box = ToolBox()
-        monkeypatch.setattr(tool_box, 'get_tool', get_tool)
+        tool_box.add_tool(stub_fortran_compiler)
+        tool_box.add_tool(linker)
 
         config = BuildConfig('link_test', tool_box, fab_workspace=Path('/fab'),
                              mpi=False, openmp=False, multiprocessing=False)
@@ -58,4 +52,4 @@ class TestLinkExe:
         with warns(UserWarning,
                    match="_metric_send_conn not set, cannot send metrics"):
             link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
-        assert call_list(fake_process) == [link_command]
+        assert call_list(fake_process) == [version_command, link_command]
