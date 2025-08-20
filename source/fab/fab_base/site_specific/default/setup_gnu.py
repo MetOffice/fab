@@ -8,13 +8,14 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
+from typing import cast, Dict, List
 
-from typing import cast
-from fab.build_config import BuildConfig
+from fab.build_config import AddFlags, BuildConfig
 from fab.tools import Category, Linker, ToolRepository
 
 
-def setup_gnu(build_config: BuildConfig, args: argparse.Namespace) -> None:
+def setup_gnu(build_config: BuildConfig,
+              args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for all GNU compilers and linkers.
@@ -30,7 +31,7 @@ def setup_gnu(build_config: BuildConfig, args: argparse.Namespace) -> None:
     if not gfortran.is_available:
         gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-gfortran")
         if not gfortran.is_available:
-            return
+            return {}
 
     # The base flags
     # ==============
@@ -67,3 +68,5 @@ def setup_gnu(build_config: BuildConfig, args: argparse.Namespace) -> None:
 
     # Add more flags to be always used, e.g.:
     # linker.add_post_lib_flags(["-lstdc++"], "base")
+
+    return {}

@@ -8,14 +8,14 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast
+from typing import cast, Dict, List
 
-from fab.build_config import BuildConfig
+from fab.build_config import AddFlags, BuildConfig
 from fab.tools import Category, Compiler, Linker, ToolRepository
 
 
 def setup_intel_llvm(build_config: BuildConfig,
-                     args: argparse.Namespace) -> None:
+                     args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
     # pylint: disable=unused-argument, too-many-locals
     '''
     Defines the default flags for all Intel llvm compilers.
@@ -33,7 +33,7 @@ def setup_intel_llvm(build_config: BuildConfig,
         ifx = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-ifx")
         ifx = cast(Compiler, ifx)
         if not ifx.is_available:
-            return
+            return {}
 
     # The base flags
     # ==============
@@ -64,3 +64,5 @@ def setup_intel_llvm(build_config: BuildConfig,
 
     # Add more flags to be always used, e.g.:
     # linker.add_post_lib_flags(["-lstdc++"], "base")
+
+    return {}

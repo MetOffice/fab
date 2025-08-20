@@ -6,15 +6,17 @@ This module contains the default Baf configuration class.
 '''
 
 import argparse
-from typing import List
+from typing import cast, Dict, List
 
-from fab.build_config import BuildConfig
-from fab.tools import Category, ToolRepository
+from fab.build_config import AddFlags, BuildConfig
+from fab.tools import Category, Compiler, ToolRepository
 
 from fab.fab_base.site_specific.default.setup_cray import setup_cray
 from fab.fab_base.site_specific.default.setup_gnu import setup_gnu
-from fab.fab_base.site_specific.default.setup_intel_classic import setup_intel_classic
-from fab.fab_base.site_specific.default.setup_intel_llvm import setup_intel_llvm
+from fab.fab_base.site_specific.default.setup_intel_classic import (
+    setup_intel_classic)
+from fab.fab_base.site_specific.default.setup_intel_llvm import (
+    setup_intel_llvm)
 from fab.fab_base.site_specific.default.setup_nvidia import setup_nvidia
 
 
@@ -25,14 +27,18 @@ class Config:
     scripts to allow site-specific customisations.
     '''
 
-    def __init__(self):
-        self._args = None
+    def __init__(self) -> None:
+        self._args: argparse.Namespace
+
+        # Stores for each compiler suite a mapping of profiles to the list of
+        # path-specific flags to use.
+        # _path_flags[suite][profile]
+        self._path_flags: Dict[str, Dict[str, List[AddFlags]]] = {}
 
     @property
     def args(self) -> argparse.Namespace:
         '''
-        :returns argparse.Namespace: the command line options specified
-            by the user.
+        :returns: the command line options specified by the user.
         '''
         return self._args
 
@@ -46,6 +52,19 @@ class Config:
         :returns List[str]: list of all supported compiler profiles.
         '''
         return ["full-debug", "fast-debug", "production", "unit-tests"]
+
+    def handle_command_line_options(self, args: argparse.Namespace) -> None:
+        '''
+        Additional callback function executed once all command line
+        options have been added. This is for example used to add
+        Vernier profiling flags, which are site-specific.
+
+        :param argparse.Namespace args: the command line options added in
+        the site configs
+        '''
+        # Keep a copy of the args, so they can be used when
+        # initialising compilers
+        self._args = args
 
     def update_toolbox(self, build_config: BuildConfig) -> None:
         '''
@@ -68,7 +87,7 @@ class Config:
             # compilation flags. This 'base' is not accessible to
             # the user, so it's not part of the profile list. Also,
             # make it inherit from the default profile '', so that
-            # a user does not have to specify the "base" profile.
+            # a user does not have to specify the 'base' profile.
             # Note that we set this even if a compiler is not available.
             # This is required in case that compilers are not in PATH,
             # so e.g. mpif90-ifort works, but ifort cannot be found.
@@ -83,18 +102,15 @@ class Config:
         self.setup_nvidia(build_config)
         self.setup_cray(build_config)
 
-    def handle_command_line_options(self, args: argparse.Namespace) -> None:
+    def get_path_flags(self, build_config: BuildConfig) -> List[AddFlags]:
         '''
-        Additional callback function executed once all command line
-        options have been added. This is for example used to add
-        Vernier profiling flags, which are site-specific.
-
-        :param argparse.Namespace args: the command line options added in
-            the site configs
+        Returns the path-specific flags to be used.
+        TODO #313: Ideally we have only one kind of flag, but as a quick
+        work around we provide this method.
         '''
-        # Keep a copy of the args, so they can be used when
-        # initialising compilers
-        self._args = args
+        compiler = build_config.tool_box[Category.FORTRAN_COMPILER]
+        compiler = cast(Compiler, compiler)
+        return self._path_flags[compiler.suite].get(build_config.profile, [])
 
     def setup_cray(self, build_config: BuildConfig) -> None:
         '''
@@ -106,7 +122,7 @@ class Config:
         :param build_config: the Fab build configuration instance
         :type build_config: :py:class:`fab.BuildConfig`
         '''
-        setup_cray(build_config, self.args)
+        self._path_flags["cray"] = setup_cray(build_config, self.args)
 
     def setup_gnu(self, build_config: BuildConfig) -> None:
         '''
@@ -118,7 +134,7 @@ class Config:
         :param build_config: the Fab build configuration instance
         :type build_config: :py:class:`fab.BuildConfig`
         '''
-        setup_gnu(build_config, self.args)
+        self._path_flags["gnu"] = setup_gnu(build_config, self.args)
 
     def setup_intel_classic(self, build_config: BuildConfig) -> None:
         '''
@@ -130,7 +146,8 @@ class Config:
         :param build_config: the Fab build configuration instance
         :type build_config: :py:class:`fab.BuildConfig`
         '''
-        setup_intel_classic(build_config, self.args)
+        self._path_flags["intel_classic"] = setup_intel_classic(build_config,
+                                                                self.args)
 
     def setup_intel_llvm(self, build_config: BuildConfig) -> None:
         '''
@@ -142,7 +159,8 @@ class Config:
         :param build_config: the Fab build configuration instance
         :type build_config: :py:class:`fab.BuildConfig`
         '''
-        setup_intel_llvm(build_config, self.args)
+        self._path_flags["intel-llvm"] = setup_intel_llvm(build_config,
+                                                          self.args)
 
     def setup_nvidia(self, build_config: BuildConfig) -> None:
         '''
@@ -154,4 +172,4 @@ class Config:
         :param build_config: the Fab build configuration instance
         :type build_config: :py:class:`fab.BuildConfig`
         '''
-        setup_nvidia(build_config, self.args)
+        self._path_flags["nvidia"] = setup_nvidia(build_config, self.args)
