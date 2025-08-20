@@ -110,7 +110,7 @@ def analyse(
         Assuming the files containing these symbols are present and analysed,
         those files and all their dependencies will be added to the build tree(s).
     :param ignore_mod_deps:
-        Third party Fortran module names to be ignored.
+        Third party Fortran module names in USE statements, 'DEPENDS ON' files and modules to be ignored.
     :param name:
         Human friendly name for logger output, with sensible default.
 

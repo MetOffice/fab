@@ -195,7 +195,9 @@ class FortranAnalyser(FortranAnalyserBase):
         :param std:
             The Fortran standard.
         :param ignore_mod_deps:
-            Module names to ignore in use statements.
+            Module names to ignore in use statements or
+            'DEPENDS ON' files to ignore or 'DEPENDS ON'
+            modules to ignore.
 
         """
         super().__init__(config=config,
@@ -372,8 +374,10 @@ class FortranAnalyser(FortranAnalyserBase):
         if depends_str in comment:
             self.depends_on_comment_found = True
             dep = comment.split(depends_str)[-1].strip()
+            if dep in self.ignore_mod_deps:
+                logger.debug(f"ignoring use of {dep}")
             # with .o means a c file
-            if dep.endswith(".o"):
+            elif dep.endswith(".o"):
                 analysed_file.mo_commented_file_deps.add(
                     dep.replace(".o", ".c"))
             # without .o means a fortran symbol
