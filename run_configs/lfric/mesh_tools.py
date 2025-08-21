@@ -62,8 +62,10 @@ if __name__ == '__main__':
 
         analyse(
             state,
-            root_symbol=['cubedsphere_mesh_generator', 'planar_mesh_generator', 'summarise_ugrid'],
-            # ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
+            root_symbol=['cubedsphere_mesh_generator', 'planar_mesh_generator',
+                         'summarise_ugrid'],
+            # ignore_dependencies=['netcdf', 'MPI', 'yaxt', 'pfunit_mod',
+            #                      'xios', 'mod_wait'],
         )
 
         compile_fortran(state, common_flags=['-c'])
