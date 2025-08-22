@@ -116,3 +116,6 @@ linkcheck_ignore = [
 ]
 linkcheck_timeout = 2
 linkcheck_allow_unauthorized = True  # Allow unauthorized links to pass
+
+# pdf engine for latex builder
+latex_engine = 'pdflatex'
