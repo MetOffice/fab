@@ -104,6 +104,7 @@ jobs:
       # test
       - name: Install LaTeX packages
         run: |
+          sudo apt-get update -y
           sudo apt-get install -y \
             librsvg2-bin \
             texlive-latex-base \
