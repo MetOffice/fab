@@ -37,7 +37,7 @@ the user explicitly puts a tool into the ToolBox).
           compile, or a hard-coded set of criteria) which compiler to use.
 
 Category
-==========
+========
 All possible categories are defined in
 :class:`~fab.tool.category.Category`. If additional categories
 should be required, they can be added.

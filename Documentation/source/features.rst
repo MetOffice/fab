@@ -82,7 +82,7 @@ Limitations
 ===========
 
 Known problems at the time of writing. For further issues see the
-`issue tracker <https://github.com/metomi/fab/issues>`_.
+`issue tracker <https://github.com/MetOffice/fab/issues>`_.
 
 Fortran single-line IF calls
 ----------------------------
@@ -122,4 +122,4 @@ override). It will *not* notice if a Fortran `*.mod` changes in an include
 folder elsewhere.
 
 An example is the UM build which uses GCom's mpl.mod. This issue is raised in
-`#192 <https://github.com/metomi/fab/issues/192>`_.
+`#192 <https://github.com/MetOffice/fab/issues/192>`_.
