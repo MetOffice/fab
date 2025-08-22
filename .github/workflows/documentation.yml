@@ -43,8 +43,9 @@ jobs:
           librsvg2-bin \
           texlive-latex-base \
           texlive-latex-recommended \
-          texlive-fonts-recommended
-          # texlive-latex-extra
+          texlive-fonts-recommended \
+          texlive-latex-extra \
+          latexmk
 
     - name: Generate documentation
       working-directory: Documentation
