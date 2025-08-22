@@ -65,8 +65,8 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install .
-          # pip install clang==20.1.5
           pip install clang==18.1.8
+          # pip install clang==20.1.5
           pip install .[dev]
           pip install .[docs]
 
@@ -74,6 +74,7 @@ jobs:
         run: python -m mypy source tests
 
       - name: Code style check with flake8
+        # see https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#always
         if: always()
         run: flake8 . --count --show-source --statistics
 
@@ -99,3 +100,18 @@ jobs:
           jq -c 'select([.status] | inside(["ignored", "redirected"]))' \
             build/linkcheck/output.json
         continue-on-error: true
+
+      # test
+      - name: Install LaTeX packages
+        run: |
+          sudo apt update -y
+          sudo apt install -y \
+            librsvg2-bin \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-fonts-recommended
+            # texlive-latex-extra
+
+      - name: Generate documentation
+        working-directory: Documentation
+        run: make clean html latexpdf
