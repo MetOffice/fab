@@ -104,14 +104,13 @@ jobs:
       # test
       - name: Install LaTeX packages
         run: |
-          sudo apt update -y
           sudo apt install -y \
             librsvg2-bin \
             texlive-latex-base \
             texlive-latex-recommended \
-            texlive-fonts-recommended
-            # texlive-latex-extra
+            texlive-fonts-recommended \
+            texlive-latex-extra
 
       - name: Generate documentation
         working-directory: Documentation
-        run: make clean html latexpdf
+        run: make clean latexpdf
