@@ -21,7 +21,6 @@ import shutil
 from pathlib import Path
 
 import pytest
-
 from fab.build_config import BuildConfig
 from fab.steps.grab.git import git_checkout, git_merge
 from fab.tools import Git, ToolBox
@@ -80,9 +79,9 @@ class TestGitMerge:
                                 "Use the filter argument to control this behavior.")
     def test_vanilla(self, repo_url, config):
 
-        # checkout master
+        # checkout main
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='master')
+            git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='main')
             check_file = config.source_root / 'tiny_fortran/file1.txt'
             assert 'This is sentence one in file one.' in open(check_file).read()
 
@@ -93,6 +92,6 @@ class TestGitMerge:
         with pytest.raises(RuntimeError):
             git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_b')
 
-        # The conflicted merge must have been aborted, check that we can do another checkout of master
+        # The conflicted merge must have been aborted, check that we can do another checkout of main
         with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='master')
+            git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='main')

@@ -7,10 +7,9 @@ import json
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Union, Optional, Dict, Any, Set
+from typing import Any, Dict, Optional, Set, Union
 
 from fab.util import file_checksum
-
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +110,7 @@ class AnalysedFile(ABC):
         # We use self.field_names() rather than vars(self) because we want to evaluate any lazy attributes.
         # We turn dicts and sets into sorted tuples for hashing.
         # todo: There's a good reason dicts and sets aren't supposed to be hashable.
-        #       Please see https://github.com/metomi/fab/issues/229
+        #       Please see https://github.com/MetOffice/fab/issues/229
         things = set()
         for field_name in self.field_names():
             thing = getattr(self, field_name)
