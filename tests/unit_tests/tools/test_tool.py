@@ -21,7 +21,7 @@ from fab.tools.tool import CompilerSuiteTool, Tool
 
 def test_constructor() -> None:
     """
-    Tests comstruction from argument list.
+    Tests construction from argument list.
     """
     tool = Tool("gnu", "gfortran", Category.FORTRAN_COMPILER)
     assert str(tool) == "Tool - gnu: gfortran"
