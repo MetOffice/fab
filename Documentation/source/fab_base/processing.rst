@@ -135,7 +135,7 @@ executed, the method with the same name in the site-specific
 config file will also be called. It gets the argument namespace
 information from Python's ArgumentParser as argument:
 
-.. automethod:: site_specific.default.config.Config.handle_command_line_options
+.. automethod:: fab.fab_base.site_specific.default.config.Config.handle_command_line_options
     :noindex:
 
 This can be used for further site-specific modifications, e.g.
