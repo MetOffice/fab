@@ -79,7 +79,7 @@ This method is called by ``FabBase`` when defining the command line options.
 It defines the list of valid compilation profile modes. This is used
 in setting up Python's ``ArgumentParser`` to only allow valid arguments.
 
-.. automethod:: site_specific.default.config.Config.get_valid_profiles
+.. automethod:: fab.fab_base.site_specific.default.config.Config.get_valid_profiles
     :noindex:
 
 A well written default configuration file will take newly defined
@@ -92,7 +92,7 @@ See :ref:`new_compilation_profiles` for an extended example.
 This method is called immediately after calling the application-specific
 ``handle_command_line_options`` method.
 
-.. automethod:: site_specific.default.config.Config.handle_command_line_options
+.. automethod:: fab.fab_base.site_specific.default.config.Config.handle_command_line_options
     :noindex:
 
 It allows site-specific changes based on the specified command line
@@ -116,7 +116,7 @@ and ``BuildConfig`` objects have been created. All command line
 options have been parsed, and selected compilers have been added to
 the ``ToolBox``.
 
-.. automethod:: site_specific.default.config.Config.update_toolbox
+.. automethod:: fab.fab_base.site_specific.default.config.Config.update_toolbox
     :noindex:
 
 Here is an example of defining the appropriate compilation profiles
