@@ -82,11 +82,14 @@ See also
    advanced_config
    site-specific-config
    features
-   fab_base/introduction
-   fab_base/processing
-   fab_base/config
-   fab_base/examples
-   fab_base/usage_patterns
+
+.. toctree::
+   :maxdepth: 2
+   :caption: FabBase class
+   :hidden:
+
+   fab_base/index.rst
+
    Api Reference <api>
    development
    glossary

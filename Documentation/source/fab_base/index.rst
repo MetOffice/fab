@@ -79,3 +79,14 @@ Some command line option have an environment variable as default
 environment variable is specified, its value will be used as default.
 If the variable is not defined, the argument is considered to be not
 specified.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: FabBase class
+   :hidden:
+
+   processing
+   config
+   examples
+   usage_patterns
+   
