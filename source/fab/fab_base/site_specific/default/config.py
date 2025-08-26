@@ -49,7 +49,7 @@ class Config:
         can be overwritten by site configs to add or modify the supported
         profiles.
 
-        :returns List[str]: list of all supported compiler profiles.
+        :returns: list of all supported compiler profiles.
         '''
         return ["full-debug", "fast-debug", "production", "unit-tests"]
 
@@ -60,7 +60,7 @@ class Config:
         Vernier profiling flags, which are site-specific.
 
         :param argparse.Namespace args: the command line options added in
-        the site configs
+            the site configs
         '''
         # Keep a copy of the args, so they can be used when
         # initialising compilers
@@ -72,7 +72,6 @@ class Config:
         that are supported.
 
         :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
         '''
         # First create the default compiler profiles for all available
         # compilers. While we have a tool box with exactly one compiler
@@ -120,7 +119,6 @@ class Config:
         compiler modes).
 
         :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
         '''
         self._path_flags["cray"] = setup_cray(build_config, self.args)
 
@@ -132,7 +130,6 @@ class Config:
         compiler modes).
 
         :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
         '''
         self._path_flags["gnu"] = setup_gnu(build_config, self.args)
 
@@ -144,7 +141,6 @@ class Config:
         compiler modes).
 
         :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
         '''
         self._path_flags["intel_classic"] = setup_intel_classic(build_config,
                                                                 self.args)
@@ -157,7 +153,6 @@ class Config:
         compiler modes).
 
         :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
         '''
         self._path_flags["intel-llvm"] = setup_intel_llvm(build_config,
                                                           self.args)
@@ -170,6 +165,5 @@ class Config:
         compiler modes).
 
         :param build_config: the Fab build configuration instance
-        :type build_config: :py:class:`fab.BuildConfig`
         '''
         self._path_flags["nvidia"] = setup_nvidia(build_config, self.args)
