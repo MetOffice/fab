@@ -41,7 +41,7 @@ preferable to use one of the managed packages.
 Packages are made available through `PyPI`_ and `Conda forge`_ and are installed
 in the usual way for these services. Some examples follow.
 
-.. _source: https://github.com/metomi/fab
+.. _source: https://github.com/MetOffice/fab
 .. _PyPI: https://pypi.org/project/sci-fab/
 .. _Conda forge: https://anaconda.org/conda-forge/sci-fab
 
@@ -74,8 +74,8 @@ If you want to compile C you will need to add the prerequisites for that:
 
     $ pip install python-clang
 
-Note that this requires a suitible `libclang` to be installed on your system
-which may require system administrator internvention.
+Note that this requires a suitable `libclang` to be installed on your system
+which may require system administrator intervention.
 
 Finally, to get plots from the metrics you will need:
 
@@ -90,7 +90,7 @@ Using Anaconda
 --------------
 
 Anaconda can be used in a similar way to the built in Python virtual
-environemnt but can also handle your C needs:
+environment but can also handle your C needs:
 
 .. code-block:: console
 
@@ -118,7 +118,7 @@ And again, if you want to plot the build metrics:
 Using Containers
 ----------------
 
-The dockerfile in `envs/docker`_ can be used to create a suitible container for
+The dockerfile in `envs/docker`_ can be used to create a suitable container for
 running Fab:
 
 .. code-block:: console
@@ -129,4 +129,4 @@ running Fab:
 This was tested on Windows, running Ubuntu in WSL but is not regularly tested
 so can not be guaranteed.
 
-.. _envs/docker: https://github.com/metomi/fab/tree/master/envs/docker
+.. _envs/docker: https://github.com/MetOffice/fab/tree/main/envs/docker

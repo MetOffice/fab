@@ -61,9 +61,9 @@ Config files
 
 See also
 ========
-* `Project wiki <https://github.com/metomi/fab/wiki>`_
+* `Project wiki <https://github.com/MetOffice/fab/wiki>`_
 * `Fab on PyPI <https://pypi.org/project/sci-fab/>`_
-* `Fab on Github <https://github.com/metomi/fab>`_
+* `Fab on Github <https://github.com/MetOffice/fab>`_
 * :ref:`Developers guide<Development>`
 
 

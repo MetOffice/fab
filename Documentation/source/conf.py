@@ -12,7 +12,9 @@
 #
 import os
 import sys
+
 from fab import __version__ as fab_version
+
 sys.path.insert(0, os.path.abspath('../../source'))
 
 
@@ -73,7 +75,7 @@ html_theme_options = {
     "icon_links": [
         {
             "name": "GitHub",
-            "url": "https://github.com/metomi/fab",
+            "url": "https://github.com/MetOffice/fab",
             "icon": "fa-brands fa-github"
         }
     ],

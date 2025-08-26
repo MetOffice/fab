@@ -141,11 +141,11 @@ before you run the :func:`~fab.steps.analyse.analyse` step below.
 * For :func:`~fab.steps.psyclone.psyclone`:
             You can pass in:
 
-            * kernel file roots to `kernel_roots`, 
-            * a function to get transformation script to `transformation_script` 
+            * kernel file roots to `kernel_roots`,
+            * a function to get transformation script to `transformation_script`
               (see examples in ``~fab.run_configs.lfric.gungho.py`` and ``~fab.run_configs.lfric.atm.py``),
             * command-line arguments to `cli_args`,
-            * override for input files to `source_getter`, 
+            * override for input files to `source_getter`,
             * folders containing override files to `overrides_folder`.
 
 
@@ -271,7 +271,7 @@ ArtefactStore
 =============
 Each build configuration contains an artefact store, containing various
 sets of artefacts. The artefact sets used by Fab are defined in the
-enum :class:`~fab.artefacts.ArtefactSet`. The most important sets are ``FORTRAN_BUILD_FILES``, 
+enum :class:`~fab.artefacts.ArtefactSet`. The most important sets are ``FORTRAN_BUILD_FILES``,
 ``C_BUILD_FILES``, which will always contain all known source files that
 will need to be analysed for dependencies, compiled, and linked. All existing
 steps in Fab will make sure to maintain these artefact sets consistently,
@@ -333,4 +333,4 @@ More advanced configuration topics are discussed in
 :ref:`Advanced Config`.
 
 You can see more complicated configurations in the
-`developer testing directory <https://github.com/metomi/fab/tree/master/run_configs>`_.
+`developer testing directory <https://github.com/MetOffice/fab/tree/main/run_configs>`_.

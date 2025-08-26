@@ -47,7 +47,7 @@ Singularity Container
 
 You can run Fab in a singularity container as follows::
 
-    singularity run oras://$URL/metomi/fab/MyImage:latest
+    singularity run oras://$URL/MetOffice/fab/MyImage:latest
 
 The necessary URL is that normally used with singularity. Ask Science I.T. for
 details.
@@ -115,12 +115,12 @@ so that changes you make are immediately available through the environment.
     $ pip install --editable $FAB_WORKING_COPY
 
 
-Mixing Conda and Environemnt Modules
+Mixing Conda and Environment Modules
 ------------------------------------
 
 In order to have both an environment capable of building C files and modern
 Fortran compilers and the LFRic library stack you will need an awkward
-amalgemation of conda environment and environment modules.
+amalgamation of conda environment and environment modules.
 
 The conda environment is created as follows:
 
@@ -165,7 +165,7 @@ to be that in the conda environment.
 Rose
 ----
 Various configs for building projects using Rose on SPICE can be found in
-`run_configs <https://github.com/metomi/fab/tree/master/run_configs>`_.
+`run_configs <https://github.com/MetOffice/fab/tree/main/run_configs>`_.
 
 
 .. _MetOfficeDevelopment:
@@ -192,12 +192,12 @@ The config file in envs/picasso defines the contents of a Singularity image
 which is built by the experimental Picasso app. We can build this image using a
 GitHub action, defined in ``.github/workflows/picasso_build.yml``.
 
-This action is manually triggered. You have to push a branch to the metomi repo,
+This action is manually triggered. You have to push a branch to the MetOffice repo,
 not a fork, then you can trigger the action from your branch. Please remember
 to clean up the branch when you're finished.
 
 You can see the image in artefactory
-`here <https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/metomi/fab/MyImage>`_.
+`here <https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/MetOffice/fab/MyImage>`_.
 
 
 See also
