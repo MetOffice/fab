@@ -12,6 +12,7 @@
 #
 import os
 import sys
+import datetime
 
 from fab import __version__ as fab_version
 
@@ -21,7 +22,7 @@ sys.path.insert(0, os.path.abspath('../../source'))
 # -- Project information -----------------------------------------------------
 
 project = 'Fab'
-copyright = '2024 Met Office. All rights reserved.'
+copyright = '2025 Met Office. All rights reserved.'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
@@ -81,7 +82,10 @@ html_theme_options = {
         }
     ],
     "footer_start": ["crown-copyright"],
-    "footer_center": ["sphinx-version"],
+    "footer_center": [
+        "sphinx-version",
+        f"Updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}",
+    ],
     "footer_end": ["theme-version"],
 }
 

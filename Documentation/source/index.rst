@@ -9,7 +9,7 @@ Version |version| (release |release|).
 
 .. raw:: html
 
-   <p><a href="fab.pdf">Download PDF version of this documentation</a></p>
+   <p><a href="latex/fab.pdf">Download PDF version of this documentation</a></p>
 
 What is fab?
 ============
