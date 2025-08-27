@@ -41,6 +41,7 @@ extensions = [
     'sphinx.ext.graphviz',
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
+    'sphinxcontrib.rsvgconverter',
     'sphinx_autodoc_typehints',
     'sphinx_copybutton',
 ]
@@ -106,3 +107,12 @@ autosectionlabel_prefix_document = True
 
 # include default values in argument descriptions
 typehints_defaults = 'braces-after'
+
+# linkcheck builder
+linkcheck_allow_redirects = True  # Allow redirects to pass
+linkcheck_ignore = [
+    "https://metoffice.sharepoint.com",  # Ignore SharePoint links
+    r'.*\.py$',  # Ignores URLs ending with .py
+]
+linkcheck_timeout = 2
+linkcheck_allow_unauthorized = True  # Allow unauthorized links to pass
