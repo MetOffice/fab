@@ -1,4 +1,4 @@
-name: Build
+name: QA
 
 on:
   push:
@@ -10,21 +10,46 @@ on:
       - main
       - v*.*
 
-jobs:
-  build:
+concurrency:
+  # cancel any in-progress runs for the same group (branch/tag) {{github.ref}}
+  # if a new run is triggered, except for the main branch
+  group: ${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-    runs-on: ubuntu-22.04
+jobs:
+  checks:
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    runs-on: ubuntu-24.04
     strategy:
       max-parallel: 4
       matrix:
         python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
-      # Should this step use a cache?
-      #
+      # This step does not need a GA cache
       - name: Setup Compiler
         run: |
-          sudo apt-get -y install llvm clang libclang-dev gcc gfortran
+          sudo apt-get update -y
+          sudo apt-get install -y clang libclang-dev gcc gfortran
+
+          LLVM_VN=$(clang --version | head -n 1 | sed -E 's/.*version ([0-9]+)\..*/\1/')
+          echo "LD_LIBRARY_PATH=/usr/lib/llvm-${LLVM_VN}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
+          # xxxx (for reference only)
+          # Uncomment the following lines to install LLVM 20
+          # wget -O - https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
+          # sudo apt-get update -y
+          # sudo apt-get install -y gcc gfortran clang-20 libclang-20-dev
+          # ALT_LLVM_PATH=/usr/lib/llvm-20
+          # sudo update-alternatives --install \
+          #  /usr/bin/clang clang "${ALT_LLVM_PATH}/bin/clang-20" 200
+          # sudo update-alternatives --config clang
+          # echo "LD_LIBRARY_PATH=${ALT_LLVM_PATH}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          # xxxx
 
       - uses: actions/checkout@v4
         with:
@@ -40,26 +65,39 @@ jobs:
       - name: Install Python libraries
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install clang==14.0
+          pip install .
+          pip install clang==18.1.8
+          # pip install clang==20.1.5
+          pip install .[dev]
+          pip install .[docs]
 
       - name: Type check with mypy
-        run: |
-          pip install -e .[dev]
-          pip install pytest
-          python -m mypy source tests
+        run: python -m mypy source tests
 
       - name: Code style check with flake8
-        run: |
-          pip install -e .[dev]
-          flake8 . --count --show-source --statistics
+        if: always()
+        # see https://docs.github.com/en/actions/reference/workflows-and-actions/expressions#always
+        run: flake8 . --count --show-source --statistics
 
       - name: Unit tests with Pytest
-        run: |
-          pip install .[dev]
-          python -m pytest --cov=fab tests/unit_tests
+        if: always()
+        run: python -m pytest --cov=fab tests/unit_tests
 
       - name: System tests with Pytest
+        if: always()
+        run: python -m pytest --cov=fab tests/system_tests
+
+      # Sphinx linkcheck can potentially detect false negatives due to network
+      # issues or slow responses. To avoid failing the build due to these
+      # issues, we set continue-on-error to true. Review the output for any
+      # actual issues.
+      - name: Link Checks
+        if: always()
+        working-directory: Documentation
         run: |
-          pip install .[dev]
-          python -m pytest --cov=fab tests/system_tests
+          sphinx-build -q -b linkcheck \
+            -d build/doctrees source build/linkcheck || true
+          echo "== Ignored and Redirected links, if any =="
+          jq -c 'select([.status] | inside(["ignored", "redirected"]))' \
+            build/linkcheck/output.json
+        continue-on-error: true
