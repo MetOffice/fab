@@ -3,13 +3,20 @@ name: Build Documentation
 on:
   push:
     branches:
-      - 'master'
+      - 'main'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   sphinx-build:
 
     runs-on: ubuntu-24.04
+
+    env:
+      cache-name: python-docs-cache
 
     steps:
     - name: Cache Python packages
@@ -29,11 +36,25 @@ jobs:
     - name: Install documentation tools
       run: pip install .[docs]
 
-    - name: Generate documentation
+    - name: Install LaTeX packages
       run: |
-        cd Documentation
-        sphinx-apidoc --separate --module-first -d 5 -f -o source/apidoc ../source/fab
-        make html
+        sudo apt-get update -y
+        sudo apt-get install -y \
+          librsvg2-bin \
+          texlive-latex-base \
+          texlive-latex-recommended \
+          texlive-fonts-recommended \
+          texlive-latex-extra \
+          latexmk
+
+    - name: Generate documentation
+      working-directory: Documentation
+      run: make clean html latexpdf
+
+    - name: Copy PDF to HTML build directory
+      run: |
+        PDF=$(ls Documentation/build/latex/*.pdf | head -n 1)
+        cp "$PDF" Documentation/build/html/
 
     - name: Prepare and upload asset
       uses: actions/upload-pages-artifact@v3
@@ -47,7 +68,7 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{steps.deploy-documentation.outputs.page_url}}
+      url: ${{ steps.deploy-documentation.outputs.page_url }}
     runs-on: ubuntu-24.04
     needs: sphinx-build
     steps:

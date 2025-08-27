@@ -7,6 +7,10 @@ Welcome to Fab's documentation!
 *******************************
 Version |version| (release |release|).
 
+.. raw:: html
+
+   <p><a href="fab.pdf">Download PDF version of this documentation</a></p>
+
 What is fab?
 ============
 
@@ -71,7 +75,7 @@ See also
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
    :hidden:
 
    install

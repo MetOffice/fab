@@ -41,7 +41,7 @@ The class hierarchy for analysis results can be seen below. See
 Classes which are involved in source tree analysis contain symbol definitions
 and dependencies, and the file dependencies into which they are converted.
 
-.. image:: img/analysis_results_hierarchy.svg
+.. image:: _static/analysis_results_hierarchy.svg
     :width: 95%
     :align: center
     :alt: Analysis results class hierarchy
