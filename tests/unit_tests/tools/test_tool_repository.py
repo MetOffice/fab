@@ -18,6 +18,8 @@ from fab.tools.compiler import Compiler, FortranCompiler, Gcc, Gfortran, Ifort
 from fab.tools.compiler_wrapper import Mpif90
 from fab.tools.tool_repository import ToolRepository
 
+from tests.conftest import call_list
+
 
 def test_tool_repository_get_singleton_new():
     '''Tests the singleton behaviour.'''
@@ -223,11 +225,8 @@ def test_default_gcc_suite(category, fake_process: FakeProcess) -> None:
 
     tr = ToolRepository()
     tr.set_default_compiler_suite('gnu')
-    if category == Category.LINKER:
-        def_tool = tr.get_default(category, mpi=False, openmp=False,
-                                  enforce_fortran_linker=True)
-    else:
-        def_tool = tr.get_default(category, mpi=False, openmp=False)
+    def_tool = tr.get_default(category, mpi=False, openmp=False,
+                              enforce_fortran_linker=True)
     def_tool = cast(Compiler, def_tool)
     assert def_tool.suite == 'gnu'
 
@@ -245,11 +244,8 @@ def test_default_intel_suite(category, fake_process: FakeProcess) -> None:
 
     tr = ToolRepository()
     tr.set_default_compiler_suite('intel-classic')
-    if category == Category.LINKER:
-        def_tool = tr.get_default(category, mpi=False, openmp=False,
-                                  enforce_fortran_linker=True)
-    else:
-        def_tool = tr.get_default(category, mpi=False, openmp=False)
+    def_tool = tr.get_default(category, mpi=False, openmp=False,
+                              enforce_fortran_linker=True)
     def_tool = cast(Compiler, def_tool)
     assert def_tool.suite == 'intel-classic'
 
@@ -294,8 +290,10 @@ def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
     assert gfortran.exec_name == "gfortran"
     assert gfortran.exec_path == Path("/usr/bin/gfortran")
 
-    fake_process.register(['/usr/bin/gfortran', 'a'])
+    expected_command = ['/usr/bin/gfortran', 'a']
+    fake_process.register(expected_command)
     gfortran.run("a")
+    assert call_list(fake_process) == [expected_command]
 
 
 def test_tool_repository_no_linker(fake_process: FakeProcess) -> None:

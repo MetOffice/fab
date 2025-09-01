@@ -65,10 +65,10 @@ def test_run_select_linker_fortran(fake_process: FakeProcess,
     is linked and no explicit linker is specified.
     """
 
-    version_command = ['scc', '--version']
-    fake_process.register(version_command, stdout='1.2.3')
-    version_command = ['sfc', '--version']
-    fake_process.register(version_command, stdout='1.2.3')
+    c_version_command = ['scc', '--version']
+    fake_process.register(c_version_command, stdout='1.2.3')
+    f_version_command = ['sfc', '--version']
+    fake_process.register(f_version_command, stdout='1.2.3')
     link_command = ['sfc', 'bar.o', 'foo.o',
                     '-L/my/f-lib', '-lmylib-f', '-fooflag', '-barflag',
                     '-o', '/fab/link_test/foo']
@@ -104,6 +104,8 @@ def test_run_select_linker_fortran(fake_process: FakeProcess,
     with warns(UserWarning,
                match="_metric_send_conn not set, cannot send metrics"):
         link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
+    assert call_list(fake_process) == [c_version_command, f_version_command,
+                                       link_command]
 
 
 def test_run_select_linker_c(fake_process: FakeProcess,
@@ -115,10 +117,10 @@ def test_run_select_linker_c(fake_process: FakeProcess,
     is linked and no explicit linker is specified.
     """
 
-    version_command = ['scc', '--version']
-    fake_process.register(version_command, stdout='1.2.3')
-    version_command = ['sfc', '--version']
-    fake_process.register(version_command, stdout='1.2.3')
+    c_version_command = ['scc', '--version']
+    fake_process.register(c_version_command, stdout='1.2.3')
+    f_version_command = ['sfc', '--version']
+    fake_process.register(f_version_command, stdout='1.2.3')
     link_command = ['scc', 'bar.o', 'foo.o',
                     '-L/my/c-lib', '-lmylib-c', '-fooflag', '-barflag',
                     '-o', '/fab/link_test/foo']
@@ -153,3 +155,5 @@ def test_run_select_linker_c(fake_process: FakeProcess,
     with warns(UserWarning,
                match="_metric_send_conn not set, cannot send metrics"):
         link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
+    assert call_list(fake_process) == [f_version_command, c_version_command,
+                                       link_command]
