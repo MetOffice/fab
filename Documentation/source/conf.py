@@ -72,6 +72,7 @@ autoclass_content = 'both'
 #
 html_theme = 'pydata_sphinx_theme'
 
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
 html_theme_options = {
     "icon_links": [
         {
