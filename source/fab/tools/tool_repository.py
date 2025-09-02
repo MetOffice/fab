@@ -193,10 +193,15 @@ class ToolRepository(dict):
         # tool returned might be mpif90-ifort when the user has actually
         # mpif90-gfortran available)
         for tool in all_tools:
-            if tool.exec_name == path_name.name and tool.is_available:
+            if tool.exec_name == path_name.name:
+                # We can only test if a tool with full path is available,
+                # if we actually set the path. And since in this case
+                # it's the user's decision to use the full path, so
+                # if the tool doesn't work, we need remove the path.
                 if path_name.is_absolute():
                     tool.set_full_path(path_name)
-                return tool
+                if tool.is_available:
+                    return tool
 
         raise KeyError(f"Unknown tool '{name}' in category '{category}' "
                        f"in ToolRepository.")
