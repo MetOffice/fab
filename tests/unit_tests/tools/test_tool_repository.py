@@ -307,5 +307,7 @@ def test_tool_repository_no_linker(fake_process: FakeProcess) -> None:
     assert gfortran.exec_name == "gfortran"
     assert gfortran.exec_path == Path("/usr/bin/gfortran")
 
-    fake_process.register(['/usr/bin/gfortran', 'a'])
+    expected_command = ['/usr/bin/gfortran', 'a']
+    fake_process.register(expected_command)
     gfortran.run("a")
+    assert call_list(fake_process) == [expected_command]
