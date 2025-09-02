@@ -86,6 +86,14 @@ See also
    advanced_config
    site-specific-config
    features
+
+.. toctree::
+   :maxdepth: 2
+   :caption: FabBase class
+   :hidden:
+
+   fab_base/index.rst
+
    Api Reference <api>
    development
    glossary

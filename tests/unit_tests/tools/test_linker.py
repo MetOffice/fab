@@ -209,11 +209,13 @@ def test_c_with_libraries(stub_c_compiler: CCompiler,
     linker.add_lib_flags("customlib", ["-lcustom", "-jcustom"])
 
     linker.link([Path("a.o")], Path("a.out"), libs=["customlib"],
+                add_flags=["-l", "something_additional"],
                 config=stub_configuration)
 
     # The order of the 'libs' list should be maintained
     assert subproc_record.invocations() == [
-        ['scc', "a.o", "-lcustom", "-jcustom", "-o", "a.out"]
+        ["scc", "a.o", "-lcustom", "-jcustom", "-l", "something_additional",
+         "-o", "a.out"]
     ]
 
 
@@ -284,8 +286,7 @@ def test_add_compiler_flag(stub_c_compiler: CCompiler,
 
 def test_linker_all_flag_types(stub_c_compiler: CCompiler,
                                stub_configuration: BuildConfig,
-                               subproc_record: ExtendedRecorder,
-                               monkeypatch) -> None:
+                               subproc_record: ExtendedRecorder) -> None:
     """
     Tests linker arguments are used in the correct order.
 

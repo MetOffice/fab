@@ -216,7 +216,8 @@ class Linker(CompilerSuiteTool):
 
     def link(self, input_files: List[Path], output_file: Path,
              config: "BuildConfig",
-             libs: Optional[List[str]] = None) -> str:
+             libs: Optional[List[str]] = None,
+             add_flags: Optional[List[str]] = None) -> str:
         '''Executes the linker with the specified input files,
         creating `output_file`.
 
@@ -244,6 +245,8 @@ class Linker(CompilerSuiteTool):
             params.extend(self.get_lib_flags(lib))
 
         params.extend(self.get_post_link_flags(config))
+        if add_flags:
+            params.extend(add_flags)
         params.extend([self.output_flag, str(output_file)])
 
         return self.run(params)
