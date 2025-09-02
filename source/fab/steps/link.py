@@ -65,6 +65,10 @@ def link_exe(config,
     source_getter = source or DefaultLinkerSource()
     target_objects = source_getter(config.artefact_store)
 
+    if len(target_objects) == 0:
+        logger.warning("No target objects defined, linking aborted")
+        return
+
     if config.tool_box.has(Category.LINKER):
         linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
                                           openmp=config.openmp)

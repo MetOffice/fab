@@ -7,6 +7,7 @@
 Tests the FabBase class
 """
 import inspect
+import logging
 import os
 from pathlib import Path
 import sys
@@ -260,7 +261,7 @@ def test_preprocessor_flags(monkeypatch) -> None:
     assert fab_base.preprocess_flags_path == [af1, af2, af3]
 
 
-def test_workspace(monkeypatch, change_into_tmpdir) -> None:
+def test_workspace(monkeypatch, change_into_tmpdir, caplog) -> None:
     '''
     Tests setting the working space on the command line
     '''
@@ -278,7 +279,9 @@ def test_workspace(monkeypatch, change_into_tmpdir) -> None:
     # succeed.
     # Note that the project directories are only created once
     # build is called.
-    fab_base.build()
+    with caplog.at_level(logging.WARNING):
+        fab_base.build()
+    assert "No target objects defined, linking aborted" in caplog.text
 
     # Check that the project workspace is as expected:
     project_dir = fab_base.project_workspace
@@ -337,7 +340,7 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     assert "site_specific" == sys.path[0]
 
 
-def test_build_binary(monkeypatch) -> None:
+def test_build_binary(monkeypatch, caplog) -> None:
     '''
     Tests an actual trivial build. We patch all fab functions called
     by the FabBase class, so no actual work will be done (e.g. we don't
@@ -358,7 +361,9 @@ def test_build_binary(monkeypatch) -> None:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
         mocks[function_name] = (patcher, patcher.start())
 
-    fab_base.build()
+    with caplog.at_level(logging.WARNING):
+        fab_base.build()
+    assert "No target objects defined, linking aborted" in caplog.text
 
     mocks["grab_folder"][0].stop()
     mocks["grab_folder"][1].assert_called_once_with(

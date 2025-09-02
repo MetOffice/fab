@@ -6,6 +6,7 @@
 """
 Exercises executable linkage step.
 """
+import logging
 from pathlib import Path
 
 from pytest import warns
@@ -157,3 +158,33 @@ def test_run_select_linker_c(fake_process: FakeProcess,
         link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
     assert call_list(fake_process) == [f_version_command, c_version_command,
                                        link_command]
+
+
+def test_no_targets(fake_process: FakeProcess,
+                    stub_fortran_compiler,
+                    caplog) -> None:
+    """
+    Tests that a warning is issued if no definitions for linking
+    an executable is available.
+    """
+
+    version_command = ['sfc', '--version']
+    fake_process.register(version_command, stdout='1.2.3')
+
+    linker = Linker(compiler=stub_fortran_compiler)
+    linker.add_lib_flags('mylib', ['-L/my/lib', '-lmylib'])
+
+    tool_box = ToolBox()
+    tool_box.add_tool(stub_fortran_compiler)
+    tool_box.add_tool(linker)
+
+    config = BuildConfig('link_test', tool_box, fab_workspace=Path('/fab'),
+                         mpi=False, openmp=False, multiprocessing=False)
+
+    with warns(UserWarning,
+               match="_metric_send_conn not set, cannot send metrics"):
+        with caplog.at_level(logging.WARNING):
+            link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
+    assert "No target objects defined, linking aborted" in caplog.text
+
+    assert call_list(fake_process) == [version_command]
