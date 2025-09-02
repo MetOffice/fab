@@ -66,21 +66,23 @@ def link_exe(config,
     logger.info(f'Linker is {linker.name}')
 
     libs = libs or []
-    if flags:
-        linker.add_post_lib_flags(flags, config.profile)
+    flags = flags or []
     source_getter = source or DefaultLinkerSource()
 
     target_objects = source_getter(config.artefact_store)
     for root, objects in target_objects.items():
         exe_path = config.project_workspace / f'{root}'
-        linker.link(objects, exe_path, config=config, libs=libs)
+        linker.link(objects, exe_path, config=config, libs=libs,
+                    add_flags=flags)
         config.artefact_store.add(ArtefactSet.EXECUTABLES, exe_path)
 
 
 # todo: the bit about Dict[None, object_files] seems too obscure - try to
 # rethink this.
 @step
-def link_shared_object(config, output_fpath: str, flags=None,
+def link_shared_object(config,
+                       output_fpath: str,
+                       flags: Optional[List[str]] = None,
                        source: Optional[ArtefactsGetter] = None):
     """
     Produce a shared object (*.so*) file from the given build target.
@@ -104,11 +106,11 @@ def link_shared_object(config, output_fpath: str, flags=None,
         An optional :class:`~fab.artefacts.ArtefactsGetter`.
         Typically not required, as there is a sensible default.
     """
-    linker = config.tool_box[Category.LINKER]
+    linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
+                                      openmp=config.openmp)
     logger.info(f'linker is {linker}')
 
     flags = flags or []
-    source_getter = source or DefaultLinkerSource()
 
     ensure_flags = ['-fPIC', '-shared']
     for f in ensure_flags:
@@ -117,10 +119,10 @@ def link_shared_object(config, output_fpath: str, flags=None,
 
     # We expect a single build target containing the whole codebase, with no
     # name (as it's not a root symbol).
+    source_getter = source or DefaultLinkerSource()
     target_objects = source_getter(config.artefact_store)
     assert list(target_objects.keys()) == [None]
 
     objects = target_objects[None]
     out_name = Template(output_fpath).substitute(output=config.build_output)
-    linker.add_post_lib_flags(flags, config.profile)
-    linker.link(objects, out_name, config=config)
+    linker.link(objects, out_name, config=config, add_flags=flags)

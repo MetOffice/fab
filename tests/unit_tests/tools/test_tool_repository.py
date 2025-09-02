@@ -12,7 +12,7 @@ from pytest_subprocess.fake_process import FakeProcess
 
 from fab.tools.ar import Ar
 from fab.tools.category import Category
-from fab.tools.compiler import FortranCompiler, Gcc, Gfortran, Ifort
+from fab.tools.compiler import FortranCompiler, Gfortran, Ifort
 from fab.tools.compiler_wrapper import Mpif90
 from fab.tools.tool_repository import ToolRepository
 
@@ -105,18 +105,19 @@ def test_get_tool_error():
             in str(err.value))
 
 
-def test_get_default() -> None:
+def test_get_default(stub_tool_repository, stub_fortran_compiler,
+                     stub_c_compiler) -> None:
     '''Tests get_default.'''
-    tr = ToolRepository()
-    gfortran = tr.get_default(Category.FORTRAN_COMPILER, mpi=False,
-                              openmp=False)
-    assert isinstance(gfortran, Gfortran)
+    fc = stub_tool_repository.get_default(Category.FORTRAN_COMPILER, mpi=False,
+                                          openmp=False)
+    assert fc is stub_fortran_compiler
 
-    gcc = tr.get_default(Category.C_COMPILER, mpi=False, openmp=False)
-    assert isinstance(gcc, Gcc)
+    cc = stub_tool_repository.get_default(Category.C_COMPILER, mpi=False,
+                                          openmp=False)
+    assert cc is stub_c_compiler
 
     # Test a non-compiler
-    ar = tr.get_default(Category.AR)
+    ar = stub_tool_repository.get_default(Category.AR)
     assert isinstance(ar, Ar)
 
 

@@ -14,9 +14,8 @@ from pytest_subprocess.fake_process import FakeProcess
 from tests.conftest import not_found_callback
 
 from fab.tools.category import Category
-from fab.tools.compiler import CCompiler, Gfortran
+from fab.tools.compiler import CCompiler, FortranCompiler, Gfortran
 from fab.tools.tool_box import ToolBox
-from fab.tools.tool_repository import ToolRepository
 
 
 def test_constructor() -> None:
@@ -29,28 +28,37 @@ def test_constructor() -> None:
     assert isinstance(tb._all_tools, dict)
 
 
-def test_add_get_tool() -> None:
+def test_add_get_tool(stub_tool_repository) -> None:
     """
     Tests adding and retrieving tools.
 
     ToDo: There seems to be a lot of collusion between objects. Is there a
           looser way to couple this stuff?
     """
+
     tb = ToolBox()
-    # No tool is defined, so the default Fortran compiler must be returned:
+    # No tool is defined, so the default Fortran compiler from the
+    # ToolRepository must be returned:
     default_compiler = tb.get_tool(Category.FORTRAN_COMPILER,
                                    mpi=False, openmp=False)
-    tr = ToolRepository()
-    assert default_compiler is tr.get_default(Category.FORTRAN_COMPILER,
-                                              mpi=False, openmp=False)
+    assert (default_compiler is
+            stub_tool_repository.get_default(Category.FORTRAN_COMPILER,
+                                             mpi=False, openmp=False))
     # Check that dictionary-like access works as expected:
     assert tb[Category.FORTRAN_COMPILER] == default_compiler
 
-    # Now add gfortran as Fortran compiler to the tool box
-    tr_gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "gfortran")
-    tb.add_tool(tr_gfortran, silent_replace=True)
-    gfortran = tb.get_tool(Category.FORTRAN_COMPILER)
-    assert gfortran is tr_gfortran
+    # Now add a new Fortran compiler to the tool box
+    new_fc = FortranCompiler('new Fortran compiler', 'nfc', 'new',
+                             r'([\d.]+)', openmp_flag='-omp',
+                             module_folder_flag='-mods')
+    new_fc._is_available = True
+
+    tb.add_tool(new_fc, silent_replace=True)
+
+    # Now we must not get the default compiler anymore, but the newly
+    # added compiler instead:
+    tb_fc = tb.get_tool(Category.FORTRAN_COMPILER, mpi=False, openmp=False)
+    assert tb_fc is new_fc
 
 
 def test_tool_replacement() -> None:

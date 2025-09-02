@@ -208,14 +208,15 @@ applied to the wrapper as well:
 
 TODO
 ====
-At this stage compiler flags are still set in the corresponding Fab
+At this stage path-specific compiler flags are still set in the corresponding Fab
 steps, and it might make more sense to allow their modification and
 definition in the compiler objects.
 This will allow a site to define their own set of default flags to
 be used with a certain compiler by replacing or updating a compiler
-instance in the Tool Repository
+instance in the Tool Repository. There is some support for querying
+path-specific flag from the site-specific config, but TODO #313
+will make this much nicer.
 
 Also, a lot of content in this chapter is not actually about site-specific
-configuration. This should likely be renamed or split (once we
-have details about the using site-specific configuration, which might be
-once the Baf base script is added to Fab).
+configuration. This should likely be renamed or split when updating
+and refactoring the documentation.

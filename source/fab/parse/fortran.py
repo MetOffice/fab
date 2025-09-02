@@ -189,19 +189,21 @@ class FortranAnalyser(FortranAnalyserBase):
     def __init__(self,
                  config: BuildConfig,
                  std: Optional[str] = None,
-                 ignore_mod_deps: Optional[Iterable[str]] = None):
+                 ignore_dependencies: Optional[Iterable[str]] = None):
         """
         :param config: The BuildConfig to use.
         :param std:
             The Fortran standard.
-        :param ignore_mod_deps:
-            Module names to ignore in use statements.
+        :param ignore_dependencies:
+            Module names to ignore in use statements or
+            'DEPENDS ON' files to ignore or 'DEPENDS ON'
+            modules to ignore.
 
         """
         super().__init__(config=config,
                          result_class=AnalysedFortran,
                          std=std)
-        self.ignore_mod_deps: Iterable[str] = list(ignore_mod_deps or [])
+        self.ignore_dependencies: Iterable[str] = list(ignore_dependencies or [])
         self.depends_on_comment_found = False
 
     @staticmethod
@@ -333,7 +335,7 @@ class FortranAnalyser(FortranAnalyserBase):
         use_name = _typed_child(obj, Name, must_exist=True)
         use_name = use_name.string
 
-        if use_name in self.ignore_mod_deps:
+        if use_name in self.ignore_dependencies:
             logger.debug(f"ignoring use of {use_name}")
         elif use_name.lower() not in self._intrinsic_modules:
             # found a dependency on fortran
@@ -372,8 +374,10 @@ class FortranAnalyser(FortranAnalyserBase):
         if depends_str in comment:
             self.depends_on_comment_found = True
             dep = comment.split(depends_str)[-1].strip()
+            if dep in self.ignore_dependencies:
+                logger.debug(f"ignoring use of {dep}")
             # with .o means a c file
-            if dep.endswith(".o"):
+            elif dep.endswith(".o"):
                 analysed_file.mo_commented_file_deps.add(
                     dep.replace(".o", ".c"))
             # without .o means a fortran symbol
