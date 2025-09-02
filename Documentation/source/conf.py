@@ -84,7 +84,7 @@ html_theme_options = {
     "footer_start": ["crown-copyright"],
     "footer_center": [
         "sphinx-version",
-        f"Updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        "last-updated",
     ],
     "footer_end": ["theme-version"],
 }
