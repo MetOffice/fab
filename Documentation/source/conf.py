@@ -12,7 +12,6 @@
 #
 import os
 import sys
-import datetime
 
 from fab import __version__ as fab_version
 
