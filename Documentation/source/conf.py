@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('../../source'))
 # -- Project information -----------------------------------------------------
 
 project = 'Fab'
-copyright = '2024 Met Office. All rights reserved.'
+copyright = '2025 Met Office. All rights reserved.'
 author = 'Fab Team'
 
 # The full version, including alpha/beta/rc tags
@@ -72,6 +72,7 @@ autoclass_content = 'both'
 #
 html_theme = 'pydata_sphinx_theme'
 
+html_last_updated_fmt = '%Y-%m-%d %H:%M'
 html_theme_options = {
     "icon_links": [
         {
@@ -81,7 +82,10 @@ html_theme_options = {
         }
     ],
     "footer_start": ["crown-copyright"],
-    "footer_center": ["sphinx-version"],
+    "footer_center": [
+        "sphinx-version",
+        "last-updated",
+    ],
     "footer_end": ["theme-version"],
 }
 

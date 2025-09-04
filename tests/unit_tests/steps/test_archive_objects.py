@@ -49,7 +49,7 @@ class TestArchiveObjects:
         for target in targets:
             config.artefact_store.update_dict(
                 ArtefactSet.OBJECT_FILES,
-                {f'{target}.o', 'util.o'},
+                {Path(f'{target}.o'), Path('util.o')},
                 target
             )
 
@@ -60,7 +60,7 @@ class TestArchiveObjects:
 
         # ensure the correct artefacts were created
         assert config.artefact_store[ArtefactSet.OBJECT_ARCHIVES] == {
-            target: {str(config.build_output / f'{target}.a')}
+            target: {config.build_output / f'{target}.a'}
             for target in targets}
 
     def test_for_library(self, stub_tool_box,
@@ -84,19 +84,18 @@ class TestArchiveObjects:
         config = BuildConfig('proj', stub_tool_box, fab_workspace=Path('/fab'),
                              multiprocessing=False)
         config.artefact_store.update_dict(
-            ArtefactSet.OBJECT_FILES, {'util1.o', 'util2.o'}, None
+            ArtefactSet.OBJECT_FILES, {Path('util1.o'), Path('util2.o')}, None
         )
 
         with warns(UserWarning,
                    match="_metric_send_conn not set, cannot send metrics"):
             archive_objects(config=config,
                             output_fpath=config.build_output / 'mylib.a')
-
         assert call_list(fake_process) == [help_command, ar_command]
 
         # ensure the correct artefacts were created
         assert config.artefact_store[ArtefactSet.OBJECT_ARCHIVES] == {
-            None: {str(config.build_output / 'mylib.a')}}
+            None: {config.build_output / 'mylib.a'}}
 
     def test_incorrect_tool(self, stub_tool_box, monkeypatch):
         """

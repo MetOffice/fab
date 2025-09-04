@@ -47,20 +47,22 @@ jobs:
           texlive-latex-extra \
           latexmk
 
-    - name: Generate documentation
+    - name: Build HTML documentation
       working-directory: Documentation
-      run: make clean html latexpdf
+      run: make clean html
+
+    - name: Build PDF documentation
+      working-directory: Documentation
+      run: make latexpdf
 
     - name: Copy PDF to HTML build directory
-      run: |
-        PDF=$(ls Documentation/build/latex/*.pdf | head -n 1)
-        cp "$PDF" Documentation/build/html/
+      working-directory: Documentation
+      run: cp -r build/latex build/html/
 
     - name: Prepare and upload asset
       uses: actions/upload-pages-artifact@v3
       with:
         path: Documentation/build/html
-
 
   deploy-documentation:
     permissions:

@@ -9,8 +9,9 @@ Object archive creation from a list of object files for use in static linking.
 """
 
 import logging
-from string import Template
 from typing import Optional
+from pathlib import Path
+from string import Template
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -34,7 +35,7 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(ArtefactSet.OBJECT_FILES)
 @step
 def archive_objects(config: BuildConfig,
                     source: Optional[ArtefactsGetter] = None,
-                    output_fpath=None,
+                    output_fpath: Optional[Path] = None,
                     output_collection=ArtefactSet.OBJECT_ARCHIVES):
     """
     Create an object archive for every build target, from their object files.
@@ -107,7 +108,6 @@ def archive_objects(config: BuildConfig,
     if not isinstance(ar, Ar):
         raise RuntimeError(f"Unexpected tool '{ar.name}' of type "
                            f"'{type(ar)}' instead of Ar")
-    output_fpath = str(output_fpath) if output_fpath else None
 
     target_objects = source_getter(config.artefact_store)
     assert target_objects.keys()
@@ -121,12 +121,12 @@ def archive_objects(config: BuildConfig,
 
         if root:
             # we're building an object archive for an executable
-            output_fpath = str(config.build_output / f'{root}.a')
+            output_fpath = config.build_output / f'{root}.a'
         else:
             # we're building a single object archive with a given filename
             assert len(target_objects) == 1, "unexpected root of None with multiple build targets"
-            output_fpath = Template(str(output_fpath)).substitute(
-                output=config.build_output)
+            output_fpath = Path(Template(str(output_fpath)).substitute(
+                output=config.build_output))
 
         log_or_dot(logger, f"CreateObjectArchive running archiver for "
                            f"'{output_fpath}'.")

@@ -92,6 +92,30 @@ class TestAnalyser:
         assert artefact == (fortran_analyser._config.prebuild_folder /
                             f'test_fortran_analyser.{analysis.file_hash}.an')
 
+    def test_module_file_ignore_dependencies(self, fortran_analyser,
+                                             module_fpath,
+                                             module_expected):
+        '''Test ignore_dependencies parameter for fortran_analyser, meaning the
+        dependency on some_file.o ('DEPENDS ON' c file), monty_func ('DEPENDS
+        ON' fortran module) and compute_chunk_size_mod (Use fortran module)
+        should not be detected
+        '''
+        fortran_analyser.ignore_dependencies = ['some_file.o', 'monty_func',
+                                                'compute_chunk_size_mod']
+        with mock.patch('fab.parse.AnalysedFile.save'):
+            analysis, artefact = fortran_analyser.run(fpath=module_fpath)
+
+        # With ignore_dependencies, some_file.o, monty_func symbol and
+        # compute_chunk_size_mod symbol must not be added:
+        module_expected.mo_commented_file_deps = set()
+        module_expected.symbol_deps.remove('monty_func')
+        module_expected.module_deps.remove('compute_chunk_size_mod')
+        module_expected.symbol_deps.remove('compute_chunk_size_mod')
+
+        assert analysis == module_expected
+        assert artefact == (fortran_analyser._config.prebuild_folder /
+                            f'test_fortran_analyser.{analysis.file_hash}.an')
+
     def test_program_file(self, fortran_analyser, module_fpath,
                           module_expected):
         # same as test_module_file() but replacing MODULE with PROGRAM
