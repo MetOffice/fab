@@ -92,9 +92,7 @@ def link_exe(config,
 
     libs = libs or []
     flags = flags or []
-    source_getter = source or DefaultLinkerSource()
 
-    target_objects = source_getter(config.artefact_store)
     for root, objects in target_objects.items():
         exe_path = config.project_workspace / f'{root}'
         linker.link(objects, exe_path, config=config, libs=libs,
