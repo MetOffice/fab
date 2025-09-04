@@ -263,23 +263,46 @@ def test_flags_independent(stub_c_compiler: CCompiler,
     assert stub_c_compiler.get_flags() == []
     assert wrapper.get_flags() == []
 
-    stub_c_compiler.add_flags(["-a", "-b"])
-    assert stub_c_compiler.get_flags() == ["-a", "-b"]
-    assert wrapper.get_flags() == ['-a', '-b']
+    stub_c_compiler.add_flags(['-a', '-b'])
+    # Compiler flags are handled differently in a compiler (since a compiler
+    # needs path-specific flags, but the generic get_flags call from Tools
+    # does not provide a path). So the compiler should report no flags:
+    assert stub_c_compiler.get_flags() == []
+    resolved_flags = stub_c_compiler.get_all_commandline_options(
+        stub_configuration, Path('/in'), Path("/out"))
+    assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
+
+    assert wrapper.get_flags() == []
+
+    # We need to test `get_all_commandline_options` to check the correct
+    # behaviour of flags, which can resolve path-specific flags.
+    resolved_flags = wrapper.get_all_commandline_options(stub_configuration,
+                                                         Path('/in'),
+                                                         Path('/out'))
+
+    assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
     assert wrapper.openmp_flag == stub_c_compiler.openmp_flag
 
     # Adding flags to the wrapper should not affect the wrapped compiler:
-    wrapper.add_flags(["-d", "-e"])
-    assert stub_c_compiler.get_flags() == ['-a', '-b']
+    wrapper.add_flags(['-d', '-e'])
+    resolved_flags = stub_c_compiler.get_all_commandline_options(
+        stub_configuration, Path('/in'), Path("/out"))
+    assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
+
     # And the compiler wrapper should report the wrapped compiler's flag
     # followed by the wrapper flag (i.e. the wrapper flag can therefore
     # overwrite the wrapped compiler's flags)
-    assert wrapper.get_flags() == ['-a', '-b', "-d", "-e"]
+    assert wrapper.get_flags() == []
+    resolved_flags = wrapper.get_all_commandline_options(stub_configuration,
+                                                         Path("/in"),
+                                                         Path("/out"))
+    assert resolved_flags == ['-c', '-a', '-b', '-d', '-e',
+                              'in', '-o', '/out']
 
     wrapper.compile_file(Path("a.f90"), Path('a.o'), add_flags=['-f'],
                          config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['mpicc', "-a", "-b", "-d", "-e", "-c", "-f", "a.f90", "-o", 'a.o']
+        ['mpicc', '-c', '-a', '-b', '-d', '-e', '-f', 'a.f90', '-o', 'a.o']
     ]
     assert subproc_record.extras()[0]['cwd'] == '.'
 
@@ -290,26 +313,26 @@ def test_compiler_wrapper_flags_with_add_arg(stub_c_compiler: CCompiler,
     '''Tests that flags set in the base compiler will be accessed in the
     wrapper if also additional flags are specified.'''
     mpicc = Mpicc(stub_c_compiler)
-    stub_c_compiler.define_profile("default", inherit_from="")
-    mpicc.define_profile("default", inherit_from="")
+    stub_c_compiler.define_profile('default', inherit_from="")
+    mpicc.define_profile('default', inherit_from="")
     # Due to inheritance, this will give "-a -b" for gcc
-    stub_c_compiler.add_flags(["-a"])
-    stub_c_compiler.add_flags(["-b"], "default")
-    # Due to inheritance, this will give "-d -e" for mpicc
-    mpicc.add_flags(["-d"])
-    mpicc.add_flags(["-e"], "default")
+    stub_c_compiler.add_flags(['-a'])
+    stub_c_compiler.add_flags(['-b'], 'default')
+    # Due to inheritance, this will give '-d -e' for mpicc
+    mpicc.add_flags(['-d'])
+    mpicc.add_flags(['-e'], 'default')
 
     # Check that the flags are assembled in the right order in the
     # actual compiler call: first the wrapped compiler flag, then
     # the wrapper flag, then additional flags
     stub_configuration._openmp = True
-    stub_configuration._profile = "default"
+    stub_configuration._profile = 'default'
 
-    mpicc.compile_file(Path("a.f90"), Path("a.o"), add_flags=["-f"],
+    mpicc.compile_file(Path('a.f90'), Path('a.o'), add_flags=['-f'],
                        config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['mpicc', "-a", "-b", "-d", "-e", "-c", "-omp", "-f",
-         "a.f90", "-o", 'a.o']
+        ['mpicc', '-c', '-omp', '-a', '-b', '-d', '-e', '-f',
+         'a.f90', '-o', 'a.o']
     ]
 
 
@@ -322,12 +345,12 @@ def test_args_without_add_arg(stub_c_compiler: CCompiler,
     """
     wrapper = CompilerWrapper('wrapper', 'wrp', compiler=stub_c_compiler)
 
-    stub_c_compiler.add_flags(["-a", "-b"])
-    wrapper.add_flags(["-d", "-e"])
+    stub_c_compiler.add_flags(['-a', '-b'])
+    wrapper.add_flags(['-d', '-e'])
 
-    wrapper.compile_file(Path("a.f90"), Path('a.o'), config=stub_configuration)
+    wrapper.compile_file(Path('a.f90'), Path('a.o'), config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['wrp', "-a", "-b", "-d", "-e", "-c", "a.f90", "-o", 'a.o']
+        ['wrp', '-c', '-a', '-b', '-d', '-e', 'a.f90', '-o', 'a.o']
     ]
     assert subproc_record.extras()[0]['cwd'] == '.'
 

@@ -219,9 +219,10 @@ def test_c_with_libraries(stub_c_compiler: CCompiler,
     ]
 
 
-def test_c_with_libraries_and_post_flags(stub_c_compiler: CCompiler,
-                                         stub_configuration: BuildConfig,
-                                         subproc_record: ExtendedRecorder) -> None:
+def test_c_with_libraries_and_post_flags(
+         stub_c_compiler: CCompiler,
+         stub_configuration: BuildConfig,
+         subproc_record: ExtendedRecorder) -> None:
     """
     Tests link command line when a library and additional flags are specified.
     """
@@ -236,9 +237,10 @@ def test_c_with_libraries_and_post_flags(stub_c_compiler: CCompiler,
     ]
 
 
-def test_c_with_libraries_and_pre_flags(stub_c_compiler: CCompiler,
-                                        stub_configuration: BuildConfig,
-                                        subproc_record: ExtendedRecorder) -> None:
+def test_c_with_libraries_and_pre_flags(
+        stub_c_compiler: CCompiler,
+        stub_configuration: BuildConfig,
+        subproc_record: ExtendedRecorder) -> None:
     """
     Tests link command line when a library and additional flags are specified.
     """
@@ -367,7 +369,8 @@ def test_linker_inheriting() -> None:
     assert str(err.value) == "Unknown library name: 'does_not_exist'"
 
 
-def test_linker_profile_flags_inheriting(stub_c_compiler):
+def test_linker_profile_flags_inheriting(stub_c_compiler,
+                                         stub_configuration):
     """
     Tests nested compiler and nested linker with inherited profiling flags.
     """
@@ -386,7 +389,8 @@ def test_linker_profile_flags_inheriting(stub_c_compiler):
         count += 2
 
     # One set f0-f3 from the compiler wrapper, one from the wrapped linker
-    assert (linker_wrapper.get_profile_flags("derived") ==
+    stub_configuration.set_profile("derived")
+    assert (linker_wrapper.get_profile_flags(stub_configuration) ==
             ["-f0", "-f1", "-f2", "-f3", "-f0", "-f1", "-f2", "-f3"])
 
 

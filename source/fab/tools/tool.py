@@ -16,10 +16,13 @@ a tool is actually available.
 import logging
 from pathlib import Path
 import subprocess
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Optional, Sequence, TYPE_CHECKING, Union
 
 from fab.tools.category import Category
-from fab.tools.flags import ProfileFlags
+from fab.tools.flags import AbstractFlags, ProfileFlags
+
+if TYPE_CHECKING:
+    from fab.build_config import BuildConfig
 
 
 class Tool:
@@ -121,11 +124,16 @@ class Tool:
         ''':returns: the category of this tool.'''
         return self._category
 
-    def get_flags(self, profile: Optional[str] = None):
-        ''':returns: the flags to be used with this tool.'''
-        return self._flags[profile]
+    @property
+    def flags(self) -> ProfileFlags:
+        ''':returns: the profile flags for this tool.'''
+        return self._flags
 
-    def add_flags(self, new_flags: Union[str, List[str]],
+    def get_flags(self, config: Optional["BuildConfig"] = None) -> List[str]:
+        ''':returns: the flags to be used with this tool.'''
+        return self.flags.get_flags(config)
+
+    def add_flags(self, new_flags: Union[AbstractFlags, str, List[str]],
                   profile: Optional[str] = None):
         '''Adds the specified flags to the list of flags.
 
@@ -159,7 +167,7 @@ class Tool:
     def run(self,
             additional_parameters: Optional[
                 Union[str, Sequence[Union[Path, str]]]] = None,
-            profile: Optional[str] = None,
+            config: Optional["BuildConfig"] = None,
             env: Optional[Dict[str, str]] = None,
             cwd: Optional[Union[Path, str]] = None,
             capture_output=True) -> str:
@@ -170,6 +178,8 @@ class Tool:
             List of strings or paths to be sent to :func:`subprocess.run`
             as additional parameters for the command. Any path will be
             converted to a normal string.
+        :param config: the config object, used for accessing compilation mode
+            and paths (if templating is required)
         :param env:
             Optional env for the command. By default it will use the current
             session's environment.
@@ -180,7 +190,7 @@ class Tool:
         :raises RuntimeError: if the code is not available.
         :raises RuntimeError: if the return code of the executable is not 0.
         """
-        command = [str(self.exec_path)] + self.get_flags(profile)
+        command = [str(self.exec_path)] + self.get_flags(config)
         if additional_parameters:
             if isinstance(additional_parameters, str):
                 command.append(additional_parameters)

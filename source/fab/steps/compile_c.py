@@ -18,7 +18,8 @@ from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Compiler, Flags
+from fab.tools.flags import Flags, ProfileFlags
+from fab.tools import Category, Compiler
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
@@ -129,8 +130,10 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     # to cast it to be a Compiler.
     compiler = cast(Compiler, compiler)
     with Timer() as timer:
-        flags = Flags(mp_payload.flags.flags_for_path(path=analysed_file.fpath,
-                                                      config=config))
+        f_f_p = mp_payload.flags.flags_for_path(path=analysed_file.fpath,
+                                                config=config)
+        flags = ProfileFlags()
+        flags.add_flags(f_f_p, config.profile)
         obj_combo_hash = _get_obj_combo_hash(config, compiler,
                                              analysed_file, flags)
 
@@ -148,7 +151,7 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
             try:
                 compiler.compile_file(analysed_file.fpath, obj_file_prebuild,
                                       config=config,
-                                      add_flags=flags)
+                                      add_flags=f_f_p)
             except RuntimeError as err:
                 return FabException(f"error compiling "
                                     f"{analysed_file.fpath}:\n{err}")

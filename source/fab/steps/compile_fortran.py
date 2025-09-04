@@ -22,6 +22,7 @@ from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
 from fab.tools import Category, Compiler, Flags
+from fab.tools.flags import ProfileFlags
 from fab.util import (CompiledFile, log_or_dot_finish, log_or_dot, Timer,
                       by_type, file_checksum)
 
@@ -270,8 +271,9 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
         # The ToolBox returns a Tool, but we need to tell mypy that
         # this is a Compiler
         compiler = cast(Compiler, compiler)
-        flags = Flags(mp_common_args.flags.flags_for_path(
-            path=analysed_file.fpath, config=config))
+        f_f_p = mp_common_args.flags.flags_for_path(path=analysed_file.fpath,
+                                                    config=config)
+        flags = ProfileFlags(f_f_p, config.profile)
 
         mod_combo_hash = _get_mod_combo_hash(config, analysed_file,
                                              compiler=compiler)
@@ -296,7 +298,7 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
             # compile
             try:
                 logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
-                compile_file(analysed_file.fpath, flags,
+                compile_file(analysed_file.fpath, f_f_p,
                              output_fpath=obj_file_prebuild,
                              mp_common_args=mp_common_args)
             except Exception as err:
@@ -355,7 +357,7 @@ def _get_obj_combo_hash(config: BuildConfig,
             analysed_file.file_hash,
             flags.checksum(),
             sum(mod_deps_hashes.values()),
-            compiler.get_hash(config.profile),
+            compiler.get_hash(config),
         ])
     except TypeError as err:
         raise ValueError("Could not generate combo hash "
@@ -368,7 +370,7 @@ def _get_mod_combo_hash(config, analysed_file, compiler: Compiler):
     try:
         mod_combo_hash = sum([
             analysed_file.file_hash,
-            compiler.get_hash(config.profile),
+            compiler.get_hash(config),
         ])
     except TypeError as err:
         raise ValueError("Could not generate combo "

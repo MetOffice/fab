@@ -109,7 +109,7 @@ class Linker(CompilerSuiteTool):
         self._pre_lib_flags.define_profile(name, inherit_from)
         self._post_lib_flags.define_profile(name, inherit_from)
 
-    def get_profile_flags(self, profile: str) -> List[str]:
+    def get_profile_flags(self, config: "BuildConfig") -> List[str]:
         '''
         :returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
@@ -117,10 +117,13 @@ class Linker(CompilerSuiteTool):
         :param profile: the profile to use.
         '''
         if self._linker:
-            flags = self._linker.get_profile_flags(profile)[:]
+            flags = self._linker.get_profile_flags(config)[:]
         else:
             flags = []
-        return flags + self._compiler.get_flags(profile)
+        # A compiler can have path specific flags. Since we are only
+        # interested in linking here, path-specific flags are not
+        # needed, so we provide a dummy file-path.
+        return flags + self._compiler.get_resolved_flags(config, Path(""))
 
     def get_lib_flags(self, lib: str) -> List[str]:
         '''Gets the standard flags for a standard library
@@ -186,7 +189,7 @@ class Linker(CompilerSuiteTool):
         '''
         params: List[str] = []
         if self._pre_lib_flags:
-            params.extend(self._pre_lib_flags[config.profile])
+            params.extend(self._pre_lib_flags.get_flags(config))
         if self._linker:
             # If we are wrapping a linker, get the wrapped linker's
             # pre-link flags and append them to the end (so the linker
@@ -211,7 +214,7 @@ class Linker(CompilerSuiteTool):
             # wrapped linker).
             params.extend(self._linker.get_post_link_flags(config))
         if self._post_lib_flags:
-            params.extend(self._post_lib_flags[config.profile])
+            params.extend(self._post_lib_flags.get_flags(config))
         return params
 
     def link(self, input_files: List[Path], output_file: Path,
@@ -232,7 +235,7 @@ class Linker(CompilerSuiteTool):
 
         params: List[Union[str, Path]] = []
 
-        params.extend(self._compiler.get_flags(config.profile))
+        params.extend(self._compiler.get_resolved_flags(config, Path()))
 
         if config.openmp:
             params.append(self._compiler.openmp_flag)

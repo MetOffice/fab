@@ -17,7 +17,7 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, _compile_file, compile_c
 from fab.tools.category import Category
-from fab.tools.flags import Flags
+from fab.tools.flags import ProfileFlags
 from fab.tools.tool_box import ToolBox
 
 
@@ -117,7 +117,9 @@ class TestGetObjComboHash:
     @fixture(scope='function')
     def flags(self):
         '''Returns the flag for these tests.'''
-        return Flags(['-Denv_flag', '-I', 'foo/include', '-Dhello'])
+        pf = ProfileFlags()
+        pf.add_flags(['-Denv_flag', '-I', 'foo/include', '-Dhello'])
+        return pf
 
     def test_vanilla(self, content, flags, fake_process: FakeProcess) -> None:
         """
@@ -158,7 +160,7 @@ class TestGetObjComboHash:
 
         fake_process.register(['scc', '--version'], stdout='1.2.3')
         compiler = config.tool_box[Category.C_COMPILER]
-        flags = Flags(['-Dfoo'] + flags)
+        flags = ProfileFlags(['-Dfoo'] + flags.get_flags(), config.profile)
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
         assert result != 5066163117
 

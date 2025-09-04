@@ -139,7 +139,7 @@ def test_tool_flags_no_profile() -> None:
     assert tool.get_flags() == ["-a", "-b", "-c"]
 
 
-def test_tool_profiles() -> None:
+def test_tool_profiles(stub_configuration) -> None:
     '''Test that profiles work as expected. These tests use internal
     implementation details of ProfileFlags, but we need to test that the
     exposed flag-related API works as expected
@@ -151,16 +151,18 @@ def test_tool_profiles() -> None:
     assert tool.get_flags() == []
 
     # Define a profile with no inheritance
+    stub_configuration.set_profile("mode1")
     tool.define_profile("mode1")
-    assert tool.get_flags("mode1") == []
+    assert tool.get_flags(stub_configuration) == []
     tool.add_flags("-flag1", "mode1")
-    assert tool.get_flags("mode1") == ["-flag1"]
+    assert tool.get_flags(stub_configuration) == ["-flag1"]
 
     # Define a profile with inheritance
     tool.define_profile("mode2", "mode1")
-    assert tool.get_flags("mode2") == ["-flag1"]
+    stub_configuration.set_profile("mode2")
+    assert tool.get_flags(stub_configuration) == ["-flag1"]
     tool.add_flags("-flag2", "mode2")
-    assert tool.get_flags("mode2") == ["-flag1", "-flag2"]
+    assert tool.get_flags(stub_configuration) == ["-flag1", "-flag2"]
 
 
 class TestToolRun:

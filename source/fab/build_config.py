@@ -91,9 +91,9 @@ class BuildConfig():
         self._openmp = openmp
         if profile is None:
             # An empty string is used for non-profiled flags
-            self._profile = ""
+            self.set_profile("")
         else:
-            self._profile = profile
+            self.set_profile(profile)
         self.two_stage = two_stage
         self.verbose = verbose
         compiler = tool_box.get_tool(Category.FORTRAN_COMPILER, mpi=mpi,
@@ -222,6 +222,13 @@ class BuildConfig():
     def profile(self) -> str:
         ''':returns: the name of the compiler profile to use.'''
         return self._profile
+
+    def set_profile(self, profile: str) -> None:
+        """Sets the compilation profile.
+
+        :param profile: the name of the profile.
+        """
+        self._profile = profile.lower()
 
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """

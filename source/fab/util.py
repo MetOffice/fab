@@ -63,7 +63,7 @@ def file_checksum(fpath):
         return HashedFile(fpath, zlib.crc32(infile.read()))
 
 
-def string_checksum(s: str):
+def string_checksum(s: str) -> int:
     """
     Return a checksum of the given string.
 
