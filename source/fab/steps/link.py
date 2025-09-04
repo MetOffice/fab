@@ -66,7 +66,7 @@ def link_exe(config,
     target_objects = source_getter(config.artefact_store)
 
     if len(target_objects) == 0:
-        logger.warning("No target objects defined, linking aborted")
+        raise ValueError("No target objects defined, linking aborted")
         return
 
     if config.tool_box.has(Category.LINKER):

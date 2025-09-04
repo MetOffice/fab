@@ -6,10 +6,9 @@
 """
 Exercises executable linkage step.
 """
-import logging
 from pathlib import Path
 
-from pytest import warns
+from pytest import warns, raises
 from pytest_subprocess.fake_process import FakeProcess
 
 from fab.artefacts import ArtefactSet
@@ -181,10 +180,8 @@ def test_no_targets(fake_process: FakeProcess,
     config = BuildConfig('link_test', tool_box, fab_workspace=Path('/fab'),
                          mpi=False, openmp=False, multiprocessing=False)
 
-    with warns(UserWarning,
-               match="_metric_send_conn not set, cannot send metrics"):
-        with caplog.at_level(logging.WARNING):
-            link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
-    assert "No target objects defined, linking aborted" in caplog.text
+    with raises(ValueError) as err:
+        link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
+    assert "No target objects defined, linking aborted" in str(err.value)
 
     assert call_list(fake_process) == [version_command]

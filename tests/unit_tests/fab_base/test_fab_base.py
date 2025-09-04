@@ -7,7 +7,6 @@
 Tests the FabBase class
 """
 import inspect
-import logging
 import os
 from pathlib import Path
 import sys
@@ -261,7 +260,7 @@ def test_preprocessor_flags(monkeypatch) -> None:
     assert fab_base.preprocess_flags_path == [af1, af2, af3]
 
 
-def test_workspace(monkeypatch, change_into_tmpdir, caplog) -> None:
+def test_workspace(monkeypatch, change_into_tmpdir) -> None:
     '''
     Tests setting the working space on the command line
     '''
@@ -274,14 +273,13 @@ def test_workspace(monkeypatch, change_into_tmpdir, caplog) -> None:
                                       str(new_workspace)])
     fab_base = FabBase(name="root_symbol_does_not_exit")
 
-    # Since FabBase itself requests Fab to find programs, Fab will happy
-    # do nothing if no main program is found. So this build will actually
-    # succeed.
+    # Since FabBase itself requests Fab to find programs, Fab will
+    # abort in the linking step (missing targets)
     # Note that the project directories are only created once
     # build is called.
-    with caplog.at_level(logging.WARNING):
+    with pytest.raises(ValueError) as err:
         fab_base.build()
-    assert "No target objects defined, linking aborted" in caplog.text
+    assert "No target objects defined, linking aborted" in str(err.value)
 
     # Check that the project workspace is as expected:
     project_dir = fab_base.project_workspace
@@ -361,9 +359,9 @@ def test_build_binary(monkeypatch, caplog) -> None:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
         mocks[function_name] = (patcher, patcher.start())
 
-    with caplog.at_level(logging.WARNING):
+    with pytest.raises(ValueError) as err:
         fab_base.build()
-    assert "No target objects defined, linking aborted" in caplog.text
+    assert "No target objects defined, linking aborted" in str(err.value)
 
     mocks["grab_folder"][0].stop()
     mocks["grab_folder"][1].assert_called_once_with(
