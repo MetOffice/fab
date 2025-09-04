@@ -160,8 +160,7 @@ def test_run_select_linker_c(fake_process: FakeProcess,
 
 
 def test_no_targets(fake_process: FakeProcess,
-                    stub_fortran_compiler,
-                    caplog) -> None:
+                    stub_fortran_compiler) -> None:
     """
     Tests that a warning is issued if no definitions for linking
     an executable is available.

@@ -338,7 +338,7 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     assert "site_specific" == sys.path[0]
 
 
-def test_build_binary(monkeypatch, caplog) -> None:
+def test_build_binary(monkeypatch) -> None:
     '''
     Tests an actual trivial build. We patch all fab functions called
     by the FabBase class, so no actual work will be done (e.g. we don't
