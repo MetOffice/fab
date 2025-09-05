@@ -273,8 +273,8 @@ def test_workspace(monkeypatch, change_into_tmpdir) -> None:
                                       str(new_workspace)])
     fab_base = FabBase(name="root_symbol_does_not_exit")
 
-    # Since FabBase itself requests Fab to find programs, Fab will
-    # abort in the linking step (missing targets)
+    # Since FabBase itself requests Fab to find programs, but there
+    # is none, Fab will abort in the linking step (missing targets).
     # Note that the project directories are only created once
     # build is called.
     with pytest.raises(ValueError) as err:
