@@ -9,7 +9,7 @@
 
 import pytest
 
-from fab.tools import Flags, ProfileFlags
+from fab.tools.flags import Flags, ProfileFlags
 from fab.util import string_checksum
 
 

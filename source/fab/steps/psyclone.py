@@ -24,7 +24,8 @@ from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
 from fab.steps.preprocess import pre_processor
-from fab.tools import Category, Psyclone
+from fab.tools.category import Category
+from fab.tools.psyclone import Psyclone
 from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
                       file_walk, TimerLogger, string_checksum, suffix_filter,
                       by_type, log_or_dot_finish)

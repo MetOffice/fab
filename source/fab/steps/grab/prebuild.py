@@ -5,7 +5,7 @@
 # ##############################################################################
 from fab.steps import step
 from fab.steps.grab import logger
-from fab.tools import Category
+from fab.tools.category import Category
 
 
 @step

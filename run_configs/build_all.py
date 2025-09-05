@@ -13,7 +13,7 @@ import os
 from pathlib import Path
 import shutil
 
-from fab.tools import Category, Tool, ToolBox
+from fab.api import Category, Tool, ToolBox
 
 
 class Script(Tool):

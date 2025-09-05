@@ -11,7 +11,7 @@ from pytest import importorskip
 
 from fab.build_config import BuildConfig
 from fab.parse.c import CAnalyser, AnalysedC
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
 
 clang = importorskip('clang')
 

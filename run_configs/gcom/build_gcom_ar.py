@@ -5,10 +5,8 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-from fab.build_config import BuildConfig
-from fab.steps.archive_objects import archive_objects
-from fab.steps.cleanup_prebuilds import cleanup_prebuilds
-from fab.tools import ToolBox
+from fab.api import archive_objects, BuildConfig, cleanup_prebuilds, ToolBox
+
 from gcom_build_steps import common_build_steps
 
 

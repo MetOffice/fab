@@ -13,7 +13,7 @@ from typing import List, Optional
 
 from fab.artefacts import ArtefactSet
 from fab.steps import step
-from fab.tools import Category
+from fab.tools.category import Category
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)

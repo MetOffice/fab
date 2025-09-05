@@ -15,7 +15,7 @@ from unittest import mock
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
 
 
 class TestBuildConfig:

@@ -18,7 +18,8 @@ from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Cpp, CppFortran, Preprocessor
+from fab.tools.category import Category
+from fab.tools.preprocessor import Cpp, CppFortran, Preprocessor
 from fab.util import (log_or_dot_finish, input_to_output_fpath, log_or_dot,
                       suffix_filter, Timer, by_type)
 

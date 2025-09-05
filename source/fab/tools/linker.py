@@ -10,15 +10,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, Union
 import warnings
 
+from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
 from fab.tools.flags import ProfileFlags
 from fab.tools.tool import CompilerSuiteTool
-if TYPE_CHECKING:
-    from fab.build_config import BuildConfig
 
 
 class Linker(CompilerSuiteTool):

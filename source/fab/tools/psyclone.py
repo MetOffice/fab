@@ -9,17 +9,12 @@
 
 from pathlib import Path
 import re
-from typing import Callable, List, Optional, TYPE_CHECKING, Union
+from typing import Callable, List, Optional, Union
 import warnings
 
+from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.tool import Tool
-
-if TYPE_CHECKING:
-    # TODO 314: see if this circular dependency can be broken
-    # Otherwise we have a circular dependency:
-    # BuildConfig needs ToolBox which imports __init__ which imports this
-    from fab.build_config import BuildConfig
 
 
 class Psyclone(Tool):

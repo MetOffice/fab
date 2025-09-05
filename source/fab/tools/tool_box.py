@@ -73,7 +73,11 @@ class ToolBox:
         # from the ToolRepository, and add it, so we don't need to look
         # it up again later.
 
-        # Avoid cyclic import:
+        # Avoid cyclic import: ToolRepository needs Compiler (to create
+        # all compiler instances), which needs BuildConfig (to type
+        # the config paramter), which needs ToolBox (to declare a parameter),
+        # which needs the ToolRepository here. For now, we break this cycle
+        # by importing the ToolRepository here.
         # pylint: disable=import-outside-toplevel
         from fab.tools.tool_repository import ToolRepository
         tr = ToolRepository()

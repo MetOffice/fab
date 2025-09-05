@@ -21,7 +21,7 @@ import pytest
 from fab.build_config import BuildConfig
 from fab.parse import EmptySourceFile
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
 
 # todo: test function binding
 

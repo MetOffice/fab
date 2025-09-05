@@ -16,7 +16,8 @@ import pytest
 
 from fab.build_config import AddFlags
 from fab.fab_base.fab_base import FabBase
-from fab.tools import Category, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_repository import ToolRepository
 
 
 @pytest.fixture(scope="function", autouse=True)

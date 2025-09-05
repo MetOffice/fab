@@ -22,9 +22,13 @@ from fab.tools.compiler_wrapper import (CompilerWrapper, CrayCcWrapper,
                                         CrayFtnWrapper, Mpif90, Mpicc)
 from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
-from fab.tools import (Ar, Cpp, CppFortran, Craycc, Crayftn,
-                       Gcc, Gfortran, Icc, Icx, Ifort, Ifx,
-                       Nvc, Nvfortran, Psyclone, Rsync, Shell)
+from fab.tools.ar import Ar
+from fab.tools.preprocessor import Cpp, CppFortran
+from fab.tools.compiler import (Craycc, Crayftn, Gcc, Gfortran, Icc, Icx,
+                                Ifort, Ifx, Nvc, Nvfortran)
+from fab.tools.psyclone import Psyclone
+from fab.tools.rsync import Rsync
+from fab.tools.shell import Shell
 
 
 class ToolRepository(dict):

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Union
 
 from fab.steps import step
-from fab.tools import Category
+from fab.tools.category import Category
 
 
 @step

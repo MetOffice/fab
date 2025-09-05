@@ -18,7 +18,9 @@ from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Compiler, Flags
+from fab.tools.category import Category
+from fab.tools.compiler import Compiler
+from fab.tools.flags import Flags
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)

@@ -8,8 +8,7 @@ This module contains the default Baf configuration class.
 import argparse
 from typing import cast, Dict, List
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Compiler, ToolRepository
+from fab.api import AddFlags, BuildConfig, Category, Compiler, ToolRepository
 
 from fab.fab_base.site_specific.default.setup_cray import setup_cray
 from fab.fab_base.site_specific.default.setup_gnu import setup_gnu
