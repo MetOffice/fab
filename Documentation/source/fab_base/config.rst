@@ -86,6 +86,7 @@ A well written default configuration file will take newly defined
 profiles into account and set them up automatically.
 See :ref:`new_compilation_profiles` for an extended example.
 
+.. _command_line_options:
 
 ``handle_command_line_options``
 -------------------------------
