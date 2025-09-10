@@ -12,7 +12,7 @@ aspects of software building may require more esoteric Fab features.
 Importing from a Path-independent Location
 ==========================================
 Fab is providing an ``api`` submodule, from which the important
-classes and functions that a user script will need can be important,
+classes and functions that a user script will need can be imported,
 e.g.:
 
 .. code-block::
