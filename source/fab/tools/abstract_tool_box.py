@@ -4,17 +4,17 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''This file contains the ToolBox class.
+'''This file contains the AbstractToolBox class.
 '''
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Optional
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
 
 
-class AbstractToolBox:
+class AbstractToolBox(ABC):
     '''This is the abstract base class for the ToolBox class.
     '''
 
