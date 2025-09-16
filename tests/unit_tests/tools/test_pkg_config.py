@@ -26,7 +26,7 @@ def test_constructor() -> None:
     assert pcf.get_flags() == []
 
 
-def test_nf_config_check_available(fake_process: FakeProcess) -> None:
+def test_pkg_config_check_available(fake_process: FakeProcess) -> None:
     """
     Tests availability functionality.
     """
@@ -39,7 +39,7 @@ def test_nf_config_check_available(fake_process: FakeProcess) -> None:
     assert call_list(fake_process) == [['pkg-config', '--version']]
 
 
-def test_nf_config_check_unavailable(fake_process: FakeProcess) -> None:
+def test_pkg_config_check_unavailable(fake_process: FakeProcess) -> None:
     """
     Tests availability failure.
     """
@@ -51,7 +51,7 @@ def test_nf_config_check_unavailable(fake_process: FakeProcess) -> None:
     assert call_list(fake_process) == [['pkg-config', '--version']]
 
 
-def test_nf_config_compiler_flags(fake_process: FakeProcess) -> None:
+def test_pkg_config_compiler_flags(fake_process: FakeProcess) -> None:
     """
     Tests getting the compiler flags.
     """
@@ -63,7 +63,7 @@ def test_nf_config_compiler_flags(fake_process: FakeProcess) -> None:
     assert call_list(fake_process) == [['pkg-config', 'dummy', '--cflags']]
 
 
-def test_nf_config_linker_flags(fake_process: FakeProcess) -> None:
+def test_pkg_config_linker_flags(fake_process: FakeProcess) -> None:
     """
     Tests availability failure.
     """
