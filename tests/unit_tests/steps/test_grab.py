@@ -16,6 +16,7 @@ from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.folder import grab_folder
 from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 
 
 class TestGrabFolder:
@@ -29,8 +30,12 @@ class TestGrabFolder:
             ['/grab/source', '/grab/source/']
         ]
     )
-    def test_source_path(self, source, expected,
-                         fs: FakeFilesystem, fake_process: FakeProcess) -> None:
+    def test_source_path(self,
+                         source: str,
+                         expected: str,
+                         stub_tool_repository: ToolRepository,
+                         fs: FakeFilesystem,
+                         fake_process: FakeProcess) -> None:
         """
         Tests file directory grabbery.
         """
@@ -54,7 +59,10 @@ class TestGrabFcm:
     """
     Tests grabbing from FCM.
     """
-    def test_no_revision(self, fs: FakeFilesystem, fake_process: FakeProcess) -> None:
+    def test_no_revision(self,
+                         stub_tool_repository: ToolRepository,
+                         fs: FakeFilesystem,
+                         fake_process: FakeProcess) -> None:
         """
         Tests no revision, "head of branch" grab.
         """
@@ -75,7 +83,10 @@ class TestGrabFcm:
                        dst_label='bar')
         assert fake_process.call_count(grab_command) == 1
 
-    def test_revision(self, fs: FakeFilesystem, fake_process: FakeProcess) -> None:
+    def test_revision(self,
+                      stub_tool_repository: ToolRepository,
+                      fs: FakeFilesystem,
+                      fake_process: FakeProcess) -> None:
         """
         Tests grabbing a specific revision.
         """

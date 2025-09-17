@@ -9,7 +9,8 @@ from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround
 from fab.steps.analyse import (_add_manual_results, _add_unreferenced_deps,
                                _gen_file_deps, _gen_symbol_table, _parse_files)
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 from fab.util import HashedFile
 
 
@@ -150,7 +151,9 @@ class Test_parse_files(object):
           cleanup step.
     todo: this method should be tested a bit more thoroughly.
     """
-    def test_exceptions(self, tmp_path: Path, monkeypatch) -> None:
+    def test_exceptions(self, tmp_path: Path,
+                        stub_tool_repository: ToolRepository,
+                        monkeypatch) -> None:
         """
         Tests exceptions thrown from processing do not halt build.
 

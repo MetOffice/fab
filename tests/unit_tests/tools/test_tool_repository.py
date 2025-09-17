@@ -284,6 +284,8 @@ def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
     in which case the right tool should be returned with an updated
     exec name that uses the path.
     '''
+    fake_process.register(['/usr/bin/gfortran', '--version'],
+                          stdout='GNU Fortran (gcc) 1.2.3')
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "/usr/bin/gfortran")
     assert isinstance(gfortran, Gfortran)
@@ -294,12 +296,14 @@ def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
     expected_command = ['/usr/bin/gfortran', 'a']
     fake_process.register(expected_command)
     gfortran.run("a")
-    assert call_list(fake_process) == [expected_command]
+    assert expected_command in call_list(fake_process)
 
 
 def test_tool_repository_no_linker(fake_process: FakeProcess) -> None:
     '''Tests that the correct linker is provided if Fortran is enforced.
     '''
+    fake_process.register(['/usr/bin/gfortran', '--version'],
+                          stdout='GNU Fortran (gcc) 1.2.3')
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "/usr/bin/gfortran")
     assert isinstance(gfortran, Gfortran)
@@ -310,4 +314,4 @@ def test_tool_repository_no_linker(fake_process: FakeProcess) -> None:
     expected_command = ['/usr/bin/gfortran', 'a']
     fake_process.register(expected_command)
     gfortran.run("a")
-    assert call_list(fake_process) == [expected_command]
+    assert expected_command in call_list(fake_process)
