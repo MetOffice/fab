@@ -7,7 +7,7 @@ from fab.tools.tool_box import ToolBox
 
 class TestAddFlags:
 
-    def test_run(self):
+    def test_run(self, stub_tool_repository):
         add_flags = AddFlags(match="$source/foo/*",
                              flags=['-I', '$relative/include'])
         config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,

@@ -1,6 +1,7 @@
 # Fab - A Build System for Tomorrow
 
 [![Build](https://github.com/MetOffice/fab/actions/workflows/build.yml/badge.svg)](https://github.com/MetOffice/fab/actions/workflows/build.yml)
+[![Build Documentation](https://github.com/MetOffice/fab/actions/workflows/documentation.yml/badge.svg)](https://github.com/MetOffice/fab/actions/workflows/documentation.yml)
 
 The "Fab" project aims to provide the means to quickly and easily compile
 software in a way tailored for scientific software development. It aims to be

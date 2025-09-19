@@ -23,7 +23,9 @@ class TestRootIncFiles:
     """
     Tests include files are handled correctly.
     """
-    def test_vanilla(self, tmp_path: Path, recwarn: WarningsRecorder) -> None:
+    def test_vanilla(self, tmp_path: Path,
+                     recwarn: WarningsRecorder,
+                     stub_tool_repository) -> None:
         """
         Tests include files is coped to work directory.
         """
