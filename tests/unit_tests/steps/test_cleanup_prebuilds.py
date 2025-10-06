@@ -13,14 +13,16 @@ from fab.build_config import BuildConfig
 from fab.steps.cleanup_prebuilds import (by_age, by_version_age,
                                          cleanup_prebuilds, remove_all_unused)
 from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 from fab.util import get_prebuild_file_groups
 
 
-class TestCleanupPrebuilds(object):
+class TestCleanupPrebuilds:
     """
     Tests the prebuild cleaning step.
     """
-    def test_init_no_args(self, tmp_path: Path) -> None:
+    def test_init_no_args(self, tmp_path: Path,
+                          stub_tool_repository: ToolRepository) -> None:
         """
         Tests no arguments default to "all unused" functionality.
         """
@@ -127,7 +129,7 @@ def test_remove_all_unused(tmp_path: Path) -> None:
 
     assert num_removed == 3
 
-    assert sorted([fobject for fobject in tmp_path.iterdir()]) == sorted(current_files)
+    assert sorted(list(tmp_path.iterdir())) == sorted(current_files)
 
 
 def test_get_prebuild_file_groups():
