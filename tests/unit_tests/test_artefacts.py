@@ -179,7 +179,7 @@ class TestFilterBuildTrees():
 def test_collection_getter() -> None:
     '''Test CollectionGetter.'''
     artefact_store = ArtefactStore()
-    artefact_store.add(ArtefactSet.INITIAL_SOURCE, ["a", "b", "c"])
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE, [Path("a"), Path("b"), Path("c")])
     cg = CollectionGetter(ArtefactSet.INITIAL_SOURCE)
     assert artefact_store[ArtefactSet.INITIAL_SOURCE] == cg(artefact_store)
 

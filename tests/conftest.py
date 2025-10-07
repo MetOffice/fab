@@ -123,7 +123,7 @@ def stub_fortran_compiler() -> FortranCompiler:
 @fixture(scope='function')
 def stub_c_compiler() -> CCompiler:
     """
-    Provides a minial C compiler.
+    Provides a minimal C compiler.
     """
     compiler = CCompiler("some C compiler", "scc", "stub",
                          version_regex=r"([\d.]+)", openmp_flag='-omp')
@@ -167,14 +167,26 @@ def stub_tool_box(stub_fortran_compiler,
     return toolbox
 
 
+@fixture(scope="function", autouse=True)
+def reset_tool_repository(stub_fortran_compiler):
+    """
+    A fixture that resets the ToolRepository singleton
+    (and esp. will remove existing compiler instance which
+    might have had a state change in a test). It is automatically
+    applies to each function, to ensure all tests will execute
+    in parallel as well.
+    """
+    ToolRepository._singleton = None
+
+
 @fixture(scope='function')
 def stub_tool_repository(stub_fortran_compiler,
                          stub_c_compiler,
                          stub_linker,
                          monkeypatch) -> ToolRepository:
     """
-    Provides a minimal ToolRepository containing just Fortran and C compilers and a
-    linker.
+    Provides a minimal ToolRepository containing just Fortran and
+    C compilers and a linker.
     """
     monkeypatch.setattr(stub_fortran_compiler, 'check_available', return_true)
     monkeypatch.setattr(stub_c_compiler, 'check_available', return_true)

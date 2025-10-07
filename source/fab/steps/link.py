@@ -11,10 +11,11 @@ import logging
 from string import Template
 from typing import List, Optional
 
-from fab.artefacts import ArtefactSet
+from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
+                           CollectionGetter)
+from fab.parse.fortran import AnalysedFortran
 from fab.steps import step
 from fab.tools import Category
-from fab.artefacts import ArtefactsGetter, CollectionGetter
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class DefaultLinkerSource(ArtefactsGetter):
     a preceding object archive step.
 
     """
-    def __call__(self, artefact_store):
+    def __call__(self, artefact_store: ArtefactStore):
         return CollectionGetter(ArtefactSet.OBJECT_ARCHIVES)(artefact_store) \
                or CollectionGetter(ArtefactSet.OBJECT_FILES)(artefact_store)
 
@@ -36,7 +37,7 @@ class DefaultLinkerSource(ArtefactsGetter):
 def link_exe(config,
              libs: Optional[List[str]] = None,
              flags: Optional[List[str]] = None,
-             source: Optional[ArtefactsGetter] = None):
+             source: Optional[ArtefactsGetter] = None) -> None:
     """
     Link object files into an executable for every build target.
 
@@ -61,15 +62,37 @@ def link_exe(config,
         output from compiler steps, which typically is the expected behaviour.
 
     """
-    linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
-                                      openmp=config.openmp)
+    source_getter = source or DefaultLinkerSource()
+    target_objects = source_getter(config.artefact_store)
+
+    if len(target_objects) == 0:
+        raise ValueError("No target objects defined, linking aborted")
+        return
+
+    if config.tool_box.has(Category.LINKER):
+        linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
+                                          openmp=config.openmp)
+    else:
+        # The tool box does not contain a linker. Try to identify if we need
+        # a Fortran- or C-based linker, depending on the main program.
+        # First pick a target
+        target = next(iter(target_objects))
+        analysed_files = config.artefact_store[ArtefactSet.BUILD_TREES][target]
+        is_fortran = False
+        for analysis in analysed_files.values():
+            # C files do not have program_defs
+            if isinstance(analysis, AnalysedFortran) and analysis.program_defs:
+                is_fortran = True
+                break
+
+        linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
+                                          openmp=config.openmp,
+                                          enforce_fortran_linker=is_fortran)
     logger.info(f'Linker is {linker.name}')
 
     libs = libs or []
     flags = flags or []
-    source_getter = source or DefaultLinkerSource()
 
-    target_objects = source_getter(config.artefact_store)
     for root, objects in target_objects.items():
         exe_path = config.project_workspace / f'{root}'
         linker.link(objects, exe_path, config=config, libs=libs,

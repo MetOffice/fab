@@ -13,11 +13,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import cast, Optional
+from typing import cast, Optional, Union
 
 from fab.tools.tool import Tool
 from fab.tools.category import Category
-from fab.tools.compiler import Compiler
+from fab.tools.compiler import Compiler, FortranCompiler
 from fab.tools.compiler_wrapper import (CompilerWrapper, CrayCcWrapper,
                                         CrayFtnWrapper, Mpif90, Mpicc)
 from fab.tools.linker import Linker
@@ -228,7 +228,8 @@ class ToolRepository(dict):
 
     def get_default(self, category: Category,
                     mpi: Optional[bool] = None,
-                    openmp: Optional[bool] = None):
+                    openmp: Optional[bool] = None,
+                    enforce_fortran_linker: Optional[bool] = None) -> Tool:
         '''Returns the default tool for a given category that is available.
         For most tools that will be the first entry in the list of tools. The
         exception are compilers and linker: in this case it must be specified
@@ -239,6 +240,9 @@ class ToolRepository(dict):
         :param mpi: if a compiler or linker is required that supports MPI.
         :param openmp: if a compiler or linker is required that supports
             OpenMP.
+        :param enforce_fortran_linker: if a linker is request, this flag
+            is used to specify if a Fortran-based linker is required.
+            Otherwise, a C-based linker will be returned.
 
         :raises KeyError: if the category does not exist.
         :raises RuntimeError: if no tool in the requested category is
@@ -251,6 +255,7 @@ class ToolRepository(dict):
             raise RuntimeError(f"Invalid category type "
                                f"'{type(category).__name__}'.")
 
+        tool: Tool
         # If not a compiler or linker, return the first tool
         if not category.is_compiler and category != Category.LINKER:
             for tool in self[category]:
@@ -268,11 +273,30 @@ class ToolRepository(dict):
             raise RuntimeError(f"Invalid or missing openmp specification "
                                f"for '{category}'.")
 
+        if (category is Category.LINKER and
+                not isinstance(enforce_fortran_linker, bool)):
+            raise RuntimeError(f"Invalid or missing enforce_fortran_linker "
+                               f"specification for '{category}'.")
+
         for tool in self[category]:
-            # If OpenMP is request, but the tool does not support openmp,
-            # ignore it.
+            tool = cast(Union[Compiler, Linker], tool)   # make mypy happy
+            # If OpenMP is requested, but the tool does not support openmp,
+            # ignore the tool.
             if openmp and not tool.openmp:
                 continue
+
+            # If we are looking for a linker, check if a Fortran linker
+            # was requested
+            if category == Category.LINKER:
+                tool = cast(Linker, tool)
+                compiler = tool.compiler
+                # Ignore C linker if Fortran is requested and vice versa:
+                if (enforce_fortran_linker and
+                        not isinstance(compiler, FortranCompiler)):
+                    continue
+                if (not enforce_fortran_linker and
+                        isinstance(compiler, FortranCompiler)):
+                    continue
             # If the tool supports/does not support MPI, return the first one
             if tool.is_available and mpi == tool.mpi:
                 return tool

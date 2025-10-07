@@ -273,12 +273,13 @@ def test_workspace(monkeypatch, change_into_tmpdir) -> None:
                                       str(new_workspace)])
     fab_base = FabBase(name="root_symbol_does_not_exit")
 
-    # Since FabBase itself requests Fab to find programs, Fab will happy
-    # do nothing if no main program is found. So this build will actually
-    # succeed.
+    # Since FabBase itself requests Fab to find programs, but there
+    # is none, Fab will abort in the linking step (missing targets).
     # Note that the project directories are only created once
     # build is called.
-    fab_base.build()
+    with pytest.raises(ValueError) as err:
+        fab_base.build()
+    assert "No target objects defined, linking aborted" in str(err.value)
 
     # Check that the project workspace is as expected:
     project_dir = fab_base.project_workspace
@@ -358,7 +359,9 @@ def test_build_binary(monkeypatch) -> None:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
         mocks[function_name] = (patcher, patcher.start())
 
-    fab_base.build()
+    with pytest.raises(ValueError) as err:
+        fab_base.build()
+    assert "No target objects defined, linking aborted" in str(err.value)
 
     mocks["grab_folder"][0].stop()
     mocks["grab_folder"][1].assert_called_once_with(

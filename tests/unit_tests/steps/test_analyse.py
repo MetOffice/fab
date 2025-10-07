@@ -2,14 +2,15 @@ from pathlib import Path
 from typing import Dict, List, Set
 from unittest.mock import Mock
 
-from pytest import fixture, warns
+from pytest import fixture, warns, raises
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround
 from fab.steps.analyse import (_add_manual_results, _add_unreferenced_deps,
                                _gen_file_deps, _gen_symbol_table, _parse_files)
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 from fab.util import HashedFile
 
 
@@ -44,15 +45,14 @@ class Test_gen_symbol_table(object):
         """
         analysed_files[1].symbol_defs.add('foo_1')
 
-        with warns(UserWarning):
+        with raises(ValueError):
             result = _gen_symbol_table(analysed_files=analysed_files)
-
-        assert result == {
-            'foo_1': Path('foo.c'),
-            'foo_2': Path('foo.c'),
-            'bar_1': Path('bar.c'),
-            'bar_2': Path('bar.c'),
-        }
+            assert result == {
+                'foo_1': Path('foo.c'),
+                'foo_2': Path('foo.c'),
+                'bar_1': Path('bar.c'),
+                'bar_2': Path('bar.c'),
+                }
 
 
 class Test_gen_file_deps(object):
@@ -150,7 +150,9 @@ class Test_parse_files(object):
           cleanup step.
     todo: this method should be tested a bit more thoroughly.
     """
-    def test_exceptions(self, tmp_path: Path, monkeypatch) -> None:
+    def test_exceptions(self, tmp_path: Path,
+                        stub_tool_repository: ToolRepository,
+                        monkeypatch) -> None:
         """
         Tests exceptions thrown from processing do not halt build.
 

@@ -11,12 +11,14 @@ from pytest import importorskip
 
 from fab.build_config import BuildConfig
 from fab.parse.c import CAnalyser, AnalysedC
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 
 clang = importorskip('clang')
 
 
-def test_simple_result(tmp_path):
+def test_simple_result(tmp_path: Path,
+                       stub_tool_repository: ToolRepository) -> None:
     config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
                          fab_workspace=tmp_path)
     c_analyser = CAnalyser(config)
@@ -32,6 +34,7 @@ def test_simple_result(tmp_path):
         symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
     )
     assert analysis == expected
+    assert isinstance(analysis, AnalysedC)
     assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
 
 

@@ -39,7 +39,7 @@ dev = [
 ]
 
 [project.scripts]
-fab = 'fab.cli:cli_fab'
+fab = 'fab.cui.__main__:main'
 
 [project.urls]
 homepage = 'https://github.com/MetOffice/fab'

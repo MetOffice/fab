@@ -252,7 +252,8 @@ if __name__ == '__main__':
         analyse(
             state,
             root_symbol='lfric_atm',
-            ignore_mod_deps=['netcdf', 'MPI', 'yaxt', 'pfunit_mod', 'xios', 'mod_wait'],
+            ignore_dependencies=['netcdf', 'MPI', 'yaxt', 'pfunit_mod',
+                                 'xios', 'mod_wait'],
         )
 
         compile_c(state, common_flags=['-c', '-std=c99'])

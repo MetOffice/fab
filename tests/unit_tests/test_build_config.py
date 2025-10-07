@@ -15,7 +15,8 @@ from unittest import mock
 from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 
 
 class TestBuildConfig:
@@ -37,7 +38,7 @@ class TestBuildConfig:
         except RuntimeError as err:
             assert '1\n2\n3' in str(err)
 
-    def test_add_cleanup(self):
+    def test_add_cleanup(self, stub_tool_repository: ToolRepository) -> None:
         '''
         Ensure the cleanup step is added.
         '''
@@ -47,7 +48,10 @@ class TestBuildConfig:
         assert CLEANUP_COUNT in config.artefact_store
 
     @mock.patch.dict('os.environ')
-    def test_fab_workspace_no_env(self, tmpdir):
+    def test_fab_workspace_no_env(
+          self,
+          tmpdir: Path,
+          stub_tool_repository: ToolRepository) -> None:
         '''
         Test that the Fab workspace is set as expected when the
         environment variable FAB_WORKSPACE is not used
@@ -68,7 +72,9 @@ class TestBuildConfig:
         assert config.project_workspace == tmpdir / 'fab-workspace' / 'proj'
 
     @mock.patch.dict('os.environ', {'FAB_WORKSPACE': '/FAB'})
-    def test_fab_workspace_with_env(self):
+    def test_fab_workspace_with_env(
+            self,
+            stub_tool_repository: ToolRepository) -> None:
         '''
         Test that the Fab workspace is set as expected when the environment
         variable FAB_WORKSPACE is defined.

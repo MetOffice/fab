@@ -25,7 +25,7 @@ from typing import Callable
 
 from ..util import get_fab_workspace
 from .. import __version__ as fab_version
-from ..logtools import make_logger, setup_logging
+from ..logtools import setup_logging
 
 
 def full_path_type(opt: str) -> Path:
@@ -201,9 +201,6 @@ class FabArgumentParser(argparse.ArgumentParser):
             self.error("--quiet conflicts with debug and verbose settings")
 
         setup_logging(verbose, debug, quiet)
-
-        logger = make_logger("system")
-        logger.debug("command line arguments are %s", namespace)
 
         self._have_logging = True
 

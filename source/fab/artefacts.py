@@ -66,7 +66,7 @@ class ArtefactStore(dict):
                 self[artefact] = set()
 
     def add(self, collection: Union[str, ArtefactSet],
-            files: Union[Path, str, Iterable[Path], Iterable[str]]):
+            files: Union[Path, Iterable[Path]]):
         '''Adds the specified artefacts to a collection. The artefact
         can be specified as a simple string, a list of string or a set, in
         which case all individual entries of the list/set will be added.
@@ -75,14 +75,15 @@ class ArtefactStore(dict):
         '''
         if isinstance(files, list):
             files = set(files)
+        elif isinstance(files, Path):
+            files = {files}
         elif not isinstance(files, Iterable):
-            # We need to use a list, otherwise each character is added
-            files = set([files])
+            files = {Path(files)}
 
         self[collection].update(files)
 
     def update_dict(self, collection: Union[str, ArtefactSet],
-                    values: Union[str, Iterable],
+                    values: Union[Path, Iterable[Path]],
                     key: Optional[str] = None):
         """
         Modifies data associated with artefact set.
@@ -92,7 +93,7 @@ class ArtefactStore(dict):
         :param key: Executable name associated with data. Do not specify for
                     libraries.
         """
-        self[collection][key].update([values] if isinstance(values, str)
+        self[collection][key].update([values] if isinstance(values, Path)
                                      else values)
 
     def copy_artefacts(self, source: Union[str, ArtefactSet],
