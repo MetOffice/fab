@@ -56,7 +56,7 @@ import warnings
 from fab.util import string_checksum
 
 if TYPE_CHECKING:
-    from fab.build_config import BuildConfig
+    from fab.build_config import AddFlags, BuildConfig
 
 logger = logging.getLogger(__name__)
 
@@ -122,10 +122,12 @@ class AlwaysFlags(AbstractFlags):
         else:
             self._flags = []
 
-    def __eq__(self, other: "AlwaysFlags") -> bool:
+    def __eq__(self, other: object) -> bool:
         """
         :returns: if two AlwaysFlags are identical
         """
+        if not isinstance(other, AlwaysFlags):
+            return NotImplemented
         return (type(self) == type(other) and
                 self._flags == other._flags)
 
@@ -298,18 +300,31 @@ class FlagList(List[AbstractFlags]):
     list with some additional functionality.
 
     :param list_of_flags: List of parameters to initialise this object with.
+    :param path_flags: List of old-style PathFlags, which will be converted
+        to the new MatchFlags
     '''
 
     def __init__(
             self,
             list_of_flags: Optional[Union[AbstractFlags, str,
-                                          List[str]]] = None) -> None:
+                                          List[str]]] = None,
+            add_flags: Optional[Union["AddFlags",
+                                      List["AddFlags"]]] = None) -> None:
         self._logger = logging.getLogger(__name__)
         super().__init__()
         if isinstance(list_of_flags, (str, list)):
             self.append(AlwaysFlags(list_of_flags))
         elif list_of_flags:
             self.append(list_of_flags)
+        if add_flags:
+            # TODO: circular import otherwise
+            from fab.build_config import AddFlags
+            if isinstance(add_flags, AddFlags):
+                add_flags = [add_flags]
+            # Convert old-style AddFlags to the new MatchFlags:
+            for add_flag in add_flags:
+                self.add_flags(MatchFlags(add_flag.flags,
+                                          add_flag.match))
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,

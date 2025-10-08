@@ -10,7 +10,7 @@ classes for cpp and fpp.
 """
 
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -32,7 +32,7 @@ class Preprocessor(Tool):
         self._version = None
 
     def preprocess(self, input_file: Path, output_file: Path,
-                   add_flags: Union[None, List[Union[Path, str]]] = None):
+                   add_flags: Optional[Sequence[Union[Path, str]]] = None):
         '''Calls the preprocessor to process the specified input file,
         creating the requested output file.
 
@@ -43,7 +43,7 @@ class Preprocessor(Tool):
         params: List[Union[str, Path]] = []
         if add_flags:
             # Make a copy to avoid modifying the caller's list
-            params = add_flags[:]
+            params = list(add_flags)
         # Input and output files come as the last two parameters
         params.extend([input_file, output_file])
 

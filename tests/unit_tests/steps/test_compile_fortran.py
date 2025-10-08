@@ -7,7 +7,7 @@ from pytest import fixture, mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
 from fab.artefacts import ArtefactSet, ArtefactStore
-from fab.build_config import BuildConfig, FlagsConfig
+from fab.build_config import BuildConfig
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import (
     compile_pass, get_compile_next,
@@ -15,6 +15,7 @@ from fab.steps.compile_fortran import (
     store_artefacts
 )
 from fab.tools.category import Category
+from fab.tools.flags import FlagList
 from fab.tools.tool_box import ToolBox
 from fab.util import CompiledFile
 
@@ -97,7 +98,7 @@ class TestCompilePass:
 
         config = BuildConfig('proj', stub_tool_box, fab_workspace=tmp_path)
         mp_common_args = MpCommonArgs(config,
-                                      FlagsConfig(),
+                                      FlagList(),
                                       {},
                                       syntax_only=True)
         uncompiled_result = compile_pass(config=config,
@@ -172,8 +173,7 @@ class TestStoreArtefacts:
 @fixture(scope='function')
 def content(stub_tool_box, fs: FakeFilesystem):
     flags = ['flag1', 'flag2']
-    flags_config = Mock()
-    flags_config.flags_for_path.return_value = flags
+    flag_list = FlagList(flags)
 
     analysed_file = AnalysedFortran(fpath=Path('foofile'), file_hash=34567)
     analysed_file.add_module_dep('mod_dep_1')
@@ -183,7 +183,7 @@ def content(stub_tool_box, fs: FakeFilesystem):
 
     mp_common_args = MpCommonArgs(
         config=BuildConfig('proj', stub_tool_box, fab_workspace=Path('/fab')),
-        flags=flags_config,
+        flag_list=flag_list,
         mod_hashes={'mod_dep_1': 12345, 'mod_dep_2': 23456},
         syntax_only=False,
     )
@@ -349,15 +349,19 @@ class TestProcessFile:
             '/fab/proj/build_output/_prebuild/mod_def_2.188dd00a9.mod'
         ).read_text() == "Second module"
 
-    def test_flags_hash(self, content, fs: FakeFilesystem, fake_process: FakeProcess) -> None:
+    def test_flags_hash(self,
+                        content,
+                        fs: FakeFilesystem,
+                        fake_process: FakeProcess) -> None:
         """
         Tests changing compiler arguments changes generated object and
         module hashes. Not source modules.
         """
-        mp_common_args, flags, analysed_file = content
+        mp_common_args, _, analysed_file = content
 
+        # Change the flags in mp_common_args
         flags = ['flag1', 'flag3']
-        mp_common_args.flags.flags_for_path.return_value = flags
+        mp_common_args.flag_list[0]._flags = flags
 
         fake_process.register(['sfc', '--version'], stdout='1.2.3')
         record = fake_process.register(['sfc', fake_process.any()])
@@ -412,7 +416,7 @@ class TestProcessFile:
         The generated object hash should change but the generated module
         hashes should not.
         """
-        mp_common_args, flags, analysed_file = content
+        mp_common_args, _, analysed_file = content
 
         mp_common_args.mod_hashes['mod_dep_1'] += 1
 
@@ -467,7 +471,7 @@ class TestProcessFile:
         """
         Tests compilation on missing module.
         """
-        mp_common_args, flags, analysed_file = content
+        mp_common_args, _, analysed_file = content
 
         fake_process.register(['sfc', '--version'], stdout='1.2.3')
         record = fake_process.register(['sfc', fake_process.any()])
@@ -526,7 +530,7 @@ class TestProcessFile:
         Tests compilation of missing object. Also tests that different compiler
         version numbers lead to different hashes.
         """
-        mp_common_args, flags, analysed_file = content
+        mp_common_args, _, analysed_file = content
 
         fake_process.register(['sfc', '--version'], stdout=version)
         record = fake_process.register(['sfc', fake_process.any()])

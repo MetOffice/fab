@@ -14,7 +14,7 @@ from typing import cast, Dict, List, Optional, Tuple
 from fab import FabException
 from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
                            FilterBuildTrees)
-from fab.build_config import BuildConfig, FlagsConfig
+from fab.build_config import AddFlags, BuildConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
@@ -32,12 +32,13 @@ DEFAULT_OUTPUT_ARTEFACT = ''
 class MpCommonArgs:
     '''A simple class to pass arguments to subprocesses.'''
     config: BuildConfig
-    flags: FlagsConfig
+    flag_list: FlagList
 
 
 @step
-def compile_c(config, common_flags: Optional[List[str]] = None,
-              path_flags: Optional[List] = None,
+def compile_c(config: BuildConfig,
+              common_flags: Optional[List[str]] = None,
+              path_flags: Optional[List[AddFlags]] = None,
               source: Optional[ArtefactsGetter] = None):
     """
     Compiles all C files in all build trees, creating or extending a set of
@@ -68,7 +69,8 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
 
     common_flags = common_flags or []
 
-    flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+    flag_list = FlagList(common_flags, add_flags=path_flags)
+
     source_getter = source or DEFAULT_SOURCE_GETTER
 
     # gather all the source to compile, for all build trees, into one big lump
@@ -84,7 +86,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
                                         openmp=config.openmp)
     logger.info(f'C compiler is {compiler}')
 
-    mp_payload = MpCommonArgs(config=config, flags=flags)
+    mp_payload = MpCommonArgs(config=config, flag_list=flag_list)
     mp_items = [(fpath, mp_payload) for fpath in to_compile]
 
     # compile everything in one go
@@ -130,12 +132,9 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     # to cast it to be a Compiler.
     compiler = cast(Compiler, compiler)
     with Timer() as timer:
-        f_f_p = mp_payload.flags.flags_for_path(path=analysed_file.fpath,
-                                                config=config)
-        flags = FlagList()
-        flags.add_flags(f_f_p)
+        flag_list = mp_payload.flag_list
         obj_combo_hash = _get_obj_combo_hash(config, compiler,
-                                             analysed_file, flags)
+                                             analysed_file, flag_list)
 
         obj_file_prebuild = (config.prebuild_folder /
                              f'{analysed_file.fpath.stem}.'
@@ -148,10 +147,11 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
         else:
             obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
             log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
+            flags = flag_list.get_flags(config, analysed_file.fpath)
             try:
                 compiler.compile_file(analysed_file.fpath, obj_file_prebuild,
                                       config=config,
-                                      add_flags=f_f_p)
+                                      add_flags=flags)
             except RuntimeError as err:
                 return FabException(f"error compiling "
                                     f"{analysed_file.fpath}:\n{err}")
@@ -170,7 +170,7 @@ def _get_obj_combo_hash(config: BuildConfig,
     try:
         obj_combo_hash = sum([
             analysed_file.file_hash,
-            flags.checksum(),
+            flags.checksum(config, analysed_file.fpath),
             compiler.get_hash(config),
         ])
     except TypeError as err:

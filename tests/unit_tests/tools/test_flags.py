@@ -10,6 +10,7 @@
 from pathlib import Path
 import pytest
 
+from fab.build_config import AddFlags
 from fab.tools.flags import (AlwaysFlags, ContainFlags, FlagList, MatchFlags,
                              ProfileFlags)
 from fab.util import string_checksum
@@ -319,3 +320,15 @@ def test_profile_flags_errors_invalid_profile_name(stub_configuration):
         pf.checksum(stub_configuration, Path("/some/path"))
     assert ("checksum: Profile 'does_not_exist' is not defined."
             in str(err.value))
+
+
+def test_old_addflags():
+    """
+    Tests that old-style AddFlags are converted to MatchFlags.
+    """
+    add_flags = AddFlags(match="/some/pattern", flags=["-g", "-O0"])
+    flag_list = FlagList(add_flags=[add_flags])
+    match_flag = flag_list[0]
+    assert isinstance(match_flag, MatchFlags)
+    assert match_flag._pattern == "/some/pattern"
+    assert match_flag._flags == ["-g", "-O0"]

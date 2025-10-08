@@ -17,11 +17,12 @@ from typing import cast, Dict, List, Optional, Set, Tuple, Union
 
 from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
                            FilterBuildTrees)
-from fab.build_config import BuildConfig, FlagsConfig
+from fab.build_config import BuildConfig
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Compiler
+from fab.tools.category import Category
+from fab.tools.compiler import Compiler, FortranCompiler
 from fab.tools.flags import FlagList
 from fab.util import (CompiledFile, log_or_dot_finish, log_or_dot, Timer,
                       by_type, file_checksum)
@@ -36,7 +37,7 @@ class MpCommonArgs:
     """Arguments to be passed into the multiprocessing function,
     alongside the filenames."""
     config: BuildConfig
-    flags: FlagsConfig
+    flag_list: FlagList
     mod_hashes: Dict[str, int]
     syntax_only: bool
 
@@ -86,15 +87,15 @@ def compile_fortran(config: BuildConfig,
     if len(uncompiled) == 0:
         return
 
-    compiler, flags_config = handle_compiler_args(config, common_flags,
-                                                  path_flags)
+    compiler, flag_list = handle_compiler_args(config, common_flags,
+                                               path_flags)
     # Set module output folder:
     compiler.set_module_output_path(config.build_output)
 
     syntax_only = compiler.has_syntax_only and config.two_stage
     # build the arguments passed to the multiprocessing function
     mp_common_args = MpCommonArgs(
-        config=config, flags=flags_config,
+        config=config, flag_list=flag_list,
         mod_hashes=mod_hashes, syntax_only=syntax_only)
 
     if syntax_only:
@@ -128,8 +129,9 @@ def compile_fortran(config: BuildConfig,
     store_artefacts(compiled, build_lists, config.artefact_store)
 
 
-def handle_compiler_args(config: BuildConfig, common_flags=None,
-                         path_flags=None):
+def handle_compiler_args(config: BuildConfig,
+                         common_flags=None,
+                         path_flags=None) -> Tuple[FortranCompiler, FlagList]:
 
     # Command line tools are sometimes specified with flags attached.
     compiler = config.tool_box[Category.FORTRAN_COMPILER]
@@ -138,16 +140,15 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
                            f"'{compiler.category}' instead of FortranCompiler")
     # The ToolBox returns a Tool. In order to make mypy happy, we need to
     # cast this to become a Compiler.
-    compiler = cast(Compiler, compiler)
+    compiler = cast(FortranCompiler, compiler)
     logger.info(
         f'Fortran compiler is {compiler} {compiler.get_version_string()}')
 
     # Collate the flags from 1) flags env and 2) parameters.
     common_flags = common_flags or []
-    flags_config = FlagsConfig(common_flags=common_flags,
-                               path_flags=path_flags)
 
-    return compiler, flags_config
+    flag_list = FlagList(common_flags, add_flags=path_flags)
+    return compiler, flag_list
 
 
 def compile_pass(config, compiled: Dict[Path, CompiledFile],
@@ -269,17 +270,16 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
                                f"category '{compiler.category}' instead of "
                                f"FortranCompiler")
         # The ToolBox returns a Tool, but we need to tell mypy that
-        # this is a Compiler
-        compiler = cast(Compiler, compiler)
-        f_f_p = mp_common_args.flags.flags_for_path(path=analysed_file.fpath,
-                                                    config=config)
-        flags = FlagList(f_f_p)
+        # this is a FortranCompiler
+        compiler = cast(FortranCompiler, compiler)
+        flag_list = mp_common_args.flag_list
 
         mod_combo_hash = _get_mod_combo_hash(config, analysed_file,
                                              compiler=compiler)
         obj_combo_hash = _get_obj_combo_hash(config, analysed_file,
                                              mp_common_args=mp_common_args,
-                                             compiler=compiler, flags=flags)
+                                             compiler=compiler,
+                                             flag_list=flag_list)
 
         # calculate the incremental/prebuild artefact filenames
         obj_file_prebuild = (
@@ -296,9 +296,10 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
                                    [obj_file_prebuild] + mod_file_prebuilds))
         if not all(prebuilds_exist):
             # compile
+            logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
+            flags = flag_list.get_flags(config, analysed_file.fpath)
             try:
-                logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
-                compile_file(analysed_file.fpath, f_f_p,
+                compile_file(analysed_file.fpath, flags,
                              output_fpath=obj_file_prebuild,
                              mp_common_args=mp_common_args)
             except Exception as err:
@@ -345,8 +346,10 @@ def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
 
 
 def _get_obj_combo_hash(config: BuildConfig,
-                        analysed_file, mp_common_args: MpCommonArgs,
-                        compiler: Compiler, flags: FlagList):
+                        analysed_file: AnalysedFortran,
+                        mp_common_args: MpCommonArgs,
+                        compiler: Compiler,
+                        flag_list: FlagList):
     # get a combo hash of things which matter to the object file we define
     # todo: don't just silently use 0 for a missing dep hash
     mod_deps_hashes = {
@@ -355,7 +358,7 @@ def _get_obj_combo_hash(config: BuildConfig,
     try:
         obj_combo_hash = sum([
             analysed_file.file_hash,
-            flags.checksum(),
+            flag_list.checksum(config, analysed_file.fpath),
             sum(mod_deps_hashes.values()),
             compiler.get_hash(config),
         ])
@@ -378,7 +381,10 @@ def _get_mod_combo_hash(config, analysed_file, compiler: Compiler):
     return mod_combo_hash
 
 
-def compile_file(analysed_file, flags, output_fpath, mp_common_args):
+def compile_file(input_fpath: Path,
+                 flags: List[str],
+                 output_fpath: Path,
+                 mp_common_args: MpCommonArgs) -> None:
     """
     Call the compiler.
 
@@ -390,11 +396,12 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
     """
     output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-    # tool
     config = mp_common_args.config
     compiler = config.tool_box[Category.FORTRAN_COMPILER]
+    compiler = cast(FortranCompiler, compiler)
 
-    compiler.compile_file(input_file=analysed_file, output_file=output_fpath,
+    compiler.compile_file(input_file=input_fpath,
+                          output_file=output_fpath,
                           config=config,
                           add_flags=flags,
                           syntax_only=mp_common_args.syntax_only)
