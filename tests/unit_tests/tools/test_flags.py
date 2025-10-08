@@ -10,7 +10,7 @@
 from pathlib import Path
 import pytest
 
-from fab.tools.flags import (AlwaysFlags, ContainFlags, Flags, MatchFlags,
+from fab.tools.flags import (AlwaysFlags, ContainFlags, FlagList, MatchFlags,
                              ProfileFlags)
 from fab.util import string_checksum
 
@@ -102,14 +102,14 @@ def test_contain_flags() -> None:
     assert cf.get_flags(file_path=file_path) == ["-g", "/my"]
 
 
-def test_flags_constructor():
+def test_flag_list_constructor():
     '''Tests the constructor of Flags.'''
-    f1 = Flags()
+    f1 = FlagList()
     assert isinstance(f1, list)
 
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert f1 == []
-    f2 = Flags(["a"])
+    f2 = FlagList(["a"])
     assert isinstance(f2, list)
     assert f2.get_flags() == ["a"]
 
@@ -123,7 +123,7 @@ def test_flags_constructor():
 
 def test_flags_adding():
     '''Tests adding flags.'''
-    f1 = Flags()
+    f1 = FlagList()
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert f1.get_flags() == []
     f1.add_flags("-a")
@@ -136,7 +136,7 @@ def test_flags_adding():
 
     # Check functionality when adding a flag object:
     af1 = AlwaysFlags("-g")
-    f1 = Flags(af1)
+    f1 = FlagList(af1)
     assert f1 == [af1]
     assert f1.get_flags() == ["-g"]
 
@@ -151,13 +151,13 @@ def test_remove_flags():
     tests for AlwaysFlags, just to ensure that the calls are getting
     forwarded from Flags to the AlwaysFlags implementation.
     '''
-    flags = Flags()
+    flags = FlagList()
     flags.remove_flag("-c", False)
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert flags == []
 
     all_flags = ['a.f90', '-c', '-o', 'a.o', '-fsyntax-only', "-J", "/tmp"]
-    flags = Flags(all_flags)
+    flags = FlagList(all_flags)
     assert flags.get_flags() == all_flags
     with pytest.warns(UserWarning, match="Removing managed flag"):
         flags.remove_flag("-c")

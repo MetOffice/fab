@@ -14,7 +14,7 @@ from fab.tools.compiler import (CCompiler, Compiler, Craycc, Crayftn,
                                 Icx, Ifort, Ifx, Nvc, Nvfortran)
 from fab.tools.compiler_wrapper import (CompilerWrapper, CrayCcWrapper,
                                         CrayFtnWrapper, Mpicc, Mpif90)
-from fab.tools.flags import Flags, ProfileFlags
+from fab.tools.flags import FlagList, ProfileFlags
 from fab.tools.linker import Linker
 from fab.tools.psyclone import Psyclone
 from fab.tools.rsync import Rsync
@@ -39,7 +39,7 @@ __all__ = ["Ar",
            "Crayftn",
            "CrayFtnWrapper",
            "Fcm",
-           "Flags",
+           "FlagList",
            "FortranCompiler",
            "Fpp",
            "Gcc",

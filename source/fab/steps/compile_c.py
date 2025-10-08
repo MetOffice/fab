@@ -18,7 +18,7 @@ from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools.flags import Flags, ProfileFlags
+from fab.tools.flags import FlagList
 from fab.tools import Category, Compiler
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
@@ -132,8 +132,8 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     with Timer() as timer:
         f_f_p = mp_payload.flags.flags_for_path(path=analysed_file.fpath,
                                                 config=config)
-        flags = ProfileFlags()
-        flags.add_flags(f_f_p, config.profile)
+        flags = FlagList()
+        flags.add_flags(f_f_p)
         obj_combo_hash = _get_obj_combo_hash(config, compiler,
                                              analysed_file, flags)
 
@@ -165,13 +165,13 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
 
 def _get_obj_combo_hash(config: BuildConfig,
-                        compiler: Compiler, analysed_file, flags: Flags):
+                        compiler: Compiler, analysed_file, flags: FlagList):
     # get a combo hash of things which matter to the object file we define
     try:
         obj_combo_hash = sum([
             analysed_file.file_hash,
             flags.checksum(),
-            compiler.get_hash(config.profile),
+            compiler.get_hash(config),
         ])
     except TypeError as err:
         raise ValueError("could not generate combo hash for "

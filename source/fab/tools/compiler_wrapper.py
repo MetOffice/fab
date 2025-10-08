@@ -13,7 +13,7 @@ from typing import cast, List, Optional, TYPE_CHECKING, Union
 
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler
-from fab.tools.flags import ProfileFlags
+from fab.tools.flags import FlagList
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
 
@@ -125,8 +125,9 @@ class CompilerWrapper(Compiler):
         '''
         # We need to distinguish between Fortran and non-Fortran compiler,
         # since only a Fortran compiler supports the syntax-only flag.
-        new_flags = ProfileFlags(self.flags.get_flags(config, input_file))
-        new_flags.add_flags(add_flags)
+        new_flags = FlagList(self.flags.get_flags(config, input_file))
+        if add_flags:
+            new_flags.add_flags(add_flags)
 
         if self._compiler.category is Category.FORTRAN_COMPILER:
             # Mypy complains that self._compiler does not take the syntax

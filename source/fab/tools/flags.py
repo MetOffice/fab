@@ -263,7 +263,9 @@ class ContainFlags(AlwaysFlags):
     :param pattern: the substring which is used when matching.
     """
 
-    def __init__(self, flags: List[str], pattern: str) -> None:
+    def __init__(self,
+                 flags: Union[str, List[str]],
+                 pattern: str) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
@@ -291,7 +293,7 @@ class ContainFlags(AlwaysFlags):
         return super().get_flags(config, file_path)
 
 
-class Flags(List[AbstractFlags]):
+class FlagList(List[AbstractFlags]):
     '''This class represents a list of parameters for a tool. It is a
     list with some additional functionality.
 
@@ -327,6 +329,24 @@ class Flags(List[AbstractFlags]):
             all_flags_resolved.extend(flags.get_flags(config, file_path))
 
         return all_flags_resolved
+
+    def checksum(self,
+                 config: Optional["BuildConfig"] = None,
+                 file_path: Optional[Path] = None) -> int:
+        """
+        :param config: the config object (used for templating)
+        :param file_path: the file path of the source file, used for
+            path-specific flags.
+
+        :returns: a checksum of the flags.
+        """
+
+        if not file_path:
+            # If no path, provide a dummy path
+            file_path = Path()
+
+        resolve_flags: List[str] = self.get_flags(config, file_path)
+        return string_checksum(str(resolve_flags))
 
     def add_flags(self,
                   new_flags: Union[AbstractFlags, str, List[str]]) -> None:
@@ -379,7 +399,7 @@ class ProfileFlags:
                  profile: str = "") -> None:
         # Stores the flags for each profile mode. The key is the (lower case)
         # name of the profile mode, and it contains a list of flags
-        self._profiles: Dict[str, Flags] = {"": Flags()}
+        self._profiles: Dict[str, FlagList] = {"": FlagList()}
 
         # This dictionary stores an optional inheritance, where one mode
         # 'inherits' the flags from a different mode (recursively)
@@ -470,7 +490,7 @@ class ProfileFlags:
         '''
         if name in self._profiles:
             raise KeyError(f"Profile '{name}' is already defined.")
-        self._profiles[name.lower()] = Flags()
+        self._profiles[name.lower()] = FlagList()
 
         if inherit_from is not None:
             if inherit_from not in self._profiles:
