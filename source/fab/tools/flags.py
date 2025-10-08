@@ -8,7 +8,6 @@
 This file contains the flag classes used to manage command line flags
 for tools, especially path-specific flags for compiler.
 
-ProfileFlags
 AbstractFlags:
     The base class for a set of flags.
 
@@ -21,11 +20,13 @@ AlwaysFlags(AbstractFlags):
 
 MatchFlags(AlwaysFlags)
     Flags that are only applied if a wildcard search matches the
-    source file.
+    source file. This will likely require to make sure that the full
+    path is specified (or the pattern starts with `*`).
 
 ContainFlags(AlwaysFlags)
     Flags that are only applied if the file path contains the specified
-    string.
+    string. The difference to MatchFlags is that ContainFlags do not
+    need the full path to be specified.
 
 Flags:
     Manages a list of flags, each of which is an instance of an AbstractFlag.
@@ -79,9 +80,10 @@ class AbstractFlags(ABC):
         This function returns the list of flags to be used for the given
         filename.
 
-        :param config: the config object (used for paths in templates)
-        :param file_path: the file path of the file, not used in this
-            class.
+        :param config: the config object (required for paths in templated
+            strings)
+        :param file_path: the file path of the file. This might not be used
+            in all implementations.
 
         :returns: the list of flags to use.
         """
@@ -106,7 +108,7 @@ class AlwaysFlags(AbstractFlags):
     This class represents a list of flags that is always to be used,
     independent of the path of the source file. It also provides
     template functionality. This class also acts as convenient base
-    class for all flags that add flags.
+    class for all applications that add path-independent flags.
 
     :param flags: a string or list of strings with command line flags.
     """
@@ -124,17 +126,19 @@ class AlwaysFlags(AbstractFlags):
         """
         :returns: if two AlwaysFlags are identical
         """
-        print("ALWAYS=", self, other, type(self), type(other))
         return (type(self) == type(other) and
                 self._flags == other._flags)
 
-    def replace_template(self,
-                         string_list: List[str],
+    @staticmethod
+    def replace_template(string_list: List[str],
                          config: Optional["BuildConfig"] = None,
                          file_path: Optional[Path] = None) -> List[str]:
         """This function replaces all `$relative`, `$source`, and `$output`
         in the string or list of string with the values taken from
         the config object and the file path.
+        It is implemented as an abstract method (instead of acting on
+        self._flags) since templating is also supported in patterns, to
+        the same code here can be re-used).
 
         :param string_list: list of strings, which will get all template
             arguments replaced.
@@ -170,7 +174,7 @@ class AlwaysFlags(AbstractFlags):
 
         :returns: the list of flags to use.
         """
-        return self.replace_template(self._flags, config, file_path)
+        return AlwaysFlags.replace_template(self._flags, config, file_path)
 
     def remove_flag(self, remove_flag: str, has_parameter: bool = False):
         '''Removes all occurrences of `remove_flag` in flags.
@@ -185,8 +189,6 @@ class AlwaysFlags(AbstractFlags):
         :param has_parameter: if the flag to remove takes a parameter
         '''
 
-        # TODO #313: Check if we can use an OrderedDict and get O(1)
-        # behaviour here (since ordering of flags can be important)
         i = 0
         flag_len = len(remove_flag)
         while i < len(self._flags):
