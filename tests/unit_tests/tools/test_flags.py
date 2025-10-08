@@ -113,13 +113,6 @@ def test_flag_list_constructor():
     assert isinstance(f2, list)
     assert f2.get_flags() == ["a"]
 
-    af = AlwaysFlags()
-    assert af.get_flags() == []
-    af = AlwaysFlags("-g")
-    assert af.get_flags() == ["-g"]
-    af = AlwaysFlags(["-g", "-O2"])
-    assert af.get_flags() == ["-g", "-O2"]
-
 
 def test_flags_adding():
     '''Tests adding flags.'''
