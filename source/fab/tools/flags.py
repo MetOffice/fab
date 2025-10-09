@@ -128,7 +128,10 @@ class AlwaysFlags(AbstractFlags):
         """
         if not isinstance(other, AlwaysFlags):
             return NotImplemented
-        return (type(self) == type(other) and
+        # Flake insists to use isinstance. But in this case
+        # we explicitly do not want to allow subclasses, e.g.
+        # AlwaysFlag should never be equal to a MatchFlag
+        return (type(self) == type(other) and     # noqa
                 self._flags == other._flags)
 
     @staticmethod
