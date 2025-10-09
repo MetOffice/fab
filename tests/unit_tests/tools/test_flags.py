@@ -49,6 +49,13 @@ def test_always_flags(stub_configuration):
              str(stub_configuration.build_output),
              "/my"])
 
+    # Test comparison of different objects
+    with pytest.raises(NotImplementedError) as err:
+        # pylint: disable=pointless-statement
+        af == 1
+    assert ("Cannot compare 'AlwaysFlags' with object of type 'int'."
+            in str(err.value))
+
 
 def test_always_flags_remove_flags():
     '''Test remove_flags functionality.'''
@@ -166,8 +173,7 @@ def test_remove_flags():
 def test_flags_checksum():
     '''Tests computation of the checksum.'''
     list_of_flags = ['one', 'two', 'three', 'four']
-    flags = ProfileFlags()
-    flags.add_flags(list_of_flags)
+    flags = FlagList(list_of_flags)
     assert flags.checksum() == string_checksum(str(list_of_flags))
 
 
@@ -294,6 +300,14 @@ def test_profile_flags_checksum(stub_configuration):
     assert (pf.checksum(stub_configuration, Path()) ==
             string_checksum(str(list_of_flags_new)))
 
+    # Test handling when no config is provided:
+    assert (pf.checksum(file_path=Path()) ==
+            string_checksum(str(list_of_flags_new)))
+
+    # Test handling when no file_path is provided:
+    assert (pf.checksum(stub_configuration) ==
+            string_checksum(str(list_of_flags_new)))
+
 
 def test_profile_flags_errors_invalid_profile_name(stub_configuration):
     '''Tests that given undefined profile names will raise
@@ -332,3 +346,11 @@ def test_old_addflags():
     assert isinstance(match_flag, MatchFlags)
     assert match_flag._pattern == "/some/pattern"
     assert match_flag._flags == ["-g", "-O0"]
+
+    # Provide a single AddFlags instead of a list:
+    flag_list = FlagList(["-x"],
+                         add_flags=AddFlags("pattern", ["-y"]))
+    match_flag = flag_list[1]
+    assert isinstance(match_flag, MatchFlags)
+    assert match_flag._pattern == "pattern"
+    assert match_flag._flags == ["-y"]

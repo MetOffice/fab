@@ -127,10 +127,13 @@ class AlwaysFlags(AbstractFlags):
         :returns: if two AlwaysFlags are identical
         """
         if not isinstance(other, AlwaysFlags):
-            return NotImplemented
+            raise NotImplementedError(
+                f"Cannot compare '{type(self).__name__}' with object "
+                f"of type '{type(other).__name__}'.")
         # Flake insists to use isinstance. But in this case
         # we explicitly do not want to allow subclasses, e.g.
         # AlwaysFlag should never be equal to a MatchFlag
+        # pylint: disable=unidiomatic-typecheck
         return (type(self) == type(other) and     # noqa
                 self._flags == other._flags)
 
@@ -320,6 +323,7 @@ class FlagList(List[AbstractFlags]):
         elif list_of_flags:
             self.append(list_of_flags)
         if add_flags:
+            # pylint: disable=import-outside-toplevel
             # TODO: circular import otherwise
             from fab.build_config import AddFlags
             if isinstance(add_flags, AddFlags):
