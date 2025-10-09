@@ -236,7 +236,9 @@ class MatchFlags(AlwaysFlags):
     :param flags: a string or list of strings with command line flags.
     :param pattern: the wildcard pattern which is used when matching.
     """
-    def __init__(self, flags: Union[str, List[str]], pattern: str) -> None:
+    def __init__(self,
+                 pattern: str,
+                 flags: Union[str, List[str]]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
@@ -272,8 +274,8 @@ class ContainFlags(AlwaysFlags):
     """
 
     def __init__(self,
-                 flags: Union[str, List[str]],
-                 pattern: str) -> None:
+                 pattern: str,
+                 flags: Union[str, List[str]]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
@@ -330,8 +332,8 @@ class FlagList(List[AbstractFlags]):
                 add_flags = [add_flags]
             # Convert old-style AddFlags to the new MatchFlags:
             for add_flag in add_flags:
-                self.add_flags(MatchFlags(add_flag.flags,
-                                          add_flag.match))
+                self.add_flags(MatchFlags(add_flag.match,
+                                          add_flag.flags))
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,

@@ -30,7 +30,7 @@ def test_always_flags(stub_configuration):
     assert af.get_flags() == ["-g", "-O2"]
 
     # Comparison: First different derived type:
-    cf_copy = ContainFlags(["-g", "-O2"], pattern="XX")
+    cf_copy = ContainFlags("XX", ["-g", "-O2"])
     assert af != cf_copy
     af_copy = AlwaysFlags(["-g", "-O2"])
     assert af_copy == af
@@ -92,9 +92,9 @@ def test_match_flags() -> None:
     """
     Tests matching using wildcards.
     """
-    mf = MatchFlags("-g", pattern="/*")
+    mf = MatchFlags("/*", "-g")
     assert mf.get_flags(file_path=Path(".")) == []
-    mf = MatchFlags(["-g", "$relative"], pattern="/*")
+    mf = MatchFlags("/*", ["-g", "$relative"])
     file_path = Path("/my/dir")
     assert mf.get_flags(file_path=file_path) == ["-g", "/my"]
 
@@ -103,9 +103,9 @@ def test_contain_flags() -> None:
     """
     Tests matching using substrings.
     """
-    cf = ContainFlags("-g", pattern="yes")
+    cf = ContainFlags(pattern="yes", flags="-g")
     assert cf.get_flags(file_path=Path(".")) == []
-    cf = ContainFlags(["-g", "$relative"], pattern="/")
+    cf = ContainFlags("/", ["-g", "$relative"])
     file_path = Path("/my/dir")
     assert cf.get_flags(file_path=file_path) == ["-g", "/my"]
 

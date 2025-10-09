@@ -138,7 +138,8 @@ def test_compiler_path_specific_flags(stub_configuration,
     fc._version = (1, 2)
     print(fc.name, fc.get_version())
 
-    contain_flag = ContainFlags(["-myflag"], pattern="myfile")
+    contain_flag = ContainFlags(pattern="myfile",
+                                flags=["-myflag"])
     fc.add_flags("-always-flag")
     fc.add_flags(contain_flag)
 
