@@ -360,7 +360,7 @@ def _get_obj_combo_hash(config: BuildConfig,
             analysed_file.file_hash,
             flag_list.checksum(config, analysed_file.fpath),
             sum(mod_deps_hashes.values()),
-            compiler.get_hash(config),
+            compiler.get_hash(config, analysed_file.fpath),
         ])
     except TypeError as err:
         raise ValueError("Could not generate combo hash "
@@ -373,7 +373,7 @@ def _get_mod_combo_hash(config, analysed_file, compiler: Compiler):
     try:
         mod_combo_hash = sum([
             analysed_file.file_hash,
-            compiler.get_hash(config),
+            compiler.get_hash(config, analysed_file.fpath),
         ])
     except TypeError as err:
         raise ValueError("Could not generate combo "

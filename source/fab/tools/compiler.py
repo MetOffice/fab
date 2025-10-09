@@ -12,11 +12,11 @@ import re
 from pathlib import Path
 import warnings
 from typing import cast, List, Optional, Tuple, TYPE_CHECKING, Union
-import zlib
 
 from fab.tools.category import Category
 from fab.tools.flags import AlwaysFlags
 from fab.tools.tool import CompilerSuiteTool
+from fab.util import string_checksum
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
 
@@ -104,13 +104,23 @@ class Compiler(CompilerSuiteTool):
         """
         return self._output_flag
 
-    def get_hash(self, config: Optional["BuildConfig"] = None) -> int:
+    def get_hash(self,
+                 config: "BuildConfig",
+                 file_path: Path
+                 ) -> int:
         """
+        Computes a hash code using the name and version of the compiler,
+        and the compilation flag used by the compiler for the specified
+        file.
+
+        :param config: The build configuration to use.
+        :param file_path: Path of the file to compile.
         :returns: hash of compiler name and version.
         """
-        return (zlib.crc32(self.name.encode()) +
-                zlib.crc32(str(self.get_flags(config)).encode()) +
-                zlib.crc32(self.get_version_string().encode()))
+        all_params = (self.name +
+                      self.get_version_string() +
+                      str(self.get_resolved_flags(config, file_path)))
+        return string_checksum(all_params)
 
     def get_all_commandline_options(
             self,
@@ -167,6 +177,13 @@ class Compiler(CompilerSuiteTool):
 
     def get_resolved_flags(self, config: "BuildConfig",
                            file_path: Path) -> List[str]:
+        """
+        :param config: The build configuration to use.
+        :param file_path: the path to the file to be compiled.
+
+        :returns: the flags actually used when building the specified
+            path.
+        """
         return self.flags.get_flags(config, file_path)
 
     def compile_file(self, input_file: Path,

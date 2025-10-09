@@ -11,14 +11,14 @@ from pathlib import Path
 from pytest import raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder, call_list, not_found_callback
-
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.compiler_wrapper import (CompilerWrapper,
                                         CrayCcWrapper, CrayFtnWrapper,
                                         Mpicc, Mpif90)
+
+from tests.conftest import ExtendedRecorder, call_list, not_found_callback
 
 
 def test_compiler_getter(stub_c_compiler: CCompiler) -> None:
@@ -85,7 +85,8 @@ def test_compiler_is_available_no_version(stub_c_compiler: CCompiler,
     assert not mpicc.is_available
 
 
-def test_compiler_hash(fake_process: FakeProcess) -> None:
+def test_compiler_hash(stub_configuration,
+                       fake_process: FakeProcess) -> None:
     """
     Test the hash functionality.
     """
@@ -94,8 +95,8 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc1 = CCompiler('test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc1 = Mpicc(cc1)
-    hash1 = mpicc1.get_hash()
-    assert hash1 == 5953380633
+    hash1 = mpicc1.get_hash(stub_configuration, Path('.'))
+    assert hash1 == 2609406574
 
     # A change in the version number must change the hash:
     fake_process.register(['tcc', '--version'], stdout='8.9')
@@ -103,7 +104,7 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc2 = CCompiler('test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc2 = Mpicc(cc2)
-    hash2 = mpicc2.get_hash()
+    hash2 = mpicc2.get_hash(stub_configuration, Path('.'))
     assert hash2 != hash1
 
     # A change in the name with the original version number
@@ -113,7 +114,7 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc3 = CCompiler('New test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc3 = Mpicc(cc3)
-    hash3 = mpicc3.get_hash()
+    hash3 = mpicc3.get_hash(stub_configuration, Path('.'))
     assert hash3 not in (hash1, hash2)
 
     # A change in the name with the modified version number
@@ -123,7 +124,7 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc4 = CCompiler('New test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc4 = Mpicc(cc4)
-    hash4 = mpicc4.get_hash()
+    hash4 = mpicc4.get_hash(stub_configuration, Path('.'))
     assert hash4 not in (hash1, hash2, hash3)
 
 

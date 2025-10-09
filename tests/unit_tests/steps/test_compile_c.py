@@ -81,7 +81,7 @@ class TestCompileC:
         fake_process.register([
             'scc', '-c', '-I', 'foo/include',
             '-Dhello', 'foo.c',
-            '-o', str(config.prebuild_folder / 'foo.18f203cab.o')
+            '-o', str(config.prebuild_folder / 'foo.17ecdc5e7.o')
         ])
         with warns(UserWarning, match="_metric_send_conn not set, "
                                       "cannot send metrics"):
@@ -92,7 +92,7 @@ class TestCompileC:
 
         # ensure it created the correct artefact collection
         assert config.artefact_store[ArtefactSet.OBJECT_FILES] == {
-            None: {config.prebuild_folder / 'foo.18f203cab.o', }
+            None: {config.prebuild_folder / 'foo.17ecdc5e7.o', }
         }
 
     def test_exception_handling(self, content,
@@ -105,7 +105,7 @@ class TestCompileC:
         fake_process.register(['scc', '--version'], stdout='1.2.3')
         fake_process.register([
             'scc', '-c', 'foo.c',
-            '-o', str(config.build_output / '_prebuild/foo.101865856.o')
+            '-o', str(config.build_output / '_prebuild/foo.f133e192.o')
         ], returncode=1)
         with raises(RuntimeError):
             compile_c(config=config)
@@ -133,7 +133,7 @@ class TestGetObjComboHash:
         # ToDo: Messing with "private" members.
         #
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
-        assert result == 5289295574
+        assert result == 5015455762
 
     def test_change_file(self, content, flags,
                          fake_process: FakeProcess) -> None:
@@ -149,7 +149,7 @@ class TestGetObjComboHash:
         #
         analysed_file._file_hash += 1
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
-        assert result == 5289295575
+        assert result == 5015455763
 
     def test_change_flags(self, content, flags,
                           fake_process: FakeProcess) -> None:

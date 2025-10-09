@@ -171,7 +171,7 @@ def _get_obj_combo_hash(config: BuildConfig,
         obj_combo_hash = sum([
             analysed_file.file_hash,
             flags.checksum(config, analysed_file.fpath),
-            compiler.get_hash(config),
+            compiler.get_hash(config, analysed_file.fpath),
         ])
     except TypeError as err:
         raise ValueError("could not generate combo hash for "
