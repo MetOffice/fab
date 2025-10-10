@@ -172,7 +172,7 @@ def analyse(
 
     # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
     with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
-        add_mo_commented_file_deps(project_source_tree)
+        add_mo_commented_file_deps(project_source_tree, ignore_dependencies)
 
     logger.info(f"source tree size {len(project_source_tree)}")
 
