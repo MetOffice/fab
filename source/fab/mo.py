@@ -4,22 +4,26 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 """
-A temporary place for some Met Office specific logic which, for now, needs to be integrated into Fab's internals.
+A temporary place for some Met Office specific logic which, for now, needs to
+be integrated into Fab's internals.
 
 """
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Iterable, List, Optional
 
 from fab.dep_tree import AnalysedDependent, filter_source_tree, logger
 from fab.parse.c import AnalysedC
 from fab.parse.fortran import AnalysedFortran
 
 
-def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedDependent]):
+def add_mo_commented_file_deps(
+       source_tree: Dict[Path, AnalysedDependent],
+        ignore_dependencies: Optional[Iterable[str]] = None):
     """
-    Handle dependencies from Met Office "DEPENDS ON:" code comments which refer to a c file.
-    These are the comments which refer to a .o file and not those which just refer to symbols.
+    Handle dependencies from Met Office "DEPENDS ON:" code comments which
+    refer to a c file. These are the comments which refer to a .o file and
+    not those which just refer to symbols.
 
     :param source_tree:
         The source tree of analysed files.
@@ -34,5 +38,12 @@ def add_mo_commented_file_deps(source_tree: Dict[Path, AnalysedDependent]):
     for f in analysed_fortran:
         num_found += len(f.mo_commented_file_deps)
         for dep in f.mo_commented_file_deps:
+            if dep in ignore_set:
+                continue
+            if dep not in lookup:
+                logger.error(f"DEPENDS ON dependency '{dep}' not found for "
+                             f"file '{f.fpath}' - ignored for now, but "
+                             f"the build might fail because of this.")
+                continue
             f.file_deps.add(lookup[dep].fpath)
     logger.info(f"processed {num_found} DEPENDS ON file dependencies")
