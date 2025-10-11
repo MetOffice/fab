@@ -42,6 +42,15 @@ def add_mo_commented_file_deps(
         for dep in f.mo_commented_file_deps:
             if dep in ignore_set:
                 continue
+            # If the DEPENDS ON specified a .o file, rename it
+            # to the expected c file.
+            dep = dep.replace(".o", ".c")
+
+            # Just in case, also allow that a .c file is specified in the
+            # ignore list:
+            if dep in ignore_set:
+                continue
+
             if dep not in lookup:
                 logger.error(f"DEPENDS ON dependency '{dep}' not found for "
                              f"file '{f.fpath}' - ignored for now, but "
