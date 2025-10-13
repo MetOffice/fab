@@ -16,12 +16,9 @@ a tool is actually available.
 import logging
 from pathlib import Path
 import subprocess
-from typing import Dict, List, Optional, Sequence, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, Sequence, Union
 
 from fab.tools.category import Category
-
-if TYPE_CHECKING:
-    from fab.build_config import BuildConfig
 
 
 class Tool:
