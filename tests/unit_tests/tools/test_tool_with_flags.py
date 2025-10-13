@@ -3,9 +3,11 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
+
 """
-Tests tooling base classes.
+Tests ToolsWithFlags.
 """
+
 from pathlib import Path
 import pytest
 
@@ -38,11 +40,12 @@ def test_tool_with_flags_no_profile(stub_configuration) -> None:
 
 
 def test_tool_with_flags_profiles(stub_configuration) -> None:
-    '''Test that profiles work as expected. These tests use internal
+    """
+    Test that profiles work as expected. These tests use internal
     implementation details of ProfileFlags, but we need to test that the
-    exposed flag-related API works as expected.
+    exposed flag-related API works as expected
+    """
 
-    '''
     # pylint: disable=use-implicit-booleaness-not-comparison
     tool = ToolWithFlags("gfortran", "gfortran", Category.FORTRAN_COMPILER)
     # Make sure by default we get ProfileFlags
