@@ -78,12 +78,8 @@ class CompilerWrapper(Compiler):
 
         :param profile: the profile to use.
         '''
-        return []
-
-    def get_resolved_flags(self, config: "BuildConfig",
-                           file_path: Path) -> List[str]:
-        return (self._compiler.get_resolved_flags(config, file_path) +
-                super().get_resolved_flags(config, file_path))
+        return (self._compiler.get_flags(config, file_path) +
+                super().get_flags(config, file_path))
 
     def set_module_output_path(self, path: Path):
         '''Sets the output path for modules.

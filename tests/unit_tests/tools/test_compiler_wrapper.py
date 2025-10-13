@@ -265,15 +265,12 @@ def test_flags_independent(stub_c_compiler: CCompiler,
     assert wrapper.get_flags() == []
 
     stub_c_compiler.add_flags(['-a', '-b'])
-    # Compiler flags are handled differently in a compiler (since a compiler
-    # needs path-specific flags, but the generic get_flags call from Tools
-    # does not provide a path). So the compiler should report no flags:
-    assert stub_c_compiler.get_flags() == []
+    assert stub_c_compiler.get_flags() == ["-a", "-b"]
     resolved_flags = stub_c_compiler.get_all_commandline_options(
         stub_configuration, Path('/in'), Path("/out"))
     assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
 
-    assert wrapper.get_flags() == []
+    assert wrapper.get_flags() == ["-a", "-b"]
 
     # We need to test `get_all_commandline_options` to check the correct
     # behaviour of flags, which can resolve path-specific flags.
@@ -293,7 +290,7 @@ def test_flags_independent(stub_c_compiler: CCompiler,
     # And the compiler wrapper should report the wrapped compiler's flag
     # followed by the wrapper flag (i.e. the wrapper flag can therefore
     # overwrite the wrapped compiler's flags)
-    assert wrapper.get_flags() == []
+    assert wrapper.get_flags() == ["-a", "-b", "-d", "-e"]
     resolved_flags = wrapper.get_all_commandline_options(stub_configuration,
                                                          Path("/in"),
                                                          Path("/out"))

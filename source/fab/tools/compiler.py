@@ -119,7 +119,7 @@ class Compiler(CompilerSuiteTool):
         """
         all_params = (self.name +
                       self.get_version_string() +
-                      str(self.get_resolved_flags(config, file_path)))
+                      str(self.get_flags(config, file_path)))
         return string_checksum(all_params)
 
     def get_all_commandline_options(
@@ -150,7 +150,7 @@ class Compiler(CompilerSuiteTool):
 
         # Explicitly add all compilation flags here, where the input
         # path can be provided to properly resolve path-specific flags.
-        params += self.get_resolved_flags(config, input_file)
+        params += self.get_flags(config, input_file)
 
         if add_flags:
             if self.openmp_flag in add_flags:
@@ -165,20 +165,10 @@ class Compiler(CompilerSuiteTool):
 
     def get_flags(self, config: Optional["BuildConfig"] = None,
                   file_path: Optional[Path] = None) -> List[str]:
-        '''Since compiler need path-specific information (and the
-        `run` method in tool does not provide the path), a compiler
-        will return an empty list as flags. All compiler flags
-        are added explicitly by `get_all_commandline_options`,
-        where the input path can be provided.
-
-        :returns: the flags to be added automatically by tool, which
-            is just empty, since all compiler flags are added explicitly.
-        '''
-        return []
-
-    def get_resolved_flags(self, config: "BuildConfig",
-                           file_path: Path) -> List[str]:
         """
+        The flags to use when compiling the specified flag. All
+        AbstractFlags (e.g. MatchFlags, ...) will be resolved.
+
         :param config: The build configuration to use.
         :param file_path: the path to the file to be compiled.
 

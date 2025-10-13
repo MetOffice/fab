@@ -143,10 +143,9 @@ def test_compiler_path_specific_flags(stub_configuration,
     fc.add_flags("-always-flag")
     fc.add_flags(contain_flag)
 
-    flags = fc.get_resolved_flags(stub_configuration, Path("."))
+    flags = fc.get_flags(stub_configuration, Path("."))
     assert flags == ["-always-flag"]
-    flags = fc.get_resolved_flags(stub_configuration,
-                                  Path("/somewhere/myfile.F90"))
+    flags = fc.get_flags(stub_configuration, Path("/somewhere/myfile.F90"))
     assert flags == ["-always-flag", "-myflag"]
 
     compiler_info = "some Fortran compiler1.2['-always-flag']"

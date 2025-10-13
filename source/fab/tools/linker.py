@@ -129,7 +129,7 @@ class Linker(CompilerSuiteTool):
         # A compiler can have path specific flags. Since we are only
         # interested in linking here, path-specific flags are not
         # needed, so we provide a dummy file-path.
-        return flags + self._compiler.get_resolved_flags(config, Path(""))
+        return flags + self._compiler.get_flags(config, Path(""))
 
     def get_lib_flags(self, lib: str) -> List[str]:
         '''Gets the standard flags for a standard library
@@ -241,7 +241,7 @@ class Linker(CompilerSuiteTool):
 
         params: List[str] = self.get_flags(config)
 
-        params.extend(self._compiler.get_resolved_flags(config, Path()))
+        params.extend(self._compiler.get_flags(config, Path()))
 
         if config.openmp:
             params.append(self._compiler.openmp_flag)
