@@ -4,9 +4,10 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-xtests tooling base classes.
+Tests tooling base classes.
 """
 from pathlib import Path
+import pytest
 
 from fab.tools.category import Category
 from fab.tools.flags import ProfileFlags
@@ -37,9 +38,9 @@ def test_tool_with_flags_no_profile(stub_configuration) -> None:
 
 
 def test_tool_with_flags_profiles(stub_configuration) -> None:
-    '''xtest that profiles work as expected. These xtests use internal
-    implementation details of ProfileFlags, but we need to xtest that the
-    exposed flag-related API works as expected
+    '''Test that profiles work as expected. These tests use internal
+    implementation details of ProfileFlags, but we need to test that the
+    exposed flag-related API works as expected.
 
     '''
     # pylint: disable=use-implicit-booleaness-not-comparison
@@ -61,3 +62,22 @@ def test_tool_with_flags_profiles(stub_configuration) -> None:
     assert tool.get_flags(stub_configuration) == ["-flag1"]
     tool.add_flags("-flag2", "mode2")
     assert tool.get_flags(stub_configuration) == ["-flag1", "-flag2"]
+
+
+def test_tool_with_flags_generic_flags():
+    """
+    Tests the handling of generic flags.
+    """
+
+    tool = ToolWithFlags("name", "exec")
+
+    tool["output"] = "-o"
+    assert tool["output"] == ["-o"]
+    tool["output"] = ["-something", "-output"]
+    assert tool["output"] == ["-something", "-output"]
+
+    with pytest.raises(KeyError) as err:
+        _ = tool["does-not-exist"]
+
+    assert ("Generic flag name 'does-not-exist' is not defined for "
+            "'ToolWithFlags - name: exec'" in str(err.value))

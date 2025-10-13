@@ -10,7 +10,7 @@ It is the base class for compiler, linker, and pre-processor.
 """
 
 from pathlib import Path
-from typing import List, Optional, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, TYPE_CHECKING, Union
 
 from fab.tools.category import Category
 from fab.tools.flags import AbstractFlags, ProfileFlags
@@ -22,9 +22,15 @@ if TYPE_CHECKING:
 
 class ToolWithFlags(Tool):
     '''This is the base class for all tools that provide flags.
-    Note that the run method of the Tool base class is not overwritten
+    Note that the `run` method of the Tool base class is not overwritten
     to provide the flags to the base class, that needs to be done
     by the individual derived tools.
+
+    This tool also implements support for generic flags, i.e. (say)
+    compiler-specific flags that can be accessed using a common name.
+    For example, `compiler["include"]` might be `-I`, and
+    `compiler["module-output-path"]` = `-J` (for Gnu) or `-module`
+    (for Intel).
 
     :param name: name of the tool.
     :param exec_name: name or full path of the executable to start.
@@ -44,6 +50,40 @@ class ToolWithFlags(Tool):
 
         super().__init__(name, exec_name, category, availability_option)
         self._flags = ProfileFlags()
+        self._generic_flags: Dict[str, List[str]] = {}
+
+    def __getitem__(self, generic_name: str) -> List[str]:
+        """
+        Returns the compiler-specific list of flags given a generic
+        name.
+
+        :param: The generic name.
+
+        :returns: List of the required compiler flags.
+
+        :raises KeyError: if the specified generic name is not defined
+            for the compiler.
+        """
+        result = self._generic_flags.get(generic_name, None)
+        if result is not None:
+            return result
+        raise KeyError(f"Generic flag name '{generic_name}' is not defined "
+                       f"for '{self}'.")
+
+    def __setitem__(self,
+                    generic_name: str,
+                    flags: Union[str, List[str]]) -> None:
+        """
+        Sets or updates a specified compiler-specific flag for
+        a given generic name.
+
+        :param generic_name: The generic name to set or update.
+        :param flags: The flag or list of flags to use.
+        """
+        if isinstance(flags, list):
+            self._generic_flags[generic_name] = flags
+        else:
+            self._generic_flags[generic_name] = [flags]
 
     @property
     def flags(self) -> ProfileFlags:
