@@ -207,7 +207,7 @@ class Compiler(CompilerSuiteTool):
 
         params = self.get_all_commandline_options(config, input_file,
                                                   output_file, add_flags)
-        return self.run(config=config, cwd=input_file.parent,
+        return self.run(cwd=input_file.parent,
                         additional_parameters=params)
 
     def check_available(self) -> bool:
@@ -483,8 +483,7 @@ class FortranCompiler(Compiler):
                                                   output_file, add_flags,
                                                   syntax_only)
 
-        self.run(config=config, cwd=input_file.parent,
-                 additional_parameters=params)
+        self.run(cwd=input_file.parent, additional_parameters=params)
 
 
 # ============================================================================

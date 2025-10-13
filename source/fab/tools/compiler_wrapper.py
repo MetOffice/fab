@@ -178,7 +178,7 @@ class CompilerWrapper(Compiler):
             config, input_file, output_file, add_flags=add_flags,
             syntax_only=syntax_only)
 
-        self.run(config=config, cwd=input_file.parent,
+        self.run(cwd=input_file.parent,
                  additional_parameters=flags)
 
 

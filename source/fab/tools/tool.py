@@ -135,7 +135,6 @@ class Tool:
     def run(self,
             additional_parameters: Optional[
                 Union[str, Sequence[Union[Path, str]]]] = None,
-            config: Optional["BuildConfig"] = None,
             env: Optional[Dict[str, str]] = None,
             cwd: Optional[Union[Path, str]] = None,
             capture_output=True) -> str:
@@ -146,11 +145,12 @@ class Tool:
             List of strings or paths to be sent to :func:`subprocess.run`
             as additional parameters for the command. Any path will be
             converted to a normal string.
-        :param config: the config object, used for accessing compilation mode
-            and paths (if templating is required)
         :param env:
             Optional env for the command. By default it will use the current
             session's environment.
+        :param cwd:
+            Optional working directory for the command. By default it will
+            use the current working directory.
         :param capture_output:
             If True, capture and return stdout. If False, the command will
             print its output directly to the console.
