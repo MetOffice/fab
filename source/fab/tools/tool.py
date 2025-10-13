@@ -19,7 +19,6 @@ import subprocess
 from typing import Dict, List, Optional, Sequence, TYPE_CHECKING, Union
 
 from fab.tools.category import Category
-from fab.tools.flags import AbstractFlags, ProfileFlags
 
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
@@ -43,7 +42,6 @@ class Tool:
         self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_path = Path(exec_name)
-        self._flags = ProfileFlags()
         self._category = category
         if availability_option:
             self._availability_option = availability_option
@@ -125,36 +123,6 @@ class Tool:
         return self._category
 
     @property
-    def flags(self) -> ProfileFlags:
-        ''':returns: the profile flags for this tool.'''
-        return self._flags
-
-    def get_flags(self, config: Optional["BuildConfig"] = None) -> List[str]:
-        ''':returns: the flags to be used with this tool.'''
-        return self.flags.get_flags(config)
-
-    def add_flags(self, new_flags: Union[AbstractFlags, str, List[str]],
-                  profile: Optional[str] = None):
-        '''Adds the specified flags to the list of flags.
-
-        :param new_flags: A single string or list of strings which are the
-            flags to be added.
-        '''
-        self._flags.add_flags(new_flags, profile)
-
-    def define_profile(self,
-                       name: str,
-                       inherit_from: Optional[str] = None):
-        '''Defines a new profile name, and allows to specify if this new
-        profile inherit settings from an existing profile.
-
-        :param name: Name of the profile to define.
-        :param inherit_from: Optional name of a profile to inherit
-            settings from.
-        '''
-        self._flags.define_profile(name, inherit_from)
-
-    @property
     def logger(self) -> logging.Logger:
         ''':returns: a logger object for convenience.'''
         return self._logger
@@ -190,7 +158,7 @@ class Tool:
         :raises RuntimeError: if the code is not available.
         :raises RuntimeError: if the return code of the executable is not 0.
         """
-        command = [str(self.exec_path)] + self.get_flags(config)
+        command = [str(self.exec_path)]
         if additional_parameters:
             if isinstance(additional_parameters, str):
                 command.append(additional_parameters)
@@ -223,28 +191,3 @@ class Tool:
         if capture_output:
             return res.stdout.decode()
         return ""
-
-
-class CompilerSuiteTool(Tool):
-    '''A tool that is part of a compiler suite (typically compiler
-    and linker).
-
-    :param name: name of the tool.
-    :param exec_name: name of the executable to start.
-    :param suite: name of the compiler suite.
-    :param category: the Category to which this tool belongs.
-    :param availability_option: a command line option for the tool to test
-        if the tool is available on the current system. Defaults to
-        `--version`.
-    '''
-    def __init__(self, name: str, exec_name: Union[str, Path], suite: str,
-                 category: Category,
-                 availability_option: Optional[Union[str, List[str]]] = None):
-        super().__init__(name, exec_name, category,
-                         availability_option=availability_option)
-        self._suite = suite
-
-    @property
-    def suite(self) -> str:
-        ''':returns: the compiler suite of this tool.'''
-        return self._suite

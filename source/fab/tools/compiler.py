@@ -15,7 +15,7 @@ from typing import cast, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from fab.tools.category import Category
 from fab.tools.flags import AlwaysFlags
-from fab.tools.tool import CompilerSuiteTool
+from fab.tools.compiler_suite_tool import CompilerSuiteTool
 from fab.util import string_checksum
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
@@ -163,7 +163,8 @@ class Compiler(CompilerSuiteTool):
         params.extend([input_file.name, self._output_flag, str(output_file)])
         return params
 
-    def get_flags(self, config: Optional["BuildConfig"] = None) -> List[str]:
+    def get_flags(self, config: Optional["BuildConfig"] = None,
+                  file_path: Optional[Path] = None) -> List[str]:
         '''Since compiler need path-specific information (and the
         `run` method in tool does not provide the path), a compiler
         will return an empty list as flags. All compiler flags

@@ -9,15 +9,13 @@ Tests source preprocessor tools.
 from logging import Logger
 from pathlib import Path
 
-from tests.conftest import ExtendedRecorder
-
 from pytest import mark
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import call_list
-
 from fab.tools.category import Category
 from fab.tools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
+
+from tests.conftest import call_list, ExtendedRecorder
 
 
 def test_constructor() -> None:
@@ -66,7 +64,7 @@ class TestCppTraditional:
         """
         Tests CPP in "traditional" mode.
         """
-        command = ['cpp', '-traditional-cpp', '-P', '--version']
+        command = ['cpp', '--version']
         fake_process.register(command, returncode=1)
 
         cppf = CppFortran()
@@ -79,5 +77,6 @@ class TestCppTraditional:
         cppf.preprocess(Path("a.in"), Path("a.out"), ["-DDO_SOMETHING"])
         assert subproc_record.invocations() == [
             ["cpp", "-traditional-cpp", "-P", "a.in", "a.out"],
-            ["cpp", "-traditional-cpp", "-P", "-DDO_SOMETHING", "a.in", "a.out"]
+            ["cpp", "-traditional-cpp", "-P", "-DDO_SOMETHING",
+             "a.in", "a.out"]
         ]

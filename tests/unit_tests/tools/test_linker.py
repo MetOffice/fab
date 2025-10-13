@@ -21,7 +21,8 @@ from fab.tools.compiler_wrapper import CompilerWrapper, Mpif90
 from fab.tools.linker import Linker
 
 
-def test_c_linker(stub_c_compiler: CCompiler) -> None:
+def test_c_linker(stub_c_compiler: CCompiler,
+                  stub_configuration: BuildConfig) -> None:
     """
     Tests construction from C compiler
     """
@@ -29,18 +30,20 @@ def test_c_linker(stub_c_compiler: CCompiler) -> None:
     assert linker.category == Category.LINKER
     assert linker.name == "linker-some C compiler"
     assert linker.exec_name == "scc"
+    assert linker.compiler is stub_c_compiler
     assert linker.suite == "stub"
-    assert linker.get_flags() == []
+    assert linker.get_flags(stub_configuration) == []
     assert linker.output_flag == "-o"
 
 
-def test_fortran_linker(stub_fortran_compiler: FortranCompiler) -> None:
+def test_fortran_linker(stub_fortran_compiler: FortranCompiler,
+                        stub_configuration: BuildConfig) -> None:
     linker = Linker(stub_fortran_compiler)
     assert linker.category == Category.LINKER
     assert linker.name == "linker-some Fortran compiler"
     assert linker.exec_name == "sfc"
     assert linker.suite == "stub"
-    assert linker.get_flags() == []
+    assert linker.get_flags(stub_configuration) == []
 
 
 @mark.parametrize("mpi", [True, False])
@@ -182,21 +185,20 @@ def test_linker_add_lib_flags_overwrite_silent(stub_linker: Linker) -> None:
     assert result == ["-t", "-b"]
 
 
-class TestLinkerLinking:
-    def test_c(self, stub_c_compiler: CCompiler,
-               stub_configuration: BuildConfig,
-               subproc_record: ExtendedRecorder) -> None:
-        """
-        Tests linkwhen no additional libraries are specified.
-        """
-        linker = Linker(compiler=stub_c_compiler)
-        # Add a library to the linker, but don't use it in the link step
-        linker.add_lib_flags("customlib", ["-lcustom", "-jcustom"])
+def test_c(stub_c_compiler: CCompiler,
+           stub_configuration: BuildConfig,
+           subproc_record: ExtendedRecorder) -> None:
+    """
+    Tests linking when no additional libraries are specified.
+    """
+    linker = Linker(compiler=stub_c_compiler)
+    # Add a library to the linker, but don't use it in the link step
+    linker.add_lib_flags("customlib", ["-lcustom", "-jcustom"])
 
-        linker.link([Path("a.o")], Path("a.out"), config=stub_configuration)
-        assert subproc_record.invocations() == [
-            ['scc', "a.o", "-o", "a.out"]
-        ]
+    linker.link([Path("a.o")], Path("a.out"), config=stub_configuration)
+    assert subproc_record.invocations() == [
+        ['scc', "a.o", "-o", "a.out"]
+    ]
 
 
 def test_c_with_libraries(stub_c_compiler: CCompiler,

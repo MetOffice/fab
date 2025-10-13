@@ -10,13 +10,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, TYPE_CHECKING
 import warnings
 
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
 from fab.tools.flags import ProfileFlags
-from fab.tools.tool import CompilerSuiteTool
+from fab.tools.compiler_suite_tool import CompilerSuiteTool
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
 
@@ -239,7 +239,7 @@ class Linker(CompilerSuiteTool):
         :returns: the stdout of the link command
         '''
 
-        params: List[Union[str, Path]] = []
+        params: List[str] = self.get_flags(config)
 
         params.extend(self._compiler.get_resolved_flags(config, Path()))
 

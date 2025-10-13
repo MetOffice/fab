@@ -71,7 +71,8 @@ class CompilerWrapper(Compiler):
         raise RuntimeError(f"Compiler '{self._compiler.name}' has "
                            f"no has_syntax_only.")
 
-    def get_flags(self, config: Optional["BuildConfig"] = None) -> List[str]:
+    def get_flags(self, config: Optional["BuildConfig"] = None,
+                  file_path: Optional[Path] = None) -> List[str]:
         ''':returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
 
