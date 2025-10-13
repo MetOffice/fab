@@ -228,7 +228,7 @@ def _analyse_x90s(config: BuildConfig,
 def _analyse_kernels(
         config: BuildConfig,
         kernel_roots: List[Path],
-        ignore_dependencies: Optional[Iterable[str]]) -> Dict[str, int]:
+        ignore_dependencies: Optional[Iterable[str]] = None) -> Dict[str, int]:
     """
     We want to hash the kernel metadata (type defs).
 
