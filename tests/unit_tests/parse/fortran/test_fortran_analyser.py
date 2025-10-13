@@ -45,7 +45,7 @@ def module_expected(module_fpath: Path) -> AnalysedFortran:
         module_deps={'bar_mod', 'compute_chunk_size_mod'},
         symbol_deps={'monty_func', 'bar_mod', 'compute_chunk_size_mod'},
         file_deps=set(),
-        mo_commented_file_deps={'some_file.c'},
+        mo_commented_file_deps={'some_file.o'},
     )
 
 

@@ -112,8 +112,6 @@ def analyse(
     :param ignore_dependencies:
         Third party Fortran module names in USE statements, 'DEPENDS ON' files
         and modules to be ignored.
-    :param name:
-        Human friendly name for logger output, with sensible default.
 
     """
 
