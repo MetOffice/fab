@@ -33,7 +33,8 @@ class Compiler(CompilerSuiteTool):
     - output (e.g. -o)
     - include-path (e.g. -I)
     - openmp (e.g. -fopenmp, or -qopenmp, ..)
-    - module-search-path (for Fortran compilers, e.g. -J)
+    - module-search-path (for Fortran compilers, e.g. -I)
+    - module-out-folder (for Fortran compiler, e.g. -J)
 
     The following generic flags are also defined for any compilers
     in Fab, but they are not used by Fab itself, but might be very
@@ -348,7 +349,6 @@ class FortranCompiler(Compiler):
                  version_regex: str,
                  mpi: bool = False,
                  version_argument: Optional[str] = None,
-                 module_folder_flag: Optional[str] = None,
                  syntax_only_flag: Optional[str] = None,
                  ):
 
@@ -357,11 +357,11 @@ class FortranCompiler(Compiler):
                          mpi=mpi,
                          version_argument=version_argument,
                          version_regex=version_regex)
-        self._module_folder_flag = (module_folder_flag if module_folder_flag
-                                    else "")
         self._syntax_only_flag = syntax_only_flag
         self._module_output_path = ""
         self["module-search-path"] = "-I"
+        # Defining this as empty makes tests later easier
+        self["module-out-folder"] = []
 
     @property
     def has_syntax_only(self) -> bool:
@@ -402,10 +402,11 @@ class FortranCompiler(Compiler):
         if add_flags:
             # Create an AlwaysFlags to use its remove_flag method
             af = AlwaysFlags(add_flags)
-            if self._module_folder_flag:
+            if self["module-out-folder"]:
                 # Remove any module flag the user has specified, since
                 # this will interfere with Fab's module handling.
-                af.remove_flag(self._module_folder_flag, has_parameter=True)
+                af.remove_flag(self["module-out-folder"][0],
+                               has_parameter=True)
             af.remove_flag(self["compile-only"][0], has_parameter=False)
             add_flags = af.get_flags(config, input_file)
 
@@ -416,14 +417,14 @@ class FortranCompiler(Compiler):
             params.append(self._syntax_only_flag)
 
         # Append module output path
-        if self._module_folder_flag and self._module_output_path:
+        if self["module-out-folder"] and self._module_output_path:
             # Make sure to add the Fab module flags first, so that they
             # will overwrite what is set up otherwise. An example of this
             # is Jules, which provides its own dummy NetCDF module if
             # NetCDF is disabled. The Fab flags must come before any
             # module search path from the environment, otherwise
             # a potentially existing NetCDF module would be found.
-            params.insert(0, self._module_folder_flag)
+            params[0:0] = self["module-out-folder"]
             params.insert(1, self._module_output_path)
             # It also looks like gfortran searches the module output
             # path last, independent of the order. So just in case,
@@ -493,11 +494,11 @@ class Gfortran(FortranCompiler):
     def __init__(self, name: str = "gfortran",
                  exec_name: str = "gfortran"):
         super().__init__(name, exec_name, suite="gnu",
-                         module_folder_flag="-J",
                          syntax_only_flag="-fsyntax-only",
                          version_regex=(r"GNU Fortran \(.*?\) "
                                         r"(\d[\d\.]+\d)(?:$| )"))
         self["openmp"] = '-fopenmp'
+        self["module-out-folder"] = '-J'
 
 
 # ============================================================================
@@ -528,10 +529,10 @@ class Ifort(FortranCompiler):
 
     def __init__(self, name: str = "ifort", exec_name: str = "ifort"):
         super().__init__(name, exec_name, suite="intel-classic",
-                         module_folder_flag="-module",
                          syntax_only_flag="-syntax-only",
                          version_regex=r"ifort \(IFORT\) (\d[\d\.]+\d) ")
         self["openmp"] = '-qopenmp'
+        self["module-out-folder"] = '-module'
 
 
 # ============================================================================
@@ -560,10 +561,10 @@ class Ifx(FortranCompiler):
 
     def __init__(self, name: str = "ifx", exec_name: str = "ifx"):
         super().__init__(name, exec_name, suite="intel-llvm",
-                         module_folder_flag="-module",
                          syntax_only_flag="-syntax-only",
                          version_regex=r"ifx \(IFX\) (\d[\d\.]+\d) ")
         self["openmp"] = '-qopenmp'
+        self["module-out-folder"] = '-module'
 
 
 # ============================================================================
@@ -595,11 +596,11 @@ class Nvfortran(FortranCompiler):
 
     def __init__(self, name: str = "nvfortran", exec_name: str = "nvfortran"):
         super().__init__(name, exec_name, suite="nvidia",
-                         module_folder_flag="-module",
                          syntax_only_flag="-Msyntax-only",
                          version_argument='-V',
                          version_regex=r"nvfortran (\d[\d\.]+\d)")
         self["openmp"] = '-mp'
+        self["module-out-folder"] = '-module'
 
 
 # ============================================================================
@@ -641,8 +642,8 @@ class Crayftn(FortranCompiler):
 
     def __init__(self, name: str = "crayftn-ftn", exec_name: str = "ftn"):
         super().__init__(name, exec_name, suite="cray", mpi=True,
-                         module_folder_flag="-J",
                          syntax_only_flag="-syntax-only",
                          version_regex=(r"Cray Fortran : Version "
                                         r"(\d[\d\.]+\d)  "))
         self["openmp"] = '-omp'
+        self["module-out-folder"] = '-J'

@@ -202,7 +202,7 @@ def test_get_default_error_missing_openmp_compiler(monkeypatch) -> None:
     Todo: Monkeying with internal state is bad.
     """
     fc = FortranCompiler("Simply Fortran", 'sfc', 'simply',
-                         module_folder_flag="-mods", version_regex=r'([\d.]+]')
+                         version_regex=r'([\d.]+]')
 
     tr = ToolRepository()
     monkeypatch.setitem(tr, Category.FORTRAN_COMPILER, [fc])

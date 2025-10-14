@@ -115,8 +115,9 @@ def stub_fortran_compiler() -> FortranCompiler:
     Provides a minimal Fortran compiler.
     """
     compiler = FortranCompiler('some Fortran compiler', 'sfc', 'stub',
-                               r'([\d.]+)', module_folder_flag='-mods')
+                               r'([\d.]+)')
     compiler["openmp"] = '-omp'
+    compiler["module-out-folder"] = '-mods'
     return compiler
 
 

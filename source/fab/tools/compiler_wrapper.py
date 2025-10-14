@@ -145,10 +145,10 @@ class CompilerWrapper(Compiler):
             # (or a CompilerWrapper in case of nested CompilerWrappers,
             # which also supports the syntax_only flag anyway).
             self._compiler = cast(FortranCompiler, self._compiler)
-            if self._compiler._module_folder_flag:
+            if self._compiler["module-out-folder"]:
                 # Remove a user's module flag, which would interfere
                 # with Fab's module handling.
-                new_flags.remove_flag(self._compiler._module_folder_flag,
+                new_flags.remove_flag(self._compiler["module-out-folder"][0],
                                       has_parameter=True)
             resolved_flags = new_flags.get_flags(file_path=input_file)
             flags = self._compiler.get_all_commandline_options(

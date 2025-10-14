@@ -72,13 +72,11 @@ def test_compiler_openmp() -> None:
     cc = CCompiler("gcc", "gcc", "gnu", version_regex="")
     assert not cc.openmp
 
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         module_folder_flag="-J", version_regex="")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
     fc["openmp"] = "-fopenmp"
     assert fc["openmp"] == ["-fopenmp"]
     assert fc.openmp
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         module_folder_flag="-J", version_regex="")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
     assert not fc.openmp
 
 
@@ -174,20 +172,17 @@ def test_compiler_hash_invalid_version(stub_configuration):
 
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="", module_folder_flag="-J")
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="", module_folder_flag="-J",
-                         syntax_only_flag=None)
+                         version_regex="", syntax_only_flag=None)
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
                          version_regex="",
-                         module_folder_flag="-J",
                          syntax_only_flag="-fsyntax-only")
     assert fc.has_syntax_only
     assert fc._syntax_only_flag == "-fsyntax-only"
