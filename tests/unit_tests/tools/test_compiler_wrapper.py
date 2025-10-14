@@ -133,8 +133,8 @@ def test_syntax_only(stub_c_compiler: CCompiler) -> None:
     Tests handling of syntax only flags in wrapper. In case of testing
     syntax only for a C compiler an exception must be raised.
     """
-    fc = FortranCompiler('test Fortran', 'tfc', 'test', r'[\d.]+',
-                         syntax_only_flag='-syntax')
+    fc = FortranCompiler('test Fortran', 'tfc', 'test', r'[\d.]+')
+    fc["syntax-only"] = "-fsyntax-only"
     mpif90 = Mpif90(fc)
 
     assert mpif90.has_syntax_only

@@ -177,15 +177,15 @@ def test_compiler_syntax_only():
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="", syntax_only_flag=None)
+                         version_regex="")
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="",
-                         syntax_only_flag="-fsyntax-only")
+                         version_regex="")
+    fc["syntax-only"] = "-fsyntax-only"
     assert fc.has_syntax_only
-    assert fc._syntax_only_flag == "-fsyntax-only"
+    assert fc["syntax-only"] == ["-fsyntax-only"]
 
 
 def test_compiler_without_openmp(stub_fortran_compiler: FortranCompiler,

@@ -336,12 +336,6 @@ class FortranCompiler(Compiler):
     :param version_regex: A regular expression that allows extraction of
         the version number from the version output of the compiler.
     :param mpi: whether MPI is supported by this compiler or not.
-    :param output_flag: the compilation flag to use to indicate the name
-        of the output file
-    :param module_folder_flag: the compiler flag to indicate where to
-        store created module files.
-    :param syntax_only_flag: flag to indicate to only do a syntax check.
-        The side effect is that the module files are created.
     '''
 
     # pylint: disable=too-many-arguments
@@ -349,7 +343,6 @@ class FortranCompiler(Compiler):
                  version_regex: str,
                  mpi: bool = False,
                  version_argument: Optional[str] = None,
-                 syntax_only_flag: Optional[str] = None,
                  ):
 
         super().__init__(name=name, exec_name=exec_name, suite=suite,
@@ -357,16 +350,16 @@ class FortranCompiler(Compiler):
                          mpi=mpi,
                          version_argument=version_argument,
                          version_regex=version_regex)
-        self._syntax_only_flag = syntax_only_flag
         self._module_output_path = ""
         self["module-search-path"] = "-I"
         # Defining this as empty makes tests later easier
         self["module-out-folder"] = []
+        self["syntax-only"] = []
 
     @property
     def has_syntax_only(self) -> bool:
         ''':returns: whether this compiler supports a syntax-only feature.'''
-        return self._syntax_only_flag is not None
+        return self["syntax-only"] != []
 
     def set_module_output_path(self, path: Path):
         '''Sets the output path for modules.
@@ -413,8 +406,8 @@ class FortranCompiler(Compiler):
         # Get the flags from the base class
         params = super().get_all_commandline_options(config, input_file,
                                                      output_file, add_flags)
-        if syntax_only and self._syntax_only_flag:
-            params.append(self._syntax_only_flag)
+        if syntax_only and self["syntax-only"]:
+            params.extend(self["syntax-only"])
 
         # Append module output path
         if self["module-out-folder"] and self._module_output_path:
@@ -494,11 +487,11 @@ class Gfortran(FortranCompiler):
     def __init__(self, name: str = "gfortran",
                  exec_name: str = "gfortran"):
         super().__init__(name, exec_name, suite="gnu",
-                         syntax_only_flag="-fsyntax-only",
                          version_regex=(r"GNU Fortran \(.*?\) "
                                         r"(\d[\d\.]+\d)(?:$| )"))
         self["openmp"] = '-fopenmp'
         self["module-out-folder"] = '-J'
+        self["syntax-only"] = '-fsyntax-only'
 
 
 # ============================================================================
@@ -529,10 +522,10 @@ class Ifort(FortranCompiler):
 
     def __init__(self, name: str = "ifort", exec_name: str = "ifort"):
         super().__init__(name, exec_name, suite="intel-classic",
-                         syntax_only_flag="-syntax-only",
                          version_regex=r"ifort \(IFORT\) (\d[\d\.]+\d) ")
         self["openmp"] = '-qopenmp'
         self["module-out-folder"] = '-module'
+        self["syntax-only"] = '-syntax-only'
 
 
 # ============================================================================
@@ -561,10 +554,10 @@ class Ifx(FortranCompiler):
 
     def __init__(self, name: str = "ifx", exec_name: str = "ifx"):
         super().__init__(name, exec_name, suite="intel-llvm",
-                         syntax_only_flag="-syntax-only",
                          version_regex=r"ifx \(IFX\) (\d[\d\.]+\d) ")
         self["openmp"] = '-qopenmp'
         self["module-out-folder"] = '-module'
+        self["syntax-only"] = '-syntax-only'
 
 
 # ============================================================================
@@ -596,11 +589,11 @@ class Nvfortran(FortranCompiler):
 
     def __init__(self, name: str = "nvfortran", exec_name: str = "nvfortran"):
         super().__init__(name, exec_name, suite="nvidia",
-                         syntax_only_flag="-Msyntax-only",
                          version_argument='-V',
                          version_regex=r"nvfortran (\d[\d\.]+\d)")
         self["openmp"] = '-mp'
         self["module-out-folder"] = '-module'
+        self["syntax-only"] = '-Msyntax-only'
 
 
 # ============================================================================
@@ -642,8 +635,8 @@ class Crayftn(FortranCompiler):
 
     def __init__(self, name: str = "crayftn-ftn", exec_name: str = "ftn"):
         super().__init__(name, exec_name, suite="cray", mpi=True,
-                         syntax_only_flag="-syntax-only",
                          version_regex=(r"Cray Fortran : Version "
                                         r"(\d[\d\.]+\d)  "))
         self["openmp"] = '-omp'
         self["module-out-folder"] = '-J'
+        self["syntax-only"] = '-syntax-only'
