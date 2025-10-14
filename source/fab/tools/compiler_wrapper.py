@@ -42,6 +42,23 @@ class CompilerWrapper(Compiler):
             mpi=mpi,
             availability_option=self._compiler.availability_option)
 
+    def __getitem__(self, generic_name: str) -> List[str]:
+        """
+        Returns the compiler-specific list of flags given a generic
+        name.
+
+        :param: The generic name.
+
+        :returns: List of the required compiler flags.
+
+        :raises KeyError: if the specified generic name is not defined
+            neither the wrapper nor the wrapped compiler.
+        """
+        result = self._generic_flags.get(generic_name, None)
+        if result is not None:
+            return result
+        return self._compiler[generic_name]
+
     @property
     def compiler(self) -> Compiler:
         ''':returns: the compiler that is wrapped by this CompilerWrapper.'''
@@ -51,11 +68,6 @@ class CompilerWrapper(Compiler):
     def suite(self) -> str:
         ''':returns: the compiler suite of this tool.'''
         return self._compiler.suite
-
-    @property
-    def openmp_flag(self) -> str:
-        '''Returns the flag to enable OpenMP.'''
-        return self._compiler.openmp_flag
 
     @property
     def has_syntax_only(self) -> bool:

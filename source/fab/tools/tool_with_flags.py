@@ -50,6 +50,11 @@ class ToolWithFlags(Tool):
 
         super().__init__(name, exec_name, category, availability_option)
         self._flags = ProfileFlags()
+        # Note that the value is always a list of flags. That is convenient
+        # in case that a compiler needs more than one flag (e.g. to enable
+        # 8-byte-default real, which might need settings for real and double).
+        # Standard flags are implicitly assumed to be a single flag (e.g.
+        # -c, -o).
         self._generic_flags: Dict[str, List[str]] = {}
 
     def __getitem__(self, generic_name: str) -> List[str]:

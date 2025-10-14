@@ -49,7 +49,7 @@ def test_add_get_tool(stub_tool_repository) -> None:
 
     # Now add a new Fortran compiler to the tool box
     new_fc = FortranCompiler('new Fortran compiler', 'nfc', 'new',
-                             r'([\d.]+)', openmp_flag='-omp',
+                             r'([\d.]+)',
                              module_folder_flag='-mods')
     new_fc._is_available = True
 

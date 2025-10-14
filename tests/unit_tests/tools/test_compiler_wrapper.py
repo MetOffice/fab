@@ -279,7 +279,12 @@ def test_flags_independent(stub_c_compiler: CCompiler,
                                                          Path('/out'))
 
     assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
-    assert wrapper.openmp_flag == stub_c_compiler.openmp_flag
+    assert wrapper["openmp"] == stub_c_compiler["openmp"]
+
+    # Make sure we can overwrite a flag
+    wrapper["openmp"] = "-some-other-flag"
+    assert wrapper["openmp"] == ["-some-other-flag"]
+    assert stub_c_compiler["openmp"] != wrapper["openmp"]
 
     # Adding flags to the wrapper should not affect the wrapped compiler:
     wrapper.add_flags(['-d', '-e'])
