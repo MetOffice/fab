@@ -40,6 +40,7 @@ class Compiler(CompilerSuiteTool):
     in Fab, but they are not used by Fab itself, but might be very
     convenient for application scripts
 
+    - default-8-byte-real   (for Fortran compiler)
 
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
@@ -492,6 +493,7 @@ class Gfortran(FortranCompiler):
         self["openmp"] = '-fopenmp'
         self["module-out-folder"] = '-J'
         self["syntax-only"] = '-fsyntax-only'
+        self["default-8-byte-real"] = '-fdefault-real-8'
 
 
 # ============================================================================
@@ -526,6 +528,7 @@ class Ifort(FortranCompiler):
         self["openmp"] = '-qopenmp'
         self["module-out-folder"] = '-module'
         self["syntax-only"] = '-syntax-only'
+        self["default-8-byte-real"] = '-r8'
 
 
 # ============================================================================
@@ -558,6 +561,7 @@ class Ifx(FortranCompiler):
         self["openmp"] = '-qopenmp'
         self["module-out-folder"] = '-module'
         self["syntax-only"] = '-syntax-only'
+        self["default-8-byte-real"] = '-r8'
 
 
 # ============================================================================
@@ -594,6 +598,7 @@ class Nvfortran(FortranCompiler):
         self["openmp"] = '-mp'
         self["module-out-folder"] = '-module'
         self["syntax-only"] = '-Msyntax-only'
+        self["default-8-byte-real"] = '-Mr8'
 
 
 # ============================================================================
@@ -640,3 +645,4 @@ class Crayftn(FortranCompiler):
         self["openmp"] = '-omp'
         self["module-out-folder"] = '-J'
         self["syntax-only"] = '-syntax-only'
+        self["default-8-byte-real"] = ["-s", "real64"]
