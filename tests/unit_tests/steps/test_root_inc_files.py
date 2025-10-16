@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List
 
 from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import mark, raises, warns, WarningsRecorder
+from pytest import mark, raises, warns
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -24,7 +24,6 @@ class TestRootIncFiles:
     Tests include files are handled correctly.
     """
     def test_vanilla(self, tmp_path: Path,
-                     recwarn: WarningsRecorder,
                      stub_tool_repository) -> None:
         """
         Tests include files is coped to work directory.
@@ -34,24 +33,19 @@ class TestRootIncFiles:
         inc_files = [source_dir / 'bar.inc']
         inc_files[0].write_text("Some include file.")
 
-        config = BuildConfig('proj', ToolBox())
+        config = BuildConfig('proj', ToolBox(),
+                             fab_workspace=Path(tmp_path / 'fab'))
         config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
 
-        # Nested pytest.warns() do not work as expected to catch two warnings:
-        # one user warning and one deprecation warning. So use recwarn:
-        root_inc_files(config)
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            root_inc_files(config)
 
-        assert len(recwarn) == 1
-        user_warning = recwarn.pop(UserWarning)
-        assert ("_metric_send_conn not set, cannot send metrics" ==
-                str(user_warning.message))
-
-        assert (config.build_output / inc_files[0]).read_text() \
-            == "Some include file."
+        assert ((config.build_output / inc_files[0].name).read_text()
+                == "Some include file.")
 
     def test_skip_output_folder(self, stub_tool_box: ToolBox,
-                                fs: FakeFilesystem,
-                                recwarn: WarningsRecorder) -> None:
+                                fs: FakeFilesystem) -> None:
         """
         Tests files already in output directory not copied.
         """
@@ -64,11 +58,9 @@ class TestRootIncFiles:
                      config.build_output / 'fab.inc']
         config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
 
-        root_inc_files(config)
-        assert len(recwarn) == 1
-        user_warning = recwarn.pop(UserWarning)
-        assert ("_metric_send_conn not set, cannot send metrics" in
-                str(user_warning.message))
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            root_inc_files(config)
 
         # From https://pytest-pyfakefs.readthedocs.io/en/stable/
         # troubleshooting.html#os-temporary-directories  :
@@ -116,7 +108,7 @@ class TestRootIncFiles:
                            fs: FakeFilesystem,
                            suffix_list) -> None:
         """
-        Tests duplicate file leaf names.
+        Tests handling of various suffix-list combinations.
         """
         Path('/foo/source').mkdir(parents=True)
         Path('/foo/source/bar.inc').write_text("The source of the Nile.")
