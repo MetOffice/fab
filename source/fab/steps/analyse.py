@@ -112,8 +112,6 @@ def analyse(
     :param ignore_dependencies:
         Third party Fortran module names in USE statements, 'DEPENDS ON' files
         and modules to be ignored.
-    :param name:
-        Human friendly name for logger output, with sensible default.
 
     """
 
@@ -172,7 +170,7 @@ def analyse(
 
     # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
     with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
-        add_mo_commented_file_deps(project_source_tree)
+        add_mo_commented_file_deps(project_source_tree, ignore_dependencies)
 
     logger.info(f"source tree size {len(project_source_tree)}")
 
