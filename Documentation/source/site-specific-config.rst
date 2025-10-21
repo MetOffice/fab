@@ -71,7 +71,7 @@ startup section can add more tools to the repository:
     :linenos:
     :caption: ToolRepository
 
-    from fab.tools import ToolRepository
+    from fab.api import ToolRepository
 
     # Assume the MpiF90 class as shown in the previous example
 
@@ -98,7 +98,7 @@ the tools to be used by the build environment, i.e. the
     :linenos:
     :caption: ToolBox
 
-    from fab.tools import Category, ToolBox, ToolRepository
+    from fab.api import Category, ToolBox, ToolRepository
 
     tr = ToolRepository()
     tr.set_default_compiler_suite("intel-classic")

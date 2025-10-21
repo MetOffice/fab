@@ -36,6 +36,11 @@ The list of functions and classes provided:
     :start-after: __all__ = [
     :end-before:     ]
 
+Note that this documentation will show import from ``fab.api``
+in all code examples. But in the text, the full path within the
+Fab repository is used to make it easier to find the actual source
+code in case a more detailed study of the source code is required.
+
 .. _env_vars:
 
 Understanding the Environment
