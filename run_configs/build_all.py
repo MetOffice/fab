@@ -41,7 +41,7 @@ def build_all():
     '''
 
     tool_box = ToolBox()
-    compiler = tool_box[Category.FORTRAN_COMPILER]
+    compiler = tool_box.get_tool(Category.FORTRAN_COMPILER)
     configs_folder = Path(__file__).parent
 
     os.environ['FAB_WORKSPACE'] = \

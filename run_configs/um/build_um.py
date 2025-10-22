@@ -122,7 +122,7 @@ if __name__ == '__main__':
         mpi=True, openmp=False, tool_box=ToolBox())
 
     # compiler-specific flags
-    compiler = state.tool_box[Category.FORTRAN_COMPILER]
+    compiler = state.tool_box.get_tool(Category.FORTRAN_COMPILER)
     if compiler.name == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
     elif compiler.name == 'ifort':

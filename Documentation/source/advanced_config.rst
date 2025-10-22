@@ -236,7 +236,7 @@ when defining flags:
 .. code-block::
     :linenos:
 
-    git = config.tool_box[Category.GIT]
+    git = config.tool_box.get_tool(Category.GIT)
     git.add_flags(["-c", "foo.bar=123"])
 
 This effectively adds the flags to the to the dummy profile, allowing
