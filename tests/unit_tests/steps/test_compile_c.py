@@ -51,7 +51,7 @@ def test_compile_c_wrong_compiler(content, fake_process: FakeProcess) -> None:
 
     tb = config.tool_box
     # Take the Fortran compiler
-    cc = tb[Category.C_COMPILER]
+    cc = tb.get_tool(Category.C_COMPILER)
     # So overwrite the C compiler with the re-categorised Fortran compiler
     cc._is_available = True
     tb.add_tool(cc, silent_replace=True)
@@ -126,7 +126,7 @@ class TestGetObjComboHash:
         config, analysed_file = content
 
         fake_process.register(['scc', '--version'], stdout='1.2.3')
-        compiler = config.tool_box[Category.C_COMPILER]
+        compiler = config.tool_box.get_tool(Category.C_COMPILER)
         #
         # ToDo: Messing with "private" members.
         #
@@ -141,7 +141,7 @@ class TestGetObjComboHash:
         config, analysed_file = content
 
         fake_process.register(['scc', '--version'], stdout='1.2.3')
-        compiler = config.tool_box[Category.C_COMPILER]
+        compiler = config.tool_box.get_tool(Category.C_COMPILER)
         #
         # ToDo: Messing with "private" members.
         #
@@ -157,7 +157,7 @@ class TestGetObjComboHash:
         config, analysed_file = content
 
         fake_process.register(['scc', '--version'], stdout='1.2.3')
-        compiler = config.tool_box[Category.C_COMPILER]
+        compiler = config.tool_box.get_tool(Category.C_COMPILER)
         flags = Flags(['-Dfoo'] + flags)
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
         assert result != 5066163117
@@ -170,7 +170,7 @@ class TestGetObjComboHash:
         config, analysed_file = content
 
         fake_process.register(['scc', '--version'], stdout='1.2.3')
-        compiler = config.tool_box[Category.C_COMPILER]
+        compiler = config.tool_box.get_tool(Category.C_COMPILER)
         #
         # Change the name of the compiler
         #
@@ -186,7 +186,7 @@ class TestGetObjComboHash:
         Tests a change in the compiler version number changes the hash.
         """
         config, analysed_file = content
-        compiler = config.tool_box[Category.C_COMPILER]
+        compiler = config.tool_box.get_tool(Category.C_COMPILER)
         compiler._version = (9, 8, 7)
         #
         # ToDo: Messing with "private" members.

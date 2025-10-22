@@ -123,7 +123,7 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
     config = mp_payload.config
-    compiler = config.tool_box[Category.C_COMPILER]
+    compiler = config.tool_box.get_tool(Category.C_COMPILER)
     if compiler.category != Category.C_COMPILER:
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
                            f"'{compiler.category}' instead of CCompiler")

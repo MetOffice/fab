@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 def preprocess_x90(config, common_flags: Optional[List[str]] = None):
     common_flags = common_flags or []
 
-    fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
+    fpp = config.tool_box.get_tool(Category.FORTRAN_PREPROCESSOR)
     source_files = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.X90')(config.artefact_store)
 
     # Add the pre-processed now .x90 files into X90_BUILD_FILES
@@ -319,7 +319,7 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
 
     else:
         config = mp_payload.config
-        psyclone = config.tool_box[Category.PSYCLONE]
+        psyclone = config.tool_box.get_tool(Category.PSYCLONE)
         if not isinstance(psyclone, Psyclone):
             raise RuntimeError(f"Unexpected tool '{psyclone.name}' of type "
                                f"'{type(psyclone)}' instead of Psyclone")

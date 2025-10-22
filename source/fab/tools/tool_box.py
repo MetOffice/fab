@@ -31,10 +31,6 @@ class ToolBox(AbstractToolBox):
         '''
         return category in self._all_tools
 
-    def __getitem__(self, category: Category) -> Tool:
-        '''A convenience function for get_tool.'''
-        return self.get_tool(category)
-
     def add_tool(self, tool: Tool,
                  silent_replace: bool = False) -> None:
         '''Adds a tool for a given category.

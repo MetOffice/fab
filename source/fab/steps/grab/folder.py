@@ -27,5 +27,5 @@ def grab_folder(config, src: Union[Path, str], dst_label: str = ''):
     """
     _dst = config.source_root / dst_label
     _dst.mkdir(parents=True, exist_ok=True)
-    rsync = config.tool_box[Category.RSYNC]
+    rsync = config.tool_box.get_tool(Category.RSYNC)
     rsync.execute(src=src, dst=_dst)

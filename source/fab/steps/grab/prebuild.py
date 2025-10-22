@@ -16,7 +16,7 @@ def grab_pre_build(config, path, allow_fail=False):
 
     """
     dst = config.prebuild_folder
-    rsync = config.tool_box[Category.RSYNC]
+    rsync = config.tool_box.get_tool(Category.RSYNC)
     try:
         res = rsync.execute(src=path, dst=dst)
 

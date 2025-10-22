@@ -26,10 +26,6 @@ class AbstractToolBox(ABC):
         '''
 
     @abstractmethod
-    def __getitem__(self, category: Category) -> Tool:
-        '''A convenience function for get_tool.'''
-
-    @abstractmethod
     def add_tool(self, tool: Tool,
                  silent_replace: bool = False) -> None:
         '''Adds a tool for a given category.
