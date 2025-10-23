@@ -641,4 +641,4 @@ class Crayftn(FortranCompiler):
                          openmp_flag="-homp",
                          syntax_only_flag="-syntax-only",
                          version_regex=(r"Cray Fortran : Version "
-                                        r"(\d[\d\.]+\d)  "))
+                                        r"(\d[\d\.]+\d)(\s+|$)"))

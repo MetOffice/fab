@@ -953,26 +953,26 @@ def test_crayftn():
     assert crayftn.mpi
 
 
-def test_crayftn_get_version_8_7_0():
-    '''Test crayftn .23.5 version detection.'''
-    full_output = dedent("""
-Cray Fortran : Version 8.7.0  Tue Jul 23, 2024  07:39:25
+@mark.parametrize(
+    "version_string, version_number",
+    [("Cray Fortran : Version 8.7.0  Tue Jul 23, 2024  07:39:25",
+      (8, 7, 0)),
+     ("Cray Fortran : Version 15.12.345", (15, 12, 345)),
+     ("Cray Fortran : Version 15.0.1  Tue Jul 23, 2024  07:39:25",
+     (15, 0, 1))
+     ])
+def test_crayftn_get_version(version_string, version_number):
+    '''Test crayftn .23.5 version detection. It includes one
+    example with no spaces after the version number, and it also
+    ensures that all digits are reported.
+    '''
+    full_output = dedent(f"""
+    {version_string}
     """)
     crayftn = Crayftn()
     with mock.patch.object(crayftn, "run",
                            mock.Mock(return_value=full_output)):
-        assert crayftn.get_version() == (8, 7, 0)
-
-
-def test_crayftn_get_version_15_0_1():
-    '''Test Crayftn 15.0.1 version detection.'''
-    full_output = dedent("""
-Cray Fortran : Version 15.0.1  Tue Jul 23, 2024  07:39:25
-    """)
-    crayftn = Crayftn()
-    with mock.patch.object(crayftn, "run",
-                           mock.Mock(return_value=full_output)):
-        assert crayftn.get_version() == (15, 0, 1)
+        assert crayftn.get_version() == version_number
 
 
 def test_crayftn_get_version_with_ifort_string():
