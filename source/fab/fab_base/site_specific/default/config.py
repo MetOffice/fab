@@ -106,7 +106,7 @@ class Config:
         TODO #313: Ideally we have only one kind of flag, but as a quick
         work around we provide this method.
         '''
-        compiler = build_config.tool_box[Category.FORTRAN_COMPILER]
+        compiler = build_config.tool_box.get_tool(Category.FORTRAN_COMPILER)
         compiler = cast(Compiler, compiler)
         return self._path_flags[compiler.suite].get(build_config.profile, [])
 
