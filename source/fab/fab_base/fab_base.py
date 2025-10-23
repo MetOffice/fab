@@ -635,7 +635,9 @@ class FabBase:
                            common_flags=self.preprocess_flags_common,
                            path_flags=self.preprocess_flags_path)
 
-    def analyse_step(self, find_programs: bool = False) -> None:
+    def analyse_step(self,
+                     ignore_dependencies: Optional[Iterable[str]] = None,
+                     find_programs: bool = False) -> None:
         """
         Calls Fab's analyse. It passes the config and root symbol for
         Fab to analyze the source code dependencies.
@@ -647,11 +649,14 @@ class FabBase:
         if self._link_target == "executable":
             if find_programs or type(self).__name__ == "FabBase":
                 # Automatically find the main programs:
-                analyse(self.config, find_programs=True)
+                analyse(self.config, find_programs=True,
+                        ignore_dependencies=ignore_dependencies)
             else:
-                analyse(self.config, root_symbol=self.root_symbol)
+                analyse(self.config, root_symbol=self.root_symbol,
+                        ignore_dependencies=ignore_dependencies)
         else:
-            analyse(self.config, root_symbol=None)
+            analyse(self.config, root_symbol=None,
+                    ignore_dependencies=ignore_dependencies)
 
     def compile_c_step(
             self,
