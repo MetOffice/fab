@@ -15,7 +15,7 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from fab.build_config import BuildConfig
 
@@ -80,14 +80,17 @@ DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.X90_BUILD_FILES, '.x90')
 
 
 @step
-def psyclone(config, kernel_roots: Optional[List[Path]] = None,
+def psyclone(config: BuildConfig,
+             kernel_roots: Optional[List[Path]] = None,
              transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
              cli_args: Optional[List[str]] = None,
              source_getter: Optional[ArtefactsGetter] = None,
              overrides_folder: Optional[Path] = None,
-             api: Optional[str] = None):
+             api: Optional[str] = None,
+             ignore_dependencies: Optional[Iterable[str]] = None,
+             ):
     """
-    Psyclone runner step.
+    PSyclone runner step.
 
     .. note::
 
@@ -115,6 +118,9 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
         Optional folder containing hand-crafted override files.
         Must be part of the subsequently analysed source code.
         Any file produced by psyclone will be deleted if there is a corresponding file in this folder.
+    :param ignore_dependencies:
+        Third party Fortran module names in USE statements, 'DEPENDS ON' files
+        and modules to be ignored.
     """
     kernel_roots = kernel_roots or []
 
@@ -128,7 +134,8 @@ def psyclone(config, kernel_roots: Optional[List[Path]] = None,
     analysed_x90 = _analyse_x90s(config, x90s)
 
     # analyse the kernel files,
-    all_kernel_hashes = _analyse_kernels(config, kernel_roots)
+    all_kernel_hashes = _analyse_kernels(config, kernel_roots,
+                                         ignore_dependencies=ignore_dependencies)
 
     # get the data in a payload object for child processes to calculate prebuild hashes
     mp_payload = _generate_mp_payload(
@@ -183,14 +190,19 @@ def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_fold
     )
 
 
-def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
-    # Analyse parsable versions of the x90s, finding kernel dependencies.
+def _analyse_x90s(config: BuildConfig,
+                  x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
+    """
+    Analyse parsable versions of the x90s, finding kernel dependencies.
+    """
 
     # make parsable - todo: fast enough not to require prebuilds?
     with TimerLogger(f"converting {len(x90s)} x90s into parsable fortran"):
         parsable_x90s = run_mp(config, items=x90s, func=make_parsable_x90)
 
-    # parse
+    # Parse. Note that there is no need to ignore dependencies: the x90
+    # files will be converted to algorithm layer f90 files, and then
+    # properly analysed later.
     x90_analyser = X90Analyser(config=config)
     with TimerLogger(f"analysing {len(parsable_x90s)} parsable x90 files"):
         x90_results = run_mp(config, items=parsable_x90s, func=x90_analyser.run)
@@ -213,7 +225,10 @@ def _analyse_x90s(config, x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
     return analysed_x90
 
 
-def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
+def _analyse_kernels(
+        config: BuildConfig,
+        kernel_roots: List[Path],
+        ignore_dependencies: Optional[Iterable[str]] = None) -> Dict[str, int]:
     """
     We want to hash the kernel metadata (type defs).
 
@@ -247,7 +262,9 @@ def _analyse_kernels(config, kernel_roots) -> Dict[str, int]:
     # We use the normal Fortran analyser, which records psyclone kernel metadata.
     # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
     # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
-    fortran_analyser = FortranAnalyser(config=config)
+    fortran_analyser = FortranAnalyser(config=config,
+                                       ignore_dependencies=ignore_dependencies)
+
     with TimerLogger(f"analysing {len(kernel_files)} potential psyclone kernel files"):
         fortran_results = run_mp(config, items=kernel_files, func=fortran_analyser.run)
     log_or_dot_finish(logger)
