@@ -26,12 +26,12 @@ jobs:
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/pyproject.toml') }}
 
     - name: Install Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
-        python-version: '3.10'
+        python-version: '3.14'
 
     - name: Check out Fab source
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Install documentation tools
       run: pip install .[docs]

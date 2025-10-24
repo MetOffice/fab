@@ -1,7 +1,13 @@
-# Fab - A Build System for Tomorrow
+Fab - A Build System for Tomorrow
+=================================
 
-[![Build](https://github.com/MetOffice/fab/actions/workflows/build.yml/badge.svg)](https://github.com/MetOffice/fab/actions/workflows/build.yml)
-[![Build Documentation](https://github.com/MetOffice/fab/actions/workflows/documentation.yml/badge.svg)](https://github.com/MetOffice/fab/actions/workflows/documentation.yml)
+.. image:: https://github.com/MetOffice/fab/actions/workflows/build.yml/badge.svg
+   :target: https://github.com/MetOffice/fab/actions/workflows/build.yml
+   :alt: testing
+
+.. image:: https://github.com/MetOffice/fab/actions/workflows/documentation.yml/badge.svg
+   :target: https://github.com/MetOffice/fab/actions/workflows/documentation.yml
+   :alt: documentation
 
 The "Fab" project aims to provide the means to quickly and easily compile
 software in a way tailored for scientific software development. It aims to be
@@ -13,15 +19,18 @@ application software. It targets different problems to, for instance, CMake
 derived build systems. This means that if your usage falls outside the focus
 of development you shouldn't expect high priority on your feature requests.
 
-## Licence
+Licence
+~~~~~~~
 
 The software is made available under a 3-clause BSD licence.
 
-## Installation
+Installation
+~~~~~~~~~~~~
 
 The tool is easily installed using `pip install sci-fab`.
 
-## Usage
+Usage
+~~~~~
 
 Fab offers two modes of operation. In "zero configuration" mode it is used
 directly as a tool by running `fab`. This examines the currently selected
