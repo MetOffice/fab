@@ -1,7 +1,7 @@
 """
-This __init__.py file allows any application to import all required
+This module allows any application to import all required
 functions from fab to be imported independent of the location of the
-files.
+files using `from fab.api import ...`.
 """
 
 # TODO #518: allow versioned APIs, and make this file point to the
