@@ -1,3 +1,7 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
 [project]
 name = "sci-fab"
 description = "Build system for scientific software"
@@ -51,12 +55,8 @@ repository = 'https://github.com/MetOffice/fab'
 where = ['source']
 
 [tool.setuptools.dynamic]
-readme = {file = 'README.md'}
+readme = {file = 'README.rst', content-type = "text.x-rst"}
 version = {attr = 'fab.__version__'}
-
-[build-system]
-requires = ['setuptools']
-build-backend = 'setuptools.build_meta'
 
 # This is required so that pytest finds conftest.py files.
 [tool.pytest.ini_options]
