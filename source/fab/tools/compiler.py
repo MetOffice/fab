@@ -641,7 +641,7 @@ class Crayftn(FortranCompiler):
     def __init__(self, name: str = "crayftn-ftn", exec_name: str = "ftn"):
         super().__init__(name, exec_name, suite="cray", mpi=True,
                          version_regex=(r"Cray Fortran : Version "
-                                        r"(\d[\d\.]+\d)  "))
+                                        r"(\d[\d\.]+\d)(\s+|$)"))
         self["openmp"] = '-omp'
         self["module-out-folder"] = '-J'
         self["syntax-only"] = '-syntax-only'
