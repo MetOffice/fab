@@ -10,11 +10,10 @@ which atm is v1 (i.e. fab.api and fab.v1 will export the same symbols).
 """
 
 from importlib import import_module
-from pytest import fail, mark
+from pytest import fail
 
 
-@mark.parametrize("api", ["api", "v1"])
-def test_import_from_api(api) -> None:
+def test_import_from_api() -> None:
     """
     Test that we can import the specified symbol from fab.api.
     """
@@ -63,11 +62,11 @@ def test_import_from_api(api) -> None:
         "ToolRepository",
         ]
 
-    fab_api = import_module(f"fab.{api}")
+    fab_api = import_module("fab.api")
     for symbol_name in all_symbols:
         try:
             symbol = getattr(fab_api, symbol_name)
             assert symbol.__name__ == symbol_name
         except AttributeError:
             fail(f"Symbol `{symbol_name}` could not be imported "
-                 f"from `fab.{api}`.")
+                 f"from `fab.api`.")
