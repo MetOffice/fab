@@ -378,10 +378,9 @@ class FortranAnalyser(FortranAnalyserBase):
                 logger.debug(f"ignoring use of {dep}")
             # with .o means a c file
             elif dep.endswith(".o"):
-                analysed_file.mo_commented_file_deps.add(
-                    dep.replace(".o", ".c"))
-            # without .o means a fortran symbol
+                analysed_file.mo_commented_file_deps.add(dep)
             else:
+                # Without .o means a Fortran symbol
                 analysed_file.add_symbol_dep(dep)
 
     def _process_subroutine_or_function(self, analysed_file, fpath, obj):
