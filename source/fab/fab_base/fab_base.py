@@ -642,9 +642,12 @@ class FabBase:
         Calls Fab's analyse. It passes the config and root symbol for
         Fab to analyze the source code dependencies.
 
-        :find_programs: if set and an executable is created (see link_target),
-            the flag will be set in Fab's analyse step, which means it will
-            identify all main programs automatically.
+        :param ignore_dependencies:
+            Third party Fortran module names in USE statements, 'DEPENDS ON'
+            files and modules to be ignored.
+        :param find_programs: if set and an executable is created (see
+            link_target), the flag will be set in Fab's analyse step, which
+            means it will identify all main programs automatically.
         """
         if self._link_target == "executable":
             if find_programs or type(self).__name__ == "FabBase":
