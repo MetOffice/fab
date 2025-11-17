@@ -29,34 +29,32 @@ from tests.conftest import arg_list, call_list
 
 def test_compiler() -> None:
     '''Test the compiler constructor.'''
-    cc = Compiler("gcc", "gcc", "gnu", version_regex="",
-                  category=Category.C_COMPILER, openmp_flag="-fopenmp")
+    cc = Gcc()
     assert cc.category == Category.C_COMPILER
-    assert cc._compile_flag == "-c"
-    assert cc.output_flag == "-o"
+    assert cc["compile-only"] == ["-c"]
+    assert cc["output"] == ["-o"]
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert cc.get_flags() == []
     assert cc.suite == "gnu"
     assert not cc.mpi
-    assert cc.openmp_flag == "-fopenmp"
+    assert cc["openmp"] == ["-fopenmp"]
 
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="", module_folder_flag="-J")
-    assert fc._compile_flag == "-c"
-    assert fc.output_flag == "-o"
+    fc = Gfortran()
+    assert fc["compile-only"] == ["-c"]
+    assert fc["output"] == ["-o"]
     assert fc.category == Category.FORTRAN_COMPILER
     assert fc.suite == "gnu"
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert fc.get_flags() == []
     assert not fc.mpi
-    assert fc.openmp_flag == "-fopenmp"
+    assert fc["openmp"] == ["-fopenmp"]
 
 
 def test_compiler_exec_paths() -> None:
     '''Tests compiler with absolute paths.
     '''
     cc = Compiler("gcc", "gcc", "gnu", version_regex="",
-                  category=Category.C_COMPILER, openmp_flag="-fopenmp")
+                  category=Category.C_COMPILER)
     assert cc.exec_name == "gcc"
     assert cc.exec_path == Path("gcc")
     cc.set_full_path(Path("/usr/bin/gcc"))
@@ -67,28 +65,18 @@ def test_compiler_exec_paths() -> None:
 def test_compiler_openmp() -> None:
     '''Test that the openmp flag is correctly reflected in the test if
     a compiler supports OpenMP or not.'''
-    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag="-fopenmp",
-                   version_regex="")
-    assert cc.openmp_flag == "-fopenmp"
-    assert cc.openmp
-    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag=None, version_regex="")
-    assert cc.openmp_flag == ""
-    assert not cc.openmp
     cc = CCompiler("gcc", "gcc", "gnu", version_regex="")
-    assert cc.openmp_flag == ""
+    cc["openmp"] = "-fopenmp"
+    assert cc["openmp"] == ["-fopenmp"]
+    assert cc.openmp
+    cc = CCompiler("gcc", "gcc", "gnu", version_regex="")
     assert not cc.openmp
 
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         module_folder_flag="-J", version_regex="")
-    assert fc.openmp_flag == "-fopenmp"
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
+    fc["openmp"] = "-fopenmp"
+    assert fc["openmp"] == ["-fopenmp"]
     assert fc.openmp
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag=None,
-                         module_folder_flag="-J", version_regex="")
-    assert fc.openmp_flag == ""
-    assert not fc.openmp
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         module_folder_flag="-J", version_regex="")
-    assert fc.openmp_flag == ""
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
     assert not fc.openmp
 
 
@@ -184,25 +172,20 @@ def test_compiler_hash_invalid_version(stub_configuration):
 
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="",
-                         openmp_flag="-fopenmp", module_folder_flag="-J")
-    # Empty since no flag is defined
-    assert not fc.has_syntax_only
-
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="", module_folder_flag="-J",
-                         syntax_only_flag=None)
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="",
-                         openmp_flag="-fopenmp",
-                         module_folder_flag="-J",
-                         syntax_only_flag="-fsyntax-only")
+                         version_regex="")
+    # Empty since no flag is defined
+    assert not fc.has_syntax_only
+
+    fc = FortranCompiler("gfortran", "gfortran", "gnu",
+                         version_regex="")
+    fc["syntax-only"] = "-fsyntax-only"
     assert fc.has_syntax_only
-    assert fc._syntax_only_flag == "-fsyntax-only"
+    assert fc["syntax-only"] == ["-fsyntax-only"]
 
 
 def test_compiler_without_openmp(stub_fortran_compiler: FortranCompiler,
