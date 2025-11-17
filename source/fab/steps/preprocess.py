@@ -144,7 +144,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     if source:
         source_files = source(config.artefact_store)
     else:
-        source_files = config.artefact_store[ArtefactSet.FORTRAN_BUILD_FILES]
+        source_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
@@ -170,7 +170,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
-    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.FORTRAN_COMPILER_FILES,
                                   remove_files=F90s,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_FORTRAN])
 
@@ -190,7 +190,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
             remove_files.append(f90)
             new_files.append(output_path)
 
-    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.FORTRAN_COMPILER_FILES,
                                   remove_files=remove_files,
                                   add_files=new_files)
 
@@ -204,7 +204,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
     """
     def __call__(self, artefact_store):
         return CollectionGetter(ArtefactSet.PRAGMAD_C)(artefact_store) \
-               or SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.c')(artefact_store)
+               or SuffixFilter(ArtefactSet.INITIAL_SOURCE_FILES, '.c')(artefact_store)
 
 
 # todo: rename preprocess_c
@@ -236,6 +236,6 @@ def preprocess_c(config: BuildConfig,
         **kwargs,
     )
 
-    config.artefact_store.replace(ArtefactSet.C_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.C_COMPILER_FILES,
                                   remove_files=source_files,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_C])

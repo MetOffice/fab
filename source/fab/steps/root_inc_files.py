@@ -55,7 +55,7 @@ def root_inc_files(config: BuildConfig,
 
     # All include files go in the root
     inc_copied = set()
-    initial_source = config.artefact_store[ArtefactSet.INITIAL_SOURCE]
+    initial_source = config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES]
     for fpath in suffix_filter(initial_source, suffix_list):
         # Do not copy from the output root to the output root!
         # This is currently unlikely to happen but did in the past,

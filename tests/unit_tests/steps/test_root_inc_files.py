@@ -35,7 +35,7 @@ class TestRootIncFiles:
 
         config = BuildConfig('proj', ToolBox(),
                              fab_workspace=Path(tmp_path / 'fab'))
-        config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
         with warns(UserWarning,
                    match="_metric_send_conn not set, cannot send metrics"):
@@ -56,7 +56,7 @@ class TestRootIncFiles:
                              fab_workspace=Path('/fab'))
         inc_files = [Path('/foo/source/bar.inc'),
                      config.build_output / 'fab.inc']
-        config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
         with warns(UserWarning,
                    match="_metric_send_conn not set, cannot send metrics"):
@@ -92,7 +92,7 @@ class TestRootIncFiles:
         inc_files = [Path('/foo/source/bar.inc'), Path('/foo/sauce/bar.inc')]
 
         config = BuildConfig('proj', stub_tool_box)
-        config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
         with raises(FileExistsError) as err:
             root_inc_files(config)
@@ -117,7 +117,7 @@ class TestRootIncFiles:
         inc_files = [Path('/foo/source/bar.inc'), Path('/foo/sauce/bar.h90')]
 
         config = BuildConfig('proj', stub_tool_box)
-        config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
         with warns(UserWarning,
                    match="_metric_send_conn not set, cannot send metrics"):
