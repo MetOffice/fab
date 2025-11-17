@@ -15,10 +15,11 @@ from typing import Collection, List, Optional, Tuple, Union
 
 from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
-from fab.build_config import BuildConfig, FlagsConfig
+from fab.build_config import BuildConfig
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, run_mp, step
 from fab.tools import Category, Cpp, CppFortran, Preprocessor
+from fab.tools.flags import FlagList
 from fab.util import (log_or_dot_finish, input_to_output_fpath, log_or_dot,
                       suffix_filter, Timer, by_type)
 
@@ -31,7 +32,7 @@ class MpCommonArgs():
     config: BuildConfig
     output_suffix: str
     preprocessor: Preprocessor
-    flags: FlagsConfig
+    flag_list: FlagList
     name: str
 
 
@@ -59,15 +60,15 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     :param output_suffix:
         Suffix for output files.
     :param common_flags:
-        Used to construct a :class:`~fab.config.FlagsConfig` object.
+        Path-independent flags for the preprocessor to use.
     :param path_flags:
-        Used to construct a :class:`~fab.build_config.FlagsConfig` object.
+        Path-dependent flags for the preprocessor to use.
     :param name:
         Human friendly name for logger output, with sensible default.
 
     """
     common_flags = common_flags or []
-    flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+    flag_list = FlagList(common_flags, add_flags=path_flags)
 
     logger.info(f"preprocessor is '{preprocessor.name}'.")
 
@@ -78,7 +79,7 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
         config=config,
         output_suffix=output_suffix,
         preprocessor=preprocessor,
-        flags=flags,
+        flag_list=flag_list,
         name=name,
     )
 
@@ -112,12 +113,12 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
         else:
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            params = args.flags.flags_for_path(path=input_fpath, config=args.config)
-
+            flags = args.flag_list.get_flags(args.config, input_fpath)
             log_or_dot(logger, f"PreProcessor running with parameters: "
-                               f"'{' '.join(params)}'.'")
+                               f"'{' '.join(flags)}'.'")
             try:
-                args.preprocessor.preprocess(input_fpath, output_fpath, params)
+                args.preprocessor.preprocess(input_fpath, output_fpath,
+                                             flags)
             except Exception as err:
                 raise Exception(f"error preprocessing {input_fpath}:\n"
                                 f"{err}") from err

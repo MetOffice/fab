@@ -30,8 +30,6 @@ def test_constructor():
     assert psyclone.category == Category.PSYCLONE
     assert psyclone.name == "psyclone"
     assert psyclone.exec_name == "psyclone"
-    # pylint: disable=use-implicit-booleaness-not-comparison
-    assert psyclone.get_flags() == []
 
 
 @mark.parametrize("version", ["2.4.0", "2.5.0", "3.0.0", "3.1.0"])
@@ -373,6 +371,6 @@ def test_type_checking_import(monkeypatch) -> None:
     monkeypatch.setattr(typing, 'TYPE_CHECKING', True)
     # This import will not actually re-import, since the module
     # is already imported. But we need this in order to call reload:
-    # pylint: disable=import-outside-toplevel
+    # pylint: disable=import-outside-toplevel, reimported
     import fab.tools.psyclone
     reload(fab.tools.psyclone)

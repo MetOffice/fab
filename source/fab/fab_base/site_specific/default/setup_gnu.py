@@ -11,7 +11,10 @@ import argparse
 from typing import cast, Dict, List
 
 from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Linker, ToolRepository
+from fab.tools.category import Category
+from fab.tools.linker import Linker
+from fab.tools.tool_repository import ToolRepository
+from fab.tools.compiler import Compiler
 
 
 def setup_gnu(build_config: BuildConfig,
@@ -32,6 +35,8 @@ def setup_gnu(build_config: BuildConfig,
         gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-gfortran")
         if not gfortran.is_available:
             return {}
+
+    gfortran = cast(Compiler, gfortran)
 
     # The base flags
     # ==============

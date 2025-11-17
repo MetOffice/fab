@@ -24,7 +24,6 @@ def test_constructor():
     assert rsync.category == Category.RSYNC
     assert rsync.name == "rsync"
     assert rsync.exec_name == "rsync"
-    assert rsync.get_flags() == []
 
 
 def test_check_available(fake_process: FakeProcess) -> None:
