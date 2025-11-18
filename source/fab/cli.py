@@ -51,7 +51,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
         root_inc_files(config)  # JULES helper, get rid of this eventually
         preprocess_fortran(config)
         c_pragma_injector(config)
-        preprocess_c(config, source=CollectionGetter(ArtefactSet.C_BUILD_FILES))
+        preprocess_c(config, source=CollectionGetter(ArtefactSet.C_COMPILER_FILES))
         analyse(config, find_programs=True)
         compile_fortran(config)
         compile_c(config)

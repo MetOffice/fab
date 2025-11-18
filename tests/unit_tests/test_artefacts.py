@@ -34,32 +34,32 @@ def test_artefact_store_copy() -> None:
     d = Path("d.F90.nocopy")
     e = Path("e.f90.donotcopyeither")
     # Try adding a single path, a set and a list:
-    artefact_store.add(ArtefactSet.INITIAL_SOURCE, a)
-    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, a)
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE_FILES,
                                   ArtefactSet.CURRENT_PREBUILDS)
     assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
-    artefact_store.add(ArtefactSet.INITIAL_SOURCE, [b, c])
-    artefact_store.add(ArtefactSet.INITIAL_SOURCE, set([d, e]))
-    assert (artefact_store[ArtefactSet.INITIAL_SOURCE] ==
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, [b, c])
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, set([d, e]))
+    assert (artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] ==
             set([a, b, c, d, e]))
 
     # Make sure that the previous copy did not get modified:
     assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
-    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE_FILES,
                                   ArtefactSet.CURRENT_PREBUILDS)
     assert (artefact_store[ArtefactSet.CURRENT_PREBUILDS] ==
             set([a, b, c, d, e]))
     # Now copy with suffix filtering:
-    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
-                                  ArtefactSet.FORTRAN_BUILD_FILES,
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE_FILES,
+                                  ArtefactSet.FORTRAN_COMPILER_FILES,
                                   suffixes=[".F90", ".f90"])
-    assert artefact_store[ArtefactSet.FORTRAN_BUILD_FILES] == set([a, b, c])
+    assert artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES] == set([a, b, c])
 
     # Make sure filtering is case sensitive
-    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE,
-                                  ArtefactSet.C_BUILD_FILES,
+    artefact_store.copy_artefacts(ArtefactSet.INITIAL_SOURCE_FILES,
+                                  ArtefactSet.C_COMPILER_FILES,
                                   suffixes=[".f90"])
-    assert artefact_store[ArtefactSet.C_BUILD_FILES] == set([a, c])
+    assert artefact_store[ArtefactSet.C_COMPILER_FILES] == set([a, c])
 
 
 def test_artefact_store_update_dict() -> None:
@@ -75,14 +75,11 @@ def test_artefact_store_update_dict() -> None:
 def test_artefact_store_replace() -> None:
     '''Tests the replace function.'''
     artefact_store = ArtefactStore()
-    artefact_store.add(ArtefactSet.INITIAL_SOURCE, [Path("a"), Path("b"),
-                                                    Path("c")])
-    artefact_store.replace(ArtefactSet.INITIAL_SOURCE,
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, [Path("a"), Path("b"), Path("c")])
+    artefact_store.replace(ArtefactSet.INITIAL_SOURCE_FILES,
                            remove_files=[Path("a"), Path("b")],
                            add_files=[Path("B")])
-    assert artefact_store[ArtefactSet.INITIAL_SOURCE] == set([Path("B"),
-                                                              Path("c")])
-
+    assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == set([Path("B"), Path("c")])
     # Test the behaviour for dictionaries
     with pytest.raises(RuntimeError) as err:
         artefact_store.replace(ArtefactSet.OBJECT_FILES,
@@ -179,9 +176,9 @@ class TestFilterBuildTrees():
 def test_collection_getter() -> None:
     '''Test CollectionGetter.'''
     artefact_store = ArtefactStore()
-    artefact_store.add(ArtefactSet.INITIAL_SOURCE, [Path("a"), Path("b"), Path("c")])
-    cg = CollectionGetter(ArtefactSet.INITIAL_SOURCE)
-    assert artefact_store[ArtefactSet.INITIAL_SOURCE] == cg(artefact_store)
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, [Path("a"), Path("b"), Path("c")])
+    cg = CollectionGetter(ArtefactSet.INITIAL_SOURCE_FILES)
+    assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == cg(artefact_store)
 
 
 def test_collection_concat():
