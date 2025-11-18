@@ -15,7 +15,7 @@ from pytest_subprocess.fake_process import FakeProcess
 from fab.tools.ar import Ar
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler, Gfortran, Ifort
-from fab.tools.compiler_wrapper import Mpif90
+from fab.tools.compiler_wrapper import Mpicc, Mpif90
 from fab.tools.linker import Linker
 from fab.tools.tool_repository import ToolRepository
 
@@ -125,15 +125,32 @@ def test_get_default(stub_tool_repository, stub_fortran_compiler,
     ar = stub_tool_repository.get_default(Category.AR)
     assert isinstance(ar, Ar)
 
-    # Now add a linker around a compiler wrapper, to make sure the compiler
+
+def test_get_default_linker_with_wrapper(stub_tool_repository,
+                                         stub_fortran_compiler,
+                                         stub_c_compiler) -> None:
+    """
+    Tests that we get the right linker if compiler wrapper are used.
+    """
+
+    # Add a linker around a compiler wrapper, to test that the compiler
     # wrapper is recognised as a Fortran compiler:
-    linker = Linker(Mpif90(fc))
+    linker = Linker(Mpif90(stub_fortran_compiler))
     linker._is_available = True
     stub_tool_repository.add_tool(linker)
     for_link = stub_tool_repository.get_default(Category.LINKER, mpi=True,
-                                                openmp=False,
+                                                openmp=True,
                                                 enforce_fortran_linker=True)
     assert for_link is linker
+
+    # Now the same for a linker around a C compiler wrapper:
+    linker = Linker(Mpicc(stub_c_compiler))
+    linker._is_available = True
+    stub_tool_repository.add_tool(linker)
+    cc_link = stub_tool_repository.get_default(Category.LINKER, mpi=True,
+                                               openmp=True,
+                                               enforce_fortran_linker=False)
+    assert cc_link is linker
 
 
 def test_get_default_error_invalid_category() -> None:
@@ -162,6 +179,11 @@ def test_get_default_error_missing_mpi() -> None:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
     assert str(err.value) == ("Invalid or missing openmp specification "
                               "for 'FORTRAN_COMPILER'.")
+
+    with raises(RuntimeError) as err:
+        tr.get_default(Category.LINKER, mpi=True, openmp=True)
+    assert str(err.value) == ("Invalid or missing enforce_fortran_linker "
+                              "specification for 'LINKER'.")
 
 
 def test_get_default_error_missing_openmp() -> None:
