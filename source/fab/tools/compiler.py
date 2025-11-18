@@ -40,7 +40,11 @@ class Compiler(CompilerSuiteTool):
     in Fab, but they are not used by Fab itself, but might be very
     convenient for application scripts
 
-    - default-8-byte-real   (for Fortran compiler)
+    - default-8-byte-real      (for Fortran compiler)
+    - default-8-byte-double    (for Fortran compiler, required if the compiler
+                                change default double precision to 64 bit if
+                                default-8-byte-real is selected)
+    - default-8-byte-integer   (for Fortran compiler)
 
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
@@ -494,6 +498,9 @@ class Gfortran(FortranCompiler):
         self["module-out-folder"] = '-J'
         self["syntax-only"] = '-fsyntax-only'
         self["default-8-byte-real"] = '-fdefault-real-8'
+        # If default-real-8 is used, doubles become 16 bytes.
+        self["default-8-byte-double"] = '-fdefault-double-8'
+        self["default-8-byte-integer"] = '-fdefault-integer-8'
 
 
 # ============================================================================
@@ -528,7 +535,9 @@ class Ifort(FortranCompiler):
         self["openmp"] = '-qopenmp'
         self["module-out-folder"] = '-module'
         self["syntax-only"] = '-syntax-only'
-        self["default-8-byte-real"] = '-r8'
+        self["default-8-byte-real"] = ['-real-size', '64']
+        self["default-8-byte-double"] = ['-double-size', '64']
+        self["default-8-byte-integer"] = ['-integer-size', '64']
 
 
 # ============================================================================
@@ -561,7 +570,9 @@ class Ifx(FortranCompiler):
         self["openmp"] = '-qopenmp'
         self["module-out-folder"] = '-module'
         self["syntax-only"] = '-syntax-only'
-        self["default-8-byte-real"] = '-r8'
+        self["default-8-byte-real"] = ['-real-size', '64']
+        self["default-8-byte-double"] = ['-double-size', '64']
+        self["default-8-byte-integer"] = ['-integer-size', '64']
 
 
 # ============================================================================
@@ -599,6 +610,10 @@ class Nvfortran(FortranCompiler):
         self["module-out-folder"] = '-module'
         self["syntax-only"] = '-Msyntax-only'
         self["default-8-byte-real"] = '-Mr8'
+        # NvFortran doesn't have (or need) an option to enforce 8 byte
+        # doubles, even if default reals are changed to double
+        self["default-8-byte-double"] = []
+        self["default-8-byte-integer"] = ['i8']
 
 
 # ============================================================================
@@ -645,4 +660,6 @@ class Crayftn(FortranCompiler):
         self["openmp"] = '-omp'
         self["module-out-folder"] = '-J'
         self["syntax-only"] = '-syntax-only'
-        self["default-8-byte-real"] = ["-s", "real64"]
+        self["default-8-byte-real"] = ['-s', 'real64']
+        self["default-8-byte-double"] = []
+        self["default-8-byte-integer"] = ['-s', 'integer64']
