@@ -16,6 +16,7 @@ from fab.tools.ar import Ar
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler, Gfortran, Ifort
 from fab.tools.compiler_wrapper import Mpif90
+from fab.tools.linker import Linker
 from fab.tools.tool_repository import ToolRepository
 
 from tests.conftest import call_list
@@ -123,6 +124,16 @@ def test_get_default(stub_tool_repository, stub_fortran_compiler,
     # Test a non-compiler
     ar = stub_tool_repository.get_default(Category.AR)
     assert isinstance(ar, Ar)
+
+    # Now add a linker around a compiler wrapper, to make sure the compiler
+    # wrapper is recognised as a Fortran compiler:
+    linker = Linker(Mpif90(fc))
+    linker._is_available = True
+    stub_tool_repository.add_tool(linker)
+    for_link = stub_tool_repository.get_default(Category.LINKER, mpi=True,
+                                                openmp=False,
+                                                enforce_fortran_linker=True)
+    assert for_link is linker
 
 
 def test_get_default_error_invalid_category() -> None:
