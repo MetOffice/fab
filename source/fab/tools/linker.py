@@ -17,6 +17,7 @@ from fab.tools.category import Category
 from fab.tools.compiler import Compiler
 from fab.tools.flags import ProfileFlags
 from fab.tools.tool import CompilerSuiteTool
+from fab.errors import FabUnknownLibraryError
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
 
@@ -33,9 +34,6 @@ class Linker(CompilerSuiteTool):
     :param compiler: a compiler instance
     :param linker: an optional linker instance
     :param name: name of the linker
-
-    :raises RuntimeError: if both compiler and linker are specified.
-    :raises RuntimeError: if neither compiler nor linker is specified.
     '''
 
     def __init__(self, compiler: Compiler,
@@ -135,7 +133,7 @@ class Linker(CompilerSuiteTool):
 
         :returns: a list of flags
 
-        :raises RuntimeError: if lib is not recognised
+        :raises FabUnknownLibraryError: if lib is not recognised
         '''
         try:
             return self._lib_flags[lib]
@@ -144,7 +142,7 @@ class Linker(CompilerSuiteTool):
             # another linker, return the result from the wrapped linker
             if self._linker:
                 return self._linker.get_lib_flags(lib)
-            raise RuntimeError(f"Unknown library name: '{lib}'") from err
+            raise FabUnknownLibraryError(lib) from err
 
     def add_lib_flags(self, lib: str, flags: List[str],
                       silent_replace: bool = False):

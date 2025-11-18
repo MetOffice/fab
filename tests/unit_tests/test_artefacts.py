@@ -81,11 +81,10 @@ def test_artefact_store_replace() -> None:
                            add_files=[Path("B")])
     assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == set([Path("B"), Path("c")])
     # Test the behaviour for dictionaries
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(AssertionError) as err:
         artefact_store.replace(ArtefactSet.OBJECT_FILES,
                                remove_files=[Path("a")], add_files=["c"])
-    assert ("Replacing artefacts in dictionary 'ArtefactSet.OBJECT_FILES' "
-            "is not supported" in str(err.value))
+    assert str(err.value) == "OBJECT_FILES is not mutable"
 
 
 def test_artefacts_getter():

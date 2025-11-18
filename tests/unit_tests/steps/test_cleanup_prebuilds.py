@@ -46,7 +46,7 @@ class TestCleanupPrebuilds:
         """
         Tests clean-up with random bad arguments.
         """
-        with raises(ValueError):
+        with raises(AssertionError):
             cleanup_prebuilds(config=None, all_unused=False)
 
     def test_by_age(self):

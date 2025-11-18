@@ -11,7 +11,6 @@ import logging
 from dataclasses import dataclass
 from typing import cast, Dict, List, Optional, Tuple
 
-from fab import FabException
 from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
                            FilterBuildTrees)
 from fab.build_config import BuildConfig, FlagsConfig
@@ -20,6 +19,8 @@ from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
 from fab.tools import Category, Compiler, Flags
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
+
+from fab.errors import FabToolMismatch, FabHashError
 
 logger = logging.getLogger(__name__)
 
@@ -123,8 +124,7 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
     config = mp_payload.config
     compiler = config.tool_box[Category.C_COMPILER]
     if compiler.category != Category.C_COMPILER:
-        raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
-                           f"'{compiler.category}' instead of CCompiler")
+        raise FabToolMismatch(compiler.name, compiler.category, "CCompiler")
     # Tool box returns a Tool, in order to make mypy happy, we need
     # to cast it to be a Compiler.
     compiler = cast(Compiler, compiler)
@@ -145,13 +145,9 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
         else:
             obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
             log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
-            try:
-                compiler.compile_file(analysed_file.fpath, obj_file_prebuild,
-                                      config=config,
-                                      add_flags=flags)
-            except RuntimeError as err:
-                return FabException(f"error compiling "
-                                    f"{analysed_file.fpath}:\n{err}")
+            compiler.compile_file(analysed_file.fpath, obj_file_prebuild,
+                                  config=config,
+                                  add_flags=flags)
 
     send_metric(
         group="compile c",
@@ -171,6 +167,6 @@ def _get_obj_combo_hash(config: BuildConfig,
             compiler.get_hash(config.profile),
         ])
     except TypeError as err:
-        raise ValueError("could not generate combo hash for "
-                         "object file") from err
+        raise FabHashError(analysed_file.fpath) from err
+
     return obj_combo_hash

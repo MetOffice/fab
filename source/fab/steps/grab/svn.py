@@ -15,6 +15,7 @@ import xml.etree.ElementTree as ET
 
 from fab.steps import step
 from fab.tools import Category, Versioning
+from fab.errors import FabSourceMergeError
 
 
 def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
@@ -36,8 +37,8 @@ def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
     if len(at_split) == 2:
         url_revision = at_split[1]
         if url_revision and revision and url_revision != revision:
-            raise ValueError('Conflicting revisions in url and argument. '
-                             'Please provide as argument only.')
+            raise AssertionError('conflicting revisions in URL and argument')
+
         src = at_split[0]
     else:
         assert len(at_split) == 1
@@ -124,6 +125,6 @@ def check_conflict(tool: Versioning, dst: Union[str, Path]):
             for element in entry:
                 if (element.tag == 'wc-status' and
                         element.attrib['item'] == 'conflicted'):
-                    raise RuntimeError(f'{tool} merge encountered a '
-                                       f'conflict:\n{xml_str}')
+                    raise FabSourceMergeError(tool, xml_str)
+
     return False

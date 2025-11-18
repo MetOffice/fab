@@ -13,6 +13,7 @@ import logging
 from typing import Dict, List, Optional, Union
 import warnings
 
+from fab.errors import FabProfileError
 from fab.util import string_checksum
 
 
@@ -117,7 +118,7 @@ class ProfileFlags:
 
         :param profile: the optional profile to use.
 
-        :raises KeyError: if a profile is specified it is not defined
+        :raises FabProfileError: if a profile is specified it is not defined
         '''
         if profile is None:
             profile = ""
@@ -138,7 +139,7 @@ class ProfileFlags:
         try:
             flags.extend(self._profiles[profile])
         except KeyError as err:
-            raise KeyError(f"Profile '{profile}' is not defined.") from err
+            raise FabProfileError("not defined", profile) from err
 
         return flags
 
@@ -155,13 +156,12 @@ class ProfileFlags:
             settings from.
         '''
         if name in self._profiles:
-            raise KeyError(f"Profile '{name}' is already defined.")
+            raise FabProfileError("already defined", name)
         self._profiles[name.lower()] = Flags()
 
         if inherit_from is not None:
             if inherit_from not in self._profiles:
-                raise KeyError(f"Inherited profile '{inherit_from}' is "
-                               f"not defined.")
+                raise FabProfileError("not defined for inheritance", inherit_from)
             self._inherit_from[name.lower()] = inherit_from.lower()
 
     def add_flags(self,
@@ -178,7 +178,7 @@ class ProfileFlags:
             profile = profile.lower()
 
         if profile not in self._profiles:
-            raise KeyError(f"add_flags: Profile '{profile}' is not defined.")
+            raise FabProfileError("not defined", profile)
 
         if isinstance(new_flags, str):
             new_flags = [new_flags]
@@ -207,7 +207,7 @@ class ProfileFlags:
             profile = profile.lower()
 
         if profile not in self._profiles:
-            raise KeyError(f"remove_flag: Profile '{profile}' is not defined.")
+            raise FabProfileError("not defined", profile)
 
         self._profiles[profile].remove_flag(remove_flag, has_parameter)
 
@@ -222,6 +222,6 @@ class ProfileFlags:
             profile = profile.lower()
 
         if profile not in self._profiles:
-            raise KeyError(f"checksum: Profile '{profile}' is not defined.")
+            raise FabProfileError("not defined", profile)
 
         return self._profiles[profile].checksum()

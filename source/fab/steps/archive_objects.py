@@ -20,6 +20,8 @@ from fab.util import log_or_dot
 from fab.tools import Ar, Category
 from fab.artefacts import ArtefactsGetter, CollectionGetter
 
+from fab.errors import FabToolMismatch
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = CollectionGetter(ArtefactSet.OBJECT_FILES)
@@ -106,16 +108,16 @@ def archive_objects(config: BuildConfig,
     source_getter = source or DEFAULT_SOURCE_GETTER
     ar = config.tool_box[Category.AR]
     if not isinstance(ar, Ar):
-        raise RuntimeError(f"Unexpected tool '{ar.name}' of type "
-                           f"'{type(ar)}' instead of Ar")
+        raise FabToolMismatch(ar.name, type(ar), "Ar")
+    # output_fpath = str(output_fpath) if output_fpath else None
 
     target_objects = source_getter(config.artefact_store)
     assert target_objects.keys()
     if output_fpath and list(target_objects.keys()) != [None]:
-        raise ValueError("You must not specify an output path (library) when "
-                         "there are root symbols (executables)")
+        raise AssertionError("output path cannot be specified for an executable")
+
     if not output_fpath and list(target_objects.keys()) == [None]:
-        raise ValueError("You must specify an output path when building a library.")
+        raise AssertionError("output path must be specified for a library")
 
     for root, objects in target_objects.items():
 
@@ -130,9 +132,8 @@ def archive_objects(config: BuildConfig,
 
         log_or_dot(logger, f"CreateObjectArchive running archiver for "
                            f"'{output_fpath}'.")
-        try:
-            ar.create(output_fpath, sorted(objects))
-        except RuntimeError as err:
-            raise RuntimeError(f"error creating object archive:\n{err}") from err
+
+        # Allow command errors to propagate up to the caller
+        ar.create(output_fpath, sorted(objects))
 
         config.artefact_store.update_dict(output_collection, output_fpath, root)

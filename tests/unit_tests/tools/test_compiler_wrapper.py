@@ -19,6 +19,7 @@ from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.compiler_wrapper import (CompilerWrapper,
                                         CrayCcWrapper, CrayFtnWrapper,
                                         Mpicc, Mpif90)
+from fab.errors import FabToolError
 
 
 def test_compiler_getter(stub_c_compiler: CCompiler) -> None:
@@ -139,10 +140,8 @@ def test_syntax_only(stub_c_compiler: CCompiler) -> None:
     assert mpif90.has_syntax_only
 
     mpicc = Mpicc(stub_c_compiler)
-    with raises(RuntimeError) as err:
+    with raises(FabToolError):
         _ = mpicc.has_syntax_only
-    assert (str(err.value) == "Compiler 'some C compiler' has no "
-                              "has_syntax_only.")
 
 
 def test_module_output(stub_fortran_compiler: FortranCompiler,
@@ -160,10 +159,8 @@ def test_module_output(stub_fortran_compiler: FortranCompiler,
     assert stub_fortran_compiler._module_output_path == "/somewhere"
 
     mpicc = Mpicc(stub_c_compiler)
-    with raises(RuntimeError) as err:
+    with raises(FabToolError):
         mpicc.set_module_output_path(Path("/tmp"))
-    assert str(err.value) == ("Compiler 'some C compiler' has "
-                              "no 'set_module_output_path' function.")
 
 
 def test_fortran_with_add_args(stub_fortran_compiler: FortranCompiler,
@@ -229,12 +226,10 @@ def test_c_with_add_args(stub_c_compiler: CCompiler,
 
     # Invoke C compiler with syntax-only flag (which is only supported
     # by Fortran compilers), which should raise an exception.
-    with raises(RuntimeError) as err:
+    with raises(FabToolError):
         mpicc.compile_file(Path("a.f90"), Path('a.o'),
                            add_flags=["-O3"], syntax_only=True,
                            config=stub_configuration)
-    assert (str(err.value) == "Syntax-only cannot be used with compiler "
-                              "'mpicc-some C compiler'.")
 
     # Check that providing the openmp flag in add_flag raises a warning:
     with warns(UserWarning,

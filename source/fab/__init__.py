@@ -15,7 +15,3 @@ __version__ = '2.1.dev.1'
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
-
-
-class FabException(Exception):
-    pass

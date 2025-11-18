@@ -14,6 +14,7 @@ import warnings
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
+from fab.errors import FabToolPsycloneAPI, FabToolNotAvailable
 
 if TYPE_CHECKING:
     # TODO 314: see if this circular dependency can be broken
@@ -90,7 +91,7 @@ class Psyclone(Tool):
         '''
 
         if not self.is_available:
-            raise RuntimeError("PSyclone is not available.")
+            raise FabToolNotAvailable("psyclone")
 
         # Convert the old style API nemo to be empty
         if api and api.lower() == "nemo":
@@ -100,24 +101,23 @@ class Psyclone(Tool):
             # API specified, we need both psy- and alg-file, but not
             # transformed file.
             if not psy_file:
-                raise RuntimeError(f"PSyclone called with api '{api}', but "
-                                   f"no psy_file is specified.")
+                raise FabToolPsycloneAPI(api, "psy_file")
+
             if not alg_file:
-                raise RuntimeError(f"PSyclone called with api '{api}', but "
-                                   f"no alg_file is specified.")
+                raise FabToolPsycloneAPI(api, "alg_file")
+
             if transformed_file:
-                raise RuntimeError(f"PSyclone called with api '{api}' and "
-                                   f"transformed_file.")
+                raise FabToolPsycloneAPI(api, "transformed_file", True)
+
         else:
             if psy_file:
-                raise RuntimeError("PSyclone called without api, but "
-                                   "psy_file is specified.")
+                raise FabToolPsycloneAPI(api, "psy_file", True)
+
             if alg_file:
-                raise RuntimeError("PSyclone called without api, but "
-                                   "alg_file is specified.")
+                raise FabToolPsycloneAPI(api, "alg_file", True)
+
             if not transformed_file:
-                raise RuntimeError("PSyclone called without api, but "
-                                   "transformed_file is not specified.")
+                raise FabToolPsycloneAPI(api, "transformed_file")
 
         parameters: List[Union[str, Path]] = []
         # If an api is defined in this call (or in the constructor) add it

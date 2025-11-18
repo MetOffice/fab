@@ -124,8 +124,8 @@ class FabBase:
         link_target = link_target.lower()
         valid_targets = ["executable", "static-library", "shared-library"]
         if link_target not in valid_targets:
-            raise ValueError(f"Invalid parameter '{link_target}', must be "
-                             f"one of '{', '.join(valid_targets)}'.")
+            raise AssertionError(f"link target '{link_target}' not in "
+                                 f"{repr(valid_targets)}")
         self._link_target = link_target
 
     def define_project_name(self, name: str) -> str:
@@ -416,7 +416,8 @@ class FabBase:
             help="Enable OpenACC")
         parser.add_argument(
             '--host', '-host', default="cpu", type=str,
-            help="Determine the OpenACC or OpenMP: either 'cpu' or 'gpu'.")
+            choices=["cpu", "gpu"],
+            help="Determine the OpenACC or OpenMP.")
 
         parser.add_argument("--site", "-s", type=str,
                             default="$SITE or 'default'",
@@ -449,10 +450,6 @@ class FabBase:
         '''
         # pylint: disable=too-many-branches
         self._args = parser.parse_args(sys.argv[1:])
-        if self.args.host.lower() not in ["", "cpu", "gpu"]:
-            raise RuntimeError(f"Invalid host directive "
-                               f"'{self.args.host}'. Must be "
-                               f"'cpu' or 'gpu'.")
 
         tr = ToolRepository()
         if self.args.available_compilers:
@@ -483,7 +480,7 @@ class FabBase:
             # profile in the site config file.
             if (self.args.profile and self.args.profile
                     not in self._site_config.get_valid_profiles()):
-                raise RuntimeError(f"Invalid profile '{self.args.profile}")
+                parser.error(f"invalid profile '{self.args.profile}")
 
         if self.args.suite:
             tr.set_default_compiler_suite(self.args.suite)

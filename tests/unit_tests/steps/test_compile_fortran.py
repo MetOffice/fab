@@ -18,6 +18,8 @@ from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.util import CompiledFile
 
+from fab.errors import FabToolMismatch, FabError
+
 
 @fixture(scope='function')
 def analysed_files():
@@ -58,17 +60,11 @@ def test_compile_cc_wrong_compiler(stub_tool_box,
     # Now check that _compile_file detects the incorrect category of the
     # Fortran compiler
     mp_common_args = Mock(config=config)
-    with raises(RuntimeError) as err:
+    with raises(FabToolMismatch):
         process_file((Mock(), mp_common_args))
-    assert str(err.value) \
-           == "Unexpected tool 'some Fortran compiler' of category " \
-              + "'C_COMPILER' instead of FortranCompiler"
 
-    with raises(RuntimeError) as err:
+    with raises(FabToolMismatch):
         handle_compiler_args(config)
-    assert str(err.value) \
-        == "Unexpected tool 'some Fortran compiler' of category " \
-           + "'C_COMPILER' instead of FortranCompiler"
 
 
 class TestCompilePass:
@@ -128,8 +124,9 @@ class TestGetCompileNext:
         to_compile = {a, b}
         already_compiled_files = {}
 
-        with raises(ValueError):
+        with raises(FabError) as err:
             get_compile_next(already_compiled_files, to_compile)
+        assert "remaining 2 items not ready for compilation" in str(err.value)
 
 
 class TestStoreArtefacts:

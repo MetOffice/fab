@@ -101,7 +101,7 @@ class TestFabFile:
         assert exc.value.code == 2
 
         captured = capsys.readouterr()
-        assert "error: fab file does not exist" in captured.err
+        assert "fab file does not exist" in captured.err
 
     def test_user_file_missing_arg(self, capsys):
         """Check missing file name triggers an error."""

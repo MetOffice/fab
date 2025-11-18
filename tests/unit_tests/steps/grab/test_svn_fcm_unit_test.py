@@ -53,5 +53,6 @@ class TestRevision(object):
         """
         Tests mismatch between URL revision and argument.
         """
-        with raises(ValueError):
+        with raises(AssertionError) as err:
             assert _get_revision(src='url@rev', revision='bez')
+        assert "conflicting revisions in URL and argument" in str(err.value)

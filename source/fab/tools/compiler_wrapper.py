@@ -14,6 +14,8 @@ from typing import cast, List, Optional, TYPE_CHECKING, Union
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler
 from fab.tools.flags import Flags
+from fab.errors import FabToolError
+
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
 
@@ -61,15 +63,14 @@ class CompilerWrapper(Compiler):
     def has_syntax_only(self) -> bool:
         ''':returns: whether this compiler supports a syntax-only feature.
 
-        :raises RuntimeError: if this function is called for a non-Fortran
+        :raises FabToolError: if this function is called for a non-Fortran
             wrapped compiler.
         '''
 
         if self._compiler.category == Category.FORTRAN_COMPILER:
             return cast(FortranCompiler, self._compiler).has_syntax_only
 
-        raise RuntimeError(f"Compiler '{self._compiler.name}' has "
-                           f"no has_syntax_only.")
+        raise FabToolError(self._compiler.name, "syntax-only is Fortran-specific")
 
     def get_flags(self, profile: Optional[str] = None) -> List[str]:
         ''':returns: the ProfileFlags for the given profile, combined
@@ -85,13 +86,12 @@ class CompilerWrapper(Compiler):
 
         :params path: the path to the output directory.
 
-        :raises RuntimeError: if this function is called for a non-Fortran
+        :raises FabToolError: if this function is called for a non-Fortran
             wrapped compiler.
         '''
 
         if self._compiler.category != Category.FORTRAN_COMPILER:
-            raise RuntimeError(f"Compiler '{self._compiler.name}' has no "
-                               f"'set_module_output_path' function.")
+            raise FabToolError(self._compiler.name, "not a vaild compiler")
         cast(FortranCompiler, self._compiler).set_module_output_path(path)
 
     def get_all_commandline_options(
@@ -116,7 +116,7 @@ class CompilerWrapper(Compiler):
 
         :returns: command line flags for compiler wrapper.
 
-        :raises RuntimeError: if syntax_only is requested for a non-Fortran
+        :raises FabToolError: if syntax_only is requested for a non-Fortran
             compiler.
         '''
         # We need to distinguish between Fortran and non-Fortran compiler,
@@ -141,8 +141,7 @@ class CompilerWrapper(Compiler):
         else:
             # It's not valid to specify syntax_only for a non-Fortran compiler
             if syntax_only is not None:
-                raise RuntimeError(f"Syntax-only cannot be used with compiler "
-                                   f"'{self.name}'.")
+                raise FabToolError(self._compiler.name, "syntax-only is Fortran-specific")
             flags = self._compiler.get_all_commandline_options(
                     config, input_file, output_file, add_flags=add_flags)
 

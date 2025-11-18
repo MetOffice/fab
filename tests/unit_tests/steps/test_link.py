@@ -179,8 +179,8 @@ def test_no_targets(fake_process: FakeProcess,
     config = BuildConfig('link_test', tool_box, fab_workspace=Path('/fab'),
                          mpi=False, openmp=False, multiprocessing=False)
 
-    with raises(ValueError) as err:
+    with raises(AssertionError) as err:
         link_exe(config, libs=['mylib'], flags=['-fooflag', '-barflag'])
-    assert "No target objects defined, linking aborted" in str(err.value)
+    assert "no target objects defined" in str(err.value)
 
     assert call_list(fake_process) == [version_command]

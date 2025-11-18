@@ -11,6 +11,8 @@ from typing import Iterable, Optional, Union
 
 from fab.metrics import send_metric
 from fab.util import by_type, TimerLogger
+from fab.errors import FabMultiCommandError
+
 from functools import wraps
 
 
@@ -96,7 +98,4 @@ def check_for_errors(results: Iterable[Union[str, Exception]],
 
     exceptions = list(by_type(results, Exception))
     if exceptions:
-        formatted_errors = "\n\n".join(map(str, exceptions))
-        raise RuntimeError(
-            f"{formatted_errors}\n\n{len(exceptions)} error(s) found {caller_label}"
-        )
+        raise FabMultiCommandError(exceptions, caller_label)

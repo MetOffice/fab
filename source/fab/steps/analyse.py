@@ -40,7 +40,7 @@ import warnings
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Union
 
-from fab import FabException
+from fab.errors import FabAnalysisError
 from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
@@ -121,7 +121,7 @@ def analyse(
     # because we're just creating steps at this point, so there's been no grab...
 
     if find_programs and root_symbol:
-        raise ValueError("find_programs and root_symbol can't be used together")
+        raise AssertionError("find_programs and root_symbol can't be used together")
 
     source_getter = source or DEFAULT_SOURCE_GETTER
     root_symbols: Optional[List[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
@@ -161,7 +161,7 @@ def analyse(
         if c_with_main:
             root_symbols.append('main')
             if len(c_with_main) > 1:
-                raise FabException("multiple c main() functions found")
+                raise FabAnalysisError("multiple C main() functions found")
 
         logger.info(f'automatically found the following programs to build: {", ".join(root_symbols)}')
 
@@ -285,7 +285,7 @@ def _add_manual_results(special_measure_analysis_results, analysed_files: Set[An
                 # Note: This exception stops the user from being able to override results for files
                 # which don't *crash* the parser. We don't have a use case to do this, but it's worth noting.
                 # If we want to allow this we can raise a warning instead of an exception.
-                raise ValueError(f'Unnecessary ParserWorkaround for {r.fpath}')
+                raise FabAnalysisError(f'unnecessary ParserWorkaround for {r.fpath}')
             analysed_files.add(r.as_analysed_fortran())
 
         logger.info(f'added {len(special_measure_analysis_results)} manual analysis results')
@@ -314,7 +314,7 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> Dict[str, 
         # required to build the executable.
         # todo: put a big warning at the end of the build?
         logger.error("Error generating symbol table")
-        raise ValueError("Duplicate symbol definitions found")
+        raise FabAnalysisError("duplicate symbol definitions found")
 
     return symbols
 

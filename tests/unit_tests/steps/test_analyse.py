@@ -13,6 +13,8 @@ from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 from fab.util import HashedFile
 
+from fab.errors import FabAnalysisError
+
 
 class Test_gen_symbol_table(object):
     """
@@ -45,7 +47,7 @@ class Test_gen_symbol_table(object):
         """
         analysed_files[1].symbol_defs.add('foo_1')
 
-        with raises(ValueError):
+        with raises(FabAnalysisError):
             result = _gen_symbol_table(analysed_files=analysed_files)
             assert result == {
                 'foo_1': Path('foo.c'),

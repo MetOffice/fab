@@ -71,6 +71,12 @@ jobs:
           pip install .[dev]
           pip install .[docs]
 
+      # Some of the system tests require git to be configured
+      - name: Set up git configuration
+        run: |
+          git config --global user.email "fab"
+          git config --global user.name "Fab Testing"
+
       - name: Type check with mypy
         run: python -m mypy source tests
 

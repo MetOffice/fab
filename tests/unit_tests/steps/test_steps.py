@@ -10,6 +10,8 @@ from pytest import raises
 
 from fab.steps import check_for_errors
 
+from fab.errors import FabMultiCommandError
+
 
 class Test_check_for_errors(object):
     """
@@ -25,5 +27,5 @@ class Test_check_for_errors(object):
         """
         Tests the "error present" situation.
         """
-        with raises(RuntimeError):
+        with raises(FabMultiCommandError):
             check_for_errors(['foo', MemoryError('bar')])

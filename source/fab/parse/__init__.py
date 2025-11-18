@@ -9,13 +9,10 @@ from abc import ABC
 from pathlib import Path
 from typing import Any, Dict, Optional, Set, Union
 
+from fab.errors import FabAnalysisError
 from fab.util import file_checksum
 
 logger = logging.getLogger(__name__)
-
-
-class ParseException(Exception):
-    pass
 
 
 class AnalysedFile(ABC):
@@ -40,8 +37,6 @@ class AnalysedFile(ABC):
     @property
     def file_hash(self) -> int:
         if self._file_hash is None:
-            if not self.fpath.exists():
-                raise ValueError(f"analysed file '{self.fpath}' does not exist")
             self._file_hash = file_checksum(self.fpath).file_hash
         return self._file_hash
 
@@ -79,7 +74,8 @@ class AnalysedFile(ABC):
         d = json.load(open(fpath))
         found_class = d["cls"]
         if found_class != cls.__name__:
-            raise ValueError(f"Expected class name '{cls.__name__}', found '{found_class}'")
+            raise FabAnalysisError(f"expected '{cls.__name__}' but found '{found_class}'",
+                                   fpath)
         return cls.from_dict(d)
 
     # human readability

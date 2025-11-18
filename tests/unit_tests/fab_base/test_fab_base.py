@@ -63,10 +63,10 @@ def test_constructor(monkeypatch) -> None:
     '''
     Tests constructor.
     '''
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(AssertionError) as err:
         _ = FabBase(name="test_name", link_target="wrong")
-    assert ("Invalid parameter 'wrong', must be one of 'executable, "
-            "static-library, shared-library'." in str(err.value))
+    assert ("link target 'wrong' not in ['executable', 'static-library', 'shared-library']"
+            in str(err.value))
 
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     fab_base = FabBase(name="test_name", link_target="executable")
@@ -100,15 +100,17 @@ def test_site_platform(monkeypatch, arg) -> None:
     assert getattr(fab_base, attribute) == flag_list[1]
 
 
-def test_arg_error(monkeypatch) -> None:
+def test_arg_error(monkeypatch, capsys) -> None:
     '''
     Tests handling of errors in the command line.
     '''
     monkeypatch.setattr(sys, "argv", ["fab_base.py", "--host", "invalid"])
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(SystemExit):
         _ = FabBase(name="test-help")
-    assert ("Invalid host directive 'invalid'. Must be 'cpu' or 'gpu'." ==
-            str(err.value))
+
+    captured = capsys.readouterr()
+    assert ("argument --host/-host: invalid choice: 'invalid' (choose from"
+            in captured.err)
 
 
 def test_available_compilers(monkeypatch, capsys) -> None:
@@ -160,14 +162,16 @@ def test_profile_command_line(monkeypatch) -> None:
     assert fab_base.args.profile == "full-debug"
 
 
-def test_profile_invalid(monkeypatch) -> None:
+def test_profile_invalid(monkeypatch, capsys) -> None:
     '''
     Tests trying to set an invalid profile:
     '''
     monkeypatch.setattr(sys, "argv", ["fab_base.py", "--profile", "invalid"])
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(SystemExit):
         _ = FabBase(name="test-help")
-    assert "Invalid profile 'invalid" == str(err.value)
+
+    captured = capsys.readouterr()
+    assert "invalid profile 'invalid" in captured.err
 
 
 def test_suite_no_compiler(monkeypatch) -> None:
@@ -277,9 +281,9 @@ def test_workspace(monkeypatch, change_into_tmpdir) -> None:
     # is none, Fab will abort in the linking step (missing targets).
     # Note that the project directories are only created once
     # build is called.
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(AssertionError) as err:
         fab_base.build()
-    assert "No target objects defined, linking aborted" in str(err.value)
+    assert "no target objects defined" in str(err.value)
 
     # Check that the project workspace is as expected:
     project_dir = fab_base.project_workspace
@@ -359,9 +363,9 @@ def test_build_binary(monkeypatch) -> None:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
         mocks[function_name] = (patcher, patcher.start())
 
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(AssertionError) as err:
         fab_base.build()
-    assert "No target objects defined, linking aborted" in str(err.value)
+    assert "no target objects defined" in str(err.value)
 
     mocks["grab_folder"][0].stop()
     mocks["grab_folder"][1].assert_called_once_with(

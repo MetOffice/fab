@@ -47,12 +47,12 @@ def cleanup_prebuilds(
     # If the user has not specified any cleanup parameters, we default to a hard cleanup.
     if not n_versions and not older_than:
         if all_unused not in [None, True]:
-            raise ValueError(f"unexpected value for all_unused: '{all_unused}'")
+            raise AssertionError(f"{repr(all_unused)} not in [None, True]")
         all_unused = True
 
     # if we're doing a hard cleanup, there's no point providing the softer options
     if all_unused and (n_versions or older_than):
-        raise ValueError("n_versions or older_than should not be specified with all_unused")
+        raise AssertionError("all_unused cannot be used with n_versions or older_than")
 
     num_removed = 0
 

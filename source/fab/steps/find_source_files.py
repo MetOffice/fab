@@ -13,6 +13,7 @@ from typing import Optional, Iterable
 from fab.artefacts import ArtefactSet
 from fab.steps import step
 from fab.util import file_walk
+from fab.errors import FabSourceNoFilesError
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ def find_source_files(config, source_root=None,
             logger.debug(f"excluding {fpath}")
 
     if not filtered_fpaths:
-        raise RuntimeError("no source files found after filtering")
+        raise FabSourceNoFilesError()
 
     config.artefact_store.add(output_collection, filtered_fpaths)
 

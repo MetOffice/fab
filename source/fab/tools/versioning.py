@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
+from fab.errors import FabSourceMergeError
 
 
 class Versioning(Tool, ABC):
@@ -108,8 +109,7 @@ class Git(Versioning):
             self.run(['merge', 'FETCH_HEAD'], cwd=dst, capture_output=False)
         except RuntimeError as err:
             self.run(['merge', '--abort'], cwd=dst, capture_output=False)
-            raise RuntimeError(f"Error merging {revision}. "
-                               f"Merge aborted.\n{err}") from err
+            raise FabSourceMergeError(self, str(err), revision) from err
 
 
 # =============================================================================

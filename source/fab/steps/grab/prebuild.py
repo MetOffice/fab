@@ -6,6 +6,7 @@
 from fab.steps import step
 from fab.steps.grab import logger
 from fab.tools import Category
+from fab.errors import FabSourceFetchError
 
 
 @step
@@ -28,4 +29,4 @@ def grab_pre_build(config, path, allow_fail=False):
         msg = f"could not grab pre-build '{path}':\n{err}"
         logger.warning(msg)
         if not allow_fail:
-            raise RuntimeError(msg) from err
+            raise FabSourceFetchError(path, err) from err

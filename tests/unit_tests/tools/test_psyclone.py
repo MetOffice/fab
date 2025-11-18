@@ -19,6 +19,8 @@ from fab.tools.category import Category
 import fab.tools.psyclone  # Needed for mockery
 from fab.tools.psyclone import Psyclone
 
+from fab.errors import FabToolPsycloneAPI, FabToolNotAvailable
+
 from tests.conftest import call_list, not_found_callback
 
 
@@ -105,10 +107,9 @@ def test_check_process_missing(fake_process: FakeProcess) -> None:
     psyclone = Psyclone()
     config = Mock()
 
-    with raises(RuntimeError) as err:
+    with raises(FabToolNotAvailable):
         psyclone.process(config,
                          Path("x90file"))
-    assert str(err.value).startswith("PSyclone is not available")
 
 
 def test_processing_errors_without_api(fake_process: FakeProcess) -> None:
@@ -121,28 +122,22 @@ def test_processing_errors_without_api(fake_process: FakeProcess) -> None:
     psyclone = Psyclone()
     config = Mock()
 
-    with raises(RuntimeError) as err:
+    with raises(FabToolPsycloneAPI):
         psyclone.process(config,
                          Path('x90file'),
                          api=None,
                          psy_file=Path('psy_file'))
-    assert (str(err.value) == "PSyclone called without api, but psy_file "
-                              "is specified.")
 
-    with raises(RuntimeError) as err:
+    with raises(FabToolPsycloneAPI):
         psyclone.process(config,
                          Path('x90file'),
                          api=None,
                          alg_file=Path('alg_file'))
-    assert (str(err.value) == "PSyclone called without api, but alg_file is "
-                              "specified.")
 
-    with raises(RuntimeError) as err:
+    with raises(FabToolPsycloneAPI):
         psyclone.process(config,
                          Path('x90file'),
                          api=None)
-    assert (str(err.value) == "PSyclone called without api, but "
-                              "transformed_file is not specified.")
 
 
 @mark.parametrize("api", ["dynamo0.3", "lfric"])
@@ -157,32 +152,25 @@ def test_processing_errors_with_api(api: str,
     psyclone = Psyclone()
     config = Mock()
 
-    with raises(RuntimeError) as err:
+    with raises(FabToolPsycloneAPI):
         psyclone.process(config,
                          Path("x90file"),
                          api=api,
                          psy_file=Path("psy_file"))
-    assert str(err.value).startswith(
-        f"PSyclone called with api '{api}', but no alg_file is specified"
-    )
-    with raises(RuntimeError) as err:
+
+    with raises(FabToolPsycloneAPI):
         psyclone.process(config,
                          Path("x90file"),
                          api=api,
                          alg_file=Path("alg_file"))
-    assert str(err.value).startswith(
-        f"PSyclone called with api '{api}', but no psy_file is specified"
-    )
-    with raises(RuntimeError) as err:
+
+    with raises(FabToolPsycloneAPI):
         psyclone.process(config,
                          Path("x90file"),
                          api=api,
                          psy_file=Path("psy_file"),
                          alg_file=Path("alg_file"),
                          transformed_file=Path("transformed_file"))
-    assert str(err.value).startswith(
-        f"PSyclone called with api '{api}' and transformed_file"
-    )
 
 
 @mark.parametrize("version", ["2.4.0", "2.5.0"])

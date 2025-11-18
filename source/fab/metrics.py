@@ -62,7 +62,7 @@ def init_metrics(metrics_folder: Path):
     global _metric_recv_process
 
     if any([_metric_recv_conn, _metric_send_conn, _metric_recv_process]):
-        raise ConnectionError('Metrics already initialised. Only one concurrent user of init_metrics is expected.')
+        raise ConnectionError('metrics already initialised')
 
     # the pipe connections for individual metrics
     _metric_recv_conn, _metric_send_conn = Pipe(duplex=False)

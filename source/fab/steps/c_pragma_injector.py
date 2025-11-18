@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Generator, Pattern, Optional, Match
 
-from fab import FabException
+from fab.errors import FabAnalysisError
 from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
 from fab.steps import run_mp, step
 
@@ -74,7 +74,7 @@ def inject_pragmas(fpath) -> Generator:
     _include_re: str = r'^\s*#include\s+(\S+)'
     _include_pattern: Pattern = re.compile(_include_re)
 
-    for line in open(fpath, 'rt', encoding='utf-8'):
+    for i, line in enumerate(open(fpath, 'rt', encoding='utf-8'), 1):
         include_match: Optional[Match] = _include_pattern.match(line)
         if include_match:
             # For valid C the first character of the matched
@@ -90,7 +90,6 @@ def inject_pragmas(fpath) -> Generator:
                 yield line
                 yield '#pragma FAB UsrIncludeEnd\n'
             else:
-                msg = 'Found badly formatted #include'
-                raise FabException(msg)
+                raise FabAnalysisError("Badly formatted #include", fpath, i)
         else:
             yield line

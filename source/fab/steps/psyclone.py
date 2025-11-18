@@ -29,6 +29,8 @@ from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
                       file_walk, TimerLogger, string_checksum, suffix_filter,
                       by_type, log_or_dot_finish)
 
+from fab.errors import FabToolMismatch
+
 logger = logging.getLogger(__name__)
 
 
@@ -320,8 +322,8 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
         config = mp_payload.config
         psyclone = config.tool_box[Category.PSYCLONE]
         if not isinstance(psyclone, Psyclone):
-            raise RuntimeError(f"Unexpected tool '{psyclone.name}' of type "
-                               f"'{type(psyclone)}' instead of Psyclone")
+            raise FabToolMismatch(psyclone.name, type(psyclone), "Psyclone")
+
         try:
             transformation_script = mp_payload.transformation_script
             logger.info(f"running psyclone on '{x90_file}'.")

@@ -19,6 +19,8 @@ from fab.build_config import BuildConfig
 from fab.steps.archive_objects import archive_objects
 from fab.tools import Category, ToolRepository
 
+from fab.errors import FabToolMismatch
+
 
 class TestArchiveObjects:
     """
@@ -112,9 +114,6 @@ class TestArchiveObjects:
         # Now add this 'ar' tool to the tool box
         stub_tool_box.add_tool(cc)
 
-        with raises(RuntimeError) as err:
+        with raises(FabToolMismatch):
             archive_objects(config=config,
                             output_fpath=config.build_output / 'mylib.a')
-        assert str(err.value) == ("Unexpected tool 'some C compiler' of type "
-                                  "'<class 'fab.tools.compiler.CCompiler'>' "
-                                  "instead of Ar")

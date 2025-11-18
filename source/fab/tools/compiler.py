@@ -17,6 +17,7 @@ import zlib
 from fab.tools.category import Category
 from fab.tools.flags import Flags
 from fab.tools.tool import CompilerSuiteTool
+from fab.errors import FabToolInvalidVersion, FabToolError
 if TYPE_CHECKING:
     from fab.build_config import BuildConfig
 
@@ -206,7 +207,7 @@ class Compiler(CompilerSuiteTool):
         :returns: a tuple of at least 2 integers, representing the version
             e.g. (6, 10, 1) for version '6.10.1'.
 
-        :raises RuntimeError: if the compiler was not found, or if it returned
+        :raises FabToolInvalidVersion: if the compiler was not found, or if it returned
             an unrecognised output from the version command.
         """
         if self._version is not None:
@@ -220,8 +221,8 @@ class Compiler(CompilerSuiteTool):
         # of the string, otherwise the $ would not match the end of line
         matches = re.search(self._version_regex, output, re.MULTILINE)
         if not matches:
-            raise RuntimeError(f"Unexpected version output format for "
-                               f"compiler '{self.name}': {output}")
+            raise FabToolInvalidVersion(self.name, output)
+
         version_string = matches.groups()[0]
         # Expect the version to be dot-separated integers.
         try:
@@ -229,15 +230,13 @@ class Compiler(CompilerSuiteTool):
             version = cast(Tuple[int],
                            tuple(int(x) for x in version_string.split('.')))
         except ValueError as err:
-            raise RuntimeError(f"Unexpected version output format for "
-                               f"compiler '{self.name}'. Should be numeric "
-                               f"<n.n[.n, ...]>: {version_string}") from err
+            raise FabToolInvalidVersion(self.name, version_string,
+                                        "<n.n[.n, ...]>") from err
 
         # Expect at least 2 integer components, i.e. major.minor[.patch, ...]
         if len(version) < 2:
-            raise RuntimeError(f"Unexpected version output format for "
-                               f"compiler '{self.name}'. Should have at least "
-                               f"two parts, <n.n[.n, ...]>: {version_string}")
+            raise FabToolInvalidVersion(self.name, version_string,
+                                        "should have at least two parts, <n.n[.n, ...]>")
 
         self.logger.info(
             f'Found compiler version for {self.name} = {version_string}')
@@ -253,14 +252,13 @@ class Compiler(CompilerSuiteTool):
 
         :returns: The output from the version command.
 
-        :raises RuntimeError: if the compiler was not found, or raised an
+        :raises FabToolInvalidVersion: if the compiler was not found, or raised an
             error.
         '''
         try:
             return self.run(version_command, capture_output=True)
         except RuntimeError as err:
-            raise RuntimeError(f"Error asking for version of compiler "
-                               f"'{self.name}'") from err
+            raise FabToolError(self.name, "unable to get compiler version") from err
 
     def get_version_string(self) -> str:
         """
@@ -269,7 +267,7 @@ class Compiler(CompilerSuiteTool):
         :returns: a string of at least 2 numeric version components,
             i.e. major.minor[.patch, ...]
 
-        :raises RuntimeError: if the compiler was not found, or if it returned
+        :raises FabToolInvalidVersion: if the compiler was not found, or if it returned
             an unrecognised output from the version command.
         """
         version = self.get_version()

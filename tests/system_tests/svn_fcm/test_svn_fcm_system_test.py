@@ -21,6 +21,8 @@ from fab.tools import Fcm, Subversion, ToolBox
 from fab.steps.grab.fcm import fcm_checkout, fcm_export, fcm_merge
 from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge
 
+from fab.errors import FabCommandError, FabSourceMergeError
+
 # Fcm isn't available in the github test images...unless we install it from github.
 
 # Which tools are available?
@@ -199,7 +201,7 @@ class TestCheckout():
             export_func(config, src=trunk, dst_label='proj')
 
         # if we try to checkout into that folder, it should fail
-        with pytest.raises(RuntimeError):
+        with pytest.raises(FabCommandError):
             checkout_func(config, src=trunk, dst_label='proj')
 
 
@@ -241,7 +243,7 @@ class TestMerge():
             export_func(config, src=trunk, dst_label='proj')
 
         # try to merge into an export
-        with pytest.raises(RuntimeError):
+        with pytest.raises(FabCommandError):
             merge_func(config, src=file2_experiment, dst_label='proj', revision=7)
 
     @pytest.mark.parametrize('checkout_func,merge_func', zip(checkout_funcs, merge_funcs))
@@ -253,7 +255,7 @@ class TestMerge():
             confirm_file1_experiment_a(config)
 
         # this branch modifies the same line of text
-        with pytest.raises(RuntimeError):
+        with pytest.raises(FabSourceMergeError):
             merge_func(config, src=file1_experiment_b, dst_label='proj')
 
     @pytest.mark.parametrize('checkout_func,merge_func',

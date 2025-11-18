@@ -20,6 +20,8 @@ from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.compiler_wrapper import CompilerWrapper, Mpif90
 from fab.tools.linker import Linker
 
+from fab.errors import FabProfileError, FabUnknownLibraryError
+
 
 def test_c_linker(stub_c_compiler: CCompiler) -> None:
     """
@@ -122,9 +124,8 @@ def test_get_lib_flags_unknown(stub_c_compiler: CCompiler) -> None:
     that is unknown.
     """
     linker = Linker(compiler=stub_c_compiler)
-    with raises(RuntimeError) as err:
+    with raises(FabUnknownLibraryError):
         linker.get_lib_flags("unknown")
-    assert str(err.value) == "Unknown library name: 'unknown'"
 
 
 def test_add_lib_flags(stub_c_compiler: CCompiler) -> None:
@@ -261,11 +262,10 @@ def test_c_with_unknown_library(stub_c_compiler: CCompiler,
     """
     linker = Linker(compiler=stub_c_compiler)
 
-    with raises(RuntimeError) as err:
+    with raises(FabUnknownLibraryError):
         # Try to use "customlib" when we haven't added it to the linker
         linker.link([Path("a.o")], Path("a.out"),
                     libs=["customlib"], config=stub_configuration)
-    assert str(err.value) == "Unknown library name: 'customlib'"
 
 
 def test_add_compiler_flag(stub_c_compiler: CCompiler,
@@ -362,9 +362,8 @@ def test_linker_inheriting() -> None:
     compiler_linker.add_lib_flags("lib_a", ["a_from_1"])
     assert compiler_linker.get_lib_flags("lib_a") == ["a_from_1"]
 
-    with raises(RuntimeError) as err:
+    with raises(FabUnknownLibraryError):
         wrapper_linker.get_lib_flags("does_not_exist")
-    assert str(err.value) == "Unknown library name: 'does_not_exist'"
 
 
 def test_linker_profile_flags_inheriting(stub_c_compiler):
@@ -398,12 +397,11 @@ def test_linker_profile_modes(stub_linker):
     '''
 
     # Make sure that we get the expected errors at the start:
-    with raises(KeyError) as err:
+    with raises(FabProfileError):
         stub_linker._pre_lib_flags["base"]
-    assert "Profile 'base' is not defined" in str(err.value)
-    with raises(KeyError) as err:
+
+    with raises(FabProfileError):
         stub_linker._post_lib_flags["base"]
-    assert "Profile 'base' is not defined" in str(err.value)
 
     stub_linker.define_profile("base")
     assert stub_linker._pre_lib_flags["base"] == []
