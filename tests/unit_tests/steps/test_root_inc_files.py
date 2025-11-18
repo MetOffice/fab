@@ -35,7 +35,7 @@ class TestRootIncFiles:
         inc_files[0].write_text("Some include file.")
 
         config = BuildConfig('proj', ToolBox())
-        config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
         # Nested pytest.warns() do not work as expected to catch two warnings:
         # one user warning and one deprecation warning. So use recwarn:
@@ -64,7 +64,7 @@ class TestRootIncFiles:
         config = BuildConfig('proj', stub_tool_box, fab_workspace=Path('/fab'))
         inc_files = [Path('/foo/source/bar.inc'),
                      config.build_output / 'fab.inc']
-        config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
         root_inc_files(config)
         assert len(recwarn) == 2
@@ -105,7 +105,7 @@ class TestRootIncFiles:
         inc_files = [Path('/foo/source/bar.inc'), Path('/foo/sauce/bar.inc')]
 
         config = BuildConfig('proj', stub_tool_box)
-        config.artefact_store[ArtefactSet.INITIAL_SOURCE] = inc_files
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
         with raises(FileExistsError), \
             warns(DeprecationWarning,
