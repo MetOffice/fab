@@ -672,8 +672,6 @@ class FabBase:
         alternative source can also be passed to Fab for compilation.
         """
         site_path_flags: List[AddFlags] = []
-        if self._site_config:
-            site_path_flags = self._site_config.get_path_flags(self._config)
         if not common_flags:
             common_flags = []
             assert isinstance(common_flags, list)
@@ -700,8 +698,6 @@ class FabBase:
             to Fab compile_fortran, default is None.
         """
         site_path_flags: List[AddFlags] = []
-        if self._site_config:
-            site_path_flags = self._site_config.get_path_flags(self._config)
         if not common_flags:
             common_flags = []
         if not path_flags:

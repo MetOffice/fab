@@ -6,10 +6,9 @@ This module contains the default Baf configuration class.
 '''
 
 import argparse
-from typing import cast, Dict, List
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Compiler, ToolRepository
+from fab.build_config import BuildConfig
+from fab.tools import Category, ToolRepository
 
 from fab.fab_base.site_specific.default.setup_cray import setup_cray
 from fab.fab_base.site_specific.default.setup_gnu import setup_gnu
@@ -30,11 +29,6 @@ class Config:
     def __init__(self) -> None:
         self._args: argparse.Namespace
 
-        # Stores for each compiler suite a mapping of profiles to the list of
-        # path-specific flags to use.
-        # _path_flags[suite][profile]
-        self._path_flags: Dict[str, Dict[str, List[AddFlags]]] = {}
-
     @property
     def args(self) -> argparse.Namespace:
         '''
@@ -42,7 +36,7 @@ class Config:
         '''
         return self._args
 
-    def get_valid_profiles(self) -> List[str]:
+    def get_valid_profiles(self) -> list[str]:
         '''
         Determines the list of all allowed compiler profiles. The first
         entry in this list is the default profile to be used. This method
@@ -101,16 +95,6 @@ class Config:
         self.setup_nvidia(build_config)
         self.setup_cray(build_config)
 
-    def get_path_flags(self, build_config: BuildConfig) -> List[AddFlags]:
-        '''
-        Returns the path-specific flags to be used.
-        TODO #313: Ideally we have only one kind of flag, but as a quick
-        work around we provide this method.
-        '''
-        compiler = build_config.tool_box[Category.FORTRAN_COMPILER]
-        compiler = cast(Compiler, compiler)
-        return self._path_flags[compiler.suite].get(build_config.profile, [])
-
     def setup_cray(self, build_config: BuildConfig) -> None:
         '''
         This method sets up the Cray compiler and linker flags.
@@ -120,7 +104,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["cray"] = setup_cray(build_config, self.args)
+        setup_cray(build_config, self.args)
 
     def setup_gnu(self, build_config: BuildConfig) -> None:
         '''
@@ -131,7 +115,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["gnu"] = setup_gnu(build_config, self.args)
+        setup_gnu(build_config, self.args)
 
     def setup_intel_classic(self, build_config: BuildConfig) -> None:
         '''
@@ -142,8 +126,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["intel_classic"] = setup_intel_classic(build_config,
-                                                                self.args)
+        setup_intel_classic(build_config, self.args)
 
     def setup_intel_llvm(self, build_config: BuildConfig) -> None:
         '''
@@ -154,8 +137,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["intel-llvm"] = setup_intel_llvm(build_config,
-                                                          self.args)
+        setup_intel_llvm(build_config, self.args)
 
     def setup_nvidia(self, build_config: BuildConfig) -> None:
         '''
@@ -166,4 +148,4 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["nvidia"] = setup_nvidia(build_config, self.args)
+        setup_nvidia(build_config, self.args)
