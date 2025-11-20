@@ -8,14 +8,14 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
-from fab.build_config import AddFlags, BuildConfig
+from fab.build_config import BuildConfig
 from fab.tools import Category, Compiler, Linker, ToolRepository
 
 
 def setup_nvidia(build_config: BuildConfig,
-                 args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
+                 args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for nvfortran.
@@ -33,7 +33,7 @@ def setup_nvidia(build_config: BuildConfig,
         nvfortran = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-nvfortran")
         nvfortran = cast(Compiler, nvfortran)
         if not nvfortran.is_available:
-            return {}
+            return
 
     # The base flags
     # ==============
@@ -66,5 +66,3 @@ def setup_nvidia(build_config: BuildConfig,
 
     # Always link with C++ libs
     # linker.add_post_lib_flags(["-c++libs"], "base")
-
-    return {}
