@@ -4,17 +4,14 @@
 # which you should have received as part of this distribution
 ##############################################################################
 """
-A helper step to copy .inc files to the root of the build source folder,
+A helper step to copy include files to the root of the build source folder,
 for easy include by the preprocessor.
-
-Currently only used for building JULES, .inc files are due to be removed
-from dev practices, at which point this step should be deprecated.
-
 """
+
 import logging
-import shutil
-import warnings
 from pathlib import Path
+import shutil
+from typing import List, Optional, Union
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -25,47 +22,51 @@ logger = logging.getLogger(__name__)
 
 
 @step
-def root_inc_files(config: BuildConfig):
+def root_inc_files(config: BuildConfig,
+                   suffix_list: Optional[Union[List[str], str]] = None):
 
     """
-    Copy inc files into the workspace output root.
+    Copy include files with a specific suffix into the workspace
+    output root.
 
-    Checks for name clash. This step does not create any artefacts.
-    It's up to the user to configure other tools to find these files.
+    Checks for name clash. This step does not create any artefacts,
+    nor does it add a search path. It is up to the user to configure
+    other tools to find these files.
 
-    :param artefact_store:
-        Artefacts created by previous Steps.
-        This is where we find the artefacts to process.
     :param config:
         The :class:`fab.build_config.BuildConfig` object where we can
         read settings such as the project workspace folder or the
         multiprocessing flag.
+    :param suffix_list:
+        List of all suffixes to be copied (or a single suffix as string).
+        Note that the `.` MUST be included (e.g. `.h90`). Defaults to `.inc`
 
     """
 
-    # todo: make the build output path a getter calculated in the config?
     build_output: Path = config.build_output
     build_output.mkdir(parents=True, exist_ok=True)
 
-    warnings.warn("RootIncFiles is deprecated as .inc files are due to "
-                  "be removed.", DeprecationWarning)
+    if not suffix_list:
+        # Keep the old default
+        suffix_list = [".inc"]
+    elif isinstance(suffix_list, str):
+        # Convert string to a single-element list
+        suffix_list = [suffix_list]
 
-    # inc files all go in the root - they're going to be
-    # removed altogether, soon
+    # All include files go in the root
     inc_copied = set()
     initial_source = config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES]
-    for fpath in suffix_filter(initial_source, [".inc"]):
-
-        # don't copy from the output root to the output root!
-        # this is currently unlikely to happen but did in the past,
+    for fpath in suffix_filter(initial_source, suffix_list):
+        # Do not copy from the output root to the output root!
+        # This is currently unlikely to happen but did in the past,
         # and caused problems.
         if fpath.parent == build_output:
             continue
 
-        # check for name clash
+        # Check for name clash
         if fpath.name in inc_copied:
-            raise FileExistsError(f"name clash for inc file: {fpath}")
+            raise FileExistsError(f"name clash for include file: {fpath}")
 
-        logger.debug(f"copying inc file {fpath}")
+        logger.debug(f"copying include file {fpath}")
         shutil.copy(fpath, build_output)
         inc_copied.add(fpath.name)
