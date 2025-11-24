@@ -71,6 +71,11 @@ class Config:
             for profile in self.get_valid_profiles():
                 compiler.define_profile(profile, inherit_from="base")
 
+    def define_command_line_options(self, parser):
+        '''
+        Callback in which the defaults for the parser can be changed
+        '''
+
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         '''
         Additional callback function executed once all command line

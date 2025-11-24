@@ -86,6 +86,12 @@ class FabBase:
         # when handling command line options:
         self._tool_box = ToolBox()
         parser = self.define_command_line_options()
+        if (self._site_config and
+                hasattr(self._site_config, "define_command_line_options")):
+            # Stay backwards compatible and avoid a crash if an old
+            # site-config is present without this method.
+            self._site_config.define_command_line_options(parser)
+
         self.handle_command_line_options(parser)
         # Now allow further site-customisations depending on
         # the command line arguments
