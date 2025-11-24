@@ -116,6 +116,15 @@ configuration object using ``get_valid_profiles()`` to receive a list
 of all valid compilation profile names. This allows each site to
 specify its own profile modes.
 
+Additionally, a method of the same name is called in the site-specific
+configuration:
+
+.. automethod:: fab.fab_base.site_specific.default.config.Config.define_command_line_options
+    :noindex:
+
+This can be used to add more, site-specific command line options, and/or
+to change the defaults for options already specified.
+
 Parsing command line options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Once all command line options are defined in the parser,

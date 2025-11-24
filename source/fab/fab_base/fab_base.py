@@ -353,8 +353,8 @@ class FabBase:
         class which can provide its own instance (to easily allow for a
         different description).
 
-        :param parser: optional a pre-defined argument parser. If not, a
-            new instance will be created.
+        :param parser: optional a pre-defined argument parser. If not
+            specified, a new instance will be created.
         '''
 
         if not parser:
