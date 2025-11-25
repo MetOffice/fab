@@ -77,8 +77,8 @@ class Config:
         Callback in which additional, site-specific options can be added,
         and/or the the defaults for the parser can be changed.
         '''
-        # As example, change the MPI default:
-        parser.set_defaults(mpi=False)
+        # Example: change the MPI default (enabling this would break tests):
+        # parser.set_defaults(mpi=False)
 
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         '''
