@@ -77,7 +77,7 @@ class Exclude(_PathFilter):
 
 @step
 def find_source_files(config, source_root=None,
-                      output_collection=ArtefactSet.INITIAL_SOURCE,
+                      output_collection=ArtefactSet.INITIAL_SOURCE_FILES,
                       path_filters: Optional[Iterable[_PathFilter]] = None):
     """
     Find the files in the source folder, with filtering.
@@ -151,13 +151,13 @@ def find_source_files(config, source_root=None,
     # Now split the files into the various main groups:
     # Fortran, C, and PSyclone
     config.artefact_store.copy_artefacts(output_collection,
-                                         ArtefactSet.FORTRAN_BUILD_FILES,
+                                         ArtefactSet.FORTRAN_COMPILER_FILES,
                                          suffixes=[".f", ".F", ".f90", ".F90"])
 
     config.artefact_store.copy_artefacts(output_collection,
-                                         ArtefactSet.C_BUILD_FILES,
+                                         ArtefactSet.C_COMPILER_FILES,
                                          suffixes=[".c"])
 
     config.artefact_store.copy_artefacts(output_collection,
-                                         ArtefactSet.X90_BUILD_FILES,
+                                         ArtefactSet.X90_COMPILER_FILES,
                                          suffixes=[".x90", ".X90"])
