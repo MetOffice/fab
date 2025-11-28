@@ -50,13 +50,12 @@ from fnmatch import fnmatch
 import logging
 from pathlib import Path
 from string import Template
-from typing import Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, Union
 import warnings
 
 from fab.util import string_checksum
 
-if TYPE_CHECKING:
-    from fab.build_config import AddFlags, BuildConfig
+from fab.build_config import AddFlags, BuildConfig
 
 logger = logging.getLogger(__name__)
 
@@ -121,21 +120,6 @@ class AlwaysFlags(AbstractFlags):
             self._flags = flags[:]
         else:
             self._flags = []
-
-    def __eq__(self, other: object) -> bool:
-        """
-        :returns: if two AlwaysFlags are identical
-        """
-        if not isinstance(other, AlwaysFlags):
-            raise NotImplementedError(
-                f"Cannot compare '{type(self).__name__}' with object "
-                f"of type '{type(other).__name__}'.")
-        # Flake insists to use isinstance. But in this case
-        # we explicitly do not want to allow subclasses, e.g.
-        # AlwaysFlag should never be equal to a MatchFlag
-        # pylint: disable=unidiomatic-typecheck
-        return (type(self) == type(other) and     # noqa
-                self._flags == other._flags)
 
     @staticmethod
     def replace_template(string_list: List[str],
@@ -316,8 +300,8 @@ class FlagList(List[AbstractFlags]):
             self,
             list_of_flags: Optional[Union[AbstractFlags, str,
                                           List[str]]] = None,
-            add_flags: Optional[Union["AddFlags",
-                                      List["AddFlags"]]] = None) -> None:
+            add_flags: Optional[Union[AddFlags,
+                                      List[AddFlags]]] = None) -> None:
         self._logger = logging.getLogger(__name__)
         super().__init__()
         if isinstance(list_of_flags, (str, list)):
@@ -325,9 +309,6 @@ class FlagList(List[AbstractFlags]):
         elif list_of_flags:
             self.append(list_of_flags)
         if add_flags:
-            # pylint: disable=import-outside-toplevel
-            # TODO: circular import otherwise
-            from fab.build_config import AddFlags
             if isinstance(add_flags, AddFlags):
                 add_flags = [add_flags]
             # Convert old-style AddFlags to the new MatchFlags:
