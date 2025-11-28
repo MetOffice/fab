@@ -13,20 +13,11 @@ import os
 import re
 import warnings
 
-from fab.artefacts import ArtefactSet, CollectionGetter
-from fab.build_config import AddFlags, BuildConfig
-from fab.steps import step
-from fab.steps.analyse import analyse
-from fab.steps.archive_objects import archive_objects
-from fab.steps.c_pragma_injector import c_pragma_injector
-from fab.steps.compile_c import compile_c
-from fab.steps.compile_fortran import compile_fortran
-from fab.steps.grab.fcm import fcm_export
-from fab.steps.link import link_exe
-from fab.steps.preprocess import preprocess_c, preprocess_fortran
-from fab.steps.find_source_files import find_source_files, Exclude, Include
-from fab.steps.root_inc_files import root_inc_files
-from fab.tools import Category, ToolBox
+from fab.api import (AddFlags, analyse, archive_objects, ArtefactSet, BuildConfig,
+                     Category, CollectionGetter, compile_c, compile_fortran,
+                     c_pragma_injector, Exclude, fcm_export, find_source_files,
+                     Include, link_exe, preprocess_c, preprocess_fortran,
+                     root_inc_files, step, ToolBox)
 
 logger = logging.getLogger('fab')
 
@@ -131,7 +122,7 @@ if __name__ == '__main__':
         mpi=True, openmp=False, tool_box=ToolBox())
 
     # compiler-specific flags
-    compiler = state.tool_box[Category.FORTRAN_COMPILER]
+    compiler = state.tool_box.get_tool(Category.FORTRAN_COMPILER)
     if compiler.name == 'gfortran':
         compiler_specific_flags = ['-fdefault-integer-8', '-fdefault-real-8', '-fdefault-double-8']
     elif compiler.name == 'ifort':

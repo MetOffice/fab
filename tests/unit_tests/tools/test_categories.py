@@ -7,7 +7,7 @@
 '''This module tests the Categories.
 '''
 
-from fab.tools import Category
+from fab.tools.category import Category
 
 
 def test_category():

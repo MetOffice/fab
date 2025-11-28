@@ -6,9 +6,7 @@
 """
 Tests the PSyclone tool.
 """
-from importlib import reload
 from pathlib import Path
-import typing  # Needed for monkey patching
 from typing import Optional, Tuple
 from unittest.mock import Mock
 
@@ -361,18 +359,3 @@ def test_process_nemo_api_new_psyclone(fake_process: FakeProcess) -> None:
     assert call_list(fake_process) == [
         version_command, psyclone_command
     ]
-
-
-def test_type_checking_import(monkeypatch) -> None:
-    """
-    PSyclone contains an import of TYPE_CHECKING to break a circular
-    dependency. In order to reach 100% coverage of PSyclone, we set
-    mock TYPE_CHECKING to be true and force a re-import of the module.
-    TODO 314: This test can be removed once #314 is fixed.
-    """
-    monkeypatch.setattr(typing, 'TYPE_CHECKING', True)
-    # This import will not actually re-import, since the module
-    # is already imported. But we need this in order to call reload:
-    # pylint: disable=import-outside-toplevel
-    import fab.tools.psyclone
-    reload(fab.tools.psyclone)

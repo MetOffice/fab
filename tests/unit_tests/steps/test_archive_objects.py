@@ -17,7 +17,8 @@ from tests.conftest import call_list
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.archive_objects import archive_objects
-from fab.tools import Category, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_repository import ToolRepository
 
 
 class TestArchiveObjects:

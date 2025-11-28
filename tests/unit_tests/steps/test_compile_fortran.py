@@ -48,7 +48,7 @@ def test_compile_cc_wrong_compiler(stub_tool_box,
     """
     config = BuildConfig('proj', stub_tool_box, mpi=False, openmp=False)
     # Get the default Fortran compiler into the ToolBox
-    fc = stub_tool_box[Category.FORTRAN_COMPILER]
+    fc = stub_tool_box.get_tool(Category.FORTRAN_COMPILER)
     # But then change its category to be a C compiler:
     #
     # ToDo: Monkeying with private state is bad.

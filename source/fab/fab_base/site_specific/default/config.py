@@ -8,8 +8,7 @@ This module contains the default Baf configuration class.
 import argparse
 from typing import cast, Dict, List
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Compiler, ToolRepository
+from fab.api import AddFlags, BuildConfig, Category, Compiler, ToolRepository
 
 from fab.fab_base.site_specific.default.setup_cray import setup_cray
 from fab.fab_base.site_specific.default.setup_gnu import setup_gnu
@@ -107,7 +106,7 @@ class Config:
         TODO #313: Ideally we have only one kind of flag, but as a quick
         work around we provide this method.
         '''
-        compiler = build_config.tool_box[Category.FORTRAN_COMPILER]
+        compiler = build_config.tool_box.get_tool(Category.FORTRAN_COMPILER)
         compiler = cast(Compiler, compiler)
         return self._path_flags[compiler.suite].get(build_config.profile, [])
 
