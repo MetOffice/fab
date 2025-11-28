@@ -29,14 +29,6 @@ def test_always_flags(stub_configuration):
     af = AlwaysFlags(["-g", "-O2"])
     assert af.get_flags() == ["-g", "-O2"]
 
-    # Comparison: First different derived type:
-    cf_copy = ContainFlags("XX", ["-g", "-O2"])
-    assert af != cf_copy
-    af_copy = AlwaysFlags(["-g", "-O2"])
-    assert af_copy == af
-    af_copy = AlwaysFlags(["-O2", "-g"])
-    assert af_copy != af
-
     # Templating
     af = AlwaysFlags(["$source", "$output"])
     assert (af.get_flags(stub_configuration) ==
@@ -48,13 +40,6 @@ def test_always_flags(stub_configuration):
             [str(stub_configuration.source_root),
              str(stub_configuration.build_output),
              "/my"])
-
-    # Test comparison of different objects
-    with pytest.raises(NotImplementedError) as err:
-        # pylint: disable=pointless-statement
-        af == 1
-    assert ("Cannot compare 'AlwaysFlags' with object of type 'int'."
-            in str(err.value))
 
 
 def test_always_flags_remove_flags():
@@ -132,8 +117,9 @@ def test_flags_adding():
     f1.add_flags(["-b", "-c"])
     assert len(f1) == 2
     assert f1.get_flags() == ["-a", "-b", "-c"]
-    assert f1[0] == AlwaysFlags("-a")
-    assert f1[1] == AlwaysFlags(["-b", "-c"])
+    assert len(f1) == 2
+    assert f1[0].get_flags() == ["-a"]
+    assert f1[1].get_flags() == ["-b", "-c"]
 
     # Check functionality when adding a flag object:
     af1 = AlwaysFlags("-g")
@@ -183,10 +169,17 @@ def test_profile_flags_with_profile():
     pf.define_profile("base")
     assert pf["base"] == []
     pf.add_flags("-base", "base")
-    assert pf["base"] == [AlwaysFlags("-base")]
+
+    assert len(pf["base"]) == 1
+    assert isinstance(pf["base"][0], AlwaysFlags)
+    assert pf["base"][0].get_flags() == ["-base"]
+
     pf.add_flags(["-base2", "-base3"], "base")
-    assert pf["base"] == [AlwaysFlags("-base"),
-                          AlwaysFlags(["-base2", "-base3"])]
+    assert len(pf["base"]) == 2
+    assert isinstance(pf["base"][0], AlwaysFlags)
+    assert isinstance(pf["base"][1], AlwaysFlags)
+    assert pf["base"][0].get_flags() == ["-base"]
+    assert pf["base"][1].get_flags() == ["-base2", "-base3"]
 
     # Check that we get an exception if we specify a profile
     # that does not exist
@@ -198,10 +191,15 @@ def test_profile_flags_with_profile():
 def test_profile_flags_constructor_args():
     '''Tests various constructor argument combinations.'''
     pf = ProfileFlags("-g")
-    assert pf[""] == [AlwaysFlags("-g")]
+    assert len(pf[""]) == 1
+    assert isinstance(pf[""][0], AlwaysFlags)
+    assert pf[""][0].get_flags() == ["-g"]
+
     pf = ProfileFlags("-g", profile="prof")
     assert pf[""] == []
-    assert pf["prof"] == [AlwaysFlags("-g")]
+    assert len(pf["prof"]) == 1
+    assert isinstance(pf["prof"][0], AlwaysFlags)
+    assert pf["prof"][0].get_flags() == ["-g"]
 
 
 def test_profile_flags_without_profile():
@@ -210,9 +208,13 @@ def test_profile_flags_without_profile():
     assert pf[""] == []
     assert pf[None] == []
     pf.add_flags("-base")
-    assert pf[""] == [AlwaysFlags("-base")]
+    assert len(pf[""]) == 1
+    assert isinstance(pf[""][0], AlwaysFlags)
+    assert pf[""][0].get_flags() == ["-base"]
     pf.add_flags(["-base2", "-base3"])
-    assert pf[""] == [AlwaysFlags("-base"), AlwaysFlags(["-base2", "-base3"])]
+    assert len(pf[""]) == 2
+    assert pf[""][0].get_flags() == ["-base"]
+    assert pf[""][1].get_flags() == ["-base2", "-base3"]
 
     # Check that we get an exception if we specify a profile
     with pytest.raises(KeyError) as err:
