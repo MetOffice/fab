@@ -25,7 +25,7 @@ from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
 from fab.metrics import (send_metric, init_metrics, stop_metrics,
                          metrics_summary)
 from fab.tools.category import Category
-from fab.tools.tool_box import ToolBox
+from fab.tools.abstract_tool_box import AbstractToolBox
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
@@ -41,7 +41,7 @@ class BuildConfig():
 
     """
     def __init__(self, project_label: str,
-                 tool_box: ToolBox,
+                 tool_box: AbstractToolBox,
                  mpi: bool = False,
                  openmp: bool = False,
                  profile: Optional[str] = None,
@@ -186,7 +186,7 @@ class BuildConfig():
         self._finalise_logging()
 
     @property
-    def tool_box(self) -> ToolBox:
+    def tool_box(self) -> AbstractToolBox:
         ''':returns: the tool box to use.'''
         return self._tool_box
 

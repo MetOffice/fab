@@ -4,33 +4,28 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''This file contains the ToolBox class.
+'''This file contains the AbstractToolBox class.
 '''
 
-import warnings
-from typing import Dict, Optional
+from abc import ABC, abstractmethod
+from typing import Optional
 
-from fab.tools.abstract_tool_box import AbstractToolBox
 from fab.tools.category import Category
 from fab.tools.tool import Tool
-from fab.tools.tool_repository import ToolRepository
 
 
-class ToolBox(AbstractToolBox):
-    '''This class implements the tool box. It stores one tool for each
-    category to be used in a FAB build.
+class AbstractToolBox(ABC):
+    '''This is the abstract base class for the ToolBox class.
     '''
 
-    def __init__(self) -> None:
-        self._all_tools: Dict[Category, Tool] = {}
-
+    @abstractmethod
     def has(self, category: Category) -> bool:
         '''
         :returns: whether this tool box has a tool of the specified
             category or not.
         '''
-        return category in self._all_tools
 
+    @abstractmethod
     def add_tool(self, tool: Tool,
                  silent_replace: bool = False) -> None:
         '''Adds a tool for a given category.
@@ -41,15 +36,8 @@ class ToolBox(AbstractToolBox):
 
         :raises RuntimeError: if the tool to be added is not available.
         '''
-        if not tool.is_available:
-            raise RuntimeError(f"Tool '{tool}' is not available.")
 
-        if tool.category in self._all_tools and not silent_replace:
-            warnings.warn(f"Replacing existing tool "
-                          f"'{self._all_tools[tool.category]}' with "
-                          f"'{tool}'.")
-        self._all_tools[tool.category] = tool
-
+    @abstractmethod
     def get_tool(self, category: Category,
                  mpi: Optional[bool] = None,
                  openmp: Optional[bool] = None,
@@ -70,20 +58,3 @@ class ToolBox(AbstractToolBox):
 
         :raises KeyError: if the category is not known.
         '''
-
-        if category in self._all_tools:
-            # TODO: Should we test if the compiler has MPI support if
-            # required? The original LFRic setup compiled files without
-            # MPI support (and used an mpi wrapper at link time), so for
-            # now we don't raise an exception here to ease porting - but
-            # we probably should raise one tbh.
-            return self._all_tools[category]
-
-        # No tool was specified for this category, get the default tool
-        # from the ToolRepository, and add it, so we don't need to look
-        # it up again later.
-        tr = ToolRepository()
-        tool = tr.get_default(category, mpi=mpi, openmp=openmp,
-                              enforce_fortran_linker=enforce_fortran_linker)
-        self._all_tools[category] = tool
-        return tool

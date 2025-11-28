@@ -2,16 +2,9 @@
 from pathlib import Path
 
 
-from fab.build_config import BuildConfig
-from fab.steps.analyse import analyse
-from fab.steps.archive_objects import archive_objects
-from fab.steps.compile_fortran import compile_fortran
-from fab.steps.grab.folder import grab_folder
-from fab.steps.link import link_exe
-from fab.steps.preprocess import preprocess_fortran
-from fab.steps.find_source_files import find_source_files, Exclude
-from fab.steps.psyclone import psyclone, preprocess_x90
-from fab.tools import ToolBox
+from fab.api import (analyse, archive_objects, BuildConfig, compile_fortran,
+                     Exclude, find_source_files, grab_folder, link_exe,
+                     preprocess_fortran, preprocess_x90, psyclone, ToolBox)
 
 from lfric_common import API, configurator
 from grab_lfric import lfric_source_config, gpl_utils_source_config

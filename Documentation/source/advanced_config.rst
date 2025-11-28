@@ -7,6 +7,40 @@ A lot can be achieved with simple configurations but some of the more esoteric
 aspects of software building may require more esoteric Fab features.
 
 
+.. _importing_from_api:
+
+Importing from a Path-independent Location
+==========================================
+Fab is providing an ``api`` submodule, from which the important
+classes and functions that a user script will need can be imported,
+e.g.:
+
+.. code-block::
+    :caption: my_grab.py
+
+    from fab.api import analyse, BuildConfig, find_source_files, ToolBox
+
+The advantage of using this is that the script will be independent
+of the actual location of the source files within Fab. A potential
+disadvantage is that importing from the ``api`` submodule imports very
+many different function, and as such can be slower than just importing
+a few classes. On the other hand, a complex build script will typically
+explicitly or implicitly import all these functions and classes anyway.
+In not-representative tests, importing tool using ``api`` takes around
+0.2 seconds, while importing it from ``fab.tools.tool`` only takes
+0.05 seconds.
+
+The list of functions and classes provided:
+
+.. literalinclude:: ../../source/fab/api/__init__.py
+    :start-after: __all__ = [
+    :end-before:     ]
+
+Note that this documentation will show import from ``fab.api``
+in all code examples. But in the text, the full path within the
+Fab repository is used to make it easier to find the actual source
+code in case a more detailed study of the source code is required.
+
 .. _env_vars:
 
 Understanding the Environment
@@ -202,7 +236,7 @@ when defining flags:
 .. code-block::
     :linenos:
 
-    git = config.tool_box[Category.GIT]
+    git = config.tool_box.get_tool(Category.GIT)
     git.add_flags(["-c", "foo.bar=123"])
 
 This effectively adds the flags to the to the dummy profile, allowing
