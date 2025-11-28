@@ -12,7 +12,7 @@ corresponding svn steps.
 from typing import Optional, Union
 
 from fab.steps.grab.svn import svn_export, svn_checkout, svn_merge
-from fab.tools import Category
+from fab.tools.category import Category
 
 
 def fcm_export(config, src: str, dst_label: Optional[str] = None,

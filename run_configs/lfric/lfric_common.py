@@ -3,10 +3,7 @@ import os
 from typing import Optional
 from pathlib import Path
 
-from fab.build_config import BuildConfig
-from fab.steps import step
-from fab.steps.find_source_files import find_source_files
-from fab.tools import Category, Tool
+from fab.api import BuildConfig, Category, find_source_files, step, Tool
 
 logger = logging.getLogger('fab')
 
@@ -27,7 +24,8 @@ class Script(Tool):
 
 # ============================================================================
 @step
-def configurator(config, lfric_source: Path, gpl_utils_source: Path, rose_meta_conf: Path, config_dir=None):
+def configurator(config, lfric_source: Path, gpl_utils_source: Path,
+                 rose_meta_conf: Path, config_dir=None):
 
     rose_picker_tool = gpl_utils_source / 'rose_picker/rose_picker'
     gen_namelist_tool = lfric_source / 'infrastructure/build/tools/GenerateNamelist'

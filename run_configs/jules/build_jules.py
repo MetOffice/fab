@@ -6,18 +6,10 @@
 ##############################################################################
 import logging
 
-from fab.build_config import BuildConfig
-from fab.steps.analyse import analyse
-from fab.steps.archive_objects import archive_objects
-from fab.steps.cleanup_prebuilds import cleanup_prebuilds
-from fab.steps.compile_fortran import compile_fortran
-from fab.steps.find_source_files import find_source_files, Exclude
-from fab.steps.grab.fcm import fcm_export
-from fab.steps.grab.prebuild import grab_pre_build
-from fab.steps.link import link_exe
-from fab.steps.preprocess import preprocess_fortran
-from fab.steps.root_inc_files import root_inc_files
-from fab.tools import Ifort, Linker, ToolBox
+from fab.api import (analyse, archive_objects, BuildConfig, cleanup_prebuilds,
+                     compile_fortran, Exclude, fcm_export, find_source_files,
+                     grab_pre_build, Ifort, Linker, link_exe,
+                     preprocess_fortran, root_inc_files, ToolBox)
 
 logger = logging.getLogger('fab')
 

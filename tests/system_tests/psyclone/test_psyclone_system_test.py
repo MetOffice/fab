@@ -21,7 +21,8 @@ from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import (_analyse_x90s, _analyse_kernels,
                                 make_parsable_x90, preprocess_x90,
                                 psyclone)
-from fab.tools import ToolBox, Psyclone
+from fab.tools.psyclone import Psyclone
+from fab.tools.tool_box import ToolBox
 from fab.util import file_checksum
 
 SAMPLE_KERNEL = Path(__file__).parent / 'kernel.f90'

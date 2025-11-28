@@ -18,8 +18,9 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
 from fab.steps import check_for_errors, run_mp, step
+from fab.tools.category import Category
+from fab.tools.compiler import Compiler
 from fab.tools.flags import FlagList
-from fab.tools import Category, Compiler
 from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
@@ -124,7 +125,7 @@ def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
     config = mp_payload.config
-    compiler = config.tool_box[Category.C_COMPILER]
+    compiler = config.tool_box.get_tool(Category.C_COMPILER)
     if compiler.category != Category.C_COMPILER:
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
                            f"'{compiler.category}' instead of CCompiler")

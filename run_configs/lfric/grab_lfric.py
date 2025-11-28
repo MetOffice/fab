@@ -5,9 +5,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-from fab.build_config import BuildConfig
-from fab.steps.grab.fcm import fcm_export
-from fab.tools import ToolBox
+from fab.api import BuildConfig, fcm_export, ToolBox
 
 
 LFRIC_REVISION = 41709
