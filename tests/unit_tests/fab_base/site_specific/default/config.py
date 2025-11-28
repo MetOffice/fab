@@ -9,7 +9,8 @@ import argparse
 from typing import List
 
 from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_repository import ToolRepository
 
 
 class Config:

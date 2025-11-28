@@ -18,7 +18,7 @@ Here's a simple configuration without any steps.
     #!/usr/bin/env python3
     from logging import getLogger
 
-    from fab.build_config import BuildConfig
+    from fab.api import BuildConfig
 
     logger = getLogger('fab')
 
@@ -47,18 +47,17 @@ project workspace first using a :mod:`~fab.steps.grab` step.
 
 A grab step will copy files from a folder or remote repo into a folder called
 "source" within the project workspace.
+:emphasize-lines: 5,6,13,14
 
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 5,6,13,14
+    :emphasize-lines: 4,11,12
 
     #!/usr/bin/env python3
     from logging import getLogger
 
-    from fab.build_config import BuildConfig
-    from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab.folder import grab_folder
+    from fab.api import BuildConfig, find_source_files, grab_folder
 
     logger = getLogger('fab')
 
@@ -105,15 +104,13 @@ It filters just the (uppercase) ``.F90`` files.
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 7,16
+    :emphasize-lines: 5,14
 
     #!/usr/bin/env python3
     from logging import getLogger
 
-    from fab.build_config import BuildConfig
-    from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab.folder import grab_folder
-    from fab.steps.preprocess import preprocess_fortran
+    from fab.api import (BuildConfig, find_source_files, grab_folder,
+                         preprocess_fortran)
 
     logger = getLogger('fab')
 
@@ -152,16 +149,13 @@ before you run the :func:`~fab.steps.analyse.analyse` step below.
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 8,18,19
+    :emphasize-lines: 5,15,16
 
     #!/usr/bin/env python3
     from logging import getLogger
 
-    from fab.build_config import BuildConfig
-    from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab.folder import grab_folder
-    from fab.steps.preprocess import preprocess_fortran
-    from fab.steps.psyclone import psyclone, preprocess_x90
+    from fab.api import (BuildConfig, find_source_files, grab_folder,
+                         preprocess_fortran,psyclone, preprocess_x90)
 
     logger = getLogger('fab')
 
@@ -195,17 +189,13 @@ The Analyse step looks for source to analyse in two collections:
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 4,21
+    :emphasize-lines: 4,17
 
     #!/usr/bin/env python3
     from logging import getLogger
 
-    from fab.steps.analyse import analyse
-    from fab.build_config import BuildConfig
-    from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab.folder import grab_folder
-    from fab.steps.preprocess import preprocess_fortran
-    from fab.steps.psyclone import psyclone, preprocess_x90
+    from fab.api import (analyse, BuildConfig, find_source_files, grab_folder,
+                         preprocess_fortran, psyclone, preprocess_x90)
 
     logger = getLogger('fab')
 
@@ -236,19 +226,14 @@ then creates the executable.
 .. code-block::
     :linenos:
     :caption: build_it.py
-    :emphasize-lines: 6,9,24,25
+    :emphasize-lines: 4,5,19,20
 
     #!/usr/bin/env python3
     from logging import getLogger
 
-    from fab.steps.analyse import analyse
-    from fab.build_config import BuildConfig
-    from fab.steps.compile_fortran import compile_fortran
-    from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab.folder import grab_folder
-    from fab.steps.link import link_exe
-    from fab.steps.preprocess import preprocess_fortran
-    from fab.steps.psyclone import psyclone, preprocess_x90
+    from fab.api import (analyse, BuildConfig, compile_fortran,
+                         find_source_files, grab_folder, link_exe,
+                         preprocess_fortran, psyclone, preprocess_x90)
 
     logger = getLogger('fab')
 

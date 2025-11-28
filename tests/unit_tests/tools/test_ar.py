@@ -12,7 +12,8 @@ from pytest_subprocess.fake_process import FakeProcess
 
 from tests.conftest import ExtendedRecorder, call_list
 
-from fab.tools import Category, Ar
+from fab.tools.category import Category
+from fab.tools.ar import Ar
 
 
 def test_constructor() -> None:
