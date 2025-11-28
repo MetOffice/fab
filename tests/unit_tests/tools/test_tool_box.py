@@ -44,8 +44,8 @@ def test_add_get_tool(stub_tool_repository) -> None:
     assert (default_compiler is
             stub_tool_repository.get_default(Category.FORTRAN_COMPILER,
                                              mpi=False, openmp=False))
-    # Check that dictionary-like access works as expected:
-    assert tb[Category.FORTRAN_COMPILER] == default_compiler
+    # Check getter:
+    assert tb.get_tool(Category.FORTRAN_COMPILER) == default_compiler
 
     # Now add a new Fortran compiler to the tool box
     new_fc = FortranCompiler('new Fortran compiler', 'nfc', 'new',

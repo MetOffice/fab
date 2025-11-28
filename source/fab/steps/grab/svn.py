@@ -14,7 +14,8 @@ from typing import Optional, Union, Tuple
 import xml.etree.ElementTree as ET
 
 from fab.steps import step
-from fab.tools import Category, Versioning
+from fab.tools.category import Category
+from fab.tools.versioning import Versioning
 
 
 def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
@@ -67,7 +68,7 @@ def svn_export(config, src: str,
     Export an FCM repo folder to the project workspace.
 
     """
-    svn = config.tool_box[category]
+    svn = config.tool_box.get_tool(category)
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
     svn.export(src, dst, revision)
 
@@ -84,7 +85,7 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None,
         be provided via the argument, not as part of the url.
 
     """
-    svn = config.tool_box[category]
+    svn = config.tool_box.get_tool(category)
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     # new folder?
@@ -102,7 +103,7 @@ def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
     Merge an FCM repo into a local working copy.
 
     """
-    svn = config.tool_box[category]
+    svn = config.tool_box.get_tool(category)
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     svn.merge(src, dst, revision)

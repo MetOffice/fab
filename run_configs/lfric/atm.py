@@ -5,19 +5,11 @@
 
 import logging
 
-from fab.build_config import BuildConfig, AddFlags
-from fab.steps.analyse import analyse
-from fab.steps.archive_objects import archive_objects
-from fab.steps.c_pragma_injector import c_pragma_injector
-from fab.steps.compile_c import compile_c
-from fab.steps.compile_fortran import compile_fortran
-from fab.steps.grab.fcm import fcm_export
-from fab.steps.grab.folder import grab_folder
-from fab.steps.link import link_exe
-from fab.steps.preprocess import preprocess_fortran, preprocess_c
-from fab.steps.psyclone import psyclone, preprocess_x90
-from fab.steps.find_source_files import find_source_files, Exclude, Include
-from fab.tools import ToolBox
+from fab.api import (AddFlags, analyse, archive_objects, BuildConfig,
+                     c_pragma_injector, compile_c, compile_fortran, Exclude,
+                     fcm_export, find_source_files, grab_folder, Include,
+                     link_exe, preprocess_c, preprocess_fortran, psyclone,
+                     preprocess_x90, ToolBox)
 
 from grab_lfric import lfric_source_config, gpl_utils_source_config
 from lfric_common import (API, configurator, get_transformation_script)

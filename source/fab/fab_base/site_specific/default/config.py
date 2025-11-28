@@ -7,8 +7,7 @@ This module contains the default Baf configuration class.
 
 import argparse
 
-from fab.build_config import BuildConfig
-from fab.tools import Category, ToolRepository
+from fab.api import BuildConfig, Category, ToolRepository
 
 from fab.fab_base.site_specific.default.setup_cray import setup_cray
 from fab.fab_base.site_specific.default.setup_gnu import setup_gnu

@@ -13,7 +13,9 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from .base import FabTargetBase
-from ..tools import Category, ToolBox, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 from ..build_config import BuildConfig
 from ..steps.grab.folder import grab_folder
 from ..steps.find_source_files import find_source_files

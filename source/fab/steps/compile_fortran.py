@@ -134,7 +134,7 @@ def handle_compiler_args(config: BuildConfig,
                          path_flags=None) -> Tuple[FortranCompiler, FlagList]:
 
     # Command line tools are sometimes specified with flags attached.
-    compiler = config.tool_box[Category.FORTRAN_COMPILER]
+    compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER)
     if compiler.category != Category.FORTRAN_COMPILER:
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
                            f"'{compiler.category}' instead of FortranCompiler")
@@ -397,7 +397,7 @@ def compile_file(input_fpath: Path,
     output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
     config = mp_common_args.config
-    compiler = config.tool_box[Category.FORTRAN_COMPILER]
+    compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER)
     compiler = cast(FortranCompiler, compiler)
 
     compiler.compile_file(input_file=input_fpath,

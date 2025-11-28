@@ -10,7 +10,8 @@ from pathlib import Path
 
 from pytest_subprocess.fake_process import FakeProcess
 
-from fab.tools import Category, Ar
+from fab.tools.ar import Ar
+from fab.tools.category import Category
 from tests.conftest import ExtendedRecorder, call_list
 
 

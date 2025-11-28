@@ -10,8 +10,7 @@ This function gets called from the default site-specific config file
 import argparse
 from typing import cast
 
-from fab.build_config import BuildConfig
-from fab.tools import Category, Compiler, Linker, ToolRepository
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
 def setup_cray(build_config: BuildConfig,

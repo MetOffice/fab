@@ -14,13 +14,9 @@ steps.
 .. code-block::
     :linenos:
 
-    from fab.build_config import BuildConfig
-    from fab.steps.analyse import analyse
-    from fab.steps.compile_fortran import compile_fortran
-    from fab.steps.find_source_files import find_source_files
-    from fab.steps.grab.folder import grab_folder
-    from fab.steps.link import link_exe
-    from fab.steps.preprocess import preprocess_fortran
+    from fab.api import (BuildConfig, analyse, compile_fortran,
+                         find_source_files, grab_folder, link_exe,
+                         preprocess_fortran)
 
     with BuildConfig(project_label='<project label>') as state:
         grab_folder(state, src='<path to source folder>')

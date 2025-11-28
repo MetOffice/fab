@@ -11,14 +11,13 @@ classes for gcc, gfortran, icc, ifort
 import re
 from pathlib import Path
 import warnings
-from typing import cast, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import cast, List, Optional, Tuple, Union
 
+from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.flags import AlwaysFlags
 from fab.tools.compiler_suite_tool import CompilerSuiteTool
 from fab.util import string_checksum
-if TYPE_CHECKING:
-    from fab.build_config import BuildConfig
 
 
 class Compiler(CompilerSuiteTool):
