@@ -10,8 +10,8 @@ This function gets called from the default site-specific config file
 import argparse
 from typing import cast, Dict, List
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Compiler, Linker, ToolRepository
+from fab.api import (AddFlags, BuildConfig, Category, Compiler, Linker,
+                     ToolRepository)
 
 
 def setup_intel_classic(build_config: BuildConfig,

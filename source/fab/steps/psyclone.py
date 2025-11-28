@@ -24,7 +24,8 @@ from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
 from fab.steps.preprocess import pre_processor
-from fab.tools import Category, Psyclone
+from fab.tools.category import Category
+from fab.tools.psyclone import Psyclone
 from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
                       file_walk, TimerLogger, string_checksum, suffix_filter,
                       by_type, log_or_dot_finish)
@@ -36,7 +37,7 @@ logger = logging.getLogger(__name__)
 def preprocess_x90(config, common_flags: Optional[List[str]] = None):
     common_flags = common_flags or []
 
-    fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
+    fpp = config.tool_box.get_tool(Category.FORTRAN_PREPROCESSOR)
     source_files = SuffixFilter(ArtefactSet.X90_COMPILER_FILES, '.X90')(config.artefact_store)
 
     # Add the pre-processed now .x90 files into X90_COMPILER_FILES
@@ -318,7 +319,7 @@ def do_one_file(arg: Tuple[Path, MpCommonArgs]):
 
     else:
         config = mp_payload.config
-        psyclone = config.tool_box[Category.PSYCLONE]
+        psyclone = config.tool_box.get_tool(Category.PSYCLONE)
         if not isinstance(psyclone, Psyclone):
             raise RuntimeError(f"Unexpected tool '{psyclone.name}' of type "
                                f"'{type(psyclone)}' instead of Psyclone")

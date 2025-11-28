@@ -10,7 +10,7 @@
 import warnings
 
 from fab.steps import step
-from fab.tools import Category
+from fab.tools.category import Category
 
 
 # todo: allow cli args, e.g to set the depth
@@ -20,7 +20,7 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
     Checkout or update a Git repo.
 
     """
-    git = config.tool_box[Category.GIT]
+    git = config.tool_box.get_tool(Category.GIT)
     dst = config.source_root / dst_label
 
     # create folder?
@@ -42,7 +42,7 @@ def git_merge(config, src: str, dst_label: str = '', revision=None):
     Merge a git repo into a local working copy.
 
     """
-    git = config.tool_box[Category.GIT]
+    git = config.tool_box.get_tool(Category.GIT)
     dst = config.source_root / dst_label
     git.fetch(src=src, dst=dst, revision=revision)
     git.merge(dst=dst, revision=revision)

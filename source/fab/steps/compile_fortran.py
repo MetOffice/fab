@@ -21,7 +21,9 @@ from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Compiler, Flags
+from fab.tools.category import Category
+from fab.tools.compiler import Compiler
+from fab.tools.flags import Flags
 from fab.util import (CompiledFile, log_or_dot_finish, log_or_dot, Timer,
                       by_type, file_checksum)
 
@@ -131,7 +133,7 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
                          path_flags=None):
 
     # Command line tools are sometimes specified with flags attached.
-    compiler = config.tool_box[Category.FORTRAN_COMPILER]
+    compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER)
     if compiler.category != Category.FORTRAN_COMPILER:
         raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
                            f"'{compiler.category}' instead of FortranCompiler")
@@ -390,7 +392,7 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
 
     # tool
     config = mp_common_args.config
-    compiler = config.tool_box[Category.FORTRAN_COMPILER]
+    compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER)
 
     compiler.compile_file(input_file=analysed_file, output_file=output_fpath,
                           config=config,

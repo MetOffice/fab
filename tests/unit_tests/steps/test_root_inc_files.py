@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List
 
 from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import raises, warns, WarningsRecorder
+from pytest import mark, raises, warns
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -24,7 +24,6 @@ class TestRootIncFiles:
     Tests include files are handled correctly.
     """
     def test_vanilla(self, tmp_path: Path,
-                     recwarn: WarningsRecorder,
                      stub_tool_repository) -> None:
         """
         Tests include files is coped to work directory.
@@ -34,46 +33,34 @@ class TestRootIncFiles:
         inc_files = [source_dir / 'bar.inc']
         inc_files[0].write_text("Some include file.")
 
-        config = BuildConfig('proj', ToolBox())
+        config = BuildConfig('proj', ToolBox(),
+                             fab_workspace=Path(tmp_path / 'fab'))
         config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
-        # Nested pytest.warns() do not work as expected to catch two warnings:
-        # one user warning and one deprecation warning. So use recwarn:
-        root_inc_files(config)
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            root_inc_files(config)
 
-        assert len(recwarn) == 2
-        user_warning = recwarn.pop(UserWarning)
-        assert ("_metric_send_conn not set, cannot send metrics" ==
-                str(user_warning.message))
-        dep_warning = recwarn.pop(DeprecationWarning)
-        assert ("RootIncFiles is deprecated as .inc files are due to be "
-                "removed." == str(dep_warning.message))
-
-        assert (config.build_output / inc_files[0]).read_text() \
-            == "Some include file."
+        assert ((config.build_output / inc_files[0].name).read_text()
+                == "Some include file.")
 
     def test_skip_output_folder(self, stub_tool_box: ToolBox,
-                                fs: FakeFilesystem,
-                                recwarn: WarningsRecorder) -> None:
+                                fs: FakeFilesystem) -> None:
         """
         Tests files already in output directory not copied.
         """
         Path('/foo/source').mkdir(parents=True)
         Path('/foo/source/bar.inc').write_text("An include file.")
 
-        config = BuildConfig('proj', stub_tool_box, fab_workspace=Path('/fab'))
+        config = BuildConfig('proj', stub_tool_box,
+                             fab_workspace=Path('/fab'))
         inc_files = [Path('/foo/source/bar.inc'),
                      config.build_output / 'fab.inc']
         config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
-        root_inc_files(config)
-        assert len(recwarn) == 2
-        user_warning = recwarn.pop(UserWarning)
-        assert ("_metric_send_conn not set, cannot send metrics" in
-                str(user_warning.message))
-        dep_warning = recwarn.pop(DeprecationWarning)
-        assert ("RootIncFiles is deprecated as .inc files are due to be "
-                "removed." == str(dep_warning.message))
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            root_inc_files(config)
 
         # From https://pytest-pyfakefs.readthedocs.io/en/stable/
         # troubleshooting.html#os-temporary-directories  :
@@ -81,8 +68,8 @@ class TestRootIncFiles:
         #   a temporary directory is required to ensure that tempfile works
         #   correctly, e.g., that tempfile.gettempdir() will return a valid
         #   value. This means that any newly created fake file system will
-        #   always have either a directory named /tmp when running on POSIX
-        #   systems...
+        #   always have a directory named /tmp when running on POSIX
+        #   systems.
         # So we need to ignore /tmp:
         filetree: List[Path] = []
         for path, _, files in os_walk('/'):
@@ -107,8 +94,42 @@ class TestRootIncFiles:
         config = BuildConfig('proj', stub_tool_box)
         config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
 
-        with raises(FileExistsError), \
-            warns(DeprecationWarning,
-                  match="RootIncFiles is deprecated as .inc "
-                        "files are due to be removed."):
+        with raises(FileExistsError) as err:
             root_inc_files(config)
+        assert ("name clash for include file: /foo/sauce/bar.inc"
+                in str(err.value))
+
+    @mark.parametrize(["suffix_list"], [[[".h90"]],
+                                        [[".inc"]],
+                                        [[".h90", ".inc"]],
+                                        [".h90"],
+                                        ])
+    def test_custom_suffix(self, stub_tool_box: ToolBox,
+                           fs: FakeFilesystem,
+                           suffix_list) -> None:
+        """
+        Tests handling of various suffix-list combinations.
+        """
+        Path('/foo/source').mkdir(parents=True)
+        Path('/foo/source/bar.inc').write_text("The source of the Nile.")
+        Path('/foo/sauce').mkdir(parents=True)
+        Path('/foo/sauce/bar.h90').write_text("Nile sauce.")
+        inc_files = [Path('/foo/source/bar.inc'), Path('/foo/sauce/bar.h90')]
+
+        config = BuildConfig('proj', stub_tool_box)
+        config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] = inc_files
+
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            root_inc_files(config, suffix_list=suffix_list)
+
+        # Test if the supposed to copied files are copied,
+        # and the ones not to be copied are not:
+        if ".h90" in suffix_list:
+            assert (config.build_output / inc_files[1].name).exists()
+        else:
+            assert not (config.build_output / inc_files[1].name).exists()
+        if ".inc" in suffix_list:
+            assert (config.build_output / inc_files[0].name).exists()
+        else:
+            assert not (config.build_output / inc_files[0].name).exists()

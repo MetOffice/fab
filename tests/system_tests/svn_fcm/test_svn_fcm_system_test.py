@@ -17,7 +17,8 @@ import pytest
 
 import fab
 from fab.build_config import BuildConfig
-from fab.tools import Fcm, Subversion, ToolBox
+from fab.tools.versioning import Fcm, Subversion
+from fab.tools.tool_box import ToolBox
 from fab.steps.grab.fcm import fcm_checkout, fcm_export, fcm_merge
 from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge
 
