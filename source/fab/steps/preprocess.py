@@ -18,7 +18,8 @@ from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
 from fab.build_config import BuildConfig, FlagsConfig
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Cpp, CppFortran, Preprocessor
+from fab.tools.category import Category
+from fab.tools.preprocessor import Cpp, CppFortran, Preprocessor
 from fab.util import (log_or_dot_finish, input_to_output_fpath, log_or_dot,
                       suffix_filter, Timer, by_type)
 
@@ -144,11 +145,11 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     if source:
         source_files = source(config.artefact_store)
     else:
-        source_files = config.artefact_store[ArtefactSet.FORTRAN_BUILD_FILES]
+        source_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
-    fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
+    fpp = config.tool_box.get_tool(Category.FORTRAN_PREPROCESSOR)
     if not isinstance(fpp, CppFortran):
         raise RuntimeError(f"Unexpected tool '{fpp.name}' of type "
                            f"'{type(fpp)}' instead of CppFortran")
@@ -170,7 +171,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
-    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.FORTRAN_COMPILER_FILES,
                                   remove_files=F90s,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_FORTRAN])
 
@@ -190,7 +191,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
             remove_files.append(f90)
             new_files.append(output_path)
 
-    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.FORTRAN_COMPILER_FILES,
                                   remove_files=remove_files,
                                   add_files=new_files)
 
@@ -204,7 +205,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
     """
     def __call__(self, artefact_store):
         return CollectionGetter(ArtefactSet.PRAGMAD_C)(artefact_store) \
-               or SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.c')(artefact_store)
+               or SuffixFilter(ArtefactSet.INITIAL_SOURCE_FILES, '.c')(artefact_store)
 
 
 # todo: rename preprocess_c
@@ -221,7 +222,7 @@ def preprocess_c(config: BuildConfig,
     """
     source_getter = source or DefaultCPreprocessorSource()
     source_files = source_getter(config.artefact_store)
-    cpp = config.tool_box[Category.C_PREPROCESSOR]
+    cpp = config.tool_box.get_tool(Category.C_PREPROCESSOR)
     if not isinstance(cpp, Cpp):
         raise RuntimeError(f"Unexpected tool '{cpp.name}' of type "
                            f"'{type(cpp)}' instead of Cpp")
@@ -236,6 +237,6 @@ def preprocess_c(config: BuildConfig,
         **kwargs,
     )
 
-    config.artefact_store.replace(ArtefactSet.C_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.C_COMPILER_FILES,
                                   remove_files=source_files,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_C])

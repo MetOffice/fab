@@ -27,12 +27,12 @@ from fab.util import suffix_filter
 class ArtefactSet(Enum):
     '''A simple enum with the artefact types used internally in Fab.
     '''
-    INITIAL_SOURCE = auto()
+    INITIAL_SOURCE_FILES = auto()
     PREPROCESSED_FORTRAN = auto()
     PREPROCESSED_C = auto()
-    FORTRAN_BUILD_FILES = auto()
-    C_BUILD_FILES = auto()
-    X90_BUILD_FILES = auto()
+    FORTRAN_COMPILER_FILES = auto()
+    C_COMPILER_FILES = auto()
+    X90_COMPILER_FILES = auto()
     CURRENT_PREBUILDS = auto()
     PRAGMAD_C = auto()
     BUILD_TREES = auto()
@@ -190,7 +190,7 @@ class CollectionConcat(ArtefactsGetter):
         DEFAULT_SOURCE_GETTER = CollectionConcat([
             'preprocessed_c',
             'preprocessed_fortran',
-            SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.f90'),
+            SuffixFilter(ArtefactSet.INITIAL_SOURCE_FILES, '.f90'),
         ])
 
     """
@@ -225,7 +225,7 @@ class SuffixFilter(ArtefactsGetter):
     Example::
 
         # The default source getter for the FortranPreProcessor step.
-        DEFAULT_SOURCE = SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.F90')
+        DEFAULT_SOURCE = SuffixFilter(ArtefactSet.INITIAL_SOURCE_FILES, '.F90')
 
     """
     def __init__(self,

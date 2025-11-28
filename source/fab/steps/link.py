@@ -15,7 +15,7 @@ from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
                            CollectionGetter)
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import step
-from fab.tools import Category
+from fab.tools.category import Category
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,6 @@ def link_exe(config,
 
     if len(target_objects) == 0:
         raise ValueError("No target objects defined, linking aborted")
-        return
 
     if config.tool_box.has(Category.LINKER):
         linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,

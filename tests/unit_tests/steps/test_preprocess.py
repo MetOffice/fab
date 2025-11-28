@@ -66,7 +66,7 @@ class Test_preprocess_fortran:
         fake_process.register(['cpp', '--version'])
         tool_box = ToolBox()
         # Take the C preprocessor
-        cpp = tool_box[Category.C_PREPROCESSOR]
+        cpp = tool_box.get_tool(Category.C_PREPROCESSOR)
         # And set its category to FORTRAN_PREPROCESSOR
         cpp._category = Category.FORTRAN_PREPROCESSOR
         # Now overwrite the Fortran preprocessor with the re-categorised

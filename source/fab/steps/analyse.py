@@ -53,8 +53,8 @@ from fab.util import TimerLogger, by_type
 logger = logging.getLogger(__name__)
 
 DEFAULT_SOURCE_GETTER = CollectionConcat([
-    ArtefactSet.FORTRAN_BUILD_FILES,
-    ArtefactSet.C_BUILD_FILES,
+    ArtefactSet.FORTRAN_COMPILER_FILES,
+    ArtefactSet.C_COMPILER_FILES,
 ])
 
 

@@ -22,7 +22,9 @@ from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
-from fab.tools import Category, ToolBox, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 from fab.util import common_arg_parser
 
 
@@ -51,7 +53,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
         root_inc_files(config)  # JULES helper, get rid of this eventually
         preprocess_fortran(config)
         c_pragma_injector(config)
-        preprocess_c(config, source=CollectionGetter(ArtefactSet.C_BUILD_FILES))
+        preprocess_c(config, source=CollectionGetter(ArtefactSet.C_COMPILER_FILES))
         analyse(config, find_programs=True)
         compile_fortran(config)
         compile_c(config)
