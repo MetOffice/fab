@@ -51,7 +51,7 @@ class ToolWithFlags(Tool):
         return self._flags
 
     def get_flags(self,
-                  config: Optional["BuildConfig"],
+                  config: Optional["BuildConfig"] = None,
                   file_path: Optional[Path] = None) -> List[str]:
         ''':returns: the flags to be used with this tool.'''
         return self.flags.get_flags(config, file_path)
