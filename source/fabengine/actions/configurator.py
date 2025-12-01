@@ -40,6 +40,9 @@ class RosePickerPrerequisite(Prerequisite):
         return [Path(path) for path in buffer.split()]
 
     def ready(self) -> bool:
+        if not self._filename.exists():
+            return False
+
         okay = True
         import_files = [self._filename]
         while import_files:
@@ -80,10 +83,7 @@ class RosePicker(Action):
         return f"Rose picking: {self._filename.name}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        if not self._filename.exists():
-            return [BooleanPrerequisite(False)]
-        else:
-            return [RosePickerPrerequisite(self._filename, self._database)]
+        return [RosePickerPrerequisite(self._filename, self._database)]
 
     def perform(self) -> Iterable[Action | ActionResult]:
         command = ['rose_picker', str(self._filename),
