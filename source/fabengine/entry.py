@@ -115,23 +115,32 @@ class WorkerProcess(Process):
 
             try:
                 logger.debug("Performing: " + str(action))
+                requeued = False
                 for thing in action.perform():
                     if isinstance(thing, ActionResult):
                         logger.debug("Queueing result: " + str(thing))
                         self._result_queue.put(thing)
                         if thing.return_code != 0:
+                            logger.debug("Action failed, requesting stop")
                             self._work_queue.stop()
+                            continue
                     elif isinstance(thing, Action):
                         if thing is action:
                             logger.info("Requeueing action: " + str(thing))
-                            self._work_queue.append(thing)
+                            self._work_queue.append(thing)  # Always to back
+                            requeued = True
                         else:
                             logger.debug("Queueing action: " + str(thing))
-                            if self._database.optimise_queue:
+                            if self._database.queue_new_on_front:
                                 self._work_queue.appendleft(thing)
                             else:
                                 self._work_queue.append(thing)
-                            self._database.bump_processed_tally()
+                    else:
+                        raise RuntimeError(
+                            "Unexpected object on result queue: " + str(thing)
+                        )
+                if not requeued:
+                    self._database.bump_processed_tally()
                 logger.debug("Done: " + str(action))
             except Exception as ex:
                 logger.error("Exception in process: " + str(ex))
@@ -156,15 +165,47 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
     logger.addHandler(StreamHandler())
 
     with (FabManager() as manager):
+        # Todo: Hardwired variables
         database = Database(
             {
+                # Physics from the UM
+                'UM_PHYSICS': 'true',
+                'LFRIC': 'true',
+                'USSPREC_32B': 'true',
+                'LSPREC_32B': 'true',
+                'UM_JULES': 'true',
+                # I/O platform
                 'USE_XIOS': 'true',
-                'LEGACY_MPI': 'true',
+                # Component precision
                 'RDEF_PRECISION': '64',
                 'R_SOLVER_PRECISION': '32',
                 'R_TRAN_PRECISION': '64',
-                'R_BL_PRECISION': '64'
+                'R_BL_PRECISION': '64',
+                # Transitional
+                'LEGACY_MPI': 'true'
             },
+            [
+                'funit', 'pfunit',  # pFUnit
+                'mpi', 'mpi_f08',  # MPI
+                'netcdf',  # NetCDF
+                'omp_lib',  # OpenMP
+                'xios', 'icontext', 'mod_wait', 'mod_oasis',  # XIOS/OASIS
+                'yaxt',  # YAXT
+                'vernier_mod',  # Vernier
+                'c_shum_byteswap'  # ShUMlib
+            ],
+            [
+                'netcdff', 'netcdf',
+                'xios',
+                'yaxt', 'yaxt_c',
+                'pfunit', 'funit', 'fargparse', 'gftl-shared-v2',
+                'stdc++'
+            ],
+            [
+                {'real': 'real32'},
+                {'real': 'real64'},
+                {'integer': 'int32'}
+            ],
             manager
         )
         sentinel_barrier = Barrier(worker_threads,
@@ -282,13 +323,18 @@ if __name__ == '__main__':
                       'root=components/driver/source',
                       'meta-dir=components/driver/rose-meta',
                       'root=components/science/source',
+                      'meta-dir=components/science/rose-meta',
                       'root=components/inventory/source',
+                      'meta-dir=components/inventory/rose-meta',
+                      'root=components/lfric-xios/source',
+                      'meta-dir=components/lfric-xios/rose-meta',
                       'root=applications/skeleton/source',
                       'meta-file=lfric_core/applications/skeleton/rose-meta/lfric-skeleton/HEAD/rose-meta.conf']
-        main(Path('work'), arguments.threads,
+        host = f'localhost{Path().absolute()}'
+        main(arguments.work_dir, arguments.threads,
              arguments.no_monitor, arguments.profile,
              level,
-             f'file://localhost{Path().absolute() / "lfric_core"}?{"&".join(components)}')
+             f'file://{host}/lfric_core?{"&".join(components)}')
     elif arguments.target == 'atmosphere':
         core_components = [
             'root=infrastructure/source',

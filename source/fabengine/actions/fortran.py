@@ -76,9 +76,7 @@ class AnalyseFortran(Action):
 
         actions: list[Action] = []
 
-        # Todo: prerequisites end up in list multiple times.
-        prereqs: list[PrerequisiteInfo] = []
-        unit_prereqs: list[PrerequisiteInfo] = []
+        unit_prereqs: dict[str, PrerequisiteInfo] = {}
         current_unit: Optional[str] = None
         state = 'seeking'
         for line in self._source.read_text().splitlines():
@@ -132,34 +130,26 @@ class AnalyseFortran(Action):
                         logger.debug("Found procedure: " + symbol)
                         continue
 
-                # Todo: Hardwired externals
-                #
-                _IGNORE_MODULES = [
-                    'funit', 'pfunit',  # pFUnit
-                    'mpi', 'mpi_f08',  # MPI
-                    'netcdf',  # NetCDF
-                    'omp_lib',  # OpenMP
-                    'xios', 'icontext', 'mod_wait', 'mod_oasis',  # XIOS/OASIS
-                    'yaxt',  # YAXT
-                    'vernier_mod',  # Vernier
-                    'c_shum_byteswap'  # ShUMlib
-                ]
                 match = self._USE_PATTERN.match(line)
                 if match:
                     name = match.group(1).lower()
-                    if name in _IGNORE_MODULES:
+                    if name in self._database.fc_ignore_modules:
                         continue
-                    logger.debug("Found usage: " + name)
-                    unit_prereqs.append(PrerequisiteInfo(name,
-                                                         PrerequisiteType.USE))
+                    if name not in unit_prereqs:
+                        logger.debug("Found usage: " + name)
+                        unit_prereqs[name] = PrerequisiteInfo(
+                            name, PrerequisiteType.USE
+                        )
                     continue
 
                 match = self._EXTERNAL_PATTERN.match(line)
                 if match:
                     name = match.group(1).lower()
-                    logger.debug("Found external: " + name)
-                    unit_prereqs.append(PrerequisiteInfo(name,
-                                                         PrerequisiteType.EXTERNAL))
+                    if name not in unit_prereqs:
+                        logger.debug("Found external: " + name)
+                        unit_prereqs[name] = PrerequisiteInfo(
+                            name, PrerequisiteType.EXTERNAL
+                        )
                     continue
 
                 match = self._END_PATTERN.match(line)
@@ -169,8 +159,8 @@ class AnalyseFortran(Action):
                     if name == current_unit:
                         logger.debug("End of unit: " + name)
 
-                        self._database.prerequisites[current_unit] = unit_prereqs
-                        prereqs.extend(unit_prereqs)
+                        self._database.prerequisites[current_unit] \
+                            = list(unit_prereqs.values())
 
                         current_unit = None
 
@@ -289,14 +279,18 @@ class PreprocessFortran(Action):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [FilePrerequisite(self._source)]
 
-    def perform(self) -> list[Action]:
+    def perform(self) -> list[Action | ActionResult]:
         dest = self._work_dir / self._source.with_suffix('.f90').name
+        # Todo: Hardwired command
         command = ['cpp', '-traditional-cpp', '-P']
         for name, value in self._database.fpp_variables.items():
-            command.extend(['-D', f'{name}={value}'])
+            command.extend([f'-D{name}={value}'])
         command.append(str(self._source))
         command.append(str(dest))
-        run(command, check=True)
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+        if process.returncode != 0:
+            return [ActionResult(self, process.returncode, ' '.join(command),
+                                 stdout=process.stdout, stderr=process.stderr)]
         return [AnalyseFortran(dest, self._work_dir, self._database)]
 
 
@@ -314,6 +308,7 @@ class LinkFortran(Action):
     def prerequisites(self) -> Iterable[Prerequisite]:
         prereqs: list[Prerequisite] = []
         for module in self._modules:
+            # Todo: Surely we don't need to know if the source has been analysed?
             prereqs.append(AnalysedPrerequisite(module, self._database))
             if module in self._database.symbol_table:
                 filename = self._database.symbol_table[module].source_file.with_suffix('.o').name
@@ -321,7 +316,7 @@ class LinkFortran(Action):
                 prereqs.append(FilePrerequisite(object_file))
         return prereqs
 
-    def perform(self) -> list[Action]:
+    def perform(self) -> list[Action | ActionResult]:
         objects: set[Path] = set()
         for module in self._modules:
             filename = self._database.symbol_table[module].source_file.with_suffix('.o').name
@@ -335,10 +330,11 @@ class LinkFortran(Action):
         command.extend(['-o', str(dest), '-fopenmp'])
         for object_file in objects:
             command.append(str(object_file))
-        # Todo: Hardwired libraries
-        command.extend(['-l', 'netcdff', '-l', 'netcdf',
-                        '-l', 'yaxt', '-l', 'yaxt_c',
-                        '-l', 'pfunit', '-l', 'funit', '-l', 'fargparse',
-                        '-l', 'gftl-shared-v2'])
-        run(command, cwd=self._work_dir, check=True)
+        for library in self._database.libraries:
+            command.extend(['-l', library])
+        process = run(command, cwd=self._work_dir,
+                      stdout=PIPE, stderr=PIPE, encoding='utf8')
+        if process.returncode != 0:
+            return [ActionResult(self, process.returncode, ' '.join(command),
+                                 process.stdout, process.stderr)]
         return []

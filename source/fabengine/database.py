@@ -8,9 +8,15 @@ from fabengine.manager import FabManager
 
 
 class Database:
-    def __init__(self, fpp_variables: dict[str, str], manager: FabManager):
+    def __init__(self, fpp_variables: dict[str, str],
+                 fc_ignore_modules: list[str], libraries: list[str],
+                 field_instances: list[dict[str, str]],
+                 manager: FabManager):
         self._fpp_variables = fpp_variables
-        self._optimise_queue = True
+        self._fc_ignore_modules = fc_ignore_modules
+        self._libraries = libraries
+        self._field_instances = field_instances
+        self._queue_new_on_front = True
 
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
@@ -23,8 +29,20 @@ class Database:
         return self._fpp_variables
 
     @property
-    def optimise_queue(self) -> bool:
-        return self._optimise_queue
+    def fc_ignore_modules(self) -> list[str]:
+        return self._fc_ignore_modules
+
+    @property
+    def libraries(self) -> list[str]:
+        return self._libraries
+
+    @property
+    def field_instances(self) -> list[dict[str, str]]:
+        return self._field_instances
+
+    @property
+    def queue_new_on_front(self) -> bool:
+        return self._queue_new_on_front
 
     def reset_work_done(self) -> None:
         self._processed_last_round.set(self._processed_this_round.get())

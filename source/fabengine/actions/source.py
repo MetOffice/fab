@@ -31,8 +31,9 @@ class SourceDirectory(Action):
         return [FilePrerequisite(self._filename)]
 
     # Todo: Would it be possible to chunk output since this action can
-    #       generate a lot of actions. Maybe create 10 before putting ourself
-    #       back on the queue.
+    #       generate a lot of actions. Maybe create 10 (or 100) before putting
+    #       ourself back on the queue. Or maybe that only seems necessary for
+    #       single threaded builds.
     #
     def perform(self) -> Generator[Action, None, list[Action]]:
         mp_get_logger().debug("Scanning " + str(self._filename))
@@ -56,11 +57,10 @@ class SourceDirectory(Action):
                 elif filename.suffix == '.pf':
                     actions.append(PfUnit(filename, build_dir, self._database))
                 elif filename.suffix == '.t90':
-                    # Todo: Hardwired
-                    precissions = [('real', 'real32'),
-                                   ('real', 'real64'),
-                                   ('integer', 'int32')]
-                    for ttype, tkind in precissions:
+                    # Todo: Hardwired to field templating and just nasty.
+                    for mapping in self._database.field_instances:
+                        ttype = list(mapping.keys())[0]
+                        tkind = mapping[ttype]
                         leafname = filename.stem[:-4] + '_' + tkind + '_mod.f90'
                         inserts = {'type': ttype, 'kind': tkind}
                         actions.append(Templaterator(filename,
