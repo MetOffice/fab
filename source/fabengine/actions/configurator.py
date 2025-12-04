@@ -86,6 +86,7 @@ class RosePicker(Action):
         return [RosePickerPrerequisite(self._filename, self._database)]
 
     def perform(self) -> Iterable[Action | ActionResult]:
+        self._work_dir.mkdir(parents=True, exist_ok=True)
         command = ['rose_picker', str(self._filename),
                    '-directory', str(self._work_dir)]
         for directory in self._database.config_meta_dirs:

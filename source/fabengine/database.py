@@ -7,15 +7,20 @@ from pathlib import Path
 from fabengine.manager import FabManager
 
 
+# Todo: Work directory and database always passed together.
 class Database:
     def __init__(self, fpp_variables: dict[str, str],
                  fc_ignore_modules: list[str], libraries: list[str],
                  field_instances: list[dict[str, str]],
+                 build_tags: dict[str, list[str]],
+                 tag_dirs: dict[Path, list[str]],
                  manager: FabManager):
         self._fpp_variables = fpp_variables
         self._fc_ignore_modules = fc_ignore_modules
         self._libraries = libraries
         self._field_instances = field_instances
+        self._build_tags = build_tags
+        self._tag_dirs = tag_dirs
         self._queue_new_on_front = True
 
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
@@ -39,6 +44,14 @@ class Database:
     @property
     def field_instances(self) -> list[dict[str, str]]:
         return self._field_instances
+
+    @property
+    def build_tag_args(self) -> dict[str, list[str]]:
+        return self._build_tags
+
+    @property
+    def tag_dirs(self) -> dict[Path, list[str]]:
+        return self._tag_dirs
 
     @property
     def queue_new_on_front(self) -> bool:

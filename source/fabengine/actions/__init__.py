@@ -47,6 +47,7 @@ class ActionResult:
     def return_code(self) -> int:
         return self._return_code
 
+    # Todo: Accept list of strings straight from calling process.
     @property
     def command(self) -> Optional[str]:
         return self._command

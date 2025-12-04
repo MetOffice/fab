@@ -3,18 +3,18 @@ from __future__ import annotations
 from cProfile import Profile
 from logging import StreamHandler, DEBUG, INFO, WARNING
 from queue import Empty
+from traceback import format_exception
 from time import sleep
 
 from multiprocessing import Barrier, Process, get_logger as mp_get_logger
 from pathlib import Path
-from urllib.parse import urlparse
 from queue import Queue
-from typing import Optional
 
 from fabengine.actions import Action, ActionResult
 from fabengine.actions.configurator import RosePicker
 from fabengine.actions.sentinel import Sentinel
-from fabengine.actions.source import GitRepository, RemoteTree, SourceDirectory
+from fabengine.project import Project
+from fabengine.repository import Repository, FileTreeRepository
 from fabengine.database import Database
 from fabengine.manager import FabManager
 from fabengine.mpdequeue import MPDEQueue
@@ -31,22 +31,24 @@ class MonitorProcess(Process):
 
     def _monitor(self):
         logger = mp_get_logger()
+        sleep_count = 0
         while not self._stopping:
+            sleep(1)
+            sleep_count += 1
             self._stopping |= self._work_queue.stopping()
+            if sleep_count < 11:
+                continue
+            sleep_count = 0
+
             logger.info("---")
             logger.info(f"Queue stopping: {self._work_queue.stopping()}")
             length = self._work_queue.length()
             for action, tally in self._work_queue.work_tally().items():
                 percentage = 100 * tally / length
                 logger.info(
-                    f"{action.__name__} on queue: {tally} ({int(percentage)}%)"
+                    f"{tally} ({int(percentage)}%): {action.__name__} on queue"
                 )
-            logger.info("---")
 
-            for i in range(10):
-                if self._stopping:
-                    break  # Break out of delay early
-                sleep(1)
         logger.debug("Monitor stopped")
 
 
@@ -131,6 +133,7 @@ class WorkerProcess(Process):
                             requeued = True
                         else:
                             logger.debug("Queueing action: " + str(thing))
+                            # Todo: Strategy pattern for enqueueing
                             if self._database.queue_new_on_front:
                                 self._work_queue.appendleft(thing)
                             else:
@@ -156,7 +159,8 @@ class WorkerProcess(Process):
 
 
 def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
-         profile: bool = False, log_level: int = WARNING, *args: Path | str):
+         profile: bool = False, log_level: int = WARNING,
+         *repositories: Repository):
     work_dir.mkdir(parents=True, exist_ok=True)
     (work_dir / 'build').mkdir(exist_ok=True)
 
@@ -164,7 +168,7 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
     logger.setLevel(log_level)
     logger.addHandler(StreamHandler())
 
-    with (FabManager() as manager):
+    with FabManager() as manager:
         # Todo: Hardwired variables
         database = Database(
             {
@@ -206,6 +210,15 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
                 {'real': 'real64'},
                 {'integer': 'int32'}
             ],
+            {
+                'um': ['-fdefault-real-8', '-fdefault-double-8']
+            },
+            {
+                Path('science/physics_schemes/source'): ['um'],
+                Path('jules/source'): ['um'],
+                Path('socrates/source'): ['um'],
+                Path('interfaces/physics_schemes_interface/source/legacy'): ['um']
+            },
             manager
         )
         sentinel_barrier = Barrier(worker_threads,
@@ -213,46 +226,24 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
 
         work_queue = manager.MPDEQueue()
         result_queue = manager.Queue()
-        for arg in args:
-            if isinstance(arg, Path):
-                work_queue.put(
-                    SourceDirectory(arg, work_dir, database)
-                )
-            else:  # Argument is a URL
-                scheme, netloc, path, _, query, fragment = urlparse(arg)
-                github_project = Path(path).name  # Todo: Assumes GitHub
-                meta_file: Optional[Path] = None
-                new_query: list[str] = []
-                if query:
-                    for part in query.split('&'):
-                        key, value = part.split('=', maxsplit=1)
-                        if key == 'root':
-                            new_query.append(value)
-                        elif key == 'meta-dir':
-                            database.config_meta_dirs.append(
-                                work_dir / github_project / value
-                            )
-                        elif key == 'meta-file':
-                            # Todo: Hardwired
-                            meta_file = work_dir / value
-                        else:
-                            raise RuntimeError(
-                                "Unrecognised URL query part: " + part
-                            )
-                if scheme == 'file':
+        for repository in repositories:
+            repo_action = repository.create_action(work_dir, database)
+            work_queue.append(repo_action)
+
+            for project in repository.projects:
+                if project.configuration_meta_data is None:
+                    continue
+
+                meta_data_path = repo_action.working_copy / project.configuration_meta_data
+                if project.configuration_meta_data.name == 'rose-meta.conf':
+                    # Todo: Don't like Core reference here
                     work_queue.append(
-                        RemoteTree(Path(path), new_query, work_dir,
-                                   database)
+                        RosePicker(meta_data_path,
+                                   work_dir / 'build' / 'configuration',
+                                   work_dir / 'lfric_core', database)
                     )
-                elif scheme == 'ssh':
-                    url = f'{scheme}://{netloc}{path}?{"&".join(new_query)}#{fragment}'
-                    work_queue.append(
-                        GitRepository(url, work_dir, database)
-                    )
-                if meta_file:
-                    work_queue.append(RosePicker(meta_file, work_dir / 'build',
-                                                 work_dir / 'lfric_core',
-                                                 database))
+                else:  # Is a directory
+                    database.config_meta_dirs.append(meta_data_path)
 
         workers: list[WorkerProcess] = []
         for _ in range(worker_threads):
@@ -277,25 +268,37 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
             monitor.stop()
             monitor.join()
 
-        while work_queue.length() > 0:
-            remainder = work_queue.pop()
-            logger.warning(
-                f"Still on the queue: {remainder}"
-            )
-            for prereq in remainder.prerequisites():
-                logger.warning(f"Waiting for ({prereq.ready()}) {prereq}")
+        try:
+            while True:
+                remainder = work_queue.pop()
+                logger.warning(
+                    f"Still on the queue: {remainder}"
+                )
+                for prereq in remainder.prerequisites():
+                    logger.warning(f"Waiting for ({prereq.ready()}) {prereq}")
+        except IndexError:
+            pass  # Nothing further to do when queue is empty.
 
         try:
             while True:
                 result = result_queue.get(False)
                 if result.return_code == 0 and result.cause is None:  # Success
-                    logger.info(f"Completed: {result.action}\n{result.stdout}")
+                    message = "Completed: " + str(result.action)
+                    if result.stdout:
+                        message += "\n" + result.stdout
+                    logger.info(message)
                 else:  # Failure
-                    logger.error(
-                        f"Failed {result.action}\n{result.command}\n{result.stderr}\n{result.cause}"
-                    )
+                    message = "Failed " + str(result.action)
+                    if result.command:
+                        message += "\nCommand: " + result.command
+                    if result.stderr:
+                        message += "\nError: " + result.stderr
+                    if result.cause:
+                        message += "\nCause: " \
+                        + ''.join(format_exception(result.cause))
+                    logger.error(message)
         except Empty:
-            pass  # Nothing to do when queue is empty.
+            pass  # Nothing further to do when queue is empty.
 
 
 if __name__ == '__main__':
@@ -319,56 +322,66 @@ if __name__ == '__main__':
         level = DEBUG
 
     if arguments.target == 'skeleton':
-        components = ['root=infrastructure/source',
-                      'root=components/driver/source',
-                      'meta-dir=components/driver/rose-meta',
-                      'root=components/science/source',
-                      'meta-dir=components/science/rose-meta',
-                      'root=components/inventory/source',
-                      'meta-dir=components/inventory/rose-meta',
-                      'root=components/lfric-xios/source',
-                      'meta-dir=components/lfric-xios/rose-meta',
-                      'root=applications/skeleton/source',
-                      'meta-file=lfric_core/applications/skeleton/rose-meta/lfric-skeleton/HEAD/rose-meta.conf']
-        host = f'localhost{Path().absolute()}'
+        components = [
+            Project(Path('infrastructure')),
+            Project(Path('components/driver')),
+            Project(Path('components/science')),
+            Project(Path('components/inventory')),
+            Project(Path('components/lfric-xios')),
+            Project(
+                Path('applications/skeleton'),
+                configuration_meta_data=Path('rose-meta/lfric-skeleton/HEAD/rose-meta.conf')
+            )
+        ]
         main(arguments.work_dir, arguments.threads,
              arguments.no_monitor, arguments.profile,
              level,
-             f'file://{host}/lfric_core?{"&".join(components)}')
+             FileTreeRepository(f'localhost:{Path().absolute()}/lfric_core',
+                                projects=components)
+             )
     elif arguments.target == 'atmosphere':
-        core_components = [
-            'root=infrastructure/source',
-            'root=components/driver/source',
-            'meta-dir=components/driver/rose-meta',
-            'root=components/science/source',
-            'meta-dir=components/science/rose-meta',
-            'root=components/inventory/source',
-            'meta-dir=components/inventory/rose-meta',
-            'root=components/lfric-xios/source',
-            'meta-dir=components/lfric-xios/rose-meta'
-        ]
-        apps_components = [
-            'root=science/shared/source',
-            'root=interfaces/socrates_interface/source',
-            'meta-dir=interfaces/socrates_interface/rose-meta',
-            'root=interfaces/jules_interface/source',
-            'meta-dir=interfaces/jules_interface/rose-meta',
-            'root=interfaces/physics_schemes_interface/source',
-            'meta-dir=interfaces/physics_schemes_interface/rose-meta',
-            'root=science/gungho/source',
-            'meta-dir=science/gungho/rose-meta',
-            'root=applications/lfric_atm/source',
-            'meta-file=lfric_apps/applications/lfric_atm/rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf'
-        ]
-        host = f'localhost{Path().absolute()}'
         main(arguments.work_dir, arguments.threads,
-             arguments.no_monitor, arguments.profile, level,
-            f'file://{host}/extract/extract/casim/src',
-            f'file://{host}/extract/extract/ukca/src',
-            f'file://{host}/jules_interface/extract/jules/src',
-            f'file://{host}/socrates_interface/extract/socrates/src',
-            f'file://{host}/lfric_core?{"&".join(core_components)}',
-            f'file://{host}/lfric_apps?{"&".join(apps_components)}'
+             arguments.no_monitor, arguments.profile,
+             level,
+             FileTreeRepository(f'localhost:{Path().absolute()}/lfric_core',
+                                [
+                                    Project(Path('infrastructure')),
+                                    Project(Path('components/driver')),
+                                    Project(Path('components/science')),
+                                    Project(Path('components/inventory')),
+                                    Project(Path('components/lfric-xios'))
+                                ]),
+            FileTreeRepository(
+                     f'localhost:{Path().absolute()}/lfric_apps',
+                     [
+                        Project(Path('interfaces/physics_schemes_interface')),
+                        Project(Path('science/shared'), 'bucket'),
+                        Project(Path('interfaces/socrates_interface')),
+                        Project(Path('interfaces/jules_interface')),
+                        Project(Path('science/gungho')),
+                        Project(
+                            Path('applications/lfric_atm'),
+                            configuration_meta_data=Path(
+                                'rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf'
+                            )
+                        )
+                    ]
+                 ),
+                 FileTreeRepository(
+                     f'localhost:{Path().absolute()}/extract/extract',
+                     [
+                         Project(Path('casim'), source_dir=Path('src')),
+                         Project(Path('ukca'), source_dir=Path('src'))
+                     ]
+                 ),
+                 FileTreeRepository(
+                     f'localhost:{Path().absolute()}/jules_interface/extract',
+                     [Project(Path('jules'), source_dir=Path('src'))]
+                 ),
+                 FileTreeRepository(
+                     f'localhost:{Path().absolute()}/socrates_interface/extract',
+                     [Project(Path('socrates'), source_dir=Path('src'))]
+                 )
         )
     else:
         raise RuntimeError("Unrecognised target: " + arguments.target)

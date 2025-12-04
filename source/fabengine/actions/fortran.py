@@ -29,7 +29,19 @@ class ImportFortran(Action):
         return [FilePrerequisite(self._source)]
 
     def perform(self) -> Iterable[Action | ActionResult]:
-        destination = self._work_dir / self._source.with_suffix('.f90').name
+        tag: list[str] = []
+        for candidate in self._database.tag_dirs:
+            try:
+                self._source.relative_to(candidate)
+                tag = self._database.tag_dirs[candidate]
+                break
+            except ValueError:
+                pass
+        assert len(tag) < 2
+        if tag:
+            destination = self._work_dir / tag[0] / self._source.name
+        else:
+            destination = self._work_dir / self._source.name
         copyfile(self._source, destination)
         return [AnalyseFortran(destination, self._work_dir, self._database)]
 
@@ -61,7 +73,7 @@ class AnalyseFortran(Action):
     _PUBLIC_PATTERN = re_compile(r'\s*public\s*(:?::)?\s*(.+)', IGNORECASE)
 
     def __init__(self, source: Path, work_dir: Path, database: Database):
-        self._source = source.absolute()
+        self._source = source
         self._work_dir = work_dir
         self._database = database
 
@@ -223,8 +235,8 @@ class CompileFortran(Action):
     def __init__(self, source: Path, work_dir: Path,
                  prerequisites: Iterable[PrerequisiteInfo],
                  database: Database):
-        self._source = source.absolute()
-        self._work_dir = work_dir.absolute()
+        self._source = source
+        self._work_dir = work_dir
         self._prerequisites = set(prerequisites)
         self._database = database
 
@@ -247,12 +259,18 @@ class CompileFortran(Action):
         return prereqs
 
     def perform(self) -> Iterable[Action | ActionResult]:
+        # Todo: Hardwired assumption on workspace layout
+        tag_name = self._source.relative_to(self._work_dir.parent).name
+        tag_args = self._database.build_tag_args.get(tag_name) or []
+        mp_get_logger().debug(', '.join(tag_args))
+
         dest = self._work_dir / self._source.with_suffix('.o').name
         # Todo: Hardwired arguemnts
         command = ['mpif90', '-c', '-J', str(self._work_dir), '-fopenmp',
                    '-std=f2008', '-ffree-line-length-none']
         for arg in os_environ['FFLAGS'].split():
             command.append(arg)
+        command.extend(tag_args)
         #
         # Todo: Hardwired arguments
         #
@@ -280,7 +298,19 @@ class PreprocessFortran(Action):
         return [FilePrerequisite(self._source)]
 
     def perform(self) -> list[Action | ActionResult]:
-        dest = self._work_dir / self._source.with_suffix('.f90').name
+        tag: list[str] = []
+        for candidate in self._database.tag_dirs:
+            try:
+                self._source.relative_to(candidate)
+                tag = self._database.tag_dirs[candidate]
+                break
+            except ValueError:
+                pass
+        assert len(tag) < 2
+        if tag:
+            dest = self._work_dir / tag[0] / self._source.with_suffix('.f90').name
+        else:
+            dest = self._work_dir / self._source.with_suffix('.f90').name
         # Todo: Hardwired command
         command = ['cpp', '-traditional-cpp', '-P']
         for name, value in self._database.fpp_variables.items():
@@ -323,7 +353,7 @@ class LinkFortran(Action):
             object_file = self._work_dir / filename
             objects.add(object_file)
 
-        dest = self._work_dir.absolute() / self._program
+        dest = self._work_dir / self._program
         command = ['mpif90']
         for arg in os_environ['LDFLAGS'].split():
             command.append(arg)
@@ -332,8 +362,7 @@ class LinkFortran(Action):
             command.append(str(object_file))
         for library in self._database.libraries:
             command.extend(['-l', library])
-        process = run(command, cwd=self._work_dir,
-                      stdout=PIPE, stderr=PIPE, encoding='utf8')
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
             return [ActionResult(self, process.returncode, ' '.join(command),
                                  process.stdout, process.stderr)]

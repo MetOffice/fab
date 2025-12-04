@@ -18,16 +18,11 @@ class MPDEQueue(deque[Action]):
     def stopping(self) -> bool:
         return self._stop
 
-    def work_tally(self) -> dict[Type[Action], int]:
-        return self._work_tally
-
     def length(self) -> int:
         return self._length
 
-    def dump_queue(self) -> None:
-        for action in self:
-            print(action)
-        print()
+    def work_tally(self) -> dict[Type[Action], int]:
+        return self._work_tally
 
     def appendleft(self, item: Action) -> None:
         super().appendleft(item)
