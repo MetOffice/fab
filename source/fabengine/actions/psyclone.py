@@ -3,62 +3,57 @@ from __future__ import annotations
 from re import compile as re_compile, IGNORECASE
 from pathlib import Path
 from subprocess import run, PIPE
-from typing import Generator, Iterable, Optional
+from typing import Generator, Iterable
 
 from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions.fortran import PreprocessFortranBase
 from fabengine.prerequisite import FilePrerequisite, SymbolPrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
 
 
-class PreprocessAlgorithm(Action):
-    def __init__(self, source: Path, work_dir: Path, core_dir: Path,
-                 database: Database, macros: Optional[dict[str, str]] = None):
-        self._source = source
-        self._work_dir = work_dir
+class PreprocessAlgorithm(PreprocessFortranBase):
+    def __init__(self, repo_dir: Path, source: Path, build_dir: Path,
+                 core_dir: Path, work_dir: Path, database: Database):
+        super().__init__(repo_dir, source, build_dir, work_dir, database)
         self._core_dir = core_dir
-        self._database = database
-        if macros is None:
-            self._macros = {}
-        else:
-            self._macros = macros
 
     def __str__(self) -> str:
-        return "Preprocess: " + self._source.name
+        return "Preprocess algorithm: " + str(self.source)
 
-    def prerequisites(self) -> Iterable[Prerequisite]:
-        return [FilePrerequisite(self._source)]
-
-    def perform(self) -> list[Action]:
-        dest = self._work_dir / self._source.with_suffix('.x90').name
-        command = ['cpp', '-traditional-cpp', '-P']
-        for name, value in self._macros.items():
-            command.extend(['-D', f'{name}={value}'])
-        command.extend(['-D', 'RDEF_PRECISION=64',
-                        '-D', 'R_SOLVER_PRECISION=32',
-                        '-D', 'R_TRAN_PRECISION=64',
-                        '-D', 'R_BL_PRECISION=64'])
-        command.extend(['-D', 'LEGACY_MPI'])
-        command.append(str(self._source))
-        command.append(str(dest))
-        run(command, check=True)
-        return [PSyclone(dest, self._work_dir, self._core_dir, self._database)]
+    def perform(self) -> list[Action | ActionResult]:
+        destination = self._build_dir / self.source.with_suffix('.x90')
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        process = self.invoke_preprocessor(destination)
+        if process.returncode != 0:
+            return [ActionResult(self, process.returncode,
+                                 ' '.join(process.args),
+                                 stdout=process.stdout,
+                                 stderr=process.stderr)]
+        return [PSyclone(self._build_dir, self._source.with_suffix('.x90'),
+                         self._build_dir, self._core_dir,
+                         self._work_dir, self._database)]
 
 
 class PSyclone(Action):
-    def __init__(self, algorithm: Path, work_dir: Path, core_dir: Path,
-                 database: Database):
-        self._algorithm = algorithm
+    def __init__(self, repo_dir: Path, algorithm_file: Path,
+                 project_dir: Path, core_dir: Path,
+                 work_dir: Path, database: Database):
+        self._repo_dir = repo_dir
+        self._algorithm_file = algorithm_file
+        self._project_dir = project_dir
         self._work_dir = work_dir
         self._core_dir = core_dir
         self._database = database
 
-        all_kernels = self._find_kernels(algorithm)
+        self._full_filename = self._repo_dir / self._algorithm_file
+
+        all_kernels = self._find_kernels(self._full_filename)
         self._psy = (all_kernels != [])
         self._kernels = self._remove_builtins(all_kernels)
 
     def __str__(self) -> str:
-        return "PSyclone: " + self._algorithm.name
+        return "PSyclone: " + self._algorithm_file.name
 
     @staticmethod
     def _remove_builtins(kernels: list[str]) -> list[str]:
@@ -101,7 +96,7 @@ class PSyclone(Action):
                     yield buffer
                     buffer = ''
 
-    _INVOKE_PATTERN = re_compile(r'\s*call\s*invoke\s*\((.+)\)',
+    _INVOKE_PATTERN = re_compile(r'call\s*invoke\s*\((.+)\)',
                                  IGNORECASE)
     # Todo: Problems with parenthesis within argument lists. This solution only
     #       handles a single level of nesting.
@@ -111,7 +106,7 @@ class PSyclone(Action):
     def _find_kernels(algorithm: Path) -> list[str]:
         kernels: list[str] = []
         for line in PSyclone._consolidate_lines(algorithm):
-            match = PSyclone._INVOKE_PATTERN.match(line)
+            match = PSyclone._INVOKE_PATTERN.search(line)
             if match:
                 arguments = match.group(1)
                 for type_match in PSyclone._PROCEDURE_PATTERN.finditer(arguments):
@@ -129,23 +124,35 @@ class PSyclone(Action):
         return prereqs
 
     def perform(self) -> list[Action | ActionResult]:
-        kernel_roots: set[Path] = set()
+        kernel_roots: list[Path] = []
         for kernel in self._kernels:
             kernel_symbol = self._database.symbol_table.get(kernel)
-            kernel_roots.add(kernel_symbol.source_file.parent)
+            new_root = kernel_symbol.source_file.parent
+            # Remove any directories which are children of the new one
+            kernel_roots = [directory for directory in kernel_roots
+                            if not directory.is_relative_to(new_root)]
+            # Add new directory only if it is not a child of an existing one
+            child = False
+            for directory in kernel_roots:
+                if new_root.is_relative_to(directory):
+                    child = True
+                    break
+            if not child:
+                kernel_roots.append(new_root)
 
         command = ['psyclone', '-api', 'lfric', '-l', 'all']
         for root in kernel_roots:
             command.extend(['-d', str(root)])
         #
-        # Todo: Hardwired
+        # Todo: Hardwired and depends on a repository which may not have been
+        #       imported.
         #
         command.extend(['-c', str(self._core_dir / 'etc' / 'psyclone.cfg')])
-        alg_name = self._algorithm.stem + '.f90'
-        command.extend(['-oalg', str(self._work_dir / alg_name)])
-        psy_name = self._algorithm.stem + '_psy.f90'
-        command.extend(['-opsy', str(self._work_dir / psy_name)])
-        command.append(str(self._algorithm))
+        alg_name = self._algorithm_file.stem + '.f90'
+        command.extend(['-oalg', str(self._project_dir / alg_name)])
+        psy_name = self._algorithm_file.stem + '_psy.f90'
+        command.extend(['-opsy', str(self._project_dir / psy_name)])
+        command.append(str(self._repo_dir / self._algorithm_file))
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
 
         actions : list[Action | ActionResult] = []
@@ -157,10 +164,10 @@ class PSyclone(Action):
             )
         else:  # Command succeeded
             actions.append(
-                AnalyseFortran(self._work_dir / alg_name,
+                AnalyseFortran(self._project_dir / alg_name,
                                self._work_dir, self._database)
             )
             if self._psy:
-                actions.append(AnalyseFortran(self._work_dir / psy_name,
+                actions.append(AnalyseFortran(self._project_dir / psy_name,
                                               self._work_dir, self._database))
         return actions

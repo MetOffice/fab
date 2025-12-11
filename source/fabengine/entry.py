@@ -163,6 +163,7 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
          *repositories: Repository):
     work_dir.mkdir(parents=True, exist_ok=True)
     (work_dir / 'build').mkdir(exist_ok=True)
+    (work_dir / 'build' / 'modules').mkdir(exist_ok=True)
 
     logger = mp_get_logger()
     logger.setLevel(log_level)
@@ -214,10 +215,12 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
                 'um': ['-fdefault-real-8', '-fdefault-double-8']
             },
             {
-                Path('science/physics_schemes/source'): ['um'],
-                Path('jules/source'): ['um'],
-                Path('socrates/source'): ['um'],
-                Path('interfaces/physics_schemes_interface/source/legacy'): ['um']
+                'casim/': ['um'],
+                'jules/': ['um'],
+                'physics_schemes/': ['um'],
+                'physics_schemes_interface/legacy/': ['um'],
+                'socrates/': ['um'],
+                'ukca/': ['um']
             },
             manager
         )
@@ -234,7 +237,7 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
                 if project.configuration_meta_data is None:
                     continue
 
-                meta_data_path = repo_action.working_copy / project.configuration_meta_data
+                meta_data_path = repo_action.local_copy / project.configuration_meta_data
                 if project.configuration_meta_data.name == 'rose-meta.conf':
                     # Todo: Don't like Core reference here
                     work_queue.append(
@@ -295,7 +298,8 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
                         message += "\nError: " + result.stderr
                     if result.cause:
                         message += "\nCause: " \
-                        + ''.join(format_exception(result.cause))
+                        + ''.join(format_exception(result.cause)) \
+                        + '\n' + '\n'.join(format_exception(result.cause))
                     logger.error(message)
         except Empty:
             pass  # Nothing further to do when queue is empty.
@@ -355,6 +359,7 @@ if __name__ == '__main__':
                      f'localhost:{Path().absolute()}/lfric_apps',
                      [
                         Project(Path('interfaces/physics_schemes_interface')),
+                        Project(Path('science/physics_schemes')),
                         Project(Path('science/shared'), 'bucket'),
                         Project(Path('interfaces/socrates_interface')),
                         Project(Path('interfaces/jules_interface')),

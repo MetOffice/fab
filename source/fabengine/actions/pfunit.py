@@ -8,7 +8,7 @@ from typing import Iterable
 
 from fabengine.actions import Action, ActionResult, Prerequisite
 from fabengine.prerequisite import FilePrerequisite
-from fabengine.actions.fortran import PreprocessFortran
+from fabengine.actions.fortran import PreprocessFortranAction
 from fabengine.database import Database
 
 
@@ -69,7 +69,7 @@ class PfUnit(Action):
         )
 
         return [
-            PreprocessFortran(
+            PreprocessFortranAction(
                 source_file, work_dir, self._database,
                 {'_TEST_SUITES': f'"{include_file.absolute()}"'}
             ),
@@ -90,8 +90,8 @@ class PfUnit(Action):
         dest = self._work_dir / self._source.with_suffix('.F90').name
         run([str(funitproc_path), '-quiet', str(self._source), str(dest)],
             check=True)
-        actions.append(PreprocessFortran(dest, self._work_dir,
-                                         self._database))
+        actions.append(PreprocessFortranAction(dest, self._work_dir,
+                                               self._database))
 
         actions.extend(
             self._driver(

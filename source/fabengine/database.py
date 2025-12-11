@@ -13,7 +13,7 @@ class Database:
                  fc_ignore_modules: list[str], libraries: list[str],
                  field_instances: list[dict[str, str]],
                  build_tags: dict[str, list[str]],
-                 tag_dirs: dict[Path, list[str]],
+                 tag_dirs: dict[str, list[str]],
                  manager: FabManager):
         self._fpp_variables = fpp_variables
         self._fc_ignore_modules = fc_ignore_modules
@@ -22,10 +22,12 @@ class Database:
         self._build_tags = build_tags
         self._tag_dirs = tag_dirs
         self._queue_new_on_front = True
+        self._use_open_mp = True
 
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
         self.config_meta_dirs: ListProxy[Path] = manager.list()
+        self.inclusions: DictProxy[Path, Path] = manager.dict()
         self._processed_this_round: ValueProxy[int] = manager.Value('i', 0)
         self._processed_last_round: ValueProxy[int] = manager.Value('i', 0)
 
@@ -50,12 +52,16 @@ class Database:
         return self._build_tags
 
     @property
-    def tag_dirs(self) -> dict[Path, list[str]]:
+    def tag_dirs(self) -> dict[str, list[str]]:
         return self._tag_dirs
 
     @property
     def queue_new_on_front(self) -> bool:
         return self._queue_new_on_front
+
+    @property
+    def use_open_mp(self) -> bool:
+        return self._use_open_mp
 
     def reset_work_done(self) -> None:
         self._processed_last_round.set(self._processed_this_round.get())

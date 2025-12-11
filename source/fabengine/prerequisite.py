@@ -41,6 +41,22 @@ class FilePrerequisite(Prerequisite):
         return self._filename.exists()
 
 
+class InclusionPrerequisite(Prerequisite):
+    def __init__(self, filename: Path, database: Database):
+        self._filename = filename
+        self._database = database
+
+    def __str__(self) -> str:
+        return "Prerequisite inclusion: " + str(self._filename)
+
+    @property
+    def filename(self) -> Path:
+        return self._filename
+
+    def ready(self) -> bool:
+        return self._filename in self._database.inclusions
+
+
 class BooleanPrerequisite(Prerequisite):
     def __init__(self, value: bool):
         self._value = value

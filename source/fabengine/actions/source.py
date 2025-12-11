@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from fabengine.actions import Action, ActionResult, Prerequisite
 from fabengine.prerequisite import FilePrerequisite
-from fabengine.actions.fortran import ImportFortran, PreprocessFortran
+from fabengine.actions.fortran import ImportFortran, PreprocessFortranAction, ImportInclusion
 from fabengine.actions.pfunit import PfUnit
 from fabengine.actions.psyclone import PSyclone, PreprocessAlgorithm
 from fabengine.actions.templaterator import Templaterator
@@ -21,7 +21,7 @@ from fabengine.project import Project
 class RepositoryAction(Action, ABC):
     @property
     @abstractmethod
-    def working_copy(self) -> Path:
+    def local_copy(self) -> Path:
         raise NotImplementedError()
 
 
@@ -40,7 +40,7 @@ class SourceOnDiscAction(RepositoryAction):
         return []
 
     @property
-    def working_copy(self) -> Path:
+    def local_copy(self) -> Path:
         filename = Path(self._remote.split(':')[-1])
         return self._work_dir / filename.name
 
@@ -58,7 +58,7 @@ class SourceOnDiscAction(RepositoryAction):
             actions.append(
                 SourceDirectory(
                     project.identifier,
-                    self.working_copy / project.source_dir,
+                    self.local_copy / project.source_dir,
                     self._work_dir, self._database
                 )
             )
@@ -85,20 +85,20 @@ class SourceOnGitHubAction(RepositoryAction):
         return []
 
     @property
-    def working_copy(self) -> Path:
+    def local_copy(self) -> Path:
         _, netloc, path, _, query, fragment = urlparse(self._url)
         name = Path(path).stem
         return self._work_dir / name
 
     def perform(self) -> list[Action | ActionResult]:
-        repo_marker = self.working_copy / '.git'
+        repo_marker = self.local_copy / '.git'
         if repo_marker.is_dir(): # Repository is present
-            command = ['git', '-C', str(self.working_copy), 'pull']
+            command = ['git', '-C', str(self.local_copy), 'pull']
         else:  # Repository is missing
             scheme, netloc, path, _, _, fragment = urlparse(self._url)
             url = f'{scheme}://{netloc}{path}'
             command = ['git', 'clone', '--depth=1', f'--branch={fragment}',
-                       url, str(self.working_copy)]
+                       url, str(self.local_copy)]
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
             return [ActionResult(self, process.returncode, ' '.join(command),
@@ -108,7 +108,7 @@ class SourceOnGitHubAction(RepositoryAction):
         for project in self._projects:
             actions.append(
                 SourceDirectory(project.identifier,
-                                self.working_copy / project.identifier,
+                                self.local_copy / project.identifier,
                                 self._work_dir, self._database)
             )
         return actions
@@ -118,15 +118,15 @@ class SourceDirectory(Action):
     def __init__(self, tag: str, filename: Path, work_dir: Path,
                  database: Database):
         self._tag = tag
-        self._filename = filename
+        self._source_dir = filename
         self._work_dir = work_dir
         self._database = database
 
     def __str__(self) -> str:
-        return "Source directory: " + str(self._filename)
+        return "Source directory: " + str(self._source_dir)
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        return [FilePrerequisite(self._filename)]
+        return [FilePrerequisite(self._source_dir)]
 
     # Todo: Would it be possible to chunk output since this action can
     #       generate a lot of actions. Maybe create 10 (or 100) before putting
@@ -134,49 +134,75 @@ class SourceDirectory(Action):
     #       single threaded builds.
     #
     def perform(self) -> Generator[Action, None, list[Action]]:
-        mp_get_logger().debug("Scanning " + str(self._filename))
-        build_dir = self._work_dir / 'build' / self._tag
+        mp_get_logger().debug("Scanning " + str(self._source_dir))
+        build_dir = self._work_dir / 'build'
+        project_dir = build_dir / self._tag
+        project_dir.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired paths - maybe something with a factory pattern here?
         core_dir = self._work_dir / 'lfric_core'
-        build_dir.mkdir(parents=True, exist_ok=True)
 
-        for root, branches, leaves in self._filename.walk():
+        for root, branches, leaves in self._source_dir.walk():
             for leaf in leaves:
                 if leaf.startswith('.'):
                     continue  # Ignore "hidden" files.
 
-                filename = root / leaf
+                full_filename = root / leaf
+                relative_filename = full_filename.relative_to(self._source_dir)
+
                 actions: list[Action] = []
-                if filename.suffix == '.f90':
-                    actions.append(ImportFortran(filename, build_dir,
+                if full_filename.suffix == '.f90':
+                    actions.append(ImportFortran(self._source_dir,
+                                                 relative_filename,
+                                                 project_dir,
+                                                 self._work_dir,
                                                  self._database))
-                elif filename.suffix == '.F90':
-                    actions.append(PreprocessFortran(filename, build_dir,
-                                                     self._database))
-                elif filename.suffix == '.pf':
-                    actions.append(PfUnit(filename, build_dir, self._database))
-                elif filename.suffix == '.t90':
+                elif full_filename.suffix == '.F90':
+                    actions.append(PreprocessFortranAction(self._source_dir,
+                                                           relative_filename,
+                                                           project_dir,
+                                                           self._work_dir,
+                                                           self._database))
+                elif full_filename.suffix == '.pf':
+                    # Todo: No support for per-file compiler arguments. Do we
+                    #       need it?
+                    actions.append(PfUnit(full_filename, build_dir, self._database))
+                elif full_filename.suffix == '.t90':
                     # Todo: Hardwired to field templating and just nasty.
+                    # Todo: No support for per-file compiler arguments. Do we
+                    #       need it?
                     for mapping in self._database.field_instances:
                         ttype = list(mapping.keys())[0]
                         tkind = mapping[ttype]
-                        leafname = filename.stem[:-4] + '_' + tkind + '_mod.f90'
+                        leafname = full_filename.stem[:-4] + '_' + tkind + '_mod.f90'
                         inserts = {'type': ttype, 'kind': tkind}
-                        actions.append(Templaterator(filename,
+                        actions.append(Templaterator(full_filename,
                                                      leafname,
                                                      inserts,
-                                                     build_dir,
+                                                     project_dir,
                                                      core_dir,
                                                      self._database))
-                elif filename.suffix == '.X90':
-                    actions.append(PreprocessAlgorithm(filename, build_dir,
+                elif full_filename.suffix == '.X90':
+                    actions.append(PreprocessAlgorithm(self._source_dir,
+                                                       relative_filename,
+                                                       project_dir,
                                                        core_dir,
+                                                       self._work_dir,
                                                        self._database))
-                elif filename.suffix == '.x90':
-                    actions.append(PSyclone(filename, build_dir, core_dir,
+                elif full_filename.suffix == '.x90':
+                    actions.append(PSyclone(self._source_dir, relative_filename, project_dir, core_dir, self._work_dir,
                                             self._database))
+                elif full_filename.suffix == '.h':
+                    actions.append(ImportInclusion(self._source_dir,
+                                                   relative_filename,
+                                                   project_dir,
+                                                   build_dir,
+                                                   self._database))
+                elif full_filename.suffix == '.inc':
+                    actions.append(ImportInclusion(self._source_dir,
+                                                   relative_filename,
+                                                   build_dir))
                 else:
-                    mp_get_logger().debug("Ignoring file: " + filename.name)
+                    mp_get_logger().debug("Ignoring file: " + full_filename.name)
 
                 for action in actions:
                     yield action
