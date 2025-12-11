@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC
-from fileinput import filename
 from multiprocessing import get_logger as mp_get_logger
 from os import environ as os_environ
 from pathlib import Path
@@ -202,7 +201,10 @@ class AnalyseFortran(Action):
     )
     _TYPE_PATTERN = re_compile(r'\s*type\s*,\s*public(:?.*?)::\s*(\w+)',
                                IGNORECASE)
-    _PUBLIC_PATTERN = re_compile(r'\s*public\s*(:?::)?\s*(.+)', IGNORECASE)
+    _PUBLIC_PATTERN = re_compile(r'\s*public\s*(:?::)?\s*(.+)',
+                                 IGNORECASE)
+    _UM_DEPENDS_ON_PATTERN = re_compile(r'\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)',
+                                        IGNORECASE)
 
     def __init__(self, source: Path, work_dir: Path, database: Database):
         self._source = source
@@ -231,7 +233,12 @@ class AnalyseFortran(Action):
             # Strip comments, does not handle exclamation marks in quotes.
             match = self._COMMENT_PATTERN.match(line)
             if match:
-                line = match.group(1)
+                # We need a special case for UM-era "depends on" comments
+                second_match = self._UM_DEPENDS_ON_PATTERN.match(line)
+                if match:
+                    pass
+                else:
+                    line = match.group(1)
 
             if state == 'seeking':
                 match = self._UNIT_PATTERN.match(line)
@@ -302,6 +309,16 @@ class AnalyseFortran(Action):
                         logger.debug("Found external: " + name)
                         unit_prereqs[name] = PrerequisiteInfo(
                             name, PrerequisiteType.EXTERNAL
+                        )
+                    continue
+
+                match = self._UM_DEPENDS_ON_PATTERN.match(line)
+                if match:
+                    symbol = match.group(1).lower()
+                    if symbol not in unit_prereqs:
+                        logger.debug("Found UM dependency comment: " + symbol)
+                        unit_prereqs[symbol] = PrerequisiteInfo(
+                            symbol, PrerequisiteType.UM
                         )
                     continue
 
@@ -398,6 +415,8 @@ class CompileFortran(Action):
                 prereqs.append(FilePrerequisite(module_file))
             elif symbol.nature == PrerequisiteType.EXTERNAL:
                 pass  # The compiler doesn't interrogate externals
+            elif symbol.nature == PrerequisiteType.UM:
+                pass  # Nor does it interrogate UM-era dependency comments
             else:
                 raise RuntimeError(
                     f"Unrecognised prerequisite type '{symbol.nature}'"
@@ -466,8 +485,7 @@ class LinkFortran(Action):
     def perform(self) -> list[Action | ActionResult]:
         objects: set[Path] = set()
         for module in self._modules:
-            filename = self._database.symbol_table[module].source_file.with_suffix('.o').name
-            object_file = self._work_dir / filename
+            object_file = self._database.symbol_table[module].source_file.with_suffix('.o')
             objects.add(object_file)
 
         dest = self._work_dir / self._program

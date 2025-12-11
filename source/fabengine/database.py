@@ -77,7 +77,8 @@ class Database:
 
 class PrerequisiteType(StrEnum):
     USE = auto(),
-    EXTERNAL = auto()
+    EXTERNAL = auto(),
+    UM = auto()
 
 
 class PrerequisiteInfo:
