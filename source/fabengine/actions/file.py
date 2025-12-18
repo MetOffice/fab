@@ -1,0 +1,53 @@
+from pathlib import Path
+from shutil import copyfile
+from typing import Iterable
+
+from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.database import Database
+from fabengine.prerequisite import FilePrerequisite
+
+
+class ImportFile(Action):
+    def __init__(self, repo_dir: Path, filename: Path, tag: str,
+                 database: Database):
+        self._repo_dir = repo_dir
+        self._filename = filename
+        self._tag = tag
+        self._database = database
+
+    def __str__(self) -> str:
+        return f"Copy file: {self._repo_dir} {self._filename}"
+
+    @property
+    def repo_dir(self) -> Path:
+        return self._repo_dir
+
+    @property
+    def filename(self) -> Path:
+        return self._filename
+
+    @property
+    def source_file(self) -> Path:
+        return self._repo_dir / self._filename
+
+    @property
+    def destination_file(self) -> Path:
+        return (self._database.configuration.build_dir
+                / self._tag / self._filename)
+
+    def prerequisites(self) -> Iterable[Prerequisite]:
+        return [FilePrerequisite(self.source_file)]
+
+    def perform(self) -> list[Action | ActionResult]:
+        self.destination_file.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            copyfile(self.source_file, self.destination_file)
+        except FileNotFoundError:
+            return [
+                ActionResult(
+                    self,
+                    return_code=-1,
+                    command = f'cp {self.source_file} {self.destination_file}'
+                )
+            ]
+        return []

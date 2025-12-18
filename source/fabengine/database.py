@@ -7,33 +7,48 @@ from pathlib import Path
 from fabengine.manager import FabManager
 
 
-# Todo: Work directory and database always passed together.
-class Database:
-    def __init__(self, fpp_variables: dict[str, str],
-                 fc_ignore_modules: list[str], libraries: list[str],
-                 field_instances: list[dict[str, str]],
-                 build_tags: dict[str, list[str]],
-                 tag_dirs: dict[str, list[str]],
-                 manager: FabManager):
-        self._fpp_variables = fpp_variables
+class Configuration:
+    def __init__(self, work_dir: Path, psyclone_config: Path,
+                 fpp_definitions: dict[str, str], fc_ignore_modules: list[str],
+                 libraries: list[str], field_instances: list[dict[str, str]],
+                 build_tags: dict[str, list[str]], tag_dirs: dict[str, list[str]]):
+        self._work_dir = work_dir
+        self._psyclone_config = psyclone_config
+        self._fpp_definitions = fpp_definitions
         self._fc_ignore_modules = fc_ignore_modules
         self._libraries = libraries
         self._field_instances = field_instances
         self._build_tags = build_tags
         self._tag_dirs = tag_dirs
+
         self._queue_new_on_front = True
         self._use_open_mp = True
 
-        self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
-        self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
-        self.config_meta_dirs: ListProxy[Path] = manager.list()
-        self.inclusions: DictProxy[Path, Path] = manager.dict()
-        self._processed_this_round: ValueProxy[int] = manager.Value('i', 0)
-        self._processed_last_round: ValueProxy[int] = manager.Value('i', 0)
+        self._build_dir = work_dir / 'build'
+        self._build_dir.mkdir(parents=True, exist_ok=True)
+
+        self._module_dir = self._build_dir / 'modules'
+        self._module_dir.mkdir(exist_ok=True)
 
     @property
-    def fpp_variables(self) -> dict[str, str]:
-        return self._fpp_variables
+    def work_dir(self) -> Path:
+        return self._work_dir
+
+    @property
+    def psyclone_config(self) -> Path:
+        return self._psyclone_config
+
+    @property
+    def build_dir(self) -> Path:
+        return self._build_dir
+
+    @property
+    def module_dir(self) -> Path:
+        return self._module_dir
+
+    @property
+    def fpp_definitions(self) -> dict[str, str]:
+        return self._fpp_definitions
 
     @property
     def fc_ignore_modules(self) -> list[str]:
@@ -62,6 +77,24 @@ class Database:
     @property
     def use_open_mp(self) -> bool:
         return self._use_open_mp
+
+
+# Todo: Work directory and database always passed together.
+class Database:
+    def __init__(self, configuration: Configuration,
+                 manager: FabManager):
+        self._configuration = configuration
+
+        self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
+        self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
+        self.config_meta_dirs: ListProxy[Path] = manager.list()
+        self.inclusions: DictProxy[Path, Path] = manager.dict()
+        self._processed_this_round: ValueProxy[int] = manager.Value('i', 0)
+        self._processed_last_round: ValueProxy[int] = manager.Value('i', 0)
+
+    @property
+    def configuration(self) -> Configuration:
+        return self._configuration
 
     def reset_work_done(self) -> None:
         self._processed_last_round.set(self._processed_this_round.get())

@@ -15,7 +15,7 @@ from fabengine.actions.configurator import RosePicker
 from fabengine.actions.sentinel import Sentinel
 from fabengine.project import Project
 from fabengine.repository import Repository, FileTreeRepository
-from fabengine.database import Database
+from fabengine.database import Configuration, Database
 from fabengine.manager import FabManager
 from fabengine.mpdequeue import MPDEQueue
 
@@ -134,7 +134,7 @@ class WorkerProcess(Process):
                         else:
                             logger.debug("Queueing action: " + str(thing))
                             # Todo: Strategy pattern for enqueueing
-                            if self._database.queue_new_on_front:
+                            if self._database.configuration.queue_new_on_front:
                                 self._work_queue.appendleft(thing)
                             else:
                                 self._work_queue.append(thing)
@@ -161,69 +161,68 @@ class WorkerProcess(Process):
 def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
          profile: bool = False, log_level: int = WARNING,
          *repositories: Repository):
-    work_dir.mkdir(parents=True, exist_ok=True)
-    (work_dir / 'build').mkdir(exist_ok=True)
-    (work_dir / 'build' / 'modules').mkdir(exist_ok=True)
-
     logger = mp_get_logger()
     logger.setLevel(log_level)
     logger.addHandler(StreamHandler())
 
+    configuration = Configuration(
+        work_dir,
+        work_dir / 'lfric_core' / 'etc' / 'psyclone.cfg',
+        {
+            # Physics from the UM
+            'UM_PHYSICS': 'true',
+            'LFRIC': 'true',
+            'USSPREC_32B': 'true',
+            'LSPREC_32B': 'true',
+            'UM_JULES': 'true',
+            # I/O platform
+            'USE_XIOS': 'true',
+            # Component precision
+            'RDEF_PRECISION': '64',
+            'R_SOLVER_PRECISION': '32',
+            'R_TRAN_PRECISION': '64',
+            'R_BL_PRECISION': '64',
+            # Transitional
+            'LEGACY_MPI': 'true'
+        },
+        [
+            'funit', 'pfunit',  # pFUnit
+            'mpi', 'mpi_f08',  # MPI
+            'netcdf',  # NetCDF
+            'omp_lib',  # OpenMP
+            'xios', 'icontext', 'mod_wait', 'mod_oasis',  # XIOS/OASIS
+            'yaxt',  # YAXT
+            'vernier_mod',  # Vernier
+            'c_shum_byteswap'  # ShUMlib
+        ],
+        [
+            'netcdff', 'netcdf',
+            'xios',
+            'yaxt', 'yaxt_c',
+            'pfunit', 'funit', 'fargparse', 'gftl-shared-v2',
+            'stdc++'
+        ],
+        [
+            {'real': 'real32'},
+            {'real': 'real64'},
+            {'integer': 'int32'}
+        ],
+        {
+            'um': ['-fdefault-real-8', '-fdefault-double-8']
+        },
+        {
+            'casim/': ['um'],
+            'jules/': ['um'],
+            'physics_schemes/': ['um'],
+            'physics_schemes_interface/legacy/': ['um'],
+            'socrates/': ['um'],
+            'ukca/': ['um']
+        }
+    )
+
     with FabManager() as manager:
         # Todo: Hardwired variables
-        database = Database(
-            {
-                # Physics from the UM
-                'UM_PHYSICS': 'true',
-                'LFRIC': 'true',
-                'USSPREC_32B': 'true',
-                'LSPREC_32B': 'true',
-                'UM_JULES': 'true',
-                # I/O platform
-                'USE_XIOS': 'true',
-                # Component precision
-                'RDEF_PRECISION': '64',
-                'R_SOLVER_PRECISION': '32',
-                'R_TRAN_PRECISION': '64',
-                'R_BL_PRECISION': '64',
-                # Transitional
-                'LEGACY_MPI': 'true'
-            },
-            [
-                'funit', 'pfunit',  # pFUnit
-                'mpi', 'mpi_f08',  # MPI
-                'netcdf',  # NetCDF
-                'omp_lib',  # OpenMP
-                'xios', 'icontext', 'mod_wait', 'mod_oasis',  # XIOS/OASIS
-                'yaxt',  # YAXT
-                'vernier_mod',  # Vernier
-                'c_shum_byteswap'  # ShUMlib
-            ],
-            [
-                'netcdff', 'netcdf',
-                'xios',
-                'yaxt', 'yaxt_c',
-                'pfunit', 'funit', 'fargparse', 'gftl-shared-v2',
-                'stdc++'
-            ],
-            [
-                {'real': 'real32'},
-                {'real': 'real64'},
-                {'integer': 'int32'}
-            ],
-            {
-                'um': ['-fdefault-real-8', '-fdefault-double-8']
-            },
-            {
-                'casim/': ['um'],
-                'jules/': ['um'],
-                'physics_schemes/': ['um'],
-                'physics_schemes_interface/legacy/': ['um'],
-                'socrates/': ['um'],
-                'ukca/': ['um']
-            },
-            manager
-        )
+        database = Database(configuration, manager)
         sentinel_barrier = Barrier(worker_threads,
                                    action=database.reset_work_done)
 
@@ -241,9 +240,7 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
                 if project.configuration_meta_data.name == 'rose-meta.conf':
                     # Todo: Don't like Core reference here
                     work_queue.append(
-                        RosePicker(meta_data_path,
-                                   work_dir / 'build' / 'configuration',
-                                   work_dir / 'lfric_core', database)
+                        RosePicker(meta_data_path, work_dir / 'lfric_core', database)
                     )
                 else:  # Is a directory
                     database.config_meta_dirs.append(meta_data_path)
@@ -347,7 +344,7 @@ if __name__ == '__main__':
         main(arguments.work_dir, arguments.threads,
              arguments.no_monitor, arguments.profile,
              level,
-             FileTreeRepository(f'localhost:{Path().absolute()}/lfric_core',
+             FileTreeRepository('lfric_core',
                                 [
                                     Project(Path('infrastructure')),
                                     Project(Path('components/driver')),
@@ -356,7 +353,7 @@ if __name__ == '__main__':
                                     Project(Path('components/lfric-xios'))
                                 ]),
             FileTreeRepository(
-                     f'localhost:{Path().absolute()}/lfric_apps',
+                     'lfric_apps',
                      [
                         Project(Path('interfaces/physics_schemes_interface')),
                         Project(Path('science/physics_schemes')),
@@ -373,19 +370,28 @@ if __name__ == '__main__':
                     ]
                  ),
                  FileTreeRepository(
-                     f'localhost:{Path().absolute()}/extract/extract',
+                     'casim.filtered',
                      [
-                         Project(Path('casim'), source_dir=Path('src')),
-                         Project(Path('ukca'), source_dir=Path('src'))
+                         Project(Path('.'), identifier='casim',
+                                 source_dir=Path('src'))
+                         ]
+                 ),
+             FileTreeRepository(
+                 'ukca.filtered',
+                 [
+                         Project(Path('.'), identifier='ukca',
+                                 source_dir=Path('src'))
                      ]
                  ),
                  FileTreeRepository(
-                     f'localhost:{Path().absolute()}/jules_interface/extract',
-                     [Project(Path('jules'), source_dir=Path('src'))]
+                     'jules.filtered',
+                     [Project(Path('.'), identifier='jules',
+                              source_dir=Path('src'))]
                  ),
                  FileTreeRepository(
-                     f'localhost:{Path().absolute()}/socrates_interface/extract',
-                     [Project(Path('socrates'), source_dir=Path('src'))]
+                     'socrates.filtered',
+                     [Project(Path('.'), identifier='socrates',
+                              source_dir=Path('src'))]
                  )
         )
     else:

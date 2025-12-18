@@ -13,10 +13,11 @@ from fabengine.database import Database
 
 
 class PfUnit(Action):
-    def __init__(self, source: Path, work_dir: Path,
+    def __init__(self, repo_dir: Path, source: Path, tag: str,
                  database: Database):
+        self._repo_dir = repo_dir
         self._source = source
-        self._work_dir = work_dir
+        self._tag = tag
         self._database = database
 
     def __str__(self) -> str:
@@ -70,10 +71,10 @@ class PfUnit(Action):
 
         return [
             PreprocessFortranAction(
-                source_file, work_dir, self._database,
+                self._repo_dir, source_file, self._tag, self._database,
                 {'_TEST_SUITES': f'"{include_file.absolute()}"'}
             ),
-            RunTest(self._work_dir / prog_name)
+            RunTest(self._database.configuration.work_dir / prog_name)
         ]
 
     def prerequisites(self) -> Iterable[Prerequisite]:
@@ -87,16 +88,18 @@ class PfUnit(Action):
             raise RuntimeError("PFUNIT must point to install directory")
         pfunit_path = Path(pfunit_str)
         funitproc_path = pfunit_path / 'bin' / 'funitproc'
-        dest = self._work_dir / self._source.with_suffix('.F90').name
+        dest = self._database.configuration.work_dir / self._source.with_suffix('.F90').name
         run([str(funitproc_path), '-quiet', str(self._source), str(dest)],
             check=True)
-        actions.append(PreprocessFortranAction(dest, self._work_dir,
+        actions.append(PreprocessFortranAction(self._repo_dir,
+                                               self._source.with_suffix('.F90'),
+                                               self._tag,
                                                self._database))
 
         actions.extend(
             self._driver(
                 pfunit_path / 'include' / 'driver.F90',
-                self._source.stem, self._work_dir
+                self._source.stem, self._database.configuration.work_dir
             )
         )
 

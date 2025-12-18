@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from re import compile as re_compile, IGNORECASE
+from multiprocessing import get_logger as mp_get_logger
 from pathlib import Path
 from subprocess import run, PIPE
-from typing import Generator, Iterable
+from typing import Generator, Iterable, Optional
 
 from fabengine.actions import Action, ActionResult, Prerequisite
 from fabengine.actions.fortran import PreprocessFortranBase
@@ -13,42 +14,36 @@ from fabengine.database import Database
 
 
 class PreprocessAlgorithm(PreprocessFortranBase):
-    def __init__(self, repo_dir: Path, source: Path, build_dir: Path,
-                 core_dir: Path, work_dir: Path, database: Database):
-        super().__init__(repo_dir, source, build_dir, work_dir, database)
-        self._core_dir = core_dir
+    def __init__(self, repo_dir: Path, filename: Path, project: str,
+                 database: Database,
+                 extra_definitions: Optional[dict[str, str]] = None):
+        super().__init__(repo_dir, filename, project, database,
+                         extra_definitions)
+        self._project = project
 
     def __str__(self) -> str:
-        return "Preprocess algorithm: " + str(self.source)
+        return f"Preprocess PSyKAl algorithm: {self.repo} {self.filename}"
 
     def perform(self) -> list[Action | ActionResult]:
-        destination = self._build_dir / self.source.with_suffix('.x90')
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        process = self.invoke_preprocessor(destination)
-        if process.returncode != 0:
-            return [ActionResult(self, process.returncode,
-                                 ' '.join(process.args),
-                                 stdout=process.stdout,
-                                 stderr=process.stderr)]
-        return [PSyclone(self._build_dir, self._source.with_suffix('.x90'),
-                         self._build_dir, self._core_dir,
-                         self._work_dir, self._database)]
+        actions = super().perform()
+        build_dir = self._database.configuration.build_dir
+        actions.append(PSyclone(build_dir,
+                                self.destination_file.relative_to(build_dir),
+                                '', self._database))
+        return actions
 
 
 class PSyclone(Action):
     def __init__(self, repo_dir: Path, algorithm_file: Path,
-                 project_dir: Path, core_dir: Path,
-                 work_dir: Path, database: Database):
+                 tag: str, database: Database):
         self._repo_dir = repo_dir
         self._algorithm_file = algorithm_file
-        self._project_dir = project_dir
-        self._work_dir = work_dir
-        self._core_dir = core_dir
+        self._tag = tag
         self._database = database
 
-        self._full_filename = self._repo_dir / self._algorithm_file
+        self._source_file = self._repo_dir / self._algorithm_file
 
-        all_kernels = self._find_kernels(self._full_filename)
+        all_kernels = self._find_kernels(self._source_file)
         self._psy = (all_kernels != [])
         self._kernels = self._remove_builtins(all_kernels)
 
@@ -143,15 +138,14 @@ class PSyclone(Action):
         command = ['psyclone', '-api', 'lfric', '-l', 'all']
         for root in kernel_roots:
             command.extend(['-d', str(root)])
-        #
-        # Todo: Hardwired and depends on a repository which may not have been
-        #       imported.
-        #
-        command.extend(['-c', str(self._core_dir / 'etc' / 'psyclone.cfg')])
-        alg_name = self._algorithm_file.stem + '.f90'
-        command.extend(['-oalg', str(self._project_dir / alg_name)])
+        project_dir = (self._database.configuration.build_dir
+                       / self._tag / self._algorithm_file.parent)
+        project_dir.mkdir(parents=True, exist_ok=True)
+        command.extend(['-c', str(self._database.configuration.psyclone_config)])
+        alg_name = self._algorithm_file.with_suffix('.f90').name
+        command.extend(['-oalg', str(project_dir / alg_name)])
         psy_name = self._algorithm_file.stem + '_psy.f90'
-        command.extend(['-opsy', str(self._project_dir / psy_name)])
+        command.extend(['-opsy', str(project_dir / psy_name)])
         command.append(str(self._repo_dir / self._algorithm_file))
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
 
@@ -164,10 +158,9 @@ class PSyclone(Action):
             )
         else:  # Command succeeded
             actions.append(
-                AnalyseFortran(self._project_dir / alg_name,
-                               self._work_dir, self._database)
+                AnalyseFortran(project_dir / alg_name, self._database)
             )
             if self._psy:
-                actions.append(AnalyseFortran(self._project_dir / psy_name,
-                                              self._work_dir, self._database))
+                actions.append(AnalyseFortran(project_dir / psy_name,
+                                              self._database))
         return actions

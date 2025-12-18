@@ -5,11 +5,11 @@ from multiprocessing import get_logger as mp_get_logger
 from os import environ as os_environ
 from pathlib import Path
 from re import compile as re_compile, IGNORECASE
-from shutil import copyfile
 from subprocess import run, PIPE
 from typing import Optional, Iterable
 
 from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions.file import ImportFile
 from fabengine.database import (Database,
                                 PrerequisiteType, PrerequisiteInfo,
                                 SymbolType, SymbolInfo)
@@ -17,109 +17,72 @@ from fabengine.prerequisite import (AnalysedPrerequisite, FilePrerequisite,
                                     InclusionPrerequisite)
 
 
-class ImportFortran(Action):
-    def __init__(self, repo_dir: Path, source: Path,
-                 build_dir: Path,
-                 work_dir: Path, database: Database):
-        self._repo_dir = repo_dir
-        self._source = source
-        self._build_dir = build_dir
-        self._work_dir = work_dir
-        self._database = database
-
+class ImportFortran(ImportFile):
     def __str__(self) -> str:
-        return "Import: " + str(self._source)
-
-    def prerequisites(self) -> Iterable[Prerequisite]:
-        return [FilePrerequisite(self._repo_dir / self._source)]
+        return f"Import Fortran: {self.repo_dir} {self.filename}"
 
     def perform(self) -> Iterable[Action | ActionResult]:
-        destination = self._build_dir / self._source
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            copyfile(self._repo_dir / self._source, destination)
-        except FileNotFoundError:
-            return [
-                ActionResult(
-                    self, -1,
-                    f'cp {self._repo_dir/ self._source} {destination}'
-                )
-            ]
-        return [AnalyseFortran(destination, self._work_dir, self._database)]
+        actions = super().perform()
+        actions.append(AnalyseFortran(self.destination_file, self._database))
+        return actions
 
 
-class ImportInclusion(Action):
-    def __init__(self, repo_dir: Path, filename: Path, build_dir: Path,
-                 work_dir: Path, database: Database):
-        self._repo_dir = repo_dir
-        self._filename = filename
-        self._build_dir = build_dir
-        self._work_dir = work_dir
-        self._database = database
-
+class ImportInclusion(ImportFile):
     def __str__(self) -> str:
-        return f"Copying: {self._filename}"
-
-    def prerequisites(self) -> Iterable[Prerequisite]:
-        return [FilePrerequisite(self._repo_dir / self._filename)]
+        return f"Import inclusion: {self.source_file}"
 
     def perform(self) -> Iterable[Action | ActionResult]:
-        source = self._repo_dir / self._filename
-        destination = self._build_dir / self._filename
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            copyfile(self._repo_dir / self._filename, destination)
-        except FileNotFoundError:
-            return [
-                ActionResult(
-                    self,
-                    return_code=-1,
-                    command = f'cp {source} {destination}'
-                )
-            ]
-        if Path(destination.name) not in self._database.inclusions:
-            filename = Path(destination.name)
-            self._database.inclusions[filename] = destination
+        actions = super().perform()
+        if Path(self.destination_file.name) not in self._database.inclusions:
+            filename = Path(self.destination_file.name)
+            self._database.inclusions[filename] = self.destination_file
         else:
-            return [
+            actions.append(
                 ActionResult(
                     self,
                     return_code=-1,
-                    stderr=f"Duplicate inclusion '{destination.name} found"
+                    stderr=f"Duplicate inclusion '{self.destination_file.name} found"
                 )
-            ]
-        return []
+            )
+        return actions
 
 
 # Todo: Implement our own preprocessor in Python allowing us to hold on to the
 #       parse tree between determining prerequisites and generating output.
 #
 class PreprocessFortranBase(Action, ABC):
-    def __init__(self, repo_dir: Path, source: Path, build_dir: Path,
-                 work_dir: Path, database: Database):
+    def __init__(self, repo_dir: Path, filename: Path, project: str,
+                 database: Database,
+                 extra_definitions: Optional[dict[str, str]] = None):
         self._repo_dir = repo_dir
-        self._source = source
-        self._build_dir = build_dir
-        self._work_dir = work_dir
+        self._filename = filename
+        self._project = project
         self._database = database
+        self._extra_definitions = extra_definitions or {}
 
         self._prereqs: list[Prerequisite] = []
-        for name in self._determine_prereqs(self._repo_dir / self._source):
+        for name in self._determine_prereqs(self.source_file):
             self._prereqs.append(InclusionPrerequisite(Path(name),
                                                        self._database))
-        self._prereqs.append(FilePrerequisite(self._repo_dir / self._source))
+        self._prereqs.append(FilePrerequisite(self.source_file))
 
     @property
     def repo(self) -> Path:
         return self._repo_dir
 
     @property
-    def source(self) -> Path:
-        return self._source
+    def filename(self) -> Path:
+        return self._filename
 
     @property
-    def build_dir(self) -> Path:
-        return self._build_dir
+    def source_file(self) -> Path:
+        return self._repo_dir / self._filename
+
+    @property
+    def destination_file(self) -> Path:
+        suffix = self._filename.suffix.lower()
+        return (self._database.configuration.build_dir / self._project
+                / self._filename.with_suffix(suffix))
 
     _INCLUDE_PATTERN = re_compile(r'\s*#include\s+(?P<quote>[\'"])(.+?)(?P=quote)')
 
@@ -135,10 +98,13 @@ class PreprocessFortranBase(Action, ABC):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return self._prereqs
 
-    def invoke_preprocessor(self, destination: Path):
+    def perform(self) -> list[Action | ActionResult]:
+        self.destination_file.parent.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired command
         command = ['cpp', '-traditional-cpp', '-P']
-        for name, value in self._database.fpp_variables.items():
+        for name, value in self._database.configuration.fpp_definitions.items():
+            command.append(f'-D{name}={value}')
+        for name, value in self._extra_definitions.items():
             command.append(f'-D{name}={value}')
 
         inclusion_dirs: set[Path] = set()
@@ -150,31 +116,31 @@ class PreprocessFortranBase(Action, ABC):
         for directory in inclusion_dirs:
             command.append('-I' + str(directory))
 
-        command.append(str(self._repo_dir / self._source))
-        command.append(str(destination.absolute()))
+        command.append(str(self.source_file))
+        command.append(str(self.destination_file))
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
-        return process
+        actions: list[Action | ActionResult] = []
+        if process.returncode != 0:
+            actions.append(ActionResult(self, process.returncode,
+                                        ' '.join(command),
+                                        process.stdout, process.stderr))
+        return actions
 
 
 class PreprocessFortranAction(PreprocessFortranBase):
-    def __init__(self, repo_dir: Path, source: Path, build_dir: Path,
-                 work_dir: Path, database: Database):
-        super().__init__(repo_dir, source, build_dir, work_dir, database)
+    def __init__(self, repo_dir: Path, filename: Path, tag:str,
+                 database: Database,
+                 extra_definitions: Optional[dict[str, str]] = None):
+        super().__init__(repo_dir, filename, tag, database, extra_definitions)
+        self._tag = tag
 
     def __str__(self) -> str:
-        return "Preprocess: " + self.source.name
+        return "Preprocess Fortran: " + str(self.source_file)
 
     def perform(self) -> list[Action | ActionResult]:
-        destination = self._build_dir / self.source.with_suffix('.f90')
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        process = self.invoke_preprocessor(destination)
-        if process.returncode != 0:
-            return [ActionResult(self, process.returncode,
-                                 ' '.join(process.args),
-                                 stdout=process.stdout,
-                                 stderr=process.stderr)]
-        return [AnalyseFortran(destination.relative_to(self._work_dir.parent),
-                               self._work_dir, self._database)]
+        actions = super().perform()
+        actions.append(AnalyseFortran(self.destination_file, self._database))
+        return actions
 
 
 class AnalyseFortran(Action):
@@ -206,9 +172,8 @@ class AnalyseFortran(Action):
     _UM_DEPENDS_ON_PATTERN = re_compile(r'\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)',
                                         IGNORECASE)
 
-    def __init__(self, source: Path, work_dir: Path, database: Database):
+    def __init__(self, source: Path, database: Database):
         self._source = source
-        self._work_dir = work_dir
         self._database = database
 
     @property
@@ -260,8 +225,7 @@ class AnalyseFortran(Action):
                     current_unit = name
 
                     if unit == 'program':
-                        actions.append(DetermineProgram(name, self._work_dir,
-                                                        self._database))
+                        actions.append(DetermineFortranProgram(name, self._database))
 
                     state = 'in unit'
 
@@ -290,10 +254,10 @@ class AnalyseFortran(Action):
                     name = match.group(2).lower()
                     open_mp = match.group(1) or ''
                     open_mp = 'OpenMP ' if open_mp.strip() else ''
-                    if open_mp and not self._database.use_open_mp:
+                    if open_mp and not self._database.configuration.use_open_mp:
                         continue
 
-                    if name in self._database.fc_ignore_modules:
+                    if name in self._database.configuration.fc_ignore_modules:
                         continue
                     if name not in unit_prereqs:
                         logger.debug(f"Found {open_mp}usage: {name}")
@@ -342,11 +306,9 @@ class AnalyseFortran(Action):
         return actions
 
 
-class DetermineProgram(Action):
-    def __init__(self, name: str, work_dir: Path,
-                 database: Database):
+class DetermineFortranProgram(Action):
+    def __init__(self, name: str, database: Database):
         self._name = name
-        self._work_dir = work_dir
         self._database = database
 
         self._modules: set[str] = set()
@@ -375,8 +337,7 @@ class DetermineProgram(Action):
 
                 source = self._database.symbol_table[unit_name].source_file
                 prereqs = self._database.prerequisites[unit_name]
-                actions.append(CompileFortran(source, self._work_dir,
-                                              prereqs, self._database))
+                actions.append(CompileFortran(source, prereqs, self._database))
 
                 for prereq in self._database.prerequisites[unit_name]:
                     new_units.add(prereq.name)
@@ -387,7 +348,7 @@ class DetermineProgram(Action):
 
         if len(self._units) == 0:
             actions.append(LinkFortran(self._name, self._modules,
-                                       self._work_dir, self._database))
+                                       self._database))
         else:
             mp_get_logger().debug(f"Missing: {', '.join(self._units)}")
             actions.append(self)
@@ -395,11 +356,9 @@ class DetermineProgram(Action):
 
 
 class CompileFortran(Action):
-    def __init__(self, source: Path, work_dir: Path,
-                 prerequisites: Iterable[PrerequisiteInfo],
+    def __init__(self, source: Path, prerequisites: Iterable[PrerequisiteInfo],
                  database: Database):
         self._source = source
-        self._work_dir = work_dir
         self._prerequisites = set(prerequisites)
         self._database = database
 
@@ -411,7 +370,7 @@ class CompileFortran(Action):
         for symbol in self._prerequisites:
             if symbol.nature == PrerequisiteType.USE:
                 name = Path(symbol.name).with_suffix('.mod').name
-                module_file = self._work_dir / 'build' / 'modules' / name
+                module_file = self._database.configuration.module_dir / name
                 prereqs.append(FilePrerequisite(module_file))
             elif symbol.nature == PrerequisiteType.EXTERNAL:
                 pass  # The compiler doesn't interrogate externals
@@ -427,23 +386,23 @@ class CompileFortran(Action):
     def perform(self) -> Iterable[Action | ActionResult]:
         # Todo: Hardwired assumption on workspace layout
         extra_arguments: list[str] = []
-        relative_path = self._source.relative_to(self._work_dir / 'build')
+        relative_path = self._source.relative_to(self._database.configuration.build_dir)
         mp_get_logger().debug(relative_path)
-        for case, tags in self._database.tag_dirs.items():
+        for case, tags in self._database.configuration.tag_dirs.items():
             mp_get_logger().debug(case)
             if relative_path.is_relative_to(case):
                 mp_get_logger().debug('bingo')
                 for tag in tags:
-                    extra_arguments.extend(self._database.build_tag_args[tag])
+                    extra_arguments.extend(self._database.configuration.build_tag_args[tag])
         mp_get_logger().debug(
             "Special arguments: " + ', '.join(extra_arguments)
         )
 
         destination = self._source.with_suffix('.o')
-        module_dir = self._work_dir / 'build/modules'
-        # Todo: Hardwired arguemnts
-        command = ['mpif90', '-c', '-J', str(module_dir), '-fopenmp',
-                   '-std=f2008', '-ffree-line-length-none']
+        # Todo: Hardwired arguments
+        command = ['mpif90', '-c',
+                   '-J', str(self._database.configuration.module_dir),
+                   '-fopenmp', '-std=f2008', '-ffree-line-length-none']
         for arg in os_environ['FFLAGS'].split():
             command.append(arg)
         command.extend(extra_arguments)
@@ -462,11 +421,9 @@ class CompileFortran(Action):
 
 
 class LinkFortran(Action):
-    def __init__(self, program: str, modules: set[str], work_dir: Path,
-                 database: Database):
+    def __init__(self, program: str, modules: set[str], database: Database):
         self._program = program
         self._modules = modules
-        self._work_dir = work_dir
         self._database = database
 
     def __str__(self) -> str:
@@ -488,14 +445,14 @@ class LinkFortran(Action):
             object_file = self._database.symbol_table[module].source_file.with_suffix('.o')
             objects.add(object_file)
 
-        dest = self._work_dir / self._program
+        dest = self._database.configuration.work_dir / self._program
         command = ['mpif90']
         for arg in os_environ['LDFLAGS'].split():
             command.append(arg)
         command.extend(['-o', str(dest), '-fopenmp'])
         for object_file in objects:
             command.append(str(object_file))
-        for library in self._database.libraries:
+        for library in self._database.configuration.libraries:
             command.extend(['-l', library])
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:

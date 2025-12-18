@@ -5,7 +5,7 @@ from subprocess import run, PIPE
 from typing import Iterable
 
 from fabengine.actions import Action, ActionResult, Prerequisite
-from fabengine.prerequisite import (BooleanPrerequisite, FilePrerequisite)
+from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
 
@@ -72,10 +72,9 @@ class RosePickerPrerequisite(Prerequisite):
 #       so we can stop using "rose picker."
 #
 class RosePicker(Action):
-    def __init__(self, filename: Path, work_dir: Path, core_dir: Path,
+    def __init__(self, filename: Path, core_dir: Path,
                  database: Database):
         self._filename = filename
-        self._work_dir = work_dir
         self._core_dir = core_dir
         self._database = database
 
@@ -86,9 +85,10 @@ class RosePicker(Action):
         return [RosePickerPrerequisite(self._filename, self._database)]
 
     def perform(self) -> Iterable[Action | ActionResult]:
-        self._work_dir.mkdir(parents=True, exist_ok=True)
+        configuration_dir = self._database.configuration.build_dir / 'configuration'
+        configuration_dir.mkdir(parents=True, exist_ok=True)
         command = ['rose_picker', str(self._filename),
-                   '-directory', str(self._work_dir)]
+                   '-directory', str(configuration_dir)]
         for directory in self._database.config_meta_dirs:
             command.extend(['-include_dirs', str(directory)])
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
@@ -96,22 +96,18 @@ class RosePicker(Action):
             return [ActionResult(self, process.returncode, ' '.join(command),
                                  process.stdout, process.stderr)]
 
-        return [ConfigurationLoader(self._work_dir / 'config_namelists.txt',
-                                    self._work_dir,
-                                    self._core_dir,
-                                    self._database),
-                NamelistLoader(self._work_dir / 'rose-meta.json',
-                               self._work_dir / 'config_namelists.txt',
-                               self._work_dir,
-                               self._core_dir,
-                               self._database)]
+        return [
+            ConfigurationLoader(configuration_dir / 'config_namelists.txt',
+                                self._core_dir, self._database),
+            NamelistLoader(configuration_dir / 'rose-meta.json',
+                           configuration_dir / 'config_namelists.txt',
+                           self._core_dir, self._database)
+        ]
 
 
 class ConfigurationLoader(Action):
-    def __init__(self, filename: Path, work_dir: Path, core_dir: Path,
-                 database: Database):
+    def __init__(self, filename: Path, core_dir: Path, database: Database):
         self._filename = filename
-        self._work_dir = work_dir
         self._core_dir = core_dir
         self._database = database
 
@@ -122,7 +118,8 @@ class ConfigurationLoader(Action):
         return [FilePrerequisite(self._filename)]
 
     def perform(self) -> Iterable[Action | ActionResult]:
-        source_file = self._work_dir / 'configuration_mod.f90'
+        source_file = (self._database.configuration.build_dir
+                       / 'configuration' / 'configuration_mod.f90')
 
         command = [str(self._core_dir / 'infrastructure' / 'build' / 'tools' / 'GenerateLoader'),
                    str(source_file)]
@@ -131,17 +128,16 @@ class ConfigurationLoader(Action):
                 command.append(namelist)
         run(command, check=True)
 
-        return [AnalyseFortran(source_file, self._work_dir, self._database)]
+        return [AnalyseFortran(source_file, self._database)]
 
 
 # Todo: Change namelist generation to be done namelist at a time.
 #
 class NamelistLoader(Action):
-    def __init__(self, json_file: Path, namelist_file: Path, work_dir: Path,
-                 core_dir: Path, database: Database):
+    def __init__(self, json_file: Path, namelist_file: Path, core_dir: Path,
+                 database: Database):
         self._json_file = json_file
         self._namelist_file = namelist_file
-        self._work_dir = work_dir
         self._core_dir = core_dir
         self._database = database
 
@@ -149,17 +145,28 @@ class NamelistLoader(Action):
         return f"Namelist loader: {self._json_file}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        return [FilePrerequisite(self._json_file)]
+        return [FilePrerequisite(self._json_file),
+                FilePrerequisite(self._namelist_file)]
 
     def perform(self) -> Iterable[Action | ActionResult]:
-        command = [str(self._core_dir / 'infrastructure' / 'build' / 'tools' / 'GenerateNamelist'),
-                   str(self._json_file), '-directory', str(self._work_dir)]
-        run(command, check=True)
+        actions: list[Action | ActionResult] = []
 
-        actions: list[Action] = []
+        config_dir = self._database.configuration.build_dir / 'configuration'
+        command = [str(self._core_dir / 'infrastructure' / 'build' / 'tools' / 'GenerateNamelist'),
+                   str(self._json_file),
+                   '-directory', str(config_dir)]
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+        if process.returncode != 0:
+            actions.append(ActionResult(self,
+                                        process.returncode,
+                                        ' '.join(command),
+                                        process.stdout,
+                                        process.stderr))
+
         for line in self._namelist_file.read_text().splitlines():
             for namelist in line.split():
                 leafname = namelist + '_config_mod.f90'
-                actions.append(AnalyseFortran(self._work_dir / leafname,
-                                              self._work_dir, self._database))
+                actions.append(
+                    AnalyseFortran(config_dir / leafname, self._database)
+                )
         return actions

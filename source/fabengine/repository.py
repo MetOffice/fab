@@ -4,8 +4,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
-from fabengine.actions import Action
-from fabengine.actions.source import RepositoryAction, SourceOnDiscAction, SourceOnGitHubAction
+from fabengine.actions.source import (RepositoryAction, SourceOnDiscAction,
+                                      SourceOnGitHubAction)
 from fabengine.database import Database
 from fabengine.project import Project
 
@@ -32,8 +32,7 @@ class FileTreeRepository(Repository):
         self._filename = filename
 
     def create_action(self, work_dir: Path, database: Database) -> RepositoryAction:
-        return SourceOnDiscAction(self._filename, self.projects,
-                                  work_dir, database)
+        return SourceOnDiscAction(self._filename, self.projects, database)
 
 
 class GitHubRepository(Repository):
@@ -43,5 +42,4 @@ class GitHubRepository(Repository):
         self._url = url
 
     def create_action(self, work_dir: Path, database: Database) -> RepositoryAction:
-        return SourceOnGitHubAction(self._url, self.projects,
-                                    work_dir, database)
+        return SourceOnGitHubAction(self._url, self.projects, database)

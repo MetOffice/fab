@@ -27,10 +27,9 @@ class RepositoryAction(Action, ABC):
 
 class SourceOnDiscAction(RepositoryAction):
     def __init__(self, remote: str, projects: list[Project],
-                 work_dir: Path, database: Database):
+                 database: Database):
         self._remote = remote
         self._projects = projects
-        self._work_dir = work_dir
         self._database = database
 
     def __str__(self) -> str:
@@ -42,11 +41,11 @@ class SourceOnDiscAction(RepositoryAction):
     @property
     def local_copy(self) -> Path:
         filename = Path(self._remote.split(':')[-1])
-        return self._work_dir / filename.name
+        return self._database.configuration.work_dir / filename.name
 
     def perform(self) -> Iterable[Action | ActionResult]:
         remote = str(self._remote).rstrip('/')
-        local = str(self._work_dir)
+        local = str(self._database.configuration.work_dir)
         command = ['rsync', '-a', remote, local]
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
@@ -56,18 +55,15 @@ class SourceOnDiscAction(RepositoryAction):
         actions: list[Action] = []
         for project in self._projects:
             actions.append(
-                SourceDirectory(
-                    project.identifier,
-                    self.local_copy / project.source_dir,
-                    self._work_dir, self._database
-                )
+                SourceDirectory(self.local_copy / project.source_dir,
+                                project.identifier, self._database)
             )
         return actions
 
 
 class SourceOnGitHubAction(RepositoryAction):
     def __init__(self, url: str, projects: list[Project],
-                 work_dir: Path, database: Database):
+                 database: Database):
         _, netloc, _, _, _, _ = urlparse(url)
         if netloc.split('@')[-1].lower() != 'github.com':
             raise RuntimeError(
@@ -75,7 +71,6 @@ class SourceOnGitHubAction(RepositoryAction):
             )
         self._url = url
         self._projects = projects
-        self._work_dir = work_dir
         self._database = database
 
     def __str__(self) -> str:
@@ -88,7 +83,7 @@ class SourceOnGitHubAction(RepositoryAction):
     def local_copy(self) -> Path:
         _, netloc, path, _, query, fragment = urlparse(self._url)
         name = Path(path).stem
-        return self._work_dir / name
+        return self._database.configuration.work_dir / name
 
     def perform(self) -> list[Action | ActionResult]:
         repo_marker = self.local_copy / '.git'
@@ -107,19 +102,15 @@ class SourceOnGitHubAction(RepositoryAction):
         actions: list[Action] = []
         for project in self._projects:
             actions.append(
-                SourceDirectory(project.identifier,
-                                self.local_copy / project.identifier,
-                                self._work_dir, self._database)
+                SourceDirectory(self.local_copy / project.identifier, project.identifier, self._database)
             )
         return actions
 
 
 class SourceDirectory(Action):
-    def __init__(self, tag: str, filename: Path, work_dir: Path,
-                 database: Database):
-        self._tag = tag
+    def __init__(self, filename: Path, tag: str, database: Database):
         self._source_dir = filename
-        self._work_dir = work_dir
+        self._tag = tag
         self._database = database
 
     def __str__(self) -> str:
@@ -135,11 +126,10 @@ class SourceDirectory(Action):
     #
     def perform(self) -> Generator[Action, None, list[Action]]:
         mp_get_logger().debug("Scanning " + str(self._source_dir))
-        build_dir = self._work_dir / 'build'
-        project_dir = build_dir / self._tag
+        project_dir = self._database.configuration.build_dir / self._tag
         project_dir.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired paths - maybe something with a factory pattern here?
-        core_dir = self._work_dir / 'lfric_core'
+        core_dir = self._database.configuration.work_dir / 'lfric_core'
 
         for root, branches, leaves in self._source_dir.walk():
             for leaf in leaves:
@@ -153,24 +143,23 @@ class SourceDirectory(Action):
                 if full_filename.suffix == '.f90':
                     actions.append(ImportFortran(self._source_dir,
                                                  relative_filename,
-                                                 project_dir,
-                                                 self._work_dir,
+                                                 self._tag,
                                                  self._database))
                 elif full_filename.suffix == '.F90':
                     actions.append(PreprocessFortranAction(self._source_dir,
                                                            relative_filename,
-                                                           project_dir,
-                                                           self._work_dir,
+                                                           self._tag,
                                                            self._database))
                 elif full_filename.suffix == '.pf':
                     # Todo: No support for per-file compiler arguments. Do we
                     #       need it?
-                    actions.append(PfUnit(full_filename, build_dir, self._database))
+                    actions.append(PfUnit(self._source_dir,
+                                          relative_filename,
+                                          self._tag,
+                                          self._database))
                 elif full_filename.suffix == '.t90':
                     # Todo: Hardwired to field templating and just nasty.
-                    # Todo: No support for per-file compiler arguments. Do we
-                    #       need it?
-                    for mapping in self._database.field_instances:
+                    for mapping in self._database.configuration.field_instances:
                         ttype = list(mapping.keys())[0]
                         tkind = mapping[ttype]
                         leafname = full_filename.stem[:-4] + '_' + tkind + '_mod.f90'
@@ -178,29 +167,28 @@ class SourceDirectory(Action):
                         actions.append(Templaterator(full_filename,
                                                      leafname,
                                                      inserts,
-                                                     project_dir,
                                                      core_dir,
                                                      self._database))
                 elif full_filename.suffix == '.X90':
                     actions.append(PreprocessAlgorithm(self._source_dir,
                                                        relative_filename,
-                                                       project_dir,
-                                                       core_dir,
-                                                       self._work_dir,
+                                                       self._tag,
                                                        self._database))
                 elif full_filename.suffix == '.x90':
-                    actions.append(PSyclone(self._source_dir, relative_filename, project_dir, core_dir, self._work_dir,
+                    actions.append(PSyclone(self._source_dir,
+                                            relative_filename,
+                                            self._tag,
                                             self._database))
                 elif full_filename.suffix == '.h':
                     actions.append(ImportInclusion(self._source_dir,
                                                    relative_filename,
-                                                   project_dir,
-                                                   build_dir,
+                                                   self._tag,
                                                    self._database))
                 elif full_filename.suffix == '.inc':
                     actions.append(ImportInclusion(self._source_dir,
                                                    relative_filename,
-                                                   build_dir))
+                                                   self._tag,
+                                                   self._database))
                 else:
                     mp_get_logger().debug("Ignoring file: " + full_filename.name)
 
