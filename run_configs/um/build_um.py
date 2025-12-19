@@ -170,7 +170,7 @@ if __name__ == '__main__':
 
         preprocess_c(
             state,
-            source=CollectionGetter(ArtefactSet.C_BUILD_FILES),
+            source=CollectionGetter(ArtefactSet.C_COMPILER_FILES),
             path_flags=[
                 # todo: this is a bit "codey" - can we safely give longer strings and split later?
                 AddFlags(match="$source/um/*", flags=[
