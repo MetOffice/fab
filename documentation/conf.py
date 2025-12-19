@@ -13,7 +13,11 @@ author = 'Matthew Hambley'
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ['pydata_sphinx_theme', 'sphinxcontrib.mermaid']
+extensions = [
+    'pydata_sphinx_theme',
+    'sphinxcontrib.mermaid',
+    'matplotlib.sphinxext.plot_directive'
+]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']

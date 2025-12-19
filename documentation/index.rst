@@ -12,3 +12,4 @@ for day-to-day use.
    :caption: Contents:
 
    work_queue
+   performance

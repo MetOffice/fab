@@ -1,5 +1,5 @@
-Revisiting the Work Queue
-=========================
+Work Queue
+##########
 
 At the abstract level, a build system is just a means of managing a
 :abbr:`Directed Acyclic Graph (DAG)` of build operations. Compilation of source
@@ -190,3 +190,23 @@ problem but now new work is going on the end of the queue again, the problem we
 were trying to solve in the first place. So then we might consider a special
 queue where work can be inserted immediately after the sentinels. But this is
 adding complexity on complexity to solve a problem we haven't proven exists.
+
+.. note:: These experiments have not been carried out yet, this plot is a
+          placeholder.
+
+.. plot::
+
+   from _plots.plot import clustered_bar_plot
+
+   timings = {
+       'New work to back': ['00:00', '00:00', '00:00', '00:00', '00:00'],
+       'New work to front': ['00:00', '00:00', '00:00', '00:00', '00:00'],
+       'New work to front until sentinal, then back': ['00:00', '00:00', '00:00', '00:00', '00:00'],
+       'New work to front until sentinal, then after sentinal': ['00:00', '00:00', '00:00', '00:00', '00:00']
+   }
+   threads = (1, 2, 3, 4, 5)
+
+   clustered_bar_plot(timings,
+                      threads, "Threads",
+                      "Seconds to complete, lower is better",
+                      "Build of Atmosphere application from clean")
