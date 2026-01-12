@@ -294,6 +294,9 @@ class ToolRepository(dict):
             if category == Category.LINKER:
                 tool = cast(Linker, tool)
                 compiler = tool.compiler
+                # Find the real compiler if we have a compiler wrapper:
+                while isinstance(compiler, CompilerWrapper):
+                    compiler = compiler.compiler
                 # Ignore C linker if Fortran is requested and vice versa:
                 if (enforce_fortran_linker and
                         not isinstance(compiler, FortranCompiler)):
