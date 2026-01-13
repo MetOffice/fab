@@ -72,7 +72,7 @@ jobs:
           pip install .[docs]
 
       - name: Type check with mypy
-        run: python -m mypy source tests
+        run: python -m mypy source tests run_configs
 
       - name: Code style check with flake8
         if: always()
