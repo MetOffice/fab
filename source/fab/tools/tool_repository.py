@@ -92,7 +92,7 @@ class ToolRepository(dict):
                 mpif90 = Mpif90(fc)
                 self.add_tool(mpif90)
             # I assume cray has (besides cray) only support for Intel and GNU
-            if fc.name in ["gfortran", "ifort"]:
+            if fc.name in ["gfortran", "ifort", "ifx"]:
                 crayftn = CrayFtnWrapper(fc)
                 self.add_tool(crayftn)
 
@@ -102,7 +102,7 @@ class ToolRepository(dict):
             mpicc = Mpicc(cc)
             self.add_tool(mpicc)
             # I assume cray has (besides cray) only support for Intel and GNU
-            if cc.name in ["gcc", "icc"]:
+            if cc.name in ["gcc", "icc", "icx"]:
                 craycc = CrayCcWrapper(cc)
                 self.add_tool(craycc)
 
