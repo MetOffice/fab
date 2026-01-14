@@ -31,6 +31,8 @@ from fab.tools.category import Category
 from fab.tools.compiler import Compiler, Ifort
 from fab.tools.compiler_wrapper import CompilerWrapper
 from fab.tools.linker import Linker
+from fab.tools.nf_config import NfConfig
+from fab.tools.pkg_config import PkgConfig
 from fab.tools.tool import Tool
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
@@ -69,6 +71,8 @@ __all__ = [
     "link_exe",
     "link_shared_object",
     "log_or_dot",
+    "NfConfig",
+    "PkgConfig",
     "preprocess_c",
     "preprocess_fortran",
     "preprocess_x90",
