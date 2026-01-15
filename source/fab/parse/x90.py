@@ -10,7 +10,10 @@ from fparser.two.Fortran2003 import (     # type: ignore
     Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List,
     Part_Ref)
 from fparser.two.utils import walk  # type: ignore
-from psyclone.domain.lfric.lfric_builtins import BUILTIN_MAP    # type: ignore
+try:
+    from psyclone.domain.lfric.lfric_builtins import BUILTIN_MAP    # type: ignore
+except ImportError:
+    BUILTIN_MAP = {}
 
 from fab.build_config import BuildConfig
 from fab.parse.fortran_common import FortranAnalyserBase, logger, _typed_child
