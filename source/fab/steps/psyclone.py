@@ -367,7 +367,7 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
      - cli args
 
     """
-    # We've analysed (a parsable version of) this x90.
+    # We've analysed this x90.
     analysis_result = mp_payload.analysed_x90[x90_file]  # type: ignore
 
     # include the hashes of kernels used by this x90
