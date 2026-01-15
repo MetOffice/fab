@@ -9,9 +9,11 @@ on: workflow_dispatch
 jobs:
   build-images:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v3
-      - name: Build my image
-        uses: rhattersley/picasso-build-images-action@v1
+      - uses: actions/checkout@v6
+      - name: Build fab image
+        uses: MetOffice/picasso-build-images-action@v1
         with:
-          images: '[{"name": "MyImage", "path": "envs/picasso/image.yml", "tag": "latest"}]'
+          images: '[{"name": "image", "path": "envs/picasso/image.yml", "tag": "latest"}]'
