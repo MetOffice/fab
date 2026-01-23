@@ -11,5 +11,6 @@ for day-to-day use.
    :maxdepth: 2
    :caption: Contents:
 
+   analysis/index
    work_queue
    performance
