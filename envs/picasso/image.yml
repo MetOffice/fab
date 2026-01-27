@@ -1,6 +1,8 @@
 conda:
+  channels:
+    - conda-forge
   packages:
-    - python==3.9
+    - python==3.12
     - libclang
     - python-clang
     - fparser
@@ -14,4 +16,5 @@ conda:
     - rsync
 
 commands:
-  - python3 setup.py install
+  - python3 -m pip install
+

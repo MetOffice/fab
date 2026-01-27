@@ -58,7 +58,7 @@ def main(argv: Optional[List[str]] = None):
 
     if argv is None:
         # Use system argument if none have been provided
-        argv = sys.argv
+        argv = sys.argv[1:]
 
     parser = FabArgumentParser(description=__doc__)
     file_args = parser.parse_fabfile_only(argv)
