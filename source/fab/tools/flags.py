@@ -145,12 +145,12 @@ class AlwaysFlags(AbstractFlags):
             params['source'] = config.source_root
             params['output'] = config.build_output
         else:
-            params['source'] = "/"
-            params['output'] = "/"
+            params['source'] = Path("/")
+            params['output'] = Path("/")
         if file_path:
             params['relative'] = file_path.parent
         else:
-            params['relative'] = "."
+            params['relative'] = Path(".")
 
         # Use templating to render any relative paths in our flags
         return [Template(i).substitute(params) for i in string_list]
