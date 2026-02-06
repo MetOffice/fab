@@ -169,7 +169,7 @@ This gives correct behaviour but often a new task is ready to run straight
 away. Therefore a potential optimisation is to put new tasks on the front of
 the queue so they may be considered immediately.
 
-Tasks which are being requeued due to being unable to run still go on the
+Tasks which are being re-queued due to being unable to run still go on the
 back of the queue. We need a full cycle of the queue before considering
 them again. The action which frees up their prerequisites may be in the
 queue so by the time they come round again these prerequisites may have
@@ -191,22 +191,58 @@ were trying to solve in the first place. So then we might consider a special
 queue where work can be inserted immediately after the sentinels. But this is
 adding complexity on complexity to solve a problem we haven't proven exists.
 
-.. note:: These experiments have not been carried out yet, this plot is a
-          placeholder.
-
 .. plot::
 
    from _plots.plot import clustered_bar_plot
 
    timings = {
-       'New work to back': ['00:00', '00:00', '00:00', '00:00', '00:00'],
-       'New work to front': ['00:00', '00:00', '00:00', '00:00', '00:00'],
-       'New work to front until sentinal, then back': ['00:00', '00:00', '00:00', '00:00', '00:00'],
-       'New work to front until sentinal, then after sentinal': ['00:00', '00:00', '00:00', '00:00', '00:00']
+       'New work to back': [
+           '28:57', '15:30', '11:02', '10:04', '07:10',
+           '00:00', '00:00', '00:00', '00:00', '04:57',
+           '00:00', '00:00', '04:45', '00:00', '00:00',
+           '04:46'
+       ],
+       'New work to front': [
+          '29:29', '14:31', '11:12', '12:01', '09:38',
+          '00:00', '00:00', '00:00', '00:00', '05:30',
+          '00:00', '00:00', '05:12', '00:00', '00:00',
+          '05:09'
+       ],
+       'New work to front until sentinel, then back': [
+           '27:57', '15:01', '10:37', '11:33', '07:45',
+           '00:00', '00:00', '00:00', '00:00', '05:20',
+           '00:00', '00:00', '04:59', '00:00', '00:00',
+           '05:10'
+       ],
+       'New work to front until sentinel, then after sentinel': [
+           '28:08', '14:44', '10:12', '10:48', '08:01',
+           '00:00', '00:00', '00:00', '00:00', '05:49',
+           '00:00', '00:00', '05:21', '00:00', '00:00',
+           '05:39'
+       ]
    }
-   threads = (1, 2, 3, 4, 5)
+   threads = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
 
    clustered_bar_plot(timings,
                       threads, "Threads",
                       "Seconds to complete, lower is better",
                       "Build of Atmosphere application from clean")
+
+Probably because building software is so dependent on I/O performance these
+results suffer from noise. However, I think a few conclusions may be drawn.
+
+It looks like all my attempts to optimise the queue strategy have very little
+effect, and where one is discernible it is often for the worse. When the
+complexity of the solution is taken into account it seems like we might be
+better off sticking with the simplest and most robust approach. Any small
+performance gain is not worth the complexity.
+
+Speculation as to why optimisations don't seem to have much effect comes down
+to the amount of time spent managing the queue being dwarfed by that taken
+performing the actions. In particular the time spent determining prerequisite
+readiness is small, even though it involves I/O in the form of checking for
+the existence of files.
+
+If we wanted to improve queueing performance we might be better off investing
+in developing some sort of virtual filesystem which can track the presence of
+files in memory. But even that is probably not worth the effort.

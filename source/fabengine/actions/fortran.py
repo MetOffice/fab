@@ -8,7 +8,7 @@ from re import compile as re_compile, IGNORECASE
 from subprocess import run, PIPE
 from typing import Optional, Iterable
 
-from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions import Action, SubprocessActionException, Prerequisite
 from fabengine.actions.file import ImportFile
 from fabengine.database import (Database,
                                 PrerequisiteType, PrerequisiteInfo,
@@ -21,7 +21,7 @@ class ImportFortran(ImportFile):
     def __str__(self) -> str:
         return f"Import Fortran: {self.repo_dir} {self.filename}"
 
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         actions = super().perform()
         actions.append(AnalyseFortran(self.destination_file, self._database))
         return actions
@@ -31,18 +31,16 @@ class ImportInclusion(ImportFile):
     def __str__(self) -> str:
         return f"Import inclusion: {self.source_file}"
 
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         actions = super().perform()
         if Path(self.destination_file.name) not in self._database.inclusions:
             filename = Path(self.destination_file.name)
             self._database.inclusions[filename] = self.destination_file
         else:
-            actions.append(
-                ActionResult(
-                    self,
-                    return_code=-1,
-                    stderr=f"Duplicate inclusion '{self.destination_file.name} found"
-                )
+            raise SubprocessActionException(
+                self,
+                return_code=-1,
+                stderr=f"Duplicate inclusion '{self.destination_file.name} found"
             )
         return actions
 
@@ -98,7 +96,7 @@ class PreprocessFortranBase(Action, ABC):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return self._prereqs
 
-    def perform(self) -> list[Action | ActionResult]:
+    def perform(self) -> list[Action]:
         self.destination_file.parent.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired command
         command = ['cpp', '-traditional-cpp', '-P']
@@ -119,12 +117,12 @@ class PreprocessFortranBase(Action, ABC):
         command.append(str(self.source_file))
         command.append(str(self.destination_file))
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
-        actions: list[Action | ActionResult] = []
         if process.returncode != 0:
-            actions.append(ActionResult(self, process.returncode,
-                                        ' '.join(command),
-                                        process.stdout, process.stderr))
-        return actions
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout,
+                                            process.stderr)
+        return []
 
 
 class PreprocessFortranAction(PreprocessFortranBase):
@@ -137,7 +135,7 @@ class PreprocessFortranAction(PreprocessFortranBase):
     def __str__(self) -> str:
         return "Preprocess Fortran: " + str(self.source_file)
 
-    def perform(self) -> list[Action | ActionResult]:
+    def perform(self) -> list[Action]:
         actions = super().perform()
         actions.append(AnalyseFortran(self.destination_file, self._database))
         return actions
@@ -383,15 +381,12 @@ class CompileFortran(Action):
                 )
         return prereqs
 
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         # Todo: Hardwired assumption on workspace layout
         extra_arguments: list[str] = []
         relative_path = self._source.relative_to(self._database.configuration.build_dir)
-        mp_get_logger().debug(relative_path)
         for case, tags in self._database.configuration.tag_dirs.items():
-            mp_get_logger().debug(case)
             if relative_path.is_relative_to(case):
-                mp_get_logger().debug('bingo')
                 for tag in tags:
                     extra_arguments.extend(self._database.configuration.build_tag_args[tag])
         mp_get_logger().debug(
@@ -412,12 +407,12 @@ class CompileFortran(Action):
         command.append('-fallow-argument-mismatch')
         command.extend([str(self._source), '-o', str(destination)])
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
-        actions: list[Action | ActionResult] = []
         if process.returncode != 0:
-            actions.append(ActionResult(self, process.returncode,
-                                        ' '.join(command),
-                                        process.stdout, process.stderr))
-        return actions
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout,
+                                            process.stderr)
+        return []
 
 
 class LinkFortran(Action):
@@ -439,7 +434,7 @@ class LinkFortran(Action):
                 prereqs.append(AnalysedPrerequisite(module, self._database))
         return prereqs
 
-    def perform(self) -> list[Action | ActionResult]:
+    def perform(self) -> list[Action]:
         objects: set[Path] = set()
         for module in self._modules:
             object_file = self._database.symbol_table[module].source_file.with_suffix('.o')
@@ -456,6 +451,7 @@ class LinkFortran(Action):
             command.extend(['-l', library])
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
-            return [ActionResult(self, process.returncode, ' '.join(command),
-                                 process.stdout, process.stderr)]
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout, process.stderr)
         return []

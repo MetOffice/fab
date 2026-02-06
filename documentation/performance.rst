@@ -3,6 +3,22 @@ Performance
 
 Comparing performance of different build system implementations.
 
+Timings are performed on the SPICE back-end in order to have enough threads
+available for workers. Our desktop machines only have 2 threads.
+
+The problem is that the SPICE nodes are all shared and the job of building
+software is heavily I/O bound. This means other jobs sharing the node can have
+a strong effect on performance.
+
+In order to get reliable readings it is necessary to reserve a whole node in
+order to get exclusive access to its I/O capability.
+
+.. note::
+
+   The need to reserve whole nodes was not realised until after this page had
+   been prepared. These runs will be repeated in due course and the timings
+   updated with more reliable values.
+
 Skeleton
 ++++++++
 

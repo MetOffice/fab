@@ -4,7 +4,7 @@ from re import compile as re_compile, IGNORECASE
 from subprocess import run, PIPE
 from typing import Iterable
 
-from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions import Action, SubprocessActionException, Prerequisite
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
@@ -84,7 +84,7 @@ class RosePicker(Action):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [RosePickerPrerequisite(self._filename, self._database)]
 
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         configuration_dir = self._database.configuration.build_dir / 'configuration'
         configuration_dir.mkdir(parents=True, exist_ok=True)
         command = ['rose_picker', str(self._filename),
@@ -93,8 +93,9 @@ class RosePicker(Action):
             command.extend(['-include_dirs', str(directory)])
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
-            return [ActionResult(self, process.returncode, ' '.join(command),
-                                 process.stdout, process.stderr)]
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout, process.stderr)
 
         return [
             ConfigurationLoader(configuration_dir / 'config_namelists.txt',
@@ -117,7 +118,7 @@ class ConfigurationLoader(Action):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [FilePrerequisite(self._filename)]
 
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         source_file = (self._database.configuration.build_dir
                        / 'configuration' / 'configuration_mod.f90')
 
@@ -148,21 +149,18 @@ class NamelistLoader(Action):
         return [FilePrerequisite(self._json_file),
                 FilePrerequisite(self._namelist_file)]
 
-    def perform(self) -> Iterable[Action | ActionResult]:
-        actions: list[Action | ActionResult] = []
-
+    def perform(self) -> Iterable[Action]:
         config_dir = self._database.configuration.build_dir / 'configuration'
         command = [str(self._core_dir / 'infrastructure' / 'build' / 'tools' / 'GenerateNamelist'),
                    str(self._json_file),
                    '-directory', str(config_dir)]
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
-            actions.append(ActionResult(self,
-                                        process.returncode,
-                                        ' '.join(command),
-                                        process.stdout,
-                                        process.stderr))
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout, process.stderr)
 
+        actions: list[Action] = []
         for line in self._namelist_file.read_text().splitlines():
             for namelist in line.split():
                 leafname = namelist + '_config_mod.f90'

@@ -5,7 +5,7 @@ from matplotlib.pyplot import show, subplots
 import numpy as np
 
 
-def convert_timings_seconds(timings: list[str]) -> list[int]:
+def convert_timings_string(timings: list[str]) -> list[int]:
     """
     Converts timing strings to number of seconds.
 
@@ -14,6 +14,8 @@ def convert_timings_seconds(timings: list[str]) -> list[int]:
     deltas: list[int] = []
     for timing in timings:
         minutes, _, seconds = timing.partition(':')
+        if not minutes or not seconds:
+            raise RuntimeError("Unable to parse timing string: " + timing)
         deltas.append(int(minutes) * 60 + int(seconds))
     return deltas
 
@@ -59,7 +61,7 @@ def clustered_bar_plot(timings: dict[str, list[str]],
 
     for count, group in enumerate(timings.keys()):
         bar_x = x_label_locations - bucket_width / 2 + bar_width * count
-        values = convert_timings_seconds(timings[group])
+        values = convert_timings_string(timings[group])
         axes.bar(bar_x, values, width=bar_width, label=group)
 
     axes.set_xticks(x_label_locations)

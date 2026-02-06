@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from re import compile as re_compile, IGNORECASE
-from multiprocessing import get_logger as mp_get_logger
 from pathlib import Path
 from subprocess import run, PIPE
 from typing import Generator, Iterable, Optional
 
-from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions import Action, Prerequisite, SubprocessActionException
 from fabengine.actions.fortran import PreprocessFortranBase
 from fabengine.prerequisite import FilePrerequisite, SymbolPrerequisite
 from fabengine.actions.fortran import AnalyseFortran
@@ -24,7 +23,7 @@ class PreprocessAlgorithm(PreprocessFortranBase):
     def __str__(self) -> str:
         return f"Preprocess PSyKAl algorithm: {self.repo} {self.filename}"
 
-    def perform(self) -> list[Action | ActionResult]:
+    def perform(self) -> list[Action]:
         actions = super().perform()
         build_dir = self._database.configuration.build_dir
         actions.append(PSyclone(build_dir,
@@ -116,9 +115,10 @@ class PSyclone(Action):
             symbol = self._database.symbol_table.get(kernel)
             if symbol:
                 prereqs.append(FilePrerequisite(symbol.source_file))
+        prereqs.append(FilePrerequisite(self._database.configuration.psyclone_config))
         return prereqs
 
-    def perform(self) -> list[Action | ActionResult]:
+    def perform(self) -> list[Action]:
         kernel_roots: list[Path] = []
         for kernel in self._kernels:
             kernel_symbol = self._database.symbol_table.get(kernel)
@@ -149,13 +149,11 @@ class PSyclone(Action):
         command.append(str(self._repo_dir / self._algorithm_file))
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
 
-        actions : list[Action | ActionResult] = []
+        actions : list[Action] = []
         if process.returncode != 0:
-            actions.append(
-                ActionResult(self, process.returncode,
-                             ' '.join(command),
-                             process.stdout, process.stderr)
-            )
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout, process.stderr)
         else:  # Command succeeded
             actions.append(
                 AnalyseFortran(project_dir / alg_name, self._database)

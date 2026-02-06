@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from traceback import format_exception
 from typing import Optional
 
 
@@ -17,31 +18,60 @@ class Action(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         raise NotImplementedError()
 
 
-class ActionResult:
-    def __init__(self,
-                 action: Action,
-                 return_code: int = 0,
-                 command: Optional[str] = None,
-                 stdout: Optional[str] = None,
-                 stderr: Optional[str] = None,
-                 cause: Optional[Exception] = None):
-        self._action = action
-        self._return_code = return_code
-        self._command = command
-        self._stdout = stdout
-        self._stderr = stderr
-        self._cause = cause
+class WorkerException(BaseException, ABC):
+    @abstractmethod
+    def describe(self) -> str:
+        raise NotImplementedError()
 
-    def __str__(self) -> str:
-        return f"ActionsResult ({self._return_code}): {self._action}"
+
+class EndOfWorkException(WorkerException):
+    def describe(self) -> str:
+        return "Worker finished for the day."
+
+
+class ActionException(WorkerException, ABC):
+    def __init__(self, action: Optional[Action]):
+        self._action = action
 
     @property
     def action(self) -> Action:
         return self._action
+
+    def describe(self) -> str:
+        return str(self._action)
+
+
+class ExceptionActionException(ActionException):
+    def __init__(self, action: Action, cause: Exception):
+        super().__init__(action)
+        self._cause = cause
+
+    @property
+    def cause(self) -> Exception:
+        return self._cause
+
+    def describe(self) -> str:
+        return (super().describe() + " caused by "
+                + ''.join(format_exception(self._cause))
+                + '\n' + '\n'.join(format_exception(self._cause)))
+
+
+class SubprocessActionException(ActionException):
+    def __init__(self,
+                 action: Action,
+                 command: str,
+                 return_code: int = 0,
+                 stdout: Optional[str] = None,
+                 stderr: Optional[str] = None):
+        super().__init__(action)
+        self._command = command
+        self._return_code = return_code
+        self._stdout = stdout
+        self._stderr = stderr
 
     @property
     def return_code(self) -> int:
@@ -49,7 +79,7 @@ class ActionResult:
 
     # Todo: Accept list of strings straight from calling process.
     @property
-    def command(self) -> Optional[str]:
+    def command(self) -> str:
         return self._command
 
     @property
@@ -60,6 +90,11 @@ class ActionResult:
     def stderr(self) -> Optional[str]:
         return self._stderr
 
-    @property
-    def cause(self) -> Optional[Exception]:
-        return self._cause
+    def describe(self) -> str:
+        description = super().describe() + f"({self._return_code}"
+        description += "\nCommand: " + self._command
+        if self._stdout:
+            description += "\nStandard out: " + self._stdout
+        if self._stderr:
+            description += "\nStandard error: " + self._stderr
+        return description

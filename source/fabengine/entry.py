@@ -1,27 +1,26 @@
 from __future__ import annotations
 
 from cProfile import Profile
-from logging import StreamHandler, DEBUG, INFO, WARNING
-from queue import Empty
-from traceback import format_exception
+from logging import StreamHandler, getLogger, DEBUG, INFO, WARNING
 from time import sleep
 
-from multiprocessing import Barrier, Process, get_logger as mp_get_logger
+from multiprocessing import Barrier, Process, Queue, get_logger as mp_get_logger
 from pathlib import Path
-from queue import Queue
 
-from fabengine.actions import Action, ActionResult
+from fabengine.actions import (Action, ActionException,
+                               ExceptionActionException, EndOfWorkException,
+                               WorkerException)
 from fabengine.actions.configurator import RosePicker
 from fabengine.actions.sentinel import Sentinel
 from fabengine.project import Project
 from fabengine.repository import Repository, FileTreeRepository
 from fabengine.database import Configuration, Database
 from fabengine.manager import FabManager
-from fabengine.mpdequeue import MPDEQueue
+from fabengine.work_queue import QueueStrategy, WorkQueue
 
 
 class MonitorProcess(Process):
-    def __init__(self, work_queue: MPDEQueue[Action]):
+    def __init__(self, work_queue: WorkQueue):
         super().__init__(name="Build monitor", target=self._monitor)
         self._work_queue = work_queue
         self._stopping = False
@@ -30,7 +29,7 @@ class MonitorProcess(Process):
         self._stopping = True
 
     def _monitor(self):
-        logger = mp_get_logger()
+        logger = getLogger(__name__)
         sleep_count = 0
         while not self._stopping:
             sleep(1)
@@ -42,9 +41,9 @@ class MonitorProcess(Process):
 
             logger.info("---")
             logger.info(f"Queue stopping: {self._work_queue.stopping()}")
-            length = self._work_queue.length()
+            length = self._work_queue.length
             for action, tally in self._work_queue.work_tally().items():
-                percentage = 100 * tally / length
+                percentage = 100 * tally / length()
                 logger.info(
                     f"{tally} ({int(percentage)}%): {action.__name__} on queue"
                 )
@@ -54,15 +53,15 @@ class MonitorProcess(Process):
 
 class WorkerProcess(Process):
     def __init__(self,
-                 work_queue: MPDEQueue[Action],
-                 result_queue: Queue[ActionResult],
+                 work_queue: WorkQueue,
+                 result_queue: Queue[WorkerException],
                  database: Database,
-                 sentinal_barrier: Barrier,
+                 sentinel_barrier: Barrier,
                  profile: bool):
         self._work_queue = work_queue
         self._result_queue = result_queue
         self._database = database
-        self._sentinel_barrier = sentinal_barrier
+        self._sentinel_barrier = sentinel_barrier
         self._profile = profile
         super().__init__(name="Build worker", target=self._worker)
 
@@ -73,9 +72,9 @@ class WorkerProcess(Process):
         else:
             profiler = None
 
-        logger = mp_get_logger()
+        logger = getLogger(__name__)
 
-        self._work_queue.append(Sentinel())
+        self._work_queue.new_action(Sentinel())
 
         while not self._work_queue.stopping():
             # We stop on a barrier at the sentinel to make sure we don't loose
@@ -83,18 +82,18 @@ class WorkerProcess(Process):
             #
             # Todo: Is there a better way to do this which doesn't involve a
             #       barrier?
-            action: Action = self._work_queue.popleft()
+            action: Action = self._work_queue.pop()
 
             if isinstance(action, Sentinel):
                 barrier_id = self._sentinel_barrier.wait()
-                self._work_queue.append(action)
+                self._work_queue.requeue_action(action)
                 if barrier_id == 0:
+                    self._work_queue.leave_barrier()
                     logger.info("Sentinel comes round: " + str(self.pid))
                     logger.info("Number of actions processed this round: "
                                 + str(self._database.processed_last_round))
 
                 if self._database.processed_last_round == 0:
-                    logger.debug("Stop requested")
                     self._work_queue.stop()
                 continue
 
@@ -106,52 +105,43 @@ class WorkerProcess(Process):
                     logger.debug(f"Testing ({this_ready}): {prereq}")
                     ready &= this_ready
                 if not ready:
-                    logger.debug("Requeueing: " + str(action))
-                    self._work_queue.append(action)
+                    self._work_queue.requeue_action(action)
                     continue
             except Exception as ex:
                 logger.error("Exception in prerequisites: " + str(ex))
-                result = ActionResult(action, cause=ex)
+                result = ExceptionActionException(action, cause=ex)
                 self._result_queue.put(result)
                 self._work_queue.stop()
 
             try:
                 logger.debug("Performing: " + str(action))
-                requeued = False
-                for thing in action.perform():
-                    if isinstance(thing, ActionResult):
-                        logger.debug("Queueing result: " + str(thing))
-                        self._result_queue.put(thing)
-                        if thing.return_code != 0:
-                            logger.debug("Action failed, requesting stop")
-                            self._work_queue.stop()
-                            continue
-                    elif isinstance(thing, Action):
-                        if thing is action:
-                            logger.info("Requeueing action: " + str(thing))
-                            self._work_queue.append(thing)  # Always to back
-                            requeued = True
+                try:
+                    resulting_actions = action.perform()
+                    #
+                    # An action is only considered "stalled" if it returns only
+                    # itself.
+                    #
+                    if resulting_actions != [action]:
+                        self._database.bump_processed_tally()
+                    for resulting_action in resulting_actions:
+                        if resulting_action is action:  # Action returned itself
+                            self._work_queue.requeue_action(resulting_action)
                         else:
-                            logger.debug("Queueing action: " + str(thing))
-                            # Todo: Strategy pattern for enqueueing
-                            if self._database.configuration.queue_new_on_front:
-                                self._work_queue.appendleft(thing)
-                            else:
-                                self._work_queue.append(thing)
-                    else:
-                        raise RuntimeError(
-                            "Unexpected object on result queue: " + str(thing)
-                        )
-                if not requeued:
-                    self._database.bump_processed_tally()
+                            self._work_queue.new_action(resulting_action)
+                except ActionException as result:
+                    logger.debug("Queueing result: " + str(result))
+                    self._result_queue.put(result)
+                    logger.debug("Action failed, requesting stop")
+                    self._work_queue.stop()
                 logger.debug("Done: " + str(action))
             except Exception as ex:
                 logger.error("Exception in process: " + str(ex))
-                result = ActionResult(action, cause=ex)
+                result = ExceptionActionException(action, cause=ex)
                 self._result_queue.put(result)
                 self._work_queue.stop()
 
         logger.debug("Done processing actions")
+        self._result_queue.put(EndOfWorkException())
 
         if self._profile and profiler is not None:
             profiler.disable()
@@ -160,10 +150,15 @@ class WorkerProcess(Process):
 
 def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
          profile: bool = False, log_level: int = WARNING,
+         stack_strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK,
          *repositories: Repository):
-    logger = mp_get_logger()
+    logger = getLogger(__name__)
     logger.setLevel(log_level)
     logger.addHandler(StreamHandler())
+
+    mp_logger = mp_get_logger()
+    mp_logger.setLevel(WARNING)
+    mp_logger.addHandler(StreamHandler())
 
     configuration = Configuration(
         work_dir,
@@ -221,16 +216,19 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
     )
 
     with FabManager() as manager:
-        # Todo: Hardwired variables
-        database = Database(configuration, manager)
-        sentinel_barrier = Barrier(worker_threads,
-                                   action=database.reset_work_done)
+        work_queue: WorkQueue = manager.WorkQueue(stack_strategy)
 
-        work_queue = manager.MPDEQueue()
+        def hit_sentinel() -> None:
+            database.reset_work_done()
+            work_queue.enter_barrier()
+
+        database = Database(configuration, manager)
+        sentinel_barrier = Barrier(worker_threads, action=hit_sentinel)
+
         result_queue = manager.Queue()
         for repository in repositories:
             repo_action = repository.create_action(work_dir, database)
-            work_queue.append(repo_action)
+            work_queue.new_action(repo_action)
 
             for project in repository.projects:
                 if project.configuration_meta_data is None:
@@ -239,8 +237,9 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
                 meta_data_path = repo_action.local_copy / project.configuration_meta_data
                 if project.configuration_meta_data.name == 'rose-meta.conf':
                     # Todo: Don't like Core reference here
-                    work_queue.append(
-                        RosePicker(meta_data_path, work_dir / 'lfric_core', database)
+                    work_queue.new_action(
+                        RosePicker(meta_data_path, work_dir / 'lfric_core',
+                                   database)
                     )
                 else:  # Is a directory
                     database.config_meta_dirs.append(meta_data_path)
@@ -256,50 +255,40 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
             monitor = MonitorProcess(work_queue)
             monitor.start()
 
+        results: list[ActionException] = []
+        workers_stopped = 0
+        while workers_stopped < worker_threads:
+            try:
+                result = result_queue.get()
+                if isinstance(result, EndOfWorkException):
+                    workers_stopped += 1
+                else:
+                    results.append(result)
+            except KeyboardInterrupt:
+                work_queue.stop()
+
+        remainder: list[Action] = []
         try:
-            for process in workers:
-                process.join()
-        except KeyboardInterrupt:
-            work_queue.stop()
-            for process in workers:
-                process.join()
+            while True:
+                remainder.append(work_queue.pop())
+        except IndexError:
+            pass  # No more to do
+
+        for process in workers:
+            process.join()
 
         if not no_monitor:
             monitor.stop()
             monitor.join()
 
-        try:
-            while True:
-                remainder = work_queue.pop()
-                logger.warning(
-                    f"Still on the queue: {remainder}"
-                )
-                for prereq in remainder.prerequisites():
-                    logger.warning(f"Waiting for ({prereq.ready()}) {prereq}")
-        except IndexError:
-            pass  # Nothing further to do when queue is empty.
+        for action in remainder:
+            message = "Still on the queue: " + str(action)
+            for prereq in action.prerequisites():
+                message += f"\nWaiting for ({prereq.ready()}) {prereq}"
+            logger.warning(message)
 
-        try:
-            while True:
-                result = result_queue.get(False)
-                if result.return_code == 0 and result.cause is None:  # Success
-                    message = "Completed: " + str(result.action)
-                    if result.stdout:
-                        message += "\n" + result.stdout
-                    logger.info(message)
-                else:  # Failure
-                    message = "Failed " + str(result.action)
-                    if result.command:
-                        message += "\nCommand: " + result.command
-                    if result.stderr:
-                        message += "\nError: " + result.stderr
-                    if result.cause:
-                        message += "\nCause: " \
-                        + ''.join(format_exception(result.cause)) \
-                        + '\n' + '\n'.join(format_exception(result.cause))
-                    logger.error(message)
-        except Empty:
-            pass  # Nothing further to do when queue is empty.
+        for result in results:
+            logger.error("Failed " + result.describe())
 
 
 if __name__ == '__main__':
@@ -312,6 +301,9 @@ if __name__ == '__main__':
     parser.add_argument('--work-dir', type=Path, default='work')
     parser.add_argument('--no-monitor', action='store_true')
     parser.add_argument('--profile', action='store_true')
+    parser.add_argument('--queue-strategy',
+                        choices=[strat.name.lower() for strat in QueueStrategy],
+                        default='always_to_back')
     parser.add_argument('target',
                         choices=['skeleton', 'atmosphere'], default='skeleton')
     arguments = parser.parse_args()
@@ -323,76 +315,89 @@ if __name__ == '__main__':
         level = DEBUG
 
     if arguments.target == 'skeleton':
-        components = [
-            Project(Path('infrastructure')),
-            Project(Path('components/driver')),
-            Project(Path('components/science')),
-            Project(Path('components/inventory')),
-            Project(Path('components/lfric-xios')),
-            Project(
-                Path('applications/skeleton'),
-                configuration_meta_data=Path('rose-meta/lfric-skeleton/HEAD/rose-meta.conf')
+        repositories = [
+            FileTreeRepository(
+                f'localhost:{Path().absolute()}/lfric_core',
+                [
+                    Project(Path('infrastructure')),
+                    Project(Path('components/driver')),
+                    Project(Path('components/science')),
+                    Project(Path('components/inventory')),
+                    Project(Path('components/lfric-xios')),
+                    Project(
+                        Path('applications/skeleton'),
+                        configuration_meta_data=Path(
+                            'rose-meta/lfric-skeleton/HEAD/rose-meta.conf'
+                        )
+                    )
+                ]
             )
         ]
-        main(arguments.work_dir, arguments.threads,
-             arguments.no_monitor, arguments.profile,
-             level,
-             FileTreeRepository(f'localhost:{Path().absolute()}/lfric_core',
-                                projects=components)
-             )
+
     elif arguments.target == 'atmosphere':
-        main(arguments.work_dir, arguments.threads,
-             arguments.no_monitor, arguments.profile,
-             level,
-             FileTreeRepository('lfric_core',
-                                [
-                                    Project(Path('infrastructure')),
-                                    Project(Path('components/driver')),
-                                    Project(Path('components/science')),
-                                    Project(Path('components/inventory')),
-                                    Project(Path('components/lfric-xios'))
-                                ]),
+        repositories = [
             FileTreeRepository(
-                     'lfric_apps',
-                     [
-                        Project(Path('interfaces/physics_schemes_interface')),
-                        Project(Path('science/physics_schemes')),
-                        Project(Path('science/shared'), 'bucket'),
-                        Project(Path('interfaces/socrates_interface')),
-                        Project(Path('interfaces/jules_interface')),
-                        Project(Path('science/gungho')),
-                        Project(
-                            Path('applications/lfric_atm'),
-                            configuration_meta_data=Path(
-                                'rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf'
-                            )
+                'lfric_core',
+                [
+                    Project(Path('infrastructure')),
+                    Project(Path('components/driver')),
+                    Project(Path('components/science')),
+                    Project(Path('components/inventory')),
+                    Project(Path('components/lfric-xios'))
+                ]
+            ),
+            FileTreeRepository(
+                'lfric_apps',
+                [
+                    Project(Path('interfaces/physics_schemes_interface')),
+                    Project(Path('science/physics_schemes')),
+                    Project(Path('science/shared'), 'bucket'),
+                    Project(Path('interfaces/socrates_interface')),
+                    Project(Path('interfaces/jules_interface')),
+                    Project(Path('science/gungho')),
+                    Project(
+                        Path('applications/lfric_atm'),
+                        configuration_meta_data=Path(
+                            'rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf'
                         )
-                    ]
-                 ),
-                 FileTreeRepository(
-                     'casim.filtered',
-                     [
-                         Project(Path('.'), identifier='casim',
-                                 source_dir=Path('src'))
-                         ]
-                 ),
-             FileTreeRepository(
-                 'ukca.filtered',
-                 [
-                         Project(Path('.'), identifier='ukca',
-                                 source_dir=Path('src'))
-                     ]
-                 ),
-                 FileTreeRepository(
-                     'jules.filtered',
-                     [Project(Path('.'), identifier='jules',
-                              source_dir=Path('src'))]
-                 ),
-                 FileTreeRepository(
-                     'socrates.filtered',
-                     [Project(Path('.'), identifier='socrates',
-                              source_dir=Path('src'))]
-                 )
-        )
+                    )
+                ]
+            ),
+            FileTreeRepository(
+                'casim.filtered',
+                [
+                    Project(Path('.'), identifier='casim',
+                            source_dir=Path('src'))
+                ]
+            ),
+            FileTreeRepository(
+                'ukca.filtered',
+                [
+                    Project(Path('.'), identifier='ukca',
+                            source_dir=Path('src'))
+                ]
+            ),
+            FileTreeRepository(
+                'jules.filtered',
+                [
+                    Project(Path('.'), identifier='jules',
+                            source_dir=Path('src'))
+                ]
+            ),
+            FileTreeRepository(
+                'socrates.filtered',
+                [
+                    Project(Path('.'), identifier='socrates',
+                            source_dir=Path('src'))
+                ]
+            )
+        ]
+
     else:
         raise RuntimeError("Unrecognised target: " + arguments.target)
+
+    main(arguments.work_dir, arguments.threads,
+         arguments.no_monitor, arguments.profile,
+         level, QueueStrategy[arguments.queue_strategy.upper()],
+         *repositories
+         )

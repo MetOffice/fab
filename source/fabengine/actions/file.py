@@ -2,7 +2,7 @@ from pathlib import Path
 from shutil import copyfile
 from typing import Iterable
 
-from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions import Action, SubprocessActionException, Prerequisite
 from fabengine.database import Database
 from fabengine.prerequisite import FilePrerequisite
 
@@ -38,16 +38,13 @@ class ImportFile(Action):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [FilePrerequisite(self.source_file)]
 
-    def perform(self) -> list[Action | ActionResult]:
+    def perform(self) -> list[Action]:
         self.destination_file.parent.mkdir(parents=True, exist_ok=True)
         try:
             copyfile(self.source_file, self.destination_file)
         except FileNotFoundError:
-            return [
-                ActionResult(
-                    self,
-                    return_code=-1,
-                    command = f'cp {self.source_file} {self.destination_file}'
-                )
-            ]
+            raise SubprocessActionException(
+                self, return_code=-1,
+                command = f'cp {self.source_file} {self.destination_file}'
+            )
         return []

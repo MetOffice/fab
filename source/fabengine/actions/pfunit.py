@@ -6,7 +6,7 @@ from re import compile as re_compile, IGNORECASE
 from subprocess import run, PIPE
 from typing import Iterable
 
-from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions import Action, SubprocessActionException, Prerequisite
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import PreprocessFortranAction
 from fabengine.database import Database
@@ -116,7 +116,11 @@ class RunTest(Action):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [FilePrerequisite(self._executable)]
 
-    def perform(self) -> list[Action | ActionResult]:
-        process = run([str(self._executable)], stdout=PIPE, encoding='utf8')
-        return [ActionResult(self, process.returncode,
-                             process.stdout, process.stderr)]
+    def perform(self) -> list[Action]:
+        process = run([str(self._executable)], stdout=PIPE,
+                      encoding='utf8')
+        if process.returncode != 0:
+            raise SubprocessActionException(self, str(self._executable),
+                                            process.returncode,
+                                            process.stdout, process.stderr)
+        return []

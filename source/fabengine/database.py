@@ -21,7 +21,6 @@ class Configuration:
         self._build_tags = build_tags
         self._tag_dirs = tag_dirs
 
-        self._queue_new_on_front = True
         self._use_open_mp = True
 
         self._build_dir = work_dir / 'build'
@@ -69,10 +68,6 @@ class Configuration:
     @property
     def tag_dirs(self) -> dict[str, list[str]]:
         return self._tag_dirs
-
-    @property
-    def queue_new_on_front(self) -> bool:
-        return self._queue_new_on_front
 
     @property
     def use_open_mp(self) -> bool:

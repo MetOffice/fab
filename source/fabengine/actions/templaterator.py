@@ -2,7 +2,7 @@ from pathlib import Path
 from subprocess import run, PIPE
 from typing import Iterable
 
-from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions import Action, Prerequisite
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
@@ -23,7 +23,7 @@ class Templaterator(Action):
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [FilePrerequisite(self._filename)]
 
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         # Todo: Just have the source here?
         # Todo: Put generated files in the correct place.
         exe = self._core_dir / 'infrastructure' / 'build' / 'tools' / 'Templaterator'

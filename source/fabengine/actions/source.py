@@ -8,9 +8,10 @@ from subprocess import run, PIPE
 from typing import Iterable
 from urllib.parse import urlparse
 
-from fabengine.actions import Action, ActionResult, Prerequisite
+from fabengine.actions import Action, Prerequisite, SubprocessActionException
 from fabengine.prerequisite import FilePrerequisite
-from fabengine.actions.fortran import ImportFortran, PreprocessFortranAction, ImportInclusion
+from fabengine.actions.fortran import (ImportFortran, PreprocessFortranAction,
+                                       ImportInclusion)
 from fabengine.actions.pfunit import PfUnit
 from fabengine.actions.psyclone import PSyclone, PreprocessAlgorithm
 from fabengine.actions.templaterator import Templaterator
@@ -43,14 +44,15 @@ class SourceOnDiscAction(RepositoryAction):
         filename = Path(self._remote.split(':')[-1])
         return self._database.configuration.work_dir / filename.name
 
-    def perform(self) -> Iterable[Action | ActionResult]:
+    def perform(self) -> Iterable[Action]:
         remote = str(self._remote).rstrip('/')
         local = str(self._database.configuration.work_dir)
         command = ['rsync', '-a', remote, local]
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
-            return [ActionResult(self, process.returncode, ' '.join(command),
-                                 process.stdout, process.stderr)]
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout, process.stderr)
 
         actions: list[Action] = []
         for project in self._projects:
@@ -85,7 +87,7 @@ class SourceOnGitHubAction(RepositoryAction):
         name = Path(path).stem
         return self._database.configuration.work_dir / name
 
-    def perform(self) -> list[Action | ActionResult]:
+    def perform(self) -> list[Action]:
         repo_marker = self.local_copy / '.git'
         if repo_marker.is_dir(): # Repository is present
             command = ['git', '-C', str(self.local_copy), 'pull']
@@ -96,8 +98,9 @@ class SourceOnGitHubAction(RepositoryAction):
                        url, str(self.local_copy)]
         process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
         if process.returncode != 0:
-            return [ActionResult(self, process.returncode, ' '.join(command),
-                                 process.stdout, process.stderr)]
+            raise SubprocessActionException(self, ' '.join(command),
+                                            process.returncode,
+                                            process.stdout, process.stderr)
 
         actions: list[Action] = []
         for project in self._projects:
