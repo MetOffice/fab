@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from multiprocessing import get_logger as mp_get_logger
+from os import walk as os_walk
 from pathlib import Path
 from subprocess import run, PIPE
 from typing import Iterable
@@ -134,7 +135,11 @@ class SourceDirectory(Action):
         # Todo: Hardwired paths - maybe something with a factory pattern here?
         core_dir = self._database.configuration.work_dir / 'lfric_core'
 
-        for root, branches, leaves in self._source_dir.walk():
+        # Todo: Tree-walk not added to pathlib until v3.12.
+        #
+        # for root, branches, leaves in self._source_dir.walk():
+        for root_str, branches, leaves in os_walk(self._source_dir):
+            root = Path(root_str)
             for leaf in leaves:
                 if leaf.startswith('.'):
                     continue  # Ignore "hidden" files.

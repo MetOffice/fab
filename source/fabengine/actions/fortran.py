@@ -21,7 +21,7 @@ class ImportFortran(ImportFile):
     def __str__(self) -> str:
         return f"Import Fortran: {self.repo_dir} {self.filename}"
 
-    def perform(self) -> Iterable[Action]:
+    def perform(self) -> list[Action]:
         actions = super().perform()
         actions.append(AnalyseFortran(self.destination_file, self._database))
         return actions
@@ -31,7 +31,7 @@ class ImportInclusion(ImportFile):
     def __str__(self) -> str:
         return f"Import inclusion: {self.source_file}"
 
-    def perform(self) -> Iterable[Action]:
+    def perform(self) -> list[Action]:
         actions = super().perform()
         if Path(self.destination_file.name) not in self._database.inclusions:
             filename = Path(self.destination_file.name)
@@ -39,6 +39,7 @@ class ImportInclusion(ImportFile):
         else:
             raise SubprocessActionException(
                 self,
+                command=self.command,
                 return_code=-1,
                 stderr=f"Duplicate inclusion '{self.destination_file.name} found"
             )
@@ -217,7 +218,9 @@ class AnalyseFortran(Action):
                             + self._database.symbol_table[name].source_file.name
                         )
 
-                    info = SymbolInfo(name, SymbolType(unit), self._source)
+                    info = SymbolInfo(name,
+                                      SymbolType[unit.upper()],
+                                      self._source)
                     self._database.symbol_table[name] = info
 
                     current_unit = name
@@ -289,6 +292,7 @@ class AnalyseFortran(Action):
                     scope_type = match.group(1).lower()
                     name = (match.group(2) or '').lower()
 
+                    assert current_unit is not None
                     # We have to cope with the situation where a module end is
                     # unnamed.
                     if name == current_unit or scope_type == 'module':

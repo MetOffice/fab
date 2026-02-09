@@ -34,7 +34,7 @@ class EndOfWorkException(WorkerException):
 
 
 class ActionException(WorkerException, ABC):
-    def __init__(self, action: Optional[Action]):
+    def __init__(self, action: Action):
         self._action = action
 
     @property

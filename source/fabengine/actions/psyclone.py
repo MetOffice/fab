@@ -122,6 +122,7 @@ class PSyclone(Action):
         kernel_roots: list[Path] = []
         for kernel in self._kernels:
             kernel_symbol = self._database.symbol_table.get(kernel)
+            assert kernel_symbol is not None
             new_root = kernel_symbol.source_file.parent
             # Remove any directories which are children of the new one
             kernel_roots = [directory for directory in kernel_roots

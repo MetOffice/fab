@@ -111,6 +111,7 @@ class WorkQueue:
 
     def _add_after_sentinel(self, item: Action) -> None:
         assert not isinstance(item, Sentinel)
+        assert self._sentinel is not None
         sentinel = self._queue[self._sentinel]
         assert isinstance(sentinel, Sentinel)
 

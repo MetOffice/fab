@@ -4,8 +4,10 @@ from cProfile import Profile
 from logging import StreamHandler, getLogger, DEBUG, INFO, WARNING
 from time import sleep
 
-from multiprocessing import Barrier, Process, Queue, get_logger as mp_get_logger
+from multiprocessing import Barrier, Process, get_logger as mp_get_logger
 from pathlib import Path
+from typing import TypeAlias
+from queue import Queue
 
 from fabengine.actions import (Action, ActionException,
                                ExceptionActionException, EndOfWorkException,
@@ -56,7 +58,7 @@ class WorkerProcess(Process):
                  work_queue: WorkQueue,
                  result_queue: Queue[WorkerException],
                  database: Database,
-                 sentinel_barrier: Barrier,
+                 sentinel_barrier,
                  profile: bool):
         self._work_queue = work_queue
         self._result_queue = result_queue
@@ -65,7 +67,7 @@ class WorkerProcess(Process):
         self._profile = profile
         super().__init__(name="Build worker", target=self._worker)
 
-    def _worker(self):
+    def _worker(self) -> None:
         if self._profile:
             profiler = Profile()
             profiler.enable()
@@ -136,8 +138,7 @@ class WorkerProcess(Process):
                 logger.debug("Done: " + str(action))
             except Exception as ex:
                 logger.error("Exception in process: " + str(ex))
-                result = ExceptionActionException(action, cause=ex)
-                self._result_queue.put(result)
+                self._result_queue.put(ExceptionActionException(action, ex))
                 self._work_queue.stop()
 
         logger.debug("Done processing actions")
@@ -216,7 +217,7 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
     )
 
     with FabManager() as manager:
-        work_queue: WorkQueue = manager.WorkQueue(stack_strategy)
+        work_queue = manager.WorkQueue(stack_strategy)  # type:ignore
 
         def hit_sentinel() -> None:
             database.reset_work_done()
@@ -225,7 +226,7 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
         database = Database(configuration, manager)
         sentinel_barrier = Barrier(worker_threads, action=hit_sentinel)
 
-        result_queue = manager.Queue()
+        result_queue: Queue[WorkerException] = manager.Queue()
         for repository in repositories:
             repo_action = repository.create_action(work_dir, database)
             work_queue.new_action(repo_action)
@@ -255,7 +256,7 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
             monitor = MonitorProcess(work_queue)
             monitor.start()
 
-        results: list[ActionException] = []
+        results: list[WorkerException] = []
         workers_stopped = 0
         while workers_stopped < worker_threads:
             try:

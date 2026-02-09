@@ -35,6 +35,13 @@ class ImportFile(Action):
         return (self._database.configuration.build_dir
                 / self._tag / self._filename)
 
+    @property
+    def command(self) -> str:
+        """
+        Gets a human-readable representation of the action.
+        """
+        return f'cp {self.source_file} {self.destination_file}'
+
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [FilePrerequisite(self.source_file)]
 
@@ -45,6 +52,6 @@ class ImportFile(Action):
         except FileNotFoundError:
             raise SubprocessActionException(
                 self, return_code=-1,
-                command = f'cp {self.source_file} {self.destination_file}'
+                command = self.command
             )
         return []

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import StrEnum, auto
+from enum import Enum, auto
 from multiprocessing.managers import DictProxy, ListProxy, ValueProxy
 from pathlib import Path
 
@@ -103,7 +103,9 @@ class Database:
         return self._processed_last_round.get()
 
 
-class PrerequisiteType(StrEnum):
+# Todo: Should be StrEnum but not available until Python 3.11
+#
+class PrerequisiteType(Enum):
     USE = auto(),
     EXTERNAL = auto(),
     UM = auto()
@@ -123,7 +125,9 @@ class PrerequisiteInfo:
         return self._nature
 
 
-class SymbolType(StrEnum):
+# Todo: Should be StrEnum but not available until Python 3.11
+#
+class SymbolType(Enum):
     FUNCTION = auto(),
     MODULE = auto(),
     PROGRAM = auto(),
