@@ -5,10 +5,13 @@ from typing import Optional
 
 
 class Project:
-    def __init__(self, project_dir: Path,
-                 identifier: Optional[str] = None,
-                 source_dir: Path = Path('source'),
-                 configuration_meta_data: Path = Path('rose-meta')):
+    def __init__(
+        self,
+        project_dir: Path,
+        identifier: Optional[str] = None,
+        source_dir: Path = Path("source"),
+        configuration_meta_data: Path = Path("rose-meta"),
+    ):
         self._project_dir = project_dir
         self._identifier = identifier or self._project_dir.name
         self._source_dir = source_dir

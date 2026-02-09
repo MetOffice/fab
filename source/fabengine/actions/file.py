@@ -8,8 +8,7 @@ from fabengine.prerequisite import FilePrerequisite
 
 
 class ImportFile(Action):
-    def __init__(self, repo_dir: Path, filename: Path, tag: str,
-                 database: Database):
+    def __init__(self, repo_dir: Path, filename: Path, tag: str, database: Database):
         self._repo_dir = repo_dir
         self._filename = filename
         self._tag = tag
@@ -32,15 +31,14 @@ class ImportFile(Action):
 
     @property
     def destination_file(self) -> Path:
-        return (self._database.configuration.build_dir
-                / self._tag / self._filename)
+        return self._database.configuration.build_dir / self._tag / self._filename
 
     @property
     def command(self) -> str:
         """
         Gets a human-readable representation of the action.
         """
-        return f'cp {self.source_file} {self.destination_file}'
+        return f"cp {self.source_file} {self.destination_file}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         return [FilePrerequisite(self.source_file)]
@@ -50,8 +48,5 @@ class ImportFile(Action):
         try:
             copyfile(self.source_file, self.destination_file)
         except FileNotFoundError:
-            raise SubprocessActionException(
-                self, return_code=-1,
-                command = self.command
-            )
+            raise SubprocessActionException(self, return_code=-1, command=self.command)
         return []

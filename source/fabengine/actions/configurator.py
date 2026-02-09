@@ -18,23 +18,23 @@ class RosePickerPrerequisite(Prerequisite):
     def __str__(self) -> str:
         return "RosePicker prerequisites: " + str(self._filename)
 
-    _IMPORT_PATTERN = re_compile(r'import\s*=\s*(.*)', IGNORECASE)
-    _ADDITIONAL_PATTERN = re_compile(r'\s*=\s*(.*)', IGNORECASE)
+    _IMPORT_PATTERN = re_compile(r"import\s*=\s*(.*)", IGNORECASE)
+    _ADDITIONAL_PATTERN = re_compile(r"\s*=\s*(.*)", IGNORECASE)
 
     def _scan_meta(self, filename: Path) -> Iterable[Path]:
-        buffer = ''
-        state = 'scan'
+        buffer = ""
+        state = "scan"
         for line in filename.read_text().splitlines():
-            if state == 'scan':
+            if state == "scan":
                 match = self._IMPORT_PATTERN.match(line)
                 if match:
-                    buffer += match.group(1) + ' '
-                    state = 'more'
+                    buffer += match.group(1) + " "
+                    state = "more"
 
-            elif state == 'more':
+            elif state == "more":
                 match = self._ADDITIONAL_PATTERN.match(line)
                 if match:
-                    buffer += match.group(1) + ' '
+                    buffer += match.group(1) + " "
                 else:  # No match
                     break  # We are done
         return [Path(path) for path in buffer.split()]
@@ -53,8 +53,10 @@ class RosePickerPrerequisite(Prerequisite):
                 found = False
                 mp_get_logger().debug("Considering: " + str(head))
                 for root in self._database.config_meta_dirs:
-                    test_name = root / head / 'rose-meta.conf'
-                    mp_get_logger().debug(f"Possible ({test_name.exists()}): {test_name}")
+                    test_name = root / head / "rose-meta.conf"
+                    mp_get_logger().debug(
+                        f"Possible ({test_name.exists()}): {test_name}"
+                    )
                     if test_name.exists():
                         import_files.append(test_name)
                         found = True
@@ -72,8 +74,7 @@ class RosePickerPrerequisite(Prerequisite):
 #       so we can stop using "rose picker."
 #
 class RosePicker(Action):
-    def __init__(self, filename: Path, core_dir: Path,
-                 database: Database):
+    def __init__(self, filename: Path, core_dir: Path, database: Database):
         self._filename = filename
         self._core_dir = core_dir
         self._database = database
@@ -85,24 +86,38 @@ class RosePicker(Action):
         return [RosePickerPrerequisite(self._filename, self._database)]
 
     def perform(self) -> Iterable[Action]:
-        configuration_dir = self._database.configuration.build_dir / 'configuration'
+        configuration_dir = self._database.configuration.build_dir / "configuration"
         configuration_dir.mkdir(parents=True, exist_ok=True)
-        command = ['rose_picker', str(self._filename),
-                   '-directory', str(configuration_dir)]
+        command = [
+            "rose_picker",
+            str(self._filename),
+            "-directory",
+            str(configuration_dir),
+        ]
         for directory in self._database.config_meta_dirs:
-            command.extend(['-include_dirs', str(directory)])
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+            command.extend(["-include_dirs", str(directory)])
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
         if process.returncode != 0:
-            raise SubprocessActionException(self, ' '.join(command),
-                                            process.returncode,
-                                            process.stdout, process.stderr)
+            raise SubprocessActionException(
+                self,
+                " ".join(command),
+                process.returncode,
+                process.stdout,
+                process.stderr,
+            )
 
         return [
-            ConfigurationLoader(configuration_dir / 'config_namelists.txt',
-                                self._core_dir, self._database),
-            NamelistLoader(configuration_dir / 'rose-meta.json',
-                           configuration_dir / 'config_namelists.txt',
-                           self._core_dir, self._database)
+            ConfigurationLoader(
+                configuration_dir / "config_namelists.txt",
+                self._core_dir,
+                self._database,
+            ),
+            NamelistLoader(
+                configuration_dir / "rose-meta.json",
+                configuration_dir / "config_namelists.txt",
+                self._core_dir,
+                self._database,
+            ),
         ]
 
 
@@ -119,11 +134,18 @@ class ConfigurationLoader(Action):
         return [FilePrerequisite(self._filename)]
 
     def perform(self) -> Iterable[Action]:
-        source_file = (self._database.configuration.build_dir
-                       / 'configuration' / 'configuration_mod.f90')
+        source_file = (
+            self._database.configuration.build_dir
+            / "configuration"
+            / "configuration_mod.f90"
+        )
 
-        command = [str(self._core_dir / 'infrastructure' / 'build' / 'tools' / 'GenerateLoader'),
-                   str(source_file)]
+        command = [
+            str(
+                self._core_dir / "infrastructure" / "build" / "tools" / "GenerateLoader"
+            ),
+            str(source_file),
+        ]
         for line in self._filename.read_text().splitlines():
             for namelist in line.split():
                 command.append(namelist)
@@ -135,8 +157,9 @@ class ConfigurationLoader(Action):
 # Todo: Change namelist generation to be done namelist at a time.
 #
 class NamelistLoader(Action):
-    def __init__(self, json_file: Path, namelist_file: Path, core_dir: Path,
-                 database: Database):
+    def __init__(
+        self, json_file: Path, namelist_file: Path, core_dir: Path, database: Database
+    ):
         self._json_file = json_file
         self._namelist_file = namelist_file
         self._core_dir = core_dir
@@ -146,25 +169,38 @@ class NamelistLoader(Action):
         return f"Namelist loader: {self._json_file}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        return [FilePrerequisite(self._json_file),
-                FilePrerequisite(self._namelist_file)]
+        return [
+            FilePrerequisite(self._json_file),
+            FilePrerequisite(self._namelist_file),
+        ]
 
     def perform(self) -> Iterable[Action]:
-        config_dir = self._database.configuration.build_dir / 'configuration'
-        command = [str(self._core_dir / 'infrastructure' / 'build' / 'tools' / 'GenerateNamelist'),
-                   str(self._json_file),
-                   '-directory', str(config_dir)]
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+        config_dir = self._database.configuration.build_dir / "configuration"
+        command = [
+            str(
+                self._core_dir
+                / "infrastructure"
+                / "build"
+                / "tools"
+                / "GenerateNamelist"
+            ),
+            str(self._json_file),
+            "-directory",
+            str(config_dir),
+        ]
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
         if process.returncode != 0:
-            raise SubprocessActionException(self, ' '.join(command),
-                                            process.returncode,
-                                            process.stdout, process.stderr)
+            raise SubprocessActionException(
+                self,
+                " ".join(command),
+                process.returncode,
+                process.stdout,
+                process.stderr,
+            )
 
         actions: list[Action] = []
         for line in self._namelist_file.read_text().splitlines():
             for namelist in line.split():
-                leafname = namelist + '_config_mod.f90'
-                actions.append(
-                    AnalyseFortran(config_dir / leafname, self._database)
-                )
+                leafname = namelist + "_config_mod.f90"
+                actions.append(AnalyseFortran(config_dir / leafname, self._database))
         return actions

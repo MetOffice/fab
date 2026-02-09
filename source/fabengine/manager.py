@@ -9,4 +9,4 @@ class FabManager(SyncManager):
     pass
 
 
-FabManager.register('WorkQueue', WorkQueue)
+FabManager.register("WorkQueue", WorkQueue)

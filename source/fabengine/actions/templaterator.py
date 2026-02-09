@@ -9,8 +9,14 @@ from fabengine.database import Database
 
 
 class Templaterator(Action):
-    def __init__(self, filename: Path, leafname: str, inserts: dict[str, str],
-                 core_dir: Path, database: Database):
+    def __init__(
+        self,
+        filename: Path,
+        leafname: str,
+        inserts: dict[str, str],
+        core_dir: Path,
+        database: Database,
+    ):
         self._filename = filename
         self._leafname = leafname
         self._inserts = inserts
@@ -26,14 +32,12 @@ class Templaterator(Action):
     def perform(self) -> Iterable[Action]:
         # Todo: Just have the source here?
         # Todo: Put generated files in the correct place.
-        exe = self._core_dir / 'infrastructure' / 'build' / 'tools' / 'Templaterator'
+        exe = self._core_dir / "infrastructure" / "build" / "tools" / "Templaterator"
         destination_file = self._database.configuration.build_dir / self._leafname
 
-        command = [str(exe), '-o', str(destination_file)]
+        command = [str(exe), "-o", str(destination_file)]
         for key, value in self._inserts.items():
-            command.extend(['-s', key + '=' + value])
+            command.extend(["-s", key + "=" + value])
         command.append(str(self._filename))
         run(command, stdout=PIPE, stderr=PIPE, check=True)
-        return [
-            AnalyseFortran(destination_file, self._database)
-        ]
+        return [AnalyseFortran(destination_file, self._database)]

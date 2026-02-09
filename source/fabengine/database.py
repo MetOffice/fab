@@ -8,10 +8,17 @@ from fabengine.manager import FabManager
 
 
 class Configuration:
-    def __init__(self, work_dir: Path, psyclone_config: Path,
-                 fpp_definitions: dict[str, str], fc_ignore_modules: list[str],
-                 libraries: list[str], field_instances: list[dict[str, str]],
-                 build_tags: dict[str, list[str]], tag_dirs: dict[str, list[str]]):
+    def __init__(
+        self,
+        work_dir: Path,
+        psyclone_config: Path,
+        fpp_definitions: dict[str, str],
+        fc_ignore_modules: list[str],
+        libraries: list[str],
+        field_instances: list[dict[str, str]],
+        build_tags: dict[str, list[str]],
+        tag_dirs: dict[str, list[str]],
+    ):
         self._work_dir = work_dir
         self._psyclone_config = psyclone_config
         self._fpp_definitions = fpp_definitions
@@ -23,10 +30,10 @@ class Configuration:
 
         self._use_open_mp = True
 
-        self._build_dir = work_dir / 'build'
+        self._build_dir = work_dir / "build"
         self._build_dir.mkdir(parents=True, exist_ok=True)
 
-        self._module_dir = self._build_dir / 'modules'
+        self._module_dir = self._build_dir / "modules"
         self._module_dir.mkdir(exist_ok=True)
 
     @property
@@ -76,16 +83,15 @@ class Configuration:
 
 # Todo: Work directory and database always passed together.
 class Database:
-    def __init__(self, configuration: Configuration,
-                 manager: FabManager):
+    def __init__(self, configuration: Configuration, manager: FabManager):
         self._configuration = configuration
 
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
         self.config_meta_dirs: ListProxy[Path] = manager.list()
         self.inclusions: DictProxy[Path, Path] = manager.dict()
-        self._processed_this_round: ValueProxy[int] = manager.Value('i', 0)
-        self._processed_last_round: ValueProxy[int] = manager.Value('i', 0)
+        self._processed_this_round: ValueProxy[int] = manager.Value("i", 0)
+        self._processed_last_round: ValueProxy[int] = manager.Value("i", 0)
 
     @property
     def configuration(self) -> Configuration:
@@ -106,8 +112,8 @@ class Database:
 # Todo: Should be StrEnum but not available until Python 3.11
 #
 class PrerequisiteType(Enum):
-    USE = auto(),
-    EXTERNAL = auto(),
+    USE = (auto(),)
+    EXTERNAL = (auto(),)
     UM = auto()
 
 
@@ -128,11 +134,11 @@ class PrerequisiteInfo:
 # Todo: Should be StrEnum but not available until Python 3.11
 #
 class SymbolType(Enum):
-    FUNCTION = auto(),
-    MODULE = auto(),
-    PROGRAM = auto(),
-    SUBROUTINE = auto(),
-    TYPE = auto(),
+    FUNCTION = (auto(),)
+    MODULE = (auto(),)
+    PROGRAM = (auto(),)
+    SUBROUTINE = (auto(),)
+    TYPE = (auto(),)
     PROCEDURE = auto()
 
 

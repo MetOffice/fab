@@ -10,11 +10,18 @@ from typing import Optional, Iterable
 
 from fabengine.actions import Action, SubprocessActionException, Prerequisite
 from fabengine.actions.file import ImportFile
-from fabengine.database import (Database,
-                                PrerequisiteType, PrerequisiteInfo,
-                                SymbolType, SymbolInfo)
-from fabengine.prerequisite import (AnalysedPrerequisite, FilePrerequisite,
-                                    InclusionPrerequisite)
+from fabengine.database import (
+    Database,
+    PrerequisiteType,
+    PrerequisiteInfo,
+    SymbolType,
+    SymbolInfo,
+)
+from fabengine.prerequisite import (
+    AnalysedPrerequisite,
+    FilePrerequisite,
+    InclusionPrerequisite,
+)
 
 
 class ImportFortran(ImportFile):
@@ -41,7 +48,7 @@ class ImportInclusion(ImportFile):
                 self,
                 command=self.command,
                 return_code=-1,
-                stderr=f"Duplicate inclusion '{self.destination_file.name} found"
+                stderr=f"Duplicate inclusion '{self.destination_file.name} found",
             )
         return actions
 
@@ -50,9 +57,14 @@ class ImportInclusion(ImportFile):
 #       parse tree between determining prerequisites and generating output.
 #
 class PreprocessFortranBase(Action, ABC):
-    def __init__(self, repo_dir: Path, filename: Path, project: str,
-                 database: Database,
-                 extra_definitions: Optional[dict[str, str]] = None):
+    def __init__(
+        self,
+        repo_dir: Path,
+        filename: Path,
+        project: str,
+        database: Database,
+        extra_definitions: Optional[dict[str, str]] = None,
+    ):
         self._repo_dir = repo_dir
         self._filename = filename
         self._project = project
@@ -61,8 +73,7 @@ class PreprocessFortranBase(Action, ABC):
 
         self._prereqs: list[Prerequisite] = []
         for name in self._determine_prereqs(self.source_file):
-            self._prereqs.append(InclusionPrerequisite(Path(name),
-                                                       self._database))
+            self._prereqs.append(InclusionPrerequisite(Path(name), self._database))
         self._prereqs.append(FilePrerequisite(self.source_file))
 
     @property
@@ -80,8 +91,11 @@ class PreprocessFortranBase(Action, ABC):
     @property
     def destination_file(self) -> Path:
         suffix = self._filename.suffix.lower()
-        return (self._database.configuration.build_dir / self._project
-                / self._filename.with_suffix(suffix))
+        return (
+            self._database.configuration.build_dir
+            / self._project
+            / self._filename.with_suffix(suffix)
+        )
 
     _INCLUDE_PATTERN = re_compile(r'\s*#include\s+(?P<quote>[\'"])(.+?)(?P=quote)')
 
@@ -100,36 +114,42 @@ class PreprocessFortranBase(Action, ABC):
     def perform(self) -> list[Action]:
         self.destination_file.parent.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired command
-        command = ['cpp', '-traditional-cpp', '-P']
+        command = ["cpp", "-traditional-cpp", "-P"]
         for name, value in self._database.configuration.fpp_definitions.items():
-            command.append(f'-D{name}={value}')
+            command.append(f"-D{name}={value}")
         for name, value in self._extra_definitions.items():
-            command.append(f'-D{name}={value}')
+            command.append(f"-D{name}={value}")
 
         inclusion_dirs: set[Path] = set()
         for prereq in self._prereqs:
             if isinstance(prereq, InclusionPrerequisite):
-                inclusion_dirs.add(
-                    self._database.inclusions[prereq.filename].parent
-                )
+                inclusion_dirs.add(self._database.inclusions[prereq.filename].parent)
         for directory in inclusion_dirs:
-            command.append('-I' + str(directory))
+            command.append("-I" + str(directory))
 
         command.append(str(self.source_file))
         command.append(str(self.destination_file))
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
         if process.returncode != 0:
-            raise SubprocessActionException(self, ' '.join(command),
-                                            process.returncode,
-                                            process.stdout,
-                                            process.stderr)
+            raise SubprocessActionException(
+                self,
+                " ".join(command),
+                process.returncode,
+                process.stdout,
+                process.stderr,
+            )
         return []
 
 
 class PreprocessFortranAction(PreprocessFortranBase):
-    def __init__(self, repo_dir: Path, filename: Path, tag:str,
-                 database: Database,
-                 extra_definitions: Optional[dict[str, str]] = None):
+    def __init__(
+        self,
+        repo_dir: Path,
+        filename: Path,
+        tag: str,
+        database: Database,
+        extra_definitions: Optional[dict[str, str]] = None,
+    ):
         super().__init__(repo_dir, filename, tag, database, extra_definitions)
         self._tag = tag
 
@@ -144,15 +164,13 @@ class PreprocessFortranAction(PreprocessFortranBase):
 
 class AnalyseFortran(Action):
     # Todo: This pattern does not handle exclamation marks in quotes.
-    _COMMENT_PATTERN = re_compile(r'(.*?)![^$].*$')
+    _COMMENT_PATTERN = re_compile(r"(.*?)![^$].*$")
     _UNIT_PATTERN = re_compile(
-        r'\s*(module(?!\s*procedure)|program|function|subroutine)\s*(\w+)',
-        IGNORECASE
+        r"\s*(module(?!\s*procedure)|program|function|subroutine)\s*(\w+)", IGNORECASE
     )
     # This assumes labeled "end" statements
     _END_PATTERN = re_compile(
-        r'\s*end\s*(module|program|function|subroutine)(?:\s*(\w+))?',
-        IGNORECASE
+        r"\s*end\s*(module|program|function|subroutine)(?:\s*(\w+))?", IGNORECASE
     )
     #
     # Fortran does not require spaces between keywords but that means many
@@ -160,16 +178,13 @@ class AnalyseFortran(Action):
     # parser we use the slightly clunky assumption that there will be a space
     # after "use" statements. This disambiguates the variable "use_xios".
     #
-    _USE_PATTERN = re_compile(r'\s*(!\$\s*)?use\s+(\w+)', IGNORECASE)
+    _USE_PATTERN = re_compile(r"\s*(!\$\s*)?use\s+(\w+)", IGNORECASE)
     _EXTERNAL_PATTERN = re_compile(
-        r'\s*type\s*\(\w+\),\s*external\s*::\s*(\w+)', IGNORECASE
+        r"\s*type\s*\(\w+\),\s*external\s*::\s*(\w+)", IGNORECASE
     )
-    _TYPE_PATTERN = re_compile(r'\s*type\s*,\s*public(:?.*?)::\s*(\w+)',
-                               IGNORECASE)
-    _PUBLIC_PATTERN = re_compile(r'\s*public\s*(:?::)?\s*(.+)',
-                                 IGNORECASE)
-    _UM_DEPENDS_ON_PATTERN = re_compile(r'\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)',
-                                        IGNORECASE)
+    _TYPE_PATTERN = re_compile(r"\s*type\s*,\s*public(:?.*?)::\s*(\w+)", IGNORECASE)
+    _PUBLIC_PATTERN = re_compile(r"\s*public\s*(:?::)?\s*(.+)", IGNORECASE)
+    _UM_DEPENDS_ON_PATTERN = re_compile(r"\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)", IGNORECASE)
 
     def __init__(self, source: Path, database: Database):
         self._source = source
@@ -192,19 +207,19 @@ class AnalyseFortran(Action):
 
         unit_prereqs: dict[str, PrerequisiteInfo] = {}
         current_unit: Optional[str] = None
-        state = 'seeking'
+        state = "seeking"
         for line in self._source.read_text().splitlines():
             # Strip comments, does not handle exclamation marks in quotes.
             match = self._COMMENT_PATTERN.match(line)
             if match:
                 # We need a special case for UM-era "depends on" comments
                 second_match = self._UM_DEPENDS_ON_PATTERN.match(line)
-                if match:
+                if second_match:
                     pass
                 else:
                     line = match.group(1)
 
-            if state == 'seeking':
+            if state == "seeking":
                 match = self._UNIT_PATTERN.match(line)
                 if match:
                     unit = match.group(1).lower()
@@ -218,19 +233,17 @@ class AnalyseFortran(Action):
                             + self._database.symbol_table[name].source_file.name
                         )
 
-                    info = SymbolInfo(name,
-                                      SymbolType[unit.upper()],
-                                      self._source)
+                    info = SymbolInfo(name, SymbolType[unit.upper()], self._source)
                     self._database.symbol_table[name] = info
 
                     current_unit = name
 
-                    if unit == 'program':
+                    if unit == "program":
                         actions.append(DetermineFortranProgram(name, self._database))
 
-                    state = 'in unit'
+                    state = "in unit"
 
-            elif state == 'in unit':
+            elif state == "in unit":
                 match = self._TYPE_PATTERN.match(line)
                 if match:
                     name = match.group(2).lower()
@@ -241,11 +254,9 @@ class AnalyseFortran(Action):
 
                 match = self._PUBLIC_PATTERN.match(line)
                 if match:
-                    for symbol in match.group(2).lower().split(','):
+                    for symbol in match.group(2).lower().split(","):
                         symbol = symbol.strip()
-                        info = SymbolInfo(symbol,
-                                          SymbolType.PROCEDURE,
-                                          self._source)
+                        info = SymbolInfo(symbol, SymbolType.PROCEDURE, self._source)
                         self._database.symbol_table[symbol] = info
                         logger.debug("Found procedure: " + symbol)
                         continue
@@ -253,8 +264,8 @@ class AnalyseFortran(Action):
                 match = self._USE_PATTERN.match(line)
                 if match:
                     name = match.group(2).lower()
-                    open_mp = match.group(1) or ''
-                    open_mp = 'OpenMP ' if open_mp.strip() else ''
+                    open_mp = match.group(1) or ""
+                    open_mp = "OpenMP " if open_mp.strip() else ""
                     if open_mp and not self._database.configuration.use_open_mp:
                         continue
 
@@ -290,20 +301,21 @@ class AnalyseFortran(Action):
                 match = self._END_PATTERN.match(line)
                 if match:
                     scope_type = match.group(1).lower()
-                    name = (match.group(2) or '').lower()
+                    name = (match.group(2) or "").lower()
 
                     assert current_unit is not None
                     # We have to cope with the situation where a module end is
                     # unnamed.
-                    if name == current_unit or scope_type == 'module':
+                    if name == current_unit or scope_type == "module":
                         logger.debug("End of unit: " + name)
 
-                        self._database.prerequisites[current_unit] \
-                            = list(unit_prereqs.values())
+                        self._database.prerequisites[current_unit] = list(
+                            unit_prereqs.values()
+                        )
 
                         current_unit = None
 
-                        state = 'seeking'
+                        state = "seeking"
                     continue
         return actions
 
@@ -349,8 +361,7 @@ class DetermineFortranProgram(Action):
         self._units = new_units
 
         if len(self._units) == 0:
-            actions.append(LinkFortran(self._name, self._modules,
-                                       self._database))
+            actions.append(LinkFortran(self._name, self._modules, self._database))
         else:
             mp_get_logger().debug(f"Missing: {', '.join(self._units)}")
             actions.append(self)
@@ -358,8 +369,12 @@ class DetermineFortranProgram(Action):
 
 
 class CompileFortran(Action):
-    def __init__(self, source: Path, prerequisites: Iterable[PrerequisiteInfo],
-                 database: Database):
+    def __init__(
+        self,
+        source: Path,
+        prerequisites: Iterable[PrerequisiteInfo],
+        database: Database,
+    ):
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
@@ -371,7 +386,7 @@ class CompileFortran(Action):
         prereqs: list[Prerequisite] = []
         for symbol in self._prerequisites:
             if symbol.nature == PrerequisiteType.USE:
-                name = Path(symbol.name).with_suffix('.mod').name
+                name = Path(symbol.name).with_suffix(".mod").name
                 module_file = self._database.configuration.module_dir / name
                 prereqs.append(FilePrerequisite(module_file))
             elif symbol.nature == PrerequisiteType.EXTERNAL:
@@ -380,8 +395,7 @@ class CompileFortran(Action):
                 pass  # Nor does it interrogate UM-era dependency comments
             else:
                 raise RuntimeError(
-                    f"Unrecognised prerequisite type '{symbol.nature}'"
-                    f"of {symbol.name}."
+                    f"Unrecognised prerequisite type '{symbol.nature}'of {symbol.name}."
                 )
         return prereqs
 
@@ -392,30 +406,39 @@ class CompileFortran(Action):
         for case, tags in self._database.configuration.tag_dirs.items():
             if relative_path.is_relative_to(case):
                 for tag in tags:
-                    extra_arguments.extend(self._database.configuration.build_tag_args[tag])
-        mp_get_logger().debug(
-            "Special arguments: " + ', '.join(extra_arguments)
-        )
+                    extra_arguments.extend(
+                        self._database.configuration.build_tag_args[tag]
+                    )
+        mp_get_logger().debug("Special arguments: " + ", ".join(extra_arguments))
 
-        destination = self._source.with_suffix('.o')
+        destination = self._source.with_suffix(".o")
         # Todo: Hardwired arguments
-        command = ['mpif90', '-c',
-                   '-J', str(self._database.configuration.module_dir),
-                   '-fopenmp', '-std=f2008', '-ffree-line-length-none']
-        for arg in os_environ['FFLAGS'].split():
+        command = [
+            "mpif90",
+            "-c",
+            "-J",
+            str(self._database.configuration.module_dir),
+            "-fopenmp",
+            "-std=f2008",
+            "-ffree-line-length-none",
+        ]
+        for arg in os_environ["FFLAGS"].split():
             command.append(arg)
         command.extend(extra_arguments)
         #
         # Todo: Hardwired arguments
         #
-        command.append('-fallow-argument-mismatch')
-        command.extend([str(self._source), '-o', str(destination)])
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+        command.append("-fallow-argument-mismatch")
+        command.extend([str(self._source), "-o", str(destination)])
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
         if process.returncode != 0:
-            raise SubprocessActionException(self, ' '.join(command),
-                                            process.returncode,
-                                            process.stdout,
-                                            process.stderr)
+            raise SubprocessActionException(
+                self,
+                " ".join(command),
+                process.returncode,
+                process.stdout,
+                process.stderr,
+            )
         return []
 
 
@@ -432,7 +455,9 @@ class LinkFortran(Action):
         prereqs: list[Prerequisite] = []
         for module in self._modules:
             if module in self._database.symbol_table:
-                object_file = self._database.symbol_table[module].source_file.with_suffix('.o')
+                object_file = self._database.symbol_table[
+                    module
+                ].source_file.with_suffix(".o")
                 prereqs.append(FilePrerequisite(object_file))
             else:  # Module has not yet been analysed
                 prereqs.append(AnalysedPrerequisite(module, self._database))
@@ -441,21 +466,27 @@ class LinkFortran(Action):
     def perform(self) -> list[Action]:
         objects: set[Path] = set()
         for module in self._modules:
-            object_file = self._database.symbol_table[module].source_file.with_suffix('.o')
+            object_file = self._database.symbol_table[module].source_file.with_suffix(
+                ".o"
+            )
             objects.add(object_file)
 
         dest = self._database.configuration.work_dir / self._program
-        command = ['mpif90']
-        for arg in os_environ['LDFLAGS'].split():
+        command = ["mpif90"]
+        for arg in os_environ["LDFLAGS"].split():
             command.append(arg)
-        command.extend(['-o', str(dest), '-fopenmp'])
+        command.extend(["-o", str(dest), "-fopenmp"])
         for object_file in objects:
             command.append(str(object_file))
         for library in self._database.configuration.libraries:
-            command.extend(['-l', library])
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+            command.extend(["-l", library])
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
         if process.returncode != 0:
-            raise SubprocessActionException(self, ' '.join(command),
-                                            process.returncode,
-                                            process.stdout, process.stderr)
+            raise SubprocessActionException(
+                self,
+                " ".join(command),
+                process.returncode,
+                process.stdout,
+                process.stderr,
+            )
         return []

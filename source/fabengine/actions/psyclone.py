@@ -13,11 +13,15 @@ from fabengine.database import Database
 
 
 class PreprocessAlgorithm(PreprocessFortranBase):
-    def __init__(self, repo_dir: Path, filename: Path, project: str,
-                 database: Database,
-                 extra_definitions: Optional[dict[str, str]] = None):
-        super().__init__(repo_dir, filename, project, database,
-                         extra_definitions)
+    def __init__(
+        self,
+        repo_dir: Path,
+        filename: Path,
+        project: str,
+        database: Database,
+        extra_definitions: Optional[dict[str, str]] = None,
+    ):
+        super().__init__(repo_dir, filename, project, database, extra_definitions)
         self._project = project
 
     def __str__(self) -> str:
@@ -26,15 +30,21 @@ class PreprocessAlgorithm(PreprocessFortranBase):
     def perform(self) -> list[Action]:
         actions = super().perform()
         build_dir = self._database.configuration.build_dir
-        actions.append(PSyclone(build_dir,
-                                self.destination_file.relative_to(build_dir),
-                                '', self._database))
+        actions.append(
+            PSyclone(
+                build_dir,
+                self.destination_file.relative_to(build_dir),
+                "",
+                self._database,
+            )
+        )
         return actions
 
 
 class PSyclone(Action):
-    def __init__(self, repo_dir: Path, algorithm_file: Path,
-                 tag: str, database: Database):
+    def __init__(
+        self, repo_dir: Path, algorithm_file: Path, tag: str, database: Database
+    ):
         self._repo_dir = repo_dir
         self._algorithm_file = algorithm_file
         self._tag = tag
@@ -43,7 +53,7 @@ class PSyclone(Action):
         self._source_file = self._repo_dir / self._algorithm_file
 
         all_kernels = self._find_kernels(self._source_file)
-        self._psy = (all_kernels != [])
+        self._psy = all_kernels != []
         self._kernels = self._remove_builtins(all_kernels)
 
     def __str__(self) -> str:
@@ -53,18 +63,18 @@ class PSyclone(Action):
     def _remove_builtins(kernels: list[str]) -> list[str]:
         new_kernels: list[str] = []
         for type_name in kernels:
-            if type_name.endswith('_type'):  # Todo: Assumption
+            if type_name.endswith("_type"):  # Todo: Assumption
                 new_kernels.append(type_name)
         return new_kernels
 
     # Todo: Does not cope with strings containing exclamation mark.
-    _COMMENT_PATTERN = re_compile(r'(.*?)!+.*$')
-    _CONTINUATION_PATTERN = re_compile(r'(.*)\s*&\s*$')
+    _COMMENT_PATTERN = re_compile(r"(.*?)!+.*$")
+    _CONTINUATION_PATTERN = re_compile(r"(.*)\s*&\s*$")
 
     @staticmethod
     def _consolidate_lines(fortran_source: Path) -> Generator[str, None, None]:
-        buffer = ''
-        state = 'single'
+        buffer = ""
+        state = "single"
         for line in fortran_source.read_text().splitlines():
             # Remove comments
             match = PSyclone._COMMENT_PATTERN.match(line)
@@ -74,27 +84,26 @@ class PSyclone(Action):
                 continue
 
             match = PSyclone._CONTINUATION_PATTERN.match(line)
-            if state == 'single':
+            if state == "single":
                 if match:  # Continuation line
-                    state = 'multiple'
-                    buffer += match.group(1).strip() + ' '
+                    state = "multiple"
+                    buffer += match.group(1).strip() + " "
                 else:  # Plain line
                     yield line.strip()
                 continue
-            if state == 'multiple':
+            if state == "multiple":
                 if match:  # Continuation line
-                    buffer += match.group(1).strip() + ' '
+                    buffer += match.group(1).strip() + " "
                 else:  # Plain line
-                    state = 'single'
+                    state = "single"
                     buffer += line.strip()
                     yield buffer
-                    buffer = ''
+                    buffer = ""
 
-    _INVOKE_PATTERN = re_compile(r'call\s*invoke\s*\((.+)\)',
-                                 IGNORECASE)
+    _INVOKE_PATTERN = re_compile(r"call\s*invoke\s*\((.+)\)", IGNORECASE)
     # Todo: Problems with parenthesis within argument lists. This solution only
     #       handles a single level of nesting.
-    _PROCEDURE_PATTERN = re_compile(r'\s*(\w+)\s*\((:?.*?|\(.*\))*\)\s*,?', IGNORECASE)
+    _PROCEDURE_PATTERN = re_compile(r"\s*(\w+)\s*\((:?.*?|\(.*\))*\)\s*,?", IGNORECASE)
 
     @staticmethod
     def _find_kernels(algorithm: Path) -> list[str]:
@@ -125,8 +134,11 @@ class PSyclone(Action):
             assert kernel_symbol is not None
             new_root = kernel_symbol.source_file.parent
             # Remove any directories which are children of the new one
-            kernel_roots = [directory for directory in kernel_roots
-                            if not directory.is_relative_to(new_root)]
+            kernel_roots = [
+                directory
+                for directory in kernel_roots
+                if not directory.is_relative_to(new_root)
+            ]
             # Add new directory only if it is not a child of an existing one
             child = False
             for directory in kernel_roots:
@@ -136,30 +148,34 @@ class PSyclone(Action):
             if not child:
                 kernel_roots.append(new_root)
 
-        command = ['psyclone', '-api', 'lfric', '-l', 'all']
+        command = ["psyclone", "-api", "lfric", "-l", "all"]
         for root in kernel_roots:
-            command.extend(['-d', str(root)])
-        project_dir = (self._database.configuration.build_dir
-                       / self._tag / self._algorithm_file.parent)
+            command.extend(["-d", str(root)])
+        project_dir = (
+            self._database.configuration.build_dir
+            / self._tag
+            / self._algorithm_file.parent
+        )
         project_dir.mkdir(parents=True, exist_ok=True)
-        command.extend(['-c', str(self._database.configuration.psyclone_config)])
-        alg_name = self._algorithm_file.with_suffix('.f90').name
-        command.extend(['-oalg', str(project_dir / alg_name)])
-        psy_name = self._algorithm_file.stem + '_psy.f90'
-        command.extend(['-opsy', str(project_dir / psy_name)])
+        command.extend(["-c", str(self._database.configuration.psyclone_config)])
+        alg_name = self._algorithm_file.with_suffix(".f90").name
+        command.extend(["-oalg", str(project_dir / alg_name)])
+        psy_name = self._algorithm_file.stem + "_psy.f90"
+        command.extend(["-opsy", str(project_dir / psy_name)])
         command.append(str(self._repo_dir / self._algorithm_file))
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding='utf8')
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
 
-        actions : list[Action] = []
+        actions: list[Action] = []
         if process.returncode != 0:
-            raise SubprocessActionException(self, ' '.join(command),
-                                            process.returncode,
-                                            process.stdout, process.stderr)
-        else:  # Command succeeded
-            actions.append(
-                AnalyseFortran(project_dir / alg_name, self._database)
+            raise SubprocessActionException(
+                self,
+                " ".join(command),
+                process.returncode,
+                process.stdout,
+                process.stderr,
             )
+        else:  # Command succeeded
+            actions.append(AnalyseFortran(project_dir / alg_name, self._database))
             if self._psy:
-                actions.append(AnalyseFortran(project_dir / psy_name,
-                                              self._database))
+                actions.append(AnalyseFortran(project_dir / psy_name, self._database))
         return actions

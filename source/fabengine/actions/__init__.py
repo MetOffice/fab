@@ -55,18 +55,24 @@ class ExceptionActionException(ActionException):
         return self._cause
 
     def describe(self) -> str:
-        return (super().describe() + " caused by "
-                + ''.join(format_exception(self._cause))
-                + '\n' + '\n'.join(format_exception(self._cause)))
+        return (
+            super().describe()
+            + " caused by "
+            + "".join(format_exception(self._cause))
+            + "\n"
+            + "\n".join(format_exception(self._cause))
+        )
 
 
 class SubprocessActionException(ActionException):
-    def __init__(self,
-                 action: Action,
-                 command: str,
-                 return_code: int = 0,
-                 stdout: Optional[str] = None,
-                 stderr: Optional[str] = None):
+    def __init__(
+        self,
+        action: Action,
+        command: str,
+        return_code: int = 0,
+        stdout: Optional[str] = None,
+        stderr: Optional[str] = None,
+    ):
         super().__init__(action)
         self._command = command
         self._return_code = return_code

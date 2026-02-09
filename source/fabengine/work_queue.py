@@ -17,12 +17,9 @@ class QueueStrategy(Enum):
 
 
 class WorkQueue:
-    def __init__(
-            self, strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK
-    ) -> None:
+    def __init__(self, strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK) -> None:
         self._strategy = strategy
-        getLogger(__name__).debug("Queue strategy is: "
-                                  + self._strategy.name.lower())
+        getLogger(__name__).debug("Queue strategy is: " + self._strategy.name.lower())
 
         self._queue: deque[Action] = deque()
         self._stop = False
@@ -80,8 +77,7 @@ class WorkQueue:
             else:  # Not in barrier
                 self._add_front(action)
         else:
-            raise RuntimeError("Unrecognised stack strategy: "
-                               + self._strategy.name)
+            raise RuntimeError("Unrecognised stack strategy: " + self._strategy.name)
 
     def requeue_action(self, action: Action) -> None:
         getLogger(__name__).debug("Requeueing: " + str(action))
@@ -128,5 +124,5 @@ class WorkQueue:
         self._length -= 1
         self._work_tally[item.__class__] -= 1
         if self._work_tally[item.__class__] == 0:
-            del(self._work_tally[item.__class__])
+            del self._work_tally[item.__class__]
         return item

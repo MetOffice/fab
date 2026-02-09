@@ -6,12 +6,15 @@ from time import sleep
 
 from multiprocessing import Barrier, Process, get_logger as mp_get_logger
 from pathlib import Path
-from typing import TypeAlias
 from queue import Queue
 
-from fabengine.actions import (Action, ActionException,
-                               ExceptionActionException, EndOfWorkException,
-                               WorkerException)
+from fabengine.actions import (
+    Action,
+    ActionException,
+    ExceptionActionException,
+    EndOfWorkException,
+    WorkerException,
+)
 from fabengine.actions.configurator import RosePicker
 from fabengine.actions.sentinel import Sentinel
 from fabengine.project import Project
@@ -46,20 +49,20 @@ class MonitorProcess(Process):
             length = self._work_queue.length
             for action, tally in self._work_queue.work_tally().items():
                 percentage = 100 * tally / length()
-                logger.info(
-                    f"{tally} ({int(percentage)}%): {action.__name__} on queue"
-                )
+                logger.info(f"{tally} ({int(percentage)}%): {action.__name__} on queue")
 
         logger.debug("Monitor stopped")
 
 
 class WorkerProcess(Process):
-    def __init__(self,
-                 work_queue: WorkQueue,
-                 result_queue: Queue[WorkerException],
-                 database: Database,
-                 sentinel_barrier,
-                 profile: bool):
+    def __init__(
+        self,
+        work_queue: WorkQueue,
+        result_queue: Queue[WorkerException],
+        database: Database,
+        sentinel_barrier,
+        profile: bool,
+    ):
         self._work_queue = work_queue
         self._result_queue = result_queue
         self._database = database
@@ -92,8 +95,10 @@ class WorkerProcess(Process):
                 if barrier_id == 0:
                     self._work_queue.leave_barrier()
                     logger.info("Sentinel comes round: " + str(self.pid))
-                    logger.info("Number of actions processed this round: "
-                                + str(self._database.processed_last_round))
+                    logger.info(
+                        "Number of actions processed this round: "
+                        + str(self._database.processed_last_round)
+                    )
 
                 if self._database.processed_last_round == 0:
                     self._work_queue.stop()
@@ -146,13 +151,18 @@ class WorkerProcess(Process):
 
         if self._profile and profiler is not None:
             profiler.disable()
-            profiler.dump_stats(f'profile.{self.pid}.txt')
+            profiler.dump_stats(f"profile.{self.pid}.txt")
 
 
-def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
-         profile: bool = False, log_level: int = WARNING,
-         stack_strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK,
-         *repositories: Repository):
+def main(
+    work_dir: Path,
+    worker_threads: int,
+    no_monitor: bool = False,
+    profile: bool = False,
+    log_level: int = WARNING,
+    stack_strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK,
+    *repositories: Repository,
+):
     logger = getLogger(__name__)
     logger.setLevel(log_level)
     logger.addHandler(StreamHandler())
@@ -163,57 +173,61 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
 
     configuration = Configuration(
         work_dir,
-        work_dir / 'lfric_core' / 'etc' / 'psyclone.cfg',
+        work_dir / "lfric_core" / "etc" / "psyclone.cfg",
         {
             # Physics from the UM
-            'UM_PHYSICS': 'true',
-            'LFRIC': 'true',
-            'USSPREC_32B': 'true',
-            'LSPREC_32B': 'true',
-            'UM_JULES': 'true',
+            "UM_PHYSICS": "true",
+            "LFRIC": "true",
+            "USSPREC_32B": "true",
+            "LSPREC_32B": "true",
+            "UM_JULES": "true",
             # I/O platform
-            'USE_XIOS': 'true',
+            "USE_XIOS": "true",
             # Component precision
-            'RDEF_PRECISION': '64',
-            'R_SOLVER_PRECISION': '32',
-            'R_TRAN_PRECISION': '64',
-            'R_BL_PRECISION': '64',
+            "RDEF_PRECISION": "64",
+            "R_SOLVER_PRECISION": "32",
+            "R_TRAN_PRECISION": "64",
+            "R_BL_PRECISION": "64",
             # Transitional
-            'LEGACY_MPI': 'true'
+            "LEGACY_MPI": "true",
         },
         [
-            'funit', 'pfunit',  # pFUnit
-            'mpi', 'mpi_f08',  # MPI
-            'netcdf',  # NetCDF
-            'omp_lib',  # OpenMP
-            'xios', 'icontext', 'mod_wait', 'mod_oasis',  # XIOS/OASIS
-            'yaxt',  # YAXT
-            'vernier_mod',  # Vernier
-            'c_shum_byteswap'  # ShUMlib
+            "funit",
+            "pfunit",  # pFUnit
+            "mpi",
+            "mpi_f08",  # MPI
+            "netcdf",  # NetCDF
+            "omp_lib",  # OpenMP
+            "xios",
+            "icontext",
+            "mod_wait",
+            "mod_oasis",  # XIOS/OASIS
+            "yaxt",  # YAXT
+            "vernier_mod",  # Vernier
+            "c_shum_byteswap",  # ShUMlib
         ],
         [
-            'netcdff', 'netcdf',
-            'xios',
-            'yaxt', 'yaxt_c',
-            'pfunit', 'funit', 'fargparse', 'gftl-shared-v2',
-            'stdc++'
+            "netcdff",
+            "netcdf",
+            "xios",
+            "yaxt",
+            "yaxt_c",
+            "pfunit",
+            "funit",
+            "fargparse",
+            "gftl-shared-v2",
+            "stdc++",
         ],
-        [
-            {'real': 'real32'},
-            {'real': 'real64'},
-            {'integer': 'int32'}
-        ],
+        [{"real": "real32"}, {"real": "real64"}, {"integer": "int32"}],
+        {"um": ["-fdefault-real-8", "-fdefault-double-8"]},
         {
-            'um': ['-fdefault-real-8', '-fdefault-double-8']
+            "casim/": ["um"],
+            "jules/": ["um"],
+            "physics_schemes/": ["um"],
+            "physics_schemes_interface/legacy/": ["um"],
+            "socrates/": ["um"],
+            "ukca/": ["um"],
         },
-        {
-            'casim/': ['um'],
-            'jules/': ['um'],
-            'physics_schemes/': ['um'],
-            'physics_schemes_interface/legacy/': ['um'],
-            'socrates/': ['um'],
-            'ukca/': ['um']
-        }
     )
 
     with FabManager() as manager:
@@ -235,20 +249,22 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
                 if project.configuration_meta_data is None:
                     continue
 
-                meta_data_path = repo_action.local_copy / project.configuration_meta_data
-                if project.configuration_meta_data.name == 'rose-meta.conf':
+                meta_data_path = (
+                    repo_action.local_copy / project.configuration_meta_data
+                )
+                if project.configuration_meta_data.name == "rose-meta.conf":
                     # Todo: Don't like Core reference here
                     work_queue.new_action(
-                        RosePicker(meta_data_path, work_dir / 'lfric_core',
-                                   database)
+                        RosePicker(meta_data_path, work_dir / "lfric_core", database)
                     )
                 else:  # Is a directory
                     database.config_meta_dirs.append(meta_data_path)
 
         workers: list[WorkerProcess] = []
         for _ in range(worker_threads):
-            process = WorkerProcess(work_queue, result_queue, database,
-                                    sentinel_barrier, profile)
+            process = WorkerProcess(
+                work_queue, result_queue, database, sentinel_barrier, profile
+            )
             process.start()
             workers.append(process)
 
@@ -292,21 +308,24 @@ def main(work_dir: Path, worker_threads:int, no_monitor: bool = False,
             logger.error("Failed " + result.describe())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
-    parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--debug', '-d', action='store_true')
-    parser.add_argument('--threads', '-j', type=int, default=1)
-    parser.add_argument('--work-dir', type=Path, default='work')
-    parser.add_argument('--no-monitor', action='store_true')
-    parser.add_argument('--profile', action='store_true')
-    parser.add_argument('--queue-strategy',
-                        choices=[strat.name.lower() for strat in QueueStrategy],
-                        default='always_to_back')
-    parser.add_argument('target',
-                        choices=['skeleton', 'atmosphere'], default='skeleton')
+    parser.add_argument("--verbose", "-v", action="store_true")
+    parser.add_argument("--debug", "-d", action="store_true")
+    parser.add_argument("--threads", "-j", type=int, default=1)
+    parser.add_argument("--work-dir", type=Path, default="work")
+    parser.add_argument("--no-monitor", action="store_true")
+    parser.add_argument("--profile", action="store_true")
+    parser.add_argument(
+        "--queue-strategy",
+        choices=[strat.name.lower() for strat in QueueStrategy],
+        default="always_to_back",
+    )
+    parser.add_argument(
+        "target", choices=["skeleton", "atmosphere"], default="skeleton"
+    )
     arguments = parser.parse_args()
 
     level = WARNING
@@ -315,90 +334,82 @@ if __name__ == '__main__':
     if arguments.debug:
         level = DEBUG
 
-    if arguments.target == 'skeleton':
+    if arguments.target == "skeleton":
         repositories = [
             FileTreeRepository(
-                f'localhost:{Path().absolute()}/lfric_core',
+                f"localhost:{Path().absolute()}/lfric_core",
                 [
-                    Project(Path('infrastructure')),
-                    Project(Path('components/driver')),
-                    Project(Path('components/science')),
-                    Project(Path('components/inventory')),
-                    Project(Path('components/lfric-xios')),
+                    Project(Path("infrastructure")),
+                    Project(Path("components/driver")),
+                    Project(Path("components/science")),
+                    Project(Path("components/inventory")),
+                    Project(Path("components/lfric-xios")),
                     Project(
-                        Path('applications/skeleton'),
+                        Path("applications/skeleton"),
                         configuration_meta_data=Path(
-                            'rose-meta/lfric-skeleton/HEAD/rose-meta.conf'
-                        )
-                    )
-                ]
+                            "rose-meta/lfric-skeleton/HEAD/rose-meta.conf"
+                        ),
+                    ),
+                ],
             )
         ]
 
-    elif arguments.target == 'atmosphere':
+    elif arguments.target == "atmosphere":
         repositories = [
             FileTreeRepository(
-                'lfric_core',
+                "lfric_core",
                 [
-                    Project(Path('infrastructure')),
-                    Project(Path('components/driver')),
-                    Project(Path('components/science')),
-                    Project(Path('components/inventory')),
-                    Project(Path('components/lfric-xios'))
-                ]
+                    Project(Path("infrastructure")),
+                    Project(Path("components/driver")),
+                    Project(Path("components/science")),
+                    Project(Path("components/inventory")),
+                    Project(Path("components/lfric-xios")),
+                ],
             ),
             FileTreeRepository(
-                'lfric_apps',
+                "lfric_apps",
                 [
-                    Project(Path('interfaces/physics_schemes_interface')),
-                    Project(Path('science/physics_schemes')),
-                    Project(Path('science/shared'), 'bucket'),
-                    Project(Path('interfaces/socrates_interface')),
-                    Project(Path('interfaces/jules_interface')),
-                    Project(Path('science/gungho')),
+                    Project(Path("interfaces/physics_schemes_interface")),
+                    Project(Path("science/physics_schemes")),
+                    Project(Path("science/shared"), "bucket"),
+                    Project(Path("interfaces/socrates_interface")),
+                    Project(Path("interfaces/jules_interface")),
+                    Project(Path("science/gungho")),
                     Project(
-                        Path('applications/lfric_atm'),
+                        Path("applications/lfric_atm"),
                         configuration_meta_data=Path(
-                            'rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf'
-                        )
-                    )
-                ]
+                            "rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf"
+                        ),
+                    ),
+                ],
             ),
             FileTreeRepository(
-                'casim.filtered',
-                [
-                    Project(Path('.'), identifier='casim',
-                            source_dir=Path('src'))
-                ]
+                "casim.filtered",
+                [Project(Path("."), identifier="casim", source_dir=Path("src"))],
             ),
             FileTreeRepository(
-                'ukca.filtered',
-                [
-                    Project(Path('.'), identifier='ukca',
-                            source_dir=Path('src'))
-                ]
+                "ukca.filtered",
+                [Project(Path("."), identifier="ukca", source_dir=Path("src"))],
             ),
             FileTreeRepository(
-                'jules.filtered',
-                [
-                    Project(Path('.'), identifier='jules',
-                            source_dir=Path('src'))
-                ]
+                "jules.filtered",
+                [Project(Path("."), identifier="jules", source_dir=Path("src"))],
             ),
             FileTreeRepository(
-                'socrates.filtered',
-                [
-                    Project(Path('.'), identifier='socrates',
-                            source_dir=Path('src'))
-                ]
-            )
+                "socrates.filtered",
+                [Project(Path("."), identifier="socrates", source_dir=Path("src"))],
+            ),
         ]
 
     else:
         raise RuntimeError("Unrecognised target: " + arguments.target)
 
-    main(arguments.work_dir, arguments.threads,
-         arguments.no_monitor, arguments.profile,
-         level, QueueStrategy[arguments.queue_strategy.upper()],
-         *repositories
-         )
+    main(
+        arguments.work_dir,
+        arguments.threads,
+        arguments.no_monitor,
+        arguments.profile,
+        level,
+        QueueStrategy[arguments.queue_strategy.upper()],
+        *repositories,
+    )
