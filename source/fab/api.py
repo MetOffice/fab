@@ -10,6 +10,7 @@ files using `from fab.api import ...`.
 from fab.artefacts import ArtefactSet, CollectionGetter
 from fab.artefacts import SuffixFilter
 from fab.build_config import AddFlags, BuildConfig
+from fab.fab_base.fab_base import FabBase
 from fab.steps import run_mp
 from fab.steps import step
 from fab.steps.analyse import analyse
@@ -59,6 +60,7 @@ __all__ = [
     "ContainFlags",
     "c_pragma_injector",
     "Exclude",
+    "FabBase",
     "fcm_export",
     "file_checksum",
     "FlagList",
