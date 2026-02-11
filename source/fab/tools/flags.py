@@ -28,9 +28,8 @@ ContainFlags(AlwaysFlags)
     string. The difference to MatchFlags is that ContainFlags do not
     need the full path to be specified.
 
-Flags:
+FlagList:
     Manages a list of flags, each of which is an instance of an AbstractFlag.
-    #TODO: Rename to FlagsList
 
 ProfileFlags:
     Manages a set of flags for specific profiles, including inheritance.
@@ -145,8 +144,13 @@ class AlwaysFlags(AbstractFlags):
         if config:
             params['source'] = config.source_root
             params['output'] = config.build_output
+        else:
+            params['source'] = Path("/")
+            params['output'] = Path("/")
         if file_path:
             params['relative'] = file_path.parent
+        else:
+            params['relative'] = Path(".")
 
         # Use templating to render any relative paths in our flags
         return [Template(i).substitute(params) for i in string_list]
@@ -217,8 +221,8 @@ class MatchFlags(AlwaysFlags):
     templated expressions `$relative`, `$source`, and `$output` in the
     pattern as well.
 
-    :param flags: a string or list of strings with command line flags.
     :param pattern: the wildcard pattern which is used when matching.
+    :param flags: a string or list of strings with command line flags.
     """
     def __init__(self,
                  pattern: str,
@@ -292,8 +296,8 @@ class FlagList(List[AbstractFlags]):
     list with some additional functionality.
 
     :param list_of_flags: List of parameters to initialise this object with.
-    :param path_flags: List of old-style PathFlags, which will be converted
-        to the new MatchFlags
+    :param add_flags: List of old-style AddFlags, which will be converted
+        to the new MatchFlags.
     '''
 
     def __init__(
@@ -357,8 +361,8 @@ class FlagList(List[AbstractFlags]):
                   new_flags: Union[AbstractFlags, str, List[str]]) -> None:
         '''Adds the specified flags to the list of flags.
 
-        :param new_flags: A single string or list of strings which are the
-            flags to be added.
+        :param new_flags: New flags to be added. Can be either an class
+            derived from AbstractFlags, a single string or list of strings.
         '''
 
         if isinstance(new_flags, AbstractFlags):
@@ -403,7 +407,8 @@ class ProfileFlags:
                  flags: Optional[Union[AbstractFlags, str, List[str]]] = None,
                  profile: str = "") -> None:
         # Stores the flags for each profile mode. The key is the (lower case)
-        # name of the profile mode, and it contains a list of flags
+        # name of the profile mode, and it contains a list of flags.
+        # Initialise the dict with the default (empty) profile
         self._profiles: Dict[str, FlagList] = {"": FlagList()}
 
         # This dictionary stores an optional inheritance, where one mode
