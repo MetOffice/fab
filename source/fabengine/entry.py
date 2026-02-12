@@ -25,12 +25,22 @@ from fabengine.work_queue import QueueStrategy, WorkQueue
 
 
 class MonitorProcess(Process):
+    """
+    Reports on build progress.
+    """
+
     def __init__(self, work_queue: WorkQueue):
+        """
+        :param work_queue: Queue to monitor.
+        """
         super().__init__(name="Build monitor", target=self._monitor)
         self._work_queue = work_queue
         self._stopping = False
 
     def stop(self) -> None:
+        """
+        Signals process to stop.
+        """
         self._stopping = True
 
     def _monitor(self):
@@ -55,6 +65,10 @@ class MonitorProcess(Process):
 
 
 class WorkerProcess(Process):
+    """
+    Task farm worker process.
+    """
+
     def __init__(
         self,
         work_queue: WorkQueue,
@@ -63,6 +77,13 @@ class WorkerProcess(Process):
         sentinel_barrier,
         profile: bool,
     ):
+        """
+        :param work_queue: Queue to pull work from and push it to.
+        :param result_queue: Queue to push results to.
+        :param database: Build system state and configuration.
+        :param sentinel_barrier: Synchronisation object.
+        :param profile: Turn profiling on and off.
+        """
         self._work_queue = work_queue
         self._result_queue = result_queue
         self._database = database
@@ -163,6 +184,15 @@ def main(
     stack_strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK,
     *repositories: Repository,
 ):
+    """
+    Build system entry point.
+
+    :param work_dir: Directory used as scratch space for build.
+    :param worker_threads: Number of workers to use.
+    :param no_monitor: Do not run progress monitor process.
+    :param profile: Enable profiling of run.
+    :param log_level: Level at which to log messages.
+    """
     logger = getLogger(__name__)
     logger.setLevel(log_level)
     logger.addHandler(StreamHandler())

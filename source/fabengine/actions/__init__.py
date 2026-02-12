@@ -7,38 +7,79 @@ from typing import Optional
 
 
 class Prerequisite(ABC):
+    """
+    Interface for prerequisite determination classes.
+    """
+
     @abstractmethod
     def ready(self) -> bool:
+        """
+        Determines when a prerequisite is met.
+
+        :return: True if prerequisite met.
+        """
         raise NotImplementedError()
 
 
 class Action(ABC):
+    """
+    Interface for work queue actions.
+    """
+
     @abstractmethod
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        Gets action prerequisites.
+
+        :return: All prerequisites of the action.
+        """
         raise NotImplementedError()
 
     @abstractmethod
     def perform(self) -> Iterable[Action]:
+        """
+        Performs action.
+
+        :return: Results of running the action.
+        """
         raise NotImplementedError()
 
 
 class WorkerException(BaseException, ABC):
+    """
+    Communicates happenings to the farmer.
+    """
+
     @abstractmethod
     def describe(self) -> str:
+        """
+        Describes happening to a human.
+        """
         raise NotImplementedError()
 
 
 class EndOfWorkException(WorkerException):
+    """
+    Worker has completed its work.
+    """
+
     def describe(self) -> str:
         return "Worker finished for the day."
 
 
 class ActionException(WorkerException, ABC):
+    """
+    Work action experienced a happening.
+    """
+
     def __init__(self, action: Action):
         self._action = action
 
     @property
     def action(self) -> Action:
+        """
+        :return: Inciting action.
+        """
         return self._action
 
     def describe(self) -> str:
@@ -46,12 +87,19 @@ class ActionException(WorkerException, ABC):
 
 
 class ExceptionActionException(ActionException):
+    """
+    Work action threw an exception.
+    """
+
     def __init__(self, action: Action, cause: Exception):
         super().__init__(action)
         self._cause = cause
 
     @property
     def cause(self) -> Exception:
+        """
+        Exception thrown by action.
+        """
         return self._cause
 
     def describe(self) -> str:
@@ -65,6 +113,10 @@ class ExceptionActionException(ActionException):
 
 
 class SubprocessActionException(ActionException):
+    """
+    Work action subprocess experienced a happening.
+    """
+
     def __init__(
         self,
         action: Action,
@@ -81,19 +133,31 @@ class SubprocessActionException(ActionException):
 
     @property
     def return_code(self) -> int:
+        """
+        :return: Zero for success, otherwise failure.
+        """
         return self._return_code
 
     # Todo: Accept list of strings straight from calling process.
     @property
     def command(self) -> str:
+        """
+        :return: Inciting command.
+        """
         return self._command
 
     @property
     def stdout(self) -> Optional[str]:
+        """
+        :return: Command's standard output text.
+        """
         return self._stdout
 
     @property
     def stderr(self) -> Optional[str]:
+        """
+        :return: Command's standard error text.
+        """
         return self._stderr
 
     def describe(self) -> str:

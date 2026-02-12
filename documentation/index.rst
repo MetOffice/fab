@@ -14,3 +14,4 @@ for day-to-day use.
    analysis/index
    work_queue
    performance
+   api

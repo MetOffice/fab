@@ -24,14 +24,30 @@ from fabengine.project import Project
 
 
 class RepositoryAction(Action, ABC):
+    """
+    Interface of source repositories.
+    """
+
     @property
     @abstractmethod
     def local_copy(self) -> Path:
+        """
+        Creates a local copy of source tree.
+        """
         raise NotImplementedError()
 
 
 class SourceOnDiscAction(RepositoryAction):
+    """
+    Source tree is on disc.
+    """
+
     def __init__(self, remote: str, projects: list[Project], database: Database):
+        """
+        :param remote: Source of source in form [<hostname>:]<path>
+        :param projects: Parts of the source tree to consider.
+        :param database: Build system state and configuration.
+        """
         self._remote = remote
         self._projects = projects
         self._database = database
@@ -40,14 +56,26 @@ class SourceOnDiscAction(RepositoryAction):
         return "Source from disc: " + str(self._remote)
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: No prerequisites.
+        """
         return []
 
     @property
     def local_copy(self) -> Path:
+        """
+        :return: Path of local copy.
+        """
         filename = Path(self._remote.split(":")[-1])
         return self._database.configuration.work_dir / filename.name
 
     def perform(self) -> Iterable[Action]:
+        """
+        Performs copy.
+
+        :return: Error result if copy fails, otherwise action to examine
+                 freshly imported source.
+        """
         remote = str(self._remote).rstrip("/")
         local = str(self._database.configuration.work_dir)
         command = ["rsync", "-a", remote, local]
@@ -74,7 +102,18 @@ class SourceOnDiscAction(RepositoryAction):
 
 
 class SourceOnGitHubAction(RepositoryAction):
+    """
+    Source tree is held by GitHub.
+
+    Specific to GitHub, doesn't work on other Git repositories.
+    """
+
     def __init__(self, url: str, projects: list[Project], database: Database):
+        """
+        :param url: Location of ``.git`` file.
+        :param projects: Subtrees of concern.
+        :param database: Build system state and configuration.
+        """
         _, netloc, _, _, _, _ = urlparse(url)
         if netloc.split("@")[-1].lower() != "github.com":
             raise RuntimeError("URL passed to SourceOnGitHubAction is not on GitHub")
@@ -86,15 +125,27 @@ class SourceOnGitHubAction(RepositoryAction):
         return "GitHub repository: " + self._url
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: No prerequisites.
+        """
         return []
 
     @property
     def local_copy(self) -> Path:
+        """
+        :return: Path of local copy.
+        """
         _, netloc, path, _, query, fragment = urlparse(self._url)
         name = Path(path).stem
         return self._database.configuration.work_dir / name
 
     def perform(self) -> list[Action]:
+        """
+        Perform the extraction.
+
+        :return: Error result if extraction fails, otherwise action to examine
+                 freshly imported source.
+        """
         repo_marker = self.local_copy / ".git"
         if repo_marker.is_dir():  # Repository is present
             command = ["git", "-C", str(self.local_copy), "pull"]
@@ -132,7 +183,16 @@ class SourceOnGitHubAction(RepositoryAction):
 
 
 class SourceDirectory(Action):
+    """
+    Examines source tree for actionable files.
+    """
+
     def __init__(self, filename: Path, tag: str, database: Database):
+        """
+        :param filename: Root of source tree.
+        :param tag: Collection to use in workspace.
+        :param database: Build system state and configuration.
+        """
         self._source_dir = filename
         self._tag = tag
         self._database = database
@@ -141,14 +201,22 @@ class SourceDirectory(Action):
         return "Source directory: " + str(self._source_dir)
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: Depends on source directory.
+        """
         return [FilePrerequisite(self._source_dir)]
 
-    # Todo: Would it be possible to chunk output since this action can
-    #       generate a lot of actions. Maybe create 10 (or 100) before putting
-    #       ourself back on the queue. Or maybe that only seems necessary for
-    #       single threaded builds.
-    #
     def perform(self) -> Generator[Action, None, list[Action]]:
+        """
+        Performs examination.
+
+        .. Todo:: Would it be possible to chunk output since this action can
+                  generate a lot of actions. Maybe create 10 (or 100) before
+                  putting ourself back on the queue. Or maybe that only seems
+                  necessary for single threaded builds.
+
+        :return: Action for each actionable file.
+        """
         mp_get_logger().debug("Scanning " + str(self._source_dir))
         project_dir = self._database.configuration.build_dir / self._tag
         project_dir.mkdir(parents=True, exist_ok=True)

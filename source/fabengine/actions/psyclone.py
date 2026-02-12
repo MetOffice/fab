@@ -13,6 +13,10 @@ from fabengine.database import Database
 
 
 class PreprocessAlgorithm(PreprocessFortranBase):
+    """
+    Preprocesses an ``.X90`` algorithm file with PSyclone.
+    """
+
     def __init__(
         self,
         repo_dir: Path,
@@ -21,6 +25,13 @@ class PreprocessAlgorithm(PreprocessFortranBase):
         database: Database,
         extra_definitions: Optional[dict[str, str]] = None,
     ):
+        """
+        :param repo_dir: Source tree root.
+        :param filename: Algorithm file relative to root.
+        :param project: Subdirectory of workspace for resulting source.
+        :param database: Build system state and configuration.
+        :param extra_definitions: Additional macros to use with preprocessor.
+        """
         super().__init__(repo_dir, filename, project, database, extra_definitions)
         self._project = project
 
@@ -28,6 +39,11 @@ class PreprocessAlgorithm(PreprocessFortranBase):
         return f"Preprocess PSyKAl algorithm: {self.repo} {self.filename}"
 
     def perform(self) -> list[Action]:
+        """
+        Performs the preprocessing.
+
+        :return: Action to PSyclone the algorithm.
+        """
         actions = super().perform()
         build_dir = self._database.configuration.build_dir
         actions.append(
@@ -42,9 +58,21 @@ class PreprocessAlgorithm(PreprocessFortranBase):
 
 
 class PSyclone(Action):
+    """
+    PSyclones ``.x90`` algorithm source using PSyKAl model.
+
+    .. todo:: No transformation scripts!
+    """
+
     def __init__(
         self, repo_dir: Path, algorithm_file: Path, tag: str, database: Database
     ):
+        """
+        :param repo_dir: Source tree root.
+        :param algorithm_file: Algorithm file relative to root.
+        :param tag: Subdirectory of workspace for resulting source.
+        :param database: Build system state and configuration.
+        """
         self._repo_dir = repo_dir
         self._algorithm_file = algorithm_file
         self._tag = tag
@@ -61,6 +89,9 @@ class PSyclone(Action):
 
     @staticmethod
     def _remove_builtins(kernels: list[str]) -> list[str]:
+        # Todo: Discussion is underway with PSyclone developers to extend the
+        #       API to provide this information so a clumbsy heuristic is
+        #       unnecessary.
         new_kernels: list[str] = []
         for type_name in kernels:
             if type_name.endswith("_type"):  # Todo: Assumption
@@ -118,6 +149,13 @@ class PSyclone(Action):
         return kernels
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        Determines prerequisite rules.
+
+        .. todo:: Does it need to depend on both symbols and files?
+
+        :return: Depends on symbols and source files.
+        """
         prereqs: list[Prerequisite] = []
         for kernel in self._kernels:
             prereqs.append(SymbolPrerequisite(kernel, self._database))
@@ -128,6 +166,12 @@ class PSyclone(Action):
         return prereqs
 
     def perform(self) -> list[Action]:
+        """
+        Performs the transformation.
+
+        :return: Result if transformation failed, otherwise analysis of
+                 generated source.
+        """
         kernel_roots: list[Path] = []
         for kernel in self._kernels:
             kernel_symbol = self._database.symbol_table.get(kernel)

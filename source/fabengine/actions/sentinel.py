@@ -6,6 +6,10 @@ from fabengine.actions import Action, Prerequisite
 
 
 class Sentinel(Action):
+    """
+    Marks a point in the work queue.
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -13,7 +17,13 @@ class Sentinel(Action):
         return "Sentinel"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: Depends on nothing.
+        """
         return []
 
     def perform(self) -> list[Sentinel]:
+        """
+        :return: Itself.
+        """
         return [self]

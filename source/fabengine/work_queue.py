@@ -17,6 +17,10 @@ class QueueStrategy(Enum):
 
 
 class WorkQueue:
+    """
+    Manages a queue of work actions.
+    """
+
     def __init__(self, strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK) -> None:
         self._strategy = strategy
         getLogger(__name__).debug("Queue strategy is: " + self._strategy.name.lower())
@@ -29,6 +33,9 @@ class WorkQueue:
         self._work_tally: dict[Type[Action], int] = defaultdict(int)
 
     def stop(self) -> None:
+        """
+        Signals queue to stop work.
+        """
         getLogger(__name__).debug("Stop requested")
         self._stop = True
 
@@ -36,27 +43,47 @@ class WorkQueue:
     # multiprocessing AutoProxy. These only support methods.
     #
     def stopping(self) -> bool:
+        """
+        :return: Is queue stopping?
+        """
         return self._stop
 
     def enter_barrier(self):
+        """
+        Informs queue sentinel barrier is being entered.
+        """
         self._in_barrier = True
 
     def leave_barrier(self):
+        """
+        Informs queue sentinel barrier is being left.
+        """
         self._in_barrier = False
 
     # This method cannot be a "property" as it will be accessed through a
     # multiprocessing AutoProxy. These only support methods.
     #
     def length(self) -> int:
+        """
+        Gets number of actions on queue.
+        """
         return self._length
 
     # This method cannot be a "property" as it will be accessed through a
     # multiprocessing AutoProxy. These only support methods.
     #
     def work_tally(self) -> dict[Type[Action], int]:
+        """
+        Gets number of each action type on queue.
+        """
         return self._work_tally
 
     def new_action(self, action: Action) -> None:
+        """
+        Adds an action to the queue.
+
+        Respects queue strategy.
+        """
         getLogger(__name__).debug("Queueing action: " + str(action))
         if isinstance(action, Sentinel):
             self._add_back(action)
@@ -80,6 +107,11 @@ class WorkQueue:
             raise RuntimeError("Unrecognised stack strategy: " + self._strategy.name)
 
     def requeue_action(self, action: Action) -> None:
+        """
+        Returns action to queue.
+
+        Respects queue strategy.
+        """
         getLogger(__name__).debug("Requeueing: " + str(action))
         #
         # Todo: Is there performance to be had by rotating the queue rather
@@ -117,6 +149,9 @@ class WorkQueue:
         self._work_tally[item.__class__] += 1
 
     def pop(self) -> Action:
+        """
+        Gets next work action from queue.
+        """
         item = self._queue.pop()
         if isinstance(item, Sentinel):
             self._sentinel = None

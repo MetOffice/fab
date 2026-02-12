@@ -6,6 +6,10 @@ from fabengine.work_queue import WorkQueue
 
 
 class FabManager(SyncManager):
+    """
+    Multiprocessing shared data manager which understands Fab data.
+    """
+
     pass
 
 

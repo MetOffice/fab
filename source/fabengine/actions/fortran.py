@@ -25,20 +25,38 @@ from fabengine.prerequisite import (
 
 
 class ImportFortran(ImportFile):
+    """
+    Copies Fortran source into workspace.
+    """
+
     def __str__(self) -> str:
         return f"Import Fortran: {self.repo_dir} {self.filename}"
 
     def perform(self) -> list[Action]:
+        """
+        Performs the copy.
+
+        :return: An AnalyseFortran object for the new file.
+        """
         actions = super().perform()
         actions.append(AnalyseFortran(self.destination_file, self._database))
         return actions
 
 
 class ImportInclusion(ImportFile):
+    """
+    Copies a file for inclusion into the workspace.
+    """
+
     def __str__(self) -> str:
         return f"Import inclusion: {self.source_file}"
 
     def perform(self) -> list[Action]:
+        """
+        Performs the copy.
+
+        :return: If a file of that name already exists an error ActionResult.
+        """
         actions = super().perform()
         if Path(self.destination_file.name) not in self._database.inclusions:
             filename = Path(self.destination_file.name)
@@ -53,10 +71,15 @@ class ImportInclusion(ImportFile):
         return actions
 
 
-# Todo: Implement our own preprocessor in Python allowing us to hold on to the
-#       parse tree between determining prerequisites and generating output.
-#
 class PreprocessFortranBase(Action, ABC):
+    """
+    Generates a Fortran source file in the workspace using the preprocessor.
+
+    .. todo:: Implement our own preprocessor in Python allowing us to hold on
+              to the parse tree between determining prerequisites and
+              generating output.
+    """
+
     def __init__(
         self,
         repo_dir: Path,
@@ -65,6 +88,13 @@ class PreprocessFortranBase(Action, ABC):
         database: Database,
         extra_definitions: Optional[dict[str, str]] = None,
     ):
+        """
+        :param repo_dir: Root of source tree.
+        :param filename: Source file relative to root.
+        :param project: Name under which to collect source in workspace.
+        :param database: Build system state and configuration.
+        :param extra_definitions: Additional macros to use with this preproces.
+        """
         self._repo_dir = repo_dir
         self._filename = filename
         self._project = project
@@ -78,18 +108,30 @@ class PreprocessFortranBase(Action, ABC):
 
     @property
     def repo(self) -> Path:
+        """
+        :return: Root of source tree.
+        """
         return self._repo_dir
 
     @property
     def filename(self) -> Path:
+        """
+        :return: Source file relative to source tree root.
+        """
         return self._filename
 
     @property
     def source_file(self) -> Path:
+        """
+        :return: Full path to source file.
+        """
         return self._repo_dir / self._filename
 
     @property
     def destination_file(self) -> Path:
+        """
+        :return: Full path to destination file.
+        """
         suffix = self._filename.suffix.lower()
         return (
             self._database.configuration.build_dir
@@ -112,6 +154,11 @@ class PreprocessFortranBase(Action, ABC):
         return self._prereqs
 
     def perform(self) -> list[Action]:
+        """
+        Performs the preprocessing.
+
+        :return: An ActionResult if the preprocessor fails.
+        """
         self.destination_file.parent.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired command
         command = ["cpp", "-traditional-cpp", "-P"]
@@ -142,6 +189,10 @@ class PreprocessFortranBase(Action, ABC):
 
 
 class PreprocessFortranAction(PreprocessFortranBase):
+    """
+    Preprocesses Fortran source.
+    """
+
     def __init__(
         self,
         repo_dir: Path,
@@ -157,12 +208,21 @@ class PreprocessFortranAction(PreprocessFortranBase):
         return "Preprocess Fortran: " + str(self.source_file)
 
     def perform(self) -> list[Action]:
+        """
+        Performs the preprocessing.
+
+        :return: Action to analyse resulting source.
+        """
         actions = super().perform()
         actions.append(AnalyseFortran(self.destination_file, self._database))
         return actions
 
 
 class AnalyseFortran(Action):
+    """
+    Analyses Fortran source for dependency information.
+    """
+
     # Todo: This pattern does not handle exclamation marks in quotes.
     _COMMENT_PATTERN = re_compile(r"(.*?)![^$].*$")
     _UNIT_PATTERN = re_compile(
@@ -187,20 +247,37 @@ class AnalyseFortran(Action):
     _UM_DEPENDS_ON_PATTERN = re_compile(r"\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)", IGNORECASE)
 
     def __init__(self, source: Path, database: Database):
+        """
+        :param source: Fortran source to analyse.
+        :param database: Build system state and configuration.
+        """
         self._source = source
         self._database = database
 
     @property
     def source(self) -> Path:
+        """
+        :return: Fortran source file.
+        """
         return self._source
 
     def __str__(self) -> str:
         return "Analyse: " + self._source.name
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        Determines prerequisites for analysis.
+
+        :return: Source file must exist.
+        """
         return [FilePrerequisite(self._source)]
 
     def perform(self) -> list[Action]:
+        """
+        Perform analyses.
+
+        :return: If a ``program`` is discovered, A task to resolve it.
+        """
         logger = mp_get_logger()
 
         actions: list[Action] = []
@@ -321,7 +398,15 @@ class AnalyseFortran(Action):
 
 
 class DetermineFortranProgram(Action):
+    """
+    Resolves list of modules making up a program.
+    """
+
     def __init__(self, name: str, database: Database):
+        """
+        :param name: Program name.
+        :param database: Build system state and configuration.
+        """
         self._name = name
         self._database = database
 
@@ -332,11 +417,27 @@ class DetermineFortranProgram(Action):
         return f"DetermineProgram '{self._name}': {len(self._units)}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        # Todo: Can (and should) this be dynamic based on the current state of
-        #       the scan?
+        """
+        Determine prerequisites.
+
+        .. Todo:: Can (and should) this be dynamic based on the current state
+                  of the scan?
+        """
         return [AnalysedPrerequisite(self._name, self._database)]
 
     def perform(self) -> list[Action]:
+        """
+        Performs an iteration of resolving the program.
+
+        Each time it is run this action chases as many prerequisites as it can
+        through the tree of analysed source. Any unresolved dependencies are
+        noted for next time and the action resubmits itself to the work queue.
+
+        :return: For each prerequisite discovered a "compile" action is
+                 returned. Additionally, when every prerequisite has been
+                 determined a "link" action is returned, otherwise the action
+                 returns itself.
+        """
         actions: list[Action] = []
 
         new_units: set[str] = set()  # New set to avoid infinite loop
@@ -369,12 +470,21 @@ class DetermineFortranProgram(Action):
 
 
 class CompileFortran(Action):
+    """
+    Compiles Fortran source to object and module file.
+    """
+
     def __init__(
         self,
         source: Path,
         prerequisites: Iterable[PrerequisiteInfo],
         database: Database,
     ):
+        """
+        :param source: Fortran source file.
+        :param prerequisites: Dependencies needed to compile this file.
+        :param database: Build system state and configuration.
+        """
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
@@ -383,6 +493,16 @@ class CompileFortran(Action):
         return "Compile: " + self._source.name
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        Gets prerequisite rules.
+
+        Anything referred to be ``use`` statement generates a requirement on a
+        module file. Symbols declared ``external`` are ignored as the compile
+        takes it on trust that the linker will sort these out. The same is true
+        for UM style ``depends-on`` comments.
+
+        :return: Collection of prerequisite rules.
+        """
         prereqs: list[Prerequisite] = []
         for symbol in self._prerequisites:
             if symbol.nature == PrerequisiteType.USE:
@@ -400,7 +520,13 @@ class CompileFortran(Action):
         return prereqs
 
     def perform(self) -> Iterable[Action]:
-        # Todo: Hardwired assumption on workspace layout
+        """
+        Performs the compilation.
+
+        .. Todo:: Hardwired assumption on workspace layout.
+
+        :return: Error if the compilation failed.
+        """
         extra_arguments: list[str] = []
         relative_path = self._source.relative_to(self._database.configuration.build_dir)
         for case, tags in self._database.configuration.tag_dirs.items():
@@ -443,7 +569,16 @@ class CompileFortran(Action):
 
 
 class LinkFortran(Action):
+    """
+    Uses Fortran compiler to link objects.
+    """
+
     def __init__(self, program: str, modules: set[str], database: Database):
+        """
+        :param program: Name of resulting executable.
+        :param modules: Collection of modules making up program.
+        :param database: Build system state and configuration.
+        """
         self._program = program
         self._modules = modules
         self._database = database
@@ -452,6 +587,15 @@ class LinkFortran(Action):
         return "Link: " + self._program
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        Gets list of prerequisite rules.
+
+        The link depends on a set of modules. Those which have been seen by the
+        analyser create a prerequisite on the object file. Those which have not
+        create a prerequisite on the analysis.
+
+        :return: Collection of prerequisite rules.
+        """
         prereqs: list[Prerequisite] = []
         for module in self._modules:
             if module in self._database.symbol_table:
@@ -464,6 +608,11 @@ class LinkFortran(Action):
         return prereqs
 
     def perform(self) -> list[Action]:
+        """
+        Perform the link action.
+
+        :return: Error result if the linker failed.
+        """
         objects: set[Path] = set()
         for module in self._modules:
             object_file = self._database.symbol_table[module].source_file.with_suffix(

@@ -9,6 +9,10 @@ from fabengine.database import Database
 
 
 class Templaterator(Action):
+    """
+    Processes Fortran template files.
+    """
+
     def __init__(
         self,
         filename: Path,
@@ -17,6 +21,13 @@ class Templaterator(Action):
         core_dir: Path,
         database: Database,
     ):
+        """
+        :param filename: Template file.
+        :param leafname: Name of generated file.
+        :param inserts: Keyed values imposed on template.
+        :param core_dir: LFRic core source, used to find templaterator.
+        :param database: Build system state and configuration.
+        """
         self._filename = filename
         self._leafname = leafname
         self._inserts = inserts
@@ -27,11 +38,21 @@ class Templaterator(Action):
         return f"Templating: {self._filename}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: Depends on template file.
+        """
         return [FilePrerequisite(self._filename)]
 
     def perform(self) -> Iterable[Action]:
-        # Todo: Just have the source here?
-        # Todo: Put generated files in the correct place.
+        """
+        Performs templating.
+
+        .. Todo:: Just include the templaterator source here? Removes need to
+                  know about core.
+        .. Todo:: Put generated files in the correct place, not top level.
+
+        :return: Analyse resulting Fortran source.
+        """
         exe = self._core_dir / "infrastructure" / "build" / "tools" / "Templaterator"
         destination_file = self._database.configuration.build_dir / self._leafname
 

@@ -8,6 +8,10 @@ from fabengine.manager import FabManager
 
 
 class Configuration:
+    """
+    Read-only parameters to direct build.
+    """
+
     def __init__(
         self,
         work_dir: Path,
@@ -19,6 +23,17 @@ class Configuration:
         build_tags: dict[str, list[str]],
         tag_dirs: dict[str, list[str]],
     ):
+        """
+        :param work_dir: Location of workspace used by build.
+        :param psyclone_config: Location of configuration file for PSyclone.
+        :param fpp_definitions: Macros to be defined for Fortran preprocessor.
+        :param fc_ignore_modules: Fortran modules which should not be
+                                  considered dependencies.
+        :param libraries: Link to these libraries.
+        :param field_instances: Template injections for fields.
+        :param build_tags: Mapping between tag and compiler arguments.
+        :param tag_dirs: Mapping between directory and tags.
+        """
         self._work_dir = work_dir
         self._psyclone_config = psyclone_config
         self._fpp_definitions = fpp_definitions
@@ -38,52 +53,92 @@ class Configuration:
 
     @property
     def work_dir(self) -> Path:
+        """
+        :return: Working directory.
+        """
         return self._work_dir
 
     @property
     def psyclone_config(self) -> Path:
+        """
+        :return: PSyclone configuration file.
+        """
         return self._psyclone_config
 
     @property
     def build_dir(self) -> Path:
+        """
+        :return: Directory where build occurs.
+        """
         return self._build_dir
 
     @property
     def module_dir(self) -> Path:
+        """
+        :return: Directory where Fortran modules are placed.
+        """
         return self._module_dir
 
     @property
     def fpp_definitions(self) -> dict[str, str]:
+        """
+        :return: Macros passed to Fortran preprocessor.
+        """
         return self._fpp_definitions
 
     @property
     def fc_ignore_modules(self) -> list[str]:
+        """
+        :return: Modules to ignore during analysis.
+        """
         return self._fc_ignore_modules
 
     @property
     def libraries(self) -> list[str]:
+        """
+        :return: Libraries to link with.
+        """
         return self._libraries
 
     @property
     def field_instances(self) -> list[dict[str, str]]:
+        """
+        :return: Field variants to create.
+        """
         return self._field_instances
 
     @property
     def build_tag_args(self) -> dict[str, list[str]]:
+        """
+        :return: Tagged compiler argument lists.
+        """
         return self._build_tags
 
     @property
     def tag_dirs(self) -> dict[str, list[str]]:
+        """
+        :return: Directory keyed tag lists.
+        """
         return self._tag_dirs
 
     @property
     def use_open_mp(self) -> bool:
+        """
+        :return: Control OpenMP building.
+        """
         return self._use_open_mp
 
 
-# Todo: Work directory and database always passed together.
 class Database:
+    """
+    Build system state and configuration.
+    """
+
     def __init__(self, configuration: Configuration, manager: FabManager):
+        """
+        :param configuration: Preprepared configuration.
+        :param manager: Multiprocess shared data controler.
+        """
         self._configuration = configuration
 
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
@@ -95,45 +150,79 @@ class Database:
 
     @property
     def configuration(self) -> Configuration:
+        """
+        :return: configuration paramaters.
+        """
         return self._configuration
 
     def reset_work_done(self) -> None:
+        """
+        Zeroes completed work counter.
+        """
         self._processed_last_round.set(self._processed_this_round.get())
         self._processed_this_round.set(0)
 
     def bump_processed_tally(self) -> None:
+        """
+        Increments completed work counter.
+        """
         self._processed_this_round.value += 1
 
     @property
     def processed_last_round(self) -> int:
+        """
+        Gets work completed last round.
+        """
         return self._processed_last_round.get()
 
 
 # Todo: Should be StrEnum but not available until Python 3.11
 #
 class PrerequisiteType(Enum):
+    """
+    Fortran Prerequisites come from several sources.
+    """
+
     USE = (auto(),)
     EXTERNAL = (auto(),)
     UM = auto()
 
 
 class PrerequisiteInfo:
+    """
+    Describes a Fortran prerequisite.
+    """
+
     def __init__(self, name: str, nature: PrerequisiteType):
+        """
+        :param name: symbol depended on.
+        :param nature: Source of dependency.
+        """
         self._name = name
         self._nature = nature
 
     @property
     def name(self) -> str:
+        """
+        :return: Symbol name.
+        """
         return self._name
 
     @property
     def nature(self) -> PrerequisiteType:
+        """
+        :return: Kind of dependency.
+        """
         return self._nature
 
 
 # Todo: Should be StrEnum but not available until Python 3.11
 #
 class SymbolType(Enum):
+    """
+    Symbols come in several flavours.
+    """
+
     FUNCTION = (auto(),)
     MODULE = (auto(),)
     PROGRAM = (auto(),)
@@ -143,19 +232,37 @@ class SymbolType(Enum):
 
 
 class SymbolInfo:
+    """
+    Describes one symbol.
+    """
+
     def __init__(self, name: str, nature: SymbolType, source_file: Path):
+        """
+        :param name: Symbol name.
+        :param nature: Symbol kind.
+        :param source_file: Symbol is declared here.
+        """
         self._name = name
         self._nature = nature
         self._source_file = source_file
 
     @property
     def name(self) -> str:
+        """
+        :return: Symbol name.
+        """
         return self._name
 
     @property
     def nature(self) -> SymbolType:
+        """
+        :return: Symbol kind.
+        """
         return self._nature
 
     @property
     def source_file(self) -> Path:
+        """
+        :return: Symbol declaration is here.
+        """
         return self._source_file

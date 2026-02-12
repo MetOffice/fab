@@ -13,7 +13,20 @@ from fabengine.database import Database
 
 
 class PfUnit(Action):
+    """
+    Processes pFUnit annotated source to plain source.
+
+    This class implements the executable-per-test model where each ``.pf`` file
+    gets its own driver.
+    """
+
     def __init__(self, repo_dir: Path, source: Path, tag: str, database: Database):
+        """
+        :param repo_dir: Source tree root.
+        :param source: ``.pf`` file relative to root.
+        :param tag: Collection in workspace for generated source.
+        :param database: Build system state and configuration.
+        """
         self._repo_dir = repo_dir
         self._source = source
         self._tag = tag
@@ -75,9 +88,18 @@ class PfUnit(Action):
         ]
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: No prerequisites.
+        """
         return []
 
     def perform(self) -> list[Action]:
+        """
+        Processes the test source and produces a driver for it.
+
+        :return: Task to preprocess the resulting source. Task to process the
+                 resulting driver. Task to run the test.
+        """
         actions: list[Action] = []
 
         pfunit_str = os_environ.get("PFUNIT")
@@ -111,16 +133,33 @@ class PfUnit(Action):
 
 
 class RunTest(Action):
+    """
+    Executes a unit test executable.
+    """
+
     def __init__(self, executable: Path):
+        """
+        :param executable: Filename of executable.
+        """
         self._executable = executable
 
     def __str__(self) -> str:
         return "Execute: " + str(self._executable)
 
     def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        Gets collection of prerequisite rules.
+
+        :return: Depends on the executable file.
+        """
         return [FilePrerequisite(self._executable)]
 
     def perform(self) -> list[Action]:
+        """
+        Performs the test.
+
+        :return: Result of running the test.
+        """
         process = run([str(self._executable)], stdout=PIPE, encoding="utf8")
         if process.returncode != 0:
             raise SubprocessActionException(
