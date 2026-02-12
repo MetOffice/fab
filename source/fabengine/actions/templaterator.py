@@ -1,14 +1,13 @@
 from pathlib import Path
-from subprocess import run, PIPE
 from typing import Iterable
 
-from fabengine.actions import Action, Prerequisite
+from fabengine.actions import Action, Prerequisite, SubprocessAction
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
 
 
-class Templaterator(Action):
+class Templaterator(SubprocessAction):
     """
     Processes Fortran template files.
     """
@@ -29,10 +28,19 @@ class Templaterator(Action):
         :param database: Build system state and configuration.
         """
         self._filename = filename
-        self._leafname = leafname
-        self._inserts = inserts
-        self._core_dir = core_dir
         self._database = database
+
+        self._destination = database.configuration.build_dir / leafname
+
+        # Todo: Just have the source here?
+        # Todo: Put generated files in the correct place.
+        arguments = ["-o", self._destination]
+        for key, value in inserts.items():
+            arguments.extend(["-s", key + "=" + value])
+        arguments.append(self._filename)
+        super().__init__(
+            core_dir / "infrastructure" / "build" / "tools" / "Templaterator", arguments
+        )
 
     def __str__(self) -> str:
         return f"Templating: {self._filename}"
@@ -43,7 +51,7 @@ class Templaterator(Action):
         """
         return [FilePrerequisite(self._filename)]
 
-    def perform(self) -> Iterable[Action]:
+    def perform(self) -> list[Action]:
         """
         Performs templating.
 
@@ -53,12 +61,5 @@ class Templaterator(Action):
 
         :return: Analyse resulting Fortran source.
         """
-        exe = self._core_dir / "infrastructure" / "build" / "tools" / "Templaterator"
-        destination_file = self._database.configuration.build_dir / self._leafname
-
-        command = [str(exe), "-o", str(destination_file)]
-        for key, value in self._inserts.items():
-            command.extend(["-s", key + "=" + value])
-        command.append(str(self._filename))
-        run(command, stdout=PIPE, stderr=PIPE, check=True)
-        return [AnalyseFortran(destination_file, self._database)]
+        self.run_subprocess()
+        return [AnalyseFortran(self._destination, self._database)]

@@ -3,16 +3,15 @@ from __future__ import annotations
 from os import environ as os_environ
 from pathlib import Path
 from re import compile as re_compile, IGNORECASE
-from subprocess import run, PIPE
 from typing import Iterable
 
-from fabengine.actions import Action, SubprocessActionException, Prerequisite
+from fabengine.actions import Action, SubprocessAction, Prerequisite
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import PreprocessFortranAction
 from fabengine.database import Database
 
 
-class PfUnit(Action):
+class PfUnit(SubprocessAction):
     """
     Processes pFUnit annotated source to plain source.
 
@@ -31,6 +30,19 @@ class PfUnit(Action):
         self._source = source
         self._tag = tag
         self._database = database
+
+        pfunit_str = os_environ.get("PFUNIT")
+        if pfunit_str is None:
+            raise RuntimeError("PFUNIT must point to install directory")
+        self._pfunit_path = Path(pfunit_str)
+        funitproc_path = self._pfunit_path / "bin" / "funitproc"
+
+        dest = (
+            self._database.configuration.work_dir
+            / self._source.with_suffix(".F90").name
+        )
+        arguments = ["-quiet", self._source, dest]
+        super().__init__(Path(funitproc_path), arguments)
 
     def __str__(self) -> str:
         return "pFUnit: " + self._source.name
@@ -100,39 +112,26 @@ class PfUnit(Action):
         :return: Task to preprocess the resulting source. Task to process the
                  resulting driver. Task to run the test.
         """
-        actions: list[Action] = []
-
-        pfunit_str = os_environ.get("PFUNIT")
-        if pfunit_str is None:
-            raise RuntimeError("PFUNIT must point to install directory")
-        pfunit_path = Path(pfunit_str)
-        funitproc_path = pfunit_path / "bin" / "funitproc"
-        dest = (
-            self._database.configuration.work_dir
-            / self._source.with_suffix(".F90").name
-        )
-        run([str(funitproc_path), "-quiet", str(self._source), str(dest)], check=True)
-        actions.append(
+        self.run_subprocess()
+        actions: list[Action] = [
             PreprocessFortranAction(
                 self._repo_dir,
                 self._source.with_suffix(".F90"),
                 self._tag,
                 self._database,
             )
-        )
-
+        ]
         actions.extend(
             self._driver(
-                pfunit_path / "include" / "driver.F90",
+                self._pfunit_path / "include" / "driver.F90",
                 self._source.stem,
                 self._database.configuration.work_dir,
             )
         )
-
         return actions
 
 
-class RunTest(Action):
+class RunTest(SubprocessAction):
     """
     Executes a unit test executable.
     """
@@ -142,6 +141,8 @@ class RunTest(Action):
         :param executable: Filename of executable.
         """
         self._executable = executable
+
+        super().__init__(executable)
 
     def __str__(self) -> str:
         return "Execute: " + str(self._executable)
@@ -160,13 +161,5 @@ class RunTest(Action):
 
         :return: Result of running the test.
         """
-        process = run([str(self._executable)], stdout=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                str(self._executable),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
+        self.run_subprocess()
         return []

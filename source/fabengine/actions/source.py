@@ -5,11 +5,10 @@ from collections.abc import Generator
 from multiprocessing import get_logger as mp_get_logger
 from os import walk as os_walk
 from pathlib import Path
-from subprocess import run, PIPE
 from typing import Iterable
 from urllib.parse import urlparse
 
-from fabengine.actions import Action, Prerequisite, SubprocessActionException
+from fabengine.actions import Action, Prerequisite, SubprocessAction
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import (
     ImportFortran,
@@ -23,7 +22,7 @@ from fabengine.database import Database
 from fabengine.project import Project
 
 
-class RepositoryAction(Action, ABC):
+class RepositoryAction(ABC):
     """
     Interface of source repositories.
     """
@@ -37,7 +36,7 @@ class RepositoryAction(Action, ABC):
         raise NotImplementedError()
 
 
-class SourceOnDiscAction(RepositoryAction):
+class SourceOnDiscAction(SubprocessAction, RepositoryAction):
     """
     Source tree is on disc.
     """
@@ -51,6 +50,10 @@ class SourceOnDiscAction(RepositoryAction):
         self._remote = remote
         self._projects = projects
         self._database = database
+
+        remote = str(self._remote).rstrip("/")
+        local = str(self._database.configuration.work_dir)
+        super().__init__(Path("rsync"), ["-a", remote, local])
 
     def __str__(self) -> str:
         return "Source from disc: " + str(self._remote)
@@ -69,26 +72,14 @@ class SourceOnDiscAction(RepositoryAction):
         filename = Path(self._remote.split(":")[-1])
         return self._database.configuration.work_dir / filename.name
 
-    def perform(self) -> Iterable[Action]:
+    def perform(self) -> list[Action]:
         """
         Performs copy.
 
         :return: Error result if copy fails, otherwise action to examine
                  freshly imported source.
         """
-        remote = str(self._remote).rstrip("/")
-        local = str(self._database.configuration.work_dir)
-        command = ["rsync", "-a", remote, local]
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
-
+        self.run_subprocess()
         actions: list[Action] = []
         for project in self._projects:
             actions.append(
@@ -101,7 +92,7 @@ class SourceOnDiscAction(RepositoryAction):
         return actions
 
 
-class SourceOnGitHubAction(RepositoryAction):
+class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
     """
     Source tree is held by GitHub.
 
@@ -120,6 +111,8 @@ class SourceOnGitHubAction(RepositoryAction):
         self._url = url
         self._projects = projects
         self._database = database
+
+        super().__init__(Path("git"))
 
     def __str__(self) -> str:
         return "GitHub repository: " + self._url
@@ -148,28 +141,18 @@ class SourceOnGitHubAction(RepositoryAction):
         """
         repo_marker = self.local_copy / ".git"
         if repo_marker.is_dir():  # Repository is present
-            command = ["git", "-C", str(self.local_copy), "pull"]
+            arguments = ["-C", str(self.local_copy), "pull"]
         else:  # Repository is missing
             scheme, netloc, path, _, _, fragment = urlparse(self._url)
             url = f"{scheme}://{netloc}{path}"
-            command = [
-                "git",
+            arguments = [
                 "clone",
                 "--depth=1",
                 f"--branch={fragment}",
                 url,
                 str(self.local_copy),
             ]
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
-
+        self.run_subprocess(arguments)
         actions: list[Action] = []
         for project in self._projects:
             actions.append(
@@ -214,6 +197,9 @@ class SourceDirectory(Action):
                   generate a lot of actions. Maybe create 10 (or 100) before
                   putting ourself back on the queue. Or maybe that only seems
                   necessary for single threaded builds.
+
+        .. Todo:: Make the actions themselves responsible for knowing how to
+                  dispatch?
 
         :return: Action for each actionable file.
         """
@@ -299,16 +285,10 @@ class SourceDirectory(Action):
                             self._database,
                         )
                     )
-                elif full_filename.suffix == ".h":
-                    actions.append(
-                        ImportInclusion(
-                            self._source_dir,
-                            relative_filename,
-                            self._tag,
-                            self._database,
-                        )
-                    )
-                elif full_filename.suffix == ".inc":
+                elif (
+                    full_filename.suffix
+                    in self._database.configuration.inclusion_suffixes
+                ):
                     actions.append(
                         ImportInclusion(
                             self._source_dir,

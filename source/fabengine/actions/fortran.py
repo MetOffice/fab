@@ -5,10 +5,14 @@ from multiprocessing import get_logger as mp_get_logger
 from os import environ as os_environ
 from pathlib import Path
 from re import compile as re_compile, IGNORECASE
-from subprocess import run, PIPE
 from typing import Optional, Iterable
 
-from fabengine.actions import Action, SubprocessActionException, Prerequisite
+from fabengine.actions import (
+    Action,
+    SubprocessAction,
+    SubprocessActionException,
+    Prerequisite,
+)
 from fabengine.actions.file import ImportFile
 from fabengine.database import (
     Database,
@@ -71,7 +75,7 @@ class ImportInclusion(ImportFile):
         return actions
 
 
-class PreprocessFortranBase(Action, ABC):
+class PreprocessFortranBase(SubprocessAction, ABC):
     """
     Generates a Fortran source file in the workspace using the preprocessor.
 
@@ -102,9 +106,23 @@ class PreprocessFortranBase(Action, ABC):
         self._extra_definitions = extra_definitions or {}
 
         self._prereqs: list[Prerequisite] = []
-        for name in self._determine_prereqs(self.source_file):
-            self._prereqs.append(InclusionPrerequisite(Path(name), self._database))
+        for filename in self._determine_prereqs(self.source_file):
+            self._prereqs.append(InclusionPrerequisite(filename, self._database))
         self._prereqs.append(FilePrerequisite(self.source_file))
+
+        # Todo: Hardwired command
+        arguments = ["-traditional-cpp", "-P"]
+
+        for name, value in self._database.configuration.fpp_definitions.items():
+            arguments.append(f"-D{name}={value}")
+
+        for name, value in self._extra_definitions.items():
+            arguments.append(f"-D{name}={value}")
+
+        arguments.append(str(self.source_file))
+        arguments.append(str(self.destination_file))
+
+        super().__init__(Path("cpp"), arguments)
 
     @property
     def repo(self) -> Path:
@@ -160,31 +178,7 @@ class PreprocessFortranBase(Action, ABC):
         :return: An ActionResult if the preprocessor fails.
         """
         self.destination_file.parent.mkdir(parents=True, exist_ok=True)
-        # Todo: Hardwired command
-        command = ["cpp", "-traditional-cpp", "-P"]
-        for name, value in self._database.configuration.fpp_definitions.items():
-            command.append(f"-D{name}={value}")
-        for name, value in self._extra_definitions.items():
-            command.append(f"-D{name}={value}")
-
-        inclusion_dirs: set[Path] = set()
-        for prereq in self._prereqs:
-            if isinstance(prereq, InclusionPrerequisite):
-                inclusion_dirs.add(self._database.inclusions[prereq.filename].parent)
-        for directory in inclusion_dirs:
-            command.append("-I" + str(directory))
-
-        command.append(str(self.source_file))
-        command.append(str(self.destination_file))
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
+        self.run_subprocess()
         return []
 
 
@@ -213,9 +207,17 @@ class PreprocessFortranAction(PreprocessFortranBase):
 
         :return: Action to analyse resulting source.
         """
-        actions = super().perform()
-        actions.append(AnalyseFortran(self.destination_file, self._database))
-        return actions
+        arguments: list[str] = []
+        inclusion_dirs: set[Path] = set()
+        for prereq in self._prereqs:
+            if isinstance(prereq, InclusionPrerequisite):
+                inclusion_dirs.add(self._database.inclusions[prereq.filename].parent)
+        for directory in inclusion_dirs:
+            arguments.append("-I" + str(directory))
+
+        self.destination_file.parent.mkdir(parents=True, exist_ok=True)
+        self.run_subprocess(arguments)
+        return [AnalyseFortran(self.destination_file, self._database)]
 
 
 class AnalyseFortran(Action):
@@ -469,7 +471,7 @@ class DetermineFortranProgram(Action):
         return actions
 
 
-class CompileFortran(Action):
+class CompileFortran(SubprocessAction):
     """
     Compiles Fortran source to object and module file.
     """
@@ -488,6 +490,39 @@ class CompileFortran(Action):
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
+
+        # Todo: Hardwired assumption on workspace layout
+        extra_arguments: list[str] = []
+        relative_path = self._source.relative_to(self._database.configuration.build_dir)
+        for case, tags in self._database.configuration.tag_dirs.items():
+            if relative_path.is_relative_to(case):
+                for tag in tags:
+                    extra_arguments.extend(
+                        self._database.configuration.build_tag_args[tag]
+                    )
+        mp_get_logger().debug("Special arguments: " + ", ".join(extra_arguments))
+
+        # Todo: Hardwired arguments
+        arguments = [
+            "-c",
+            "-J",
+            str(self._database.configuration.module_dir),
+            "-fopenmp",
+            "-std=f2008",
+            "-ffree-line-length-none",
+        ]
+
+        for arg in os_environ["FFLAGS"].split():
+            arguments.append(arg)
+
+        arguments.extend(extra_arguments)
+        arguments.append("-fallow-argument-mismatch")
+
+        destination = self._source.with_suffix(".o")
+        arguments.extend([str(self._source), "-o", str(destination)])
+
+        exe = Path("mpif90")
+        super().__init__(exe, arguments)
 
     def __str__(self) -> str:
         return "Compile: " + self._source.name
@@ -527,48 +562,11 @@ class CompileFortran(Action):
 
         :return: Error if the compilation failed.
         """
-        extra_arguments: list[str] = []
-        relative_path = self._source.relative_to(self._database.configuration.build_dir)
-        for case, tags in self._database.configuration.tag_dirs.items():
-            if relative_path.is_relative_to(case):
-                for tag in tags:
-                    extra_arguments.extend(
-                        self._database.configuration.build_tag_args[tag]
-                    )
-        mp_get_logger().debug("Special arguments: " + ", ".join(extra_arguments))
-
-        destination = self._source.with_suffix(".o")
-        # Todo: Hardwired arguments
-        command = [
-            "mpif90",
-            "-c",
-            "-J",
-            str(self._database.configuration.module_dir),
-            "-fopenmp",
-            "-std=f2008",
-            "-ffree-line-length-none",
-        ]
-        for arg in os_environ["FFLAGS"].split():
-            command.append(arg)
-        command.extend(extra_arguments)
-        #
-        # Todo: Hardwired arguments
-        #
-        command.append("-fallow-argument-mismatch")
-        command.extend([str(self._source), "-o", str(destination)])
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
+        self.run_subprocess()
         return []
 
 
-class LinkFortran(Action):
+class LinkFortran(SubprocessAction):
     """
     Uses Fortran compiler to link objects.
     """
@@ -582,6 +580,19 @@ class LinkFortran(Action):
         self._program = program
         self._modules = modules
         self._database = database
+
+        dest = self._database.configuration.work_dir / self._program
+        arguments = ["-o", dest, "-fopenmp"]
+
+        for arg in os_environ["LDFLAGS"].split():
+            arguments.append(arg)
+
+        self._libraries: list[str] = []
+        for library in self._database.configuration.libraries:
+            self._libraries.extend(["-l", library])
+
+        exe = Path("mpif90")
+        super().__init__(exe, arguments)
 
     def __str__(self) -> str:
         return "Link: " + self._program
@@ -620,22 +631,10 @@ class LinkFortran(Action):
             )
             objects.add(object_file)
 
-        dest = self._database.configuration.work_dir / self._program
-        command = ["mpif90"]
-        for arg in os_environ["LDFLAGS"].split():
-            command.append(arg)
-        command.extend(["-o", str(dest), "-fopenmp"])
+        arguments: list[str] = []
         for object_file in objects:
-            command.append(str(object_file))
-        for library in self._database.configuration.libraries:
-            command.extend(["-l", library])
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
+            arguments.append(str(object_file))
+        arguments.extend(self._libraries)
+
+        self.run_subprocess(arguments)
         return []

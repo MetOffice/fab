@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from pathlib import Path
+from subprocess import run, PIPE
 from traceback import format_exception
-from typing import Optional
+from typing import Any, Optional
 
 
 class Prerequisite(ABC):
@@ -43,6 +45,33 @@ class Action(ABC):
         :return: Results of running the action.
         """
         raise NotImplementedError()
+
+
+class SubprocessAction(Action, ABC):
+    def __init__(self, executable: Path, arguments: Optional[Iterable[Any]] = None):
+        self._executable = executable
+        self._arguments = arguments or []
+
+    def run_subprocess(
+        self, additional_arguments: Optional[Iterable[Any]] = None
+    ) -> None:
+        command = [str(self._executable)]
+
+        for arg in self._arguments:
+            command.append(str(arg))
+
+        for arg in additional_arguments or []:
+            command.append(str(arg))
+
+        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
+        if process.returncode != 0:
+            raise SubprocessActionException(
+                self,
+                " ".join(command),
+                process.returncode,
+                process.stdout,
+                process.stderr,
+            )
 
 
 class WorkerException(BaseException, ABC):
@@ -161,7 +190,7 @@ class SubprocessActionException(ActionException):
         return self._stderr
 
     def describe(self) -> str:
-        description = super().describe() + f"({self._return_code}"
+        description = super().describe() + f"({self._return_code})"
         description += "\nCommand: " + self._command
         if self._stdout:
             description += "\nStandard out: " + self._stdout

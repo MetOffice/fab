@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from re import compile as re_compile, IGNORECASE
 from pathlib import Path
-from subprocess import run, PIPE
 from typing import Generator, Iterable, Optional
 
-from fabengine.actions import Action, Prerequisite, SubprocessActionException
+from fabengine.actions import Action, Prerequisite, SubprocessAction
 from fabengine.actions.fortran import PreprocessFortranBase
 from fabengine.prerequisite import FilePrerequisite, SymbolPrerequisite
 from fabengine.actions.fortran import AnalyseFortran
@@ -57,7 +56,7 @@ class PreprocessAlgorithm(PreprocessFortranBase):
         return actions
 
 
-class PSyclone(Action):
+class PSyclone(SubprocessAction):
     """
     PSyclones ``.x90`` algorithm source using PSyKAl model.
 
@@ -79,10 +78,30 @@ class PSyclone(Action):
         self._database = database
 
         self._source_file = self._repo_dir / self._algorithm_file
+        self._project_dir = (
+            self._database.configuration.build_dir
+            / self._tag
+            / self._algorithm_file.parent
+        )
 
+        self._alg_name = self._algorithm_file.with_suffix(".f90").name
         all_kernels = self._find_kernels(self._source_file)
         self._psy = all_kernels != []
+        self._psy_name = self._algorithm_file.stem + "_psy.f90"
         self._kernels = self._remove_builtins(all_kernels)
+
+        arguments = [
+            "-api",
+            "lfric",
+            "-l",
+            "all",
+            "-c",
+            self._database.configuration.psyclone_config,
+        ]
+        arguments.extend(["-oalg", self._project_dir / self._alg_name])
+        arguments.extend(["-opsy", self._project_dir / self._psy_name])
+        arguments.append(str(self._repo_dir / self._algorithm_file))
+        super().__init__(Path("psyclone"), arguments)
 
     def __str__(self) -> str:
         return "PSyclone: " + self._algorithm_file.name
@@ -192,34 +211,16 @@ class PSyclone(Action):
             if not child:
                 kernel_roots.append(new_root)
 
-        command = ["psyclone", "-api", "lfric", "-l", "all"]
+        self._project_dir.mkdir(parents=True, exist_ok=True)
+        arguments: list[str] = []
         for root in kernel_roots:
-            command.extend(["-d", str(root)])
-        project_dir = (
-            self._database.configuration.build_dir
-            / self._tag
-            / self._algorithm_file.parent
-        )
-        project_dir.mkdir(parents=True, exist_ok=True)
-        command.extend(["-c", str(self._database.configuration.psyclone_config)])
-        alg_name = self._algorithm_file.with_suffix(".f90").name
-        command.extend(["-oalg", str(project_dir / alg_name)])
-        psy_name = self._algorithm_file.stem + "_psy.f90"
-        command.extend(["-opsy", str(project_dir / psy_name)])
-        command.append(str(self._repo_dir / self._algorithm_file))
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-
-        actions: list[Action] = []
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
+            arguments.extend(["-d", str(root)])
+        self.run_subprocess(arguments)
+        actions: list[Action] = [
+            AnalyseFortran(self._project_dir / self._alg_name, self._database)
+        ]
+        if self._psy:
+            actions.append(
+                AnalyseFortran(self._project_dir / self._psy_name, self._database)
             )
-        else:  # Command succeeded
-            actions.append(AnalyseFortran(project_dir / alg_name, self._database))
-            if self._psy:
-                actions.append(AnalyseFortran(project_dir / psy_name, self._database))
         return actions

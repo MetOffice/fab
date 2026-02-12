@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from cProfile import Profile
 from logging import StreamHandler, getLogger, DEBUG, INFO, WARNING
+from threading import BrokenBarrierError
 from time import sleep
 
 from multiprocessing import Barrier, Process, get_logger as mp_get_logger
@@ -111,22 +112,27 @@ class WorkerProcess(Process):
             action: Action = self._work_queue.pop()
 
             if isinstance(action, Sentinel):
-                barrier_id = self._sentinel_barrier.wait()
-                self._work_queue.requeue_action(action)
-                if barrier_id == 0:
-                    self._work_queue.leave_barrier()
-                    logger.info("Sentinel comes round: " + str(self.pid))
-                    logger.info(
-                        "Number of actions processed this round: "
-                        + str(self._database.processed_last_round)
-                    )
+                try:
+                    barrier_id = self._sentinel_barrier.wait()
+                    if barrier_id == 0:
+                        self._work_queue.leave_barrier()
+                        logger.info("Sentinel comes round: " + str(self.pid))
+                        logger.info(
+                            "Number of actions processed this round: "
+                            + str(self._database.processed_last_round)
+                        )
 
-                if self._database.processed_last_round == 0:
-                    self._work_queue.stop()
+                    if self._database.processed_last_round == 0:
+                        self._work_queue.stop()
+                except BrokenBarrierError:
+                    self._work_queue.stop()  # Ensure we're stopping
+
+                self._work_queue.requeue_action(action)
                 continue
 
+            logger.debug("Trying: " + str(action))
+            prereq = None
             try:
-                logger.debug("Trying: " + str(action))
                 ready = True
                 for prereq in action.prerequisites():
                     this_ready = prereq.ready()
@@ -136,7 +142,7 @@ class WorkerProcess(Process):
                     self._work_queue.requeue_action(action)
                     continue
             except Exception as ex:
-                logger.error("Exception in prerequisites: " + str(ex))
+                logger.error(f"Exception in prerequisites ({prereq}) {ex}")
                 result = ExceptionActionException(action, cause=ex)
                 self._result_queue.put(result)
                 self._work_queue.stop()
@@ -163,9 +169,13 @@ class WorkerProcess(Process):
                     self._work_queue.stop()
                 logger.debug("Done: " + str(action))
             except Exception as ex:
-                logger.error("Exception in process: " + str(ex))
+                logger.error(f"Exception in process ({action}) {ex}")
                 self._result_queue.put(ExceptionActionException(action, ex))
                 self._work_queue.stop()
+
+        # Release any workers waiting on a sentinel
+        #
+        self._sentinel_barrier.reset()
 
         logger.debug("Done processing actions")
         self._result_queue.put(EndOfWorkException())
@@ -258,6 +268,7 @@ def main(
             "socrates/": ["um"],
             "ukca/": ["um"],
         },
+        [".h", ".inc"],
     )
 
     with FabManager() as manager:

@@ -22,6 +22,7 @@ class Configuration:
         field_instances: list[dict[str, str]],
         build_tags: dict[str, list[str]],
         tag_dirs: dict[str, list[str]],
+        inclusion_suffixes: list[str],
     ):
         """
         :param work_dir: Location of workspace used by build.
@@ -42,6 +43,7 @@ class Configuration:
         self._field_instances = field_instances
         self._build_tags = build_tags
         self._tag_dirs = tag_dirs
+        self._inclusion_suffixes = inclusion_suffixes
 
         self._use_open_mp = True
 
@@ -127,6 +129,10 @@ class Configuration:
         :return: Control OpenMP building.
         """
         return self._use_open_mp
+
+    @property
+    def inclusion_suffixes(self) -> list[str]:
+        return self._inclusion_suffixes
 
 
 class Database:

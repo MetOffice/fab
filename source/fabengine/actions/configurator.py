@@ -1,10 +1,13 @@
 from multiprocessing import get_logger as mp_get_logger
 from pathlib import Path
 from re import compile as re_compile, IGNORECASE
-from subprocess import run, PIPE
-from typing import Iterable
+from typing import Any, Iterable
 
-from fabengine.actions import Action, SubprocessActionException, Prerequisite
+from fabengine.actions import (
+    Action,
+    SubprocessAction,
+    Prerequisite,
+)
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
@@ -84,7 +87,7 @@ class RosePickerPrerequisite(Prerequisite):
         return okay
 
 
-class RosePicker(Action):
+class RosePicker(SubprocessAction):
     """
     Converts configuration metadata to intermediate file.
 
@@ -107,6 +110,14 @@ class RosePicker(Action):
         self._core_dir = core_dir
         self._database = database
 
+        self._configuration_dir = (
+            self._database.configuration.build_dir / "configuration"
+        )
+        self._configuration_dir.mkdir(parents=True, exist_ok=True)
+
+        arguments = [self._filename, "-directory", self._configuration_dir]
+        super().__init__(Path("rose_picker"), arguments)
+
     def __str__(self) -> str:
         return f"Rose picking: {self._filename.name}"
 
@@ -126,42 +137,26 @@ class RosePicker(Action):
         Generates :class:`ConfigurationLoader` and :class:`NamelistLoader`
         actions to operate on resulting intermediate files.
         """
-        configuration_dir = self._database.configuration.build_dir / "configuration"
-        configuration_dir.mkdir(parents=True, exist_ok=True)
-        command = [
-            "rose_picker",
-            str(self._filename),
-            "-directory",
-            str(configuration_dir),
-        ]
+        arguments = []
         for directory in self._database.config_meta_dirs:
-            command.extend(["-include_dirs", str(directory)])
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
-
+            arguments.extend(["-include_dirs", directory])
+        self.run_subprocess(arguments)
         return [
             ConfigurationLoader(
-                configuration_dir / "config_namelists.txt",
+                self._configuration_dir / "config_namelists.txt",
                 self._core_dir,
                 self._database,
             ),
             NamelistLoader(
-                configuration_dir / "rose-meta.json",
-                configuration_dir / "config_namelists.txt",
+                self._configuration_dir / "rose-meta.json",
+                self._configuration_dir / "config_namelists.txt",
                 self._core_dir,
                 self._database,
             ),
         ]
 
 
-class ConfigurationLoader(Action):
+class ConfigurationLoader(SubprocessAction):
     """
     Generates Fortran source to load full configuration.
 
@@ -178,6 +173,20 @@ class ConfigurationLoader(Action):
         self._filename = filename
         self._core_dir = core_dir
         self._database = database
+
+        self._source_file = (
+            self._database.configuration.build_dir
+            / "configuration"
+            / "configuration_mod.f90"
+        )
+        arguments: list[Any] = [self._source_file]
+
+        for line in self._filename.read_text().splitlines():
+            for namelist in line.split():
+                arguments.append(namelist)
+
+        exe = self._core_dir / "infrastructure" / "build" / "tools" / "GenerateLoader"
+        super().__init__(exe, arguments)
 
     def __str__(self) -> str:
         return f"Configuration loader: {self._filename}"
@@ -197,27 +206,11 @@ class ConfigurationLoader(Action):
 
         :return: Action to analyse resulting Fortran source.
         """
-        source_file = (
-            self._database.configuration.build_dir
-            / "configuration"
-            / "configuration_mod.f90"
-        )
-
-        command = [
-            str(
-                self._core_dir / "infrastructure" / "build" / "tools" / "GenerateLoader"
-            ),
-            str(source_file),
-        ]
-        for line in self._filename.read_text().splitlines():
-            for namelist in line.split():
-                command.append(namelist)
-        run(command, check=True)
-
-        return [AnalyseFortran(source_file, self._database)]
+        self.run_subprocess()
+        return [AnalyseFortran(self._source_file, self._database)]
 
 
-class NamelistLoader(Action):
+class NamelistLoader(SubprocessAction):
     """
     Generates Fortran source to load namelists.
 
@@ -242,6 +235,12 @@ class NamelistLoader(Action):
         self._core_dir = core_dir
         self._database = database
 
+        self._config_dir = self._database.configuration.build_dir / "configuration"
+
+        arguments = [self._json_file, "-directory", self._config_dir]
+        exe = self._core_dir / "infrastructure" / "build" / "tools" / "GenerateNamelist"
+        super().__init__(exe, arguments)
+
     def __str__(self) -> str:
         return f"Namelist loader: {self._json_file}"
 
@@ -258,38 +257,19 @@ class NamelistLoader(Action):
             FilePrerequisite(self._namelist_file),
         ]
 
-    def perform(self) -> Iterable[Action]:
+    def perform(self) -> list[Action]:
         """
         Perform action.
 
         :return: Action to analyse resulting Fortran source.
         """
-        config_dir = self._database.configuration.build_dir / "configuration"
-        command = [
-            str(
-                self._core_dir
-                / "infrastructure"
-                / "build"
-                / "tools"
-                / "GenerateNamelist"
-            ),
-            str(self._json_file),
-            "-directory",
-            str(config_dir),
-        ]
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
-        if process.returncode != 0:
-            raise SubprocessActionException(
-                self,
-                " ".join(command),
-                process.returncode,
-                process.stdout,
-                process.stderr,
-            )
+        self.run_subprocess()
 
         actions: list[Action] = []
         for line in self._namelist_file.read_text().splitlines():
             for namelist in line.split():
                 leafname = namelist + "_config_mod.f90"
-                actions.append(AnalyseFortran(config_dir / leafname, self._database))
+                actions.append(
+                    AnalyseFortran(self._config_dir / leafname, self._database)
+                )
         return actions
