@@ -378,7 +378,7 @@ if __name__ == "__main__":
     if arguments.target == "skeleton":
         repositories = [
             FileTreeRepository(
-                f"localhost:{Path().absolute()}/lfric_core",
+                f'{Path().absolute()}/lfric_core',
                 [
                     Project(Path("infrastructure")),
                     Project(Path("components/driver")),

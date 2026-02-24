@@ -9,9 +9,9 @@ from sys import path as sys_path
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Toy Build System'
-copyright = 'Crown Copyright, Met Office'
-author = 'Matthew Hambley'
+project = 'TBS'
+copyright = 'Met Office'
+author = 'Team TBS'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -60,4 +60,10 @@ todo_include_todos = True
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'pydata_sphinx_theme'
+html_theme_options = {
+    'collapse_navigation': True,
+    'footer_start': ['crown-copyright', 'sphinx-version'],
+    'navigation_depth': 2,
+    'show_nav_level': 2
+}
 # html_static_path = ['_static']

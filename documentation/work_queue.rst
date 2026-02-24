@@ -184,6 +184,10 @@ before finally reaching their sentinels.
 Some profiling work is needed to quantify this problem and potential mitigation
 strategies should be considered.
 
+.. note::
+   There is a separate page, :ref:`profiling_performance`, for the broader
+   topic of performance.
+
 One potential option is to disable the "new work to front of queue" mode as
 soon as one worker enters the barrier. This potentially solves the immediate
 problem but now new work is going on the end of the queue again, the problem we

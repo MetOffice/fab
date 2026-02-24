@@ -1,5 +1,7 @@
-Performance
-###########
+.. _profiling_performance:
+
+Profiling Performance
+#####################
 
 Comparing performance of different build system implementations.
 
@@ -16,8 +18,8 @@ order to get exclusive access to its I/O capability.
 .. note::
 
    The need to reserve whole nodes was not realised until after this page had
-   been prepared. These runs will be repeated in due course and the timings
-   updated with more reliable values.
+   been prepared. Runs with Make and Toy have been rerun. Waiting for a stable
+   Baf system to test.
 
 Skeleton
 ++++++++
@@ -29,9 +31,9 @@ Compiling the "Skeleton" application from the LFRic core repository.
    from _plots.plot import clustered_bar_plot
 
    timings = {
-       'Make': ['03:37', '03:04', '02:34', '02:30', '02:23'],
+       'Make': ['03:32', '02:48', '02:29', '02:24', '02:22'],
        'Baf': ['04:05', '02:38', '01:47', '01:30', '01:19'],
-       'Toy': ['02:41', '02:07', '01:58', '01:56', '01:57']
+       'Toy': ['2:24', '1:20', '1:02', '0:55', '0:59']
    }
    workers = (1, 2, 3, 4, 5)
 
@@ -58,15 +60,17 @@ Compiling the full Atmosphere application from LFRic applications repository.
    from _plots.plot import clustered_bar_plot
 
    timings = {
-       'Make': ['42:22', '27:52', '23:47', '21:45', '19:12', '00:00', '00:00',
-                '00:00', '00:00', '17:27', '00:00', '00:00', '15:33', '00:00',
-                '00:00', '15:28'],
+       'Make': ['37:07', '24:58', '21:47', '20:19', '17:41',
+                '00:00', '00:00', '00:00', '00:00', '15:24',
+                '00:00', '00:00', '14:55', '00:00', '00:00',
+                '15:39'],
        'Baf': ['46:49', '24:29', '18:35', '13:52', '12:01', '00:00', '00:00',
                '00:00', '00:00', '09:12', '00:00', '00:00', '07:43', '00:00',
                '00:00', '06:29'],
-       'Toy': ['28:59', '16:51', '12:05', '10:42', '09:13', '00:00', '00:00',
-               '00:00', '00:00', '05:56', '00:00', '00:00', '05:31', '00:00',
-               '00:00', '05:21']
+       'Toy': ['29:10', '15:03', '10:36', '08:35', '07:33',
+               '00:00', '00:00', '00:00', '00:00', '05:41',
+               '00:00', '00:00', '04:38', '00:00', '00:00',
+               '04:31']
    }
    workers = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
 
@@ -86,8 +90,12 @@ be unreasonable to postulate that given a few more cores Baf and Toy will
 converge at a common floor. This floor is likely due to the problem of building
 software being file bound in the end.
 
-The only thing liable to improve build times for either of them is to reduce
-file access.
+There are two, related, factors which embody the minimum possible floor to
+performance. Those are the subprocesses invoked by the build system, PSyclone
+and compilation are expected to be the most expensive, and file access.
+
+Any attempt to improve performance will likely have to concentrate on these two
+factors.
 
 Oversubscribing and Blocking Operations
 +++++++++++++++++++++++++++++++++++++++
@@ -131,6 +139,9 @@ a. Oversubscribing the physical CPU cores
 
 .. note:: These timings seem to be even more susceptible to system noise then
           normal.
+
+.. note:: These timings may not measure what I think they do. It looks like
+          the nodes used for testing have SMT disabled.
 
 .. plot::
 
