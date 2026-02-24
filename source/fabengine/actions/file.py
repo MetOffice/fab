@@ -67,7 +67,6 @@ class ImportFile(Action):
         Gets action prerequisites.
 
         :return: Depends on source file.
-        :rtype: Iterable[FilePrerequisites]
         """
         return [FilePrerequisite(self.source_file)]
 
