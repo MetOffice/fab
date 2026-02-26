@@ -34,6 +34,7 @@ class Configuration:
         :param field_instances: Template injections for fields.
         :param build_tags: Mapping between tag and compiler arguments.
         :param tag_dirs: Mapping between directory and tags.
+        :param inclusion_suffixes: File extensions used by inclusion files.
         """
         self._work_dir = work_dir
         self._psyclone_config = psyclone_config
@@ -157,7 +158,7 @@ class Database:
     @property
     def configuration(self) -> Configuration:
         """
-        :return: configuration paramaters.
+        :return: configuration parameters.
         """
         return self._configuration
 
