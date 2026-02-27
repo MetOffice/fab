@@ -55,7 +55,7 @@ repository = 'https://github.com/MetOffice/fab'
 where = ['source']
 
 [tool.setuptools.dynamic]
-readme = {file = 'README.rst', content-type = "text.x-rst"}
+readme = {file = 'README.rst', content-type = "text/x-rst"}
 version = {attr = 'fab.__version__'}
 
 # This is required so that pytest finds conftest.py files.
