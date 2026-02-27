@@ -1,456 +1,130 @@
 from __future__ import annotations
 
-from cProfile import Profile
+import sys
+from argparse import ArgumentParser, Namespace
+from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_file_location
+from inspect import getmembers, isclass
 from logging import StreamHandler, getLogger, DEBUG, INFO, WARNING
-from threading import BrokenBarrierError
-from time import sleep
-
-from multiprocessing import Barrier, Process, get_logger as mp_get_logger
 from pathlib import Path
-from queue import Queue
+from sys import argv
+from typing import Optional, Sequence
 
-from fabengine.actions import (
-    Action,
-    ActionException,
-    ExceptionActionException,
-    EndOfWorkException,
-    WorkerException,
-)
-from fabengine.actions.configurator import RosePicker
-from fabengine.actions.sentinel import Sentinel
-from fabengine.project import Project
-from fabengine.repository import Repository, FileTreeRepository
-from fabengine.database import Configuration, Database
-from fabengine.manager import FabManager
-from fabengine.work_queue import QueueStrategy, WorkQueue
+from fabengine.configuration import FabConfiguration
+from fabengine.core import fab_core
+from fabengine.work_queue import QueueStrategy
 
 
-class MonitorProcess(Process):
+def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
     """
-    Reports on build progress.
+    Parses command line arguments for use by Fab.
     """
-
-    def __init__(self, work_queue: WorkQueue):
-        """
-        :param work_queue: Queue to monitor.
-        """
-        super().__init__(name="Build monitor", target=self._monitor)
-        self._work_queue = work_queue
-        self._stopping = False
-
-    def stop(self) -> None:
-        """
-        Signals process to stop.
-        """
-        self._stopping = True
-
-    def _monitor(self):
-        logger = getLogger(__name__)
-        sleep_count = 0
-        while not self._stopping:
-            sleep(1)
-            sleep_count += 1
-            self._stopping |= self._work_queue.stopping()
-            if sleep_count < 11:
-                continue
-            sleep_count = 0
-
-            logger.info("---")
-            logger.info(f"Queue stopping: {self._work_queue.stopping()}")
-            length = self._work_queue.length
-            for action, tally in self._work_queue.work_tally().items():
-                percentage = 100 * tally / length()
-                logger.info(f"{tally} ({int(percentage)}%): {action.__name__} on queue")
-
-        logger.debug("Monitor stopped")
-
-
-class WorkerProcess(Process):
-    """
-    Task farm worker process.
-    """
-
-    def __init__(
-        self,
-        work_queue: WorkQueue,
-        result_queue: Queue[WorkerException],
-        database: Database,
-        sentinel_barrier,
-        profile: bool,
-    ):
-        """
-        :param work_queue: Queue to pull work from and push it to.
-        :param result_queue: Queue to push results to.
-        :param database: Build system state and configuration.
-        :param sentinel_barrier: Synchronisation object.
-        :param profile: Turn profiling on and off.
-        """
-        self._work_queue = work_queue
-        self._result_queue = result_queue
-        self._database = database
-        self._sentinel_barrier = sentinel_barrier
-        self._profile = profile
-        super().__init__(name="Build worker", target=self._worker)
-
-    def _worker(self) -> None:
-        if self._profile:
-            profiler = Profile()
-            profiler.enable()
-        else:
-            profiler = None
-
-        logger = getLogger(__name__)
-
-        self._work_queue.new_action(Sentinel())
-
-        while not self._work_queue.stopping():
-            # We stop on a barrier at the sentinel to make sure we don't loose
-            # any actions down the cracks.
-            #
-            # Todo: Is there a better way to do this which doesn't involve a
-            #       barrier?
-            action: Action = self._work_queue.pop()
-
-            if isinstance(action, Sentinel):
-                try:
-                    barrier_id = self._sentinel_barrier.wait()
-                    if barrier_id == 0:
-                        self._work_queue.leave_barrier()
-                        logger.info("Sentinel comes round: " + str(self.pid))
-                        logger.info(
-                            "Number of actions processed this round: "
-                            + str(self._database.processed_last_round)
-                        )
-
-                    if self._database.processed_last_round == 0:
-                        self._work_queue.stop()
-                except BrokenBarrierError:
-                    self._work_queue.stop()  # Ensure we're stopping
-
-                self._work_queue.requeue_action(action)
-                continue
-
-            logger.debug("Trying: " + str(action))
-            prereq = None
-            try:
-                ready = True
-                for prereq in action.prerequisites():
-                    this_ready = prereq.ready()
-                    logger.debug(f"Testing ({this_ready}): {prereq}")
-                    ready &= this_ready
-                if not ready:
-                    self._work_queue.requeue_action(action)
-                    continue
-            except Exception as ex:
-                logger.error(f"Exception in prerequisites ({prereq}) {ex}")
-                result = ExceptionActionException(action, cause=ex)
-                self._result_queue.put(result)
-                self._work_queue.stop()
-
-            try:
-                logger.debug("Performing: " + str(action))
-                try:
-                    resulting_actions = action.perform()
-                    #
-                    # An action is only considered "stalled" if it returns only
-                    # itself.
-                    #
-                    if resulting_actions != [action]:
-                        self._database.bump_processed_tally()
-                    for resulting_action in resulting_actions:
-                        if resulting_action is action:  # Action returned itself
-                            self._work_queue.requeue_action(resulting_action)
-                        else:
-                            self._work_queue.new_action(resulting_action)
-                except ActionException as result:
-                    logger.debug("Queueing result: " + str(result))
-                    self._result_queue.put(result)
-                    logger.debug("Action failed, requesting stop")
-                    self._work_queue.stop()
-                logger.debug("Done: " + str(action))
-            except Exception as ex:
-                logger.error(f"Exception in process ({action}) {ex}")
-                self._result_queue.put(ExceptionActionException(action, ex))
-                self._work_queue.stop()
-
-        # Release any workers waiting on a sentinel
-        #
-        self._sentinel_barrier.reset()
-
-        logger.debug("Done processing actions")
-        self._result_queue.put(EndOfWorkException())
-
-        if self._profile and profiler is not None:
-            profiler.disable()
-            profiler.dump_stats(f"profile.{self.pid}.txt")
-
-
-def main(
-    work_dir: Path,
-    worker_threads: int,
-    no_monitor: bool = False,
-    profile: bool = False,
-    log_level: int = WARNING,
-    stack_strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK,
-    *repositories: Repository,
-):
-    """
-    Build system entry point.
-
-    :param work_dir: Directory used as scratch space for build.
-    :param worker_threads: Number of workers to use.
-    :param no_monitor: Do not run progress monitor process.
-    :param profile: Enable profiling of run.
-    :param log_level: Level at which to log messages.
-    """
-    logger = getLogger(__name__)
-    logger.setLevel(log_level)
-    logger.addHandler(StreamHandler())
-
-    mp_logger = mp_get_logger()
-    mp_logger.setLevel(WARNING)
-    mp_logger.addHandler(StreamHandler())
-
-    configuration = Configuration(
-        work_dir,
-        work_dir / "lfric_core" / "etc" / "psyclone.cfg",
-        {
-            # Physics from the UM
-            "UM_PHYSICS": "true",
-            "LFRIC": "true",
-            "USSPREC_32B": "true",
-            "LSPREC_32B": "true",
-            "UM_JULES": "true",
-            # I/O platform
-            "USE_XIOS": "true",
-            # Component precision
-            "RDEF_PRECISION": "64",
-            "R_SOLVER_PRECISION": "32",
-            "R_TRAN_PRECISION": "64",
-            "R_BL_PRECISION": "64",
-            # Transitional
-            "LEGACY_MPI": "true",
-        },
-        [
-            "funit",
-            "pfunit",  # pFUnit
-            "mpi",
-            "mpi_f08",  # MPI
-            "netcdf",  # NetCDF
-            "omp_lib",  # OpenMP
-            "xios",
-            "icontext",
-            "mod_wait",
-            "mod_oasis",  # XIOS/OASIS
-            "yaxt",  # YAXT
-            "vernier_mod",  # Vernier
-            "c_shum_byteswap",  # ShUMlib
-        ],
-        [
-            "netcdff",
-            "netcdf",
-            "xios",
-            "yaxt",
-            "yaxt_c",
-            "pfunit",
-            "funit",
-            "fargparse",
-            "gftl-shared-v2",
-            "stdc++",
-        ],
-        [{"real": "real32"}, {"real": "real64"}, {"integer": "int32"}],
-        {"um": ["-fdefault-real-8", "-fdefault-double-8"]},
-        {
-            "casim/": ["um"],
-            "jules/": ["um"],
-            "physics_schemes/": ["um"],
-            "physics_schemes_interface/legacy/": ["um"],
-            "socrates/": ["um"],
-            "ukca/": ["um"],
-        },
-        [".h", ".inc"],
-    )
-
-    with FabManager() as manager:
-        work_queue = manager.WorkQueue(stack_strategy)  # type:ignore
-
-        def hit_sentinel() -> None:
-            database.reset_work_done()
-            work_queue.enter_barrier()
-
-        database = Database(configuration, manager)
-        sentinel_barrier = Barrier(worker_threads, action=hit_sentinel)
-
-        result_queue: Queue[WorkerException] = manager.Queue()
-        for repository in repositories:
-            repo_action = repository.create_action(work_dir, database)
-            work_queue.new_action(repo_action)
-
-            for project in repository.projects:
-                if project.configuration_meta_data is None:
-                    continue
-
-                meta_data_path = (
-                    repo_action.local_copy / project.configuration_meta_data
-                )
-                if project.configuration_meta_data.name == "rose-meta.conf":
-                    # Todo: Don't like Core reference here
-                    work_queue.new_action(
-                        RosePicker(meta_data_path, work_dir / "lfric_core", database)
-                    )
-                else:  # Is a directory
-                    database.config_meta_dirs.append(meta_data_path)
-
-        workers: list[WorkerProcess] = []
-        for _ in range(worker_threads):
-            process = WorkerProcess(
-                work_queue, result_queue, database, sentinel_barrier, profile
-            )
-            process.start()
-            workers.append(process)
-
-        if not no_monitor:
-            monitor = MonitorProcess(work_queue)
-            monitor.start()
-
-        results: list[WorkerException] = []
-        workers_stopped = 0
-        while workers_stopped < worker_threads:
-            try:
-                result = result_queue.get()
-                if isinstance(result, EndOfWorkException):
-                    workers_stopped += 1
-                else:
-                    results.append(result)
-            except KeyboardInterrupt:
-                work_queue.stop()
-
-        remainder: list[Action] = []
-        try:
-            while True:
-                remainder.append(work_queue.pop())
-        except IndexError:
-            pass  # No more to do
-
-        for process in workers:
-            process.join()
-
-        if not no_monitor:
-            monitor.stop()
-            monitor.join()
-
-        for action in remainder:
-            message = "Still on the queue: " + str(action)
-            for prereq in action.prerequisites():
-                message += f"\nWaiting for ({prereq.ready()}) {prereq}"
-            logger.warning(message)
-
-        for result in results:
-            logger.error("Failed " + result.describe())
-
-
-if __name__ == "__main__":
-    from argparse import ArgumentParser
+    if arguments is None:
+        arguments = argv[1:]
 
     parser = ArgumentParser()
-    parser.add_argument("--verbose", "-v", action="store_true")
-    parser.add_argument("--debug", "-d", action="store_true")
-    parser.add_argument("--threads", "-j", type=int, default=1)
-    parser.add_argument("--work-dir", type=Path, default="work")
-    parser.add_argument("--no-monitor", action="store_true")
-    parser.add_argument("--profile", action="store_true")
+    parser.add_argument(
+        "--fabfile",
+        "-f",
+        type=Path,
+        default=Path() / "Fabfile",
+        help="Build configuration script file.",
+    )
+    parser.add_argument(
+        "--jobs", "-j", type=int, default=1, help="Number of worker threads to use."
+    )
+    parser.add_argument(
+        "--work-dir",
+        "-w",
+        type=Path,
+        default="work",
+        help="Build system scratch space.",
+    )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Provide running commentary on progress.",
+    )
+    parser.add_argument(
+        "--debug",
+        "-d",
+        action="store_true",
+        help="Get really chatty with running commentary.",
+    )
+    parser.add_argument(
+        "--no-monitor",
+        dest="monitor",
+        action="store_false",
+        help="Disable progress monitor.",
+    )
+    parser.add_argument(
+        "--profile", action="store_true", help="Harvest performance data for build."
+    )
     parser.add_argument(
         "--queue-strategy",
-        choices=[strat.name.lower() for strat in QueueStrategy],
+        type=lambda s: QueueStrategy[s.upper()],
+        choices=QueueStrategy,
         default="always_to_back",
+        help="Experiment with queue strategy.",
     )
-    parser.add_argument(
-        "target", choices=["skeleton", "atmosphere"], default="skeleton"
-    )
-    arguments = parser.parse_args()
+    options = parser.parse_args(arguments)
 
-    level = WARNING
-    if arguments.verbose:
-        level = INFO
-    if arguments.debug:
-        level = DEBUG
+    options.level = WARNING
+    if options.verbose:
+        options.level = INFO
+    if options.debug:
+        options.level = DEBUG
 
-    if arguments.target == "skeleton":
-        repositories = [
-            FileTreeRepository(
-                f'{Path().absolute()}/lfric_core',
-                [
-                    Project(Path("infrastructure")),
-                    Project(Path("components/driver")),
-                    Project(Path("components/science")),
-                    Project(Path("components/inventory")),
-                    Project(Path("components/lfric-xios")),
-                    Project(
-                        Path("applications/skeleton"),
-                        configuration_meta_data=Path(
-                            "rose-meta/lfric-skeleton/HEAD/rose-meta.conf"
-                        ),
-                    ),
-                ],
-            )
-        ]
+    return options
 
-    elif arguments.target == "atmosphere":
-        repositories = [
-            FileTreeRepository(
-                "lfric_core",
-                [
-                    Project(Path("infrastructure")),
-                    Project(Path("components/driver")),
-                    Project(Path("components/science")),
-                    Project(Path("components/inventory")),
-                    Project(Path("components/lfric-xios")),
-                ],
-            ),
-            FileTreeRepository(
-                "lfric_apps",
-                [
-                    Project(Path("interfaces/physics_schemes_interface")),
-                    Project(Path("science/physics_schemes")),
-                    Project(Path("science/shared"), "bucket"),
-                    Project(Path("interfaces/socrates_interface")),
-                    Project(Path("interfaces/jules_interface")),
-                    Project(Path("science/gungho")),
-                    Project(
-                        Path("applications/lfric_atm"),
-                        configuration_meta_data=Path(
-                            "rose-meta/lfric-lfric_atm/HEAD/rose-meta.conf"
-                        ),
-                    ),
-                ],
-            ),
-            FileTreeRepository(
-                "casim.filtered",
-                [Project(Path("."), identifier="casim", source_dir=Path("src"))],
-            ),
-            FileTreeRepository(
-                "ukca.filtered",
-                [Project(Path("."), identifier="ukca", source_dir=Path("src"))],
-            ),
-            FileTreeRepository(
-                "jules.filtered",
-                [Project(Path("."), identifier="jules", source_dir=Path("src"))],
-            ),
-            FileTreeRepository(
-                "socrates.filtered",
-                [Project(Path("."), identifier="socrates", source_dir=Path("src"))],
-            ),
-        ]
 
+def instantiate_configuration(fabfile: Path) -> FabConfiguration:
+    """
+    Creates an object from the Fabfile.
+
+    .. todo:: Python documentation warns against this form of import.
+    """
+    if fabfile.name.lower() == "fabfile":
+        name = fabfile.parent.name
+    elif fabfile.suffix == ".fabfile":
+        name = fabfile.stem
     else:
-        raise RuntimeError("Unrecognised target: " + arguments.target)
+        raise RuntimeError(f"Not sure what module name to give <{fabfile}>")
+    name = "fabengine.user." + name.replace(".", "_")  # No full stops in name
+    spec = spec_from_file_location(
+        name, fabfile, loader=SourceFileLoader(name, str(fabfile))
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
 
-    main(
-        arguments.work_dir,
-        arguments.threads,
-        arguments.no_monitor,
-        arguments.profile,
-        level,
-        QueueStrategy[arguments.queue_strategy.upper()],
-        *repositories,
+    for cls_name, cls in getmembers(
+        module, lambda m: isclass(m) and m.__module__ == name
+    ):
+        return cls()
+    raise RuntimeError("No FabConfiguration class found in Fabfile.")
+
+
+def cli() -> None:
+    """
+    Command-line interface for Fab.
+    """
+    options = command_line()
+
+    logger = getLogger(__package__)
+    logger.setLevel(options.level)
+    logger.addHandler(StreamHandler())
+
+    configuration = instantiate_configuration(options.fabfile)
+
+    fab_core(
+        configuration,
+        options.work_dir,
+        options.jobs,
+        options.monitor,
+        options.profile,
+        options.queue_strategy,
     )

@@ -15,6 +15,9 @@ class QueueStrategy(Enum):
     SENTINEL_MAGIC = auto()
     SENTINEL_EXTRA_MAGIC = auto()
 
+    def __str__(self) -> str:
+        return self.name.lower()
+
 
 class WorkQueue:
     """
