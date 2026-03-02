@@ -4,11 +4,12 @@ from logging import StreamHandler, getLogger, WARNING
 from multiprocessing import get_logger as mp_get_logger, Barrier
 from pathlib import Path
 from queue import Queue
+from typing import Optional
 
 from fabengine.actions import Action, EndOfWorkException, WorkerException
 from fabengine.actions.configurator import RosePicker
 from fabengine.configuration import FabConfiguration
-from fabengine.database import Configuration, Database
+from fabengine.database import Configuration, Database, Performance
 from fabengine.manager import FabManager
 from fabengine.processes import WorkerProcess, MonitorProcess
 from fabengine.work_queue import QueueStrategy
@@ -19,8 +20,8 @@ def fab_core(
     work_dir: Path,
     worker_threads: int,
     monitor: bool = True,
-    profile: bool = False,
     stack_strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK,
+    timing_file: Optional[Path] = None,
 ):
     """
     Build system entry point.
@@ -29,8 +30,8 @@ def fab_core(
     :param work_dir: Directory used as scratch space for build.
     :param worker_threads: Number of workers to use.
     :param monitor: Run progress monitor.
-    :param profile: Enable profiling of run.
     :param stack_strategy: Use this when adding actions to queue.
+    :param timing_file: File to receive action timings.
     """
     mp_logger = mp_get_logger()
     mp_logger.setLevel(WARNING)
@@ -38,8 +39,8 @@ def fab_core(
 
     configuration = Configuration(
         work_dir,
-        psyclone_config = work_dir / "lfric_core" / "etc" / "psyclone.cfg",
-        fpp_definitions = {
+        psyclone_config=work_dir / "lfric_core" / "etc" / "psyclone.cfg",
+        fpp_definitions={
             # Physics from the UM
             "UM_PHYSICS": "true",
             "LFRIC": "true",
@@ -56,7 +57,7 @@ def fab_core(
             # Transitional
             "LEGACY_MPI": "true",
         },
-        fc_ignore_modules = [
+        fc_ignore_modules=[
             "funit",
             "pfunit",  # pFUnit
             "mpi",
@@ -71,7 +72,7 @@ def fab_core(
             "vernier_mod",  # Vernier
             "c_shum_byteswap",  # ShUMlib
         ],
-        libraries = [
+        libraries=[
             "netcdff",
             "netcdf",
             "xios",
@@ -83,13 +84,9 @@ def fab_core(
             "gftl-shared-v2",
             "stdc++",
         ],
-        field_instances = [
-            {"real": "real32"},
-            {"real": "real64"},
-            {"integer": "int32"}
-        ],
-        build_tags = {"um": ["-fdefault-real-8", "-fdefault-double-8"]},
-        tag_dirs = {
+        field_instances=[{"real": "real32"}, {"real": "real64"}, {"integer": "int32"}],
+        build_tags={"um": ["-fdefault-real-8", "-fdefault-double-8"]},
+        tag_dirs={
             "casim/": ["um"],
             "jules/": ["um"],
             "physics_schemes/": ["um"],
@@ -97,7 +94,8 @@ def fab_core(
             "socrates/": ["um"],
             "ukca/": ["um"],
         },
-        inclusion_suffixes = [".h", ".inc"],
+        inclusion_suffixes=[".h", ".inc"],
+        performance_file=timing_file,
     )
 
     with FabManager() as manager:
@@ -110,6 +108,7 @@ def fab_core(
         database = Database(configuration, manager)
         sentinel_barrier = Barrier(worker_threads, action=hit_sentinel)
 
+        performance = Performance(manager)
         result_queue: Queue[WorkerException] = manager.Queue()
         for repository in fab_configuration.repositories():
             repo_action = repository.create_action(work_dir, database)
@@ -133,7 +132,7 @@ def fab_core(
         workers: list[WorkerProcess] = []
         for _ in range(worker_threads):
             process = WorkerProcess(
-                work_queue, result_queue, database, sentinel_barrier, profile
+                work_queue, result_queue, database, sentinel_barrier, performance
             )
             process.start()
             workers.append(process)
@@ -176,3 +175,9 @@ def fab_core(
 
         for result in results:
             getLogger(__name__).error("Failed " + result.describe())
+
+        if configuration.performance_file:
+            with configuration.performance_file.open("wt") as fhandle:
+                tally = performance.aggregate_action_log()
+                for action_str in sorted(tally.keys()):
+                    print(action_str + ", " + str(tally[action_str]), file=fhandle)

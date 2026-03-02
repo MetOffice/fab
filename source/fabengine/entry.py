@@ -59,7 +59,7 @@ def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
         help="Disable progress monitor.",
     )
     parser.add_argument(
-        "--profile", action="store_true", help="Harvest performance data for build."
+        "--timing-file", type=Path, help="Harvest performance data for build."
     )
     parser.add_argument(
         "--queue-strategy",
@@ -125,6 +125,6 @@ def cli() -> None:
         options.work_dir,
         options.jobs,
         options.monitor,
-        options.profile,
         options.queue_strategy,
+        options.timing_file,
     )

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import timedelta
 from enum import Enum, auto
 from multiprocessing.managers import DictProxy, ListProxy, ValueProxy
 from pathlib import Path
+from typing import Optional, Type
 
+from fabengine.actions import Action
 from fabengine.manager import FabManager
 
 
@@ -23,6 +28,7 @@ class Configuration:
         build_tags: dict[str, list[str]],
         tag_dirs: dict[str, list[str]],
         inclusion_suffixes: list[str],
+        performance_file: Optional[Path] = None,
     ):
         """
         :param work_dir: Location of workspace used by build.
@@ -35,6 +41,7 @@ class Configuration:
         :param build_tags: Mapping between tag and compiler arguments.
         :param tag_dirs: Mapping between directory and tags.
         :param inclusion_suffixes: File extensions used by inclusion files.
+        :param performance_file: Write performance timings to this file.
         """
         self._work_dir = work_dir
         self._psyclone_config = psyclone_config
@@ -45,6 +52,7 @@ class Configuration:
         self._build_tags = build_tags
         self._tag_dirs = tag_dirs
         self._inclusion_suffixes = inclusion_suffixes
+        self._performance_file = performance_file
 
         self._use_open_mp = True
 
@@ -135,6 +143,10 @@ class Configuration:
     def inclusion_suffixes(self) -> list[str]:
         return self._inclusion_suffixes
 
+    @property
+    def performance_file(self) -> Optional[Path]:
+        return self._performance_file
+
 
 class Database:
     """
@@ -144,7 +156,7 @@ class Database:
     def __init__(self, configuration: Configuration, manager: FabManager):
         """
         :param configuration: Preprepared configuration.
-        :param manager: Multiprocess shared data controler.
+        :param manager: Multiprocess shared data controller.
         """
         self._configuration = configuration
 
@@ -273,3 +285,58 @@ class SymbolInfo:
         :return: Symbol declaration is here.
         """
         return self._source_file
+
+
+@dataclass
+class ActionTiming:
+    """
+    Record of one action run.
+    """
+
+    action: Type[Action]
+    identifier: str
+    timing: timedelta
+
+    def __hash__(self):
+        return hash(self.action) + hash(self.timing)
+
+
+class Performance:
+    """
+    Tally of performance timings.
+    """
+
+    def __init__(self, manager: FabManager):
+        """
+        :param manager: Multiprocess shared data controller.
+        """
+        self._action_log: ListProxy[ActionTiming] = manager.list()
+
+    def log_action(self, action: Action, timing: timedelta):
+        """
+        Logs a timing for an action.
+
+        :param action: Timed action.
+        :param timing: Time taken for action.
+        """
+        self._action_log.append(ActionTiming(type(action), action.action_id, timing))
+
+    def aggregate_action_log(self) -> dict[str, timedelta]:
+        """
+        Gets a summary of total time taken for each action type.
+        """
+        result: dict[str, timedelta] = defaultdict(timedelta)
+        for item in self._action_log:
+            result[item.action.__name__] += item.timing
+        return dict(result)
+
+    # Todo: We might want more granular output, which is why ActionTiming
+    #       stores a unique identifier. If this is needed it will be important
+    #       to take into account that some actions are repeatedly requeued. In
+    #       those cases it will be important to accumulate their time.
+
+
+# Todo: We may need to consider some sort of output server to stream the log to
+#       disc. Possibly in buffered chunks to optimise disc access. The reason
+#       would be to reduce RAM usage for builds of large code bases requiring
+#       many actions.

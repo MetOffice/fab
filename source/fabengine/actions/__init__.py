@@ -28,6 +28,17 @@ class Action(ABC):
     Interface for work queue actions.
     """
 
+    def __init__(self, id: str):
+        """
+        :param id: Uniquely identifiers an action instance from others in its
+                   class. Often an input filename.
+        """
+        self._id = id
+
+    @property
+    def action_id(self) -> str:
+        return self._id
+
     @abstractmethod
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -51,6 +62,7 @@ class SubprocessAction(Action, ABC):
     def __init__(self, executable: Path, arguments: Optional[Iterable[Any]] = None):
         self._executable = executable
         self._arguments = arguments or []
+        super().__init__(" ".join(str(self._arguments)))
 
     def run_subprocess(
         self, additional_arguments: Optional[Iterable[Any]] = None

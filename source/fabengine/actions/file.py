@@ -19,6 +19,7 @@ class ImportFile(Action):
         :param tag: Subsection of workspace to copy file to.
         :param database: Build state and configuration.
         """
+        super().__init__(str(filename))
         self._repo_dir = repo_dir
         self._filename = filename
         self._tag = tag

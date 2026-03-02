@@ -253,6 +253,7 @@ class AnalyseFortran(Action):
         :param source: Fortran source to analyse.
         :param database: Build system state and configuration.
         """
+        super().__init__(str(source))
         self._source = source
         self._database = database
 
@@ -409,6 +410,7 @@ class DetermineFortranProgram(Action):
         :param name: Program name.
         :param database: Build system state and configuration.
         """
+        super().__init__(name)
         self._name = name
         self._database = database
 

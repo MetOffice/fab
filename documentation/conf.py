@@ -27,20 +27,27 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-# As of Feb 2026 there seems to be a bug in Sphinx where it can't recognise
-# certain standard Python libraries such as pathlib and abc. As a crude
-# solution to this problem we ignore these warnings.
-#
 nitpick_ignore = {
+    # As of Feb 2026 there seems to be a bug in Sphinx where it can't recognise
+    # certain standard Python libraries such as pathlib and abc. As a crude
+    # solution to this problem we ignore these warnings.
+    #
     ('py:class', 'abc.ABC'),
     ('py:class', 'collections.abc.Generator'),
     ('py:class', 'collections.abc.Iterable'),
+    ('py:class', 'datetime.timedelta'),
     ('py:class', 'enum.Enum'),
     ('py:class', 'multiprocessing.Process'),
     ('py:class', 'multiprocessing.managers.SyncManager'),
     ('py:class', 'pathlib.Path'),
     ('py:class', 'Path'),
-    ('py:class', 'Queue')
+    ('py:class', 'Queue'),
+    #
+    # There are also issues with the proxy objects used by the multiprocessing
+    # library so we ignore those too.
+    #
+    ('py:class', 'ListProxy'),
+    ('py:class', 'DictProxy')
 }
 
 # -- Automatic API documentation generator -----------------------------------

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cProfile import Profile
+from datetime import datetime
 from logging import getLogger
 from multiprocessing import Process
 from queue import Queue
@@ -14,7 +14,7 @@ from fabengine.actions import (
     ExceptionActionException,
     WorkerException,
 )
-from fabengine.database import Database
+from fabengine.database import Database, Performance
 from fabengine.work_queue import Sentinel, WorkQueue
 
 
@@ -63,7 +63,7 @@ class MonitorProcess(Process):
 
 class WorkerProcess(Process):
     """
-    Task farm worker process.
+    Task farmworker process.
     """
 
     def __init__(
@@ -72,32 +72,26 @@ class WorkerProcess(Process):
         result_queue: Queue[WorkerException],
         database: Database,
         sentinel_barrier,
-        profile: bool,
+        performance: Performance,
     ):
         """
         :param work_queue: Queue to pull work from and push it to.
         :param result_queue: Queue to push results to.
         :param database: Build system state and configuration.
         :param sentinel_barrier: Synchronisation object.
-        :param profile: Turn profiling on and off.
+        :param performance: Timing collection object.
         """
         self._work_queue = work_queue
         self._result_queue = result_queue
         self._database = database
         self._sentinel_barrier = sentinel_barrier
-        self._profile = profile
+        self._performance = performance
         super().__init__(name="Build worker", target=self._worker)
 
     def _worker(self) -> None:
         """
         Body of the subprocess.
         """
-        if self._profile:
-            profiler = Profile()
-            profiler.enable()
-        else:
-            profiler = None
-
         logger = getLogger(__name__)
 
         self._work_queue.new_action(Sentinel())
@@ -147,7 +141,9 @@ class WorkerProcess(Process):
             try:
                 logger.debug("Performing: " + str(action))
                 try:
+                    start_time = datetime.now()
                     resulting_actions = action.perform()
+                    self._performance.log_action(action, datetime.now() - start_time)
                     #
                     # An action is only considered "stalled" if it returns only
                     # itself.
@@ -176,7 +172,3 @@ class WorkerProcess(Process):
 
         logger.debug("Done processing actions")
         self._result_queue.put(EndOfWorkException())
-
-        if self._profile and profiler is not None:
-            profiler.disable()
-            profiler.dump_stats(f"profile.{self.pid}.txt")

@@ -176,6 +176,7 @@ class SourceDirectory(Action):
         :param tag: Collection to use in workspace.
         :param database: Build system state and configuration.
         """
+        super().__init__(str(filename))
         self._source_dir = filename
         self._tag = tag
         self._database = database
