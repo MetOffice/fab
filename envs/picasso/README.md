@@ -1,0 +1,18 @@
+# Note
+
+This image is currently built with a manual trigger from the github actions
+page. We should consider adding more images, with combinations of versions of
+Python and other software, for testing.
+
+See the
+[image in artifactory](https://metoffice.jfrog.io/ui/repos/tree/General/docker-local/picasso/MetOffice/fab/image)
+
+Run the image
+
+    singularity run oras://metoffice-docker-local.jfrog.io/picasso/MetOffice/fab/image:latest
+
+with the mo proxy certificate bound for git
+
+    export SINGULARITY_BIND="/etc/pki/ca-trust/extracted/pem:/pem"
+    export SINGULARITYENV_GIT_SSL_CAPATH="/pem"
+    singularity shell oras://metoffice-docker-local.jfrog.io/picasso/MetOffice/fab/image:latest
