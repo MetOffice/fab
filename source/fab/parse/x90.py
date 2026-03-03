@@ -11,6 +11,8 @@ from fparser.two.Fortran2003 import (     # type: ignore
     Part_Ref)
 from fparser.two.utils import walk  # type: ignore
 try:
+    # In case that PSyclone is not installed, we still want to be
+    # able to run all tests
     from psyclone.domain.lfric.lfric_builtins import BUILTIN_MAP    # type: ignore
 except ImportError:
     BUILTIN_MAP = {}
