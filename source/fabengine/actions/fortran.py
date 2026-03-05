@@ -21,6 +21,7 @@ from fabengine.database import (
     SymbolType,
     SymbolInfo,
 )
+from fabengine.package import LinkerPath, LibraryName
 from fabengine.prerequisite import (
     AnalysedPrerequisite,
     FilePrerequisite,
@@ -586,12 +587,15 @@ class LinkFortran(SubprocessAction):
         dest = self._database.configuration.work_dir / self._program
         arguments = ["-o", dest, "-fopenmp"]
 
-        for arg in os_environ["LDFLAGS"].split():
-            arguments.append(arg)
-
-        self._libraries: list[str] = []
-        for library in self._database.configuration.libraries:
-            self._libraries.extend(["-l", library])
+        self._library_args: list[str] = []
+        for package in self._database.configuration.packages:
+            for arg in package.link_arguments:
+                if isinstance(arg, LinkerPath):
+                    self._library_args.append("-L" + str(arg.path))
+                elif isinstance(arg, LibraryName):
+                    self._library_args.append("-l" + arg.name)
+                else:
+                    raise RuntimeError("Unrecognised linker argument: " + str(arg))
 
         exe = Path("mpif90")
         super().__init__(exe, arguments)
@@ -636,7 +640,7 @@ class LinkFortran(SubprocessAction):
         arguments: list[str] = []
         for object_file in objects:
             arguments.append(str(object_file))
-        arguments.extend(self._libraries)
+        arguments.extend(self._library_args)
 
         self.run_subprocess(arguments)
         return []

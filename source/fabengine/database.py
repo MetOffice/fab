@@ -10,6 +10,7 @@ from typing import Optional, Type
 
 from fabengine.actions import Action
 from fabengine.manager import FabManager
+from fabengine.package import Package
 
 
 class Configuration:
@@ -23,11 +24,11 @@ class Configuration:
         psyclone_config: Path,
         fpp_definitions: dict[str, str],
         fc_ignore_modules: list[str],
-        libraries: list[str],
         field_instances: list[dict[str, str]],
         build_tags: dict[str, list[str]],
         tag_dirs: dict[str, list[str]],
         inclusion_suffixes: list[str],
+        packages: tuple[Package, ...],
         performance_file: Optional[Path] = None,
     ):
         """
@@ -36,22 +37,23 @@ class Configuration:
         :param fpp_definitions: Macros to be defined for Fortran preprocessor.
         :param fc_ignore_modules: Fortran modules which should not be
                                   considered dependencies.
-        :param libraries: Link to these libraries.
         :param field_instances: Template injections for fields.
         :param build_tags: Mapping between tag and compiler arguments.
         :param tag_dirs: Mapping between directory and tags.
-        :param inclusion_suffixes: File extensions used by inclusion files.
+        :param inclusion_suffixes: Filename extensions which indicate files
+                                   which will be included.
+        :param packages: Third party library dependencies.
         :param performance_file: Write performance timings to this file.
         """
         self._work_dir = work_dir
         self._psyclone_config = psyclone_config
         self._fpp_definitions = fpp_definitions
         self._fc_ignore_modules = fc_ignore_modules
-        self._libraries = libraries
         self._field_instances = field_instances
         self._build_tags = build_tags
         self._tag_dirs = tag_dirs
         self._inclusion_suffixes = inclusion_suffixes
+        self._packages = packages
         self._performance_file = performance_file
 
         self._use_open_mp = True
@@ -105,13 +107,6 @@ class Configuration:
         return self._fc_ignore_modules
 
     @property
-    def libraries(self) -> list[str]:
-        """
-        :return: Libraries to link with.
-        """
-        return self._libraries
-
-    @property
     def field_instances(self) -> list[dict[str, str]]:
         """
         :return: Field variants to create.
@@ -142,6 +137,10 @@ class Configuration:
     @property
     def inclusion_suffixes(self) -> list[str]:
         return self._inclusion_suffixes
+
+    @property
+    def packages(self) -> tuple[Package, ...]:
+        return self._packages
 
     @property
     def performance_file(self) -> Optional[Path]:

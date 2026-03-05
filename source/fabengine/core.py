@@ -11,12 +11,14 @@ from fabengine.actions.configurator import RosePicker
 from fabengine.configuration import FabConfiguration
 from fabengine.database import Configuration, Database, Performance
 from fabengine.manager import FabManager
+from fabengine.package import Package, partition_specification, pkg_config, LibraryName
 from fabengine.processes import WorkerProcess, MonitorProcess
 from fabengine.work_queue import QueueStrategy
 
 
 def fab_core(
     fab_configuration: FabConfiguration,
+    package_table: dict[str, Package],
     work_dir: Path,
     worker_threads: int,
     monitor: bool = True,
@@ -27,6 +29,7 @@ def fab_core(
     Build system entry point.
 
     :param fab_configuration: Describes the build.
+    :param package_table: Map of library name to details.
     :param work_dir: Directory used as scratch space for build.
     :param worker_threads: Number of workers to use.
     :param monitor: Run progress monitor.
@@ -36,6 +39,18 @@ def fab_core(
     mp_logger = mp_get_logger()
     mp_logger.setLevel(WARNING)
     mp_logger.addHandler(StreamHandler())
+
+    packages: list[Package] = []
+    for specification in fab_configuration.libraries():
+        package_name, _, _ = partition_specification(specification)
+        if package_name in package_table:
+            packages.append(package_table[package_name])
+        else:  # package_name not in package_table
+            packages.append(pkg_config(specification))
+
+    # Todo: Hardwired C++ runtime. Need a proper solution for language runtimes.
+    #
+    packages.append(Package("stdc++", (), [], [LibraryName("stdc++")]))
 
     configuration = Configuration(
         work_dir,
@@ -72,18 +87,6 @@ def fab_core(
             "vernier_mod",  # Vernier
             "c_shum_byteswap",  # ShUMlib
         ],
-        libraries=[
-            "netcdff",
-            "netcdf",
-            "xios",
-            "yaxt",
-            "yaxt_c",
-            "pfunit",
-            "funit",
-            "fargparse",
-            "gftl-shared-v2",
-            "stdc++",
-        ],
         field_instances=[{"real": "real32"}, {"real": "real64"}, {"integer": "int32"}],
         build_tags={"um": ["-fdefault-real-8", "-fdefault-double-8"]},
         tag_dirs={
@@ -95,6 +98,7 @@ def fab_core(
             "ukca/": ["um"],
         },
         inclusion_suffixes=[".h", ".inc"],
+        packages=tuple(packages),
         performance_file=timing_file,
     )
 

@@ -12,7 +12,72 @@ from typing import Optional, Sequence
 
 from fabengine.configuration import FabConfiguration
 from fabengine.core import fab_core
+from fabengine.package import (
+    IncludePath,
+    LibraryName,
+    LinkerArgument,
+    LinkerPath,
+    Package,
+    VariableDefinition,
+    CompilerArgument,
+)
 from fabengine.work_queue import QueueStrategy
+
+
+def parse_libmap(argument: str) -> Package:
+    """
+    Converts library mapping specification to object.
+
+    Format of input string is
+    <name>:<include dir>,...:<variable>[=<value>],...:<library dir>,...:<library name>,...
+    """
+    bits = argument.split(":", maxsplit=4)
+    assert len(bits) > 0
+
+    cargs: list[CompilerArgument] = []
+    try:  # Include paths
+        carg_list = bits[1].split(",")
+        for carg in carg_list:
+            if not carg:
+                continue
+            carg_path = Path(carg)
+            cargs.append(IncludePath(carg_path))
+    except IndexError:
+        pass
+
+    try:  # Variable definitions
+        carg_list = bits[2].split(",")
+        for carg in carg_list:
+            if not carg:
+                continue
+            variable_name, _, variable_value = carg.partition("=")
+            cargs.append(VariableDefinition(variable_name, variable_value or None))
+    except IndexError:
+        pass
+
+    largs: list[LinkerArgument] = []
+    try:  # Linker paths
+        larg_list = bits[3].split(",")
+        for larg in larg_list:
+            if not larg:
+                continue
+            larg_path = Path(larg)
+            largs.append(LinkerPath(larg_path))
+    except IndexError:
+        pass
+
+    try:  # Additional libraries
+        larg_list = bits[4].split(",")
+        for larg in larg_list:
+            if not larg:
+                continue
+            largs.append(LibraryName(larg))
+    except IndexError:
+        pass
+
+    largs.append(LibraryName(bits[0].strip()))
+
+    return Package(bits[0].strip(), tuple(), cargs, largs)
 
 
 def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
@@ -39,6 +104,13 @@ def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
         type=Path,
         default="work",
         help="Build system scratch space.",
+    )
+    parser.add_argument(
+        "--map-library",
+        "-m",
+        action="append",
+        type=parse_libmap,
+        help="<name>:<include dir>,...:<library dir | library name>,...",
     )
     parser.add_argument(
         "--verbose",
@@ -122,6 +194,7 @@ def cli() -> None:
 
     fab_core(
         configuration,
+        {package.name: package for package in options.map_library or []},
         options.work_dir,
         options.jobs,
         options.monitor,
