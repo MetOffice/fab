@@ -69,6 +69,7 @@ class Config:
         # Second example: change the default for an existing option, e.g.
         # disabling MPI by default:
         # parser.set_defaults(mpi=False)
+        pass
 
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         '''
