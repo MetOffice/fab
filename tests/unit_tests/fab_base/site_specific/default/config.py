@@ -72,6 +72,15 @@ class Config:
             for profile in self.get_valid_profiles():
                 compiler.define_profile(profile, inherit_from="base")
 
+    def define_command_line_options(self,
+                                    parser: argparse.ArgumentParser) -> None:
+        '''
+        Callback in which additional, site-specific options can be added,
+        and/or the the defaults for the parser can be changed.
+        '''
+        # Example: change the MPI default (enabling this would break tests):
+        # parser.set_defaults(mpi=False)
+
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         '''
         Additional callback function executed once all command line

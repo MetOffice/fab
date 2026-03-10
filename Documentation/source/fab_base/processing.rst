@@ -116,6 +116,18 @@ configuration object using ``get_valid_profiles()`` to receive a list
 of all valid compilation profile names. This allows each site to
 specify its own profile modes.
 
+Additionally, a method of the same name is called in the site-specific
+configuration after the application's method was called:
+
+.. automethod:: fab.fab_base.site_specific.default.config.Config.define_command_line_options
+    :noindex:
+
+A site-specific configuration can overwrite ``define_command_line_options`` to
+add more, site-specific command line options (e.g. using a specific profiling
+tool), or to modify defaults (e.g. a site might only have small data sets and
+therefore does not require MPI, so it could change the default so that
+MPI does not need to be disabled all the time).
+
 Parsing command line options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Once all command line options are defined in the parser,
