@@ -50,10 +50,20 @@ class Config:
                                     parser: argparse.ArgumentParser) -> None:
         '''
         Callback in which additional, site-specific options can be added,
-        and/or the the defaults for the parser can be changed.
+        and/or the the defaults for the parser can be changed. Typically,
+        a site-specific configuration should inherit from the default, and
+        can then overwrite this method to add site-specific options or
+        defaults.
         '''
-        # As example, change the MPI default:
-        parser.set_defaults(mpi=False)
+        # As examples (typically used in a site-specific derived class):
+        # Adding a site-specific option to profile with Tau:
+        # parser.add_argument("--tau", default=False, action="store_true",
+        #                     help="Enable tau profiling")
+
+        # Second example: change the default for an existing option, e.g.
+        # disabling MPI by default:
+        # parser.set_defaults(mpi=False)
+        pass
 
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         '''
