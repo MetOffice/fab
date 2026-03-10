@@ -6,10 +6,12 @@
 """
 Tests the FabBase class
 """
+import argparse
 import inspect
 import os
 from pathlib import Path
 import sys
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -306,6 +308,33 @@ def test_compiler_flags(monkeypatch, arg) -> None:
         assert fab_base.c_compiler_flags_commandline == [flag_list[1]]
     elif flag_list[0] == "--ldflags":
         assert fab_base.linker_flags_commandline == [flag_list[1]]
+
+
+def test_site_specific_callbacks(monkeypatch):
+    '''
+    Tests that define/handle_command_line_option in the site-config
+    file get called as expected.
+    '''
+
+    class TestFabBase(FabBase):
+        '''Dummy class to keep track of the parser
+        '''
+        def define_command_line_options(
+                self,
+                parser: Optional[argparse.ArgumentParser] = None
+                ) -> argparse.ArgumentParser:
+            '''Simple class that stores the parser created.
+            '''
+            self.parser = super().define_command_line_options(parser)
+            return self.parser
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    config = "site_specific.default.config.Config."
+    with mock.patch(config+'define_command_line_options') as mock_define, \
+            mock.patch(config+'handle_command_line_options') as mock_handle:
+        tfb = TestFabBase(name="test-help")
+        mock_handle.assert_called_once_with(tfb.args)
+        mock_define.assert_called_once_with(tfb.parser)
 
 
 def test_site_specific_outside_dir(monkeypatch) -> None:
