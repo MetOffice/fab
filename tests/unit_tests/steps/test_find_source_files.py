@@ -129,6 +129,33 @@ def test_find_source_files_exclude_include(setup_files: set[Path],
     assert remaining_files == artefacts
 
 
+def test_find_source_files_longest_match(setup_files: set[Path],
+                                         tmp_path: Path):
+    """
+    Ensure find_source_files uses exclude and include flags matching
+    with the longest match.
+    """
+    config = BuildConfig('proj', ToolBox(),
+                         fab_workspace=Path(tmp_path / 'fab'))
+    # The first will exclude src/b.F90 (see previous test), the
+    # later include is shorter (as opposed to the previous test
+    # which used src/b.F90and so must be ignored
+    path_filters = [Exclude("a.f90", "b.F90"), Include("rc/b")]
+    with pytest.warns(UserWarning, match="_metric_send_conn not set, "):
+        find_source_files(config,
+                          source_root=tmp_path,
+                          path_filters=path_filters)
+
+    # Since the include uses a shorter pattern, it will be ignored
+    # and so the Exclude will also remove b.F90
+    remaining_files = setup_files
+    remaining_files.remove(tmp_path / "src" / "a.f90")
+    remaining_files.remove(tmp_path / "src" / "b.F90")
+
+    artefacts = config.artefact_store[ArtefactSet.INITIAL_SOURCE_FILES]
+    assert remaining_files == artefacts
+
+
 @pytest.mark.usefixtures("setup_files")
 def test_find_source_files_no_files(tmp_path: Path):
     """
