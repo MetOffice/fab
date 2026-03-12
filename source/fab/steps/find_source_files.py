@@ -25,7 +25,7 @@ class _PathFilter():
     Deems an incoming path as included or excluded.
     """
 
-    def __init__(self, *filter_strings: str, include: bool):
+    def __init__(self, *filter_strings: Union[str, Path], include: bool):
         """
         :param filter_strings:
             One or more strings to be used as pattern matches.
@@ -33,7 +33,8 @@ class _PathFilter():
             Set to True or False to include or exclude matching paths.
 
         """
-        self.filter_strings: Iterable[str] = filter_strings
+        # Convert paths to strings:
+        self.filter_strings: Iterable[str] = [str(i) for i in filter_strings]
         self.include = include
 
     def check(self, path: Path) -> tuple[int, Optional[bool]]:
