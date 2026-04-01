@@ -8,20 +8,24 @@ Gather files from a source folder.
 
 """
 import logging
-from typing import Optional, Iterable
+from pathlib import Path
+from typing import Iterable, Optional, Union
 
 from fab.artefacts import ArtefactSet
+from fab.build_config import BuildConfig
 from fab.steps import step
 from fab.util import file_walk
 
 logger = logging.getLogger(__name__)
 
 
-class _PathFilter(object):
-    # Simple pattern matching using string containment check.
-    # Deems an incoming path as included or excluded.
+class _PathFilter():
+    """
+    Simple pattern matching using string containment check.
+    Deems an incoming path as included or excluded.
+    """
 
-    def __init__(self, *filter_strings: str, include: bool):
+    def __init__(self, *filter_strings: Union[str, Path], include: bool):
         """
         :param filter_strings:
             One or more strings to be used as pattern matches.
@@ -29,13 +33,30 @@ class _PathFilter(object):
             Set to True or False to include or exclude matching paths.
 
         """
-        self.filter_strings: Iterable[str] = filter_strings
+        # Convert paths to strings:
+        self.filter_strings: Iterable[str] = [str(i) for i in filter_strings]
         self.include = include
 
-    def check(self, path):
-        if any(str(i) in str(path) for i in self.filter_strings):
-            return self.include
-        return None
+    def check(self, path: Path) -> tuple[int, Optional[bool]]:
+        """
+        Checks if the specified path contains one of the filter strings.
+        If so, it returns the length of the longest filter string
+        and the value of self.include (i.e. if the file is supposed to
+        be included or excluded). If no filter matches, it will return
+        (-1, None)
+
+        :param path: the path to check.
+
+        :returns: a tuple consisting of maximum filter match length and
+            self.include; or (-1, None) if no filter matches.
+        """
+        str_path = str(path)
+        try:
+            max_len = max(len(i) for i in self.filter_strings if i in str_path)
+        except ValueError:
+            # No pattern matches
+            return (-1, None)
+        return (max_len, self.include)
 
 
 class Include(_PathFilter):
@@ -44,7 +65,7 @@ class Include(_PathFilter):
     improves config readability.
 
     """
-    def __init__(self, *filter_strings):
+    def __init__(self, *filter_strings: str):
         """
         :param filter_strings:
             One or more strings to be used as pattern matches.
@@ -63,7 +84,7 @@ class Exclude(_PathFilter):
 
     """
 
-    def __init__(self, *filter_strings):
+    def __init__(self, *filter_strings: str):
         """
         :param filter_strings:
             One or more strings to be used as pattern matches.
@@ -76,9 +97,12 @@ class Exclude(_PathFilter):
 
 
 @step
-def find_source_files(config, source_root=None,
-                      output_collection=ArtefactSet.INITIAL_SOURCE_FILES,
-                      path_filters: Optional[Iterable[_PathFilter]] = None):
+def find_source_files(
+        config: BuildConfig,
+        source_root: Optional[Path] = None,
+        output_collection: Union[ArtefactSet,
+                                 str] = ArtefactSet.INITIAL_SOURCE_FILES,
+        path_filters: Optional[Iterable[_PathFilter]] = None) -> None:
     """
     Find the files in the source folder, with filtering.
 
@@ -90,19 +114,30 @@ def find_source_files(config, source_root=None,
     :class:`~fab.steps.walk_source.Include` and
     :class:`~fab.steps.walk_source.Exclude`, improve readability.
 
-    Order matters. For example::
+    This function will use the longest match to determine if a file is to
+    be excluded or included (in case of a tie the last matching filter
+    will apply). For example::
 
         path_filters = [
-            Exclude('my_folder'),
-            Include('my_folder/my_file.F90'),
+            Exclude('some_folder'),
+            Include('some_folder/my_file.F90'),
         ]
 
-    In the above example, swapping the order would stop the file being
-    included in the build.
+    In the above example, swapping the order would not affect that ``my_file.F90``
+    will be included. But if the filters have the same length::
+
+        path_filters = [
+            Exclude('some_folder'),
+            Include('my_file.F90'),
+        ]
+
+    Then the last matching filter applies, in the order specified above this
+    means the file would be included. If the order of ``Exclude`` and
+    ``Include`` is swapped, the file would be excluded.
 
     A path matches a filter string simply if it *contains* it,
-    so the path *my_folder/my_file.F90* would match filters
-    "my_folder", "my_file" and "er/my".
+    so the path ``my_folder/my_file.F90`` would match filters
+    ``my_folder``, ``my_file`` and ``er/my``.
 
     :param config:
         The :class:`fab.build_config.BuildConfig` object where we can read
@@ -130,13 +165,16 @@ def find_source_files(config, source_root=None,
     # underneath the source root.
     for fpath in file_walk(source_root,
                            ignore_folders=[config.prebuild_folder]):
-
+        # Search for the longest match (and latest one in case of
+        # equal length)
         wanted = True
+        max_len = -1
         for path_filter in path_filters:
             # did this filter have anything to say about this file?
-            res = path_filter.check(fpath)
-            if res is not None:
-                wanted = res
+            pattern_len, result = path_filter.check(fpath)
+            if result is not None and pattern_len >= max_len:
+                wanted = result
+                max_len = pattern_len
 
         if wanted:
             filtered_fpaths.add(fpath)
