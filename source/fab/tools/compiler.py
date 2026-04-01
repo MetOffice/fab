@@ -11,14 +11,13 @@ classes for gcc, gfortran, icc, ifort
 import re
 from pathlib import Path
 import warnings
-from typing import cast, List, Optional, Tuple, TYPE_CHECKING, Union
+from typing import cast, List, Optional, Tuple, Union
 import zlib
+from fab.build_config import BuildConfig
 
 from fab.tools.category import Category
 from fab.tools.flags import Flags
 from fab.tools.tool import CompilerSuiteTool
-if TYPE_CHECKING:
-    from fab.build_config import BuildConfig
 
 
 class Compiler(CompilerSuiteTool):
@@ -641,4 +640,4 @@ class Crayftn(FortranCompiler):
                          openmp_flag="-homp",
                          syntax_only_flag="-syntax-only",
                          version_regex=(r"Cray Fortran : Version "
-                                        r"(\d[\d\.]+\d)  "))
+                                        r"(\d[\d\.]+\d)(\s+|$)"))

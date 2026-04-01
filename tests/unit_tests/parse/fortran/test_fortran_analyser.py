@@ -21,7 +21,8 @@ import pytest
 from fab.build_config import BuildConfig
 from fab.parse import EmptySourceFile
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 
 # todo: test function binding
 
@@ -33,7 +34,7 @@ def module_fpath() -> Path:
 
 
 @pytest.fixture
-def module_expected(module_fpath) -> AnalysedFortran:
+def module_expected(module_fpath: Path) -> AnalysedFortran:
     '''Returns the expected AnalysedFortran instance for the Fortran
     test module.'''
     return AnalysedFortran(
@@ -44,21 +45,24 @@ def module_expected(module_fpath) -> AnalysedFortran:
         module_deps={'bar_mod', 'compute_chunk_size_mod'},
         symbol_deps={'monty_func', 'bar_mod', 'compute_chunk_size_mod'},
         file_deps=set(),
-        mo_commented_file_deps={'some_file.c'},
+        mo_commented_file_deps={'some_file.o'},
     )
 
 
 class TestAnalyser:
 
     @pytest.fixture
-    def fortran_analyser(self, tmp_path):
+    def fortran_analyser(
+             self,
+             tmp_path: Path,
+             stub_tool_repository: ToolRepository) -> FortranAnalyser:
         # Enable openmp, so fparser will handle the lines with omp sentinels
         config = BuildConfig('proj', ToolBox(),
                              fab_workspace=tmp_path, openmp=True)
         fortran_analyser = FortranAnalyser(config=config)
         return fortran_analyser
 
-    def test_empty_file(self, fortran_analyser):
+    def test_empty_file(self, fortran_analyser: FortranAnalyser) -> None:
         # make sure we get back an EmptySourceFile
         with mock.patch('fab.parse.AnalysedFile.save'):
             analysis, artefact = fortran_analyser.run(
@@ -74,8 +78,9 @@ class TestAnalyser:
         assert artefact == (fortran_analyser._config.prebuild_folder /
                             f'test_fortran_analyser.{analysis.file_hash}.an')
 
-    def test_module_file_no_openmp(self, fortran_analyser, module_fpath,
-                                   module_expected):
+    def test_module_file_no_openmp(self, fortran_analyser: FortranAnalyser,
+                                   module_fpath: Path,
+                                   module_expected: AnalysedFortran) -> None:
         '''Disable OpenMP, meaning the dependency on compute_chunk_size_mod
         should not be detected anymore.
         '''
@@ -89,11 +94,41 @@ class TestAnalyser:
         module_expected.symbol_deps.remove('compute_chunk_size_mod')
 
         assert analysis == module_expected
+        assert isinstance(analysis, AnalysedFortran)
         assert artefact == (fortran_analyser._config.prebuild_folder /
                             f'test_fortran_analyser.{analysis.file_hash}.an')
 
-    def test_program_file(self, fortran_analyser, module_fpath,
-                          module_expected):
+    def test_module_file_ignore_dependencies(
+             self,
+             fortran_analyser: FortranAnalyser,
+             module_fpath: Path,
+             module_expected: AnalysedFortran) -> None:
+        '''Test ignore_dependencies parameter for fortran_analyser, meaning the
+        dependency on some_file.o ('DEPENDS ON' c file), monty_func ('DEPENDS
+        ON' fortran module) and compute_chunk_size_mod (Use fortran module)
+        should not be detected
+        '''
+        fortran_analyser.ignore_dependencies = ['some_file.o', 'monty_func',
+                                                'compute_chunk_size_mod']
+        with mock.patch('fab.parse.AnalysedFile.save'):
+            analysis, artefact = fortran_analyser.run(fpath=module_fpath)
+
+        # With ignore_dependencies, some_file.o, monty_func symbol and
+        # compute_chunk_size_mod symbol must not be added:
+        module_expected.mo_commented_file_deps = set()
+        module_expected.symbol_deps.remove('monty_func')
+        module_expected.module_deps.remove('compute_chunk_size_mod')
+        module_expected.symbol_deps.remove('compute_chunk_size_mod')
+
+        assert analysis == module_expected
+        assert isinstance(analysis, AnalysedFortran)
+        assert artefact == (fortran_analyser._config.prebuild_folder /
+                            f'test_fortran_analyser.{analysis.file_hash}.an')
+
+    def test_program_file(self,
+                          fortran_analyser: FortranAnalyser,
+                          module_fpath: Path,
+                          module_expected: AnalysedFortran) -> None:
         # same as test_module_file() but replacing MODULE with PROGRAM
         with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
             tmp_file.write(module_fpath.open().read().replace("MODULE",
@@ -112,6 +147,7 @@ class TestAnalyser:
                                                 'openmp_sentinel'})
 
             assert analysis == module_expected
+            assert isinstance(analysis, AnalysedFortran)
             assert artefact == fortran_analyser._config.prebuild_folder \
                    / f'{Path(tmp_file.name).stem}.{analysis.file_hash}.an'
 
@@ -123,7 +159,8 @@ class TestProcessVariableBinding:
 
     # todo: define and depend, with and without bind name
 
-    def test_define_without_bind_name(self, tmp_path):
+    def test_define_without_bind_name(self, tmp_path: Path,
+                                      stub_configuration: BuildConfig) -> None:
         '''Test usage of bind'''
         fpath = tmp_path / 'temp.f90'
 
@@ -154,7 +191,7 @@ class TestProcessVariableBinding:
         # run our handler
         fpath = Path('foo')
         analysed_file = AnalysedFortran(fpath=fpath, file_hash=0)
-        analyser = FortranAnalyser(config=None)
+        analyser = FortranAnalyser(config=stub_configuration)
         analyser._process_variable_binding(analysed_file=analysed_file,
                                            obj=var_decl)
 

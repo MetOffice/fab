@@ -7,6 +7,40 @@ A lot can be achieved with simple configurations but some of the more esoteric
 aspects of software building may require more esoteric Fab features.
 
 
+.. _importing_from_api:
+
+Importing from a Path-independent Location
+==========================================
+Fab is providing an ``api`` submodule, from which the important
+classes and functions that a user script will need can be imported,
+e.g.:
+
+.. code-block::
+    :caption: my_grab.py
+
+    from fab.api import analyse, BuildConfig, find_source_files, ToolBox
+
+The advantage of using this is that the script will be independent
+of the actual location of the source files within Fab. A potential
+disadvantage is that importing from the ``api`` submodule imports very
+many different function, and as such can be slower than just importing
+a few classes. On the other hand, a complex build script will typically
+explicitly or implicitly import all these functions and classes anyway.
+In not-representative tests, importing tool using ``api`` takes around
+0.2 seconds, while importing it from ``fab.tools.tool`` only takes
+0.05 seconds.
+
+The list of functions and classes provided:
+
+.. literalinclude:: ../../source/fab/api.py
+    :start-after: __all__ = [
+    :end-before:     ]
+
+Note that this documentation will show import from ``fab.api``
+in all code examples. But in the text, the full path within the
+Fab repository is used to make it easier to find the actual source
+code in case a more detailed study of the source code is required.
+
 .. _env_vars:
 
 Understanding the Environment
@@ -23,14 +57,14 @@ could be helpful to factor out the commonality into a shared module. Remember,
 your build configuration is just a Python script at the end of the day.
 
 In Fab's
-`example configurations <https://github.com/metomi/fab/tree/master/run_configs>`_,
+`example configurations <https://github.com/MetOffice/fab/tree/main/run_configs>`_,
 we have two build scripts to compile GCOM. Much of the configuration for these
 two scripts is identical. We extracted the common steps into
-`gcom_build_steps.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/gcom_build_steps.py>`_
+`gcom_build_steps.py <https://github.com/MetOffice/fab/blob/main/run_configs/gcom/gcom_build_steps.py>`_
 and used them in
-`build_gcom_ar.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/build_gcom_ar.py>`_
+`build_gcom_ar.py <https://github.com/MetOffice/fab/blob/main/run_configs/gcom/build_gcom_ar.py>`_
 and
-`build_gcom_so.py <https://github.com/metomi/fab/blob/master/run_configs/gcom/build_gcom_so.py>`_.
+`build_gcom_so.py <https://github.com/MetOffice/fab/blob/main/run_configs/gcom/build_gcom_so.py>`_.
 
 
 Separate grab and build scripts
@@ -202,7 +236,7 @@ when defining flags:
 .. code-block::
     :linenos:
 
-    git = config.tool_box[Category.GIT]
+    git = config.tool_box.get_tool(Category.GIT)
     git.add_flags(["-c", "foo.bar=123"])
 
 This effectively adds the flags to the to the dummy profile, allowing
@@ -289,7 +323,7 @@ will be affected consistently.
 
 
 Tool arguments
-============== 
+==============
 
 Sometimes it is necessary to pass additional arguments when we call a software
 tool.
@@ -398,13 +432,13 @@ We can currently only *add* flags for a path.
     This can require some understanding of where and when files are placed in
     the *build_output* folder: It will generally match the structure you've
     created in ``*<project workspace>/source*``, with your grab steps.
-    
+
     Early steps like preprocessors generally read files from ``*source*`` and
     write to ``*build_output*``.
-    
+
     Later steps like compilers generally read files which are already in
     ``*build_output*``.
-    
+
     For more information on where files end up see :ref:`Directory Structure`.
 
 
@@ -608,7 +642,7 @@ Custom Step
 An alternative approach for some problems is to write a custom step to modify
 the source so that the language parser can process it. Here's a simple example,
 based on a
-`real workaround <https://github.com/metomi/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L42-L65>`_
+`real workaround <https://github.com/MetOffice/fab/blob/216e00253ede22bfbcc2ee9b2e490d8c40421e5d/run_configs/um/build_um.py#L42-L65>`_
 where the parser gets confused by a variable called `NameListFile`.
 
 .. code-block::

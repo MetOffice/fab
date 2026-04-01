@@ -7,6 +7,10 @@ Welcome to Fab's documentation!
 *******************************
 Version |version| (release |release|).
 
+.. raw:: html
+
+   <p><a href="latex/fab.pdf">Download PDF version of this documentation</a></p>
+
 What is fab?
 ============
 
@@ -61,9 +65,9 @@ Config files
 
 See also
 ========
-* `Project wiki <https://github.com/metomi/fab/wiki>`_
+* `Project wiki <https://github.com/MetOffice/fab/wiki>`_
 * `Fab on PyPI <https://pypi.org/project/sci-fab/>`_
-* `Fab on Github <https://github.com/metomi/fab>`_
+* `Fab on Github <https://github.com/MetOffice/fab>`_
 * :ref:`Developers guide<Development>`
 
 
@@ -71,7 +75,7 @@ See also
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
    :hidden:
 
    install
@@ -82,6 +86,14 @@ See also
    advanced_config
    site-specific-config
    features
+
+.. toctree::
+   :maxdepth: 2
+   :caption: FabBase class
+   :hidden:
+
+   fab_base/index.rst
+
    Api Reference <api>
    development
    glossary

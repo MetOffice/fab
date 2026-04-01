@@ -19,7 +19,7 @@ This lets you edit the code without needing to reinstall fab after every change.
 
 .. code-block:: console
 
-    $ git clone https://github.com/metomi/fab.git <fab-folder>
+    $ git clone https://github.com/MetOffice/fab.git <fab-folder>
     $ pip install -e <fab-folder>
 
 
@@ -41,7 +41,7 @@ The class hierarchy for analysis results can be seen below. See
 Classes which are involved in source tree analysis contain symbol definitions
 and dependencies, and the file dependencies into which they are converted.
 
-.. image:: img/analysis_results_hierarchy.svg
+.. image:: _static/analysis_results_hierarchy.svg
     :width: 95%
     :align: center
     :alt: Analysis results class hierarchy
@@ -138,7 +138,7 @@ Build these docs
 
 The github action to build the docs is defined in
 ``.github/workflows/build_docs.yml``. It is manually triggered and can be run
-from any branch in the metomi repo.
+from any branch in the MetOffice repo.
 
 You can also run it on your fork to produce a separate build, for viewing work
 in progress.

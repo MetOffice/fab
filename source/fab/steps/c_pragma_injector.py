@@ -17,7 +17,7 @@ from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
 from fab.steps import run_mp, step
 from fab.util import input_to_output_fpath
 
-DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.C_BUILD_FILES, '.c')
+DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.C_COMPILER_FILES, '.c')
 
 
 # todo: test
@@ -28,7 +28,7 @@ def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None,
     A build step to inject custom pragmas to mark blocks of user and system
     include statements.
 
-    By default, reads .c files from the *INITIAL_SOURCE* artefact and creates
+    By default, reads .c files from the *INITIAL_SOURCE_FILES* artefact and creates
     the *pragmad_c* artefact.
 
     This step does not write to the build output folder, it creates the
@@ -55,7 +55,7 @@ def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None,
     args = [(config, file) for file in files]
     results = run_mp(config, items=args, func=_process_artefact)
     config.artefact_store[output_name] = set(results)
-    config.artefact_store.replace(ArtefactSet.C_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.C_COMPILER_FILES,
                                   remove_files=files,
                                   add_files=results)
 

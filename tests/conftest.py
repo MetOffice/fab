@@ -6,6 +6,7 @@
 """
 Fixtures and helpers for testing.
 """
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -16,6 +17,7 @@ from fab.build_config import BuildConfig
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.linker import Linker
 from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 
 
 def not_found_callback(process):
@@ -121,7 +123,7 @@ def stub_fortran_compiler() -> FortranCompiler:
 @fixture(scope='function')
 def stub_c_compiler() -> CCompiler:
     """
-    Provides a minial C compiler.
+    Provides a minimal C compiler.
     """
     compiler = CCompiler("some C compiler", "scc", "stub",
                          version_regex=r"([\d.]+)", openmp_flag='-omp')
@@ -165,6 +167,38 @@ def stub_tool_box(stub_fortran_compiler,
     return toolbox
 
 
+@fixture(scope="function", autouse=True)
+def reset_tool_repository(stub_fortran_compiler):
+    """
+    A fixture that resets the ToolRepository singleton
+    (and esp. will remove existing compiler instance which
+    might have had a state change in a test). It is automatically
+    applies to each function, to ensure all tests will execute
+    in parallel as well.
+    """
+    ToolRepository._singleton = None
+
+
+@fixture(scope='function')
+def stub_tool_repository(stub_fortran_compiler,
+                         stub_c_compiler,
+                         stub_linker,
+                         monkeypatch) -> ToolRepository:
+    """
+    Provides a minimal ToolRepository containing just Fortran and
+    C compilers and a linker.
+    """
+    monkeypatch.setattr(stub_fortran_compiler, 'check_available', return_true)
+    monkeypatch.setattr(stub_c_compiler, 'check_available', return_true)
+    monkeypatch.setattr(stub_linker, 'check_available', return_true)
+    tool_repository = ToolRepository()
+    tool_repository.add_tool(stub_fortran_compiler)
+    tool_repository.add_tool(stub_c_compiler)
+    tool_repository.add_tool(stub_linker)
+    tool_repository.set_default_compiler_suite("stub")
+    return tool_repository
+
+
 @fixture(scope='function')
 def stub_configuration(stub_tool_box: ToolBox, tmp_path: Path) -> BuildConfig:
     """
@@ -172,3 +206,18 @@ def stub_configuration(stub_tool_box: ToolBox, tmp_path: Path) -> BuildConfig:
     """
     return BuildConfig("Stub config", stub_tool_box,
                        fab_workspace=tmp_path / 'fab')
+
+
+@fixture(scope="function")
+def change_into_tmpdir(tmp_path):
+    '''
+    This fixture changes into a temporary working directory,
+    and changes automatically back at the end. The path can
+    be queried in a test: tmp_path = change_into_tmpdir
+    '''
+    prev_dir = Path(".")
+    os.chdir(tmp_path)
+    try:
+        yield tmp_path
+    finally:
+        os.chdir(prev_dir)

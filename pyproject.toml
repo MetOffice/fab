@@ -1,10 +1,14 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
 [project]
 name = "sci-fab"
 description = "Build system for scientific software"
 authors = [
     {name = "Core Capabilities Development Team", email = 'CoreCapabilityDevelopmentTeam@metoffice.gov.uk'}
 ]
-license = {file = 'LICENSE.txt'}
+license = {file = 'LICENSE'}
 dynamic = ['version', 'readme']
 requires-python = '>=3.9, <4'
 dependencies = ['fparser >= 0.2']
@@ -21,10 +25,13 @@ classifiers = [
 [project.optional-dependencies]
 c-language = ['libclang']
 plots = ['matplotlib']
-docs = ['sphinx',
-        'pydata-sphinx-theme>=0.13.3',
-        'sphinx-autodoc-typehints',
-        'sphinx-copybutton']
+docs = [
+    'sphinx',
+    'pydata-sphinx-theme>=0.13.3',
+    'sphinx-autodoc-typehints',
+    'sphinx-copybutton',
+    "sphinxcontrib-svg2pdfconverter>=1.3.0"
+]
 dev = [
     'pytest >= 8.3.0',
     'pytest-cov',
@@ -36,24 +43,20 @@ dev = [
 ]
 
 [project.scripts]
-fab = 'fab.cli:cli_fab'
+fab = 'fab.cui.__main__:main'
 
 [project.urls]
-homepage = 'https://github.com/Metomi/fab'
-documentation = 'https://metomi.github.io/fab/'
-repository = 'https://github.com/metomi/fab'
-'Bug Reports' = 'https://github.com/metomi/fab/issues'
+homepage = 'https://github.com/MetOffice/fab'
+documentation = 'https://MetOffice.github.io/fab'
+repository = 'https://github.com/MetOffice/fab'
+'Bug Reports' = 'https://github.com/MetOffice/fab/issues'
 
 [tool.setuptools.packages.find]
 where = ['source']
 
 [tool.setuptools.dynamic]
-readme = {file = 'README.md'}
+readme = {file = 'README.rst', content-type = "text/x-rst"}
 version = {attr = 'fab.__version__'}
-
-[build-system]
-requires = ['setuptools']
-build-backend = 'setuptools.build_meta'
 
 # This is required so that pytest finds conftest.py files.
 [tool.pytest.ini_options]
