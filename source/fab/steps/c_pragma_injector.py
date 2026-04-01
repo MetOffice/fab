@@ -28,8 +28,8 @@ def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None,
     A build step to inject custom pragmas to mark blocks of user and system
     include statements.
 
-    By default, reads .c files from the *INITIAL_SOURCE_FILES* artefact and creates
-    the *pragmad_c* artefact.
+    By default, reads .c files from the *INITIAL_SOURCE_FILES* artefact and
+    creates the *pragmad_c* artefact.
 
     This step does not write to the build output folder, it creates the
     pragmad c in the same folder as the c file. This is because a subsequent
