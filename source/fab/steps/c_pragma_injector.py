@@ -71,6 +71,7 @@ def _process_artefact(config_fpath: Tuple[BuildConfig, Path]) -> None:
     config, fpath = config_fpath
     prag_output_fpath = input_to_output_fpath(config,
                                               fpath.with_suffix('.prag'))
+    prag_output_fpath.parent.mkdir(parents=True, exist_ok=True)
     prag_output_fpath.open('w').writelines(inject_pragmas(fpath))
     return prag_output_fpath
 
