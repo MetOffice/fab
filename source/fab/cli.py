@@ -50,7 +50,8 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
                      tool_box=tool_box, **kwargs) as config:
         grab_folder(config, folder)
         find_source_files(config)
-        root_inc_files(config)  # JULES helper, get rid of this eventually
+        # JULES helper, get rid of this eventually
+        root_inc_files(config, suffix_list=[".inc", ".h"])
         preprocess_fortran(config)
         c_pragma_injector(config)
         preprocess_c(config, source=CollectionGetter(ArtefactSet.C_COMPILER_FILES))
