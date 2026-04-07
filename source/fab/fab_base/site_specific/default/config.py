@@ -2,7 +2,7 @@
 
 
 '''
-This module contains the default Baf configuration class.
+This module contains the default FabBase configuration class.
 '''
 
 import argparse
@@ -23,8 +23,9 @@ from fab.fab_base.site_specific.default.setup_script_nvidia import (
 
 class Config:
     '''
-    This class is the default Configuration object for Baf builds.
-    It provides several callbacks which will be called from the build
+    This class is the default Configuration object for build scripts
+    using FabBase.
+    It provides several callbacks which are called from the build
     scripts to allow site-specific customisations.
     '''
 
@@ -40,7 +41,7 @@ class Config:
 
     def get_valid_profiles(self) -> list[str]:
         '''
-        Determines the list of all allowed compiler profiles. The first
+        Determines the list of all allowed compilation profiles. The first
         entry in this list is the default profile to be used. This method
         can be overwritten by site configs to add or modify the supported
         profiles.
@@ -120,8 +121,7 @@ class Config:
         '''
         This method sets up the Cray compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
@@ -131,8 +131,7 @@ class Config:
         '''
         This method sets up the Gnu compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
@@ -142,8 +141,7 @@ class Config:
         '''
         This method sets up the Intel classic compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
@@ -153,8 +151,7 @@ class Config:
         '''
         This method sets up the Intel LLVM compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
@@ -164,8 +161,7 @@ class Config:
         '''
         This method sets up the Nvidia compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy).
 
         :param build_config: the Fab build configuration instance
         '''
