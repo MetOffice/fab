@@ -39,9 +39,7 @@ class IncludePath(CompilerArgument):
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, IncludePath):
-            raise TypeError(
-                f"Cannot compare IncludePath with {type(other).__name__}"
-            )
+            raise TypeError(f"Cannot compare IncludePath with {type(other).__name__}")
         return self._path == other._path
 
     def __repr__(self) -> str:
@@ -86,9 +84,7 @@ class LinkerPath(LinkerArgument):
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, LinkerPath):
-            raise TypeError(
-                f"Cannot compare LinkerPath with {type(other).__name__}"
-            )
+            raise TypeError(f"Cannot compare LinkerPath with {type(other).__name__}")
         return self._path == other._path
 
     def __repr__(self) -> str:
@@ -105,9 +101,7 @@ class LibraryName(LinkerArgument):
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, LibraryName):
-            raise TypeError(
-                f"Cannot compare LibraryName with {type(other).__name__}"
-            )
+            raise TypeError(f"Cannot compare LibraryName with {type(other).__name__}")
         return self._name == other._name
 
     def __repr__(self) -> str:
@@ -142,9 +136,7 @@ class Package:
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Package):
-            raise TypeError(
-                f"Cannot compare Package with {type(other).__name__}"
-            )
+            raise TypeError(f"Cannot compare Package with {type(other).__name__}")
         return (
             self._name == other._name
             and self._version == other._version

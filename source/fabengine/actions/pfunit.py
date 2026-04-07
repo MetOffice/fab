@@ -5,7 +5,7 @@ from pathlib import Path
 from re import compile as re_compile, IGNORECASE
 from typing import Iterable
 
-from fabengine.actions import Action, SubprocessAction, Prerequisite
+from fabengine.actions import Action, SubprocessAction, Prerequisite, TwoPartPath
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import PreprocessFortranAction
 from fabengine.database import Database
@@ -90,8 +90,7 @@ class PfUnit(SubprocessAction):
 
         return [
             PreprocessFortranAction(
-                self._repo_dir,
-                source_file,
+                TwoPartPath(self._repo_dir, source_file),
                 self._tag,
                 self._database,
                 {"_TEST_SUITES": f'"{include_file.absolute()}"'},
@@ -115,8 +114,7 @@ class PfUnit(SubprocessAction):
         self.run_subprocess()
         actions: list[Action] = [
             PreprocessFortranAction(
-                self._repo_dir,
-                self._source.with_suffix(".F90"),
+                TwoPartPath(self._repo_dir, self._source.with_suffix(".F90")),
                 self._tag,
                 self._database,
             )

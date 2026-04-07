@@ -8,6 +8,45 @@ from traceback import format_exception
 from typing import Any, Optional
 
 
+class TwoPartPath:
+    """
+    Holds a path as an absolute root and a relative branch.
+
+    This reflects the way we have repositories containing subprojects.
+    """
+
+    def __init__(self, root: Path, branch: Path):
+        """
+        :param root: Absolute root path.
+        :param branch: Relative branch path.
+        """
+        assert root.is_absolute(), f"Path <{root}> is not absolute"
+        assert not branch.is_absolute(), f"Path <{branch}> is not relative"
+        self._root = root
+        self._branch = branch
+
+    @property
+    def root(self) -> Path:
+        """
+        Gets the root path.
+        """
+        return self._root
+
+    @property
+    def branch(self) -> Path:
+        """
+        Gets the branch path.
+        """
+        return self._branch
+
+    @property
+    def full(self) -> Path:
+        """
+        Gets the full root and branch path.
+        """
+        return self._root / self._branch
+
+
 class Prerequisite(ABC):
     """
     Interface for prerequisite determination classes.
@@ -28,12 +67,12 @@ class Action(ABC):
     Interface for work queue actions.
     """
 
-    def __init__(self, id: str):
+    def __init__(self, identifier: str):
         """
-        :param id: Uniquely identifiers an action instance from others in its
-                   class. Often an input filename.
+        :param identifier: Uniquely identifiers an action instance from others
+                           in its class. Often an input filename.
         """
-        self._id = id
+        self._id = identifier
 
     @property
     def action_id(self) -> str:

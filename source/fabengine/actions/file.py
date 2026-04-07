@@ -2,7 +2,12 @@ from pathlib import Path
 from shutil import copyfile
 from typing import Iterable
 
-from fabengine.actions import Action, SubprocessActionException, Prerequisite
+from fabengine.actions import (
+    Action,
+    Prerequisite,
+    SubprocessActionException,
+    TwoPartPath,
+)
 from fabengine.database import Database
 from fabengine.prerequisite import FilePrerequisite
 
@@ -12,56 +17,24 @@ class ImportFile(Action):
     Copies a file into the workspace.
     """
 
-    def __init__(self, repo_dir: Path, filename: Path, tag: str, database: Database):
+    def __init__(
+        self, filename: TwoPartPath, tag: str, database: Database, kind="file"
+    ):
         """
-        :param repo_dir: Repository to copy from.
-        :param filename: File to copy, relative to repository.
+        :param filename: File to copy, relative part is used in working copy.
         :param tag: Subsection of workspace to copy file to.
         :param database: Build state and configuration.
         """
-        super().__init__(str(filename))
-        self._repo_dir = repo_dir
+        super().__init__(str(filename.full))
         self._filename = filename
         self._tag = tag
         self._database = database
+        self._kind = kind
 
     def __str__(self) -> str:
-        return f"Copy file: {self._repo_dir} {self._filename}"
-
-    @property
-    def repo_dir(self) -> Path:
-        """
-        Gets repository filename.
-        """
-        return self._repo_dir
-
-    @property
-    def filename(self) -> Path:
-        """
-        Gets source file, relative to repository.
-        """
-        return self._filename
-
-    @property
-    def source_file(self) -> Path:
-        """
-        Gets full source filename, including repository.
-        """
-        return self._repo_dir / self._filename
-
-    @property
-    def destination_file(self) -> Path:
-        """
-        Gets full destination filename, including tag.
-        """
-        return self._database.configuration.build_dir / self._tag / self._filename
-
-    @property
-    def command(self) -> str:
-        """
-        Human-readable interpretation of the command used.
-        """
-        return f"cp {self.source_file} {self.destination_file}"
+        return (
+            f"Import {self._kind} <{self._filename.full}> to <{self._filename.branch}>"
+        )
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -69,7 +42,15 @@ class ImportFile(Action):
 
         :return: Depends on source file.
         """
-        return [FilePrerequisite(self.source_file)]
+        return [FilePrerequisite(self._filename.full)]
+
+    @property
+    def source(self) -> Path:
+        return self._filename.full
+
+    @property
+    def destination(self) -> Path:
+        return self._database.configuration.build_dir / self._filename.branch
 
     def perform(self) -> list[Action]:
         """
@@ -77,13 +58,11 @@ class ImportFile(Action):
 
         :return: Empty list.
         """
-        self.destination_file.parent.mkdir(parents=True, exist_ok=True)
+        self.destination.parent.mkdir(parents=True, exist_ok=True)
         try:
-            copyfile(self.source_file, self.destination_file)
+            copyfile(self.source, self.destination)
         except FileNotFoundError:
             raise SubprocessActionException(
-                self,
-                return_code=-1,
-                command=self.command,
+                self, return_code=-1, command=f"cp {self.source} {self.destination}"
             )
         return []

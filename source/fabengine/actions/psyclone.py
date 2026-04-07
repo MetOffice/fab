@@ -4,7 +4,7 @@ from re import compile as re_compile, IGNORECASE
 from pathlib import Path
 from typing import Generator, Iterable, Optional
 
-from fabengine.actions import Action, Prerequisite, SubprocessAction
+from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.actions.fortran import PreprocessFortranBase
 from fabengine.prerequisite import FilePrerequisite, SymbolPrerequisite
 from fabengine.actions.fortran import AnalyseFortran
@@ -18,24 +18,20 @@ class PreprocessAlgorithm(PreprocessFortranBase):
 
     def __init__(
         self,
-        repo_dir: Path,
-        filename: Path,
+        filename: TwoPartPath,
         project: str,
         database: Database,
         extra_definitions: Optional[dict[str, str]] = None,
     ):
         """
-        :param repo_dir: Source tree root.
-        :param filename: Algorithm file relative to root.
+        :param filename: Algorithm file.
         :param project: Subdirectory of workspace for resulting source.
         :param database: Build system state and configuration.
         :param extra_definitions: Additional macros to use with preprocessor.
         """
-        super().__init__(repo_dir, filename, project, database, extra_definitions)
-        self._project = project
-
-    def __str__(self) -> str:
-        return f"Preprocess PSyKAl algorithm: {self.repo} {self.filename}"
+        super().__init__(
+            filename, project, database, extra_definitions, kind="PSyKAl algorithm"
+        )
 
     def perform(self) -> list[Action]:
         """
@@ -47,8 +43,9 @@ class PreprocessAlgorithm(PreprocessFortranBase):
         build_dir = self._database.configuration.build_dir
         actions.append(
             PSyclone(
-                build_dir,
-                self.destination_file.relative_to(build_dir),
+                TwoPartPath(
+                    build_dir.absolute(), self.destination_file.relative_to(build_dir)
+                ),
                 "",
                 self._database,
             )
@@ -63,31 +60,26 @@ class PSyclone(SubprocessAction):
     .. todo:: No transformation scripts!
     """
 
-    def __init__(
-        self, repo_dir: Path, algorithm_file: Path, tag: str, database: Database
-    ):
+    def __init__(self, algorithm_file: TwoPartPath, tag: str, database: Database):
         """
-        :param repo_dir: Source tree root.
-        :param algorithm_file: Algorithm file relative to root.
+        :param algorithm_file: Algorithm file.
         :param tag: Subdirectory of workspace for resulting source.
         :param database: Build system state and configuration.
         """
-        self._repo_dir = repo_dir
         self._algorithm_file = algorithm_file
         self._tag = tag
         self._database = database
 
-        self._source_file = self._repo_dir / self._algorithm_file
         self._project_dir = (
             self._database.configuration.build_dir
             / self._tag
-            / self._algorithm_file.parent
+            / self._algorithm_file.branch.parent
         )
 
-        self._alg_name = self._algorithm_file.with_suffix(".f90").name
-        all_kernels = self._find_kernels(self._source_file)
+        self._alg_name = self._algorithm_file.branch.with_suffix(".f90").name
+        all_kernels = self._find_kernels(self._algorithm_file.full)
         self._psy = all_kernels != []
-        self._psy_name = self._algorithm_file.stem + "_psy.f90"
+        self._psy_name = self._algorithm_file.branch.stem + "_psy.f90"
         self._kernels = self._remove_builtins(all_kernels)
 
         arguments = [
@@ -100,11 +92,11 @@ class PSyclone(SubprocessAction):
         ]
         arguments.extend(["-oalg", self._project_dir / self._alg_name])
         arguments.extend(["-opsy", self._project_dir / self._psy_name])
-        arguments.append(str(self._repo_dir / self._algorithm_file))
+        arguments.append(self._algorithm_file.full)
         super().__init__(Path("psyclone"), arguments)
 
     def __str__(self) -> str:
-        return "PSyclone: " + self._algorithm_file.name
+        return f"PSyclone <{self._algorithm_file.branch}>"
 
     @staticmethod
     def _remove_builtins(kernels: list[str]) -> list[str]:

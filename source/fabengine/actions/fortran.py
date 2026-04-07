@@ -9,9 +9,10 @@ from typing import Optional, Iterable
 
 from fabengine.actions import (
     Action,
+    Prerequisite,
     SubprocessAction,
     SubprocessActionException,
-    Prerequisite,
+    TwoPartPath,
 )
 from fabengine.actions.file import ImportFile
 from fabengine.database import (
@@ -34,8 +35,8 @@ class ImportFortran(ImportFile):
     Copies Fortran source into workspace.
     """
 
-    def __str__(self) -> str:
-        return f"Import Fortran: {self.repo_dir} {self.filename}"
+    def __init__(self, filename: TwoPartPath, tag: str, database: Database):
+        super().__init__(filename, tag, database, kind="Fortran")
 
     def perform(self) -> list[Action]:
         """
@@ -44,7 +45,7 @@ class ImportFortran(ImportFile):
         :return: An AnalyseFortran object for the new file.
         """
         actions = super().perform()
-        actions.append(AnalyseFortran(self.destination_file, self._database))
+        actions.append(AnalyseFortran(self.destination, self._database))
         return actions
 
 
@@ -53,8 +54,8 @@ class ImportInclusion(ImportFile):
     Copies a file for inclusion into the workspace.
     """
 
-    def __str__(self) -> str:
-        return f"Import inclusion: {self.source_file}"
+    def __init__(self, filename: TwoPartPath, tag: str, database: Database):
+        super().__init__(filename, tag, database, kind="inclusion")
 
     def perform(self) -> list[Action]:
         """
@@ -63,15 +64,15 @@ class ImportInclusion(ImportFile):
         :return: If a file of that name already exists an error ActionResult.
         """
         actions = super().perform()
-        if Path(self.destination_file.name) not in self._database.inclusions:
-            filename = Path(self.destination_file.name)
-            self._database.inclusions[filename] = self.destination_file
+        if Path(self.destination.name) not in self._database.inclusions:
+            filename = Path(self.destination.name)
+            self._database.inclusions[filename] = self.destination
         else:
             raise SubprocessActionException(
                 self,
-                command=self.command,
+                command=f"cp {self.source} {self.destination}",
                 return_code=-1,
-                stderr=f"Duplicate inclusion '{self.destination_file.name} found",
+                stderr=f"Duplicate inclusion '{self.destination.name} found",
             )
         return actions
 
@@ -87,29 +88,28 @@ class PreprocessFortranBase(SubprocessAction, ABC):
 
     def __init__(
         self,
-        repo_dir: Path,
-        filename: Path,
+        fortran_file: TwoPartPath,
         project: str,
         database: Database,
         extra_definitions: Optional[dict[str, str]] = None,
+        kind="Fortran",
     ):
         """
-        :param repo_dir: Root of source tree.
-        :param filename: Source file relative to root.
+        :param fortran_file: Source file as root and branch.
         :param project: Name under which to collect source in workspace.
         :param database: Build system state and configuration.
-        :param extra_definitions: Additional macros to use with this preproces.
+        :param extra_definitions: Additional macros to use with this preprocess.
         """
-        self._repo_dir = repo_dir
-        self._filename = filename
+        self._fortran_file = fortran_file
         self._project = project
         self._database = database
         self._extra_definitions = extra_definitions or {}
+        self._kind = kind
 
         self._prereqs: list[Prerequisite] = []
-        for filename in self._determine_prereqs(self.source_file):
+        for filename in self._determine_prereqs(self._fortran_file.full):
             self._prereqs.append(InclusionPrerequisite(filename, self._database))
-        self._prereqs.append(FilePrerequisite(self.source_file))
+        self._prereqs.append(FilePrerequisite(self._fortran_file.full))
 
         # Todo: Hardwired command
         arguments = ["-traditional-cpp", "-P"]
@@ -120,42 +120,24 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         for name, value in self._extra_definitions.items():
             arguments.append(f"-D{name}={value}")
 
-        arguments.append(str(self.source_file))
+        arguments.append(str(self._fortran_file.full))
         arguments.append(str(self.destination_file))
 
         super().__init__(Path("cpp"), arguments)
 
-    @property
-    def repo(self) -> Path:
-        """
-        :return: Root of source tree.
-        """
-        return self._repo_dir
-
-    @property
-    def filename(self) -> Path:
-        """
-        :return: Source file relative to source tree root.
-        """
-        return self._filename
-
-    @property
-    def source_file(self) -> Path:
-        """
-        :return: Full path to source file.
-        """
-        return self._repo_dir / self._filename
+    def __str__(self) -> str:
+        return f"Preprocess {self._kind} <{self._fortran_file.branch}>"
 
     @property
     def destination_file(self) -> Path:
         """
         :return: Full path to destination file.
         """
-        suffix = self._filename.suffix.lower()
+        suffix = self._fortran_file.branch.suffix.lower()
         return (
             self._database.configuration.build_dir
             / self._project
-            / self._filename.with_suffix(suffix)
+            / self._fortran_file.branch.with_suffix(suffix)
         )
 
     _INCLUDE_PATTERN = re_compile(r'\s*#include\s+(?P<quote>[\'"])(.+?)(?P=quote)')
@@ -187,20 +169,6 @@ class PreprocessFortranAction(PreprocessFortranBase):
     """
     Preprocesses Fortran source.
     """
-
-    def __init__(
-        self,
-        repo_dir: Path,
-        filename: Path,
-        tag: str,
-        database: Database,
-        extra_definitions: Optional[dict[str, str]] = None,
-    ):
-        super().__init__(repo_dir, filename, tag, database, extra_definitions)
-        self._tag = tag
-
-    def __str__(self) -> str:
-        return "Preprocess Fortran: " + str(self.source_file)
 
     def perform(self) -> list[Action]:
         """
@@ -496,9 +464,9 @@ class CompileFortran(SubprocessAction):
 
         # Todo: Hardwired assumption on workspace layout
         extra_arguments: list[str] = []
-        relative_path = self._source.relative_to(self._database.configuration.build_dir)
+        branch_path = self._source.relative_to(self._database.configuration.build_dir)
         for case, tags in self._database.configuration.tag_dirs.items():
-            if relative_path.is_relative_to(case):
+            if branch_path.is_relative_to(case):
                 for tag in tags:
                     extra_arguments.extend(
                         self._database.configuration.build_tag_args[tag]

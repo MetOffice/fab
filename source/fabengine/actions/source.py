@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlparse
 
-from fabengine.actions import Action, Prerequisite, SubprocessAction
+from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.prerequisite import FilePrerequisite
 from fabengine.actions.fortran import (
     ImportFortran,
@@ -220,14 +220,16 @@ class SourceDirectory(Action):
                     continue  # Ignore "hidden" files.
 
                 full_filename = root / leaf
-                relative_filename = full_filename.relative_to(self._source_dir)
+                two_part_filename = TwoPartPath(
+                    self._source_dir.absolute(),
+                    full_filename.relative_to(self._source_dir),
+                )
 
                 actions: list[Action] = []
                 if full_filename.suffix == ".f90":
                     actions.append(
                         ImportFortran(
-                            self._source_dir,
-                            relative_filename,
+                            two_part_filename,
                             self._tag,
                             self._database,
                         )
@@ -235,8 +237,7 @@ class SourceDirectory(Action):
                 elif full_filename.suffix == ".F90":
                     actions.append(
                         PreprocessFortranAction(
-                            self._source_dir,
-                            relative_filename,
+                            two_part_filename,
                             self._tag,
                             self._database,
                         )
@@ -246,8 +247,8 @@ class SourceDirectory(Action):
                     #       need it?
                     actions.append(
                         PfUnit(
-                            self._source_dir,
-                            relative_filename,
+                            two_part_filename.root,
+                            two_part_filename.branch,
                             self._tag,
                             self._database,
                         )
@@ -271,8 +272,7 @@ class SourceDirectory(Action):
                 elif full_filename.suffix == ".X90":
                     actions.append(
                         PreprocessAlgorithm(
-                            self._source_dir,
-                            relative_filename,
+                            two_part_filename,
                             self._tag,
                             self._database,
                         )
@@ -280,8 +280,7 @@ class SourceDirectory(Action):
                 elif full_filename.suffix == ".x90":
                     actions.append(
                         PSyclone(
-                            self._source_dir,
-                            relative_filename,
+                            two_part_filename,
                             self._tag,
                             self._database,
                         )
@@ -292,8 +291,7 @@ class SourceDirectory(Action):
                 ):
                     actions.append(
                         ImportInclusion(
-                            self._source_dir,
-                            relative_filename,
+                            two_part_filename,
                             self._tag,
                             self._database,
                         )
