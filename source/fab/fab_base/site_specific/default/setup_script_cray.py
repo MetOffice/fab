@@ -13,8 +13,8 @@ from typing import cast
 from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_cray(build_config: BuildConfig,
-               args: argparse.Namespace) -> None:
+def setup_script_cray(build_config: BuildConfig,
+                      args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument, too-many-branches
     '''
     Defines the default flags for ftn.
