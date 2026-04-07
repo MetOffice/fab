@@ -3,10 +3,7 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-import filecmp
-from os import unlink
 from pathlib import Path
-import shutil
 from typing import Any, Dict
 from unittest import mock
 
@@ -19,8 +16,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
 from fab.steps.psyclone import (_analyse_x90s, _analyse_kernels,
-                                make_parsable_x90, preprocess_x90,
-                                psyclone)
+                                preprocess_x90, psyclone)
 from fab.tools.psyclone import Psyclone
 from fab.tools.tool_box import ToolBox
 from fab.util import file_checksum
@@ -40,29 +36,6 @@ NAME_KEYWORDS = ['name a', 'name b', 'name c', 'name d', 'name e', 'name f']
 # todo: Tidy up the test data in here. There are two sample projects, one not even in its own subfolder.
 #       Make the skeleton sample call more than one kernel.
 #       Make the skeleton sample include a big X90 and a little x90.
-
-
-def test_make_parsable_x90(tmp_path):
-    # turn x90 into parsable fortran by removing the name keyword from calls to invoke
-    grab_x90_path = SAMPLE_X90
-    input_x90_path = tmp_path / grab_x90_path.name
-    shutil.copy(grab_x90_path, input_x90_path)
-
-    parsable_x90_path = make_parsable_x90(input_x90_path)
-
-    with BuildConfig('proj', ToolBox(), fab_workspace=tmp_path) as config:
-        x90_analyser = X90Analyser(config=config)
-        x90_analyser.run(parsable_x90_path)
-
-    # ensure the files are as expected
-    assert filecmp.cmp(parsable_x90_path, EXPECT_PARSABLE_X90)
-
-    # make_parsable_x90() puts its output file next to the source.
-    # Because we're reading sample code from our Fab git repos,
-    # we don't want to leave this test output in our working copies, so delete it.
-    # Otherwise, it'll appear in the output from `git status`.
-    unlink(parsable_x90_path)
-
 
 class TestX90Analyser:
 
@@ -106,7 +79,7 @@ class Test_analysis_for_x90s_and_kernels:
         # analysed_x90
         assert analysed_x90 == {
             SAMPLE_X90: AnalysedX90(
-                fpath=SAMPLE_X90.with_suffix('.parsable_x90'),
+                fpath=SAMPLE_X90,
                 file_hash=file_checksum(SAMPLE_X90).file_hash,
                 kernel_deps={'kernel_one_type', 'kernel_two_type'})}
 
