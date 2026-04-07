@@ -127,8 +127,12 @@ class FortranAnalyserBase(ABC):
         return analysed_file, analysis_fpath
 
     def _get_analysis_fpath(self, fpath, file_hash) -> Path:
+        """
+        :returns: the name to use for the analysis file. It consists of
+            the original filename, the hash, and a `.an` suffix.
+        """
         return Path(self.config.prebuild_folder /
-                    f'{fpath.stem}.{file_hash}.an')
+                    f'{fpath.name}.{file_hash}.an')
 
     def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""

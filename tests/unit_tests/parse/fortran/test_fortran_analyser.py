@@ -9,7 +9,6 @@
 
 
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from unittest import mock
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
@@ -75,8 +74,9 @@ class TestAnalyser:
         with mock.patch('fab.parse.AnalysedFile.save'):
             analysis, artefact = fortran_analyser.run(fpath=module_fpath)
         assert analysis == module_expected
-        assert artefact == (fortran_analyser._config.prebuild_folder /
-                            f'test_fortran_analyser.{analysis.file_hash}.an')
+        assert artefact == (
+            fortran_analyser._config.prebuild_folder /
+            f'test_fortran_analyser.f90.{analysis.file_hash}.an')
 
     def test_module_file_no_openmp(self, fortran_analyser: FortranAnalyser,
                                    module_fpath: Path,
@@ -95,8 +95,9 @@ class TestAnalyser:
 
         assert analysis == module_expected
         assert isinstance(analysis, AnalysedFortran)
-        assert artefact == (fortran_analyser._config.prebuild_folder /
-                            f'test_fortran_analyser.{analysis.file_hash}.an')
+        assert artefact == (
+            fortran_analyser._config.prebuild_folder /
+            f'test_fortran_analyser.f90.{analysis.file_hash}.an')
 
     def test_module_file_ignore_dependencies(
              self,
@@ -122,15 +123,18 @@ class TestAnalyser:
 
         assert analysis == module_expected
         assert isinstance(analysis, AnalysedFortran)
-        assert artefact == (fortran_analyser._config.prebuild_folder /
-                            f'test_fortran_analyser.{analysis.file_hash}.an')
+        assert artefact == (
+                fortran_analyser._config.prebuild_folder /
+                f'test_fortran_analyser.f90.{analysis.file_hash}.an')
 
     def test_program_file(self,
+                          tmp_path: Path,
                           fortran_analyser: FortranAnalyser,
                           module_fpath: Path,
                           module_expected: AnalysedFortran) -> None:
         # same as test_module_file() but replacing MODULE with PROGRAM
-        with NamedTemporaryFile(mode='w+t', suffix='.f90') as tmp_file:
+        prog_path = tmp_path / "prog.f90"
+        with prog_path.open('w') as tmp_file:
             tmp_file.write(module_fpath.open().read().replace("MODULE",
                                                               "PROGRAM"))
             tmp_file.flush()
@@ -148,8 +152,9 @@ class TestAnalyser:
 
             assert analysis == module_expected
             assert isinstance(analysis, AnalysedFortran)
-            assert artefact == fortran_analyser._config.prebuild_folder \
-                   / f'{Path(tmp_file.name).stem}.{analysis.file_hash}.an'
+            assert artefact == (
+                fortran_analyser._config.prebuild_folder /
+                f'{prog_path.name}.{analysis.file_hash}.an')
 
 
 # todo: test more methods!
