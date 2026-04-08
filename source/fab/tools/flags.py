@@ -112,6 +112,7 @@ class AlwaysFlags(AbstractFlags):
     """
     def __init__(self, flags: Optional[Union[str, List[str]]] = None) -> None:
 
+        super().__init__()   # type: ignore[safe-super]
         if isinstance(flags, str):
             self._flags = [flags]
         elif flags:
