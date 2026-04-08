@@ -526,7 +526,7 @@ ProfileFlags:
         ifx = tr.get_tool(Category.FORTRAN_COMPILER, "ifx")
 
         # These will be converted to an AlwaysFlag:
-        ifx.add_flags(["-stand", "f08"],               "base")
+        ifx.add_flags(["-stand", "f08"], "base")
 
         # ifx 2025.2 has no omp_version in omp_lib, so we
         # have to disable OpenMP:

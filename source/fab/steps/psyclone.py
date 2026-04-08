@@ -10,7 +10,6 @@ https://github.com/stfc/PSyclone
 """
 from dataclasses import dataclass
 import logging
-import re
 import shutil
 import warnings
 from itertools import chain
@@ -194,19 +193,15 @@ def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_fold
 def _analyse_x90s(config: BuildConfig,
                   x90s: Set[Path]) -> Dict[Path, AnalysedX90]:
     """
-    Analyse parsable versions of the x90s, finding kernel dependencies.
+    Analyse the x90s, finding kernel dependencies.
     """
-
-    # make parsable - todo: fast enough not to require prebuilds?
-    with TimerLogger(f"converting {len(x90s)} x90s into parsable fortran"):
-        parsable_x90s = run_mp(config, items=x90s, func=make_parsable_x90)
 
     # Parse. Note that there is no need to ignore dependencies: the x90
     # files will be converted to algorithm layer f90 files, and then
     # properly analysed later.
     x90_analyser = X90Analyser(config=config)
-    with TimerLogger(f"analysing {len(parsable_x90s)} parsable x90 files"):
-        x90_results = run_mp(config, items=parsable_x90s, func=x90_analyser.run)
+    with TimerLogger(f"analysing {len(x90s)} x90 files"):
+        x90_results = run_mp(config, items=x90s, func=x90_analyser.run)
     log_or_dot_finish(logger)
     x90_analyses, x90_artefacts = zip(*x90_results) if x90_results else ((), ())
     check_for_errors(results=x90_analyses)
@@ -215,11 +210,11 @@ def _analyse_x90s(config: BuildConfig,
     prebuild_files = list(by_type(x90_artefacts, Path))
     config.add_current_prebuilds(prebuild_files)
 
-    # record the analysis results against the original x90 filenames (not the parsable versions we analysed)
+    # record the analysis results against the original x90 filenames
     analysed_x90 = by_type(x90_analyses, AnalysedX90)
     analysed_x90 = {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
 
-    # make the hashes from the original x90s, not the parsable versions which have invoke names removed.
+    # make the hashes from the x90s
     for p in analysed_x90:
         analysed_x90[p]._file_hash = file_checksum(p).file_hash
 
@@ -259,7 +254,6 @@ def _analyse_kernels(
     file_lists = [list(file_walk(root, ignore_folders=[config.prebuild_folder])) for root in kernel_roots]
     all_kernel_files: Set[Path] = set(sum(file_lists, []))
     kernel_files: List[Path] = suffix_filter(all_kernel_files, ['.f90'])
-
     # We use the normal Fortran analyser, which records psyclone kernel metadata.
     # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
     # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
@@ -373,7 +367,7 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
      - cli args
 
     """
-    # We've analysed (a parsable version of) this x90.
+    # We've analysed this x90.
     analysis_result = mp_payload.analysed_x90[x90_file]  # type: ignore
 
     # include the hashes of kernels used by this x90
@@ -393,7 +387,7 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
     # todo: hash the psyclone version in case the built-in kernels change?
     prebuild_hash = sum([
 
-        # the hash of the x90 (not of the parsable version, so includes invoke names)
+        # the hash of the x90
         analysis_result.file_hash,
 
         # the hashes of the kernels used by this x90
@@ -437,64 +431,3 @@ def _check_override(check_path: Path, mp_payload: MpCommonArgs):
 
     # we didn't have an override, so continue using this file
     return check_path
-
-
-# regex to convert an x90 into parsable fortran, so it can be analysed using a third party tool
-
-WHITE = r'[\s&]+'
-OPT_WHITE = r'[\s&]*'
-
-SQ_STRING = "'[^']*'"
-DQ_STRING = '"[^"]*"'
-STRING = f'({SQ_STRING}|{DQ_STRING})'
-
-NAME_KEYWORD = 'name' + OPT_WHITE + '=' + OPT_WHITE + STRING + OPT_WHITE + ',' + OPT_WHITE
-NAMED_INVOKE = 'call' + WHITE + 'invoke' + OPT_WHITE + r'\(' + OPT_WHITE + NAME_KEYWORD
-
-_x90_compliance_pattern = None
-
-
-# todo: In the future, we'd like to extend fparser to handle the leading invoke keywords. (Lots of effort.)
-def make_parsable_x90(x90_path: Path) -> Path:
-    """
-    Take out the leading name keyword in calls to invoke(), making temporary, parsable fortran from x90s.
-
-    If present it looks like this::
-
-        call invoke( name = "compute_dry_mass", ...
-
-    Returns the path of the parsable file.
-
-    This function is not slow so we're not creating prebuilds for this work.
-
-    """
-    global _x90_compliance_pattern
-    if not _x90_compliance_pattern:
-        _x90_compliance_pattern = re.compile(pattern=NAMED_INVOKE)
-
-    # src = open(x90_path, 'rt').read()
-
-    # Before we remove the name keywords to invoke, we must remove any comment lines.
-    # This is the simplest way to avoid producing bad fortran when the name keyword is followed by a comment line.
-    # I.e. The comment line doesn't have an "&", so we get "call invoke(!" with no "&", which is a syntax error.
-    src_lines = open(x90_path, 'rt').readlines()
-    no_comment_lines = [line for line in src_lines if not line.lstrip().startswith('!')]
-    src = ''.join(no_comment_lines)
-
-    replaced = []
-
-    def repl(matchobj):
-        # matchobj[0] contains the entire matching string, from "call" to the "," after the name keyword.
-        # matchobj[1] contains the single group in the search pattern, which is defined in STRING.
-        name = matchobj[1].replace('"', '').replace("'", "")
-        replaced.append(name)
-        return 'call invoke('
-
-    out = _x90_compliance_pattern.sub(repl=repl, string=src)
-
-    out_path = x90_path.with_suffix('.parsable_x90')
-    open(out_path, 'wt').write(out)
-
-    logger.debug(f'names removed from {str(x90_path)}: {replaced}')
-
-    return out_path
