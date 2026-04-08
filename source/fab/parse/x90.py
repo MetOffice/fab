@@ -6,12 +6,20 @@
 from pathlib import Path
 from typing import Iterable, Set, Union, Optional, Dict, Any
 
-from fparser.two.Fortran2003 import Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List, Part_Ref  # type: ignore
+from fparser.two.Fortran2003 import (     # type: ignore
+    Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List,
+    Part_Ref)
 from fparser.two.utils import walk  # type: ignore
+try:
+    # In case that PSyclone is not installed, we still want to be
+    # able to run all tests
+    from psyclone.domain.lfric.lfric_builtins import BUILTIN_MAP    # type: ignore
+except ImportError:
+    BUILTIN_MAP = {}
 
-from fab.parse import AnalysedFile
 from fab.build_config import BuildConfig
 from fab.parse.fortran_common import FortranAnalyserBase, logger, _typed_child
+from fab.parse import AnalysedFile
 from fab.util import by_type
 
 
@@ -21,7 +29,8 @@ class AnalysedX90(AnalysedFile):
 
     """
     def __init__(self, fpath: Union[str, Path], file_hash: int,
-                 # todo: the fortran version doesn't include the remaining args - update this too, for simplicity.
+                 # todo: the fortran version doesn't include the remaining
+                 # args - update this too, for simplicity.
                  kernel_deps: Optional[Iterable[str]] = None):
         """
         :param fpath:
@@ -123,4 +132,5 @@ class X90Analyser(FortranAnalyserBase):
                 if arg_name in symbol_deps:
                     analysed_file.kernel_deps.add(arg_name)
                 else:
-                    logger.debug(f"arg '{arg_name}' to invoke() was not used, presumed built-in kernel")
+                    if arg_name.lower() not in BUILTIN_MAP:
+                        logger.debug(f"arg '{arg_name}' is unknown.")
