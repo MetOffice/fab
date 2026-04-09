@@ -13,7 +13,7 @@ import shutil
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import cast, Dict, List, Optional, Set, Tuple, Union
+from typing import cast, Optional, Union
 
 from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
                            FilterBuildTrees)
@@ -38,14 +38,14 @@ class MpCommonArgs:
     alongside the filenames."""
     config: BuildConfig
     flags: FlagsConfig
-    mod_hashes: Dict[str, int]
+    mod_hashes: dict[str, int]
     syntax_only: bool
 
 
 @step
 def compile_fortran(config: BuildConfig,
-                    common_flags: Optional[List[str]] = None,
-                    path_flags: Optional[List] = None,
+                    common_flags: Optional[list[str]] = None,
+                    path_flags: Optional[list] = None,
                     source: Optional[ArtefactsGetter] = None):
     """
     Compiles all Fortran files in all build trees, creating/extending a set
@@ -73,14 +73,14 @@ def compile_fortran(config: BuildConfig,
     """
 
     source_getter = source or DEFAULT_SOURCE_GETTER
-    mod_hashes: Dict[str, int] = {}
+    mod_hashes: dict[str, int] = {}
 
     # get all the source to compile, for all build trees, into one big lump
-    build_lists: Dict[str, List] = source_getter(config.artefact_store)
+    build_lists: dict[str, list] = source_getter(config.artefact_store)
 
     # compile everything in multiple passes
-    compiled: Dict[Path, CompiledFile] = {}
-    uncompiled: Set[AnalysedFortran] = set(sum(build_lists.values(), []))
+    compiled: dict[Path, CompiledFile] = {}
+    uncompiled: set[AnalysedFortran] = set(sum(build_lists.values(), []))
     logger.info(f"compiling {len(uncompiled)} fortran files")
 
     # No need to do anything else if there are no files to compile
@@ -151,9 +151,9 @@ def handle_compiler_args(config: BuildConfig, common_flags=None,
     return compiler, flags_config
 
 
-def compile_pass(config, compiled: Dict[Path, CompiledFile],
-                 uncompiled: Set[AnalysedFortran],
-                 mp_common_args: MpCommonArgs, mod_hashes: Dict[str, int]):
+def compile_pass(config, compiled: dict[Path, CompiledFile],
+                 uncompiled: set[AnalysedFortran],
+                 mp_common_args: MpCommonArgs, mod_hashes: dict[str, int]):
     # what can we compile next?
     compile_next = get_compile_next(compiled, uncompiled)
 
@@ -188,15 +188,15 @@ def compile_pass(config, compiled: Dict[Path, CompiledFile],
     return uncompiled
 
 
-def get_compile_next(compiled: Dict[Path, CompiledFile],
-                     uncompiled: Set[AnalysedFortran]) -> Set[AnalysedFortran]:
+def get_compile_next(compiled: dict[Path, CompiledFile],
+                     uncompiled: set[AnalysedFortran]) -> set[AnalysedFortran]:
     '''Find what to compile next.
     :param compiled: A dictionary with already compiled files.
     :param uncompiled: The set of still to be compiled files.
     :returns: A set with all files that can now be compiled.
     '''
     compile_next = set()
-    not_ready: Dict[Path, List[Path]] = {}
+    not_ready: dict[Path, list[Path]] = {}
     for af in uncompiled:
         # all deps ready?
         unfulfilled = [dep for dep in af.file_deps
@@ -219,8 +219,8 @@ def get_compile_next(compiled: Dict[Path, CompiledFile],
     return compile_next
 
 
-def store_artefacts(compiled_files: Dict[Path, CompiledFile],
-                    build_lists: Dict[str, List],
+def store_artefacts(compiled_files: dict[Path, CompiledFile],
+                    build_lists: dict[str, list],
                     artefact_store: ArtefactStore):
     """
     Create our artefact collection; object files for each compiled file, per
@@ -234,8 +234,8 @@ def store_artefacts(compiled_files: Dict[Path, CompiledFile],
         artefact_store.update_dict(ArtefactSet.OBJECT_FILES, new_objects, root)
 
 
-def process_file(arg: Tuple[AnalysedFortran, MpCommonArgs]) \
-        -> Union[Tuple[CompiledFile, List[Path]], Tuple[Exception, None]]:
+def process_file(arg: tuple[AnalysedFortran, MpCommonArgs]) \
+        -> Union[tuple[CompiledFile, list[Path]], tuple[Exception, None]]:
     """
     Prepare to compile a fortran file, and compile it if anything has changed
     since it was last compiled.
@@ -400,8 +400,8 @@ def compile_file(analysed_file, flags, output_fpath, mp_common_args):
                           syntax_only=mp_common_args.syntax_only)
 
 
-def get_mod_hashes(analysed_files: Set[AnalysedFortran],
-                   config: BuildConfig) -> Dict[str, int]:
+def get_mod_hashes(analysed_files: set[AnalysedFortran],
+                   config: BuildConfig) -> dict[str, int]:
     """
     Get the hash of every module file defined in the list of analysed files.
 

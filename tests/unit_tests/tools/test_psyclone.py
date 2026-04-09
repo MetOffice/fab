@@ -7,7 +7,7 @@
 Tests the PSyclone tool.
 """
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 from unittest.mock import Mock
 
 from pytest import mark, raises, warns
@@ -189,7 +189,7 @@ def test_processing_errors_with_api(api: str,
                           ("gocean1.0", "gocean1.0"),
                           ("gocean", "gocean1.0")
                           ])
-def test_process_api_old_psyclone(api: Tuple[str, str], version: str,
+def test_process_api_old_psyclone(api: tuple[str, str], version: str,
                                   fake_process: FakeProcess) -> None:
     """
     Tests old style API support with PSyclone 2.5.0 and earlier.
@@ -269,7 +269,7 @@ def test_process_nemo_api_old_psyclone(version: str, api: Optional[str],
                       ("gocean1.0", "gocean"),
                       ("gocean", "gocean")
                   ])
-def test_process_api_new_psyclone(api: Tuple[str, str],
+def test_process_api_new_psyclone(api: tuple[str, str],
                                   fake_process: FakeProcess) -> None:
     """
     Test running PSyclone 3.0.0. It uses new API names, and we need to

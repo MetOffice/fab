@@ -9,7 +9,7 @@ C file compilation.
 """
 import logging
 from dataclasses import dataclass
-from typing import cast, Dict, List, Optional, Tuple
+from typing import cast, Optional
 
 from fab import FabException
 from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
@@ -37,8 +37,8 @@ class MpCommonArgs:
 
 
 @step
-def compile_c(config, common_flags: Optional[List[str]] = None,
-              path_flags: Optional[List] = None,
+def compile_c(config, common_flags: Optional[list[str]] = None,
+              path_flags: Optional[list] = None,
               source: Optional[ArtefactsGetter] = None):
     """
     Compiles all C files in all build trees, creating or extending a set of
@@ -73,7 +73,7 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
     source_getter = source or DEFAULT_SOURCE_GETTER
 
     # gather all the source to compile, for all build trees, into one big lump
-    build_lists: Dict = source_getter(config.artefact_store)
+    build_lists: dict = source_getter(config.artefact_store)
     to_compile: list = sum(build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
 
@@ -104,8 +104,8 @@ def compile_c(config, common_flags: Optional[List[str]] = None,
 
 
 # todo: very similar code in fortran compiler
-def store_artefacts(compiled_files: List[CompiledFile],
-                    build_lists: Dict[str, List],
+def store_artefacts(compiled_files: list[CompiledFile],
+                    build_lists: dict[str, list],
                     artefact_store: ArtefactStore):
     """
     Create our artefact collection; object files for each compiled file,
@@ -119,7 +119,7 @@ def store_artefacts(compiled_files: List[CompiledFile],
         artefact_store.update_dict(ArtefactSet.OBJECT_FILES, new_objects, root)
 
 
-def _compile_file(arg: Tuple[AnalysedC, MpCommonArgs]):
+def _compile_file(arg: tuple[AnalysedC, MpCommonArgs]):
 
     analysed_file, mp_payload = arg
     config = mp_payload.config

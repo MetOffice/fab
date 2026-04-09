@@ -6,7 +6,6 @@ This module contains the default Baf configuration class.
 '''
 
 import argparse
-from typing import List
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.tools.category import Category
@@ -31,14 +30,14 @@ class Config:
         '''
         return self._args
 
-    def get_valid_profiles(self) -> List[str]:
+    def get_valid_profiles(self) -> list[str]:
         '''
         Determines the list of all allowed compiler profiles. The first
         entry in this list is the default profile to be used. This method
         can be overwritten by site configs to add or modify the supported
         profiles.
 
-        :returns List[str]: list of all supported compiler profiles.
+        :returns list[str]: list of all supported compiler profiles.
         '''
         return ["default-profile", "full-debug", "fast-debug", "production"]
 
@@ -94,7 +93,7 @@ class Config:
         # initialising compilers
         self._args = args
 
-    def get_path_flags(self, build_config: BuildConfig) -> List[AddFlags]:
+    def get_path_flags(self, build_config: BuildConfig) -> list[AddFlags]:
         '''
         Returns the path-specific flags to be used.
         TODO #313: Ideally we have only one kind of flag, but as a quick

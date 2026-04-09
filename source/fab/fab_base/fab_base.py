@@ -17,7 +17,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from typing import List, Optional, Union, Iterable
+from typing import Optional, Union, Iterable
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.steps.analyse import analyse
@@ -61,18 +61,18 @@ class FabBase:
         self._target = ""
         # Set the given name as root symbol, it can be set explicitly
         # using set_root_symbol()
-        self._root_symbol: List[str] = [name]
+        self._root_symbol: list[str] = [name]
 
         # The preprocessor flags to be used. One stores the common flags
         # (without path-specific component), the other the path-specific
         # flags (which are still handled separately in Fab)
-        self._preprocessor_flags_common: List[str] = []
-        self._preprocessor_flags_path: List[AddFlags] = []
+        self._preprocessor_flags_common: list[str] = []
+        self._preprocessor_flags_path: list[AddFlags] = []
 
         # The compiler and linker flags from the command line
-        self._fortran_compiler_flags_commandline: List[str] = []
-        self._c_compiler_flags_commandline: List[str] = []
-        self._linker_flags_commandline: List[str] = []
+        self._fortran_compiler_flags_commandline: list[str] = []
+        self._c_compiler_flags_commandline: list[str] = []
+        self._linker_flags_commandline: list[str] = []
 
         # We have to determine the site-specific setup first, so that e.g.
         # new compilers can be added before command line options are handled
@@ -148,7 +148,7 @@ class FabBase:
         label = f"{name}-{self.args.profile}-$compiler"
         return label
 
-    def set_root_symbol(self, root_symbol: Union[List[str], str]) -> None:
+    def set_root_symbol(self, root_symbol: Union[list[str], str]) -> None:
         '''Defines the root symbol. It defaults to the name given in
         the constructor.
 
@@ -161,7 +161,7 @@ class FabBase:
             self._root_symbol = root_symbol
 
     @property
-    def root_symbol(self) -> List[str]:
+    def root_symbol(self) -> list[str]:
         '''
         :returns: the list of root symbols.
         '''
@@ -221,35 +221,35 @@ class FabBase:
         return self._config.project_workspace
 
     @property
-    def preprocess_flags_common(self) -> List[str]:
+    def preprocess_flags_common(self) -> list[str]:
         """
         :returns: the list of all common preprocessor flags.
         """
         return self._preprocessor_flags_common
 
     @property
-    def preprocess_flags_path(self) -> List[AddFlags]:
+    def preprocess_flags_path(self) -> list[AddFlags]:
         """
         :returns: the list of all path-specific flags.
         """
         return self._preprocessor_flags_path
 
     @property
-    def fortran_compiler_flags_commandline(self) -> List[str]:
+    def fortran_compiler_flags_commandline(self) -> list[str]:
         """
         :returns: the list of flags specified through --fflags.
         """
         return self._fortran_compiler_flags_commandline
 
     @property
-    def c_compiler_flags_commandline(self) -> List[str]:
+    def c_compiler_flags_commandline(self) -> list[str]:
         """
         :returns: the list of flags specified through --cflags.
         """
         return self._c_compiler_flags_commandline
 
     @property
-    def linker_flags_commandline(self) -> List[str]:
+    def linker_flags_commandline(self) -> list[str]:
         """
         :returns: the list of flags specified through --ldflags.
         """
@@ -559,7 +559,7 @@ class FabBase:
         implementation does nothing, should be overwritten.
         '''
 
-    def get_linker_flags(self) -> List[str]:
+    def get_linker_flags(self) -> list[str]:
         '''
         Base class for setting linker flags. This base implementation
         for now just returns an empty list.
@@ -570,7 +570,7 @@ class FabBase:
 
     def add_preprocessor_flags(
             self,
-            list_of_flags: Union[AddFlags, str, List[AddFlags], List[str]]
+            list_of_flags: Union[AddFlags, str, list[AddFlags], list[str]]
             ) -> None:
         """
         This function appends a preprocessor flags to the internal list of
@@ -671,15 +671,15 @@ class FabBase:
 
     def compile_c_step(
             self,
-            common_flags: Optional[List[str]] = None,
-            path_flags: Optional[List[AddFlags]] = None
+            common_flags: Optional[list[str]] = None,
+            path_flags: Optional[list[AddFlags]] = None
             ) -> None:
         """
         Calls Fab's compile_c. It passes the config for Fab to compile
         all C files. Optionally, common flags, path-specific flags and
         alternative source can also be passed to Fab for compilation.
         """
-        site_path_flags: List[AddFlags] = []
+        site_path_flags: list[AddFlags] = []
         if self._site_config:
             site_path_flags = self._site_config.get_path_flags(self._config)
         if not common_flags:
@@ -695,8 +695,8 @@ class FabBase:
 
     def compile_fortran_step(
             self,
-            common_flags: Optional[List[str]] = None,
-            path_flags: Optional[List[AddFlags]] = None
+            common_flags: Optional[list[str]] = None,
+            path_flags: Optional[list[AddFlags]] = None
             ) -> None:
         """
         Calls Fab's compile_fortran. It passes the config for Fab to
@@ -707,7 +707,7 @@ class FabBase:
         :param path_flags: optional list of path-specific flags to be passed
             to Fab compile_fortran, default is None.
         """
-        site_path_flags: List[AddFlags] = []
+        site_path_flags: list[AddFlags] = []
         if self._site_config:
             site_path_flags = self._site_config.get_path_flags(self._config)
         if not common_flags:
