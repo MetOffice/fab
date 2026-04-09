@@ -18,7 +18,7 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Iterable
+from typing import Optional, Iterable
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
@@ -307,7 +307,7 @@ class AddFlags():
     MatchFlags
 
     """
-    def __init__(self, match: str, flags: List[str]):
+    def __init__(self, match: str, flags: list[str]):
         """
         :param match:
             The string to match against each file path.
@@ -331,11 +331,11 @@ class AddFlags():
 
         """
         self.match: str = match
-        self.flags: List[str] = flags
+        self.flags: list[str] = flags
 
     # todo: we don't need the project_workspace, we could just pass in the
     # output folder
-    def run(self, fpath: Path, input_flags: List[str], config):
+    def run(self, fpath: Path, input_flags: list[str], config):
         """
         Check if our filter matches a given file. If it does, add our flags.
 

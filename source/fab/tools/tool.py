@@ -16,7 +16,7 @@ a tool is actually available.
 import logging
 from pathlib import Path
 import subprocess
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from fab.tools.category import Category
 
@@ -35,7 +35,7 @@ class Tool:
 
     def __init__(self, name: str, exec_name: Union[str, Path],
                  category: Category = Category.MISC,
-                 availability_option: Optional[Union[str, List[str]]] = None):
+                 availability_option: Optional[Union[str, list[str]]] = None):
         self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_path = Path(exec_name)
@@ -110,7 +110,7 @@ class Tool:
         return self._name
 
     @property
-    def availability_option(self) -> Union[str, List[str]]:
+    def availability_option(self) -> Union[str, list[str]]:
         ''':returns: the option to use to check if the tool is available.'''
         return self._availability_option
 
@@ -132,7 +132,7 @@ class Tool:
     def run(self,
             additional_parameters: Optional[
                 Union[str, Sequence[Union[Path, str]]]] = None,
-            env: Optional[Dict[str, str]] = None,
+            env: Optional[dict[str, str]] = None,
             cwd: Optional[Union[Path, str]] = None,
             capture_output=True) -> str:
         """

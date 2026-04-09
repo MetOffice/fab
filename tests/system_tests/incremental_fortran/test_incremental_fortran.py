@@ -2,7 +2,6 @@ from datetime import timedelta, datetime
 import logging
 import os
 from pathlib import Path
-from typing import List
 from unittest.mock import Mock
 import zlib
 
@@ -257,7 +256,7 @@ class TestCleanupPrebuilds:
         return configuration
 
     @staticmethod
-    def prebuilt_files(configuration: BuildConfig) -> List[str]:
+    def prebuilt_files(configuration: BuildConfig) -> list[str]:
         """
         Determines a list of files in the pre-build directory.
 

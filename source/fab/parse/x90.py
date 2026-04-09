@@ -4,7 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Iterable, Set, Union, Optional, Dict, Any
+from typing import Iterable, Union, Optional, Any
 
 from fparser.two.Fortran2003 import (     # type: ignore
     Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List,
@@ -44,9 +44,9 @@ class AnalysedX90(AnalysedFile):
         super().__init__(fpath=fpath, file_hash=file_hash)
 
         # Maps used kernel metadata (type def names) to the modules they're found in
-        self.kernel_deps: Set[str] = set(kernel_deps or {})
+        self.kernel_deps: set[str] = set(kernel_deps or {})
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = super().to_dict()
         result.update({
             "kernel_deps": sorted(self.kernel_deps),
@@ -81,7 +81,7 @@ class X90Analyser(FortranAnalyserBase):
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedX90:  # type: ignore
 
         analysed_file = AnalysedX90(fpath=fpath, file_hash=file_hash)
-        symbol_deps: Dict[str, str] = {}
+        symbol_deps: dict[str, str] = {}
 
         for obj in walk(node_tree):
             obj_type = type(obj)
@@ -101,7 +101,7 @@ class X90Analyser(FortranAnalyserBase):
 
         return analysed_file
 
-    def _process_use_statement(self, symbol_deps: Dict[str, str], obj):
+    def _process_use_statement(self, symbol_deps: dict[str, str], obj):
         # Record the modules in which potential kernels live.
         # We'll find out if they're kernels later.
         module_dep = _typed_child(obj, Name, must_exist=True)
@@ -113,7 +113,7 @@ class X90Analyser(FortranAnalyserBase):
         for name in name_nodes:
             symbol_deps[name.string] = module_dep.string
 
-    def _process_call_statement(self, symbol_deps: Dict[str, str], analysed_file, obj):
+    def _process_call_statement(self, symbol_deps: dict[str, str], analysed_file, obj):
         # if we're calling invoke, record the names of the args.
         # sanity check they end with "_type".
         called_name = _typed_child(obj, Name)

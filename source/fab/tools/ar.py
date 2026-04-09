@@ -8,7 +8,7 @@
 """
 
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -22,7 +22,7 @@ class Ar(Tool):
         super().__init__("ar", "ar", Category.AR)
 
     def create(self, output_fpath: Path,
-               members: List[Union[Path, str]]):
+               members: list[Union[Path, str]]):
         '''Create the archive with the specified name, containing the
         listed members.
 
@@ -31,6 +31,6 @@ class Ar(Tool):
         '''
         # Explicit type is required to avoid mypy errors :(
         output_fpath.unlink(missing_ok=True)
-        parameters: List[Union[Path, str]] = ["cr", output_fpath]
+        parameters: list[Union[Path, str]] = ["cr", output_fpath]
         parameters.extend(map(str, members))
         return self.run(additional_parameters=parameters)
