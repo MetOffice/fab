@@ -9,7 +9,7 @@
 
 import sys
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 from fab.artefacts import ArtefactSet, CollectionGetter
 from fab.build_config import BuildConfig
@@ -65,7 +65,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     return config
 
 
-def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
+def cli_fab(folder: Optional[Path] = None, kwargs: Optional[dict] = None):
     """
     Running Fab from the command line will attempt to build the project in the current or
     given folder. The following params are used for testing. When run normally any parameters

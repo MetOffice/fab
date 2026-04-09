@@ -11,7 +11,7 @@ classes for gcc, gfortran, icc, ifort
 import re
 from pathlib import Path
 import warnings
-from typing import cast, List, Optional, Tuple, Union
+from typing import cast, Optional, Union
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -68,10 +68,10 @@ class Compiler(CompilerSuiteTool):
                  category: Category,
                  mpi: bool = False,
                  version_argument: Optional[str] = None,
-                 availability_option: Optional[Union[str, List[str]]] = None):
+                 availability_option: Optional[Union[str, list[str]]] = None):
         super().__init__(name, exec_name, suite, category=category,
                          availability_option=availability_option)
-        self._version: Union[Tuple[int, ...], None] = None
+        self._version: Union[tuple[int, ...], None] = None
         self._mpi = mpi
         self.__version_argument = version_argument or '--version'
         self._version_regex = version_regex
@@ -125,7 +125,7 @@ class Compiler(CompilerSuiteTool):
             config: "BuildConfig",
             input_file: Path,
             output_file: Path,
-            add_flags:  Union[None, List[str]] = None) -> List[str]:
+            add_flags:  Union[None, list[str]] = None) -> list[str]:
         '''This function returns all command line options for a compiler
         (but not the executable name). It is used by a compiler wrapper
         to pass the right flags to the wrapper.
@@ -142,7 +142,7 @@ class Compiler(CompilerSuiteTool):
         :returns: all command line options for compilation.
         '''
         # Make a copy so we do not modify the original files.
-        params: List[str] = self["compile-only"][:]
+        params: list[str] = self["compile-only"][:]
 
         if config.openmp:
             params.extend(self["openmp"])
@@ -165,7 +165,7 @@ class Compiler(CompilerSuiteTool):
         return params
 
     def get_flags(self, config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         """
         The flags to use when compiling the specified flag. All
         AbstractFlags (e.g. MatchFlags, ...) will be resolved.
@@ -181,7 +181,7 @@ class Compiler(CompilerSuiteTool):
     def compile_file(self, input_file: Path,
                      output_file: Path,
                      config: "BuildConfig",
-                     add_flags: Union[None, List[str]] = None):
+                     add_flags: Union[None, list[str]] = None):
         '''Compiles a file. It will add the flag for compilation-only
         automatically, as well as the output directives. The current working
         directory for the command is set to the folder where the source file
@@ -220,7 +220,7 @@ class Compiler(CompilerSuiteTool):
             self.logger.error(f'Error getting compiler version: {err}')
             return False
 
-    def get_version(self) -> Tuple[int, ...]:
+    def get_version(self) -> tuple[int, ...]:
         """
         Try to get the version of the given compiler.
 
@@ -250,7 +250,7 @@ class Compiler(CompilerSuiteTool):
         # Expect the version to be dot-separated integers.
         try:
             # Make mypy happy:
-            version = cast(Tuple[int],
+            version = cast(tuple[int],
                            tuple(int(x) for x in version_string.split('.')))
         except ValueError as err:
             raise RuntimeError(f"Unexpected version output format for "
@@ -377,8 +377,8 @@ class FortranCompiler(Compiler):
             config: "BuildConfig",
             input_file: Path,
             output_file: Path,
-            add_flags:  Union[None, List[str]] = None,
-            syntax_only: Optional[bool] = False) -> List[str]:
+            add_flags:  Union[None, list[str]] = None,
+            syntax_only: Optional[bool] = False) -> list[str]:
         '''This function returns all command line options for a Fortran
         compiler (but not the executable name). It is used by a compiler
         wrapper to pass the right flags to the wrapper.
@@ -434,7 +434,7 @@ class FortranCompiler(Compiler):
     def compile_file(self, input_file: Path,
                      output_file: Path,
                      config: "BuildConfig",
-                     add_flags: Union[None, List[str]] = None,
+                     add_flags: Union[None, list[str]] = None,
                      syntax_only: Optional[bool] = False):
         '''Compiles a file. This basically re-implements `compile_file` of
         the base class, but passes the syntax_only flag in

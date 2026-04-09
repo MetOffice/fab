@@ -7,7 +7,7 @@ import json
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Any, Dict, Optional, Set, Union
+from typing import Any, Optional, Union
 
 from fab.util import file_checksum
 
@@ -50,7 +50,7 @@ class AnalysedFile(ABC):
         return vars(self) == vars(other)
 
     # persistence
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Create a dict representing the object.
 
@@ -114,9 +114,9 @@ class AnalysedFile(ABC):
         things = set()
         for field_name in self.field_names():
             thing = getattr(self, field_name)
-            if isinstance(thing, Dict):
+            if isinstance(thing, dict):
                 things.add(tuple(sorted(thing.items())))
-            elif isinstance(thing, Set):
+            elif isinstance(thing, set):
                 things.add(tuple(sorted(thing)))
             else:
                 things.add(thing)

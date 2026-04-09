@@ -10,7 +10,7 @@ be integrated into Fab's internals.
 """
 
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Iterable, Optional
 
 from fab.dep_tree import AnalysedDependent, logger
 from fab.parse.c import AnalysedC
@@ -18,7 +18,7 @@ from fab.parse.fortran import AnalysedFortran
 
 
 def add_mo_commented_file_deps(
-       source_tree: Dict[Path, AnalysedDependent],
+       source_tree: dict[Path, AnalysedDependent],
         ignore_dependencies: Optional[Iterable[str]] = None) -> None:
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which

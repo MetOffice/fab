@@ -10,7 +10,7 @@ from the tool box.
 '''
 
 from pathlib import Path
-from typing import Optional, Union, Tuple
+from typing import Optional, Union
 import xml.etree.ElementTree as ET
 
 from fab.steps import step
@@ -18,7 +18,7 @@ from fab.tools.category import Category
 from fab.tools.versioning import Versioning
 
 
-def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
+def _get_revision(src, revision=None) -> tuple[str, Union[str, None]]:
     """
     Pull out the revision if it's part of the url.
 
@@ -48,7 +48,7 @@ def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
 
 def _svn_prep_common(config, src: str,
                      dst_label: Optional[str],
-                     revision: Optional[str]) -> Tuple[str, Path,
+                     revision: Optional[str]) -> tuple[str, Path,
                                                        Optional[str]]:
     src, revision = _get_revision(src, revision)
     if not config.source_root.exists():

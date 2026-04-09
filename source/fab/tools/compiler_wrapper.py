@@ -9,7 +9,7 @@ the derived classes for mpif90, mpicc, and CrayFtnWrapper and CrayCcWrapper.
 """
 
 from pathlib import Path
-from typing import cast, List, Optional, Union
+from typing import cast, Optional, Union
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -41,7 +41,7 @@ class CompilerWrapper(Compiler):
             mpi=mpi,
             availability_option=self._compiler.availability_option)
 
-    def __getitem__(self, generic_name: str) -> List[str]:
+    def __getitem__(self, generic_name: str) -> list[str]:
         """
         Returns the compiler-specific list of flags given a generic
         name.
@@ -83,7 +83,7 @@ class CompilerWrapper(Compiler):
                            f"no has_syntax_only.")
 
     def get_flags(self, config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         ''':returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
 
@@ -111,8 +111,8 @@ class CompilerWrapper(Compiler):
             config: "BuildConfig",
             input_file: Path,
             output_file: Path,
-            add_flags:  Union[None, List[str]] = None,
-            syntax_only: Optional[bool] = None) -> List[str]:
+            add_flags:  Union[None, list[str]] = None,
+            syntax_only: Optional[bool] = None) -> list[str]:
         '''This function returns all command line options for a
         compiler wrapper. The syntax_only flag is only accepted,
         if the wrapped compiler is a Fortran compiler. Otherwise,
@@ -167,7 +167,7 @@ class CompilerWrapper(Compiler):
     def compile_file(self, input_file: Path,
                      output_file: Path,
                      config: "BuildConfig",
-                     add_flags: Union[None, List[str]] = None,
+                     add_flags: Union[None, list[str]] = None,
                      syntax_only: Optional[bool] = None):
         # pylint: disable=too-many-arguments
         '''Compiles a file using the wrapper compiler.

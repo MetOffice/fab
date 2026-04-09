@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import auto, Enum
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Iterable, Optional, Union
 
 from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
@@ -98,7 +98,7 @@ class ArtefactStore(dict):
 
     def copy_artefacts(self, source: Union[str, ArtefactSet],
                        dest: Union[str, ArtefactSet],
-                       suffixes: Optional[Union[str, List[str]]] = None):
+                       suffixes: Optional[Union[str, list[str]]] = None):
         '''Copies all artefacts from `source` to `destination`. If a
         suffix_fiter is specified, only files with the given suffix
         will be copied.
@@ -115,8 +115,8 @@ class ArtefactStore(dict):
             self.add(dest, self[source])
 
     def replace(self, artefact: Union[str, ArtefactSet],
-                remove_files: List[Union[str, Path]],
-                add_files: Union[List[Union[str, Path]], dict]):
+                remove_files: list[Union[str, Path]],
+                add_files: Union[list[Union[str, Path]], dict]):
         '''Replaces artefacts in one artefact set with other artefacts. This
         can be used e.g to replace files that have been preprocessed
         and renamed. There is no requirement for these lists to have the
@@ -230,7 +230,7 @@ class SuffixFilter(ArtefactsGetter):
     """
     def __init__(self,
                  collection_name: Union[str, ArtefactSet],
-                 suffix: Union[str, List[str]]):
+                 suffix: Union[str, list[str]]):
         """
         :param collection_name:
             The name of the artefact collection.
@@ -258,10 +258,10 @@ class FilterBuildTrees(ArtefactsGetter):
         DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.f90')
 
     :returns: one list of files to compile per build tree, of the form
-        Dict[name, List[AnalysedDependent]]
+        Dict[name, list[AnalysedDependent]]
 
     """
-    def __init__(self, suffix: Union[str, List[str]]):
+    def __init__(self, suffix: Union[str, list[str]]):
         """
         :param suffix:
             A suffix string, or iterable of, including the preceding dot.
@@ -273,7 +273,7 @@ class FilterBuildTrees(ArtefactsGetter):
 
         build_trees = artefact_store[ArtefactSet.BUILD_TREES]
 
-        build_lists: Dict[str, List[AnalysedDependent]] = {}
+        build_lists: dict[str, list[AnalysedDependent]] = {}
         for root, tree in build_trees.items():
             build_lists[root] = filter_source_tree(source_tree=tree,
                                                    suffixes=self.suffixes)

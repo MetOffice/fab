@@ -11,7 +11,7 @@ for easy include by the preprocessor.
 import logging
 from pathlib import Path
 import shutil
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 @step
 def root_inc_files(config: BuildConfig,
-                   suffix_list: Optional[Union[List[str], str]] = None):
+                   suffix_list: Optional[Union[list[str], str]] = None):
 
     """
     Copy include files with a specific suffix into the workspace

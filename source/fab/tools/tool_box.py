@@ -8,7 +8,7 @@
 '''
 
 import warnings
-from typing import Dict, Optional
+from typing import Optional
 
 from fab.tools.abstract_tool_box import AbstractToolBox
 from fab.tools.category import Category
@@ -22,7 +22,7 @@ class ToolBox(AbstractToolBox):
     '''
 
     def __init__(self) -> None:
-        self._all_tools: Dict[Category, Tool] = {}
+        self._all_tools: dict[Category, Tool] = {}
 
     def has(self, category: Category) -> bool:
         '''

@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict, List, Set
 from unittest.mock import Mock
 
 from pytest import fixture, warns, raises
@@ -19,13 +18,13 @@ class Test_gen_symbol_table(object):
     Tests source symbol management.
     """
     @fixture
-    def analysed_files(self) -> List[AnalysedDependent]:
+    def analysed_files(self) -> list[AnalysedDependent]:
         return [AnalysedDependent(fpath=Path('foo.c'),
                                   symbol_defs=['foo_1', 'foo_2'], file_hash=1),
                 AnalysedDependent(fpath=Path('bar.c'),
                                   symbol_defs=['bar_1', 'bar_2'], file_hash=2)]
 
-    def test_vanilla(self, analysed_files: List[AnalysedDependent]) -> None:
+    def test_vanilla(self, analysed_files: list[AnalysedDependent]) -> None:
         """
         Tests symbol table generation.
         """
@@ -39,7 +38,7 @@ class Test_gen_symbol_table(object):
         }
 
     def test_duplicate_symbol(self,
-                              analysed_files: List[AnalysedDependent]) -> None:
+                              analysed_files: list[AnalysedDependent]) -> None:
         """
         Tests duplicate symbols in different files.
         """
@@ -107,7 +106,7 @@ class Test_add_unreferenced_deps(object):
         }
 
         # we extracted the build tree
-        build_tree: Dict[Path, AnalysedDependent] = {
+        build_tree: dict[Path, AnalysedDependent] = {
             Path('root.f90'): AnalysedFortran(fpath=Path(), file_hash=1),
             Path('root_dep.f90'): AnalysedFortran(fpath=Path(), file_hash=2),
         }
@@ -117,7 +116,7 @@ class Test_add_unreferenced_deps(object):
         unreferenced_deps = ['util']
 
         # the stuff to add to the build tree will be found in here
-        all_analysed_files: Dict[Path, AnalysedDependent] = {
+        all_analysed_files: dict[Path, AnalysedDependent] = {
             # root.f90 and root_util.f90 would also be in here but the test
             # doesn't need them
             Path('util.f90'): AnalysedFortran(fpath=Path('util.f90'),
@@ -188,7 +187,7 @@ class TestAddManualResults:
         """
         workaround = FortranParserWorkaround(fpath=Path('foo.f'),
                                              symbol_defs={'foo', })
-        analysed_files: Set[AnalysedDependent] = set()
+        analysed_files: set[AnalysedDependent] = set()
 
         monkeypatch.setattr('fab.parse.fortran.file_checksum',
                             lambda x: HashedFile(None, 123))

@@ -49,7 +49,7 @@ from fnmatch import fnmatch
 import logging
 from pathlib import Path
 from string import Template
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 import warnings
 
 from fab.util import string_checksum
@@ -73,7 +73,7 @@ class AbstractFlags(ABC):
     @abstractmethod
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename.
@@ -110,7 +110,7 @@ class AlwaysFlags(AbstractFlags):
 
     :param flags: a string or list of strings with command line flags.
     """
-    def __init__(self, flags: Optional[Union[str, List[str]]] = None) -> None:
+    def __init__(self, flags: Optional[Union[str, list[str]]] = None) -> None:
 
         super().__init__()   # type: ignore[safe-super]
         if isinstance(flags, str):
@@ -122,9 +122,9 @@ class AlwaysFlags(AbstractFlags):
             self._flags = []
 
     @staticmethod
-    def replace_template(string_list: List[str],
+    def replace_template(string_list: list[str],
                          config: Optional["BuildConfig"] = None,
-                         file_path: Optional[Path] = None) -> List[str]:
+                         file_path: Optional[Path] = None) -> list[str]:
         """This function replaces all `$relative`, `$source`, and `$output`
         in the string or list of string with the values taken from
         the config object and the file path.
@@ -158,7 +158,7 @@ class AlwaysFlags(AbstractFlags):
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename. This class will not take the file path into account,
@@ -227,13 +227,13 @@ class MatchFlags(AlwaysFlags):
     """
     def __init__(self,
                  pattern: str,
-                 flags: Union[str, List[str]]) -> None:
+                 flags: Union[str, list[str]]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename if the specified file path matches the pattern specified.
@@ -264,13 +264,13 @@ class ContainFlags(AlwaysFlags):
 
     def __init__(self,
                  pattern: str,
-                 flags: Union[str, List[str]]) -> None:
+                 flags: Union[str, list[str]]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename if the specified file path contains the pattern as
@@ -292,7 +292,7 @@ class ContainFlags(AlwaysFlags):
         return super().get_flags(config, file_path)
 
 
-class FlagList(List[AbstractFlags]):
+class FlagList(list[AbstractFlags]):
     '''This class represents a list of parameters for a tool. It is a
     list with some additional functionality.
 
@@ -304,9 +304,9 @@ class FlagList(List[AbstractFlags]):
     def __init__(
             self,
             list_of_flags: Optional[Union[AbstractFlags, str,
-                                          List[str]]] = None,
+                                          list[str]]] = None,
             add_flags: Optional[Union[AddFlags,
-                                      List[AddFlags]]] = None) -> None:
+                                      list[AddFlags]]] = None) -> None:
         self._logger = logging.getLogger(__name__)
         super().__init__()
         if isinstance(list_of_flags, (str, list)):
@@ -323,7 +323,7 @@ class FlagList(List[AbstractFlags]):
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         """
         :returns: the flags to be used for the compilation profile and
             file path specified.
@@ -333,7 +333,7 @@ class FlagList(List[AbstractFlags]):
             # If no path, provide a dummy path
             file_path = Path()
 
-        all_flags_resolved: List[str] = []
+        all_flags_resolved: list[str] = []
 
         for flags in self:
             all_flags_resolved.extend(flags.get_flags(config, file_path))
@@ -355,11 +355,11 @@ class FlagList(List[AbstractFlags]):
             # If no path, provide a dummy path
             file_path = Path()
 
-        resolve_flags: List[str] = self.get_flags(config, file_path)
+        resolve_flags: list[str] = self.get_flags(config, file_path)
         return string_checksum(str(resolve_flags))
 
     def add_flags(self,
-                  new_flags: Union[AbstractFlags, str, List[str]]) -> None:
+                  new_flags: Union[AbstractFlags, str, list[str]]) -> None:
         '''Adds the specified flags to the list of flags.
 
         :param new_flags: New flags to be added. Can be either an class
@@ -405,16 +405,16 @@ class ProfileFlags:
     '''
 
     def __init__(self: "ProfileFlags",
-                 flags: Optional[Union[AbstractFlags, str, List[str]]] = None,
+                 flags: Optional[Union[AbstractFlags, str, list[str]]] = None,
                  profile: str = "") -> None:
         # Stores the flags for each profile mode. The key is the (lower case)
         # name of the profile mode, and it contains a list of flags.
         # Initialise the dict with the default (empty) profile
-        self._profiles: Dict[str, FlagList] = {"": FlagList()}
+        self._profiles: dict[str, FlagList] = {"": FlagList()}
 
         # This dictionary stores an optional inheritance, where one mode
         # 'inherits' the flags from a different mode (recursively)
-        self._inherit_from: Dict[str, str] = {}
+        self._inherit_from: dict[str, str] = {}
 
         if flags:
             if profile != "":
@@ -423,7 +423,7 @@ class ProfileFlags:
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         '''
         This method returns the flags used for the specified file,
         i.e. it will support path-specific flags. The BuildConfig
@@ -453,7 +453,7 @@ class ProfileFlags:
         return resolved_flags
 
     def __getitem__(self,
-                    profile: Optional[str] = None) -> List[AbstractFlags]:
+                    profile: Optional[str] = None) -> list[AbstractFlags]:
         '''Returns the flags for the requested profile. If profile is not
         specified, the empty profile ("") will be used. It will also take
         inheritance into account, so add flags (recursively) from inherited
@@ -510,7 +510,7 @@ class ProfileFlags:
             self._inherit_from[name.lower()] = inherit_from.lower()
 
     def add_flags(self,
-                  new_flags: Union[AbstractFlags, str, List[str]],
+                  new_flags: Union[AbstractFlags, str, list[str]],
                   profile: Optional[str] = None) -> None:
         '''Adds the specified flags to the list of flags.
 
@@ -579,5 +579,5 @@ class ProfileFlags:
             raise KeyError(f"checksum: Profile '{profile}' is "
                            f"not defined.")
 
-        resolve_flags: List[str] = self.get_flags(config, file_path)
+        resolve_flags: list[str] = self.get_flags(config, file_path)
         return string_checksum(str(resolve_flags))

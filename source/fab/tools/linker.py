@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 import warnings
 
 from fab.build_config import BuildConfig
@@ -54,7 +54,7 @@ class Linker(CompilerSuiteTool):
             category=Category.LINKER)
 
         # Maintain a set of flags for common libraries.
-        self._lib_flags: Dict[str, List[str]] = {}
+        self._lib_flags: dict[str, list[str]] = {}
         # Allow flags to include before or after any library-specific flags.
         self._pre_lib_flags = ProfileFlags()
         self._post_lib_flags = ProfileFlags()
@@ -94,7 +94,7 @@ class Linker(CompilerSuiteTool):
             with the wrapped compiler.'''
         return self._compiler.openmp
 
-    def __getitem__(self, generic_name: str) -> List[str]:
+    def __getitem__(self, generic_name: str) -> list[str]:
         """
         Returns the compiler-specific list of flags given a generic
         name.
@@ -125,7 +125,7 @@ class Linker(CompilerSuiteTool):
         self._pre_lib_flags.define_profile(name, inherit_from)
         self._post_lib_flags.define_profile(name, inherit_from)
 
-    def get_profile_flags(self, config: "BuildConfig") -> List[str]:
+    def get_profile_flags(self, config: "BuildConfig") -> list[str]:
         '''
         :returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
@@ -141,7 +141,7 @@ class Linker(CompilerSuiteTool):
         # needed, so we provide a dummy file-path.
         return flags + self._compiler.get_flags(config, Path(""))
 
-    def get_lib_flags(self, lib: str) -> List[str]:
+    def get_lib_flags(self, lib: str) -> list[str]:
         '''Gets the standard flags for a standard library
 
         :param lib: the library name
@@ -159,7 +159,7 @@ class Linker(CompilerSuiteTool):
                 return self._linker.get_lib_flags(lib)
             raise RuntimeError(f"Unknown library name: '{lib}'") from err
 
-    def add_lib_flags(self, lib: str, flags: List[str],
+    def add_lib_flags(self, lib: str, flags: list[str],
                       silent_replace: bool = False):
         '''Add a set of flags for a standard library
 
@@ -176,7 +176,7 @@ class Linker(CompilerSuiteTool):
         # Make a copy to avoid modifying the caller's list
         self._lib_flags[lib] = flags[:]
 
-    def add_pre_lib_flags(self, flags: List[str],
+    def add_pre_lib_flags(self, flags: list[str],
                           profile: Optional[str] = None):
         '''Add a set of flags to use before any library-specific flags
 
@@ -184,7 +184,7 @@ class Linker(CompilerSuiteTool):
         '''
         self._pre_lib_flags.add_flags(flags, profile)
 
-    def add_post_lib_flags(self, flags: List[str],
+    def add_post_lib_flags(self, flags: list[str],
                            profile: Optional[str] = None):
         '''Add a set of flags to use after any library-specific flags
 
@@ -192,7 +192,7 @@ class Linker(CompilerSuiteTool):
         '''
         self._post_lib_flags.add_flags(flags, profile)
 
-    def get_pre_link_flags(self, config: "BuildConfig") -> List[str]:
+    def get_pre_link_flags(self, config: "BuildConfig") -> list[str]:
         '''Returns the list of pre-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will come first - the assumption is that
@@ -200,10 +200,10 @@ class Linker(CompilerSuiteTool):
         be able to put a search path before the paths from a wrapped
         linker.
 
-        :returns: List of pre-link flags of this linker and all
+        :returns: list of pre-link flags of this linker and all
             wrapped linkers
         '''
-        params: List[str] = []
+        params: list[str] = []
         if self._pre_lib_flags:
             params.extend(self._pre_lib_flags.get_flags(config))
         if self._linker:
@@ -214,15 +214,15 @@ class Linker(CompilerSuiteTool):
             params.extend(self._linker.get_pre_link_flags(config))
         return params
 
-    def get_post_link_flags(self, config: "BuildConfig") -> List[str]:
+    def get_post_link_flags(self, config: "BuildConfig") -> list[str]:
         '''Returns the list of post-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will be added to the end.
 
-        :returns: List of post-link flags of this linker and all
+        :returns: list of post-link flags of this linker and all
             wrapped linkers
         '''
-        params: List[str] = []
+        params: list[str] = []
         if self._linker:
             # If we are wrapping a linker, get the wrapped linker's
             # post-link flags and add them first (so this linker
@@ -233,10 +233,10 @@ class Linker(CompilerSuiteTool):
             params.extend(self._post_lib_flags.get_flags(config))
         return params
 
-    def link(self, input_files: List[Path], output_file: Path,
+    def link(self, input_files: list[Path], output_file: Path,
              config: "BuildConfig",
-             libs: Optional[List[str]] = None,
-             add_flags: Optional[List[str]] = None) -> str:
+             libs: Optional[list[str]] = None,
+             add_flags: Optional[list[str]] = None) -> str:
         '''Executes the linker with the specified input files,
         creating `output_file`.
 
@@ -249,7 +249,7 @@ class Linker(CompilerSuiteTool):
         :returns: the stdout of the link command
         '''
 
-        params: List[str] = self.get_flags(config)
+        params: list[str] = self.get_flags(config)
 
         params.extend(self._compiler.get_flags(config, Path()))
 

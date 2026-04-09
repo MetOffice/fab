@@ -10,7 +10,7 @@ classes for cpp and fpp.
 """
 
 from pathlib import Path
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from fab.tools.category import Category
 from fab.tools.tool_with_flags import ToolWithFlags
@@ -38,9 +38,9 @@ class Preprocessor(ToolWithFlags):
 
         :param input_file: input file.
         :param output_file: the output filename.
-        :param add_flags: List with additional flags to be used.
+        :param add_flags: list with additional flags to be used.
         '''
-        params: List[Union[str, Path]] = []
+        params: list[Union[str, Path]] = []
         if add_flags:
             # Make a copy to avoid modifying the caller's list
             params = list(add_flags)
@@ -75,7 +75,7 @@ class CppFortran(Preprocessor):
         :param output_file: the output filename.
         :param add_flags: List with additional flags to be used.
         '''
-        params: List[Union[str, Path]] = ["-traditional-cpp", "-P"]
+        params: list[Union[str, Path]] = ["-traditional-cpp", "-P"]
 
         if add_flags:
             params.extend(add_flags)
