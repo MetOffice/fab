@@ -34,7 +34,7 @@ from collections import defaultdict
 from multiprocessing import Process, Pipe
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional
 
 JSON_FILENAME = 'metrics.json'
 
@@ -88,7 +88,7 @@ def _read_metric(metrics_folder: Path):
 
     """
     # An example metric is the time taken to preprocess a file; metrics['preprocess c']['my_file.c']
-    metrics: Dict[str, Dict[str, float]] = defaultdict(dict)
+    metrics: dict[str, dict[str, float]] = defaultdict(dict)
 
     # todo: can we do this better?
     # we run in a subprocess, so we get a copy of _metric_send_conn before it closes.

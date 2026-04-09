@@ -9,7 +9,7 @@ the derived classes for mpif90, mpicc, and CrayFtnWrapper and CrayCcWrapper.
 """
 
 from pathlib import Path
-from typing import cast, List, Optional, Union
+from typing import cast, Optional, Union
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -70,7 +70,7 @@ class CompilerWrapper(Compiler):
         raise RuntimeError(f"Compiler '{self._compiler.name}' has "
                            f"no has_syntax_only.")
 
-    def get_flags(self, profile: Optional[str] = None) -> List[str]:
+    def get_flags(self, profile: Optional[str] = None) -> list[str]:
         ''':returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
 
@@ -98,8 +98,8 @@ class CompilerWrapper(Compiler):
             config: "BuildConfig",
             input_file: Path,
             output_file: Path,
-            add_flags:  Union[None, List[str]] = None,
-            syntax_only: Optional[bool] = False) -> List[str]:
+            add_flags:  Union[None, list[str]] = None,
+            syntax_only: Optional[bool] = False) -> list[str]:
         '''This function returns all command line options for a
         compiler wrapper. The syntax_only flag is only accepted,
         if the wrapped compiler is a Fortran compiler. Otherwise,
@@ -150,7 +150,7 @@ class CompilerWrapper(Compiler):
     def compile_file(self, input_file: Path,
                      output_file: Path,
                      config: "BuildConfig",
-                     add_flags: Union[None, List[str]] = None,
+                     add_flags: Union[None, list[str]] = None,
                      syntax_only: Optional[bool] = None):
         # pylint: disable=too-many-arguments
         '''Compiles a file using the wrapper compiler.

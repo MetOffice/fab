@@ -8,7 +8,6 @@ Exercises
 """
 from os import walk as os_walk
 from pathlib import Path
-from typing import List
 
 from pyfakefs.fake_filesystem import FakeFilesystem
 from pytest import mark, raises, warns
@@ -71,7 +70,7 @@ class TestRootIncFiles:
         #   always have a directory named /tmp when running on POSIX
         #   systems.
         # So we need to ignore /tmp:
-        filetree: List[Path] = []
+        filetree: list[Path] = []
         for path, _, files in os_walk('/'):
             for file in files:
                 if file == 'tmp':

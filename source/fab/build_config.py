@@ -18,7 +18,7 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Iterable
+from typing import Optional, Iterable
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
@@ -294,7 +294,7 @@ class AddFlags():
     Generally used inside a :class:`~fab.build_config.FlagsConfig`.
 
     """
-    def __init__(self, match: str, flags: List[str]):
+    def __init__(self, match: str, flags: list[str]):
         """
         :param match:
             The string to match against each file path.
@@ -318,11 +318,11 @@ class AddFlags():
 
         """
         self.match: str = match
-        self.flags: List[str] = flags
+        self.flags: list[str] = flags
 
     # todo: we don't need the project_workspace, we could just pass in the
     # output folder
-    def run(self, fpath: Path, input_flags: List[str], config):
+    def run(self, fpath: Path, input_flags: list[str], config):
         """
         Check if our filter matches a given file. If it does, add our flags.
 
@@ -357,13 +357,13 @@ class FlagsConfig():
     remove flags.
 
     """
-    def __init__(self, common_flags: Optional[List[str]] = None,
-                 path_flags: Optional[List[AddFlags]] = None):
+    def __init__(self, common_flags: Optional[list[str]] = None,
+                 path_flags: Optional[list[AddFlags]] = None):
         """
         :param common_flags:
-            List of flags to apply to all files. E.g `['-O2']`.
+            list of flags to apply to all files. E.g `['-O2']`.
         :param path_flags:
-            List of :class:`~fab.build_config.AddFlags` objects which apply
+            list of :class:`~fab.build_config.AddFlags` objects which apply
             flags to selected paths.
 
         """

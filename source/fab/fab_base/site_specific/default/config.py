@@ -6,7 +6,7 @@ This module contains the default Baf configuration class.
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
 from fab.api import AddFlags, BuildConfig, Category, Compiler, ToolRepository
 
@@ -32,7 +32,7 @@ class Config:
         # Stores for each compiler suite a mapping of profiles to the list of
         # path-specific flags to use.
         # _path_flags[suite][profile]
-        self._path_flags: Dict[str, Dict[str, List[AddFlags]]] = {}
+        self._path_flags: dict[str, dict[str, list[AddFlags]]] = {}
 
     @property
     def args(self) -> argparse.Namespace:
@@ -41,7 +41,7 @@ class Config:
         '''
         return self._args
 
-    def get_valid_profiles(self) -> List[str]:
+    def get_valid_profiles(self) -> list[str]:
         '''
         Determines the list of all allowed compiler profiles. The first
         entry in this list is the default profile to be used. This method
@@ -51,6 +51,25 @@ class Config:
         :returns: list of all supported compiler profiles.
         '''
         return ["full-debug", "fast-debug", "production", "unit-tests"]
+
+    def define_command_line_options(self,
+                                    parser: argparse.ArgumentParser) -> None:
+        '''
+        Callback in which additional, site-specific options can be added,
+        and/or the the defaults for the parser can be changed. Typically,
+        a site-specific configuration should inherit from the default, and
+        can then overwrite this method to add site-specific options or
+        defaults.
+        '''
+        # As examples (typically used in a site-specific derived class):
+        # Adding a site-specific option to profile with Tau:
+        # parser.add_argument("--tau", default=False, action="store_true",
+        #                     help="Enable tau profiling")
+
+        # Second example: change the default for an existing option, e.g.
+        # disabling MPI by default:
+        # parser.set_defaults(mpi=False)
+        pass
 
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         '''
@@ -100,7 +119,7 @@ class Config:
         self.setup_nvidia(build_config)
         self.setup_cray(build_config)
 
-    def get_path_flags(self, build_config: BuildConfig) -> List[AddFlags]:
+    def get_path_flags(self, build_config: BuildConfig) -> list[AddFlags]:
         '''
         Returns the path-specific flags to be used.
         TODO #313: Ideally we have only one kind of flag, but as a quick

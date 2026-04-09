@@ -3,7 +3,6 @@ Test CAnalyser.
 
 """
 from pathlib import Path
-from typing import List, Tuple
 from unittest import mock
 from unittest.mock import Mock
 
@@ -41,7 +40,7 @@ def test_simple_result(tmp_path: Path,
 class Test__locate_include_regions:
 
     def test_vanilla(self) -> None:
-        lines: List[Tuple[int, str]] = [
+        lines: list[tuple[int, str]] = [
             (5, "foo"),
             (10, "# pragma FAB SysIncludeStart"),
             (15, "foo"),

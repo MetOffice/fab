@@ -10,7 +10,7 @@ Most of the testing happens at the task level.
 
 ToDo: Messing with "private" members.
 """
-from typing import Optional, Tuple
+from typing import Optional
 
 from pytest import mark, raises
 
@@ -29,7 +29,7 @@ class TestRevision(object):
         ]
     )
     def test_no_revision(self, url: str,
-                         expected: Tuple[str, Optional[str]]) -> None:
+                         expected: tuple[str, Optional[str]]) -> None:
         """
         Tests revision argument not given.
         """
@@ -43,7 +43,7 @@ class TestRevision(object):
         ]
     )
     def test_revision_param(self, url: str, revision: str,
-                            expected: Tuple[str, Optional[str]]):
+                            expected: tuple[str, Optional[str]]):
         """
         Tests revision argument given.
         """

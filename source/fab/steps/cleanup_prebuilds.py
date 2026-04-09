@@ -11,7 +11,7 @@ import logging
 import os
 from datetime import timedelta, datetime
 from pathlib import Path
-from typing import Dict, Optional, Iterable, Set
+from typing import Optional, Iterable
 
 from fab.artefacts import ArtefactSet
 from fab.steps import run_mp, step
@@ -87,7 +87,7 @@ def cleanup_prebuilds(
 
 
 def by_age(older_than: Optional[timedelta],
-           prebuilds_ts: Dict[Path, datetime], current_files: Iterable[Path]) -> Set[Path]:
+           prebuilds_ts: dict[Path, datetime], current_files: Iterable[Path]) -> set[Path]:
     to_delete = set()
 
     if older_than:
@@ -106,7 +106,7 @@ def by_age(older_than: Optional[timedelta],
     return to_delete
 
 
-def by_version_age(n_versions: int, prebuilds_ts: Dict[Path, datetime], current_files: Iterable[Path]) -> Set[Path]:
+def by_version_age(n_versions: int, prebuilds_ts: dict[Path, datetime], current_files: Iterable[Path]) -> set[Path]:
     to_delete = set()
 
     if n_versions:

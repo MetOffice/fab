@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict
 from unittest.mock import Mock
 
 from pyfakefs.fake_filesystem import FakeFilesystem
@@ -93,7 +92,7 @@ class TestCompilePass:
         }
 
         # this gets filled in
-        mod_hashes: Dict[str, int] = {}
+        mod_hashes: dict[str, int] = {}
 
         config = BuildConfig('proj', stub_tool_box, fab_workspace=tmp_path)
         mp_common_args = MpCommonArgs(config,

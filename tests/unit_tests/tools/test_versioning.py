@@ -11,7 +11,6 @@ from pathlib import Path
 from shutil import which
 from subprocess import Popen, run
 from time import sleep
-from typing import List, Tuple
 
 from pytest import TempPathFactory, fixture, mark, raises
 from pytest_subprocess.fake_process import FakeProcess
@@ -328,7 +327,7 @@ class TestSubversionReal:
     Tests the Subversion interface against a real executable.
     """
     @fixture(scope='class')
-    def repo(self, tmp_path_factory: TempPathFactory) -> Tuple[Path, Path]:
+    def repo(self, tmp_path_factory: TempPathFactory) -> tuple[Path, Path]:
         """
         Set up a repository and return its path along with the path of the
         original file tree.
@@ -345,7 +344,7 @@ class TestSubversionReal:
         assert run(command).returncode == 0
         return repo_path, tree_path
 
-    def test_extract_from_file(self, repo: Tuple[Path, Path], tmp_path: Path):
+    def test_extract_from_file(self, repo: tuple[Path, Path], tmp_path: Path):
         """
         Checks that a source tree can be extracted from a Subversion
         repository stored on disc.
@@ -355,12 +354,12 @@ class TestSubversionReal:
         _tree_compare(repo[1], tmp_path)
         assert not (tmp_path / '.svn').exists()
 
-    def test_extract_from_svn(self, repo: Tuple[Path, Path], tmp_path: Path):
+    def test_extract_from_svn(self, repo: tuple[Path, Path], tmp_path: Path):
         """
         Checks that a source tree can be extracted from a Subversion
         repository accessed through its own protocol.
         """
-        command: List[str] = ['svnserve', '-r', str(repo[0]), '-X']
+        command: list[str] = ['svnserve', '-r', str(repo[0]), '-X']
         process = Popen(command)
 
         test_unit = Subversion()
@@ -387,7 +386,7 @@ class TestSubversionReal:
         assert process.returncode == 0
 
     @mark.skip(reason="Too hard to test at the moment.")
-    def test_extract_from_http(self, repo: Tuple[Path, Path], tmp_path: Path):
+    def test_extract_from_http(self, repo: tuple[Path, Path], tmp_path: Path):
         """
         Checks that a source tree can be extracted from a Subversion
         repository accessed through HTTP.
