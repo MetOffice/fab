@@ -8,7 +8,7 @@ Fixtures and helpers for testing.
 """
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from pytest import fixture
 from pytest_subprocess.fake_process import FakeProcess, ProcessRecorder
@@ -31,19 +31,19 @@ def not_found_callback(process):
     raise FileNotFoundError("Executable file missing")
 
 
-def call_list(fake_process: FakeProcess) -> List[List[str]]:
+def call_list(fake_process: FakeProcess) -> list[list[str]]:
     """
     Converts FakeProcess calls to strings.
 
     :returns: List of argument strings per call.
     """
-    result: List[List[str]] = []
+    result: list[list[str]] = []
     for call in fake_process.calls:
         result.append([str(arg) for arg in call])
     return result
 
 
-def arg_list(record: ProcessRecorder) -> List[Dict[str, str]]:
+def arg_list(record: ProcessRecorder) -> list[dict[str, str]]:
     """
     Converts ProcessRecorder calls to subprocess arguments.
 
@@ -51,7 +51,7 @@ def arg_list(record: ProcessRecorder) -> List[Dict[str, str]]:
 
     :returns: Dictionary of argument passed to subprocess per call.
     """
-    result: List[Dict[str, str]] = []
+    result: list[dict[str, str]] = []
     for call in record.calls:
         if call.kwargs is None:
             args = {}
@@ -68,7 +68,7 @@ class ExtendedRecorder:
     def __init__(self, recorder: ProcessRecorder):
         self.recorder = recorder
 
-    def invocations(self) -> List[List[str]]:
+    def invocations(self) -> list[list[str]]:
         """
         Lists invocations as simple string lists.
         """
@@ -77,15 +77,15 @@ class ExtendedRecorder:
             calls.append([str(arg) for arg in call.args])
         return calls
 
-    def extras(self) -> List[Dict[str, Optional[str]]]:
+    def extras(self) -> list[dict[str, Optional[str]]]:
         """
         Lists arguments passed to subprocess.
 
         This allows .e.g. pwd to be seen, if set.
         """
-        args: List[Dict[str, Optional[str]]] = []
+        args: list[dict[str, Optional[str]]] = []
         for call in self.recorder.calls:
-            things: Dict[str, Optional[str]] = {}
+            things: dict[str, Optional[str]] = {}
             if call.kwargs is None:
                 continue
             for key, value in call.kwargs.items():

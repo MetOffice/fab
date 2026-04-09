@@ -4,7 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 from unittest import mock
 
 from pytest import fixture, mark, warns
@@ -157,8 +157,8 @@ class TestPsyclone:
         assert all(list(config.build_output.glob(f)) != [] for f in expect_build_files)
 
     @staticmethod
-    def __file_stats(path: Path) -> Dict[str, Dict[str, Any]]:
-        stat_map: Dict[str, Dict[str, Any]] = {}
+    def __file_stats(path: Path) -> dict[str, dict[str, Any]]:
+        stat_map: dict[str, dict[str, Any]] = {}
         for file in path.iterdir():
             stats = file.stat()
             stat_map[str(file)] = {key: getattr(stats, key) for key in dir(stats) if key.startswith('st_')}

@@ -11,7 +11,7 @@ import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Collection, List, Optional, Tuple, Union
+from typing import Collection, Optional, Union
 
 from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
@@ -41,8 +41,8 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
                   files: Collection[Path],
                   output_collection: Union[str, ArtefactSet],
                   output_suffix,
-                  common_flags: Optional[List[str]] = None,
-                  path_flags: Optional[List] = None,
+                  common_flags: Optional[list[str]] = None,
+                  path_flags: Optional[list] = None,
                   name="preprocess"):
     """
     Preprocess Fortran or C files.
@@ -94,7 +94,7 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     config.artefact_store.add(output_collection, set(by_type(results, Path)))
 
 
-def process_artefact(arg: Tuple[Path, MpCommonArgs]):
+def process_artefact(arg: tuple[Path, MpCommonArgs]):
     """
     Expects an input file in the source folder.
     Writes the output file to the output folder, with a lower case extension.

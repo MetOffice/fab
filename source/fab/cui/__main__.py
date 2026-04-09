@@ -13,7 +13,7 @@ from importlib.util import module_from_spec, spec_from_loader
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from types import ModuleType
-from typing import List, Optional
+from typing import Optional
 
 
 from .arguments import FabArgumentParser
@@ -50,7 +50,7 @@ def import_from_path(module_name: str, file_path: Path) -> Optional[ModuleType]:
     return module
 
 
-def main(argv: Optional[List[str]] = None):
+def main(argv: Optional[list[str]] = None):
     """Main function.
 
     :param argv: list of command line arguments.  Use sys.argv if not specified.
