@@ -6,8 +6,29 @@
 
 '''This module tests the Categories.
 '''
+from pytest import raises
+
 
 from fab.tools.category import Category
+
+
+def test_duplicate_categories():
+    """
+    Tests that we get an error if we try to duplicate a category.
+    """
+
+    with raises(ValueError) as err:
+        Category("FORTRAN_COMPILER")
+
+    assert "Category 'FORTRAN_COMPILER' already exists." in str(err.value)
+
+
+def test_hash():
+    """
+    Test the hash functionality.
+    """
+
+    assert hash(Category.FORTRAN_COMPILER) == hash("FORTRAN_COMPILER")
 
 
 def test_category():
