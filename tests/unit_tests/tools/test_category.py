@@ -27,14 +27,6 @@ def test_duplicate_categories():
     assert "Category 'FORTRAN_COMPILER' already exists." in str(err.value)
 
 
-def test_hash():
-    """
-    Test the hash functionality.
-    """
-
-    assert hash(Category.FORTRAN_COMPILER) == hash("FORTRAN_COMPILER")
-
-
 def test_category():
     '''Tests the categories.'''
     # Make sure that str of a category only prints the name (which is more

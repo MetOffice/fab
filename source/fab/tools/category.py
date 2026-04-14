@@ -32,10 +32,8 @@ class Category(int, metaclass=CategoryMeta):
     A enum is created by just creating an instance, e.g.:
     `Category("PSYCLONE")` (and it is checked that all names
     are unique). This will create `Category.PSYCLONE`. It also
-    allows iterating over all catogories, e.g. `for cat in Categories`.
+    allows iterating over all categories, e.g. `for cat in Categories`.
 
-    The category adds `__hash__` and `__eq__`, which allows it to be
-    used as keys in dictionaries (e.g. `ToolBox`) and comparisons.
     """
 
     def __new__(cls, name: str, val: Optional[int] = None):
@@ -58,7 +56,17 @@ class Category(int, metaclass=CategoryMeta):
         # return (callable, args) so pickle can reconstruct the object
         return (Category, (self._name, int(self)))
 
-    def __init__(self, name: str, int: Optional[int] = None):
+    def __init__(self, name: str, value: Optional[int] = None):
+        """
+        Creates the instance, and also sets it as class attribute of the
+        Category class. The `value` parameter is only required for
+        pickling (which is used when starting sub-processes)/
+
+        :param name: The name of the category to create, which will also
+            become an attribute of Category.
+        :param value: the integer value (which will be set in __new__,
+            and is otherwise required for pickling only).
+        """
         # Store the name for the name attribute, and create
         # an attribute with the same name
         self._name = name
@@ -66,14 +74,6 @@ class Category(int, metaclass=CategoryMeta):
 
     def __str__(self):
         return self._name
-
-    def __eq__(self, other):
-        if isinstance(other, Category):
-            return self._name == other._name
-        return NotImplemented
-
-    def __hash__(self):
-        return hash(self._name)
 
     @property
     def name(self) -> str:
