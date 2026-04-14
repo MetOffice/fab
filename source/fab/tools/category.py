@@ -67,6 +67,11 @@ class Category(int, metaclass=CategoryMeta):
     def __str__(self):
         return self._name
 
+    def __eq__(self, other):
+        if isinstance(other, Category):
+            return self._name == other._name
+        return NotImplemented
+
     def __hash__(self):
         return hash(self._name)
 
