@@ -4,8 +4,12 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''This module tests the Categories.
-'''
+"""
+This module tests the Categories.
+"""
+
+import pickle
+
 from pytest import raises
 
 
@@ -46,3 +50,15 @@ def test_is_compiler():
             assert cat.is_compiler
         else:
             assert not cat.is_compiler
+
+
+def test_category_pickle():
+    """
+    Test that pickling will return an object with the same
+    integer representation.
+    """
+
+    c = Category.AR
+    data = pickle.dumps(c)
+    c2 = pickle.loads(data)
+    assert c2 == c

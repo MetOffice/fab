@@ -7,6 +7,8 @@
 '''This simple module defines an Enum for all allowed categories.
 '''
 
+from typing import Optional
+
 
 class CategoryMeta(type):
     """
@@ -14,11 +16,14 @@ class CategoryMeta(type):
     that provides an API to allow to iterate over all categories.
     """
 
+    # A dictionary used for iterating over all enums.
+    _values: dict[str, "Category"] = {}
+
     def __iter__(cls):
         return iter(cls._values.values())
 
 
-class Category(metaclass=CategoryMeta):
+class Category(int, metaclass=CategoryMeta):
     """
     This class defines the allowed tool categories. It presents
     an interface similar to a Python enum, but it allows to extend
@@ -33,13 +38,30 @@ class Category(metaclass=CategoryMeta):
     used as keys in dictionaries (e.g. `ToolBox`) and comparisons.
     """
 
-    _values: dict[str, "Category"] = {}
+    def __new__(cls, name: str, val: Optional[int] = None):
+        # choose a numeric value for the int part
+        if val is not None:
+            # Called via __reduce__ (i.e. pickle), restore
+            # the original int value
+            obj = super().__new__(cls, val)
+        else:
+            # New name. Verify that it doesn't exist yet
+            if name in cls._values:
+                raise ValueError(f"Category '{name}' already exists.")
+            # Get a new id for the name. Use +1 to avoid using a zero
+            # (just in case)
+            obj = super().__new__(cls, len(cls._values) + 1)
+        cls._values[name] = obj
+        return obj
 
-    def __init__(self, name: str):
-        if name in Category._values:
-            raise ValueError(f"Category '{name}' already exists.")
+    def __reduce__(self):
+        # return (callable, args) so pickle can reconstruct the object
+        return (Category, (self._name, int(self)))
+
+    def __init__(self, name: str, int: Optional[int] = None):
+        # Store the name for the name attribute, and create
+        # an attribute with the same name
         self._name = name
-        Category._values[name] = self
         setattr(Category, name, self)
 
     def __str__(self):
@@ -48,12 +70,11 @@ class Category(metaclass=CategoryMeta):
     def __hash__(self):
         return hash(self._name)
 
-    def __eq__(self, other: object) -> bool:
-        return isinstance(other, Category) and self._name == other._name
-
     @property
     def name(self) -> str:
         """
+        Compatibility to enum feature:
+
         :returns: the name of this Category as string.
         """
         return self._name
@@ -63,8 +84,8 @@ class Category(metaclass=CategoryMeta):
         """
         :returns: if this Category is a Fortran or C compiler.
         """
-        return self in [Category._values["C_COMPILER"],
-                        Category._values["FORTRAN_COMPILER"]]
+        return self in [Category.C_COMPILER,
+                        Category.FORTRAN_COMPILER]
 
     # We need to declare all attributes here, otherwise mypy
     # is not happy. The actual values will be set below (we cannot
