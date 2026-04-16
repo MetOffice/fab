@@ -170,8 +170,6 @@ def analyse(
 
     # analyse
     project_source_tree, symbol_table = _analyse_dependencies(analysed_files)
-    print("ONEUP1", project_source_tree)
-    print("ONEUP2", symbol_table)
 
     # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
     with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
@@ -222,8 +220,6 @@ def _extract_build_trees(root_symbols, project_source_tree, symbol_table):
     """
     build_trees = {}
     assert root_symbols is not None
-    print("UUU", root_symbols)
-    print("SYMTAB", symbol_table)
     for root in root_symbols:
         with TimerLogger(f"extracting build tree for root '{root}'"):
             build_tree = extract_sub_tree(project_source_tree, symbol_table[root], verbose=False)
@@ -305,11 +301,9 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> dict[str, 
     """
     symbols: dict[str, Path] = {}
     duplicates = False
-    print("_gen_symbol_table", analysed_files)
     for analysed_file in analysed_files:
         for symbol_def in analysed_file.symbol_defs:
             # check for duplicates
-            print("analysed_file", analysed_file)
             if symbol_def in symbols:
                 logger.debug(
                         f"duplicate symbol '{symbol_def}' defined in {analysed_file.fpath} "
