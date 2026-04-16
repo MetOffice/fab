@@ -40,7 +40,6 @@ import warnings
 from pathlib import Path
 from typing import Iterable, Optional, Union
 
-from fab import FabException
 from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
@@ -147,7 +146,9 @@ def analyse(
 
     # parse
     files: list[Path] = source_getter(config.artefact_store)
-    analysed_files = _parse_files(config, files=files, fortran_analyser=fortran_analyser, c_analyser=c_analyser)
+    analysed_files = _parse_files(config, files=files,
+                                  fortran_analyser=fortran_analyser,
+                                  c_analyser=c_analyser)
     _add_manual_results(special_measure_analysis_results, analysed_files)
 
     # shall we search the results for fortran programs and a c function called main?
@@ -155,18 +156,22 @@ def analyse(
         # find fortran programs
         sets_of_programs = [af.program_defs for af in by_type(analysed_files, AnalysedFortran)]
         root_symbols = list(chain(*sets_of_programs))
-
-        # find c main()
-        c_with_main = list(filter(lambda c: 'main' in c.symbol_defs, by_type(analysed_files, AnalysedC)))
-        if c_with_main:
-            root_symbols.append('main')
-            if len(c_with_main) > 1:
-                raise FabException("multiple c main() functions found")
+        # find c main() symbols. In order to support building multiple
+        # C programs, each `main` symbol is replaced with `main@filename` during
+        # parsing.
+        for analysed_c in analysed_files:
+            if not isinstance(analysed_c, AnalysedC):
+                continue
+            main_symbol = f"main@{analysed_c.fpath.stem}"
+            if main_symbol in analysed_c.symbol_defs:
+                root_symbols.append(main_symbol)
 
         logger.info(f'automatically found the following programs to build: {", ".join(root_symbols)}')
 
     # analyse
     project_source_tree, symbol_table = _analyse_dependencies(analysed_files)
+    print("ONEUP1", project_source_tree)
+    print("ONEUP2", symbol_table)
 
     # add the file dependencies for MO FCM's "DEPENDS ON:" commented file deps (being removed soon)
     with TimerLogger("adding MO FCM 'DEPENDS ON:' file dependency comments"):
@@ -217,6 +222,8 @@ def _extract_build_trees(root_symbols, project_source_tree, symbol_table):
     """
     build_trees = {}
     assert root_symbols is not None
+    print("UUU", root_symbols)
+    print("SYMTAB", symbol_table)
     for root in root_symbols:
         with TimerLogger(f"extracting build tree for root '{root}'"):
             build_tree = extract_sub_tree(project_source_tree, symbol_table[root], verbose=False)
@@ -298,9 +305,11 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> dict[str, 
     """
     symbols: dict[str, Path] = {}
     duplicates = False
+    print("_gen_symbol_table", analysed_files)
     for analysed_file in analysed_files:
         for symbol_def in analysed_file.symbol_defs:
             # check for duplicates
+            print("analysed_file", analysed_file)
             if symbol_def in symbols:
                 logger.debug(
                         f"duplicate symbol '{symbol_def}' defined in {analysed_file.fpath} "

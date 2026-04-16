@@ -59,11 +59,15 @@ class AnalysedDependent(AnalysedFile, ABC):
 
     def add_symbol_def(self, name):
         assert name and len(name)
-        self.symbol_defs.add(name.lower())
+        self.symbol_defs.add(name)
+
+    def add_symbol_dep(self, name: str) -> None:
+        """
+        Adds a dependency to a symbol.
 
     def add_symbol_dep(self, name):
         assert name and len(name)
-        self.symbol_deps.add(name.lower())
+        self.symbol_deps.add(name)
 
     def add_file_dep(self, name):
         self.file_deps.add(Path(name))
