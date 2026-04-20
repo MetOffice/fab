@@ -12,6 +12,5 @@ for day-to-day use.
    :caption: Contents:
 
    analysis/index
-   work_queue
-   performance
+   notes/index
    api
