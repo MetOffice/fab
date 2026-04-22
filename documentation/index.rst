@@ -11,6 +11,7 @@ for day-to-day use.
    :maxdepth: 2
    :caption: Contents:
 
+   development
    analysis/index
    notes/index
    api
