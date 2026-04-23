@@ -146,9 +146,6 @@ class TestAnalyser:
             module_expected._file_hash = 325155675
             module_expected.program_defs = {'foo_mod'}
             module_expected.module_defs = set()
-            module_expected.symbol_defs.update({'internal_func',
-                                                'internal_sub',
-                                                'openmp_sentinel'})
 
             assert analysis == module_expected
             assert isinstance(analysis, AnalysedFortran)
