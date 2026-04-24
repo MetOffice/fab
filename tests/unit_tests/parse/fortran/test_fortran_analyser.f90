@@ -14,6 +14,7 @@ CONTAINS
 
     SUBROUTINE internal_sub
         ! DEPENDS ON: monty_func
+        external some_external_symbol
         RETURN
     END SUBROUTINE internal_sub
 

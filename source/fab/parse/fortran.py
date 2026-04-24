@@ -16,7 +16,8 @@ from fparser.two.Fortran2003 import (  # type: ignore
     Function_Stmt, Language_Binding_Spec, Char_Literal_Constant,
     Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def,
     Derived_Type_Stmt, Type_Attr_Spec_List, Type_Attr_Spec, Type_Name,
-    Subroutine_Subprogram, Function_Subprogram, Internal_Subprogram_Part)
+    Subroutine_Subprogram, Function_Subprogram, Internal_Subprogram_Part,
+    External_Stmt)
 from fparser.two.utils import walk  # type: ignore
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
@@ -234,7 +235,9 @@ class FortranAnalyser(FortranAnalyserBase):
                 #        Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
                     self._process_use_statement(analysed_fortran, obj)  # raises
-
+                elif obj_type == External_Stmt:
+                    for external in obj.items[1].items:
+                        analysed_fortran.add_symbol_dep(external.string)
                 elif obj_type == Call_Stmt:
                     called_name = _typed_child(obj, Name)
                     # called_name will be None for calls like thing%method(),
