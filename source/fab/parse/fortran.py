@@ -17,12 +17,9 @@ from fparser.two.Fortran2003 import (  # type: ignore
     Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def,
     Derived_Type_Stmt, Type_Attr_Spec_List, Type_Attr_Spec, Type_Name,
     Subroutine_Subprogram, Function_Subprogram, Internal_Subprogram_Part,
-    External_Stmt)
+    External_Stmt, Type_Declaration_Stmt, SequenceBase
+    )
 from fparser.two.utils import walk  # type: ignore
-
-# todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
-from fparser.two.Fortran2008 import (  # type: ignore
-    Type_Declaration_Stmt, Attr_Spec_List)
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
@@ -292,9 +289,14 @@ class FortranAnalyser(FortranAnalyserBase):
                 #       use in C. Variable bindings are bidirectional - does
                 #       this work the other way round, too?
                 #       Make sure we have a test for it.
-                elif obj_type == Type_Declaration_Stmt:
+                elif isinstance(obj, Type_Declaration_Stmt):
                     # bound?
-                    specs = _typed_child(obj, Attr_Spec_List)
+                    for child in obj.children:
+                        if isinstance(child, SequenceBase) and child.subclass_names == ["Attr_Spec"]:
+                            specs = child
+                            break
+                    else:
+                        specs = None
                     if specs and _typed_child(specs, Language_Binding_Spec):
                         self._process_variable_binding(analysed_fortran, obj)
 
