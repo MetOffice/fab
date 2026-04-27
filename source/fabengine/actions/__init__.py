@@ -175,6 +175,14 @@ class ExceptionActionException(ActionException):
         super().__init__(action)
         self._cause = cause
 
+        # Exceptions include a lot of references to Python environment state
+        # and as such, cannot be pickled. Since the multiprocessing
+        # library is based on pickling we need to convert the internal
+        # references to a flat string at this point in order to get useful
+        # backtraces out the other side.
+        #
+        self._backtrace = format_exception(self._cause)
+
     @property
     def cause(self) -> Exception:
         """
@@ -183,13 +191,7 @@ class ExceptionActionException(ActionException):
         return self._cause
 
     def describe(self) -> str:
-        return (
-            super().describe()
-            + " caused by "
-            + "".join(format_exception(self._cause))
-            + "\n"
-            + "\n".join(format_exception(self._cause))
-        )
+        return super().describe() + " caused by:\n" + "".join(self._backtrace)
 
 
 class SubprocessActionException(ActionException):

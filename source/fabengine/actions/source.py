@@ -5,7 +5,7 @@ from collections.abc import Generator
 from multiprocessing import get_logger as mp_get_logger
 from os import walk as os_walk
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 from urllib.parse import urlparse
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
@@ -27,13 +27,29 @@ class RepositoryAction(ABC):
     Interface of source repositories.
     """
 
-    @property
+    def __init__(self, projects: list[Project], database: Database):
+        self._projects = projects
+        self._database = database
+
     @abstractmethod
     def local_copy(self) -> Path:
         """
-        Creates a local copy of source tree.
+        Gets the local copy's location.
         """
         raise NotImplementedError()
+
+    def projects(self) -> list[Action]:
+        actions: list[Action] = []
+        for project in self._projects:
+            actions.append(
+                SourceDirectory(
+                    self.local_copy() / project.source_dir,
+                    project.identifier,
+                    self._database,
+                    project.source_include,
+                )
+            )
+        return actions
 
 
 class SourceOnDiscAction(SubprocessAction, RepositoryAction):
@@ -47,13 +63,13 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         :param projects: Parts of the source tree to consider.
         :param database: Build system state and configuration.
         """
+        RepositoryAction.__init__(self, projects, database)
         self._remote = remote
-        self._projects = projects
         self._database = database
 
         remote = str(self._remote).rstrip("/")
         local = str(self._database.configuration.work_dir)
-        super().__init__(Path("rsync"), ["-a", remote, local])
+        SubprocessAction.__init__(self, Path("rsync"), ["-a", remote, local])
 
     def __str__(self) -> str:
         return "Source from disc: " + str(self._remote)
@@ -64,7 +80,6 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         """
         return []
 
-    @property
     def local_copy(self) -> Path:
         """
         :return: Path of local copy.
@@ -80,16 +95,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
                  freshly imported source.
         """
         self.run_subprocess()
-        actions: list[Action] = []
-        for project in self._projects:
-            actions.append(
-                SourceDirectory(
-                    self.local_copy / project.source_dir,
-                    project.identifier,
-                    self._database,
-                )
-            )
-        return actions
+        return self.projects()
 
 
 class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
@@ -105,14 +111,14 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         :param projects: Subtrees of concern.
         :param database: Build system state and configuration.
         """
+        RepositoryAction.__init__(self, projects, database)  # Parent constructor
         _, netloc, _, _, _, _ = urlparse(url)
         if netloc.split("@")[-1].lower() != "github.com":
             raise RuntimeError("URL passed to SourceOnGitHubAction is not on GitHub")
         self._url = url
-        self._projects = projects
         self._database = database
 
-        super().__init__(Path("git"))
+        SubprocessAction.__init__(self, Path("git"))  # Parent constructor
 
     def __str__(self) -> str:
         return "GitHub repository: " + self._url
@@ -123,7 +129,6 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         """
         return []
 
-    @property
     def local_copy(self) -> Path:
         """
         :return: Path of local copy.
@@ -139,30 +144,19 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         :return: Error result if extraction fails, otherwise action to examine
                  freshly imported source.
         """
-        repo_marker = self.local_copy / ".git"
+        repo_marker = self.local_copy() / ".git"
+        arguments: list[str | Path]
         if repo_marker.is_dir():  # Repository is present
-            arguments = ["-C", str(self.local_copy), "pull"]
+            arguments = ["-C", str(self.local_copy()), "pull"]
         else:  # Repository is missing
             scheme, netloc, path, _, _, fragment = urlparse(self._url)
             url = f"{scheme}://{netloc}{path}"
-            arguments = [
-                "clone",
-                "--depth=1",
-                f"--branch={fragment}",
-                url,
-                str(self.local_copy),
-            ]
-        self.run_subprocess(arguments)
-        actions: list[Action] = []
-        for project in self._projects:
-            actions.append(
-                SourceDirectory(
-                    self.local_copy / project.identifier,
-                    project.identifier,
-                    self._database,
-                )
-            )
-        return actions
+            arguments = ["clone", "--depth=1"]
+            if fragment:
+                arguments.append(f"--branch={fragment}")
+            arguments.extend([url, self.local_copy()])
+        self.run_subprocess(additional_arguments=arguments)
+        return self.projects()
 
 
 class SourceDirectory(Action):
@@ -170,14 +164,23 @@ class SourceDirectory(Action):
     Examines source tree for actionable files.
     """
 
-    def __init__(self, filename: Path, tag: str, database: Database):
+    def __init__(
+        self,
+        filename: Path,
+        tag: str,
+        database: Database,
+        source_include: Optional[list[Path]] = None,
+    ):
         """
         :param filename: Root of source tree.
         :param tag: Collection to use in workspace.
         :param database: Build system state and configuration.
+        :param source_include: Paths to include from repository. Defaults to
+                               including everything.
         """
         super().__init__(str(filename))
         self._source_dir = filename
+        self._source_include = source_include or [Path(".")]
         self._tag = tag
         self._database = database
 
@@ -202,9 +205,17 @@ class SourceDirectory(Action):
         .. Todo:: Make the actions themselves responsible for knowing how to
                   dispatch?
 
+        .. todo:: Possibly connected to previous, can we convert the
+                  if/then/else ladder into a dispatch table? This would allow
+                  conditionals (such as testing) to be controlled when the
+                  table was constructed rather than testing each time.
+
+        .. todo:: Alternatively, can we use match/case structure to simplify
+                  dispatch?
+
         :return: Action for each actionable file.
         """
-        mp_get_logger().debug("Scanning " + str(self._source_dir))
+        mp_get_logger().info("Scanning " + str(self._source_dir))
         project_dir = self._database.configuration.build_dir / self._tag
         project_dir.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired paths - maybe something with a factory pattern here?
@@ -224,6 +235,15 @@ class SourceDirectory(Action):
                     self._source_dir.absolute(),
                     full_filename.relative_to(self._source_dir),
                 )
+
+                # Determine whether to include the file
+                #
+                if not any(
+                    two_part_filename.branch.is_relative_to(path)
+                    for path in self._source_include
+                ):
+                    mp_get_logger().info(f"Ignoring file <{two_part_filename.branch}>")
+                    continue
 
                 actions: list[Action] = []
                 if full_filename.suffix == ".f90":
@@ -297,7 +317,7 @@ class SourceDirectory(Action):
                         )
                     )
                 else:
-                    mp_get_logger().debug("Ignoring file: " + full_filename.name)
+                    mp_get_logger().info("Ignoring file: " + full_filename.name)
 
                 for action in actions:
                     yield action

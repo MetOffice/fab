@@ -123,7 +123,7 @@ def fab_core(
                     continue
 
                 meta_data_path = (
-                    repo_action.local_copy / project.configuration_meta_data
+                    repo_action.local_copy() / project.configuration_meta_data
                 )
                 if project.configuration_meta_data.name == "rose-meta.conf":
                     # Todo: Don't like Core reference here

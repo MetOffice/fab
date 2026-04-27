@@ -560,6 +560,11 @@ class LinkFortran(SubprocessAction):
             for arg in package.link_arguments:
                 if isinstance(arg, LinkerPath):
                     self._library_args.append("-L" + str(arg.path))
+
+                    # Todo: This needs to be optional, for cases where we want
+                    #       pure dynamic linkage.
+                    #
+                    self._library_args.append("-Wl,-rpath=" + str(arg.path))
                 elif isinstance(arg, LibraryName):
                     self._library_args.append("-l" + arg.name)
                 else:
