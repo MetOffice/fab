@@ -277,10 +277,10 @@ class FortranAnalyser(FortranAnalyserBase):
                             analysed_fortran.add_symbol_dep(called_name.string)
 
                 elif obj_type == Program_Stmt:
-                    analysed_fortran.add_program_def(str(obj.get_name()))
+                    analysed_fortran.add_program_def(obj.get_name().string)
 
                 elif obj_type == Module_Stmt:
-                    analysed_fortran.add_module_def(str(obj.get_name()))
+                    analysed_fortran.add_module_def(obj.get_name().string)
 
                 elif obj_type in (Subroutine_Stmt, Function_Stmt):
                     self._process_subroutine_or_function(analysed_fortran,
@@ -386,7 +386,23 @@ class FortranAnalyser(FortranAnalyserBase):
                 # Without .o means a Fortran symbol
                 analysed_file.add_symbol_dep(dep)
 
-    def _process_subroutine_or_function(self, analysed_file, fpath, obj):
+    def _process_subroutine_or_function(
+            self,
+            analysed_file: AnalysedFortran,
+            fpath: Path,
+            obj: Union[Function_Stmt, Subroutine_Stmt]):
+        """
+        Processes a subroutine statement. It handles:
+        - a potential 'bind' attribute (which can change the external symbol
+          used),
+        - declaration of subroutines/functions in modules (which will not be
+          visible as external symbols, any dependencies will be covered by
+          the module symbol)
+        - declarations contained in other subroutines (which will not
+          at all be visible)
+        - declarations in an interface block (which declare an external
+          dependency)
+        """
         # binding?
         bind = _typed_child(obj, Language_Binding_Spec)
         if bind:
@@ -410,18 +426,19 @@ class FortranAnalyser(FortranAnalyserBase):
                 analysed_file.add_symbol_def(bind_name)
 
         # Not bound, just record the presence of the Fortran symbol.
-        # We don't need to record stuff in modules. Do not record
-        # any functions/subroutine that are part of a module, contained,
-        # or an interface block (since these symbols will not be external
-        # visible, and might otherwise trigger duplicated symbols in Fab)
+
+        elif self._find_ancestor(obj, Interface_Block):
+            # If the subroutine/function declaration is inside an interface
+            # block, we have an external dependency:
+            analysed_file.add_symbol_dep(str(obj.get_name()))
+
         elif (not self._find_ancestor(obj, Module) and
-              not self._find_ancestor(obj, Internal_Subprogram_Part) and
-              not self._find_ancestor(obj, Interface_Block)):
-            if isinstance(obj, Subroutine_Stmt):
-                analysed_file.add_symbol_def(str(obj.get_name()))
-            elif isinstance(obj, Function_Stmt):
-                _, name, _, _ = obj.items
-                analysed_file.add_symbol_def(name.string)
+              not self._find_ancestor(obj, Internal_Subprogram_Part)):
+            # We don't need to record stuff in modules, and any functions /
+            # subroutines that contained in a subroutine either (since these
+            # will not be externally visible). But otherwise record the
+            # declaration of the subroutine/function.
+            analysed_file.add_symbol_def(str(obj.get_name()))
 
 
 class FortranParserWorkaround():
