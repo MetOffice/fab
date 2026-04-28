@@ -17,12 +17,8 @@ from fparser.two.Fortran2003 import (  # type: ignore
     Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def,
     Derived_Type_Stmt, Type_Attr_Spec_List, Type_Attr_Spec, Type_Name,
     Subroutine_Subprogram, Function_Subprogram, Internal_Subprogram_Part,
-    External_Stmt)
+    External_Stmt, Type_Declaration_Stmt)
 from fparser.two.utils import walk  # type: ignore
-
-# todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
-from fparser.two.Fortran2008 import (  # type: ignore
-    Type_Declaration_Stmt, Attr_Spec_List)
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
@@ -292,12 +288,8 @@ class FortranAnalyser(FortranAnalyserBase):
                 #       use in C. Variable bindings are bidirectional - does
                 #       this work the other way round, too?
                 #       Make sure we have a test for it.
-                elif obj_type == Type_Declaration_Stmt:
-                    # bound?
-                    specs = _typed_child(obj, Attr_Spec_List)
-                    if specs and _typed_child(specs, Language_Binding_Spec):
-                        self._process_variable_binding(analysed_fortran, obj)
-
+                elif isinstance(obj, Type_Declaration_Stmt):
+                    self._process_type_declaration(analysed_fortran, obj)
                 elif obj_type == Comment:
                     self._process_comment(analysed_fortran, obj)
 
@@ -343,6 +335,28 @@ class FortranAnalyser(FortranAnalyserBase):
         elif use_name.lower() not in self._intrinsic_modules:
             # found a dependency on fortran
             analysed_file.add_module_dep(use_name)
+
+    def _process_type_declaration(self, analysed_fortran, obj):
+        """
+        Handles a type declaration statement. A type declaration symbol
+        implies an outside dependency if:
+        1. there is a bind attribute (dependency to other language)
+        2. external attribute.
+
+        Syntax rule:
+            Type_Declaration_Stmt(        ! obj
+                Intrinsic_Type_Spec       ! obj.items[0]
+                Attr_Spec_List            ! obj.items[1]
+                Entity_Decl_List          ! obj.items[2]
+        """
+        attr_spec_list = obj.items[1].items if obj.items[1] else []
+        for attr in attr_spec_list:
+            if attr.string == "EXTERNAL":
+                for symbol in obj.items[2].items:
+                    analysed_fortran.add_symbol_dep(symbol.string)
+            elif isinstance(attr, Language_Binding_Spec):
+                # Bind attribute
+                self._process_variable_binding(analysed_fortran, obj)
 
     def _process_variable_binding(self, analysed_file,
                                   obj: Type_Declaration_Stmt):
