@@ -16,7 +16,7 @@ a tool is actually available.
 import logging
 from pathlib import Path
 import subprocess
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from fab.tools.category import Category
 from fab.tools.flags import ProfileFlags
@@ -36,7 +36,7 @@ class Tool:
 
     def __init__(self, name: str, exec_name: Union[str, Path],
                  category: Category = Category.MISC,
-                 availability_option: Optional[Union[str, List[str]]] = None):
+                 availability_option: Optional[Union[str, list[str]]] = None):
         self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_path = Path(exec_name)
@@ -112,7 +112,7 @@ class Tool:
         return self._name
 
     @property
-    def availability_option(self) -> Union[str, List[str]]:
+    def availability_option(self) -> Union[str, list[str]]:
         ''':returns: the option to use to check if the tool is available.'''
         return self._availability_option
 
@@ -125,7 +125,7 @@ class Tool:
         ''':returns: the flags to be used with this tool.'''
         return self._flags[profile]
 
-    def add_flags(self, new_flags: Union[str, List[str]],
+    def add_flags(self, new_flags: Union[str, list[str]],
                   profile: Optional[str] = None):
         '''Adds the specified flags to the list of flags.
 
@@ -160,14 +160,14 @@ class Tool:
             additional_parameters: Optional[
                 Union[str, Sequence[Union[Path, str]]]] = None,
             profile: Optional[str] = None,
-            env: Optional[Dict[str, str]] = None,
+            env: Optional[dict[str, str]] = None,
             cwd: Optional[Union[Path, str]] = None,
             capture_output=True) -> str:
         """
         Run the binary as a subprocess.
 
         :param additional_parameters:
-            List of strings or paths to be sent to :func:`subprocess.run`
+            list of strings or paths to be sent to :func:`subprocess.run`
             as additional parameters for the command. Any path will be
             converted to a normal string.
         :param env:
@@ -229,7 +229,7 @@ class CompilerSuiteTool(Tool):
     '''
     def __init__(self, name: str, exec_name: Union[str, Path], suite: str,
                  category: Category,
-                 availability_option: Optional[Union[str, List[str]]] = None):
+                 availability_option: Optional[Union[str, list[str]]] = None):
         super().__init__(name, exec_name, category,
                          availability_option=availability_option)
         self._suite = suite

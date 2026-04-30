@@ -9,7 +9,7 @@
 
 from pathlib import Path
 import re
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 import warnings
 
 from fab.build_config import BuildConfig
@@ -61,8 +61,8 @@ class Psyclone(Tool):
                 transformed_file: Optional[Path] = None,
                 transformation_script: Optional[Callable[[Path, "BuildConfig"],
                                                          Path]] = None,
-                additional_parameters: Optional[List[str]] = None,
-                kernel_roots: Optional[List[Union[str, Path]]] = None,
+                additional_parameters: Optional[list[str]] = None,
+                kernel_roots: Optional[list[Union[str, Path]]] = None,
                 api: Optional[str] = None,
                 ):
         # pylint: disable=too-many-arguments, too-many-branches
@@ -114,7 +114,7 @@ class Psyclone(Tool):
                 raise RuntimeError("PSyclone called without api, but "
                                    "transformed_file is not specified.")
 
-        parameters: List[Union[str, Path]] = []
+        parameters: list[Union[str, Path]] = []
         # If an api is defined in this call (or in the constructor) add it
         # as parameter. No API is required if PSyclone works as
         # transformation tool only, so calling PSyclone without api is
@@ -157,7 +157,7 @@ class Psyclone(Tool):
         if additional_parameters:
             parameters.extend(additional_parameters)
         if kernel_roots:
-            roots_with_dash_d: List[str] = sum([['-d', str(k)]
+            roots_with_dash_d: list[str] = sum([['-d', str(k)]
                                                 for k in kernel_roots], [])
             parameters.extend(roots_with_dash_d)
         parameters.append(str(x90_file))

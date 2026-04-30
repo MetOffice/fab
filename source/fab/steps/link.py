@@ -9,7 +9,7 @@ Link an executable.
 """
 import logging
 from string import Template
-from typing import List, Optional
+from typing import Optional
 
 from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
                            CollectionGetter)
@@ -35,8 +35,8 @@ class DefaultLinkerSource(ArtefactsGetter):
 
 @step
 def link_exe(config,
-             libs: Optional[List[str]] = None,
-             flags: Optional[List[str]] = None,
+             libs: Optional[list[str]] = None,
+             flags: Optional[list[str]] = None,
              source: Optional[ArtefactsGetter] = None) -> None:
     """
     Link object files into an executable for every build target.
@@ -104,7 +104,7 @@ def link_exe(config,
 @step
 def link_shared_object(config,
                        output_fpath: str,
-                       flags: Optional[List[str]] = None,
+                       flags: Optional[list[str]] = None,
                        source: Optional[ArtefactsGetter] = None):
     """
     Produce a shared object (*.so*) file from the given build target.

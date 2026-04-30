@@ -10,7 +10,7 @@ PR.
 '''
 
 import logging
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 import warnings
 
 from fab.util import string_checksum
@@ -22,10 +22,10 @@ class Flags(list):
 
     TODO #22: This class and build_config.FlagsConfig should be combined.
 
-    :param list_of_flags: List of parameters to initialise this object with.
+    :param list_of_flags: list of parameters to initialise this object with.
     '''
 
-    def __init__(self, list_of_flags: Optional[List[str]] = None):
+    def __init__(self, list_of_flags: Optional[list[str]] = None):
         self._logger = logging.getLogger(__name__)
         super().__init__()
         if list_of_flags:
@@ -38,7 +38,7 @@ class Flags(list):
         """
         return string_checksum(str(self))
 
-    def add_flags(self, new_flags: Union[str, List[str]]):
+    def add_flags(self, new_flags: Union[str, list[str]]):
         '''Adds the specified flags to the list of flags.
 
         :param new_flags: A single string or list of strings which are the
@@ -103,13 +103,13 @@ class ProfileFlags:
     def __init__(self: "ProfileFlags"):
         # Stores the flags for each profile mode. The key is the (lower case)
         # name of the profile mode, and it contains a list of flags
-        self._profiles: Dict[str, Flags] = {"": Flags()}
+        self._profiles: dict[str, Flags] = {"": Flags()}
 
         # This dictionary stores an optional inheritance, where one mode
         # 'inherits' the flags from a different mode (recursively)
-        self._inherit_from: Dict[str, str] = {}
+        self._inherit_from: dict[str, str] = {}
 
-    def __getitem__(self, profile: Optional[str] = None) -> List[str]:
+    def __getitem__(self, profile: Optional[str] = None) -> list[str]:
         '''Returns the flags for the requested profile. If profile is not
         specified, the empty profile ("") will be used. It will also take
         inheritance into account, so add flags (recursively) from inherited
@@ -165,7 +165,7 @@ class ProfileFlags:
             self._inherit_from[name.lower()] = inherit_from.lower()
 
     def add_flags(self,
-                  new_flags: Union[str, List[str]],
+                  new_flags: Union[str, list[str]],
                   profile: Optional[str] = None):
         '''Adds the specified flags to the list of flags.
 

@@ -9,14 +9,14 @@ Fortran language handling classes.
 """
 import logging
 from pathlib import Path
-from typing import Union, Optional, Iterable, Dict, Any, Set
+from typing import Union, Optional, Iterable, Any
 
 from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt,
     Function_Stmt, Language_Binding_Spec, Char_Literal_Constant,
     Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def,
     Derived_Type_Stmt, Type_Attr_Spec_List, Type_Attr_Spec, Type_Name,
-    Subroutine_Subprogram, Function_Subprogram)
+    Subroutine_Subprogram, Function_Subprogram, Internal_Subprogram_Part)
 from fparser.two.utils import walk  # type: ignore
 
 # todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
@@ -52,7 +52,7 @@ class AnalysedFortran(AnalysedDependent):
                  symbol_deps: Optional[Iterable[str]] = None,
                  mo_commented_file_deps: Optional[Iterable[str]] = None,
                  file_deps: Optional[Iterable[Path]] = None,
-                 psyclone_kernels: Optional[Dict[str, int]] = None):
+                 psyclone_kernels: Optional[dict[str, int]] = None):
         """
         :param fpath:
             The source file that was analysed.
@@ -85,16 +85,16 @@ class AnalysedFortran(AnalysedDependent):
         super().__init__(fpath=fpath, file_hash=file_hash,
                          symbol_defs=symbol_defs, symbol_deps=symbol_deps, file_deps=file_deps)
 
-        self.program_defs: Set[str] = set(program_defs or [])
-        self.module_defs: Set[str] = set(module_defs or [])
-        self.module_deps: Set[str] = set(module_deps or [])
-        self.mo_commented_file_deps: Set[str] = \
+        self.program_defs: set[str] = set(program_defs or [])
+        self.module_defs: set[str] = set(module_defs or [])
+        self.module_deps: set[str] = set(module_deps or [])
+        self.mo_commented_file_deps: set[str] = \
             set(mo_commented_file_deps or [])
 
         # Todo: Ideally Psyclone stuff would not be part of this general
         #       fortran analysis code. Instead, perhaps we could inject
         #       bespoke node handling into the fortran analyser.
-        self.psyclone_kernels: Dict[str, int] = psyclone_kernels or {}
+        self.psyclone_kernels: dict[str, int] = psyclone_kernels or {}
 
         self.validate()
 
@@ -130,7 +130,7 @@ class AnalysedFortran(AnalysedDependent):
             'psyclone_kernels',
         ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         # These dicts will be written to json files, so can't contain sets.
         # We sort the lists for reproducibility in testing.
         result = super().to_dict()
@@ -406,13 +406,17 @@ class FortranAnalyser(FortranAnalyserBase):
             else:
                 analysed_file.add_symbol_def(bind_name)
 
-        # not bound, just record the presence of the fortran symbol
-        # we don't need to record stuff in modules (we think!)
+        # Not bound, just record the presence of the Fortran symbol.
+        # We don't need to record stuff in modules. Do not record
+        # any functions/subroutine that are part of a module, contained,
+        # or an interface block (since these symbols will not be external
+        # visible, and might otherwise trigger duplicated symbols in Fab)
         elif (not self._find_ancestor(obj, Module) and
+              not self._find_ancestor(obj, Internal_Subprogram_Part) and
               not self._find_ancestor(obj, Interface_Block)):
             if isinstance(obj, Subroutine_Stmt):
                 analysed_file.add_symbol_def(str(obj.get_name()))
-            if isinstance(obj, Function_Stmt):
+            elif isinstance(obj, Function_Stmt):
                 _, name, _, _ = obj.items
                 analysed_file.add_symbol_def(name.string)
 
@@ -459,11 +463,11 @@ class FortranParserWorkaround():
 
         """
         self.fpath = fpath
-        self.module_defs: Set[str] = set(module_defs or {})
-        self.symbol_defs: Set[str] = set(symbol_defs or {})
-        self.module_deps: Set[str] = set(module_deps or {})
-        self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.mo_commented_file_deps: Set[str] = \
+        self.module_defs: set[str] = set(module_defs or {})
+        self.symbol_defs: set[str] = set(symbol_defs or {})
+        self.module_deps: set[str] = set(module_deps or {})
+        self.symbol_deps: set[str] = set(symbol_deps or {})
+        self.mo_commented_file_deps: set[str] = \
             set(mo_commented_file_deps or [])
 
     def as_analysed_fortran(self):

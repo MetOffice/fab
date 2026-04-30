@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 from collections import namedtuple, defaultdict
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Dict, Set, Union, List
+from typing import Iterator, Iterable, Optional, Union
 
 import fab
 
@@ -76,7 +76,7 @@ def string_checksum(s: str):
     return zlib.crc32(s.encode())
 
 
-def file_walk(path: Union[str, Path], ignore_folders: Optional[List[Path]] = None) -> Iterator[Path]:
+def file_walk(path: Union[str, Path], ignore_folders: Optional[list[Path]] = None) -> Iterator[Path]:
     """
     Return every file in *path* and its sub-folders.
 
@@ -263,7 +263,7 @@ def get_fab_workspace() -> Path:
     return Path(workspace)
 
 
-def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> Dict[str, Set]:
+def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> dict[str, set]:
     """
     Group prebuild filenames by originating artefact.
 

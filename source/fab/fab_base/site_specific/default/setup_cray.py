@@ -8,14 +8,14 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
 from fab.api import (AddFlags, BuildConfig, Category, Compiler, Linker,
                      ToolRepository)
 
 
 def setup_cray(build_config: BuildConfig,
-               args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
+               args: argparse.Namespace) -> dict[str, list[AddFlags]]:
     # pylint: disable=unused-argument, too-many-branches
     '''
     Defines the default flags for ftn.

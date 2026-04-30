@@ -12,7 +12,7 @@ Classes and helper functions related to the dependency tree, as created by the a
 from abc import ABC
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Set, Union
+from typing import Any, Iterable, Optional, Union
 
 from fab.parse import AnalysedFile
 
@@ -50,9 +50,9 @@ class AnalysedDependent(AnalysedFile, ABC):
         """
         super().__init__(fpath=fpath, file_hash=file_hash)
 
-        self.symbol_defs: Set[str] = set(symbol_defs or {})
-        self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.file_deps: Set[Path] = set(file_deps or [])
+        self.symbol_defs: set[str] = set(symbol_defs or {})
+        self.symbol_deps: set[str] = set(symbol_deps or {})
+        self.file_deps: set[Path] = set(file_deps or [])
 
         assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
         assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
@@ -76,7 +76,7 @@ class AnalysedDependent(AnalysedFile, ABC):
             'file_deps',
         ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         result = super().to_dict()
         result.update({
             "symbol_defs": list(sorted(self.symbol_defs)),
@@ -98,9 +98,9 @@ class AnalysedDependent(AnalysedFile, ABC):
         return result
 
 
-def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent],
+def extract_sub_tree(source_tree: dict[Path, AnalysedDependent],
                      root: Path, verbose=False)\
-        -> Dict[Path, AnalysedDependent]:
+        -> dict[Path, AnalysedDependent]:
     """
     Extract the subtree required to build the target, from the full source tree of all analysed source files.
 
@@ -112,8 +112,8 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent],
         Log missing dependencies.
 
     """
-    result: Dict[Path, AnalysedDependent] = dict()
-    missing: Set[Path] = set()
+    result: dict[Path, AnalysedDependent] = dict()
+    missing: set[Path] = set()
 
     _extract_sub_tree(src_tree=source_tree,
                       key=root,
@@ -127,10 +127,10 @@ def extract_sub_tree(source_tree: Dict[Path, AnalysedDependent],
     return result
 
 
-def _extract_sub_tree(src_tree: Dict[Path, AnalysedDependent],
+def _extract_sub_tree(src_tree: dict[Path, AnalysedDependent],
                       key: Path,
-                      dst_tree: Dict[Path, AnalysedDependent],
-                      missing: Set[Path],
+                      dst_tree: dict[Path, AnalysedDependent],
+                      missing: set[Path],
                       verbose: bool,
                       indent: int = 0):
     # is this node already in the sub tree?
@@ -160,7 +160,7 @@ def _extract_sub_tree(src_tree: Dict[Path, AnalysedDependent],
             src_tree=src_tree, key=file_dep, dst_tree=dst_tree, missing=missing, verbose=verbose, indent=indent + 1)
 
 
-def filter_source_tree(source_tree: Dict[Path, AnalysedDependent], suffixes: Iterable[str]) -> List[AnalysedDependent]:
+def filter_source_tree(source_tree: dict[Path, AnalysedDependent], suffixes: Iterable[str]) -> list[AnalysedDependent]:
     """
     Pull out files with the given extensions from a source tree.
 

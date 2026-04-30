@@ -8,13 +8,13 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
 from fab.api import AddFlags, BuildConfig, Category, Linker, ToolRepository
 
 
 def setup_gnu(build_config: BuildConfig,
-              args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
+              args: argparse.Namespace) -> dict[str, list[AddFlags]]:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for all GNU compilers and linkers.
