@@ -52,15 +52,16 @@ def test_contained_subroutine(tmp_path):
         analyse(config, root_symbol='main')
         build_tree = config.artefact_store[ArtefactSet.BUILD_TREES]["main"]
 
-        af_mod_with_contain = None
-        for file_name in build_tree:
-            if "mod_with_contain" in str(file_name):
-                af_mod_with_contain = build_tree[file_name]
-                break
+        source_path = tmp_path / "contained_subroutine" / "source"
 
+        af_mod_with_contain = build_tree[source_path / "mod_with_contain.f90"]
         # The module should not contain any dependencies, the dependency to
         # `contained` is resolved from the subroutine it contains.
         assert af_mod_with_contain.symbol_deps == set()
+
+        # The contained subroutine in main should not be exported
+        af_main = build_tree[source_path / "main.f90"]
+        assert af_main.symbol_defs == set(["main"])
 
         # Just in case, also compile and link
         compile_fortran(config)
