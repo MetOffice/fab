@@ -21,6 +21,8 @@ class Psyclone(Tool):
     '''This is the base class for `PSyclone`.
     '''
 
+    Category.add("PSYCLONE")
+
     def __init__(self):
         super().__init__("psyclone", "psyclone", Category.PSYCLONE)
         self._version = None

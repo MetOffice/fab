@@ -116,24 +116,21 @@ class Category(int, metaclass=CategoryMeta):
     FORTRAN_PREPROCESSOR: Category
     GIT: Category
     LINKER: Category
-    MISC: Category
     PSYCLONE: Category
     RSYNC: Category
     SHELL: Category
     SUBVERSION: Category
+    # In order to make mypy happy, we add this category for
+    # unit tests.
+    CATEGORY_FOR_UNIT_TESTS: Category
 
 
 # Now create the default categories that Fab needs
-Category.add("AR")
 Category.add("C_COMPILER")
 Category.add("C_PREPROCESSOR")
-Category.add("FCM")
 Category.add("FORTRAN_COMPILER")
 Category.add("FORTRAN_PREPROCESSOR")
-Category.add("GIT")
 Category.add("LINKER")
-Category.add("MISC")
-Category.add("PSYCLONE")
-Category.add("RSYNC")
-Category.add("SHELL")
-Category.add("SUBVERSION")
+
+# Special category only used for unit tests
+Category.add("CATEGORY_FOR_UNIT_TESTS")
