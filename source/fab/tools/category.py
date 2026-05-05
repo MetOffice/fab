@@ -7,6 +7,8 @@
 '''This simple module defines an Enum for all allowed categories.
 '''
 
+from __future__ import annotations
+
 from typing import Optional
 
 
@@ -42,14 +44,16 @@ class Category(int, metaclass=CategoryMeta):
             # Called via __reduce__ (i.e. pickle), restore
             # the original int value
             obj = super().__new__(cls, val)
+        # New name. If it already exists, return the existing
+        # object
+        elif name in cls._values:
+            obj = cls._values[name]
         else:
-            # New name. Verify that it doesn't exist yet
-            if name in cls._values:
-                raise ValueError(f"Category '{name}' already exists.")
             # Get a new id for the name. Use +1 to avoid using a zero
             # (just in case)
             obj = super().__new__(cls, len(cls._values) + 1)
-        cls._values[name] = obj
+            cls._values[name] = obj
+
         return obj
 
     def __reduce__(self):
@@ -71,6 +75,15 @@ class Category(int, metaclass=CategoryMeta):
         # an attribute with the same name
         self._name = name
         setattr(Category, name, self)
+
+    @staticmethod
+    def add(name: str) -> None:
+        """
+        Adds a new category.
+        """
+        # We don't need to store the instance, it is added as an attribute
+        # to this class anyway.
+        Category(name)
 
     def __str__(self):
         return self._name
@@ -95,32 +108,32 @@ class Category(int, metaclass=CategoryMeta):
     # We need to declare all attributes here, otherwise mypy
     # is not happy. The actual values will be set below (we cannot
     # call the Category constructor here)
-    AR: "Category"
-    C_COMPILER: "Category"
-    C_PREPROCESSOR: "Category"
-    FCM: "Category"
-    FORTRAN_COMPILER: "Category"
-    FORTRAN_PREPROCESSOR: "Category"
-    GIT: "Category"
-    LINKER: "Category"
-    MISC: "Category"
-    PSYCLONE: "Category"
-    RSYNC: "Category"
-    SHELL: "Category"
-    SUBVERSION: "Category"
+    AR: Category
+    C_COMPILER: Category
+    C_PREPROCESSOR: Category
+    FCM: Category
+    FORTRAN_COMPILER: Category
+    FORTRAN_PREPROCESSOR: Category
+    GIT: Category
+    LINKER: Category
+    MISC: Category
+    PSYCLONE: Category
+    RSYNC: Category
+    SHELL: Category
+    SUBVERSION: Category
 
 
 # Now create the default categories that Fab needs
-Category("AR")
-Category("C_COMPILER")
-Category("C_PREPROCESSOR")
-Category("FCM")
-Category("FORTRAN_COMPILER")
-Category("FORTRAN_PREPROCESSOR")
-Category("GIT")
-Category("LINKER")
-Category("MISC")
-Category("PSYCLONE")
-Category("RSYNC")
-Category("SHELL")
-Category("SUBVERSION")
+Category.add("AR")
+Category.add("C_COMPILER")
+Category.add("C_PREPROCESSOR")
+Category.add("FCM")
+Category.add("FORTRAN_COMPILER")
+Category.add("FORTRAN_PREPROCESSOR")
+Category.add("GIT")
+Category.add("LINKER")
+Category.add("MISC")
+Category.add("PSYCLONE")
+Category.add("RSYNC")
+Category.add("SHELL")
+Category.add("SUBVERSION")

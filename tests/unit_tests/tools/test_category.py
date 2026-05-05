@@ -10,21 +10,19 @@ This module tests the Categories.
 
 import pickle
 
-from pytest import raises
-
 
 from fab.tools.category import Category
 
 
 def test_duplicate_categories():
     """
-    Tests that we get an error if we try to duplicate a category.
+    Tests that trying to create a new Category that already exists,
+    we get the existing object.
     """
 
-    with raises(ValueError) as err:
-        Category("FORTRAN_COMPILER")
-
-    assert "Category 'FORTRAN_COMPILER' already exists." in str(err.value)
+    old_ftn_cat = Category.FORTRAN_COMPILER
+    new_ftn_cat = Category("FORTRAN_COMPILER")
+    assert old_ftn_cat is new_ftn_cat
 
 
 def test_category():
