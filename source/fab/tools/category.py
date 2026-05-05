@@ -26,6 +26,7 @@ class Category(Enum):
     AR = auto()
     RSYNC = auto()
     SHELL = auto()
+    PFUNIT = auto()
     MISC = auto()
 
     def __str__(self):
