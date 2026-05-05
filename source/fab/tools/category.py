@@ -131,6 +131,3 @@ Category.add("C_PREPROCESSOR")
 Category.add("FORTRAN_COMPILER")
 Category.add("FORTRAN_PREPROCESSOR")
 Category.add("LINKER")
-
-# Special category only used for unit tests
-Category.add("CATEGORY_FOR_UNIT_TESTS")

@@ -19,6 +19,9 @@ from fab.tools.flags import ProfileFlags
 from fab.tools.tool import CompilerSuiteTool, Tool
 
 
+Category.add("CATEGORY_FOR_UNIT_TESTS")
+
+
 def test_constructor() -> None:
     """
     Tests construction from argument list.
