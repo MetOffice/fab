@@ -13,8 +13,9 @@ from typing import cast
 from fab.api import AddFlags, BuildConfig, Category, Linker, ToolRepository
 
 
-def setup_gnu(build_config: BuildConfig,
-              args: argparse.Namespace) -> dict[str, list[AddFlags]]:
+def setup_script_gnu(
+        build_config: BuildConfig,
+        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for all GNU compilers and linkers.

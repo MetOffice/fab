@@ -14,8 +14,9 @@ from fab.api import (AddFlags, BuildConfig, Category, Compiler, Linker,
                      ToolRepository)
 
 
-def setup_cray(build_config: BuildConfig,
-               args: argparse.Namespace) -> dict[str, list[AddFlags]]:
+def setup_script_cray(
+        build_config: BuildConfig,
+        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
     # pylint: disable=unused-argument, too-many-branches
     '''
     Defines the default flags for ftn.

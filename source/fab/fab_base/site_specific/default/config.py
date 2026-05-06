@@ -10,13 +10,16 @@ from typing import cast
 
 from fab.api import AddFlags, BuildConfig, Category, Compiler, ToolRepository
 
-from fab.fab_base.site_specific.default.setup_cray import setup_cray
-from fab.fab_base.site_specific.default.setup_gnu import setup_gnu
-from fab.fab_base.site_specific.default.setup_intel_classic import (
-    setup_intel_classic)
-from fab.fab_base.site_specific.default.setup_intel_llvm import (
-    setup_intel_llvm)
-from fab.fab_base.site_specific.default.setup_nvidia import setup_nvidia
+from fab.fab_base.site_specific.default.setup_script_cray import (
+    setup_script_cray)
+from fab.fab_base.site_specific.default.setup_script_gnu import (
+    setup_script_gnu)
+from fab.fab_base.site_specific.default.setup_script_intel_classic import (
+    setup_script_intel_classic)
+from fab.fab_base.site_specific.default.setup_script_intel_llvm import (
+    setup_script_intel_llvm)
+from fab.fab_base.site_specific.default.setup_script_nvidia import (
+    setup_script_nvidia)
 
 
 class Config:
@@ -138,7 +141,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["cray"] = setup_cray(build_config, self.args)
+        self._path_flags["cray"] = setup_script_cray(build_config, self.args)
 
     def setup_gnu(self, build_config: BuildConfig) -> None:
         '''
@@ -149,7 +152,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["gnu"] = setup_gnu(build_config, self.args)
+        self._path_flags["gnu"] = setup_script_gnu(build_config, self.args)
 
     def setup_intel_classic(self, build_config: BuildConfig) -> None:
         '''
@@ -160,8 +163,8 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["intel_classic"] = setup_intel_classic(build_config,
-                                                                self.args)
+        self._path_flags["intel_classic"] = \
+            setup_script_intel_classic(build_config, self.args)
 
     def setup_intel_llvm(self, build_config: BuildConfig) -> None:
         '''
@@ -172,8 +175,8 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["intel-llvm"] = setup_intel_llvm(build_config,
-                                                          self.args)
+        self._path_flags["intel-llvm"] = setup_script_intel_llvm(build_config,
+                                                                 self.args)
 
     def setup_nvidia(self, build_config: BuildConfig) -> None:
         '''
@@ -184,4 +187,5 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["nvidia"] = setup_nvidia(build_config, self.args)
+        self._path_flags["nvidia"] = setup_script_nvidia(build_config,
+                                                         self.args)

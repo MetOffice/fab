@@ -14,8 +14,9 @@ from fab.api import (AddFlags, BuildConfig, Category, Compiler, Linker,
                      ToolRepository)
 
 
-def setup_nvidia(build_config: BuildConfig,
-                 args: argparse.Namespace) -> dict[str, list[AddFlags]]:
+def setup_script_nvidia(
+        build_config: BuildConfig,
+        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for nvfortran.
