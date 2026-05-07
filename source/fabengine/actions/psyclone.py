@@ -88,7 +88,7 @@ class PSyclone(SubprocessAction):
             "-l",
             "all",
             "-c",
-            self._database.configuration.psyclone_config,
+            self._database.configuration.path("psyclone_config"),
         ]
         arguments.extend(["-oalg", self._project_dir / self._alg_name])
         arguments.extend(["-opsy", self._project_dir / self._psy_name])
@@ -173,7 +173,9 @@ class PSyclone(SubprocessAction):
             symbol = self._database.symbol_table.get(kernel)
             if symbol:
                 prereqs.append(FilePrerequisite(symbol.source_file))
-        prereqs.append(FilePrerequisite(self._database.configuration.psyclone_config))
+        prereqs.append(
+            FilePrerequisite(self._database.configuration.path("psyclone_config"))
+        )
         return prereqs
 
     def perform(self) -> list[Action]:

@@ -15,6 +15,7 @@ class Project:
         identifier: Optional[str] = None,
         source_dir: Path = Path("source"),
         source_include: Optional[list[Path]] = None,
+        paths: Optional[dict[str, Path]] = None,
         configuration_meta_data: Path = Path("rose-meta"),
     ):
         """
@@ -24,6 +25,7 @@ class Project:
                          ``source``.
         :param source_include: List of paths to be extracted from the project.
                                If not specified, everything is imported.
+        :param paths: Mapping of repository executables to tool names.
         :param configuration_meta_data: Project subdirectory holding
                                         configuration metadata, defaults to
                                         ``rose-meta``.
@@ -32,6 +34,12 @@ class Project:
         self._identifier = identifier or self._project_dir.name
         self._source_dir = source_dir
         self._source_include = source_include
+
+        # Todo: This is a fix for the immediate problem of finding the
+        #       build tools, configurator and templaterator. It may well
+        #       be replaced by whatever we develop to manage compilers.
+        #
+        self._paths = paths or {}
         self._configuration_meta_data = configuration_meta_data
 
     @property
@@ -58,6 +66,10 @@ class Project:
     @property
     def source_include(self) -> Optional[list[Path]]:
         return self._source_include
+
+    @property
+    def paths(self) -> dict[str, Path]:
+        return self._paths
 
     @property
     def configuration_meta_data(self) -> Path:

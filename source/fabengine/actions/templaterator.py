@@ -17,14 +17,12 @@ class Templaterator(SubprocessAction):
         filename: Path,
         leafname: str,
         inserts: dict[str, str],
-        core_dir: Path,
         database: Database,
     ):
         """
         :param filename: Template file.
         :param leafname: Name of generated file.
         :param inserts: Keyed values imposed on template.
-        :param core_dir: LFRic core source, used to find templaterator.
         :param database: Build system state and configuration.
         """
         self._filename = filename
@@ -38,9 +36,7 @@ class Templaterator(SubprocessAction):
         for key, value in inserts.items():
             arguments.extend(["-s", key + "=" + value])
         arguments.append(self._filename)
-        super().__init__(
-            core_dir / "infrastructure" / "build" / "tools" / "Templaterator", arguments
-        )
+        super().__init__(self._database.configuration.path("templaterator"), arguments)
 
     def __str__(self) -> str:
         return f"Templating: {self._filename}"

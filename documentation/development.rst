@@ -48,6 +48,18 @@ for it. Instead we exercise the command-line override for 3rd party package
 details, in the ``run`` script. Use it as a substitute for calling the toy
 directly. e.g. ``run -j 4 -v --fabfile skeleton.fabfile``
 
+.. note::
+   Where possible test target code is retrieved from repositories using their
+   public interface, e.g. HTTPS.
+
+   This does not work for repositories with restricted access. In these cases
+   SSH must be used. This, in turn, can cause the build to pause waiting for a
+   pass-phrase to unlock your key matter.
+
+   If the build seems to be stalled, check it isn't waiting for the SSH keys to
+   be unlocked. If it is, you should be able to just enter your pass phrase as
+   normal.
+
 
 Development Tools
 =================
@@ -68,3 +80,37 @@ Discussion
 
 The primary repository has "Discussions" enabled. If you have any questions
 feel free to ask them there.
+
+
+Testing Against Bugged Source
+=============================
+
+Our developer tests make use of real project source in order to get a
+real-world work out. The down side of this is that there can be bugs in that
+source.
+
+In order to progress while your bug fix is making its way through the review
+process you can redirect the testing to a local working copy.
+
+In the relevant `.fabfile` modify (for example):
+
+.. code-block:: python
+
+   GitHubRepository(
+       "https://github.com/MetOffice/lfric_core#vn3.1",
+
+to
+
+.. code-block:: python
+
+   FileTreeRepository(
+       ".../path/to/working-copy",
+
+You may need to add `FileTreeRepository` to an import statement.
+
+It's probably a good idea to delete any build working directory you may have
+hanging around.
+
+Once your fix is on trunk you will need to change it back to a repository
+service. Although now it will need to point to a revision on trunk, rather
+than a tagged release.

@@ -18,10 +18,16 @@ class Repository(ABC):
     Abstract version control tool.
     """
 
-    def __init__(self, projects: Optional[list[Project]] = None):
+    def __init__(
+        self,
+        paths: Optional[dict[str, Path]] = None,
+        projects: Optional[list[Project]] = None,
+    ):
         """
+        :param paths: Named paths in this directory.
         :param projects: Projects in this directory.
         """
+        self._paths = paths or {}
         self._projects: list[Project] = projects or []
 
     def add_project_directory(self, project: Project) -> None:
@@ -31,6 +37,13 @@ class Repository(ABC):
         :param project: New project.
         """
         self._projects.append(project)
+
+    @property
+    def paths(self) -> dict[str, Path]:
+        """
+        Gets all special paths.
+        """
+        return self._paths
 
     @property
     def projects(self) -> list[Project]:
@@ -55,11 +68,16 @@ class FileTreeRepository(Repository):
     Treat the filing system as a repository of source.
     """
 
-    def __init__(self, filename: str, projects: Optional[list[Project]] = None):
+    def __init__(
+        self,
+        filename: str,
+        paths: Optional[dict[str, Path]] = None,
+        projects: Optional[list[Project]] = None,
+    ):
         """
         :param filename: Location of source.
         """
-        super().__init__(projects)
+        super().__init__(paths, projects)
         self._filename = filename
 
     def create_action(self, work_dir: Path, database: Database) -> RepositoryAction:
@@ -76,13 +94,18 @@ class GitHubRepository(Repository):
     Fetches source from Git repository associated with a GitHub project.
     """
 
-    def __init__(self, url: str, projects: Optional[list[Project]] = None):
+    def __init__(
+        self,
+        url: str,
+        paths: Optional[dict[str, Path]] = None,
+        projects: Optional[list[Project]] = None,
+    ):
         """
         :param url: GitHub project URL.
                     e.g. ssh://git@github.com/Example/project.git
         :param projects: Initial list of projects held in repository.
         """
-        super().__init__(projects)
+        super().__init__(paths, projects)
         self._url = url
 
     def create_action(self, work_dir: Path, database: Database) -> RepositoryAction:

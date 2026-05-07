@@ -54,7 +54,6 @@ def fab_core(
 
     configuration = Configuration(
         work_dir,
-        psyclone_config=work_dir / "lfric_core" / "etc" / "psyclone.cfg",
         fpp_definitions={
             # Physics from the UM
             "UM_PHYSICS": "true",
@@ -116,9 +115,16 @@ def fab_core(
         result_queue: Queue[WorkerException] = manager.Queue()
         for repository in fab_configuration.repositories():
             repo_action = repository.create_action(work_dir, database)
-            work_queue.new_action(repo_action)
+
+            for identifier, path in repository.paths.items():
+                full_path = repo_action.local_copy() / path
+                database.configuration.add_path(identifier, full_path)
 
             for project in repository.projects:
+                for identifier, path in project.paths.items():
+                    full_path = repo_action.local_copy() / project.project_dir / path
+                    database.configuration.add_path(identifier, full_path)
+
                 if project.configuration_meta_data is None:
                     continue
 
@@ -127,11 +133,11 @@ def fab_core(
                 )
                 if project.configuration_meta_data.name == "rose-meta.conf":
                     # Todo: Don't like Core reference here
-                    work_queue.new_action(
-                        RosePicker(meta_data_path, work_dir / "lfric_core", database)
-                    )
+                    work_queue.new_action(RosePicker(meta_data_path, database))
                 else:  # Is a directory
                     database.config_meta_dirs.append(meta_data_path)
+
+            work_queue.new_action(repo_action)
 
         workers: list[WorkerProcess] = []
         for _ in range(worker_threads):

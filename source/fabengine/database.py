@@ -21,7 +21,6 @@ class Configuration:
     def __init__(
         self,
         work_dir: Path,
-        psyclone_config: Path,
         fpp_definitions: dict[str, str],
         fc_ignore_modules: list[str],
         field_instances: list[dict[str, str]],
@@ -33,7 +32,6 @@ class Configuration:
     ):
         """
         :param work_dir: Location of workspace used by build.
-        :param psyclone_config: Location of configuration file for PSyclone.
         :param fpp_definitions: Macros to be defined for Fortran preprocessor.
         :param fc_ignore_modules: Fortran modules which should not be
                                   considered dependencies.
@@ -46,7 +44,6 @@ class Configuration:
         :param performance_file: Write performance timings to this file.
         """
         self._work_dir = work_dir
-        self._psyclone_config = psyclone_config
         self._fpp_definitions = fpp_definitions
         self._fc_ignore_modules = fc_ignore_modules
         self._field_instances = field_instances
@@ -57,6 +54,7 @@ class Configuration:
         self._performance_file = performance_file
 
         self._use_open_mp = True
+        self._paths: dict[str, Path] = {}
 
         self._build_dir = work_dir / "build"
         self._build_dir.mkdir(parents=True, exist_ok=True)
@@ -70,13 +68,6 @@ class Configuration:
         :return: Working directory.
         """
         return self._work_dir
-
-    @property
-    def psyclone_config(self) -> Path:
-        """
-        :return: PSyclone configuration file.
-        """
-        return self._psyclone_config
 
     @property
     def build_dir(self) -> Path:
@@ -141,6 +132,14 @@ class Configuration:
     @property
     def packages(self) -> tuple[Package, ...]:
         return self._packages
+
+    def add_path(self, identifier: str, path: Path):
+        if identifier in self._paths:
+            raise KeyError(f"Tool '{identifier}' already in collection")
+        self._paths[identifier] = path
+
+    def path(self, identifier: str) -> Path:
+        return self._paths[identifier]
 
     @property
     def performance_file(self) -> Optional[Path]:

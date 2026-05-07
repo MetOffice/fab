@@ -218,8 +218,6 @@ class SourceDirectory(Action):
         mp_get_logger().info("Scanning " + str(self._source_dir))
         project_dir = self._database.configuration.build_dir / self._tag
         project_dir.mkdir(parents=True, exist_ok=True)
-        # Todo: Hardwired paths - maybe something with a factory pattern here?
-        core_dir = self._database.configuration.work_dir / "lfric_core"
 
         # Todo: Tree-walk not added to pathlib until v3.12.
         #
@@ -285,7 +283,6 @@ class SourceDirectory(Action):
                                 full_filename,
                                 leafname,
                                 inserts,
-                                core_dir,
                                 self._database,
                             )
                         )

@@ -134,7 +134,7 @@ class WorkerProcess(Process):
                     continue
             except Exception as ex:
                 logger.error("Exception in prerequisites: ({prereq}) {ex}")
-                result = ExceptionActionException(action, cause=ex)
+                result = ExceptionActionException(action, ex)
                 self._result_queue.put(result)
                 self._work_queue.stop()
 
