@@ -141,11 +141,11 @@ def test_root_symbol(monkeypatch) -> None:
     fab_base = FabBase(name="test-help")
 
     # Set a single root symbol
-    fab_base.set_root_symbol("root1")
-    assert fab_base.root_symbol == ["root1"]
+    fab_base.set_root_symbols("root1")
+    assert fab_base.root_symbols == ["root1"]
 
-    fab_base.set_root_symbol(["root1", "root2"])
-    assert fab_base.root_symbol == ["root1", "root2"]
+    fab_base.set_root_symbols(["root1", "root2"])
+    assert fab_base.root_symbols == ["root1", "root2"]
 
 
 def test_profile_default(monkeypatch) -> None:
