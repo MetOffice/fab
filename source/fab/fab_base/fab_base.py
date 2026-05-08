@@ -32,6 +32,7 @@ from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from fab.fab_base.site_specific.default.config import Config as SiteConfig
 
 
 class FabBase:
@@ -168,12 +169,28 @@ class FabBase:
         return self._root_symbol
 
     @property
+    def name(self) -> str:
+
+        '''
+        :returns: the name of the apps.
+        '''
+        return self._name
+
+    @property
     def site(self) -> Optional[str]:
 
         '''
         :returns: the site, or None if no site is specified.
         '''
         return self._site
+
+    @property
+    def site_config(self) -> Optional[SiteConfig]:
+        """
+        :returns: the site configuration to use (or None if
+            no site config is used).
+        """
+        return self._site_config
 
     @property
     def logger(self) -> logging.Logger:
@@ -728,11 +745,11 @@ class FabBase:
         build config.
         """
         if self._link_target == "static-library":
-            out_path = self.config.project_workspace / f"lib{self._name}.a"
+            out_path = self.config.project_workspace / f"lib{self.name}.a"
             archive_objects(self.config,
                             output_fpath=str(out_path))
         elif self._link_target == "shared-library":
-            out_path = self.config.project_workspace / f"lib{self._name}.so"
+            out_path = self.config.project_workspace / f"lib{self.name}.so"
             link_shared_object(self.config,
                                output_fpath=str(out_path),
                                flags=self.linker_flags_commandline)
