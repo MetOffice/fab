@@ -473,7 +473,7 @@ def test_build_static_lib(monkeypatch) -> None:
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, root_symbol=None, ignore_dependencies=None)
+        fab_base.config, root_symbols=None, ignore_dependencies=None)
 
     mocks["archive_objects"][0].stop()
     mocks["archive_objects"][1].assert_called_once_with(
@@ -525,7 +525,7 @@ def test_build_shared_lib(monkeypatch) -> None:
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, root_symbol=None, ignore_dependencies=None)
+        fab_base.config, root_symbols=None, ignore_dependencies=None)
 
     mocks["link_shared_object"][0].stop()
     mocks["link_shared_object"][1].assert_called_once_with(
