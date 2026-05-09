@@ -34,7 +34,7 @@ def test_minimal_c(tmp_path):
         find_source_files(config)
         c_pragma_injector(config)
         preprocess_c(config)
-        analyse(config, root_symbol='main')
+        analyse(config, root_symbols='main')
         compile_c(config, common_flags=['-c', '-std=c99'])
         link_exe(config)
 
