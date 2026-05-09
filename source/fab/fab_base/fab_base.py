@@ -705,10 +705,10 @@ class FabBase:
                 analyse(self.config, find_programs=True,
                         ignore_dependencies=ignore_dependencies)
             else:
-                analyse(self.config, root_symbol=self.root_symbols,
+                analyse(self.config, root_symbols=self.root_symbols,
                         ignore_dependencies=ignore_dependencies)
         else:
-            analyse(self.config, root_symbol=None,
+            analyse(self.config, root_symbols=None,
                     ignore_dependencies=ignore_dependencies)
 
     def compile_c_step(
