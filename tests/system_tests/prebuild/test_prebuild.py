@@ -33,7 +33,7 @@ class TestFortranPrebuild(object):
                 grab_pre_build(config, grab_prebuild_folder)
             find_source_files(config)
             preprocess_fortran(config)
-            analyse(config, root_symbol='my_prog')
+            analyse(config, root_symbols='my_prog')
             compile_fortran(config)
             link_exe(config, flags=['-lgfortran'])
 
