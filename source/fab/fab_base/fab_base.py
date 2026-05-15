@@ -10,6 +10,8 @@ This is an OO basic interface to FAB. It allows typical applications to
 only modify very few settings to have a working FAB build script.
 '''
 
+from __future__ import annotations
+
 import argparse
 from importlib import import_module
 import inspect
@@ -17,7 +19,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, TYPE_CHECKING, Union
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.steps.analyse import analyse
@@ -32,7 +34,9 @@ from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
-from fab.fab_base.site_specific.default.config import Config as SiteConfig
+
+if TYPE_CHECKING:
+    from fab.fab_base.site_specific.default.config import Config as SiteConfig
 
 
 class FabBase:
