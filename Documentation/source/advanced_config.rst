@@ -598,7 +598,7 @@ symbol and add it, *and all its dependencies*, to every :term:`Build Tree`.
     :linenos:
 
     ...
-    analyse(state, root_symbol='my_prog', unreferenced_deps=['my_func'])
+    analyse(state, root_symbols='my_prog', unreferenced_deps=['my_func'])
     ...
 
 Unparsable Files
@@ -623,7 +623,7 @@ definitions and dependencies found in one source file.
     ...
     analyse(
         config,
-        root_symbol='my_prog',
+        root_symbols='my_prog',
         special_measure_analysis_results=[
             FortranParserWorkaround(
                 fpath=Path(state.build_output / "path/to/file.f90"),

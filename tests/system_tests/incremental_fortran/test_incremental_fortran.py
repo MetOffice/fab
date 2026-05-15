@@ -56,7 +56,7 @@ class TestIncremental:
     def run_steps(self, build_config):
         find_source_files(build_config)
         preprocess_fortran(build_config)
-        analyse(build_config, root_symbol='my_prog')
+        analyse(build_config, root_symbols='my_prog')
         compile_fortran(build_config)
         link_exe(build_config, flags=['-lgfortran'])
         # Add a permissive cleanup step because we want to know about every file which is created,
