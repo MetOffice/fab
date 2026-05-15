@@ -21,6 +21,9 @@ from fab.fab_base.fab_base import FabBase
 from fab.tools.category import Category
 from fab.tools.tool_repository import ToolRepository
 
+# Mypy does not handle the relative import here properly, ignore error:
+from site_specific.default.config import Config as SiteConfig   # type: ignore
+
 
 @pytest.fixture(scope="function", autouse=True)
 def setup_tool_repository(stub_fortran_compiler, stub_c_compiler,
@@ -73,6 +76,8 @@ def test_constructor(monkeypatch) -> None:
 
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     fab_base = FabBase(name="test_name", link_target="executable")
+
+    assert fab_base.name == "test_name"
 
     # Check other settings and functions
     # pylint: disable=use-implicit-booleaness-not-comparison
@@ -136,11 +141,11 @@ def test_root_symbol(monkeypatch) -> None:
     fab_base = FabBase(name="test-help")
 
     # Set a single root symbol
-    fab_base.set_root_symbol("root1")
-    assert fab_base.root_symbol == ["root1"]
+    fab_base.set_root_symbols("root1")
+    assert fab_base.root_symbols == ["root1"]
 
-    fab_base.set_root_symbol(["root1", "root2"])
-    assert fab_base.root_symbol == ["root1", "root2"]
+    fab_base.set_root_symbols(["root1", "root2"])
+    assert fab_base.root_symbols == ["root1", "root2"]
 
 
 def test_profile_default(monkeypatch) -> None:
@@ -335,6 +340,8 @@ def test_site_specific_callbacks(monkeypatch):
         tfb = TestFabBase(name="test-help")
         mock_handle.assert_called_once_with(tfb.args)
         mock_define.assert_called_once_with(tfb.parser)
+        # Check that the property returns the right object
+        assert isinstance(tfb.site_config, SiteConfig)
 
 
 def test_site_specific_outside_dir(monkeypatch) -> None:
@@ -466,7 +473,7 @@ def test_build_static_lib(monkeypatch) -> None:
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, root_symbol=None, ignore_dependencies=None)
+        fab_base.config, root_symbols=None, ignore_dependencies=None)
 
     mocks["archive_objects"][0].stop()
     mocks["archive_objects"][1].assert_called_once_with(
@@ -518,7 +525,7 @@ def test_build_shared_lib(monkeypatch) -> None:
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, root_symbol=None, ignore_dependencies=None)
+        fab_base.config, root_symbols=None, ignore_dependencies=None)
 
     mocks["link_shared_object"][0].stop()
     mocks["link_shared_object"][1].assert_called_once_with(

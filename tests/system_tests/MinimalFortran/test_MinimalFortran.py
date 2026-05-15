@@ -29,7 +29,7 @@ def test_minimal_fortran(tmp_path):
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
         preprocess_fortran(config)
-        analyse(config, root_symbol='test')
+        analyse(config, root_symbols='test')
         with pytest.warns(UserWarning, match="Removing managed flag"):
             compile_fortran(config, common_flags=['-c'])
         link_exe(config, flags=['-lgfortran'])
