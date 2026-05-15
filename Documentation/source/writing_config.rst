@@ -207,7 +207,7 @@ The Analyse step looks for source to analyse in two collections:
             preprocess_fortran(state)
             preprocess_x90(state)
             psyclone(state)
-            analyse(state, root_symbol='<program>')
+            analyse(state, root_symbols='<program>')
 
 
 Here we tell the analyser which :term:`Root Symbol` we want to build into an executable.
@@ -245,7 +245,7 @@ then creates the executable.
             preprocess_fortran(state)
             preprocess_x90(state)
             psyclone(state)
-            analyse(state, root_symbol='<program>')
+            analyse(state, root_symbols='<program>')
             compile_fortran(state)
             link_exe(state)
 
