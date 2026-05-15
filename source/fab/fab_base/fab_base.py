@@ -32,6 +32,7 @@ from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from fab.fab_base.site_specific.default.config import Config as SiteConfig
 
 
 class FabBase:
@@ -61,7 +62,7 @@ class FabBase:
         self._target = ""
         # Set the given name as root symbol, it can be set explicitly
         # using set_root_symbol()
-        self._root_symbol: list[str] = [name]
+        self._root_symbols: list[str] = [name]
 
         # The preprocessor flags to be used. One stores the common flags
         # (without path-specific component), the other the path-specific
@@ -148,24 +149,57 @@ class FabBase:
         label = f"{name}-{self.args.profile}-$compiler"
         return label
 
-    def set_root_symbol(self, root_symbol: Union[list[str], str]) -> None:
+    def set_root_symbols(self, root_symbols: Union[list[str], str]) -> None:
+        '''Defines the root symbol(s), which is set by default to be the
+        name given in the constructor.
+
+        :param root_symbols: the root symbol(s) to use when creating a binary
+            (unused otherwise).
+        '''
+        if isinstance(root_symbols, str):
+            self._root_symbols = [root_symbols]
+        else:
+            self._root_symbols = root_symbols
+
+    def set_root_symbol(self, root_symbols: Union[list[str], str]) -> None:
         '''Defines the root symbol. It defaults to the name given in
         the constructor.
 
-        :param name: the root symbol to use when creating a binary
+        :param root_symbols: the root symbol(s) to use when creating a binary
             (unused otherwise).
         '''
-        if isinstance(root_symbol, str):
-            self._root_symbol = [root_symbol]
-        else:
-            self._root_symbol = root_symbol
+        self.logger.warning("Using deprecated `set_root_symbol`. "
+                            "Use `set_root_symbols` instead.")
+        self.set_root_symbols(root_symbols)
+
+    @property
+    def root_symbols(self) -> list[str]:
+        '''
+        This function returns the list of root symbols. It allows an
+        application to add or remove to the list of root symbols.
+
+        :returns: the list of root symbols.
+        '''
+        return self._root_symbols
 
     @property
     def root_symbol(self) -> list[str]:
         '''
+        This function is deprecated and only provided for backward
+        compatibility. Use `root_symbols` instead.
         :returns: the list of root symbols.
         '''
-        return self._root_symbol
+        self.logger.warning("Using deprecated `root_symbol` property. "
+                            "Use `root_symbols` instead.")
+        return self.root_symbols
+
+    @property
+    def name(self) -> str:
+
+        '''
+        :returns: the name of the apps.
+        '''
+        return self._name
 
     @property
     def site(self) -> Optional[str]:
@@ -174,6 +208,14 @@ class FabBase:
         :returns: the site, or None if no site is specified.
         '''
         return self._site
+
+    @property
+    def site_config(self) -> Optional[SiteConfig]:
+        """
+        :returns: the site configuration to use (or None if
+            no site config is used).
+        """
+        return self._site_config
 
     @property
     def logger(self) -> logging.Logger:
@@ -663,10 +705,10 @@ class FabBase:
                 analyse(self.config, find_programs=True,
                         ignore_dependencies=ignore_dependencies)
             else:
-                analyse(self.config, root_symbol=self.root_symbol,
+                analyse(self.config, root_symbols=self.root_symbols,
                         ignore_dependencies=ignore_dependencies)
         else:
-            analyse(self.config, root_symbol=None,
+            analyse(self.config, root_symbols=None,
                     ignore_dependencies=ignore_dependencies)
 
     def compile_c_step(
@@ -728,11 +770,11 @@ class FabBase:
         build config.
         """
         if self._link_target == "static-library":
-            out_path = self.config.project_workspace / f"lib{self._name}.a"
+            out_path = self.config.project_workspace / f"lib{self.name}.a"
             archive_objects(self.config,
                             output_fpath=str(out_path))
         elif self._link_target == "shared-library":
-            out_path = self.config.project_workspace / f"lib{self._name}.so"
+            out_path = self.config.project_workspace / f"lib{self.name}.so"
             link_shared_object(self.config,
                                output_fpath=str(out_path),
                                flags=self.linker_flags_commandline)
