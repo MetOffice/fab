@@ -29,7 +29,7 @@ def test_fortran_dependencies(tmp_path):
         grab_folder(config, src=Path(__file__).parent / 'project-source')
         find_source_files(config)
         preprocess_fortran(config)  # nothing to preprocess, actually, it's all little f90 files
-        analyse(config, root_symbol=['first', 'second'])
+        analyse(config, root_symbols=['first', 'second'])
         compile_c(config, common_flags=['-c', '-std=c99'])
         with pytest.warns(UserWarning, match="Removing managed flag"):
             compile_fortran(config, common_flags=['-c'])

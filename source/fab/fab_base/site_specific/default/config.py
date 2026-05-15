@@ -1,5 +1,10 @@
 #! /usr/bin/env python3
 
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
 
 '''
 This module contains the default FabBase configuration class.
@@ -58,6 +63,8 @@ class Config:
         a site-specific configuration should inherit from the default, and
         can then overwrite this method to add site-specific options or
         defaults.
+
+        :param args: the command line options added in the site config.
         '''
         # As examples (typically used in a site-specific derived class):
         # Adding a site-specific option to profile with Tau:
@@ -75,8 +82,7 @@ class Config:
         options have been added. This is for example used to add
         Vernier profiling flags, which are site-specific.
 
-        :param argparse.Namespace args: the command line options added in
-            the site configs
+        :param args: the command line options added in the site configs.
         '''
         # Keep a copy of the args, so they can be used when
         # initialising compilers
@@ -89,6 +95,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
+
         # First create the default compiler profiles for all available
         # compilers. While we have a tool box with exactly one compiler
         # in it, compiler wrappers will require more than one compiler
