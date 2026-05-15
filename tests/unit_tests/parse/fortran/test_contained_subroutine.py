@@ -49,7 +49,7 @@ def test_contained_subroutine(tmp_path):
                      multiprocessing=False) as config:
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
-        analyse(config, root_symbol='main')
+        analyse(config, root_symbols='main')
         build_tree = config.artefact_store[ArtefactSet.BUILD_TREES]["main"]
 
         source_path = tmp_path / "contained_subroutine" / "source"

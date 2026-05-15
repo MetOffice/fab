@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+
 '''
 This file contains a function that sets the default flags for all
 Intel classic based compilers in the ToolRepository (ifort, icc).
@@ -14,8 +20,9 @@ from fab.api import (AddFlags, BuildConfig, Category, Compiler, Linker,
                      ToolRepository)
 
 
-def setup_intel_classic(build_config: BuildConfig,
-                        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
+def setup_script_intel_classic(
+        build_config: BuildConfig,
+        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
     # pylint: disable=unused-argument, too-many-locals
     '''
     Defines the default flags for all Intel classic compilers and linkers.
