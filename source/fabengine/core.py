@@ -8,7 +8,8 @@ from typing import Optional
 
 from fabengine.actions import Action, EndOfWorkException, WorkerException
 from fabengine.actions.configurator import RosePicker
-from fabengine.configuration import FabConfiguration
+from fabengine.build_script import BuildScript
+from fabengine.configuration_tools import WriteOnceDict
 from fabengine.database import Configuration, Database, Performance
 from fabengine.manager import FabManager
 from fabengine.package import Package, partition_specification, pkg_config, LibraryName
@@ -16,8 +17,11 @@ from fabengine.processes import WorkerProcess, MonitorProcess
 from fabengine.work_queue import QueueStrategy
 
 
+# Todo, convert core to a class with methods called from entry.
+# Todo, store command line options more neatly (here), and pass into database
+#       to be added to the new write once configuration.
 def fab_core(
-    fab_configuration: FabConfiguration,
+    build_script: BuildScript,
     package_table: dict[str, Package],
     work_dir: Path,
     worker_threads: int,
@@ -28,7 +32,7 @@ def fab_core(
     """
     Build system entry point.
 
-    :param fab_configuration: Describes the build.
+    :param build_script: Describes the build.
     :param package_table: Map of library name to details.
     :param work_dir: Directory used as scratch space for build.
     :param worker_threads: Number of workers to use.
@@ -41,7 +45,7 @@ def fab_core(
     mp_logger.addHandler(StreamHandler())
 
     packages: list[Package] = []
-    for specification in fab_configuration.libraries():
+    for specification in build_script.libraries():
         package_name, _, _ = partition_specification(specification)
         if package_name in package_table:
             packages.append(package_table[package_name])
@@ -52,8 +56,8 @@ def fab_core(
     #
     packages.append(Package("stdc++", (), [], [LibraryName("stdc++")]))
 
+    # Todo: Port configuration to write once configuration for all actions
     configuration = Configuration(
-        work_dir,
         fpp_definitions={
             # Physics from the UM
             "UM_PHYSICS": "true",
@@ -108,22 +112,35 @@ def fab_core(
             database.reset_work_done()
             work_queue.enter_barrier()
 
-        database = Database(configuration, manager)
+        # Insatiate the build config from the fab file and add the work dir
+        build_script_config = build_script.configuration()
+        if 'paths' not in build_script_config:
+            build_script_config['paths'] = WriteOnceDict({})
+        build_script_config['paths']['work_dir'] = work_dir
+        build_script_config['paths']['work_dir'].mkdir(exist_ok=True)
+        build_script_config['paths']['build_dir'] = build_script_config['paths']['work_dir'] / "build"
+        build_script_config['paths']['build_dir'].mkdir(exist_ok=True)
+        build_script_config['paths']['module_dir'] = build_script_config['paths']['build_dir'] / "modules"
+        build_script_config['paths']['module_dir'].mkdir(exist_ok=True)
+
+        # Initialise the database with the build script config and the manager
+        database = Database(build_script_config, configuration, manager)
+
         sentinel_barrier = Barrier(worker_threads, action=hit_sentinel)
 
         performance = Performance(manager)
         result_queue: Queue[WorkerException] = manager.Queue()
-        for repository in fab_configuration.repositories():
+        for repository in build_script.repositories():
             repo_action = repository.create_action(work_dir, database)
 
             for identifier, path in repository.paths.items():
                 full_path = repo_action.local_copy() / path
-                database.configuration.add_path(identifier, full_path)
+                database.config["paths"][identifier] = full_path
 
             for project in repository.projects:
                 for identifier, path in project.paths.items():
                     full_path = repo_action.local_copy() / project.project_dir / path
-                    database.configuration.add_path(identifier, full_path)
+                    database.config["paths"][identifier] = full_path
 
                 if project.configuration_meta_data is None:
                     continue

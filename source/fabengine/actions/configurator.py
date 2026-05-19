@@ -107,7 +107,7 @@ class RosePicker(SubprocessAction):
         self._database = database
 
         self._configuration_dir = (
-            self._database.configuration.build_dir / "configuration"
+            self._database.config["paths"]["build_dir"] / "configuration"
         )
         self._configuration_dir.mkdir(parents=True, exist_ok=True)
 
@@ -164,7 +164,7 @@ class ConfigurationLoader(SubprocessAction):
         self._filename = filename
         self._database = database
 
-        self._output_dir = self._database.configuration.build_dir
+        self._output_dir = self._database.config["paths"]["build_dir"]
         arguments: list[Any] = ["-o", self._output_dir]
 
         for line in self._filename.read_text().splitlines():
@@ -172,7 +172,7 @@ class ConfigurationLoader(SubprocessAction):
                 arguments.append(namelist)
 
         super().__init__(
-            self._database.configuration.path("generate-config-loader"), arguments
+            self._database.config["paths"]["generate-config-loader"], arguments
         )
 
     def __str__(self) -> str:
@@ -218,11 +218,11 @@ class NamelistType(SubprocessAction):
         self._namelist_file = namelist_file
         self._database = database
 
-        self._config_dir = self._database.configuration.build_dir / "configuration"
+        self._config_dir = self._database.config["paths"]["build_dir"] / "configuration"
 
         arguments = [self._json_file, "-directory", self._config_dir]
         super().__init__(
-            self._database.configuration.path("generate-extended-namelist-type"),
+            self._database.config["paths"]["generate-extended-namelist-type"],
             arguments,
         )
 
@@ -281,7 +281,7 @@ class ConfigType(SubprocessAction):
         self._duplicates_file = duplicates_file
         self._database = database
 
-        self._config_dir = self._database.configuration.build_dir / "configuration"
+        self._config_dir = self._database.config["paths"]["build_dir"] / "configuration"
 
         arguments = ["-o", self._config_dir]
 
@@ -296,7 +296,7 @@ class ConfigType(SubprocessAction):
             arguments.append(line.strip())
 
         super().__init__(
-            self._database.configuration.path("generate-config-type"), arguments
+            self._database.config["paths"]["generate-config-type"], arguments
         )
 
     def __str__(self) -> str:
@@ -344,11 +344,11 @@ class NamelistLoader(SubprocessAction):
         self._namelist_file = namelist_file
         self._database = database
 
-        self._config_dir = self._database.configuration.build_dir / "configuration"
+        self._config_dir = self._database.config["paths"]["build_dir"] / "configuration"
 
         arguments = [self._json_file, "-directory", self._config_dir]
         super().__init__(
-            self._database.configuration.path("generate-namelist-loader"), arguments
+            self._database.config["paths"]["generate-namelist-loader"], arguments
         )
 
     def __str__(self) -> str:

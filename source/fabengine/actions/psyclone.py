@@ -40,7 +40,7 @@ class PreprocessAlgorithm(PreprocessFortranBase):
         :return: Action to PSyclone the algorithm.
         """
         actions = super().perform()
-        build_dir = self._database.configuration.build_dir
+        build_dir = self._database.config["paths"]["build_dir"]
         actions.append(
             PSyclone(
                 TwoPartPath(
@@ -71,7 +71,7 @@ class PSyclone(SubprocessAction):
         self._database = database
 
         self._project_dir = (
-            self._database.configuration.build_dir
+            self._database.config["paths"]["build_dir"]
             / self._tag
             / self._algorithm_file.branch.parent
         )
@@ -88,8 +88,9 @@ class PSyclone(SubprocessAction):
             "-l",
             "all",
             "-c",
-            self._database.configuration.path("psyclone_config"),
+            self._database.config["paths"]["psyclone_config"],
         ]
+
         arguments.extend(["-oalg", self._project_dir / self._alg_name])
         arguments.extend(["-opsy", self._project_dir / self._psy_name])
         arguments.append(self._algorithm_file.full)
@@ -174,7 +175,7 @@ class PSyclone(SubprocessAction):
             if symbol:
                 prereqs.append(FilePrerequisite(symbol.source_file))
         prereqs.append(
-            FilePrerequisite(self._database.configuration.path("psyclone_config"))
+            FilePrerequisite(self._database.config["paths"]["psyclone_config"])
         )
         return prereqs
 

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional, Type
 
 from fabengine.actions import Action
+from fabengine.configuration_tools import WriteOnceDict
 from fabengine.manager import FabManager
 from fabengine.package import Package
 
@@ -20,7 +21,6 @@ class Configuration:
 
     def __init__(
         self,
-        work_dir: Path,
         fpp_definitions: dict[str, str],
         fc_ignore_modules: list[str],
         field_instances: list[dict[str, str]],
@@ -43,7 +43,6 @@ class Configuration:
         :param packages: Third party library dependencies.
         :param performance_file: Write performance timings to this file.
         """
-        self._work_dir = work_dir
         self._fpp_definitions = fpp_definitions
         self._fc_ignore_modules = fc_ignore_modules
         self._field_instances = field_instances
@@ -55,33 +54,6 @@ class Configuration:
 
         self._use_open_mp = True
         self._paths: dict[str, Path] = {}
-
-        self._build_dir = work_dir / "build"
-        self._build_dir.mkdir(parents=True, exist_ok=True)
-
-        self._module_dir = self._build_dir / "modules"
-        self._module_dir.mkdir(exist_ok=True)
-
-    @property
-    def work_dir(self) -> Path:
-        """
-        :return: Working directory.
-        """
-        return self._work_dir
-
-    @property
-    def build_dir(self) -> Path:
-        """
-        :return: Directory where build occurs.
-        """
-        return self._build_dir
-
-    @property
-    def module_dir(self) -> Path:
-        """
-        :return: Directory where Fortran modules are placed.
-        """
-        return self._module_dir
 
     @property
     def fpp_definitions(self) -> dict[str, str]:
@@ -133,13 +105,6 @@ class Configuration:
     def packages(self) -> tuple[Package, ...]:
         return self._packages
 
-    def add_path(self, identifier: str, path: Path):
-        if identifier in self._paths:
-            raise KeyError(f"Tool '{identifier}' already in collection")
-        self._paths[identifier] = path
-
-    def path(self, identifier: str) -> Path:
-        return self._paths[identifier]
 
     @property
     def performance_file(self) -> Optional[Path]:
@@ -151,13 +116,17 @@ class Database:
     Build system state and configuration.
     """
 
-    def __init__(self, configuration: Configuration, manager: FabManager):
+    def __init__(self, build_script_config: WriteOnceDict, configuration: Configuration, manager: FabManager):
         """
         :param configuration: Preprepared configuration.
         :param manager: Multiprocess shared data controller.
         """
+        # Todo: Remove original configuration, and use only fab_configuration.
         self._configuration = configuration
-
+        
+        # Create config
+        self.config = build_script_config
+        
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
         self.config_meta_dirs: ListProxy[Path] = manager.list()

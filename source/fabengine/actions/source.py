@@ -68,7 +68,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         self._database = database
 
         remote = str(self._remote).rstrip("/")
-        local = str(self._database.configuration.work_dir)
+        local = str(self._database.config["paths"]["work_dir"])
         SubprocessAction.__init__(self, Path("rsync"), ["-a", remote, local])
 
     def __str__(self) -> str:
@@ -85,7 +85,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         :return: Path of local copy.
         """
         filename = Path(self._remote.split(":")[-1])
-        return self._database.configuration.work_dir / filename.name
+        return self._database.config["paths"]["work_dir"] / filename.name
 
     def perform(self) -> list[Action]:
         """
@@ -135,7 +135,7 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         """
         _, netloc, path, _, query, fragment = urlparse(self._url)
         name = Path(path).stem
-        return self._database.configuration.work_dir / name
+        return self._database.config["paths"]["work_dir"] / name
 
     def perform(self) -> list[Action]:
         """
@@ -216,7 +216,7 @@ class SourceDirectory(Action):
         :return: Action for each actionable file.
         """
         mp_get_logger().info("Scanning " + str(self._source_dir))
-        project_dir = self._database.configuration.build_dir / self._tag
+        project_dir = self._database.config["paths"]["build_dir"] / self._tag
         project_dir.mkdir(parents=True, exist_ok=True)
 
         # Todo: Tree-walk not added to pathlib until v3.12.

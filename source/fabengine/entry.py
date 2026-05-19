@@ -10,7 +10,7 @@ from pathlib import Path
 from sys import argv
 from typing import Optional, Sequence
 
-from fabengine.configuration import FabConfiguration
+from fabengine.build_script import BuildScript
 from fabengine.core import fab_core
 from fabengine.package import (
     IncludePath,
@@ -151,7 +151,7 @@ def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
     return options
 
 
-def instantiate_configuration(fabfile: Path) -> FabConfiguration:
+def instantiate_build_script(fabfile: Path) -> BuildScript:
     """
     Creates an object from the Fabfile.
 
@@ -169,15 +169,17 @@ def instantiate_configuration(fabfile: Path) -> FabConfiguration:
     )
     assert spec is not None
     assert spec.loader is not None
+    
     module = module_from_spec(spec)
     sys.modules[name] = module
+    # Import class from another python file equivalent
     spec.loader.exec_module(module)
 
     for cls_name, cls in getmembers(
         module, lambda m: isclass(m) and m.__module__ == name
     ):
         return cls()
-    raise RuntimeError("No FabConfiguration class found in Fabfile.")
+    raise RuntimeError("No BuildScript class found in Fabfile.")
 
 
 def cli() -> None:
@@ -190,10 +192,10 @@ def cli() -> None:
     logger.setLevel(options.level)
     logger.addHandler(StreamHandler())
 
-    configuration = instantiate_configuration(options.fabfile)
+    build_script = instantiate_build_script(options.fabfile)
 
     fab_core(
-        configuration,
+        build_script,
         {package.name: package for package in options.map_library or []},
         options.work_dir,
         options.jobs,

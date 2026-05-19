@@ -38,7 +38,7 @@ class PfUnit(SubprocessAction):
         funitproc_path = self._pfunit_path / "bin" / "funitproc"
 
         dest = (
-            self._database.configuration.work_dir
+            self._database.config["paths"]["work_dir"]
             / self._source.with_suffix(".F90").name
         )
         arguments = ["-quiet", self._source, dest]
@@ -95,7 +95,7 @@ class PfUnit(SubprocessAction):
                 self._database,
                 {"_TEST_SUITES": f'"{include_file.absolute()}"'},
             ),
-            RunTest(self._database.configuration.work_dir / prog_name),
+            RunTest(self._database.config["paths"]["work_dir"] / prog_name),
         ]
 
     def prerequisites(self) -> Iterable[Prerequisite]:
@@ -123,7 +123,7 @@ class PfUnit(SubprocessAction):
             self._driver(
                 self._pfunit_path / "include" / "driver.F90",
                 self._source.stem,
-                self._database.configuration.work_dir,
+                self._database.config["paths"]["work_dir"],
             )
         )
         return actions

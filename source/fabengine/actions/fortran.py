@@ -135,7 +135,7 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         """
         suffix = self._fortran_file.branch.suffix.lower()
         return (
-            self._database.configuration.build_dir
+            self._database.config["paths"]["build_dir"]
             / self._project
             / self._fortran_file.branch.with_suffix(suffix)
         )
@@ -464,7 +464,7 @@ class CompileFortran(SubprocessAction):
 
         # Todo: Hardwired assumption on workspace layout
         extra_arguments: list[str] = []
-        branch_path = self._source.relative_to(self._database.configuration.build_dir)
+        branch_path = self._source.relative_to(self._database.config["paths"]["build_dir"])
         for case, tags in self._database.configuration.tag_dirs.items():
             if branch_path.is_relative_to(case):
                 for tag in tags:
@@ -477,7 +477,7 @@ class CompileFortran(SubprocessAction):
         arguments = [
             "-c",
             "-J",
-            str(self._database.configuration.module_dir),
+            str(self._database.config["paths"]["module_dir"]),
             "-fopenmp",
             "-std=f2008",
             "-ffree-line-length-none",
@@ -513,7 +513,7 @@ class CompileFortran(SubprocessAction):
         for symbol in self._prerequisites:
             if symbol.nature == PrerequisiteType.USE:
                 name = Path(symbol.name).with_suffix(".mod").name
-                module_file = self._database.configuration.module_dir / name
+                module_file = self._database.config["paths"]["module_dir"] / name
                 prereqs.append(FilePrerequisite(module_file))
             elif symbol.nature == PrerequisiteType.EXTERNAL:
                 pass  # The compiler doesn't interrogate externals
@@ -552,7 +552,7 @@ class LinkFortran(SubprocessAction):
         self._modules = modules
         self._database = database
 
-        dest = self._database.configuration.work_dir / self._program
+        dest = self._database.config["paths"]["work_dir"] / self._program
         arguments = ["-o", dest, "-fopenmp"]
 
         self._library_args: list[str] = []
