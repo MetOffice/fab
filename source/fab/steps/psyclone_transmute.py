@@ -47,21 +47,16 @@ class MpCommonArgs:
     override_files: list[str]
 
 
-# any already preprocessed x90 we pulled in
-DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.FORTRAN_COMPILER_FILES,
-                                     '.f90')
-
-
 @step
 def psyclone_transmute(
         config: BuildConfig,
+        fortran_files: list[Path],
         transformation_script: Optional[Callable[[Path,
                                                   BuildConfig], Path]] = None,
         cli_args: Optional[list[str]] = None,
-        source_getter: Optional[ArtefactsGetter] = None,
-        overrides_folder: Optional[Path] = None,
-        ignore_dependencies: Optional[Iterable[str]] = None,
         suffix: Optional[str] = None,
+        overrides_folder: Optional[Path] = None,
+        artefact_set: Optional[ArtefactSet] = None,
         ):
     """
     PSyclone runner step.
@@ -80,6 +75,7 @@ def psyclone_transmute(
         The :class:`fab.build_config.BuildConfig` object where we can read
         settings such as the project workspace folder or the multiprocessing
         flag.
+    :param fortran_files: list of files to transform.
     :param transformation_script:
         The function to get Python transformation script.
         It takes in a file path and the config object, and returns the path
@@ -88,17 +84,14 @@ def psyclone_transmute(
         runs.
     :param cli_args:
         Passed through to the psyclone cli tool.
-    :param source_getter:
-        Optional override for getting input files from the artefact store.
     :param overrides_folder:
         Optional folder containing hand-crafted override files.
         Must be part of the subsequently analysed source code.
         Any file produced by psyclone will be deleted if there is a
         corresponding file in this folder.
-    :param ignore_dependencies:
-        Third party Fortran module names in USE statements, 'DEPENDS ON' files
-        and modules to be ignored.
     :param suffix: a suffix to be added to create the new filename.
+    :param artefact_set: an optional artefact set. If specified, the
+        input files names will be replaced with the newly transmuted ones.
     """
 
     if not suffix:
@@ -106,13 +99,12 @@ def psyclone_transmute(
 
     cli_args = cli_args or []
 
-    source_getter = source_getter or DEFAULT_SOURCE_GETTER
-    fortran_files = source_getter(config.artefact_store)
-
     # get the data in a payload object for child processes to calculate
     # prebuild hashes
     mp_payload = _generate_mp_payload(config, overrides_folder,
                                       transformation_script, cli_args, suffix)
+
+    config.prebuild_folder.mkdir(parents=True, exist_ok=True)
 
     # Run PSyclone. For every file, we get back a tuple of the output file and
     # the prebuild
@@ -122,7 +114,16 @@ def psyclone_transmute(
         results = run_mp(config, mp_arg, transmute_one_file)
     log_or_dot_finish(logger)
     outputs, prebuilds = zip(*results) if results else ((), ())
+    print("XXX", outputs)
+    print("XXX", prebuilds)
     check_for_errors(outputs, caller_label='psyclone')
+
+    if artefact_set:
+        print("REPLACING", fortran_files, "WITH", outputs)
+        config.artefact_store.replace(
+            artefact_set,
+            remove_files=fortran_files,
+            add_files=outputs)
 
     # flatten the list of lists we got back from run_mp
     output_files: set[Path] = set(chain(*by_type(outputs, list)))
@@ -178,11 +179,20 @@ def transmute_one_file(
 
     # Create the output file name (with the suffix, and in the output
     # folder of Fab)
-    output_file = input_to_output_fpath(config=config, input_path=input_file)
+    try:
+        relative_path = input_file.relative_to(config.source_root)
+    except ValueError:
+        # Remove leading / to be able to concatenate the input path
+        # to the output path:
+        relative_path = input_file.relative_to(Path("/"))
+
+    output_file = config.build_output / relative_path
+    #output_file = input_to_output_fpath(config=config, input_path=input_file)
+    print("YYY", input_file,"->", output_file)
     output_file = input_file.with_stem(output_file.stem + mp_payload.suffix)
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    prebuild_out = (prebuild_folder / f'{output_file.stem}.{prebuild_hash}.'
+    prebuild_out = (prebuild_folder / f'{output_file.stem}.{prebuild_hash}'
                                       f'{output_file.suffix}')
 
     # First check if we have an override file. If so, copy the override
@@ -260,24 +270,3 @@ def _gen_prebuild_hash(input_file: Path,
     return sum([input_hash,
                 string_checksum(str(cli_args)),
                 script_hash])
-
-
-def _check_override(check_path: Path, mp_payload: MpCommonArgs):
-    """
-    Delete the file if there's an override for it.
-
-    Assumes `self.overrides_folder` is not None, and is a flat folder.
-
-    Returns either the override or original path.
-
-    """
-
-    if check_path.name in mp_payload.override_files:
-        # there is an override so delete this output file...
-        logger.warning(f"\nOverride found for '{check_path}'")
-        check_path.unlink()
-        # ... and return the override path instead
-        return mp_payload.overrides_folder / check_path.name  # type: ignore
-
-    # we didn't have an override, so continue using this file
-    return check_path
