@@ -14,6 +14,8 @@ from fab.tools.category import Category
 from fab.tools.flags import ProfileFlags
 from fab.tools.tool_with_flags import ToolWithFlags
 
+Category.add("CATEGORY_FOR_UNIT_TESTS")
+
 
 def test_tool_with_flags_constructor(stub_configuration) -> None:
     """
@@ -29,7 +31,8 @@ def test_tool_with_flags_no_profile(stub_configuration) -> None:
     """
     Test that flags without using a profile work as expected.
     """
-    tool = ToolWithFlags("some tool", "stool", Category.MISC)
+    tool = ToolWithFlags("some tool", "stool",
+                         Category.CATEGORY_FOR_UNIT_TESTS)
     # pylint: disable=use-implicit-booleaness-not-comparison
     assert tool.get_flags(stub_configuration, Path()) == []
     tool.add_flags("-a")
