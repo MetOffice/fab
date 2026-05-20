@@ -184,12 +184,12 @@ def transmute_one_file(
 
     # First check if we have an override file. If so, copy the override
     # file as the expected output file, and delete the prebuild file.
-    if output_file.name in mp_payload.override_files:
+    if input_file.name in mp_payload.override_files:
         # Help mypy to know that overrides_folder is not None
         assert mp_payload.overrides_folder
         # there is an override so delete this output file...
         logger.warning(f"\nOverride found for '{output_file}'.")
-        shutil.copy2(mp_payload.overrides_folder / output_file.name,
+        shutil.copy2(mp_payload.overrides_folder / input_file.name,
                      output_file)
         # Delete a prebuild, we do not want to store them
         prebuild_out.unlink(missing_ok=True)
