@@ -75,7 +75,7 @@ def test_tool_with_flags_generic_flags():
     Tests the handling of generic flags.
     """
 
-    tool = ToolWithFlags("name", "exec")
+    tool = ToolWithFlags("name", "exec", Category.CATEGORY_FOR_UNIT_TESTS)
 
     tool["output"] = "-o"
     assert tool["output"] == ["-o"]
