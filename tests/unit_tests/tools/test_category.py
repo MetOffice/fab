@@ -4,10 +4,25 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''This module tests the Categories.
-'''
+"""
+This module tests the Categories.
+"""
+
+import pickle
+
 
 from fab.tools.category import Category
+
+
+def test_duplicate_categories():
+    """
+    Tests that trying to create a new Category that already exists,
+    we get the existing object.
+    """
+
+    old_ftn_cat = Category.FORTRAN_COMPILER
+    new_ftn_cat = Category("FORTRAN_COMPILER")
+    assert old_ftn_cat is new_ftn_cat
 
 
 def test_category():
@@ -25,3 +40,15 @@ def test_is_compiler():
             assert cat.is_compiler
         else:
             assert not cat.is_compiler
+
+
+def test_category_pickle():
+    """
+    Test that pickling will return an object with the same
+    integer representation.
+    """
+
+    c = Category.AR
+    data = pickle.dumps(c)
+    c2 = pickle.loads(data)
+    assert c2 == c

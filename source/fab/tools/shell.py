@@ -23,6 +23,9 @@ class Shell(Tool):
 
     :name: the path to the script to run.
     '''
+
+    Category.add("SHELL")
+
     def __init__(self, name: str):
         super().__init__(name=name, exec_name=name,
                          availability_option=["-c", "echo hello"],
