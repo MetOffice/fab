@@ -38,7 +38,7 @@ class ToolWithFlags(Tool):
             self,
             name: str,
             exec_name: Union[str, Path],
-            category: Category = Category.MISC,
+            category: Category,
             availability_option: Optional[Union[str,
                                                 List[str]]] = None) -> None:
 
