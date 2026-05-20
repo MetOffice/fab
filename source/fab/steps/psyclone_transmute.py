@@ -15,11 +15,12 @@ import shutil
 import warnings
 from itertools import chain
 from pathlib import Path
-from typing import Callable, cast, Iterable, Optional, Union
+from typing import Callable, cast, Optional, Sequence, Union
+
 
 from fab.build_config import BuildConfig
 
-from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter)
+from fab.artefacts import ArtefactSet
 from fab.steps import run_mp, check_for_errors, step
 from fab.tools.category import Category
 from fab.tools.psyclone import Psyclone
@@ -50,7 +51,7 @@ class MpCommonArgs:
 @step
 def psyclone_transmute(
         config: BuildConfig,
-        fortran_files: list[Path],
+        fortran_files: Union[Sequence[Path], Sequence[Path]],
         transformation_script: Optional[Callable[[Path,
                                                   BuildConfig], Path]] = None,
         cli_args: Optional[list[str]] = None,
@@ -114,20 +115,19 @@ def psyclone_transmute(
         results = run_mp(config, mp_arg, transmute_one_file)
     log_or_dot_finish(logger)
     outputs, prebuilds = zip(*results) if results else ((), ())
-    print("XXX", outputs)
-    print("XXX", prebuilds)
-    check_for_errors(outputs, caller_label='psyclone')
+    output_list = cast(list[str], outputs)
+    prebuild_list = cast(list[str], prebuilds)
+    check_for_errors(output_list, caller_label='psyclone')
 
     if artefact_set:
-        print("REPLACING", fortran_files, "WITH", outputs)
         config.artefact_store.replace(
             artefact_set,
             remove_files=fortran_files,
-            add_files=outputs)
+            add_files=output_list)
 
     # flatten the list of lists we got back from run_mp
-    output_files: set[Path] = set(chain(*by_type(outputs, list)))
-    prebuild_files: list[Path] = list(chain(*by_type(prebuilds, list)))
+    output_files: set[Path] = set(chain(*by_type(output_list, list)))
+    prebuild_files: list[Path] = list(chain(*by_type(prebuild_list, list)))
 
     # record the output files in the artefact store for further processing
     config.artefact_store.add(ArtefactSet.FORTRAN_COMPILER_FILES, output_files)
@@ -171,7 +171,7 @@ def transmute_one_file(
     """
     input_file, mp_payload = arg
     config = mp_payload.config
-    prebuild_folder = config.prebuild_folder
+
     prebuild_hash = _gen_prebuild_hash(input_file,
                                        config,
                                        mp_payload.cli_args,
@@ -179,21 +179,12 @@ def transmute_one_file(
 
     # Create the output file name (with the suffix, and in the output
     # folder of Fab)
-    try:
-        relative_path = input_file.relative_to(config.source_root)
-    except ValueError:
-        # Remove leading / to be able to concatenate the input path
-        # to the output path:
-        relative_path = input_file.relative_to(Path("/"))
-
-    output_file = config.build_output / relative_path
-    #output_file = input_to_output_fpath(config=config, input_path=input_file)
-    print("YYY", input_file,"->", output_file)
-    output_file = input_file.with_stem(output_file.stem + mp_payload.suffix)
+    output_file = input_to_output_fpath(config=config, input_path=input_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
+    output_file = output_file.with_stem(output_file.stem + mp_payload.suffix)
 
-    prebuild_out = (prebuild_folder / f'{output_file.stem}.{prebuild_hash}'
-                                      f'{output_file.suffix}')
+    prebuild_out = (config.prebuild_folder /
+                    f'{output_file.stem}.{prebuild_hash}{output_file.suffix}')
 
     # First check if we have an override file. If so, copy the override
     # file as the expected output file, and delete the prebuild file.
@@ -229,7 +220,7 @@ def transmute_one_file(
             msg = f'Created prebuilds for {input_file}: {prebuild_out}'
             log_or_dot(logger=logger, msg=msg)
 
-        except Exception as err:
+        except RuntimeError as err:
             logger.error(err)
             return err, None
 
