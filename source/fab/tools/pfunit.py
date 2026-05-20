@@ -26,6 +26,7 @@ class PfUnit(Tool):
     contains the source code for a Fortran driver program .
     It assumes that pFUnit's preprocessor `funitproc` is in $PFUNIT/bin.
     """
+    Category.add("PFUNIT")
 
     def __init__(self):
         pfunit_home = os.environ.get("PFUNIT", "")
