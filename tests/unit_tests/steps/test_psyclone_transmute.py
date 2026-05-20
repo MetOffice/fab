@@ -34,6 +34,8 @@ def config(tmp_path):
     f2 = src / "b.f90"
     f1.write_text("program a\nend program")
     f2.write_text("program b\nend program")
+    override = tmp_path / "override"
+    f1_override = override / "a_override.f90"
     cfg = BuildConfig(project_label="test",
                       fab_workspace=tmp_path,
                       tool_box=ToolBox())
@@ -67,6 +69,33 @@ def test_psyclone_transmute_basic(config):
 
 @mark.skipif(not Psyclone().is_available, reason="psyclone cli tool not available")
 def test_psyclone_transmute_artefact_set(config):
+
+    input_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
+
+    # Expected files will be in the build output directory and
+    # have the new suffix `_transmute` added.
+    expected = {config.build_output / '/'.join(i.parts[1:])
+                for i in input_files}
+    expected = {i.with_stem(i.stem + "_transmute") for i in expected}
+
+    with warns(UserWarning,
+               match="_metric_send_conn not set, cannot send metrics"):
+        psyclone_transmute(
+            config,
+            config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES],
+            artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
+    output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
+
+    assert expected == output_files
+    #transmuted_input_files = set(i.)
+    return
+
+
+@mark.skipif(not Psyclone().is_available, reason="psyclone cli tool not available")
+def test_psyclone_transmute_artefact_override(config):
+    """
+    Test that override directices work.
+    """
 
     input_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
 

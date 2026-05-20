@@ -13,7 +13,6 @@ from dataclasses import dataclass
 import logging
 import shutil
 import warnings
-from itertools import chain
 from pathlib import Path
 from typing import Callable, cast, Optional, Sequence, Union
 
@@ -26,7 +25,7 @@ from fab.tools.category import Category
 from fab.tools.psyclone import Psyclone
 from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
                       file_walk, TimerLogger, string_checksum,
-                      by_type, log_or_dot_finish)
+                      log_or_dot_finish)
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +116,7 @@ def psyclone_transmute(
     outputs, prebuilds = zip(*results) if results else ((), ())
     output_list = cast(list[str], outputs)
     prebuild_list = cast(list[str], prebuilds)
+    # This call will abort in case of an error
     check_for_errors(output_list, caller_label='psyclone')
 
     if artefact_set:
@@ -125,19 +125,15 @@ def psyclone_transmute(
             remove_files=fortran_files,
             add_files=output_list)
 
-    # flatten the list of lists we got back from run_mp
-    output_files: set[Path] = set(chain(*by_type(output_list, list)))
-    prebuild_files: list[Path] = list(chain(*by_type(prebuild_list, list)))
-
     # record the output files in the artefact store for further processing
-    config.artefact_store.add(ArtefactSet.FORTRAN_COMPILER_FILES, output_files)
-    outputs_str = "\n".join(map(str, output_files))
+    config.artefact_store.add(ArtefactSet.FORTRAN_COMPILER_FILES, output_list)
+    outputs_str = "\n".join(map(str, output_list))
     logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 
     # Mark the prebuilds as being current so the
     # cleanup step doesn't delete them
-    config.add_current_prebuilds(prebuild_files)
-    prebuilds_str = "\n".join(map(str, prebuild_files))
+    config.add_current_prebuilds(prebuild_list)
+    prebuilds_str = "\n".join(map(str, prebuild_list))
     logger.debug(f'psyclone prebuilds:\n{prebuilds_str}\n')
 
 
