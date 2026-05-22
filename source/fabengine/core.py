@@ -56,25 +56,11 @@ def fab_core(
     #
     packages.append(Package("stdc++", (), [], [LibraryName("stdc++")]))
 
+    fpp_definitions = build_script.fpp_definitions()
+
     # Todo: Port configuration to write once configuration for all actions
     configuration = Configuration(
-        fpp_definitions={
-            # Physics from the UM
-            "UM_PHYSICS": "true",
-            "LFRIC": "true",
-            "USSPREC_32B": "true",
-            "LSPREC_32B": "true",
-            "UM_JULES": "true",
-            # I/O platform
-            "USE_XIOS": "true",
-            # Component precision
-            "RDEF_PRECISION": "64",
-            "R_SOLVER_PRECISION": "32",
-            "R_TRAN_PRECISION": "64",
-            "R_BL_PRECISION": "64",
-            # Transitional
-            "LEGACY_MPI": "true",
-        },
+        fpp_definitions,
         fc_ignore_modules=[
             "funit",
             "pfunit",  # pFUnit

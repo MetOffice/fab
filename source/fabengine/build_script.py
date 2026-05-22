@@ -12,5 +12,8 @@ class BuildScript(ABC):
     def libraries(self) -> Iterable[str]:
         return []
 
+    def fpp_definitions(self) -> WriteOnceDict:
+        return WriteOnceDict({})
+
     def configuration(self) -> WriteOnceDict:
         return WriteOnceDict({})

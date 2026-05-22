@@ -21,7 +21,7 @@ class Configuration:
 
     def __init__(
         self,
-        fpp_definitions: dict[str, str],
+        fpp_definitions: WriteOnceDict,
         fc_ignore_modules: list[str],
         field_instances: list[dict[str, str]],
         build_tags: dict[str, list[str]],
@@ -56,7 +56,7 @@ class Configuration:
         self._paths: dict[str, Path] = {}
 
     @property
-    def fpp_definitions(self) -> dict[str, str]:
+    def fpp_definitions(self) -> WriteOnceDict:
         """
         :return: Macros passed to Fortran preprocessor.
         """
@@ -123,10 +123,10 @@ class Database:
         """
         # Todo: Remove original configuration, and use only fab_configuration.
         self._configuration = configuration
-        
+
         # Create config
         self.config = build_script_config
-        
+
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
         self.config_meta_dirs: ListProxy[Path] = manager.list()
