@@ -26,6 +26,7 @@ from fab.steps.grab.prebuild import grab_pre_build
 from fab.steps.link import link_exe, link_shared_object
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.steps.psyclone import preprocess_x90, psyclone
+from fab.steps.psyclone_transmute import psyclone_transmute
 from fab.steps.root_inc_files import root_inc_files
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, Ifort
@@ -73,6 +74,7 @@ __all__ = [
     "preprocess_fortran",
     "preprocess_x90",
     "psyclone",
+    "psyclone_transmute",
     "root_inc_files",
     "run_mp",
     "step",
