@@ -19,6 +19,8 @@ class Rsync(Tool):
     '''This is the base class for `rsync`.
     '''
 
+    Category.add("RSYNC")
+
     def __init__(self):
         super().__init__("rsync", "rsync", Category.RSYNC)
 

@@ -19,6 +19,9 @@ from fab.tools.flags import ProfileFlags
 from fab.tools.tool import CompilerSuiteTool, Tool
 
 
+Category.add("CATEGORY_FOR_UNIT_TESTS")
+
+
 def test_constructor() -> None:
     """
     Tests construction from argument list.
@@ -41,18 +44,13 @@ def test_constructor() -> None:
     assert not linker.is_compiler
 
     # Check that a path is accepted
-    mytool = Tool("MyTool", Path("/bin/mytool"))
+    mytool = Tool("MyTool", Path("/bin/mytool"),
+                  Category.CATEGORY_FOR_UNIT_TESTS)
     assert mytool.name == "MyTool"
     # A path should be converted to a string, since this
     # is later passed to the subprocess command
     assert mytool.exec_path == Path("/bin/mytool")
-    assert mytool.category == Category.MISC
-
-    # Check that if we specify no category, we get the default:
-    misc = Tool("misc", "misc")
-    assert misc.exec_name == "misc"
-    assert misc.name == "misc"
-    assert misc.category == Category.MISC
+    assert mytool.category == Category.CATEGORY_FOR_UNIT_TESTS
 
 
 def test_tool_set_path() -> None:
@@ -109,7 +107,7 @@ def test_run_missing(fake_process: FakeProcess) -> None:
     Tests attempting to run a missing tool.
     """
     fake_process.register(['stool', '--ops'], callback=not_found_callback)
-    tool = Tool("some tool", "stool", Category.MISC)
+    tool = Tool("some tool", "stool", Category.CATEGORY_FOR_UNIT_TESTS)
     with raises(RuntimeError) as err:
         tool.run("--ops")
     assert str(err.value).startswith(
@@ -120,7 +118,7 @@ def test_run_missing(fake_process: FakeProcess) -> None:
     fake_process.register(['stool', '--ops'], returncode=1,
                           stdout="this is stdout",
                           stderr="this is stderr")
-    tool = Tool("some tool", "stool", Category.MISC)
+    tool = Tool("some tool", "stool", Category.CATEGORY_FOR_UNIT_TESTS)
     with raises(RuntimeError) as err:
         tool.run("--ops")
     assert "this is stdout" in str(err.value)
@@ -131,7 +129,7 @@ def test_tool_flags_no_profile() -> None:
     """
     Test that flags without using a profile work as expected.
     """
-    tool = Tool("some tool", "stool", Category.MISC)
+    tool = Tool("some tool", "stool", Category.CATEGORY_FOR_UNIT_TESTS)
     assert tool.get_flags() == []
     tool.add_flags("-a")
     assert tool.get_flags() == ["-a"]
@@ -173,7 +171,7 @@ class TestToolRun:
         """
         fake_process.register(['stool'], stdout="123")
         fake_process.register(['stool'], stdout="123")
-        tool = Tool("some tool", "stool", Category.MISC)
+        tool = Tool("some tool", "stool", Category.CATEGORY_FOR_UNIT_TESTS)
         assert tool.run(capture_output=True) == "123"
         assert tool.run(capture_output=False) == ""
         assert call_list(fake_process) == [['stool'], ['stool']]
@@ -183,7 +181,7 @@ class TestToolRun:
         """
         Tets run with single argument.
         """
-        tool = Tool("some tool", "tool", Category.MISC)
+        tool = Tool("some tool", "tool", Category.CATEGORY_FOR_UNIT_TESTS)
         tool.run("a")
         assert subproc_record.invocations() == [['tool', 'a']]
 
@@ -192,7 +190,7 @@ class TestToolRun:
         """
         Tests run with multiple arguments.
         """
-        tool = Tool("some tool", "tool", Category.MISC)
+        tool = Tool("some tool", "tool", Category.CATEGORY_FOR_UNIT_TESTS)
         tool.run(["a", "b"])
         assert subproc_record.invocations() == [['tool', 'a', 'b']]
 
@@ -201,7 +199,7 @@ class TestToolRun:
         Tests running a failing tool.
         """
         fake_process.register(['tool'], returncode=1, stdout="Beef.")
-        tool = Tool("some tool", "tool", Category.MISC)
+        tool = Tool("some tool", "tool", Category.CATEGORY_FOR_UNIT_TESTS)
         with raises(RuntimeError) as err:
             tool.run()
         assert str(err.value) == ("Command failed with return code 1:\n"
@@ -213,7 +211,7 @@ class TestToolRun:
         Tests running a missing tool.
         """
         fake_process.register(['tool'], callback=not_found_callback)
-        tool = Tool('some tool', 'tool', Category.MISC)
+        tool = Tool('some tool', 'tool', Category.CATEGORY_FOR_UNIT_TESTS)
         with raises(RuntimeError) as err:
             tool.run()
         assert str(err.value) == "Unable to execute command: ['tool']"
