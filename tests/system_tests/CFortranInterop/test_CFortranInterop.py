@@ -35,7 +35,7 @@ def test_CFortranInterop(tmp_path):
         c_pragma_injector(config)
         preprocess_c(config)
         preprocess_fortran(config)
-        analyse(config, root_symbols='main')
+        analyse(config, root_symbols='main@c_roundtrip')
         compile_c(config, common_flags=['-c', '-std=c99'])
         with warns(UserWarning, match="Removing managed flag"):
             compile_fortran(config, common_flags=['-c'])
