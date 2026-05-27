@@ -317,7 +317,7 @@ def do_one_file(arg: tuple[Path, MpCommonArgs]):
         psyclone = config.tool_box.get_tool(Category.PSYCLONE)
         if not isinstance(psyclone, Psyclone):
             raise RuntimeError(f"Unexpected tool '{psyclone.name}' of type "
-                               f"'{type(psyclone)}' instead of Psyclone")
+                               f"'{type(psyclone)}' instead of PSyclone")
         try:
             transformation_script = mp_payload.transformation_script
             logger.info(f"running psyclone on '{x90_file}'.")

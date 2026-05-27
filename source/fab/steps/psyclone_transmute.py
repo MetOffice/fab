@@ -94,7 +94,8 @@ def psyclone_transmute(
         input files names will be replaced with the newly transmuted ones.
     """
 
-    if not suffix:
+    # We need to allow "" as suffix indicating to overwrite the source file.
+    if suffix is None:
         suffix = "_transmute"
 
     cli_args = cli_args or []
@@ -114,10 +115,10 @@ def psyclone_transmute(
         results = run_mp(config, mp_arg, transmute_one_file)
     log_or_dot_finish(logger)
     outputs, prebuilds = zip(*results) if results else ((), ())
-    output_list = cast(list[str], outputs)
-    prebuild_list = cast(list[str], prebuilds)
+    output_list = cast(list[Path], outputs)
+    prebuild_list = cast(list[Path], prebuilds)
     # This call will abort in case of an error
-    check_for_errors(output_list, caller_label='psyclone')
+    check_for_errors([str(i) for i in output_list], caller_label='psyclone')
 
     if artefact_set:
         config.artefact_store.replace(
