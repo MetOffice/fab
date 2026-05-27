@@ -95,6 +95,20 @@ class AnalysedFortran(AnalysedDependent):
 
         self.validate()
 
+    def add_symbol_def(self, name: str):
+        """
+        Add a Fortran symbol definition, which is case independent.
+        """
+        assert name and len(name)
+        super().add_symbol_def(name.lower())
+
+    def add_symbol_dep(self, name: str):
+        """
+        Add a Fortran dependency, which is case independent
+        """
+        assert name and len(name)
+        super().add_symbol_dep(name.lower())
+
     def add_program_def(self, name):
         self.program_defs.add(name.lower())
         self.add_symbol_def(name)

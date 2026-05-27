@@ -57,7 +57,7 @@ class TestZeroConfig:
                   'fab_workspace': tmp_path,
                   'multiprocessing': False}
         config = cli_fab(folder=tmp_path / 'source', kwargs=kwargs)
-        assert (config.project_workspace / 'main').exists()
+        assert (config.project_workspace / 'mainprog').exists()
 
     def test_c_fortran(self, tmp_path: Path) -> None:
         """
@@ -75,4 +75,4 @@ class TestZeroConfig:
                   'fab_workspace': tmp_path / 'fab',
                   'multiprocessing': False}
         config = cli_fab(folder=tmp_path / 'source', kwargs=kwargs)
-        assert (config.project_workspace / 'main').exists()
+        assert (config.project_workspace / 'c_roundtrip').exists()
