@@ -38,6 +38,8 @@ class Git(Versioning):
     Interface to Git version control system.
     """
 
+    Category.add("GIT")
+
     def __init__(self):
         super().__init__("git", "git",
                          category=Category.GIT)
@@ -117,6 +119,9 @@ class Subversion(Versioning):
     """
     Interface to the Subversion version control system.
     """
+
+    Category.add("SUBVERSION")
+
     def __init__(self, name: Optional[str] = None,
                  exec_name: Optional[Union[str, Path]] = None,
                  category: Category = Category.SUBVERSION):
@@ -220,6 +225,8 @@ class Fcm(Subversion):
     '''This is the base class for FCM. All commands will be mapped back
     to the corresponding subversion commands.
     '''
+
+    Category.add("FCM")
 
     def __init__(self):
         super().__init__("FCM", "fcm", Category.FCM)

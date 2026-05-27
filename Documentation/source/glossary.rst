@@ -65,7 +65,9 @@ Glossary
         A folder inside the :term:`Fab Workspace`, containing all source and output from a build config.
 
     Root Symbol
-        The name of a Fortran PROGRAM, or ``"main"`` for C code. Fab builds an executable for every root symbol it's given.
+        The name of a Fortran PROGRAM, or ``"main"`` for C code. Fab builds an executable for every root symbol it's given. Internally, any ``main``
+        symbol will be suffixed with the name of the C file, which allows
+        Fab to manage several C main programs in one build tree.
 
     Source Tree
         The :class:`~fab.steps.analyse.analyse` step produces a dependency tree of the entire project source.
