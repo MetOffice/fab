@@ -30,11 +30,24 @@ def test_simple_result(tmp_path: Path,
         fpath=fpath,
         file_hash=1429445462,
         symbol_deps={'usr_var', 'usr_func'},
-        symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def', 'main'},
+        symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def',
+                     'main@test_c_analyser'},
     )
     assert analysis == expected
     assert isinstance(analysis, AnalysedC)
     assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
+
+    with mock.patch('fab.parse.AnalysedFile.save'):
+        fpath = Path(__file__).parent / "other_main_program.c"
+        analysis, artefact = c_analyser.run(fpath)
+
+    expected = AnalysedC(
+        fpath=fpath,
+        file_hash=1458424101,
+        symbol_deps={},
+        symbol_defs={'CaSeSeNsItIvE', 'main@other_main_program'},
+    )
+    assert analysis == expected
 
 
 class Test__locate_include_regions:

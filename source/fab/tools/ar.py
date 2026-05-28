@@ -18,6 +18,8 @@ class Ar(Tool):
     '''This is the base class for `ar`.
     '''
 
+    Category.add("AR")
+
     def __init__(self):
         super().__init__("ar", "ar", Category.AR)
 

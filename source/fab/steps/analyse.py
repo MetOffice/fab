@@ -14,7 +14,7 @@ This gives us a file dependency tree for the entire project source. The data str
 just a dict of *<source path>: <analysed file>*, where the analysed files' dependencies are other dict keys.
 
 If we're building a library, that's the end of the analysis process as we'll compile the entire project source.
-If we're building one or more executables, which happens when we use the `root_symbol` argument,
+If we're building one or more executables, which happens when we use the `root_symbols` argument,
 Fab will extract a subtree from the entire dependency tree for each root symbol we specify.
 
 Finally, the resulting artefact collection is a dict of these subtrees (*"build trees"*),
@@ -40,7 +40,6 @@ import warnings
 from pathlib import Path
 from typing import Iterable, Optional, Union
 
-from fab import FabException
 from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat
 from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
 from fab.mo import add_mo_commented_file_deps
@@ -65,7 +64,7 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 def analyse(
         config,
         source: Optional[ArtefactsGetter] = None,
-        root_symbol: Optional[Union[str, list[str]]] = None,
+        root_symbols: Optional[Union[str, list[str]]] = None,
         find_programs: bool = False,
         std: str = "f2008",
         special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
@@ -83,7 +82,7 @@ def analyse(
     from multiple artefact collections, including the default C and Fortran preprocessor outputs
     and any source files with a 'little' *.f90* extension.
 
-    A build tree is produced for every root symbol specified in *root_symbol*, which can be a string or list of.
+    A build tree is produced for every root symbol specified in *root_symbols*, which can be a string or list of.
     This is how we create executable files. If no root symbol is specified, a single tree of the entire source
     is produced (with a root symbol of `None`). This is how we create shared and static libraries.
 
@@ -94,8 +93,8 @@ def analyse(
         An :class:`~fab.util.ArtefactsGetter` to get the source files.
     :param find_programs:
         Instructs the analyser to automatically identify program definitions in the source.
-        Alternatively, the required programs can be specified with the root_symbol argument.
-    :param root_symbol:
+        Alternatively, the required programs can be specified with the root_symbols argument.
+    :param root_symbols:
         When building an executable, provide the Fortran Program name(s), or 'main' for C.
         If None, build tree extraction will not be performed and the entire source will be used
         as the build tree - for building a shared or static library.
@@ -120,11 +119,13 @@ def analyse(
     # because the files they refer to probably don't exist yet,
     # because we're just creating steps at this point, so there's been no grab...
 
-    if find_programs and root_symbol:
-        raise ValueError("find_programs and root_symbol can't be used together")
+    if find_programs and root_symbols:
+        raise ValueError("find_programs and root_symbols can't be used together")
 
     source_getter = source or DEFAULT_SOURCE_GETTER
-    root_symbols: Optional[list[str]] = [root_symbol] if isinstance(root_symbol, str) else root_symbol
+    if isinstance(root_symbols, str):
+        root_symbols = [root_symbols]
+
     special_measure_analysis_results = list(special_measure_analysis_results or [])
     unreferenced_deps = list(unreferenced_deps or [])
 
@@ -147,7 +148,9 @@ def analyse(
 
     # parse
     files: list[Path] = source_getter(config.artefact_store)
-    analysed_files = _parse_files(config, files=files, fortran_analyser=fortran_analyser, c_analyser=c_analyser)
+    analysed_files = _parse_files(config, files=files,
+                                  fortran_analyser=fortran_analyser,
+                                  c_analyser=c_analyser)
     _add_manual_results(special_measure_analysis_results, analysed_files)
 
     # shall we search the results for fortran programs and a c function called main?
@@ -155,13 +158,15 @@ def analyse(
         # find fortran programs
         sets_of_programs = [af.program_defs for af in by_type(analysed_files, AnalysedFortran)]
         root_symbols = list(chain(*sets_of_programs))
-
-        # find c main()
-        c_with_main = list(filter(lambda c: 'main' in c.symbol_defs, by_type(analysed_files, AnalysedC)))
-        if c_with_main:
-            root_symbols.append('main')
-            if len(c_with_main) > 1:
-                raise FabException("multiple c main() functions found")
+        # find c main() symbols. In order to support building multiple
+        # C programs, each `main` symbol is replaced with `main@filename` during
+        # parsing.
+        for analysed_c in analysed_files:
+            if not isinstance(analysed_c, AnalysedC):
+                continue
+            main_symbol = f"main@{analysed_c.fpath.stem}"
+            if main_symbol in analysed_c.symbol_defs:
+                root_symbols.append(main_symbol)
 
         logger.info(f'automatically found the following programs to build: {", ".join(root_symbols)}')
 

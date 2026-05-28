@@ -36,7 +36,7 @@ def test_CUseHeader(tmp_path):
         root_inc_files(config, suffix_list=[".h"])
         c_pragma_injector(config)
         preprocess_c(config)
-        analyse(config, root_symbol='main')
+        analyse(config, root_symbols='main@mainprog')
         compile_c(config, common_flags=['-c', '-std=c99'])
         link_exe(config, flags=['-lgfortran'])
 
@@ -46,4 +46,6 @@ def test_CUseHeader(tmp_path):
     command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output == ''.join(open(PROJECT_SOURCE / 'expected.exec.txt').readlines())
+    with open(PROJECT_SOURCE / 'expected.exec.txt', 'r',
+              encoding="utf-8") as fd:
+        assert output == ''.join(fd.readlines())

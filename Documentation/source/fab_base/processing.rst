@@ -11,7 +11,7 @@ The full class documentation is at the end of this chapter.
 The constructor sets up ultimately the Fab ``BuildConfig`` for the build.
 It takes the name of the application as argument. The name of the application
 will be used when creating the name of the build directory
-and it is also the default ``root_symbol`` when analysing the source code
+and it is also the default ``root_symbols`` when analysing the source code
 if the script creates an executable (see :ref:`analyse_step`).
 
 The actual build is then started calling the ``build`` method
@@ -403,7 +403,7 @@ There is usually no reason for an application to overwrite this step.
 
 In case of creating a binary, the analyse step will use the root symbol,
 which defaults to the name of the application, but can be changed
-using ``set_root_symbol``. This implies that ``set_root_symbol``
+using ``set_root_symbols``. This implies that ``set_root_symbols``
 must be called before ``analyse_step`` is called, e.g. it can be called
 from any method called from the constructor (including defining and
 handling command line options).

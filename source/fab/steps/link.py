@@ -93,6 +93,8 @@ def link_exe(config,
     flags = flags or []
 
     for root, objects in target_objects.items():
+        if root.startswith("main@"):
+            root = root[len("main@"):]
         exe_path = config.project_workspace / f'{root}'
         linker.link(objects, exe_path, config=config, libs=libs,
                     add_flags=flags)
