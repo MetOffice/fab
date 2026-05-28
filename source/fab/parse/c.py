@@ -175,7 +175,13 @@ class CAnalyser:
                 # the rest of the application
                 logger.debug('  * Is defined in this file')
                 # todo: ignore if inside user pragmas?
-                analysed_file.add_symbol_def(node.spelling)
+                if node.spelling == "main":
+                    # To allow multiple main programs in c, change the
+                    # 'main' symbol to include the file name:
+                    main_symbol = f"main@{analysed_file.fpath.stem}"
+                    analysed_file.add_symbol_def(main_symbol)
+                else:
+                    analysed_file.add_symbol_def(node.spelling)
         else:
             # Record any user included symbols in case they're referenced later in the code
             if self._check_for_include(node.location.line) == "usr_include":

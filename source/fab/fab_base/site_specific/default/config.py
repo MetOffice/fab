@@ -1,5 +1,10 @@
 #! /usr/bin/env python3
 
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
 
 '''
 This module contains the default Baf configuration class.
@@ -10,13 +15,16 @@ from typing import cast
 
 from fab.api import AddFlags, BuildConfig, Category, Compiler, ToolRepository
 
-from fab.fab_base.site_specific.default.setup_cray import setup_cray
-from fab.fab_base.site_specific.default.setup_gnu import setup_gnu
-from fab.fab_base.site_specific.default.setup_intel_classic import (
-    setup_intel_classic)
-from fab.fab_base.site_specific.default.setup_intel_llvm import (
-    setup_intel_llvm)
-from fab.fab_base.site_specific.default.setup_nvidia import setup_nvidia
+from fab.fab_base.site_specific.default.setup_script_cray import (
+    setup_script_cray)
+from fab.fab_base.site_specific.default.setup_script_gnu import (
+    setup_script_gnu)
+from fab.fab_base.site_specific.default.setup_script_intel_classic import (
+    setup_script_intel_classic)
+from fab.fab_base.site_specific.default.setup_script_intel_llvm import (
+    setup_script_intel_llvm)
+from fab.fab_base.site_specific.default.setup_script_nvidia import (
+    setup_script_nvidia)
 
 
 class Config:
@@ -60,6 +68,8 @@ class Config:
         a site-specific configuration should inherit from the default, and
         can then overwrite this method to add site-specific options or
         defaults.
+
+        :param args: the command line options added in the site config.
         '''
         # As examples (typically used in a site-specific derived class):
         # Adding a site-specific option to profile with Tau:
@@ -77,8 +87,7 @@ class Config:
         options have been added. This is for example used to add
         Vernier profiling flags, which are site-specific.
 
-        :param argparse.Namespace args: the command line options added in
-            the site configs
+        :param args: the command line options added in the site configs.
         '''
         # Keep a copy of the args, so they can be used when
         # initialising compilers
@@ -91,6 +100,7 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
+
         # First create the default compiler profiles for all available
         # compilers. While we have a tool box with exactly one compiler
         # in it, compiler wrappers will require more than one compiler
@@ -124,7 +134,10 @@ class Config:
         Returns the path-specific flags to be used.
         TODO #313: Ideally we have only one kind of flag, but as a quick
         work around we provide this method.
+
+        :param build_config: the Fab build configuration instance
         '''
+
         compiler = build_config.tool_box.get_tool(Category.FORTRAN_COMPILER)
         compiler = cast(Compiler, compiler)
         return self._path_flags[compiler.suite].get(build_config.profile, [])
@@ -138,7 +151,8 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["cray"] = setup_cray(build_config, self.args)
+
+        self._path_flags["cray"] = setup_script_cray(build_config, self.args)
 
     def setup_gnu(self, build_config: BuildConfig) -> None:
         '''
@@ -149,7 +163,8 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["gnu"] = setup_gnu(build_config, self.args)
+
+        self._path_flags["gnu"] = setup_script_gnu(build_config, self.args)
 
     def setup_intel_classic(self, build_config: BuildConfig) -> None:
         '''
@@ -160,8 +175,9 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["intel_classic"] = setup_intel_classic(build_config,
-                                                                self.args)
+
+        self._path_flags["intel_classic"] = \
+            setup_script_intel_classic(build_config, self.args)
 
     def setup_intel_llvm(self, build_config: BuildConfig) -> None:
         '''
@@ -172,8 +188,9 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["intel-llvm"] = setup_intel_llvm(build_config,
-                                                          self.args)
+
+        self._path_flags["intel-llvm"] = setup_script_intel_llvm(build_config,
+                                                                 self.args)
 
     def setup_nvidia(self, build_config: BuildConfig) -> None:
         '''
@@ -184,4 +201,5 @@ class Config:
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["nvidia"] = setup_nvidia(build_config, self.args)
+        self._path_flags["nvidia"] = setup_script_nvidia(build_config,
+                                                         self.args)

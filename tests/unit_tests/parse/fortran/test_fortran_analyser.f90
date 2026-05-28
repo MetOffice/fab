@@ -14,6 +14,12 @@ CONTAINS
 
     SUBROUTINE internal_sub
         ! DEPENDS ON: monty_func
+        external some_external_symbol
+        integer, external :: some_external_as_attribute
+        INTERFACE
+            SUBROUTINE sub_in_interface
+            END SUBROUTINE sub_in_interface
+        END INTERFACE
         RETURN
     END SUBROUTINE internal_sub
 

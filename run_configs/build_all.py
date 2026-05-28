@@ -22,7 +22,7 @@ class Script(Tool):
     '''
     def __init__(self, name: Path):
         super().__init__(name=name.name, exec_name=name,
-                         category=Category.MISC)
+                         category=Category.SHELL)
 
     def check_available(self):
         '''Since there typically is no command line option we could test for
