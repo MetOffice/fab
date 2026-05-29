@@ -87,3 +87,16 @@ class TestBuildConfig:
         some_dir = Path('/some_dir')
         config = BuildConfig('proj', ToolBox(), fab_workspace=some_dir)
         assert config.project_workspace == some_dir / 'proj'
+
+
+def test_set_profile(stub_configuration):
+    """
+    Tests that setting compilation profiles work as expected.
+    """
+
+    stub_configuration.set_profile("fast-debug")
+    assert stub_configuration.profile == "fast-debug"
+
+    # All profiles names are in lower case
+    stub_configuration.set_profile("fast-DEBUG")
+    assert stub_configuration.profile == "fast-debug"

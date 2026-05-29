@@ -14,7 +14,7 @@ from typing import cast, Optional, Union
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler
-from fab.tools.flags import Flags
+from fab.tools.flags import FlagList
 
 
 class CompilerWrapper(Compiler):
@@ -70,14 +70,15 @@ class CompilerWrapper(Compiler):
         raise RuntimeError(f"Compiler '{self._compiler.name}' has "
                            f"no has_syntax_only.")
 
-    def get_flags(self, profile: Optional[str] = None) -> list[str]:
+    def get_flags(self, config: Optional["BuildConfig"] = None,
+                  file_path: Optional[Path] = None) -> list[str]:
         ''':returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
 
         :param profile: the profile to use.
         '''
-        return (self._compiler.get_flags(profile) +
-                super().get_flags(profile))
+        return (self._compiler.get_flags(config, file_path) +
+                super().get_flags(config, file_path))
 
     def set_module_output_path(self, path: Path):
         '''Sets the output path for modules.
@@ -99,7 +100,7 @@ class CompilerWrapper(Compiler):
             input_file: Path,
             output_file: Path,
             add_flags:  Union[None, list[str]] = None,
-            syntax_only: Optional[bool] = False) -> list[str]:
+            syntax_only: Optional[bool] = None) -> list[str]:
         '''This function returns all command line options for a
         compiler wrapper. The syntax_only flag is only accepted,
         if the wrapped compiler is a Fortran compiler. Otherwise,
@@ -120,7 +121,9 @@ class CompilerWrapper(Compiler):
         '''
         # We need to distinguish between Fortran and non-Fortran compiler,
         # since only a Fortran compiler supports the syntax-only flag.
-        new_flags = Flags(add_flags)
+        new_flags = FlagList(self.flags.get_flags(config, input_file))
+        if add_flags:
+            new_flags.add_flags(add_flags)
 
         if self._compiler.category is Category.FORTRAN_COMPILER:
             # Mypy complains that self._compiler does not take the syntax
@@ -134,16 +137,18 @@ class CompilerWrapper(Compiler):
                 # with Fab's module handling.
                 new_flags.remove_flag(self._compiler._module_folder_flag,
                                       has_parameter=True)
+            resolved_flags = new_flags.get_flags(file_path=input_file)
             flags = self._compiler.get_all_commandline_options(
-                    config, input_file, output_file, add_flags=add_flags,
+                    config, input_file, output_file, add_flags=resolved_flags,
                     syntax_only=syntax_only)
         else:
             # It's not valid to specify syntax_only for a non-Fortran compiler
             if syntax_only is not None:
                 raise RuntimeError(f"Syntax-only cannot be used with compiler "
                                    f"'{self.name}'.")
+            resolved_flags = new_flags.get_flags(file_path=input_file)
             flags = self._compiler.get_all_commandline_options(
-                    config, input_file, output_file, add_flags=add_flags)
+                    config, input_file, output_file, add_flags=resolved_flags)
 
         return flags
 
@@ -168,7 +173,7 @@ class CompilerWrapper(Compiler):
             config, input_file, output_file, add_flags=add_flags,
             syntax_only=syntax_only)
 
-        self.run(profile=config.profile, cwd=input_file.parent,
+        self.run(cwd=input_file.parent,
                  additional_parameters=flags)
 
 

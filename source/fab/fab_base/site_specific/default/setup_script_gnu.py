@@ -16,12 +16,11 @@ This function gets called from the default site-specific config file
 import argparse
 from typing import cast
 
-from fab.api import AddFlags, BuildConfig, Category, Linker, ToolRepository
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_script_gnu(
-        build_config: BuildConfig,
-        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
+def setup_script_gnu(build_config: BuildConfig,
+                     args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for all GNU compilers and linkers.
@@ -37,7 +36,9 @@ def setup_script_gnu(
     if not gfortran.is_available:
         gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-gfortran")
         if not gfortran.is_available:
-            return {}
+            return
+
+    gfortran = cast(Compiler, gfortran)
 
     # The base flags
     # ==============
@@ -74,5 +75,3 @@ def setup_script_gnu(
 
     # Add more flags to be always used, e.g.:
     # linker.add_post_lib_flags(["-lstdc++"], "base")
-
-    return {}

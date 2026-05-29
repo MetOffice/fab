@@ -12,12 +12,12 @@ import re
 from pathlib import Path
 import warnings
 from typing import cast, Optional, Union
-import zlib
-from fab.build_config import BuildConfig
 
+from fab.build_config import BuildConfig
 from fab.tools.category import Category
-from fab.tools.flags import Flags
-from fab.tools.tool import CompilerSuiteTool
+from fab.tools.flags import AlwaysFlags
+from fab.tools.compiler_suite_tool import CompilerSuiteTool
+from fab.util import string_checksum
 
 
 class Compiler(CompilerSuiteTool):
@@ -103,19 +103,23 @@ class Compiler(CompilerSuiteTool):
         """
         return self._output_flag
 
-    def get_hash(self, profile: Optional[str] = None) -> int:
+    def get_hash(self,
+                 config: "BuildConfig",
+                 file_path: Path
+                 ) -> int:
         """
+        Computes a hash code using the name and version of the compiler,
+        and the compilation flag used by the compiler for the specified
+        file.
+
+        :param config: The build configuration to use.
+        :param file_path: Path of the file to compile.
         :returns: hash of compiler name and version.
         """
-        return (zlib.crc32(self.name.encode()) +
-                zlib.crc32(str(self.get_flags(profile)).encode()) +
-                zlib.crc32(self.get_version_string().encode()))
-
-    def get_flags(self, profile: Optional[str] = None) -> list[str]:
-        '''Determines the flags to be used.
-
-        :returns: the flags to be used with this tool.'''
-        return self._flags[profile]
+        all_params = (self.name +
+                      self.get_version_string() +
+                      str(self.get_flags(config, file_path)))
+        return string_checksum(all_params)
 
     def get_all_commandline_options(
             self,
@@ -142,6 +146,11 @@ class Compiler(CompilerSuiteTool):
 
         if config.openmp:
             params.append(self.openmp_flag)
+
+        # Explicitly add all compilation flags here, where the input
+        # path can be provided to properly resolve path-specific flags.
+        params += self.get_flags(config, input_file)
+
         if add_flags:
             if self.openmp_flag in add_flags:
                 warnings.warn(
@@ -152,6 +161,20 @@ class Compiler(CompilerSuiteTool):
 
         params.extend([input_file.name, self._output_flag, str(output_file)])
         return params
+
+    def get_flags(self, config: Optional["BuildConfig"] = None,
+                  file_path: Optional[Path] = None) -> list[str]:
+        """
+        The flags to use when compiling the specified flag. All
+        AbstractFlags (e.g. MatchFlags, ...) will be resolved.
+
+        :param config: The build configuration to use.
+        :param file_path: the path to the file to be compiled.
+
+        :returns: the flags actually used when building the specified
+            path.
+        """
+        return self.flags.get_flags(config, file_path)
 
     def compile_file(self, input_file: Path,
                      output_file: Path,
@@ -173,7 +196,7 @@ class Compiler(CompilerSuiteTool):
 
         params = self.get_all_commandline_options(config, input_file,
                                                   output_file, add_flags)
-        return self.run(profile=config.profile, cwd=input_file.parent,
+        return self.run(cwd=input_file.parent,
                         additional_parameters=params)
 
     def check_available(self) -> bool:
@@ -396,13 +419,14 @@ class FortranCompiler(Compiler):
         :returns: all command line options for Fortran compilation.
         '''
         if add_flags:
-            add_flags = Flags(add_flags)
+            # Create an AlwaysFlags to use its remove_flag method
+            af = AlwaysFlags(add_flags)
             if self._module_folder_flag:
                 # Remove any module flag the user has specified, since
                 # this will interfere with Fab's module handling.
-                add_flags.remove_flag(self._module_folder_flag,
-                                      has_parameter=True)
-            add_flags.remove_flag(self._compile_flag, has_parameter=False)
+                af.remove_flag(self._module_folder_flag, has_parameter=True)
+            af.remove_flag(self._compile_flag, has_parameter=False)
+            add_flags = af.get_flags(config, input_file)
 
         # Get the flags from the base class
         params = super().get_all_commandline_options(config, input_file,
@@ -448,8 +472,7 @@ class FortranCompiler(Compiler):
                                                   output_file, add_flags,
                                                   syntax_only)
 
-        self.run(profile=config.profile, cwd=input_file.parent,
-                 additional_parameters=params)
+        self.run(cwd=input_file.parent, additional_parameters=params)
 
 
 # ============================================================================

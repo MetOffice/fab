@@ -7,13 +7,12 @@
 # ##############################################################################
 
 '''
-This module contains the default Baf configuration class.
+This module contains the default FabBase configuration class.
 '''
 
 import argparse
-from typing import cast
 
-from fab.api import AddFlags, BuildConfig, Category, Compiler, ToolRepository
+from fab.api import BuildConfig, Category, ToolRepository
 
 from fab.fab_base.site_specific.default.setup_script_cray import (
     setup_script_cray)
@@ -29,18 +28,14 @@ from fab.fab_base.site_specific.default.setup_script_nvidia import (
 
 class Config:
     '''
-    This class is the default Configuration object for Baf builds.
-    It provides several callbacks which will be called from the build
+    This class is the default Configuration object for build scripts
+    using FabBase.
+    It provides several callbacks which are called from the build
     scripts to allow site-specific customisations.
     '''
 
     def __init__(self) -> None:
         self._args: argparse.Namespace
-
-        # Stores for each compiler suite a mapping of profiles to the list of
-        # path-specific flags to use.
-        # _path_flags[suite][profile]
-        self._path_flags: dict[str, dict[str, list[AddFlags]]] = {}
 
     @property
     def args(self) -> argparse.Namespace:
@@ -51,7 +46,7 @@ class Config:
 
     def get_valid_profiles(self) -> list[str]:
         '''
-        Determines the list of all allowed compiler profiles. The first
+        Determines the list of all allowed compilation profiles. The first
         entry in this list is the default profile to be used. This method
         can be overwritten by site configs to add or modify the supported
         profiles.
@@ -129,77 +124,52 @@ class Config:
         self.setup_nvidia(build_config)
         self.setup_cray(build_config)
 
-    def get_path_flags(self, build_config: BuildConfig) -> list[AddFlags]:
-        '''
-        Returns the path-specific flags to be used.
-        TODO #313: Ideally we have only one kind of flag, but as a quick
-        work around we provide this method.
-
-        :param build_config: the Fab build configuration instance
-        '''
-
-        compiler = build_config.tool_box.get_tool(Category.FORTRAN_COMPILER)
-        compiler = cast(Compiler, compiler)
-        return self._path_flags[compiler.suite].get(build_config.profile, [])
-
     def setup_cray(self, build_config: BuildConfig) -> None:
         '''
         This method sets up the Cray compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
-
-        self._path_flags["cray"] = setup_script_cray(build_config, self.args)
+        setup_script_cray(build_config, self.args)
 
     def setup_gnu(self, build_config: BuildConfig) -> None:
         '''
         This method sets up the Gnu compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
-
-        self._path_flags["gnu"] = setup_script_gnu(build_config, self.args)
+        setup_script_gnu(build_config, self.args)
 
     def setup_intel_classic(self, build_config: BuildConfig) -> None:
         '''
         This method sets up the Intel classic compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
-
-        self._path_flags["intel_classic"] = \
-            setup_script_intel_classic(build_config, self.args)
+        setup_script_intel_classic(build_config, self.args)
 
     def setup_intel_llvm(self, build_config: BuildConfig) -> None:
         '''
         This method sets up the Intel LLVM compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy.
 
         :param build_config: the Fab build configuration instance
         '''
-
-        self._path_flags["intel-llvm"] = setup_script_intel_llvm(build_config,
-                                                                 self.args)
+        setup_script_intel_llvm(build_config, self.args)
 
     def setup_nvidia(self, build_config: BuildConfig) -> None:
         '''
         This method sets up the Nvidia compiler and linker flags.
         For now call an external function, since it is expected that
-        this configuration can be very lengthy (once we support
-        compiler modes).
+        this configuration can be very lengthy).
 
         :param build_config: the Fab build configuration instance
         '''
-        self._path_flags["nvidia"] = setup_script_nvidia(build_config,
-                                                         self.args)
+        setup_script_nvidia(build_config, self.args)

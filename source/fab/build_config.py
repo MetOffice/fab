@@ -91,9 +91,9 @@ class BuildConfig():
         self._openmp = openmp
         if profile is None:
             # An empty string is used for non-profiled flags
-            self._profile = ""
+            self.set_profile("")
         else:
-            self._profile = profile
+            self.set_profile(profile)
         self.two_stage = two_stage
         self.verbose = verbose
         compiler = tool_box.get_tool(Category.FORTRAN_COMPILER, mpi=mpi,
@@ -223,6 +223,13 @@ class BuildConfig():
         ''':returns: the name of the compiler profile to use.'''
         return self._profile
 
+    def set_profile(self, profile: str) -> None:
+        """Sets the compilation profile.
+
+        :param profile: the name of the profile.
+        """
+        self._profile = profile.lower()
+
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """
         Mark the given file paths as being current prebuilds, not to be
@@ -288,10 +295,16 @@ class BuildConfig():
 
 
 # todo: better name? perhaps PathFlags?
+# todo: This is going to be replaced with tools.flags.MatchFlags
+
 class AddFlags():
     """
     Add command-line flags when our path filter matches.
-    Generally used inside a :class:`~fab.build_config.FlagsConfig`.
+    This class is deprecated, use the new
+    :class:`~fab.tools.flags.FlagList` and
+    :class:`~fab.tools.flags.MatchFlag` instead.
+    The compile and preprocess steps will convert AddFlags into
+    MatchFlags
 
     """
     def __init__(self, match: str, flags: list[str]):
@@ -347,48 +360,3 @@ class AddFlags():
 
             # add our flags
             input_flags += add_flags
-
-
-class FlagsConfig():
-    """
-    Return command-line flags for a given path.
-
-    Simply allows appending flags but may evolve to also replace and
-    remove flags.
-
-    """
-    def __init__(self, common_flags: Optional[list[str]] = None,
-                 path_flags: Optional[list[AddFlags]] = None):
-        """
-        :param common_flags:
-            list of flags to apply to all files. E.g `['-O2']`.
-        :param path_flags:
-            list of :class:`~fab.build_config.AddFlags` objects which apply
-            flags to selected paths.
-
-        """
-        self.common_flags = common_flags or []
-        self.path_flags = path_flags or []
-
-    # todo: there's templating both in this method and the run method it calls.
-    #       make sure it's all properly documented and rationalised.
-    def flags_for_path(self, path: Path, config):
-        """
-        Get all the flags for a given file, in a reproducible order.
-
-        :param path:
-            The file path for which we want command-line flags.
-        :param config:
-            The config contains the source root and project workspace.
-
-        """
-        # We COULD make the user pass these template params to the constructor
-        # but we have a design requirement to minimise the config burden on
-        # the user, so we take care of it for them here instead.
-        params = {'source': config.source_root, 'output': config.build_output}
-        flags = [Template(i).substitute(params) for i in self.common_flags]
-
-        for flags_modifier in self.path_flags:
-            flags_modifier.run(path, flags, config=config)
-
-        return flags
