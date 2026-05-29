@@ -16,13 +16,11 @@ This function gets called from the default site-specific config file
 import argparse
 from typing import cast
 
-from fab.api import (AddFlags, BuildConfig, Category, Compiler, Linker,
-                     ToolRepository)
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_script_cray(
-        build_config: BuildConfig,
-        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
+def setup_script_cray(build_config: BuildConfig,
+                      args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument, too-many-branches
     '''
     Defines the default flags for ftn.
@@ -37,7 +35,7 @@ def setup_script_cray(
     ftn = cast(Compiler, ftn)
 
     if not ftn.is_available:
-        return {}
+        return
 
     # The base flags
     # ==============
@@ -108,5 +106,3 @@ def setup_script_cray(
     # You can use:
     # ftn = tr.get_tool(Category.FORTRAN_COMPILER, "crayftn-gfortran")
     # ftn.add_flags("-fallow-argument-mismatch")
-
-    return {}

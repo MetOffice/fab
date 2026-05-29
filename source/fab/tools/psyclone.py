@@ -14,10 +14,10 @@ import warnings
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
-from fab.tools.tool import Tool
+from fab.tools.tool_with_flags import ToolWithFlags
 
 
-class Psyclone(Tool):
+class Psyclone(ToolWithFlags):
     '''This is the base class for `PSyclone`.
     '''
 
@@ -163,4 +163,14 @@ class Psyclone(Tool):
                                                 for k in kernel_roots], [])
             parameters.extend(roots_with_dash_d)
         parameters.append(str(x90_file))
+
+        # This is mostly important for site-specific overwrites:
+        try:
+            parameters.extend(self.get_flags(config, x90_file))
+        except KeyError:
+            # Typically, there won't be any profiles defined for
+            # PSyclone, and the previous call will fail, which
+            # must be ignored.
+            pass
+
         return self.run(additional_parameters=parameters)
