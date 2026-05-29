@@ -10,7 +10,7 @@ It is the base class for compiler, linker, and pre-processor.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Optional, TYPE_CHECKING, Union
 
 from fab.tools.category import Category
 from fab.tools.flags import AbstractFlags, ProfileFlags
@@ -46,7 +46,7 @@ class ToolWithFlags(Tool):
             exec_name: Union[str, Path],
             category: Category,
             availability_option: Optional[Union[str,
-                                                List[str]]] = None) -> None:
+                                                list[str]]] = None) -> None:
 
         super().__init__(name, exec_name, category, availability_option)
         self._flags = ProfileFlags()
@@ -55,9 +55,9 @@ class ToolWithFlags(Tool):
         # 8-byte-default real, which might need settings for real and double).
         # Standard flags are implicitly assumed to be a single flag (e.g.
         # -c, -o).
-        self._generic_flags: Dict[str, List[str]] = {}
+        self._generic_flags: dict[str, list[str]] = {}
 
-    def __getitem__(self, generic_name: str) -> List[str]:
+    def __getitem__(self, generic_name: str) -> list[str]:
         """
         Returns the compiler-specific list of flags given a generic
         name.
@@ -77,7 +77,7 @@ class ToolWithFlags(Tool):
 
     def __setitem__(self,
                     generic_name: str,
-                    flags: Union[str, List[str]]) -> None:
+                    flags: Union[str, list[str]]) -> None:
         """
         Sets or updates a specified compiler-specific flag for
         a given generic name.
@@ -97,12 +97,12 @@ class ToolWithFlags(Tool):
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> List[str]:
+                  file_path: Optional[Path] = None) -> list[str]:
         ''':returns: the flags to be used with this tool.'''
         return self.flags.get_flags(config, file_path)
 
     def add_flags(self,
-                  new_flags: Union[AbstractFlags, str, List[str]],
+                  new_flags: Union[AbstractFlags, str, list[str]],
                   profile: Optional[str] = None):
         '''Adds the specified flags to the list of flags.
 
