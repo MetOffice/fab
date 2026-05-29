@@ -10,10 +10,10 @@
 from typing import List
 
 from fab.tools.category import Category
-from fab.tools.tool import Tool
+from fab.tools.tool_with_flags import ToolWithFlags
 
 
-class PkgConfig(Tool):
+class PkgConfig(ToolWithFlags):
     '''This class implements a simple interface to `pkg-config`. PkgConfig is
     not added to the ToolRepository, it is intended for site-specific
     configurations to create an instance for each required package.
