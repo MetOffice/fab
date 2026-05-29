@@ -18,6 +18,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran, preprocess_c
+from fab.steps.root_inc_files import root_inc_files
 from fab.tools.tool_box import ToolBox
 
 clang = importorskip('clang', reason="Clang bindings not found.")
@@ -32,6 +33,7 @@ def test_CFortranInterop(tmp_path):
                      tool_box=ToolBox(), multiprocessing=False) as config:
         grab_folder(config, src=PROJECT_SOURCE)
         find_source_files(config)
+        root_inc_files(config, suffix_list=[".h"])
         c_pragma_injector(config)
         preprocess_c(config)
         preprocess_fortran(config)
