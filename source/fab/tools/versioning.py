@@ -47,7 +47,7 @@ class Git(Versioning):
     def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
         ''':returns: the hash of the current commit.
 
-        :param folder: the folder for which to determine the current commitf
+        :param folder: the folder for which to determine the current commit
             (defaults to .).
         '''
         folder = folder or '.'

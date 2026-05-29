@@ -19,7 +19,6 @@ import subprocess
 from typing import Optional, Sequence, Union
 
 from fab.tools.category import Category
-from fab.tools.flags import ProfileFlags
 
 
 class Tool:
@@ -40,7 +39,6 @@ class Tool:
         self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_path = Path(exec_name)
-        self._flags = ProfileFlags()
         self._category = category
         if availability_option:
             self._availability_option = availability_option
@@ -121,31 +119,6 @@ class Tool:
         ''':returns: the category of this tool.'''
         return self._category
 
-    def get_flags(self, profile: Optional[str] = None):
-        ''':returns: the flags to be used with this tool.'''
-        return self._flags[profile]
-
-    def add_flags(self, new_flags: Union[str, list[str]],
-                  profile: Optional[str] = None):
-        '''Adds the specified flags to the list of flags.
-
-        :param new_flags: A single string or list of strings which are the
-            flags to be added.
-        '''
-        self._flags.add_flags(new_flags, profile)
-
-    def define_profile(self,
-                       name: str,
-                       inherit_from: Optional[str] = None):
-        '''Defines a new profile name, and allows to specify if this new
-        profile inherit settings from an existing profile.
-
-        :param name: Name of the profile to define.
-        :param inherit_from: Optional name of a profile to inherit
-            settings from.
-        '''
-        self._flags.define_profile(name, inherit_from)
-
     @property
     def logger(self) -> logging.Logger:
         ''':returns: a logger object for convenience.'''
@@ -159,7 +132,6 @@ class Tool:
     def run(self,
             additional_parameters: Optional[
                 Union[str, Sequence[Union[Path, str]]]] = None,
-            profile: Optional[str] = None,
             env: Optional[dict[str, str]] = None,
             cwd: Optional[Union[Path, str]] = None,
             capture_output=True) -> str:
@@ -167,12 +139,15 @@ class Tool:
         Run the binary as a subprocess.
 
         :param additional_parameters:
-            list of strings or paths to be sent to :func:`subprocess.run`
+            List of strings or paths to be sent to :func:`subprocess.run`
             as additional parameters for the command. Any path will be
             converted to a normal string.
         :param env:
             Optional env for the command. By default it will use the current
             session's environment.
+        :param cwd:
+            Optional working directory for the command. By default it will
+            use the current working directory.
         :param capture_output:
             If True, capture and return stdout. If False, the command will
             print its output directly to the console.
@@ -180,7 +155,7 @@ class Tool:
         :raises RuntimeError: if the code is not available.
         :raises RuntimeError: if the return code of the executable is not 0.
         """
-        command = [str(self.exec_path)] + self.get_flags(profile)
+        command = [str(self.exec_path)]
         if additional_parameters:
             if isinstance(additional_parameters, str):
                 command.append(additional_parameters)
@@ -213,28 +188,3 @@ class Tool:
         if capture_output:
             return res.stdout.decode()
         return ""
-
-
-class CompilerSuiteTool(Tool):
-    '''A tool that is part of a compiler suite (typically compiler
-    and linker).
-
-    :param name: name of the tool.
-    :param exec_name: name of the executable to start.
-    :param suite: name of the compiler suite.
-    :param category: the Category to which this tool belongs.
-    :param availability_option: a command line option for the tool to test
-        if the tool is available on the current system. Defaults to
-        `--version`.
-    '''
-    def __init__(self, name: str, exec_name: Union[str, Path], suite: str,
-                 category: Category,
-                 availability_option: Optional[Union[str, list[str]]] = None):
-        super().__init__(name, exec_name, category,
-                         availability_option=availability_option)
-        self._suite = suite
-
-    @property
-    def suite(self) -> str:
-        ''':returns: the compiler suite of this tool.'''
-        return self._suite

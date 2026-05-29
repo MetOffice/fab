@@ -10,6 +10,7 @@ files using `from fab.api import ...`.
 from fab.artefacts import ArtefactSet, CollectionGetter
 from fab.artefacts import SuffixFilter
 from fab.build_config import AddFlags, BuildConfig
+from fab.fab_base.fab_base import FabBase
 from fab.steps import run_mp
 from fab.steps import step
 from fab.steps.analyse import analyse
@@ -30,10 +31,12 @@ from fab.steps.root_inc_files import root_inc_files
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, Ifort
 from fab.tools.compiler_wrapper import CompilerWrapper
+from fab.tools.flags import AlwaysFlags, ContainFlags, FlagList, MatchFlags
 from fab.tools.linker import Linker
 from fab.tools.tool import Tool
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from fab.tools.shell import Shell
 from fab.util import common_arg_parser
 from fab.util import file_checksum, log_or_dot, TimerLogger
 from fab.util import get_fab_workspace
@@ -41,6 +44,7 @@ from fab.util import input_to_output_fpath
 
 __all__ = [
     "AddFlags",
+    "AlwaysFlags",
     "analyse",
     "archive_objects",
     "ArtefactSet",
@@ -53,10 +57,13 @@ __all__ = [
     "CompilerWrapper",
     "compile_c",
     "compile_fortran",
+    "ContainFlags",
     "c_pragma_injector",
     "Exclude",
+    "FabBase",
     "fcm_export",
     "file_checksum",
+    "FlagList",
     "get_fab_workspace",
     "git_checkout",
     "grab_folder",
@@ -69,12 +76,14 @@ __all__ = [
     "link_exe",
     "link_shared_object",
     "log_or_dot",
+    "MatchFlags",
     "preprocess_c",
     "preprocess_fortran",
     "preprocess_x90",
     "psyclone",
     "root_inc_files",
     "run_mp",
+    "Shell",
     "step",
     "SuffixFilter",
     "TimerLogger",

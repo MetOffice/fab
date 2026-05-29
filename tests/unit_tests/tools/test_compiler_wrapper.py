@@ -11,14 +11,14 @@ from pathlib import Path
 from pytest import raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder, call_list, not_found_callback
-
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.compiler_wrapper import (CompilerWrapper,
                                         CrayCcWrapper, CrayFtnWrapper,
                                         Mpicc, Mpif90)
+
+from tests.conftest import ExtendedRecorder, call_list, not_found_callback
 
 
 def test_compiler_getter(stub_c_compiler: CCompiler) -> None:
@@ -85,7 +85,8 @@ def test_compiler_is_available_no_version(stub_c_compiler: CCompiler,
     assert not mpicc.is_available
 
 
-def test_compiler_hash(fake_process: FakeProcess) -> None:
+def test_compiler_hash(stub_configuration,
+                       fake_process: FakeProcess) -> None:
     """
     Test the hash functionality.
     """
@@ -94,8 +95,8 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc1 = CCompiler('test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc1 = Mpicc(cc1)
-    hash1 = mpicc1.get_hash()
-    assert hash1 == 5953380633
+    hash1 = mpicc1.get_hash(stub_configuration, Path('.'))
+    assert hash1 == 2609406574
 
     # A change in the version number must change the hash:
     fake_process.register(['tcc', '--version'], stdout='8.9')
@@ -103,7 +104,7 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc2 = CCompiler('test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc2 = Mpicc(cc2)
-    hash2 = mpicc2.get_hash()
+    hash2 = mpicc2.get_hash(stub_configuration, Path('.'))
     assert hash2 != hash1
 
     # A change in the name with the original version number
@@ -113,7 +114,7 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc3 = CCompiler('New test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc3 = Mpicc(cc3)
-    hash3 = mpicc3.get_hash()
+    hash3 = mpicc3.get_hash(stub_configuration, Path('.'))
     assert hash3 not in (hash1, hash2)
 
     # A change in the name with the modified version number
@@ -123,7 +124,7 @@ def test_compiler_hash(fake_process: FakeProcess) -> None:
     cc4 = CCompiler('New test C compiler', 'tcc', 'test',
                     version_regex=r'([\d.]+)')
     mpicc4 = Mpicc(cc4)
-    hash4 = mpicc4.get_hash()
+    hash4 = mpicc4.get_hash(stub_configuration, Path('.'))
     assert hash4 not in (hash1, hash2, hash3)
 
 
@@ -263,23 +264,43 @@ def test_flags_independent(stub_c_compiler: CCompiler,
     assert stub_c_compiler.get_flags() == []
     assert wrapper.get_flags() == []
 
-    stub_c_compiler.add_flags(["-a", "-b"])
+    stub_c_compiler.add_flags(['-a', '-b'])
     assert stub_c_compiler.get_flags() == ["-a", "-b"]
-    assert wrapper.get_flags() == ['-a', '-b']
+    resolved_flags = stub_c_compiler.get_all_commandline_options(
+        stub_configuration, Path('/in'), Path("/out"))
+    assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
+
+    assert wrapper.get_flags() == ["-a", "-b"]
+
+    # We need to test `get_all_commandline_options` to check the correct
+    # behaviour of flags, which can resolve path-specific flags.
+    resolved_flags = wrapper.get_all_commandline_options(stub_configuration,
+                                                         Path('/in'),
+                                                         Path('/out'))
+
+    assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
     assert wrapper.openmp_flag == stub_c_compiler.openmp_flag
 
     # Adding flags to the wrapper should not affect the wrapped compiler:
-    wrapper.add_flags(["-d", "-e"])
-    assert stub_c_compiler.get_flags() == ['-a', '-b']
+    wrapper.add_flags(['-d', '-e'])
+    resolved_flags = stub_c_compiler.get_all_commandline_options(
+        stub_configuration, Path('/in'), Path("/out"))
+    assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
+
     # And the compiler wrapper should report the wrapped compiler's flag
     # followed by the wrapper flag (i.e. the wrapper flag can therefore
     # overwrite the wrapped compiler's flags)
-    assert wrapper.get_flags() == ['-a', '-b', "-d", "-e"]
+    assert wrapper.get_flags() == ["-a", "-b", "-d", "-e"]
+    resolved_flags = wrapper.get_all_commandline_options(stub_configuration,
+                                                         Path("/in"),
+                                                         Path("/out"))
+    assert resolved_flags == ['-c', '-a', '-b', '-d', '-e',
+                              'in', '-o', '/out']
 
     wrapper.compile_file(Path("a.f90"), Path('a.o'), add_flags=['-f'],
                          config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['mpicc', "-a", "-b", "-d", "-e", "-c", "-f", "a.f90", "-o", 'a.o']
+        ['mpicc', '-c', '-a', '-b', '-d', '-e', '-f', 'a.f90', '-o', 'a.o']
     ]
     assert subproc_record.extras()[0]['cwd'] == '.'
 
@@ -290,26 +311,26 @@ def test_compiler_wrapper_flags_with_add_arg(stub_c_compiler: CCompiler,
     '''Tests that flags set in the base compiler will be accessed in the
     wrapper if also additional flags are specified.'''
     mpicc = Mpicc(stub_c_compiler)
-    stub_c_compiler.define_profile("default", inherit_from="")
-    mpicc.define_profile("default", inherit_from="")
+    stub_c_compiler.define_profile('default', inherit_from="")
+    mpicc.define_profile('default', inherit_from="")
     # Due to inheritance, this will give "-a -b" for gcc
-    stub_c_compiler.add_flags(["-a"])
-    stub_c_compiler.add_flags(["-b"], "default")
-    # Due to inheritance, this will give "-d -e" for mpicc
-    mpicc.add_flags(["-d"])
-    mpicc.add_flags(["-e"], "default")
+    stub_c_compiler.add_flags(['-a'])
+    stub_c_compiler.add_flags(['-b'], 'default')
+    # Due to inheritance, this will give '-d -e' for mpicc
+    mpicc.add_flags(['-d'])
+    mpicc.add_flags(['-e'], 'default')
 
     # Check that the flags are assembled in the right order in the
     # actual compiler call: first the wrapped compiler flag, then
     # the wrapper flag, then additional flags
     stub_configuration._openmp = True
-    stub_configuration._profile = "default"
+    stub_configuration._profile = 'default'
 
-    mpicc.compile_file(Path("a.f90"), Path("a.o"), add_flags=["-f"],
+    mpicc.compile_file(Path('a.f90'), Path('a.o'), add_flags=['-f'],
                        config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['mpicc', "-a", "-b", "-d", "-e", "-c", "-omp", "-f",
-         "a.f90", "-o", 'a.o']
+        ['mpicc', '-c', '-omp', '-a', '-b', '-d', '-e', '-f',
+         'a.f90', '-o', 'a.o']
     ]
 
 
@@ -322,12 +343,12 @@ def test_args_without_add_arg(stub_c_compiler: CCompiler,
     """
     wrapper = CompilerWrapper('wrapper', 'wrp', compiler=stub_c_compiler)
 
-    stub_c_compiler.add_flags(["-a", "-b"])
-    wrapper.add_flags(["-d", "-e"])
+    stub_c_compiler.add_flags(['-a', '-b'])
+    wrapper.add_flags(['-d', '-e'])
 
-    wrapper.compile_file(Path("a.f90"), Path('a.o'), config=stub_configuration)
+    wrapper.compile_file(Path('a.f90'), Path('a.o'), config=stub_configuration)
     assert subproc_record.invocations() == [
-        ['wrp', "-a", "-b", "-d", "-e", "-c", "a.f90", "-o", 'a.o']
+        ['wrp', '-c', '-a', '-b', '-d', '-e', 'a.f90', '-o', 'a.o']
     ]
     assert subproc_record.extras()[0]['cwd'] == '.'
 

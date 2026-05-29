@@ -321,6 +321,9 @@ def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
                           stdout='GNU Fortran (gcc) 1.2.3')
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "/usr/bin/gfortran")
+    gfortran = cast(Compiler, gfortran)
+    gfortran._is_available = True
+    gfortran._version = (1, 2)
     assert isinstance(gfortran, Gfortran)
     assert gfortran.name == "gfortran"
     assert gfortran.exec_name == "gfortran"

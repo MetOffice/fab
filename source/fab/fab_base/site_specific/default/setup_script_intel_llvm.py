@@ -16,20 +16,18 @@ This function gets called from the default site-specific config file
 import argparse
 from typing import cast
 
-from fab.api import (AddFlags, BuildConfig, Category, Compiler, Linker,
-                     ToolRepository)
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_script_intel_llvm(
-        build_config: BuildConfig,
-        args: argparse.Namespace) -> dict[str, list[AddFlags]]:
+def setup_script_intel_llvm(build_config: BuildConfig,
+                            args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument, too-many-locals
     '''
     Defines the default flags for all Intel llvm compilers.
 
     :param build_config: the Fab build config instance from which
         required parameters can be taken.
-    :param argparse.Namespace args: all command line options
+    :param args: all command line options
     '''
 
     tr = ToolRepository()
@@ -40,7 +38,7 @@ def setup_script_intel_llvm(
         ifx = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-ifx")
         ifx = cast(Compiler, ifx)
         if not ifx.is_available:
-            return {}
+            return
 
     # The base flags
     # ==============
@@ -71,5 +69,3 @@ def setup_script_intel_llvm(
 
     # Add more flags to be always used, e.g.:
     # linker.add_post_lib_flags(["-lstdc++"], "base")
-
-    return {}

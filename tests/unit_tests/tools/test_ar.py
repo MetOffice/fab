@@ -10,10 +10,9 @@ from pathlib import Path
 
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder, call_list
-
-from fab.tools.category import Category
 from fab.tools.ar import Ar
+from fab.tools.category import Category
+from tests.conftest import ExtendedRecorder, call_list
 
 
 def test_constructor() -> None:
@@ -24,7 +23,6 @@ def test_constructor() -> None:
     assert ar.category == Category.AR
     assert ar.name == "ar"
     assert ar.exec_name == "ar"
-    assert ar.get_flags() == []
 
 
 def test_check_available(subproc_record: ExtendedRecorder) -> None:
