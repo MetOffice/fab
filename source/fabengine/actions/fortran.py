@@ -464,7 +464,9 @@ class CompileFortran(SubprocessAction):
 
         # Todo: Hardwired assumption on workspace layout
         extra_arguments: list[str] = []
-        branch_path = self._source.relative_to(self._database.script_config["paths"]["build_dir"])
+        branch_path = self._source.relative_to(
+            self._database.script_config["paths"]["build_dir"]
+        )
         for case, tags in self._database.build_config["tag_dirs"].items():
             if branch_path.is_relative_to(case):
                 for tag in tags:

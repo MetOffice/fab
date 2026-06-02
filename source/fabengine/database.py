@@ -18,7 +18,12 @@ class Database:
     Build system state and configuration.
     """
 
-    def __init__(self, script_config: WriteOnceDict, build_config: WriteOnceDict, manager: FabManager):
+    def __init__(
+        self,
+        script_config: WriteOnceDict,
+        build_config: WriteOnceDict,
+        manager: FabManager,
+    ):
         """
         :param configuration: Preprepared configuration.
         :param manager: Multiprocess shared data controller.

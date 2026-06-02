@@ -191,7 +191,7 @@ def instantiate_script_config(
     timing_file: Path,
     worker_threads: int,
     monitor: bool,
-    queue_strategy: QueueStrategy
+    queue_strategy: QueueStrategy,
 ) -> WriteOnceDict:
     """
     Create a script configuration WriteOnceDict containing options affecting the
@@ -207,18 +207,20 @@ def instantiate_script_config(
     """
 
     script_config = build_script.configuration()
-    if 'paths' not in script_config:
-        script_config['paths'] = WriteOnceDict({})
-    script_config['paths']['work_dir'] = work_dir
-    script_config['paths']['work_dir'].mkdir(exist_ok=True)
-    script_config['paths']['build_dir'] = script_config['paths']['work_dir'] / "build"
-    script_config['paths']['build_dir'].mkdir(exist_ok=True)
-    script_config['paths']['module_dir'] = script_config['paths']['build_dir'] / "modules"
-    script_config['paths']['module_dir'].mkdir(exist_ok=True)
-    script_config['paths']['performance_file'] = timing_file
-    script_config['worker_threads'] = worker_threads
-    script_config['monitor'] = monitor
-    script_config['queue_strategy'] = queue_strategy
+    if "paths" not in script_config:
+        script_config["paths"] = WriteOnceDict({})
+    script_config["paths"]["work_dir"] = work_dir
+    script_config["paths"]["work_dir"].mkdir(exist_ok=True)
+    script_config["paths"]["build_dir"] = script_config["paths"]["work_dir"] / "build"
+    script_config["paths"]["build_dir"].mkdir(exist_ok=True)
+    script_config["paths"]["module_dir"] = (
+        script_config["paths"]["build_dir"] / "modules"
+    )
+    script_config["paths"]["module_dir"].mkdir(exist_ok=True)
+    script_config["paths"]["performance_file"] = timing_file
+    script_config["worker_threads"] = worker_threads
+    script_config["monitor"] = monitor
+    script_config["queue_strategy"] = queue_strategy
     return script_config
 
 
@@ -249,37 +251,43 @@ def instantiate_build_config(
 
     fpp_definitions = build_script.fpp_definitions()
 
-    return WriteOnceDict({
-        "fpp_definitions": fpp_definitions,
-        "fc_ignore_modules": [
-            "funit",
-            "pfunit",  # pFUnit
-            "mpi",
-            "mpi_f08",  # MPI
-            "netcdf",  # NetCDF
-            "omp_lib",  # OpenMP
-            "xios",
-            "icontext",
-            "mod_wait",
-            "mod_oasis",  # XIOS/OASIS
-            "yaxt",  # YAXT
-            "vernier_mod",  # Vernier
-            "c_shum_byteswap",  # ShUMlib
-        ],
-        "field_instances": [{"real": "real32"}, {"real": "real64"}, {"integer": "int32"}],
-        "build_tags": {"um": ["-fdefault-real-8", "-fdefault-double-8"]},
-        "tag_dirs": {
-            "casim/": ["um"],
-            "jules/": ["um"],
-            "physics_schemes/": ["um"],
-            "physics_schemes_interface/legacy/": ["um"],
-            "socrates/": ["um"],
-            "ukca/": ["um"],
-        },
-        "inclusion_suffixes": [".h", ".inc"],
-        "packages": tuple(packages),
-        "repositories": build_script.repositories()
-    })
+    return WriteOnceDict(
+        {
+            "fpp_definitions": fpp_definitions,
+            "fc_ignore_modules": [
+                "funit",
+                "pfunit",  # pFUnit
+                "mpi",
+                "mpi_f08",  # MPI
+                "netcdf",  # NetCDF
+                "omp_lib",  # OpenMP
+                "xios",
+                "icontext",
+                "mod_wait",
+                "mod_oasis",  # XIOS/OASIS
+                "yaxt",  # YAXT
+                "vernier_mod",  # Vernier
+                "c_shum_byteswap",  # ShUMlib
+            ],
+            "field_instances": [
+                {"real": "real32"},
+                {"real": "real64"},
+                {"integer": "int32"},
+            ],
+            "build_tags": {"um": ["-fdefault-real-8", "-fdefault-double-8"]},
+            "tag_dirs": {
+                "casim/": ["um"],
+                "jules/": ["um"],
+                "physics_schemes/": ["um"],
+                "physics_schemes_interface/legacy/": ["um"],
+                "socrates/": ["um"],
+                "ukca/": ["um"],
+            },
+            "inclusion_suffixes": [".h", ".inc"],
+            "packages": tuple(packages),
+            "repositories": build_script.repositories(),
+        }
+    )
 
 
 def cli() -> None:
@@ -299,7 +307,7 @@ def cli() -> None:
         options.timing_file,
         options.jobs,
         options.monitor,
-        options.queue_strategy
+        options.queue_strategy,
     )
     build_config = instantiate_build_config(build_script, options.map_library)
 

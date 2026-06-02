@@ -218,7 +218,9 @@ class NamelistType(SubprocessAction):
         self._namelist_file = namelist_file
         self._database = database
 
-        self._config_dir = self._database.script_config["paths"]["build_dir"] / "configuration"
+        self._config_dir = (
+            self._database.script_config["paths"]["build_dir"] / "configuration"
+        )
 
         arguments = [self._json_file, "-directory", self._config_dir]
         super().__init__(
@@ -281,7 +283,9 @@ class ConfigType(SubprocessAction):
         self._duplicates_file = duplicates_file
         self._database = database
 
-        self._config_dir = self._database.script_config["paths"]["build_dir"] / "configuration"
+        self._config_dir = (
+            self._database.script_config["paths"]["build_dir"] / "configuration"
+        )
 
         arguments = ["-o", self._config_dir]
 
@@ -344,7 +348,9 @@ class NamelistLoader(SubprocessAction):
         self._namelist_file = namelist_file
         self._database = database
 
-        self._config_dir = self._database.script_config["paths"]["build_dir"] / "configuration"
+        self._config_dir = (
+            self._database.script_config["paths"]["build_dir"] / "configuration"
+        )
 
         arguments = [self._json_file, "-directory", self._config_dir]
         super().__init__(

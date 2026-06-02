@@ -28,7 +28,7 @@ def fab_core(
     mp_logger.addHandler(StreamHandler())
 
     with FabManager() as manager:
-        work_queue = manager.WorkQueue(script_config['queue_strategy'])  # type:ignore
+        work_queue = manager.WorkQueue(script_config["queue_strategy"])  # type:ignore
 
         def hit_sentinel() -> None:
             database.reset_work_done()
@@ -42,7 +42,9 @@ def fab_core(
         performance = Performance(manager)
         result_queue: Queue[WorkerException] = manager.Queue()
         for repository in build_config["repositories"]:
-            repo_action = repository.create_action(script_config['paths']['work_dir'], database)
+            repo_action = repository.create_action(
+                script_config["paths"]["work_dir"], database
+            )
 
             for identifier, path in repository.paths.items():
                 full_path = repo_action.local_copy() / path
@@ -114,8 +116,8 @@ def fab_core(
         for result in results:
             getLogger(__name__).error("Failed " + result.describe())
 
-        if script_config['paths']["performance_file"]:
-            with script_config['paths']["performance_file"].open("wt") as fhandle:
+        if script_config["paths"]["performance_file"]:
+            with script_config["paths"]["performance_file"].open("wt") as fhandle:
                 tally = performance.aggregate_action_log()
                 for action_str in sorted(tally.keys()):
                     print(action_str + ", " + str(tally[action_str]), file=fhandle)

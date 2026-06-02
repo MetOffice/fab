@@ -36,7 +36,9 @@ class Templaterator(SubprocessAction):
         for key, value in inserts.items():
             arguments.extend(["-s", key + "=" + value])
         arguments.append(self._filename)
-        super().__init__(self._database.script_config["paths"]["templaterator"], arguments)
+        super().__init__(
+            self._database.script_config["paths"]["templaterator"], arguments
+        )
 
     def __str__(self) -> str:
         return f"Templating: {self._filename}"

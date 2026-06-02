@@ -50,7 +50,9 @@ class ImportFile(Action):
 
     @property
     def destination(self) -> Path:
-        return self._database.script_config["paths"]["build_dir"] / self._filename.branch
+        return (
+            self._database.script_config["paths"]["build_dir"] / self._filename.branch
+        )
 
     def perform(self) -> list[Action]:
         """

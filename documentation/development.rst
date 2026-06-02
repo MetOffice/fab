@@ -20,8 +20,91 @@ fork and raise "pull requests" against the primary repository.
 Review is required before a change is accepted.
 
 
+Testing with Tox
+================
+
+The `Tox`_ virtual environment manager can be used to run the toy build
+system in an isolated python environment which contains the required
+package dependencies.
+
+.. _Tox: https://tox.wiki/en/latest/index.html
+
+If you have not already installed Tox, it can installed and set up as
+follows:
+
+.. code-block::
+
+   pip install --user tox
+   PATH=$PATH:$HOME/.local/bin
+
+Tox creates a cached copy of each virtual environment the first time it
+is used.  This cache can be cleared by adding the ``-r`` option;
+something that may be necessary following a change to the set of
+dependencies.
+
+Default Environments
+--------------------
+
+A number of environments have been defined in the ``pyproject.toml``
+file and each is responsible for running a particular action.
+Environments can be specified using the ``-e`` command line argument.
+If no environments are provided on the command line, Tox will run the
+following tests by default:
+
+=========== =========== ===================================
+Environment Command     Actions
+=========== =========== ===================================
+3.10        pytest      Unit tests with python 3.10
+3.12        pytest      Unit tests with python 3.12
+type        mypy        Type checking
+lint        ruff check  Check for common code problems
+format      ruff format Check against code formatting rules
+=========== =========== ===================================
+
+.. note::
+   The python unit tests will be skipped if the required version of
+   the interpreter cannot be found.
+
+Additional Environments
+-----------------------
+
+In addition to the default environments, tox also supports the
+following - which must be explicitly requested using the ``-e``
+option:
+
+=========== ====================================================
+Environment     Actions
+=========== ====================================================
+docs        Run sphinx-apidoc and build html documentation
+development Use the toy to build skeleton (default) or lfric_atm
+=========== ====================================================
+
+The ``development`` environment has the ability to pass command line
+options to the build command.  These must be separated from the
+``tox`` command line arguments by ``--`` and the options must match
+the format used by the ``fabtoy`` command.
+
+The following options are passed through to the ``fabtoy`` command
+running in the development environment, replacing the default action
+to build skeleton with a build of the LFRic atmosphere model on four
+CPUs:
+
+.. code-block::
+
+   tox -e development -- -v -j 4 --fabfile atmosphere.fabfile
+
+The development examples require the ability to extract source code
+from remote code repositories and may require a pass-phrases to access
+restricted repos.
+
+Manual Testing
+==============
+
+In addition to the methods described above, the Toy Build System can
+be manually installed into the current python environment as follows.
+
 Obtaining Dependencies
-======================
+----------------------
 
 A ``pyproject.toml`` file is provided which allows dependencies to be installed
 using ``pip install`` at the project root directory.
@@ -32,9 +115,8 @@ Our development tools are available using: ``pip install .[dev]``
 
 Finally, if you want to build the documentation, use: ``pip install .[doc]``
 
-
 Running Development Examples
-============================
+----------------------------
 
 In the directory ``test/development`` you will find example builds which may be
 used to exercise the toy. ``skeleton.fabfile`` will build the "Skeleton"
