@@ -285,7 +285,7 @@ def _call_pkg_config(specification: str, arguments: List[str]) -> List[str]:
     command.append(specification)
     process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8", env=environment)
     if process.returncode != 0:
-        raise PackageException(f"Failed to run [{command}]: {process.stderr}")
+        raise PackageException(f"Failed to run [{command}]:\n{process.stderr}")
     if process.stderr:
         raise PackageException(process.stderr)
     return process.stdout.split()

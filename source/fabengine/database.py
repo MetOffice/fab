@@ -6,109 +6,11 @@ from datetime import timedelta
 from enum import Enum, auto
 from multiprocessing.managers import DictProxy, ListProxy, ValueProxy
 from pathlib import Path
-from typing import Optional, Type
+from typing import Type
 
 from fabengine.actions import Action
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.manager import FabManager
-from fabengine.package import Package
-
-
-class Configuration:
-    """
-    Read-only parameters to direct build.
-    """
-
-    def __init__(
-        self,
-        fpp_definitions: WriteOnceDict,
-        fc_ignore_modules: list[str],
-        field_instances: list[dict[str, str]],
-        build_tags: dict[str, list[str]],
-        tag_dirs: dict[str, list[str]],
-        inclusion_suffixes: list[str],
-        packages: tuple[Package, ...],
-        performance_file: Optional[Path] = None,
-    ):
-        """
-        :param work_dir: Location of workspace used by build.
-        :param fpp_definitions: Macros to be defined for Fortran preprocessor.
-        :param fc_ignore_modules: Fortran modules which should not be
-                                  considered dependencies.
-        :param field_instances: Template injections for fields.
-        :param build_tags: Mapping between tag and compiler arguments.
-        :param tag_dirs: Mapping between directory and tags.
-        :param inclusion_suffixes: Filename extensions which indicate files
-                                   which will be included.
-        :param packages: Third party library dependencies.
-        :param performance_file: Write performance timings to this file.
-        """
-        self._fpp_definitions = fpp_definitions
-        self._fc_ignore_modules = fc_ignore_modules
-        self._field_instances = field_instances
-        self._build_tags = build_tags
-        self._tag_dirs = tag_dirs
-        self._inclusion_suffixes = inclusion_suffixes
-        self._packages = packages
-        self._performance_file = performance_file
-
-        self._use_open_mp = True
-        self._paths: dict[str, Path] = {}
-
-    @property
-    def fpp_definitions(self) -> WriteOnceDict:
-        """
-        :return: Macros passed to Fortran preprocessor.
-        """
-        return self._fpp_definitions
-
-    @property
-    def fc_ignore_modules(self) -> list[str]:
-        """
-        :return: Modules to ignore during analysis.
-        """
-        return self._fc_ignore_modules
-
-    @property
-    def field_instances(self) -> list[dict[str, str]]:
-        """
-        :return: Field variants to create.
-        """
-        return self._field_instances
-
-    @property
-    def build_tag_args(self) -> dict[str, list[str]]:
-        """
-        :return: Tagged compiler argument lists.
-        """
-        return self._build_tags
-
-    @property
-    def tag_dirs(self) -> dict[str, list[str]]:
-        """
-        :return: Directory keyed tag lists.
-        """
-        return self._tag_dirs
-
-    @property
-    def use_open_mp(self) -> bool:
-        """
-        :return: Control OpenMP building.
-        """
-        return self._use_open_mp
-
-    @property
-    def inclusion_suffixes(self) -> list[str]:
-        return self._inclusion_suffixes
-
-    @property
-    def packages(self) -> tuple[Package, ...]:
-        return self._packages
-
-
-    @property
-    def performance_file(self) -> Optional[Path]:
-        return self._performance_file
 
 
 class Database:
@@ -116,16 +18,16 @@ class Database:
     Build system state and configuration.
     """
 
-    def __init__(self, build_script_config: WriteOnceDict, configuration: Configuration, manager: FabManager):
+    def __init__(self, script_config: WriteOnceDict, build_config: WriteOnceDict, manager: FabManager):
         """
         :param configuration: Preprepared configuration.
         :param manager: Multiprocess shared data controller.
         """
         # Todo: Remove original configuration, and use only fab_configuration.
-        self._configuration = configuration
+        self._build_config = build_config
 
         # Create config
-        self.config = build_script_config
+        self.script_config = script_config
 
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
@@ -135,11 +37,11 @@ class Database:
         self._processed_last_round: ValueProxy[int] = manager.Value("i", 0)
 
     @property
-    def configuration(self) -> Configuration:
+    def build_config(self) -> WriteOnceDict:
         """
-        :return: configuration parameters.
+        :return: build configuration parameters.
         """
-        return self._configuration
+        return self._build_config
 
     def reset_work_done(self) -> None:
         """

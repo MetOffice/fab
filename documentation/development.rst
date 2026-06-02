@@ -65,14 +65,14 @@ Development Tools
 =================
 
 We use the ``pytest`` tool for unit testing. Point it at the correct directory
-with ``pytest test/unit-test``.
+with ``pytest test/unit_test``.
 
 The ``mypy`` tool is used for static type analysis. It should run on both the
-source and unit tests: ``mypy source test/unit-test``.
+source and unit tests: ``mypy source test/unit_test``.
 
 Source code style is enforced using the ``ruff`` tool. Source can be coerced
-using ``ruff format source test/unit-test`` and checked using
-``ruff check source test/unit-test``.
+using ``ruff format source test/unit_test`` and checked using
+``ruff check source test/unit_test``.
 
 
 Discussion

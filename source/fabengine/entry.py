@@ -11,6 +11,7 @@ from sys import argv
 from typing import Optional, Sequence
 
 from fabengine.build_script import BuildScript
+from fabengine.configuration_tools import WriteOnceDict
 from fabengine.core import fab_core
 from fabengine.package import (
     IncludePath,
@@ -18,6 +19,8 @@ from fabengine.package import (
     LinkerArgument,
     LinkerPath,
     Package,
+    partition_specification,
+    pkg_config,
     VariableDefinition,
     CompilerArgument,
 )
@@ -169,7 +172,7 @@ def instantiate_build_script(fabfile: Path) -> BuildScript:
     )
     assert spec is not None
     assert spec.loader is not None
-    
+
     module = module_from_spec(spec)
     sys.modules[name] = module
     # Import class from another python file equivalent
@@ -180,6 +183,103 @@ def instantiate_build_script(fabfile: Path) -> BuildScript:
     ):
         return cls()
     raise RuntimeError("No BuildScript class found in Fabfile.")
+
+
+def instantiate_script_config(
+    build_script: BuildScript,
+    work_dir: Path,
+    timing_file: Path,
+    worker_threads: int,
+    monitor: bool,
+    queue_strategy: QueueStrategy
+) -> WriteOnceDict:
+    """
+    Create a script configuration WriteOnceDict containing options affecting the
+    behaviour of the build script
+
+    :param build_script: Describes the build.
+    :param work_dir: Directory used as scratch space for build.
+    :param timing_file: File to receive action timings.
+    :param worker_threads: Number of workers to use.
+    :param monitor: Run progress monitor.
+    :param queue_strategy: Use this when adding actions to queue.
+    :return: Script configuration WriteOnceDict
+    """
+
+    script_config = build_script.configuration()
+    if 'paths' not in script_config:
+        script_config['paths'] = WriteOnceDict({})
+    script_config['paths']['work_dir'] = work_dir
+    script_config['paths']['work_dir'].mkdir(exist_ok=True)
+    script_config['paths']['build_dir'] = script_config['paths']['work_dir'] / "build"
+    script_config['paths']['build_dir'].mkdir(exist_ok=True)
+    script_config['paths']['module_dir'] = script_config['paths']['build_dir'] / "modules"
+    script_config['paths']['module_dir'].mkdir(exist_ok=True)
+    script_config['paths']['performance_file'] = timing_file
+    script_config['worker_threads'] = worker_threads
+    script_config['monitor'] = monitor
+    script_config['queue_strategy'] = queue_strategy
+    return script_config
+
+
+def instantiate_build_config(
+    build_script: BuildScript,
+    map_library: list[Package],
+) -> WriteOnceDict:
+    """
+    Create a build configuration WriteOnceDict containing options affecting the final
+    executable
+
+    :param build_script: Describes the build.
+    :param map_library: Library mapping object
+    :return: Build configuration WriteOnceDict
+    """
+
+    packages: list[Package] = []
+    package_table = {package.name: package for package in map_library or []}
+    for specification in build_script.libraries():
+        package_name, _, _ = partition_specification(specification)
+        if package_name in package_table:
+            packages.append(package_table[package_name])
+        else:  # package_name not in package_table
+            packages.append(pkg_config(specification))
+
+    # Todo: Hardwired C++ runtime. Need a proper solution for language runtimes.
+    packages.append(Package("stdc++", (), [], [LibraryName("stdc++")]))
+
+    fpp_definitions = build_script.fpp_definitions()
+
+    return WriteOnceDict({
+        "fpp_definitions": fpp_definitions,
+        "fc_ignore_modules": [
+            "funit",
+            "pfunit",  # pFUnit
+            "mpi",
+            "mpi_f08",  # MPI
+            "netcdf",  # NetCDF
+            "omp_lib",  # OpenMP
+            "xios",
+            "icontext",
+            "mod_wait",
+            "mod_oasis",  # XIOS/OASIS
+            "yaxt",  # YAXT
+            "vernier_mod",  # Vernier
+            "c_shum_byteswap",  # ShUMlib
+        ],
+        "field_instances": [{"real": "real32"}, {"real": "real64"}, {"integer": "int32"}],
+        "build_tags": {"um": ["-fdefault-real-8", "-fdefault-double-8"]},
+        "tag_dirs": {
+            "casim/": ["um"],
+            "jules/": ["um"],
+            "physics_schemes/": ["um"],
+            "physics_schemes_interface/legacy/": ["um"],
+            "socrates/": ["um"],
+            "ukca/": ["um"],
+        },
+        "inclusion_suffixes": [".h", ".inc"],
+        "packages": tuple(packages),
+        "repositories": build_script.repositories()
+    })
 
 
 def cli() -> None:
@@ -193,13 +293,17 @@ def cli() -> None:
     logger.addHandler(StreamHandler())
 
     build_script = instantiate_build_script(options.fabfile)
-
-    fab_core(
+    script_config = instantiate_script_config(
         build_script,
-        {package.name: package for package in options.map_library or []},
         options.work_dir,
+        options.timing_file,
         options.jobs,
         options.monitor,
-        options.queue_strategy,
-        options.timing_file,
+        options.queue_strategy
+    )
+    build_config = instantiate_build_config(build_script, options.map_library)
+
+    fab_core(
+        script_config,
+        build_config,
     )

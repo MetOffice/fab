@@ -28,7 +28,7 @@ class Templaterator(SubprocessAction):
         self._filename = filename
         self._database = database
 
-        self._destination = database.config["paths"]["build_dir"] / leafname
+        self._destination = database.script_config["paths"]["build_dir"] / leafname
 
         # Todo: Just have the source here?
         # Todo: Put generated files in the correct place.
@@ -36,7 +36,7 @@ class Templaterator(SubprocessAction):
         for key, value in inserts.items():
             arguments.extend(["-s", key + "=" + value])
         arguments.append(self._filename)
-        super().__init__(self._database.config["paths"]["templaterator"], arguments)
+        super().__init__(self._database.script_config["paths"]["templaterator"], arguments)
 
     def __str__(self) -> str:
         return f"Templating: {self._filename}"

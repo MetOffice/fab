@@ -114,7 +114,7 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         # Todo: Hardwired command
         arguments = ["-traditional-cpp", "-P"]
 
-        for name, value in self._database.configuration.fpp_definitions.items():
+        for name, value in self._database.build_config["fpp_definitions"].items():
             arguments.append(f"-D{name}={value}")
 
         for name, value in self._extra_definitions.items():
@@ -135,7 +135,7 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         """
         suffix = self._fortran_file.branch.suffix.lower()
         return (
-            self._database.config["paths"]["build_dir"]
+            self._database.script_config["paths"]["build_dir"]
             / self._project
             / self._fortran_file.branch.with_suffix(suffix)
         )
@@ -315,10 +315,10 @@ class AnalyseFortran(Action):
                     name = match.group(2).lower()
                     open_mp = match.group(1) or ""
                     open_mp = "OpenMP " if open_mp.strip() else ""
-                    if open_mp and not self._database.configuration.use_open_mp:
+                    if open_mp and not self._database.build_config["use_open_mp"]:
                         continue
 
-                    if name in self._database.configuration.fc_ignore_modules:
+                    if name in self._database.build_config["fc_ignore_modules"]:
                         continue
                     if name not in unit_prereqs:
                         logger.debug(f"Found {open_mp}usage: {name}")
@@ -464,12 +464,12 @@ class CompileFortran(SubprocessAction):
 
         # Todo: Hardwired assumption on workspace layout
         extra_arguments: list[str] = []
-        branch_path = self._source.relative_to(self._database.config["paths"]["build_dir"])
-        for case, tags in self._database.configuration.tag_dirs.items():
+        branch_path = self._source.relative_to(self._database.script_config["paths"]["build_dir"])
+        for case, tags in self._database.build_config["tag_dirs"].items():
             if branch_path.is_relative_to(case):
                 for tag in tags:
                     extra_arguments.extend(
-                        self._database.configuration.build_tag_args[tag]
+                        self._database.build_config["build_tags"][tag]
                     )
         mp_get_logger().debug("Special arguments: " + ", ".join(extra_arguments))
 
@@ -477,7 +477,7 @@ class CompileFortran(SubprocessAction):
         arguments = [
             "-c",
             "-J",
-            str(self._database.config["paths"]["module_dir"]),
+            str(self._database.script_config["paths"]["module_dir"]),
             "-fopenmp",
             "-std=f2008",
             "-ffree-line-length-none",
@@ -513,7 +513,7 @@ class CompileFortran(SubprocessAction):
         for symbol in self._prerequisites:
             if symbol.nature == PrerequisiteType.USE:
                 name = Path(symbol.name).with_suffix(".mod").name
-                module_file = self._database.config["paths"]["module_dir"] / name
+                module_file = self._database.script_config["paths"]["module_dir"] / name
                 prereqs.append(FilePrerequisite(module_file))
             elif symbol.nature == PrerequisiteType.EXTERNAL:
                 pass  # The compiler doesn't interrogate externals
@@ -552,11 +552,11 @@ class LinkFortran(SubprocessAction):
         self._modules = modules
         self._database = database
 
-        dest = self._database.config["paths"]["work_dir"] / self._program
+        dest = self._database.script_config["paths"]["work_dir"] / self._program
         arguments = ["-o", dest, "-fopenmp"]
 
         self._library_args: list[str] = []
-        for package in self._database.configuration.packages:
+        for package in self._database.build_config["packages"]:
             for arg in package.link_arguments:
                 if isinstance(arg, LinkerPath):
                     self._library_args.append("-L" + str(arg.path))
