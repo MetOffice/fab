@@ -109,6 +109,13 @@ def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
         help="Build system scratch space.",
     )
     parser.add_argument(
+        "--bin-dir",
+        "-b",
+        type=Path,
+        default="bin",
+        help="Destination of executable binaries.",
+    )
+    parser.add_argument(
         "--map-library",
         "-m",
         action="append",
@@ -151,6 +158,9 @@ def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
     if options.debug:
         options.level = DEBUG
 
+    if not options.bin_dir.is_absolute():
+        options.bin_dir = options.work_dir / options.bin_dir
+
     return options
 
 
@@ -188,6 +198,7 @@ def instantiate_build_script(fabfile: Path) -> BuildScript:
 def instantiate_script_config(
     build_script: BuildScript,
     work_dir: Path,
+    bin_dir: Path,
     timing_file: Path,
     worker_threads: int,
     monitor: bool,
@@ -199,6 +210,7 @@ def instantiate_script_config(
 
     :param build_script: Describes the build.
     :param work_dir: Directory used as scratch space for build.
+    :param bin_dir: Directory where executables end up.
     :param timing_file: File to receive action timings.
     :param worker_threads: Number of workers to use.
     :param monitor: Run progress monitor.
@@ -210,17 +222,21 @@ def instantiate_script_config(
     if "paths" not in script_config:
         script_config["paths"] = WriteOnceDict({})
     script_config["paths"]["work_dir"] = work_dir
-    script_config["paths"]["work_dir"].mkdir(exist_ok=True)
+    script_config["paths"]["bin_dir"] = bin_dir
     script_config["paths"]["build_dir"] = script_config["paths"]["work_dir"] / "build"
-    script_config["paths"]["build_dir"].mkdir(exist_ok=True)
     script_config["paths"]["module_dir"] = (
         script_config["paths"]["build_dir"] / "modules"
     )
-    script_config["paths"]["module_dir"].mkdir(exist_ok=True)
     script_config["paths"]["performance_file"] = timing_file
     script_config["worker_threads"] = worker_threads
     script_config["monitor"] = monitor
     script_config["queue_strategy"] = queue_strategy
+
+    # All directory paths have to exist
+    for key, value in script_config["paths"].items():
+        if key.endswith("_dir"):
+            value.mkdir(exist_ok=True, parents=True)
+
     return script_config
 
 
@@ -304,6 +320,7 @@ def cli() -> None:
     script_config = instantiate_script_config(
         build_script,
         options.work_dir,
+        options.bin_dir,
         options.timing_file,
         options.jobs,
         options.monitor,

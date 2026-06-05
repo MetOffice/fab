@@ -554,7 +554,7 @@ class LinkFortran(SubprocessAction):
         self._modules = modules
         self._database = database
 
-        dest = self._database.script_config["paths"]["work_dir"] / self._program
+        dest = self._database.script_config["paths"]["bin_dir"] / self._program
         arguments = ["-o", dest, "-fopenmp"]
 
         self._library_args: list[str] = []
