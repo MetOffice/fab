@@ -11,11 +11,11 @@ import warnings
 from pytest import raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import not_found_callback
-
 from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler, Gfortran
 from fab.tools.tool_box import ToolBox
+
+from tests.conftest import not_found_callback
 
 
 def test_constructor() -> None:
@@ -49,8 +49,7 @@ def test_add_get_tool(stub_tool_repository) -> None:
 
     # Now add a new Fortran compiler to the tool box
     new_fc = FortranCompiler('new Fortran compiler', 'nfc', 'new',
-                             r'([\d.]+)', openmp_flag='-omp',
-                             module_folder_flag='-mods')
+                             r'([\d.]+)')
     new_fc._is_available = True
 
     tb.add_tool(new_fc, silent_replace=True)

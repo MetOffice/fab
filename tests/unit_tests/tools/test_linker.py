@@ -33,7 +33,7 @@ def test_c_linker(stub_c_compiler: CCompiler,
     assert linker.compiler is stub_c_compiler
     assert linker.suite == "stub"
     assert linker.get_flags(stub_configuration) == []
-    assert linker.output_flag == "-o"
+    assert linker["output"] == ["-o"]
 
 
 def test_fortran_linker(stub_fortran_compiler: FortranCompiler,
@@ -69,13 +69,19 @@ def test_linker_openmp(openmp: bool) -> None:
     flag is defined.
     """
     if openmp:
-        compiler = CCompiler("some C compiler", 'scc', 'some', r'([\d.]+)',
-                             openmp_flag='-omp')
+        compiler = CCompiler("some C compiler", 'scc', 'some', r'([\d.]+)')
+        compiler["openmp"] = "-omp"
     else:
-        compiler = CCompiler("some C compiler", 'scc', 'some', r'([\d.]+)',
-                             openmp_flag='')
+        compiler = CCompiler("some C compiler", 'scc', 'some', r'([\d.]+)')
+        compiler["openmp"] = []
     linker = Linker(compiler=compiler)
+    assert linker["openmp"] == compiler["openmp"]
     assert linker.openmp == openmp
+
+    # Test that a linker can overwrite a generic flag:
+    linker["openmp"] = "-some-other-flag"
+    assert linker["openmp"] == ["-some-other-flag"]
+    assert compiler["openmp"] != linker["openmp"]
 
     wrapped_linker = Linker(compiler, linker=linker)
     assert wrapped_linker.openmp == openmp

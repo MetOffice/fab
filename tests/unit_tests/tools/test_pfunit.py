@@ -36,7 +36,6 @@ def test_pfunit_constructor_no_env(monkeypatch, caplog) -> None:
     assert pfunit.category == Category.PFUNIT
     assert pfunit.name == "funitproc"
     assert pfunit.exec_name == "funitproc"
-    assert pfunit.get_flags() == []
 
 
 def test_pfunit_constructor_with_env(monkeypatch, caplog) -> None:
@@ -53,7 +52,6 @@ def test_pfunit_constructor_with_env(monkeypatch, caplog) -> None:
     assert pfunit.category == Category.PFUNIT
     assert pfunit.name == "funitproc"
     assert pfunit.exec_name == "funitproc"
-    assert pfunit.get_flags() == []
     assert pfunit.get_root_path() == Path("/tmp")
 
 

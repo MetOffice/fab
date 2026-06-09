@@ -133,8 +133,8 @@ def test_syntax_only(stub_c_compiler: CCompiler) -> None:
     Tests handling of syntax only flags in wrapper. In case of testing
     syntax only for a C compiler an exception must be raised.
     """
-    fc = FortranCompiler('test Fortran', 'tfc', 'test', r'[\d.]+',
-                         syntax_only_flag='-syntax')
+    fc = FortranCompiler('test Fortran', 'tfc', 'test', r'[\d.]+')
+    fc["syntax-only"] = "-fsyntax-only"
     mpif90 = Mpif90(fc)
 
     assert mpif90.has_syntax_only
@@ -279,7 +279,12 @@ def test_flags_independent(stub_c_compiler: CCompiler,
                                                          Path('/out'))
 
     assert resolved_flags == ['-c', '-a', '-b', 'in', '-o', '/out']
-    assert wrapper.openmp_flag == stub_c_compiler.openmp_flag
+    assert wrapper["openmp"] == stub_c_compiler["openmp"]
+
+    # Make sure we can overwrite a flag
+    wrapper["openmp"] = "-some-other-flag"
+    assert wrapper["openmp"] == ["-some-other-flag"]
+    assert stub_c_compiler["openmp"] != wrapper["openmp"]
 
     # Adding flags to the wrapper should not affect the wrapped compiler:
     wrapper.add_flags(['-d', '-e'])
