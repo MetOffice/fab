@@ -5,10 +5,11 @@
 ##############################################################################
 
 """
-Tests ToolsWithFlags
+Tests ToolsWithFlags.
 """
 
 from pathlib import Path
+import pytest
 
 from fab.tools.category import Category
 from fab.tools.flags import ProfileFlags
@@ -67,3 +68,22 @@ def test_tool_with_flags_profiles(stub_configuration) -> None:
     assert tool.get_flags(stub_configuration) == ["-flag1"]
     tool.add_flags("-flag2", "mode2")
     assert tool.get_flags(stub_configuration) == ["-flag1", "-flag2"]
+
+
+def test_tool_with_flags_generic_flags():
+    """
+    Tests the handling of generic flags.
+    """
+
+    tool = ToolWithFlags("name", "exec", Category.CATEGORY_FOR_UNIT_TESTS)
+
+    tool["output"] = "-o"
+    assert tool["output"] == ["-o"]
+    tool["output"] = ["-something", "-output"]
+    assert tool["output"] == ["-something", "-output"]
+
+    with pytest.raises(KeyError) as err:
+        _ = tool["does-not-exist"]
+
+    assert ("Generic flag name 'does-not-exist' is not defined for "
+            "'ToolWithFlags - name: exec'" in str(err.value))

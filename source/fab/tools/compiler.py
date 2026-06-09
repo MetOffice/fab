@@ -21,11 +21,29 @@ from fab.util import string_checksum
 
 
 class Compiler(CompilerSuiteTool):
-    '''This is the base class for any compiler. It provides flags for
+    '''This is the base class for any compiler. It provides generic flags
+    for common settings, which must be defined by the compiler-specific
+    derived classes.
 
-    - compilation only (-c),
-    - naming the output file (-o),
-    - OpenMP
+    The following generic flags are used within Fab itself, and so must be
+    provided by all compiler instances:
+
+    - compilation-only (e.g. -c)
+    - output (e.g. -o)
+    - include-path (e.g. -I)
+    - openmp (e.g. -fopenmp, or -qopenmp, ..)
+    - module-search-path (for Fortran compilers, e.g. -I)
+    - module-out-folder (for Fortran compiler, e.g. -J)
+
+    The following generic flags are also defined for any compilers
+    in Fab, but they are not used by Fab itself, but might be very
+    convenient for application scripts
+
+    - default-8-byte-real      (for Fortran compiler)
+    - default-8-byte-double    (for Fortran compiler, required if the compiler
+                                change default double precision to 64 bit if
+                                default-8-byte-real is selected)
+    - default-8-byte-integer   (for Fortran compiler)
 
     :param name: name of the compiler.
     :param exec_name: name of the executable to start.
@@ -35,12 +53,8 @@ class Compiler(CompilerSuiteTool):
         version is taken from the first group of a match.
     :param category: the Category (C_COMPILER or FORTRAN_COMPILER).
     :param mpi: whether the compiler or linker support MPI.
-    :param compile_flag: the compilation flag to use when only requesting
-        compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
         of the output file
-    :param openmp_flag: the flag to use to enable OpenMP. If no flag is
-        specified, it is assumed that the compiler does not support OpenMP.
     :param availability_option: a command line option for the tool to test
         if the tool is available on the current system. Defaults to
         `--version`.
@@ -53,20 +67,21 @@ class Compiler(CompilerSuiteTool):
                  version_regex: str,
                  category: Category,
                  mpi: bool = False,
-                 compile_flag: Optional[str] = None,
-                 output_flag: Optional[str] = None,
-                 openmp_flag: Optional[str] = None,
                  version_argument: Optional[str] = None,
                  availability_option: Optional[Union[str, list[str]]] = None):
         super().__init__(name, exec_name, suite, category=category,
                          availability_option=availability_option)
         self._version: Union[tuple[int, ...], None] = None
         self._mpi = mpi
-        self._compile_flag = compile_flag if compile_flag else "-c"
-        self._output_flag = output_flag if output_flag else "-o"
-        self._openmp_flag = openmp_flag if openmp_flag else ""
         self.__version_argument = version_argument or '--version'
         self._version_regex = version_regex
+
+        # Setup generic flags. We define some flags here in the base class
+        # since they are pretty much standardised across all compilers,
+        # but any compiler can overwrite these options.
+        self["compile-only"] = "-c"
+        self["output"] = "-o"
+        self["include-path"] = "-I"
 
     @property
     def mpi(self) -> bool:
@@ -82,26 +97,10 @@ class Compiler(CompilerSuiteTool):
         """
         # It is important not to use `_openmp_flag` directly, since a compiler
         # wrapper overwrites `openmp_flag`.
-        return self.openmp_flag != ""
-
-    @property
-    def openmp_flag(self) -> str:
-        """
-        :returns: compiler argument to enable OpenMP.
-        """
-        return self._openmp_flag
-
-    @property
-    def compile_flag(self) -> str:
-        ''':returns: the flag to indicate compilation only (not linking).'''
-        return self._compile_flag
-
-    @property
-    def output_flag(self) -> str:
-        """
-        :returns: compiler argument for output file.
-        """
-        return self._output_flag
+        try:
+            return self["openmp"] != []
+        except KeyError:
+            return False
 
     def get_hash(self,
                  config: "BuildConfig",
@@ -142,24 +141,27 @@ class Compiler(CompilerSuiteTool):
 
         :returns: all command line options for compilation.
         '''
-        params: list[str] = [self._compile_flag]
+        # Make a copy so we do not modify the original files.
+        params: list[str] = self["compile-only"][:]
 
         if config.openmp:
-            params.append(self.openmp_flag)
+            params.extend(self["openmp"])
 
         # Explicitly add all compilation flags here, where the input
         # path can be provided to properly resolve path-specific flags.
         params += self.get_flags(config, input_file)
 
         if add_flags:
-            if self.openmp_flag in add_flags:
+            if self["openmp"][0] in add_flags:
                 warnings.warn(
-                    f"OpenMP flag '{self.openmp_flag}' explicitly provided. "
+                    f"OpenMP flag '{self['openmp']}' explicitly provided. "
                     f"OpenMP should be enabled in the BuildConfiguration "
                     f"instead.")
             params += add_flags
 
-        params.extend([input_file.name, self._output_flag, str(output_file)])
+        params.append(input_file.name)
+        params.extend(self["output"])
+        params.append(str(output_file))
         return params
 
     def get_flags(self, config: Optional["BuildConfig"] = None,
@@ -309,26 +311,18 @@ class CCompiler(Compiler):
     :param version_regex: A regular expression that allows extraction of
         the version number from the version output of the compiler.
     :param mpi: whether the compiler or linker support MPI.
-    :param compile_flag: the compilation flag to use when only requesting
-        compilation (not linking).
     :param output_flag: the compilation flag to use to indicate the name
         of the output file
-    :param openmp_flag: the flag to use to enable OpenMP
     '''
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
                  version_regex: str,
                  mpi: bool = False,
-                 compile_flag: Optional[str] = None,
-                 output_flag: Optional[str] = None,
-                 openmp_flag: Optional[str] = None,
                  version_argument: Optional[str] = None,
                  availability_option: Optional[str] = None):
         super().__init__(name, exec_name, suite,
                          category=Category.C_COMPILER, mpi=mpi,
-                         compile_flag=compile_flag, output_flag=output_flag,
-                         openmp_flag=openmp_flag,
                          version_argument=version_argument,
                          version_regex=version_regex,
                          availability_option=availability_option)
@@ -346,46 +340,30 @@ class FortranCompiler(Compiler):
     :param version_regex: A regular expression that allows extraction of
         the version number from the version output of the compiler.
     :param mpi: whether MPI is supported by this compiler or not.
-    :param compile_flag: the compilation flag to use when only requesting
-        compilation (not linking).
-    :param output_flag: the compilation flag to use to indicate the name
-        of the output file
-    :param openmp_flag: the flag to use to enable OpenMP
-    :param module_folder_flag: the compiler flag to indicate where to
-        store created module files.
-    :param syntax_only_flag: flag to indicate to only do a syntax check.
-        The side effect is that the module files are created.
     '''
 
     # pylint: disable=too-many-arguments
     def __init__(self, name: str, exec_name: str, suite: str,
                  version_regex: str,
                  mpi: bool = False,
-                 compile_flag: Optional[str] = None,
-                 output_flag: Optional[str] = None,
-                 openmp_flag: Optional[str] = None,
                  version_argument: Optional[str] = None,
-                 module_folder_flag: Optional[str] = None,
-                 syntax_only_flag: Optional[str] = None,
                  ):
 
         super().__init__(name=name, exec_name=exec_name, suite=suite,
                          category=Category.FORTRAN_COMPILER,
-                         mpi=mpi, compile_flag=compile_flag,
-                         output_flag=output_flag, openmp_flag=openmp_flag,
+                         mpi=mpi,
                          version_argument=version_argument,
                          version_regex=version_regex)
-        self._module_folder_flag = (module_folder_flag if module_folder_flag
-                                    else "")
-        self._syntax_only_flag = syntax_only_flag
         self._module_output_path = ""
-        # I am not aware of any compiler not supporting -I, so it's hardcoded:
-        self._module_search_path_flag = "-I"
+        self["module-search-path"] = "-I"
+        # Defining this as empty makes tests later easier
+        self["module-out-folder"] = []
+        self["syntax-only"] = []
 
     @property
     def has_syntax_only(self) -> bool:
         ''':returns: whether this compiler supports a syntax-only feature.'''
-        return self._syntax_only_flag is not None
+        return self["syntax-only"] != []
 
     def set_module_output_path(self, path: Path):
         '''Sets the output path for modules.
@@ -421,33 +399,34 @@ class FortranCompiler(Compiler):
         if add_flags:
             # Create an AlwaysFlags to use its remove_flag method
             af = AlwaysFlags(add_flags)
-            if self._module_folder_flag:
+            if self["module-out-folder"]:
                 # Remove any module flag the user has specified, since
                 # this will interfere with Fab's module handling.
-                af.remove_flag(self._module_folder_flag, has_parameter=True)
-            af.remove_flag(self._compile_flag, has_parameter=False)
+                af.remove_flag(self["module-out-folder"][0],
+                               has_parameter=True)
+            af.remove_flag(self["compile-only"][0], has_parameter=False)
             add_flags = af.get_flags(config, input_file)
 
         # Get the flags from the base class
         params = super().get_all_commandline_options(config, input_file,
                                                      output_file, add_flags)
-        if syntax_only and self._syntax_only_flag:
-            params.append(self._syntax_only_flag)
+        if syntax_only and self["syntax-only"]:
+            params.extend(self["syntax-only"])
 
         # Append module output path
-        if self._module_folder_flag and self._module_output_path:
+        if self["module-out-folder"] and self._module_output_path:
             # Make sure to add the Fab module flags first, so that they
             # will overwrite what is set up otherwise. An example of this
             # is Jules, which provides its own dummy NetCDF module if
             # NetCDF is disabled. The Fab flags must come before any
             # module search path from the environment, otherwise
             # a potentially existing NetCDF module would be found.
-            params.insert(0, self._module_folder_flag)
+            params[0:0] = self["module-out-folder"]
             params.insert(1, self._module_output_path)
             # It also looks like gfortran searches the module output
             # path last, independent of the order. So just in case,
             # also add an explicit include path:
-            params.insert(0, self._module_search_path_flag)
+            params[0:0] = self["module-search-path"]
             params.insert(1, self._module_output_path)
 
         return params
@@ -495,8 +474,9 @@ class Gcc(CCompiler):
         # \b to determine the end, since then "1.2." would be matched
         # excluding the dot (so it would become a valid 1.2)
         super().__init__(name, exec_name, suite="gnu", mpi=mpi,
-                         openmp_flag="-fopenmp",
                          version_regex=r"gcc \(.*?\) (\d[\d\.]+\d)(?:$| )")
+        # Setup generic flags
+        self["openmp"] = "-fopenmp"
 
 
 # ============================================================================
@@ -511,11 +491,15 @@ class Gfortran(FortranCompiler):
     def __init__(self, name: str = "gfortran",
                  exec_name: str = "gfortran"):
         super().__init__(name, exec_name, suite="gnu",
-                         openmp_flag="-fopenmp",
-                         module_folder_flag="-J",
-                         syntax_only_flag="-fsyntax-only",
                          version_regex=(r"GNU Fortran \(.*?\) "
                                         r"(\d[\d\.]+\d)(?:$| )"))
+        self["openmp"] = '-fopenmp'
+        self["module-out-folder"] = '-J'
+        self["syntax-only"] = '-fsyntax-only'
+        self["default-8-byte-real"] = '-fdefault-real-8'
+        # If default-real-8 is used, doubles become 16 bytes.
+        self["default-8-byte-double"] = '-fdefault-double-8'
+        self["default-8-byte-integer"] = '-fdefault-integer-8'
 
 
 # ============================================================================
@@ -531,8 +515,8 @@ class Icc(CCompiler):
 
     def __init__(self, name: str = "icc", exec_name: str = "icc"):
         super().__init__(name, exec_name, suite="intel-classic",
-                         openmp_flag="-qopenmp",
                          version_regex=r"icc \(ICC\) (\d[\d\.]+\d) ")
+        self["openmp"] = '-qopenmp'
 
 
 # ============================================================================
@@ -546,10 +530,13 @@ class Ifort(FortranCompiler):
 
     def __init__(self, name: str = "ifort", exec_name: str = "ifort"):
         super().__init__(name, exec_name, suite="intel-classic",
-                         module_folder_flag="-module",
-                         openmp_flag="-qopenmp",
-                         syntax_only_flag="-syntax-only",
                          version_regex=r"ifort \(IFORT\) (\d[\d\.]+\d) ")
+        self["openmp"] = '-qopenmp'
+        self["module-out-folder"] = '-module'
+        self["syntax-only"] = '-syntax-only'
+        self["default-8-byte-real"] = ['-real-size', '64']
+        self["default-8-byte-double"] = ['-double-size', '64']
+        self["default-8-byte-integer"] = ['-integer-size', '64']
 
 
 # ============================================================================
@@ -563,9 +550,9 @@ class Icx(CCompiler):
     '''
     def __init__(self, name: str = "icx", exec_name: str = "icx"):
         super().__init__(name, exec_name, suite="intel-llvm",
-                         openmp_flag="-qopenmp",
                          version_regex=(r"Intel\(R\) oneAPI DPC\+\+/C\+\+ "
                                         r"Compiler (\d[\d\.]+\d) "))
+        self["openmp"] = '-qopenmp'
 
 
 # ============================================================================
@@ -578,10 +565,13 @@ class Ifx(FortranCompiler):
 
     def __init__(self, name: str = "ifx", exec_name: str = "ifx"):
         super().__init__(name, exec_name, suite="intel-llvm",
-                         module_folder_flag="-module",
-                         openmp_flag="-qopenmp",
-                         syntax_only_flag="-syntax-only",
                          version_regex=r"ifx \(IFX\) (\d[\d\.]+\d) ")
+        self["openmp"] = '-qopenmp'
+        self["module-out-folder"] = '-module'
+        self["syntax-only"] = '-syntax-only'
+        self["default-8-byte-real"] = ['-real-size', '64']
+        self["default-8-byte-double"] = ['-double-size', '64']
+        self["default-8-byte-integer"] = ['-integer-size', '64']
 
 
 # ============================================================================
@@ -597,9 +587,9 @@ class Nvc(CCompiler):
 
     def __init__(self, name: str = "nvc", exec_name: str = "nvc"):
         super().__init__(name, exec_name, suite="nvidia",
-                         openmp_flag="-mp",
                          version_argument='-V',
                          version_regex=r"nvc (\d[\d\.]+\d)")
+        self["openmp"] = '-mp'
 
 
 # ============================================================================
@@ -613,11 +603,16 @@ class Nvfortran(FortranCompiler):
 
     def __init__(self, name: str = "nvfortran", exec_name: str = "nvfortran"):
         super().__init__(name, exec_name, suite="nvidia",
-                         module_folder_flag="-module",
-                         openmp_flag="-mp",
-                         syntax_only_flag="-Msyntax-only",
                          version_argument='-V',
                          version_regex=r"nvfortran (\d[\d\.]+\d)")
+        self["openmp"] = '-mp'
+        self["module-out-folder"] = '-module'
+        self["syntax-only"] = '-Msyntax-only'
+        self["default-8-byte-real"] = '-Mr8'
+        # NvFortran doesn't have (or need) an option to enforce 8 byte
+        # doubles, even if default reals are changed to double
+        self["default-8-byte-double"] = []
+        self["default-8-byte-integer"] = ['i8']
 
 
 # ============================================================================
@@ -643,8 +638,8 @@ class Craycc(CCompiler):
     '''
     def __init__(self, name: str = "craycc-cc", exec_name: str = "cc"):
         super().__init__(name, exec_name, suite="cray", mpi=True,
-                         openmp_flag="-homp",
                          version_regex=r"Cray [Cc][^\d]* (\d[\d\.]+\d)")
+        self["openmp"] = '-homp'
 
 
 # ============================================================================
@@ -659,8 +654,11 @@ class Crayftn(FortranCompiler):
 
     def __init__(self, name: str = "crayftn-ftn", exec_name: str = "ftn"):
         super().__init__(name, exec_name, suite="cray", mpi=True,
-                         module_folder_flag="-J",
-                         openmp_flag="-homp",
-                         syntax_only_flag="-syntax-only",
                          version_regex=(r"Cray Fortran : Version "
                                         r"(\d[\d\.]+\d)(\s+|$)"))
+        self["openmp"] = '-omp'
+        self["module-out-folder"] = '-J'
+        self["syntax-only"] = '-syntax-only'
+        self["default-8-byte-real"] = ['-s', 'real64']
+        self["default-8-byte-double"] = []
+        self["default-8-byte-integer"] = ['-s', 'integer64']

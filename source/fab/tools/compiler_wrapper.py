@@ -41,6 +41,23 @@ class CompilerWrapper(Compiler):
             mpi=mpi,
             availability_option=self._compiler.availability_option)
 
+    def __getitem__(self, generic_name: str) -> list[str]:
+        """
+        Returns the compiler-specific list of flags given a generic
+        name.
+
+        :param: The generic name.
+
+        :returns: List of the required compiler flags.
+
+        :raises KeyError: if the specified generic name is not defined
+            neither the wrapper nor the wrapped compiler.
+        """
+        result = self._generic_flags.get(generic_name, None)
+        if result is not None:
+            return result
+        return self._compiler[generic_name]
+
     @property
     def compiler(self) -> Compiler:
         ''':returns: the compiler that is wrapped by this CompilerWrapper.'''
@@ -50,11 +67,6 @@ class CompilerWrapper(Compiler):
     def suite(self) -> str:
         ''':returns: the compiler suite of this tool.'''
         return self._compiler.suite
-
-    @property
-    def openmp_flag(self) -> str:
-        '''Returns the flag to enable OpenMP.'''
-        return self._compiler.openmp_flag
 
     @property
     def has_syntax_only(self) -> bool:
@@ -132,10 +144,10 @@ class CompilerWrapper(Compiler):
             # (or a CompilerWrapper in case of nested CompilerWrappers,
             # which also supports the syntax_only flag anyway).
             self._compiler = cast(FortranCompiler, self._compiler)
-            if self._compiler._module_folder_flag:
+            if self._compiler["module-out-folder"]:
                 # Remove a user's module flag, which would interfere
                 # with Fab's module handling.
-                new_flags.remove_flag(self._compiler._module_folder_flag,
+                new_flags.remove_flag(self._compiler["module-out-folder"][0],
                                       has_parameter=True)
             resolved_flags = new_flags.get_flags(file_path=input_file)
             flags = self._compiler.get_all_commandline_options(

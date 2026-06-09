@@ -26,6 +26,7 @@ from fab.tools.ar import Ar
 from fab.tools.preprocessor import Cpp, CppFortran
 from fab.tools.compiler import (Craycc, Crayftn, Gcc, Gfortran, Icc, Icx,
                                 Ifort, Ifx, Nvc, Nvfortran)
+from fab.tools.pfunit import PfUnit
 from fab.tools.psyclone import Psyclone
 from fab.tools.rsync import Rsync
 from fab.tools.shell import Shell
@@ -74,7 +75,7 @@ class ToolRepository(dict):
                     Icc, Icx, Ifort, Ifx,
                     Nvc, Nvfortran,
                     Cpp, CppFortran,
-                    Ar, Fcm, Git, Psyclone, Rsync, Subversion]:
+                    Ar, Fcm, Git, PfUnit, Psyclone, Rsync, Subversion]:
             self.add_tool(cls())
 
         # Add a standard shell. Additional shells (bash, ksh, dash)

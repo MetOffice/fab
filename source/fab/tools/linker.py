@@ -94,11 +94,22 @@ class Linker(CompilerSuiteTool):
             with the wrapped compiler.'''
         return self._compiler.openmp
 
-    @property
-    def output_flag(self) -> str:
-        ''':returns: the flag that is used to specify the output name.
-        '''
-        return self._compiler.output_flag
+    def __getitem__(self, generic_name: str) -> list[str]:
+        """
+        Returns the compiler-specific list of flags given a generic
+        name.
+
+        :param: The generic name.
+
+        :returns: List of the required compiler flags.
+
+        :raises KeyError: if the specified generic name is not defined
+            for the compiler.
+        """
+        result = self._generic_flags.get(generic_name, None)
+        if result is not None:
+            return result
+        return self._compiler[generic_name]
 
     def define_profile(self,
                        name: str,
@@ -243,7 +254,7 @@ class Linker(CompilerSuiteTool):
         params.extend(self._compiler.get_flags(config, Path()))
 
         if config.openmp:
-            params.append(self._compiler.openmp_flag)
+            params.extend(self._compiler["openmp"])
 
         # TODO: why are the .o files sorted? That shouldn't matter
         params.extend(sorted(map(str, input_files)))
@@ -255,6 +266,7 @@ class Linker(CompilerSuiteTool):
         params.extend(self.get_post_link_flags(config))
         if add_flags:
             params.extend(add_flags)
-        params.extend([self.output_flag, str(output_file)])
+        params.extend(self["output"])
+        params.append(str(output_file))
 
         return self.run(params)

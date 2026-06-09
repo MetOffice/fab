@@ -127,7 +127,10 @@ class Category(int, metaclass=CategoryMeta):
     CATEGORY_FOR_UNIT_TESTS: Category
 
 
-# Now create the default categories that Fab needs
+# Now create the default categories for all categories that
+# have more than one implementation. All tools that have only
+# one class here, the corresponding class will create the
+# required category.
 Category.add("C_COMPILER")
 Category.add("C_PREPROCESSOR")
 Category.add("FORTRAN_COMPILER")
