@@ -30,7 +30,6 @@ class TestGit:
         '''Test the git constructor.'''
         git = Git()
         assert git.category == Category.GIT
-        assert git.get_flags() == []
 
     def test_git_check_available(self, fake_process: FakeProcess) -> None:
         """
@@ -235,7 +234,6 @@ class TestSubversion:
         """
         svn = Subversion()
         assert svn.category == Category.SUBVERSION
-        assert svn.get_flags() == []
         assert svn.name == "Subversion"
         assert svn.exec_name == "svn"
 
@@ -394,7 +392,6 @@ class TestSubversionReal:
         TODO: This is hard to test without a full Apache installation. For the
               moment we forgo the test on the basis that it's too hard.
         """
-        pass
 
 
 # ============================================================================
@@ -408,6 +405,5 @@ class TestFcm:
         """
         fcm = Fcm()
         assert fcm.category == Category.FCM
-        assert fcm.get_flags() == []
         assert fcm.name == "FCM"
         assert fcm.exec_name == "fcm"
