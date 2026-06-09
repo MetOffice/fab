@@ -4,7 +4,8 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the Rsync class for synchronising file trees.
+"""
+This file contains the pFUnit tool for Fab.
 """
 
 import logging
