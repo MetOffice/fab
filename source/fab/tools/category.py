@@ -116,6 +116,8 @@ class Category(int, metaclass=CategoryMeta):
     FORTRAN_PREPROCESSOR: Category
     GIT: Category
     LINKER: Category
+    MISC: Category
+    PFUNIT: Category
     PSYCLONE: Category
     RSYNC: Category
     SHELL: Category
@@ -131,3 +133,4 @@ Category.add("C_PREPROCESSOR")
 Category.add("FORTRAN_COMPILER")
 Category.add("FORTRAN_PREPROCESSOR")
 Category.add("LINKER")
+Category.add("MISC")
