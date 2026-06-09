@@ -48,6 +48,7 @@ def test_import_from_api() -> None:
         "link_exe",
         "link_shared_object",
         "log_or_dot",
+        "PkgConfig",
         "preprocess_c",
         "preprocess_fortran",
         "preprocess_x90",
