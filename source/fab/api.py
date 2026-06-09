@@ -34,6 +34,7 @@ from fab.tools.compiler import Compiler, Ifort
 from fab.tools.compiler_wrapper import CompilerWrapper
 from fab.tools.flags import AlwaysFlags, ContainFlags, FlagList, MatchFlags
 from fab.tools.linker import Linker
+from fab.tools.pkg_config import PkgConfig
 from fab.tools.tool import Tool
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
@@ -78,6 +79,7 @@ __all__ = [
     "link_shared_object",
     "log_or_dot",
     "MatchFlags",
+    "PkgConfig",
     "preprocess_c",
     "preprocess_fortran",
     "preprocess_x90",
