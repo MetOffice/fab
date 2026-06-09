@@ -10,13 +10,13 @@ classes for cpp and fpp.
 """
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 
 from fab.tools.category import Category
-from fab.tools.tool import Tool
+from fab.tools.tool_with_flags import ToolWithFlags
 
 
-class Preprocessor(Tool):
+class Preprocessor(ToolWithFlags):
     '''This is the base class for any preprocessor.
 
     :param name: the name of the preprocessor.
@@ -32,7 +32,7 @@ class Preprocessor(Tool):
         self._version = None
 
     def preprocess(self, input_file: Path, output_file: Path,
-                   add_flags: Union[None, list[Union[Path, str]]] = None):
+                   add_flags: Optional[Sequence[Union[Path, str]]] = None):
         '''Calls the preprocessor to process the specified input file,
         creating the requested output file.
 
@@ -43,7 +43,7 @@ class Preprocessor(Tool):
         params: list[Union[str, Path]] = []
         if add_flags:
             # Make a copy to avoid modifying the caller's list
-            params = add_flags[:]
+            params = list(add_flags)
         # Input and output files come as the last two parameters
         params.extend([input_file, output_file])
 
@@ -65,6 +65,22 @@ class CppFortran(Preprocessor):
     def __init__(self):
         super().__init__("cpp", "cpp", Category.FORTRAN_PREPROCESSOR)
         self.add_flags(["-traditional-cpp", "-P"])
+
+    def preprocess(self, input_file: Path, output_file: Path,
+                   add_flags: Optional[Sequence[Union[Path, str]]] = None):
+        '''Calls the preprocessor to process the specified input file,
+        creating the requested output file.
+
+        :param input_file: input file.
+        :param output_file: the output filename.
+        :param add_flags: List with additional flags to be used.
+        '''
+        params: list[Union[str, Path]] = ["-traditional-cpp", "-P"]
+
+        if add_flags:
+            params.extend(add_flags)
+
+        super().preprocess(input_file, output_file, params)
 
 
 # ============================================================================

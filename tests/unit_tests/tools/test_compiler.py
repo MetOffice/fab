@@ -9,6 +9,7 @@ Exercise compiler tools.
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
+from zlib import crc32
 
 from pytest import mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
@@ -21,6 +22,7 @@ from fab.tools.compiler import (Compiler, CCompiler, FortranCompiler,
                                 Icc, Ifort,
                                 Icx, Ifx,
                                 Nvc, Nvfortran)
+from fab.tools.flags import ContainFlags
 
 from tests.conftest import arg_list, call_list
 
@@ -108,43 +110,74 @@ def test_compiler_check_available_runtime_error():
         assert not cc.check_available()
 
 
-def test_compiler_hash():
+def test_compiler_hash(stub_configuration):
     '''Test the hash functionality.'''
     cc = Gcc()
     with mock.patch.object(cc, "_version", (5, 6, 7)):
-        hash1 = cc.get_hash()
-        assert hash1 == 2991650113
+        hash1 = cc.get_hash(stub_configuration, Path('.'))
+        assert hash1 == 804998173
 
     # A change in the version number must change the hash:
     with mock.patch.object(cc, "_version", (8, 9)):
-        hash2 = cc.get_hash()
+        hash2 = cc.get_hash(stub_configuration, Path('.'))
         assert hash2 != hash1
 
         # A change in the name must change the hash, again:
         cc._name = "new_name"
-        hash3 = cc.get_hash()
+        hash3 = cc.get_hash(stub_configuration, Path('.'))
         assert hash3 not in (hash1, hash2)
 
 
-def test_compiler_hash_compiler_error():
+def test_compiler_path_specific_flags(stub_configuration,
+                                      stub_fortran_compiler):
+    """
+    Tests that path-specific flags are used as expected.
+    """
+    fc = stub_fortran_compiler
+    # Make sure we can get a version number for the stub compiler:
+    fc._version = (1, 2)
+    print(fc.name, fc.get_version())
+
+    contain_flag = ContainFlags(pattern="myfile",
+                                flags=["-myflag"])
+    fc.add_flags("-always-flag")
+    fc.add_flags(contain_flag)
+
+    flags = fc.get_flags(stub_configuration, Path("."))
+    assert flags == ["-always-flag"]
+    flags = fc.get_flags(stub_configuration, Path("/somewhere/myfile.F90"))
+    assert flags == ["-always-flag", "-myflag"]
+
+    compiler_info = "some Fortran compiler1.2['-always-flag']"
+    hash_without = fc.get_hash(stub_configuration, Path('.'))
+    assert hash_without == crc32(compiler_info.encode())
+
+    compiler_info = "some Fortran compiler1.2['-always-flag', '-myflag']"
+    hash_with = fc.get_hash(stub_configuration, Path('/somewhere/myfile.F90'))
+    assert hash_with == crc32(compiler_info.encode())
+    # Just to be certain they are indeed different
+    assert hash_with != hash_without
+
+
+def test_compiler_hash_compiler_error(stub_configuration):
     '''Test the hash functionality when version info is missing.'''
     cc = Gcc()
 
     # raise an error when trying to get compiler version
     with mock.patch.object(cc, 'run', side_effect=RuntimeError()):
         with raises(RuntimeError) as err:
-            cc.get_hash()
+            cc.get_hash(stub_configuration, Path('.'))
         assert "Error asking for version of compiler" in str(err.value)
 
 
-def test_compiler_hash_invalid_version():
+def test_compiler_hash_invalid_version(stub_configuration):
     '''Test the hash functionality when version info is missing.'''
     cc = Gcc()
 
     # returns an invalid compiler version string
     with mock.patch.object(cc, "run", mock.Mock(return_value='foo v1')):
         with raises(RuntimeError) as err:
-            cc.get_hash()
+            cc.get_hash(stub_configuration, Path('.'))
         assert ("Unexpected version output format for compiler 'gcc'"
                 in str(err.value))
 

@@ -7,7 +7,7 @@ This module contains the default Fab configuration class.
 
 import argparse
 
-from fab.build_config import AddFlags, BuildConfig
+from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.tool_repository import ToolRepository
 
@@ -92,11 +92,3 @@ class Config:
         # Keep a copy of the args, so they can be used when
         # initialising compilers
         self._args = args
-
-    def get_path_flags(self, build_config: BuildConfig) -> list[AddFlags]:
-        '''
-        Returns the path-specific flags to be used.
-        TODO #313: Ideally we have only one kind of flag, but as a quick
-        work around we provide this method.
-        '''
-        return []
