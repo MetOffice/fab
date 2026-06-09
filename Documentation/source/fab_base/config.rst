@@ -74,7 +74,7 @@ general setting up the object, adding new tools to Fab's
 ``ToolRepository`` can be done here.
 
 ``get_valid_profiles``
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 This method is called by ``FabBase`` when defining the command line options.
 It defines the list of valid compilation profile modes. This is used
 in setting up Python's ``ArgumentParser`` to only allow valid arguments.
@@ -87,7 +87,7 @@ profiles into account and set them up automatically.
 See :ref:`new_compilation_profiles` for an extended example.
 
 ``handle_command_line_options``
--------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This method is called immediately after calling the application-specific
 ``handle_command_line_options`` method.
 
@@ -109,7 +109,7 @@ compiler:
         self._args = args
 
 ``update_toolbox``
-------------------
+~~~~~~~~~~~~~~~~~~
 The ``update_toolbox`` method is called after the Fab ``ToolBox``
 and ``BuildConfig`` objects have been created. All command line
 options have been parsed, and selected compilers have been added to
@@ -178,3 +178,75 @@ from the user to setup flags for an Nvidia compiler:
                 flags.extend(["-acc=cpu"])
         ...
         nvfortran.add_flags(flags, "base")
+
+
+Tools for site-specific configurations
+--------------------------------------
+Fab provides some tool to simplify writing site-specific configuration
+files:
+
+``NfConfig``
+~~~~~~~~~~~~
+The ``NfConfig`` class uses NetCDF's ``nf-config`` to query for compilation
+and linking flags. Usage:
+
+.. code-block:: python
+    
+    from fab.tools.nf_config import NfConfig
+
+    tr = ToolRepository()
+    linker = tr.get_tool(Category.LINKER, f"linker-{gfortran.name}")
+    linker = cast(Linker, linker)
+
+    nf_config = NfConfig()
+    linker.add_lib_flags("netcdf", nf_config.get_linker_flags())
+
+    netcdf_compiler_flags = nf_config.get_compiler_flags()
+
+``PkgConfig``
+~~~~~~~~~~~~~
+This class provides a simple interface to ``pkg-config``.
+Usage:
+
+.. code-block:: python
+
+    from fab.tools.pkg_config import PkgConfig
+
+    tr = ToolRepository()
+    linker = tr.get_tool(Category.LINKER, f"linker-{gfortran.name}")
+    linker = cast(Linker, linker)
+
+    pkg_netcdf = PkgConfig("netcdf-fortran")
+    linker.add_lib_flags("netcdf", pkg_netcdf.get_linker_flags())
+
+    netcdf_compiler_flags = pkg_netcdf.get_compiler_flags()
+
+Note that at this stage no support for version numbers or version
+checking has been added.
+
+
+``Shell``
+~~~~~~~~~
+This class provides a simple interface to a shell, and it can be
+used to easily start other scripts and use their output to set
+flags. It takes the name of the shell as parameter. The `ToolRepository``
+contains a ready-to-go instance for ``sh``, but you can create an
+instance that uses other shells. Usage:
+
+.. code-block:: python
+
+    from fab.tools.shell import Shell
+
+    # Get the pre-created `sh` shell:
+    shell = tr.get_default(Category.SHELL)
+
+    bash = Shell("bash")
+
+    try:
+        # We must remove the trailing new line, and create a list:
+        nc_flibs = shell.run(additional_parameters=["-c", "nf-config --flibs"],
+                             capture_output=True).strip().split()
+    except RuntimeError:
+        nc_flibs = []
+
+    linker.add_lib_flags("netcdf", nc_flibs)

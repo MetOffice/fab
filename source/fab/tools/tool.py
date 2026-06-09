@@ -34,7 +34,7 @@ class Tool:
     '''
 
     def __init__(self, name: str, exec_name: Union[str, Path],
-                 category: Category,
+                 category: Category = Category.MISC,
                  availability_option: Optional[Union[str, list[str]]] = None):
         self._logger = logging.getLogger(__name__)
         self._name = name
