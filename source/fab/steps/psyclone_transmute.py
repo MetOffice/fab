@@ -115,26 +115,24 @@ def psyclone_transmute(
         results = run_mp(config, mp_arg, transmute_one_file)
     log_or_dot_finish(logger)
     outputs, prebuilds = zip(*results) if results else ((), ())
-    output_list = cast(list[Path], outputs)
-    prebuild_list = cast(list[Path], prebuilds)
     # This call will abort in case of an error
-    check_for_errors([str(i) for i in output_list], caller_label='psyclone')
+    check_for_errors(outputs, caller_label='psyclone')
 
     if artefact_set:
         config.artefact_store.replace(
             artefact_set,
             remove_files=fortran_files,
-            add_files=output_list)
+            add_files=outputs)
 
     # record the output files in the artefact store for further processing
-    config.artefact_store.add(ArtefactSet.FORTRAN_COMPILER_FILES, output_list)
-    outputs_str = "\n".join(map(str, output_list))
+    config.artefact_store.add(ArtefactSet.FORTRAN_COMPILER_FILES, outputs)
+    outputs_str = "\n".join(map(str, outputs))
     logger.debug(f'psyclone outputs:\n{outputs_str}\n')
 
     # Mark the prebuilds as being current so the
     # cleanup step doesn't delete them
-    config.add_current_prebuilds(prebuild_list)
-    prebuilds_str = "\n".join(map(str, prebuild_list))
+    config.add_current_prebuilds(prebuilds)
+    prebuilds_str = "\n".join(map(str, prebuilds))
     logger.debug(f'psyclone prebuilds:\n{prebuilds_str}\n')
 
 

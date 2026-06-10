@@ -9,7 +9,7 @@ Tests the PSyclone transmutation step in Fab. It requires PSyclone to
 be available (otherwise the tests will be skipped).
 """
 
-from pytest import fixture, mark, raises, warns
+from pytest import CaptureFixture, fixture, mark, raises, warns
 
 from fab.build_config import BuildConfig
 from fab.artefacts import ArtefactSet
@@ -59,8 +59,10 @@ def test_psyclone_transmute_basic(config):
                 for i in input_files}
     expected = {i.with_stem(i.stem + "_transmute") for i in expected}
 
-    with warns(UserWarning,
-               match="_metric_send_conn not set, cannot send metrics"):
+    with (warns(UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"),
+          warns(UserWarning,
+                match="No transformation script specified")):
         psyclone_transmute(
             config,
             input_files)
@@ -81,6 +83,9 @@ def test_psyclone_transmute_basic(config):
 @mark.skipif(not Psyclone().is_available,
              reason="psyclone cli tool not available")
 def test_psyclone_transmute_artefact_set(config):
+    """
+    Verifies that we get the expected updated artefact set.
+    """
 
     input_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
 
@@ -90,8 +95,10 @@ def test_psyclone_transmute_artefact_set(config):
                 for i in input_files}
     expected = {i.with_stem(i.stem + "_transmute") for i in expected}
 
-    with warns(UserWarning,
-               match="_metric_send_conn not set, cannot send metrics"):
+    with (warns(UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"),
+          warns(UserWarning,
+                match="No transformation script specified")):
         psyclone_transmute(config, input_files,
                            artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
     output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
@@ -102,6 +109,10 @@ def test_psyclone_transmute_artefact_set(config):
 @mark.skipif(not Psyclone().is_available,
              reason="psyclone cli tool not available")
 def test_psyclone_transmute_script(tmp_path, config):
+    """
+    Check that we catch the error if the transformation script does not have
+    a .py extension (which is a PSyclone requirement).
+    """
 
     input_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
 
@@ -123,7 +134,10 @@ def test_psyclone_transmute_script(tmp_path, config):
 
 @mark.skipif(not Psyclone().is_available,
              reason="psyclone cli tool not available")
-def test_psyclone_transmute_prebuilt(config):
+def test_psyclone_transmute_prebuilt(config, capsys: CaptureFixture):
+    """
+    Tests the handling of existing prebuild files.
+    """
 
     input_files = \
         config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES].copy()
@@ -134,33 +148,42 @@ def test_psyclone_transmute_prebuilt(config):
                 for i in input_files}
     expected = {i.with_stem(i.stem + "_transmute") for i in expected}
 
-    with warns(UserWarning,
-               match="_metric_send_conn not set, cannot send metrics"):
+    with (warns(UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"),
+          warns(UserWarning,
+                match="No transformation script specified")):
         psyclone_transmute(config, input_files,
                            artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
 
     output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
     assert expected == output_files
+
+    captured = capsys.readouterr()
+    assert "Found prebuild for" not in captured.out
 
     # Now rerun - remove the preprocessed filed from the previous step
     config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES] = \
         input_files.copy()
 
     # Now it should find prebuilds:
-    with warns(UserWarning,
-               match="_metric_send_conn not set, cannot send metrics"):
+    with (warns(UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"),
+          warns(UserWarning,
+                match="No transformation script specified")):
         psyclone_transmute(config, input_files,
                            artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
     output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
 
     assert expected == output_files
+    captured = capsys.readouterr()
+    assert "Found prebuild for" in captured.out
 
 
 @mark.skipif(not Psyclone().is_available,
              reason="psyclone cli tool not available")
 def test_psyclone_transmute_override(tmp_path, config):
     """
-    Test that override directices work.
+    Test that the override directive works.
     """
 
     input_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
@@ -172,8 +195,10 @@ def test_psyclone_transmute_override(tmp_path, config):
     expected = {i.with_stem(i.stem + "_transmute") for i in expected}
 
     overrides_folder = tmp_path / "override"
-    with warns(UserWarning,
-               match="_metric_send_conn not set, cannot send metrics"):
+    with (warns(UserWarning,
+                match="_metric_send_conn not set, cannot send metrics"),
+          warns(UserWarning,
+                match="No transformation script specified")):
         psyclone_transmute(
             config,
             config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES],
