@@ -302,6 +302,7 @@ def instantiate_build_config(
             "inclusion_suffixes": [".h", ".inc"],
             "packages": tuple(packages),
             "repositories": build_script.repositories(),
+            "use_open_mp": True,
         }
     )
 
