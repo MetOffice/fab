@@ -71,12 +71,13 @@ jobs:
 
   deploy-documentation:
     name: Deploy Documentation
+    if: github.repository == 'MetOffice/fab'
     permissions:
       pages: write # Required to write and publish compiled HTML/PDF artifacts
       id-token: write # Required to securely mint the OpenID Connect (OIDC) token
     environment:
       name: github-pages
-      url: ${{ steps.deploy-documentation.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     needs: sphinx-build
     steps:
