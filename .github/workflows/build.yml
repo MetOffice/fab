@@ -23,7 +23,6 @@ jobs:
     name: Code Quality
     permissions:
       contents: read # Requires read access to fetch source files
-      pull-requests: write # Required to post coverage metrics, test results, or status logs back into PR comments
 
     runs-on: ubuntu-24.04
     strategy:
