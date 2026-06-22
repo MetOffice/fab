@@ -7,9 +7,10 @@
 Common functionality for both Fortran and (sanitised) X90 processing.
 
 """
-import logging
 from abc import ABC, abstractmethod
+import logging
 from pathlib import Path
+import sys
 from typing import Optional, Union
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
@@ -136,6 +137,12 @@ class FortranAnalyserBase(ABC):
 
     def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""
+
+        # Because of https://github.com/stfc/fparser/issues/515 we need to
+        # increase the recursion limit
+        current_recursion_limit = sys.getrecursionlimit()
+        sys.setrecursionlimit(5000)
+
         reader = FortranFileReader(
             str(fpath),
             ignore_comments=False,
@@ -154,6 +161,8 @@ class FortranAnalyserBase(ABC):
             logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
             return Exception(f"unhandled error '{type(err)}' in "
                              f"{fpath}\n{err}")
+        finally:
+            sys.setrecursionlimit(current_recursion_limit)
 
     @abstractmethod
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedDependent:
