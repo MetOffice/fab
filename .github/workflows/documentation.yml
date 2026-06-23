@@ -1,4 +1,4 @@
-name: Build Documentation
+name: Documentation
 
 permissions:
   contents: read
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   sphinx-build:
-
+    name: Build
     runs-on: ubuntu-24.04
 
     env:
@@ -23,18 +23,20 @@ jobs:
 
     steps:
     - name: Cache Python packages
-      uses: actions/cache@v4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
         path: ~/.pip/cache
         key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/pyproject.toml') }}
 
     - name: Install Python
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: '3.14'
 
     - name: Check out Fab source
-      uses: actions/checkout@v5
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        persist-credentials: false
 
     - name: Install documentation tools
       run: pip install .[docs]
@@ -63,20 +65,22 @@ jobs:
       run: cp -r build/latex build/html/
 
     - name: Prepare and upload asset
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
       with:
         path: Documentation/build/html
 
   deploy-documentation:
+    name: Deploy
+    if: github.repository == 'MetOffice/fab'
     permissions:
-      pages: write
-      id-token: write
+      pages: write # Required to write and publish compiled HTML/PDF artifacts
+      id-token: write # Required to securely mint the OpenID Connect (OIDC) token
     environment:
       name: github-pages
-      url: ${{ steps.deploy-documentation.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-24.04
     needs: sphinx-build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0

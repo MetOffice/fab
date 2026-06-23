@@ -4,24 +4,25 @@ on:
   push:
     branches:
       - main
-      - v*.*
+      - 'v*.*'
   pull_request:
     branches:
       - main
-      - v*.*
+      - 'v*.*'
 
 concurrency:
   # cancel any in-progress runs for the same group (branch/tag) {{github.ref}}
   # if a new run is triggered, except for the main branch
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions: {} # Global security baseline added to completely disable all unmentioned token permissions
 
 jobs:
   checks:
-
+    name: Code Quality
     permissions:
-      contents: read
-      pull-requests: write
+      contents: read # Requires read access to fetch source files
 
     runs-on: ubuntu-24.04
     strategy:
@@ -51,12 +52,13 @@ jobs:
           # echo "LD_LIBRARY_PATH=${ALT_LLVM_PATH}/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
           # xxxx
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -68,8 +70,7 @@ jobs:
           pip install .
           pip install clang==18.1.8
           # pip install clang==20.1.5
-          pip install .[dev]
-          pip install .[docs]
+          pip install .[dev,docs]
 
       - name: Type check with mypy
         run: python -m mypy source tests run_configs
