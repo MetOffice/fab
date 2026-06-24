@@ -19,7 +19,8 @@ from fab.tools.tool import Tool
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler
 from fab.tools.compiler_wrapper import (CompilerWrapper, CrayCcWrapper,
-                                        CrayFtnWrapper, Mpif90, Mpicc)
+                                        CrayFtnWrapper, Mpif90, Mpifort,
+                                        Mpicc)
 from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
 from fab.tools.ar import Ar
@@ -86,12 +87,14 @@ class ToolRepository(dict):
         for shell_name in ["sh"]:
             self.add_tool(Shell(shell_name))
 
-        # Now create the potential mpif90 and Cray ftn wrapper
+        # Now create the potential MPI Fortran and Cray ftn wrappers
         all_fc = self[Category.FORTRAN_COMPILER][:]
         for fc in all_fc:
             if not fc.mpi:
                 mpif90 = Mpif90(fc)
                 self.add_tool(mpif90)
+                mpifort = Mpifort(fc)
+                self.add_tool(mpifort)
             # I assume cray has (besides cray) only support for Intel and GNU
             if fc.name in ["gfortran", "ifort", "ifx"]:
                 crayftn = CrayFtnWrapper(fc)

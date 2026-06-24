@@ -15,7 +15,7 @@ from pytest_subprocess.fake_process import FakeProcess
 from fab.tools.ar import Ar
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler, Gfortran, Ifort
-from fab.tools.compiler_wrapper import Mpicc, Mpif90
+from fab.tools.compiler_wrapper import Mpicc, Mpif90, Mpifort
 from fab.tools.linker import Linker
 from fab.tools.tool_repository import ToolRepository
 
@@ -91,6 +91,48 @@ def test_tool_repository_get_tool_with_exec_name(stub_fortran_compiler):
     f90 = tr.get_tool(Category.FORTRAN_COMPILER, "/some/where/mpif90")
     assert f90 is mpif90_gfortran
     assert f90.exec_path == Path("/some/where/mpif90")
+    # Reset the repository, since this test messed up the compilers.
+    ToolRepository._singleton = None
+
+
+def test_tool_repository_get_mpifort_with_exec_name(stub_fortran_compiler):
+    '''Tests get_tool when the mpifort executable name is specified.'''
+    tr = ToolRepository()
+    # Keep a copy of gfortran for later
+    gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "gfortran")
+
+    # First add just one unavailable Fortran compiler and an mpifort wrapper:
+    tr[Category.FORTRAN_COMPILER] = []
+    tr.add_tool(stub_fortran_compiler)
+    mpifort = Mpifort(stub_fortran_compiler)
+    tr.add_tool(mpifort)
+
+    # If mpifort is not available, an error is raised:
+    mpifort._is_available = False
+    try:
+        tr.get_tool(Category.FORTRAN_COMPILER, "mpifort")
+    except KeyError as err:
+        assert "Unknown tool 'mpifort' in category" in str(err)
+
+    # When using the exec name, the compiler must be available:
+    mpifort._is_available = True
+    ftn = tr.get_tool(Category.FORTRAN_COMPILER, "mpifort")
+    assert ftn is mpifort
+
+    # Now add mpifort-gfortran, set mpifort-gfortran as available,
+    # and mpifort-stub-fortran as unavailable. We need to make sure
+    # we then get mpifort-gfortran:
+    mpifort_gfortran = Mpifort(gfortran)
+    tr.add_tool(mpifort_gfortran)
+    mpifort._is_available = False
+    mpifort_gfortran._is_available = True
+    ftn = tr.get_tool(Category.FORTRAN_COMPILER, "mpifort")
+    assert ftn is mpifort_gfortran
+
+    # Then verify using the full path
+    ftn = tr.get_tool(Category.FORTRAN_COMPILER, "/some/where/mpifort")
+    assert ftn is mpifort_gfortran
+    assert ftn.exec_path == Path("/some/where/mpifort")
     # Reset the repository, since this test messed up the compilers.
     ToolRepository._singleton = None
 
