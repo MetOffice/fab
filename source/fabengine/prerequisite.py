@@ -70,6 +70,32 @@ class FilePrerequisite(Prerequisite):
     def __str__(self) -> str:
         return "Prerequisite file exists: " + str(self._filename)
 
+    def __eq__(self, other) -> bool:
+        """
+        Equality test for FilePrerequisite.
+        Allows it to be used in hashable collections, like sets.
+
+        :param other: Object to compare with.
+        :return: True if other is a FilePrerequisite with the same filename.
+        """
+        return isinstance(other, FilePrerequisite) and self._filename == other._filename
+
+    def __hash__(self) -> int:
+        """
+        Hash function for FilePrerequisites.
+        Allows it to be used in hashable collections, like sets.
+
+        :return: Hash of the filename.
+        """
+        return hash(self._filename)
+
+    @property
+    def filename(self) -> Path:
+        """
+        Gets prerequisite filename.
+        """
+        return self._filename
+
     def ready(self) -> bool:
         """
         Tests prerequisite.

@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.prerequisite import FilePrerequisite
+from fabengine.actions.c import ImportC
 from fabengine.actions.fortran import (
     ImportFortran,
     PreprocessFortranAction,
@@ -112,9 +113,20 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         :param database: Build system state and configuration.
         """
         RepositoryAction.__init__(self, projects, database)  # Parent constructor
-        _, netloc, _, _, _, _ = urlparse(url)
-        if netloc.split("@")[-1].lower() != "github.com":
+
+        parse_result = urlparse(url)
+        if parse_result.hostname != "github.com":
             raise RuntimeError("URL passed to SourceOnGitHubAction is not on GitHub")
+        if parse_result.scheme not in ["https", "ssh"]:
+            raise RuntimeError("Unsupported URL scheme in SourceOnGitHubAction")
+        if (
+            ":" in parse_result.netloc
+            and not parse_result.netloc.split(":")[-1].isdigit()
+        ):
+            # a common mistake is to copy the SSH URI from github; this will include a colon instead of a slash
+            # that _could_ represent a port number, but if it doesn't then future calls to git will fail
+            raise RuntimeError("Malformed URL in SourceOnGitHubAction")
+
         self._url = url
         self._database = database
 
@@ -149,11 +161,11 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         if repo_marker.is_dir():  # Repository is present
             arguments = ["-C", str(self.local_copy()), "pull"]
         else:  # Repository is missing
-            scheme, netloc, path, _, _, fragment = urlparse(self._url)
-            url = f"{scheme}://{netloc}{path}"
+            parse_result = urlparse(self._url)
+            url = f"{parse_result.scheme}://{parse_result.netloc}{':' + str(parse_result.port) if parse_result.port else ''}{parse_result.path}"
             arguments = ["clone", "--depth=1"]
-            if fragment:
-                arguments.append(f"--branch={fragment}")
+            if parse_result.fragment:
+                arguments.append(f"--branch={parse_result.fragment}")
             arguments.extend([url, self.local_copy()])
         self.run_subprocess(additional_arguments=arguments)
         return self.projects()
@@ -297,6 +309,14 @@ class SourceDirectory(Action):
                 elif full_filename.suffix == ".x90":
                     actions.append(
                         PSyclone(
+                            two_part_filename,
+                            self._tag,
+                            self._database,
+                        )
+                    )
+                elif full_filename.suffix == ".c":
+                    actions.append(
+                        ImportC(
                             two_part_filename,
                             self._tag,
                             self._database,
