@@ -14,9 +14,10 @@ AbstractFlags:
 AlwaysFlags(AbstractFlags):
     Flags that will always apply, independent of the path of the
     file to be compiled. It provides Python Template functionality:
-        - `$source` for *<project workspace>/source*
-        - `$output` for *<project workspace>/build_output*
-        - `$relative` for *<the source file's folder>*
+
+    - `$source` for *<project workspace>/source*
+    - `$output` for *<project workspace>/build_output*
+    - `$relative` for *<the source file's folder>*
 
 MatchFlags(AlwaysFlags)
     Flags that are only applied if a wildcard search matches the
