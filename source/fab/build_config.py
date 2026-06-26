@@ -10,7 +10,6 @@ Contains the :class:`~fab.build_config.BuildConfig` and helper classes.
 import getpass
 import logging
 import os
-import sys
 import warnings
 from datetime import datetime
 from fnmatch import fnmatch
@@ -129,7 +128,7 @@ class BuildConfig():
         # turn off multiprocessing when debugging
         # todo: turn off multiprocessing when running tests, as a good test
         # runner will run using mp
-        if 'pydevd' in str(sys.gettrace()):
+        if "PYTEST_CURRENT_TEST" in os.environ:
             logger.info('debugger detected, running without multiprocessing')
             self.multiprocessing = False
 

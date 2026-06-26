@@ -14,6 +14,7 @@ from pytest import fixture
 from pytest_subprocess.fake_process import FakeProcess, ProcessRecorder
 
 from fab.build_config import BuildConfig
+from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.linker import Linker
 from fab.tools.tool_box import ToolBox
@@ -194,6 +195,11 @@ def stub_tool_repository(stub_fortran_compiler,
     monkeypatch.setattr(stub_c_compiler, 'check_available', return_true)
     monkeypatch.setattr(stub_linker, 'check_available', return_true)
     tool_repository = ToolRepository()
+    # Remove all compiler and linker, since they might exist on the system
+    # running these tests, which can break tests.
+    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
+                Category.LINKER]:
+        tool_repository[cat] = []
     tool_repository.add_tool(stub_fortran_compiler)
     tool_repository.add_tool(stub_c_compiler)
     tool_repository.add_tool(stub_linker)

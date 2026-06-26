@@ -295,4 +295,6 @@ class TestParser:
 
         captured = capsys.readouterr()
 
+        # Python 3.14 changes the behaviour, the output starts with
+        # python -m pytest
         assert captured.out.startswith("fab ")
