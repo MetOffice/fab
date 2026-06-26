@@ -55,12 +55,6 @@ def test_psyclone_transmute_basic(config):
     # Make a copy to ensure changes to artefact store will be detected
     input_files = input_files.copy()
 
-    # Expected files will be in the build output directory and
-    # have the new suffix `_transmute` added.
-    expected = {config.build_output / '/'.join(i.parts[1:])
-                for i in input_files}
-    expected = {i.with_stem(i.stem + "_transmute") for i in expected}
-
     with (warns(UserWarning,
                 match="_metric_send_conn not set, cannot send metrics"),
           warns(UserWarning,
@@ -71,13 +65,7 @@ def test_psyclone_transmute_basic(config):
 
     input_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
 
-    # Expected files will be in the build output directory and
-    # have the new suffix `_transmute` added.
-    expected = {config.build_output / '/'.join(i.parts[1:])
-                for i in input_files}
-    expected = {i.with_stem(i.stem + "_transmute") for i in expected}
-
-    # Since we didn't specify ... XXXXXXXXXX
+    # Since we didn't specify a suffix, we should still have the same file
     assert (config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES] ==
             input_files)
 
@@ -117,12 +105,6 @@ def test_psyclone_transmute_script(tmp_path, config):
     """
 
     input_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
-
-    # Expected files will be in the build output directory and
-    # have the new suffix `_transmute` added.
-    expected = {config.build_output / '/'.join(i.parts[1:])
-                for i in input_files}
-    expected = {i.with_stem(i.stem + "_transmute") for i in expected}
 
     script = tmp_path / "script"
     script.write_text("invalid python\n")
