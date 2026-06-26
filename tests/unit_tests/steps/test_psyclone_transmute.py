@@ -9,7 +9,9 @@ Tests the PSyclone transmutation step in Fab. It requires PSyclone to
 be available (otherwise the tests will be skipped).
 """
 
-from pytest import CaptureFixture, fixture, mark, raises, warns
+import logging
+
+from pytest import fixture, mark, raises, warns
 
 from fab.build_config import BuildConfig
 from fab.artefacts import ArtefactSet
@@ -134,7 +136,7 @@ def test_psyclone_transmute_script(tmp_path, config):
 
 @mark.skipif(not Psyclone().is_available,
              reason="psyclone cli tool not available")
-def test_psyclone_transmute_prebuilt(config, capsys: CaptureFixture):
+def test_psyclone_transmute_prebuilt(config, caplog):
     """
     Tests the handling of existing prebuild files.
     """
@@ -148,18 +150,20 @@ def test_psyclone_transmute_prebuilt(config, capsys: CaptureFixture):
                 for i in input_files}
     expected = {i.with_stem(i.stem + "_transmute") for i in expected}
 
+    # Make sure debug messages are enabled so we can check for
+    # messages about prebuilds. logging.DEBUG is required to ensure that.
     with (warns(UserWarning,
                 match="_metric_send_conn not set, cannot send metrics"),
           warns(UserWarning,
                 match="No transformation script specified")):
-        psyclone_transmute(config, input_files,
-                           artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
+        with caplog.at_level(logging.DEBUG,
+                             logger="fab.steps.psyclone_transmute"):
+            psyclone_transmute(config, input_files,
+                               artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
 
     output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
     assert expected == output_files
-
-    captured = capsys.readouterr()
-    assert "Found prebuild for" not in captured.out
+    assert "Found prebuild for" not in caplog.text
 
     # Now rerun - remove the preprocessed filed from the previous step
     config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES] = \
@@ -170,13 +174,14 @@ def test_psyclone_transmute_prebuilt(config, capsys: CaptureFixture):
                 match="_metric_send_conn not set, cannot send metrics"),
           warns(UserWarning,
                 match="No transformation script specified")):
-        psyclone_transmute(config, input_files,
-                           artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
+        with caplog.at_level(logging.DEBUG,
+                             logger="fab.steps.psyclone_transmute"):
+            psyclone_transmute(config, input_files,
+                               artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES)
     output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
 
     assert expected == output_files
-    captured = capsys.readouterr()
-    assert "Found prebuild for" in captured.out
+    assert "Found prebuild for" in caplog.text
 
 
 @mark.skipif(not Psyclone().is_available,
