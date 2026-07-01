@@ -110,6 +110,15 @@ class AnalyseC(Action):
                     before_comment = match.group(1).strip()
                     if before_comment:
                         yield before_comment
+                    # We need to check this comment block isn't closed on the same line
+                    match = AnalyseC._END_COMMENT_PATTERN.match(line)
+                    if match:
+                        # found end of comment, switch back to seeking mode and check if
+                        # there is any code after the comment ends
+                        mode = AnalyseC.AnalysisMode.SEEKING
+                        after_comment = match.group(1).strip()
+                        if after_comment:
+                            yield after_comment
 
                 else:
                     # we are seeking and did not find the start of a comment, so look for a single-line comment
