@@ -9,11 +9,11 @@ class BuildScript(ABC):
     def repositories(self) -> Iterable[Repository]:
         return []
 
-    def libraries(self) -> Iterable[str]:
+    def packages(self) -> list[str]:
         return []
 
-    def fpp_definitions(self) -> WriteOnceDict:
-        return WriteOnceDict({})
-
-    def configuration(self) -> WriteOnceDict:
-        return WriteOnceDict({})
+    def add_configuration(
+        self,
+        configuration: WriteOnceDict,
+    ) -> None:
+        pass

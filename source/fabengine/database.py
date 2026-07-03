@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Type
 
 from fabengine.actions import Action
+from fabengine.artefact_store import ArtefactPath
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.manager import FabManager
 
@@ -20,33 +21,23 @@ class Database:
 
     def __init__(
         self,
-        script_config: WriteOnceDict,
-        build_config: WriteOnceDict,
+        configuration: WriteOnceDict,
         manager: FabManager,
     ):
         """
-        :param configuration: Preprepared configuration.
+        :param configuration: Configuration parameters.
         :param manager: Multiprocess shared data controller.
         """
-        # Todo: Remove original configuration, and use only fab_configuration.
-        self._build_config = build_config
+        self.configuration = configuration
 
-        # Create config
-        self.script_config = script_config
-
+        build_dir = self.configuration["paths"]["build_dir"]
+        self.artefact_store = manager.ArtefactStore(build_dir)  # type:ignore
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
         self.config_meta_dirs: ListProxy[Path] = manager.list()
         self.inclusions: DictProxy[Path, Path] = manager.dict()
         self._processed_this_round: ValueProxy[int] = manager.Value("i", 0)
         self._processed_last_round: ValueProxy[int] = manager.Value("i", 0)
-
-    @property
-    def build_config(self) -> WriteOnceDict:
-        """
-        :return: build configuration parameters.
-        """
-        return self._build_config
 
     def reset_work_done(self) -> None:
         """
@@ -129,7 +120,7 @@ class SymbolInfo:
     Describes one symbol.
     """
 
-    def __init__(self, name: str, nature: SymbolType, source_file: Path):
+    def __init__(self, name: str, nature: SymbolType, source_file: ArtefactPath):
         """
         :param name: Symbol name.
         :param nature: Symbol kind.
@@ -154,7 +145,7 @@ class SymbolInfo:
         return self._nature
 
     @property
-    def source_file(self) -> Path:
+    def source_file(self) -> ArtefactPath:
         """
         :return: Symbol declaration is here.
         """

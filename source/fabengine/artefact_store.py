@@ -1,0 +1,170 @@
+from __future__ import annotations
+
+from pathlib import Path
+from sys import version_info as python_version
+
+
+class ArtefactStore:
+    """
+    Virtual filesystem for managing compile artefacts.
+
+    Maps static files and intermediate files into a single namespace.
+    """
+
+    def __init__(self, intermediate_dir: Path):
+        """
+        :param intermediate_dir: Directory for storing intermediate files.
+        """
+        self._intermediate_dir = intermediate_dir
+        self._intermediate_dir.mkdir(parents=True, exist_ok=True)
+
+        self._map: dict[Path, Artefact] = {}
+
+    def __len__(self) -> int:
+        return len(self._map)
+
+    @property
+    def intermediate_dir(self) -> Path:
+        """
+        Gets the root of the intermediate file tree.
+        """
+        return self._intermediate_dir
+
+    def dump_map(self) -> None:
+        """
+        Dumps map information to a stream.
+
+        This is intended for debug purposes only.
+        """
+        with open("artefact_map.txt", "wt") as stream:
+            for virtual_filename, artefact in self._map.items():
+                print(f"{virtual_filename}: {artefact.real_filename}", file=stream)
+
+    def map_file(self, real_filename: Path, virtual_filename: ArtefactPath):
+        if virtual_filename in self._map.keys():
+            raise RuntimeError(
+                f"Attempted to map <{real_filename}> to <{virtual_filename}>"
+                f" but <{self._map[virtual_filename].real_filename}> already does."
+            )
+        self._map[virtual_filename] = Artefact(virtual_filename, real_filename)
+
+    def notice_file(self, virtual_filename: ArtefactPath) -> None:
+        """
+        Notifies the artefact store that a file has been added to it.
+
+        This is only used when a process is doing something sneaky.
+        Most of the time `get_artefact()` is the preferred route. It will
+        throw an error if the file does not, in fact, exist.
+        """
+        real_filename = self._intermediate_dir / virtual_filename
+        if real_filename.exists():
+            self._map[virtual_filename] = Artefact(virtual_filename, real_filename)
+        else:
+            raise RuntimeError(f"Asked to notice nonexistent file <{virtual_filename}>")
+
+    def exists(self, virtual_filename: ArtefactPath) -> bool:
+        """
+        Determines if an artefact is in the store.
+        """
+        if virtual_filename in self._map:
+            return self._map[virtual_filename].real_filename.exists()
+        else:
+            return False
+
+    def ensure_directory(self, virtual_filename: ArtefactPath) -> Path:
+        """
+        Ensures that a directory exists in the virtual filesystem.
+
+        :return: Path of the actual directory.
+        """
+        full_filename = self._intermediate_dir / virtual_filename
+        full_filename.mkdir(parents=True, exist_ok=True)
+        return full_filename
+
+    def get_artefact(self, virtual_filename: ArtefactPath) -> Artefact:
+        """
+        Retrieves an artefact from the store.
+
+        If it is not in the store, create it in the intermediate directory.
+        """
+        if virtual_filename not in self._map:
+            # Ensure directory tree
+            directory = self._intermediate_dir / virtual_filename.parent
+            directory.mkdir(parents=True, exist_ok=True)
+
+            # New file
+            self._map[virtual_filename] = Artefact(
+                virtual_filename, self._intermediate_dir / virtual_filename
+            )
+        return self._map[virtual_filename]
+
+    def promote_artefact(self, virtual_filename: ArtefactPath) -> Artefact:
+        """
+        Promotes a mapping to a symlink. This makes it appear as a file in the
+        workspace without requiring a copy.
+
+        If the artefact already exists in the workspace (as a file or link)
+        it is just returned.
+        """
+        workspace_filename = self._intermediate_dir / virtual_filename
+        if not workspace_filename.exists():
+            workspace_filename.parent.mkdir(parents=True, exist_ok=True)
+            workspace_filename.symlink_to(self._map[virtual_filename].real_filename)
+            self._map[virtual_filename] = Artefact(virtual_filename, workspace_filename)
+
+        return self._map[virtual_filename]
+
+
+# Todo: Can we do away with "Artefact" and just use "ArtefactPath"?
+#
+class Artefact:
+    def __init__(self, virtual_filename: ArtefactPath, real_filename: Path):
+        self._virtual_filename = virtual_filename
+        self._real_filename = real_filename
+
+    @property
+    def virtual_filename(self) -> ArtefactPath:
+        return self._virtual_filename
+
+    @property
+    def real_filename(self) -> Path:
+        return self._real_filename
+
+    @property
+    def name(self) -> str:
+        return self._virtual_filename.name
+
+    def read_text(self) -> str:
+        """
+        Gets the textual content of the artefact.
+
+        This is a convenience method to neaten up calling code.
+
+        .. todo:: If Artefact and ArtefactPath were combined this would be
+                  redundant as Path already provides it.
+        """
+        return self.real_filename.read_text()
+
+
+class ArtefactPath(Path):
+    # Todo: Path is only extended clumsily until Python 3.12. Once that
+    #       is the lowest version we are supporting this can go away and
+    #       we can treat Path like any other class.
+    #
+    if python_version < (3, 12):
+        _flavour = type(Path())._flavour  # type: ignore
+
+    # Todo: Also a pre-python 3.12 requirement, to be removed.
+    #
+    def __new__(cls, *args):
+        return super().__new__(cls, *args)
+
+    def __init__(self, *args: str | Path):
+        # Todo: And another
+        if python_version < (3, 12):
+            super().__init__()
+        else:
+            super().__init__(*args)
+
+        if self.is_absolute():
+            raise ValueError(f"Artefact filenames must be relative: {self}")

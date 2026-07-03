@@ -6,7 +6,7 @@ from re import compile as re_compile, IGNORECASE
 from typing import Iterable
 
 from fabengine.actions import Action, SubprocessAction, Prerequisite, TwoPartPath
-from fabengine.prerequisite import FilePrerequisite
+from fabengine.prerequisite import RealFilePrerequisite
 from fabengine.actions.fortran import PreprocessFortranAction
 from fabengine.database import Database
 
@@ -19,33 +19,34 @@ class PfUnit(SubprocessAction):
     gets its own driver.
     """
 
-    def __init__(self, repo_dir: Path, source: Path, tag: str, database: Database):
+    def __init__(self, source_file: TwoPartPath, tag: str, database: Database):
         """
-        :param repo_dir: Source tree root.
-        :param source: ``.pf`` file relative to root.
+        :param source_file: ``.pf`` file relative to root.
         :param tag: Collection in workspace for generated source.
         :param database: Build system state and configuration.
         """
-        self._repo_dir = repo_dir
-        self._source = source
+        self._source_file = source_file
         self._tag = tag
         self._database = database
 
+        # Todo: This is probably backwards. Shouldn't we be using the location
+        #       of funitproc to intuit the location of the driver source and
+        #       doing away with the need for the PFUNIT environment variable?
+        #
         pfunit_str = os_environ.get("PFUNIT")
         if pfunit_str is None:
             raise RuntimeError("PFUNIT must point to install directory")
         self._pfunit_path = Path(pfunit_str)
         funitproc_path = self._pfunit_path / "bin" / "funitproc"
 
-        dest = (
-            self._database.script_config["paths"]["work_dir"]
-            / self._source.with_suffix(".F90").name
+        dest = self._database.artefact_store.get_artefact(
+            Path(self._tag) / self._source_file.branch.with_suffix(".F90").name
         )
-        arguments = ["-quiet", self._source, dest]
+        arguments = ["-quiet", self._source_file.full, dest]
         super().__init__(Path(funitproc_path), arguments)
 
     def __str__(self) -> str:
-        return "pFUnit: " + self._source.name
+        return f"pFUnit: {self._source_file.branch}"
 
     _PROGRAM_PATTERN = re_compile(r"(\s*(:?end)?\s*program\s*)\w+(.*)", IGNORECASE)
     _MODULE_PATTERN = re_compile(r"(\s*(:?end)?\s*module\s*)loader(.*)", IGNORECASE)
@@ -90,12 +91,17 @@ class PfUnit(SubprocessAction):
 
         return [
             PreprocessFortranAction(
-                TwoPartPath(self._repo_dir, source_file),
+                TwoPartPath(self._source_file.root, source_file),
                 self._tag,
                 self._database,
                 {"_TEST_SUITES": f'"{include_file.absolute()}"'},
             ),
-            RunTest(self._database.script_config["paths"]["work_dir"] / prog_name),
+            RunTest(
+                self._database.artefact_store.get_artefact(
+                    Path(prog_name)
+                ).real_filename,
+                self._database,
+            ),
         ]
 
     def prerequisites(self) -> Iterable[Prerequisite]:
@@ -114,7 +120,9 @@ class PfUnit(SubprocessAction):
         self.run_subprocess()
         actions: list[Action] = [
             PreprocessFortranAction(
-                TwoPartPath(self._repo_dir, self._source.with_suffix(".F90")),
+                TwoPartPath(
+                    self._source_file.root, self._source_file.branch.with_suffix(".F90")
+                ),
                 self._tag,
                 self._database,
             )
@@ -122,8 +130,8 @@ class PfUnit(SubprocessAction):
         actions.extend(
             self._driver(
                 self._pfunit_path / "include" / "driver.F90",
-                self._source.stem,
-                self._database.script_config["paths"]["work_dir"],
+                self._source_file.branch.stem,
+                self._database.artefact_store.intermediate_dir,
             )
         )
         return actions
@@ -134,11 +142,12 @@ class RunTest(SubprocessAction):
     Executes a unit test executable.
     """
 
-    def __init__(self, executable: Path):
+    def __init__(self, executable: Path, database: Database):
         """
         :param executable: Filename of executable.
         """
         self._executable = executable
+        self._database = database
 
         super().__init__(executable)
 
@@ -151,7 +160,7 @@ class RunTest(SubprocessAction):
 
         :return: Depends on the executable file.
         """
-        return [FilePrerequisite(self._executable)]
+        return [RealFilePrerequisite(self._executable)]
 
     def perform(self) -> list[Action]:
         """

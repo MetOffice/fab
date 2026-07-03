@@ -5,10 +5,32 @@ from pathlib import Path
 from typing import Generator, Iterable, Optional
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
+from fabengine.actions.file import MapFile
 from fabengine.actions.fortran import PreprocessFortranBase
-from fabengine.prerequisite import FilePrerequisite, SymbolPrerequisite
+from fabengine.artefact_store import ArtefactPath
+from fabengine.prerequisite import (
+    RealFilePrerequisite,
+    SymbolPrerequisite,
+    ArtefactPrerequisite,
+)
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
+
+
+class MapAlgorithm(MapFile):
+    """
+    Maps a PSyKAl algorithm into the virtual filesystem.
+    """
+
+    def perform(self) -> list[Action]:
+        """
+        Performs the copy.
+
+        :return: An AnalyseFortran object for the new file.
+        """
+        actions = super().perform()
+        actions.append(PSyclone(self.artefact.virtual_filename, self._database))
+        return actions
 
 
 class PreprocessAlgorithm(PreprocessFortranBase):
@@ -39,18 +61,8 @@ class PreprocessAlgorithm(PreprocessFortranBase):
 
         :return: Action to PSyclone the algorithm.
         """
-        actions = super().perform()
-        build_dir = self._database.script_config["paths"]["build_dir"]
-        actions.append(
-            PSyclone(
-                TwoPartPath(
-                    build_dir.absolute(), self.destination_file.relative_to(build_dir)
-                ),
-                "",
-                self._database,
-            )
-        )
-        return actions
+        super().preprocess_file()
+        return [PSyclone(self.destination_file, self._database)]
 
 
 class PSyclone(SubprocessAction):
@@ -60,26 +72,23 @@ class PSyclone(SubprocessAction):
     .. todo:: No transformation scripts!
     """
 
-    def __init__(self, algorithm_file: TwoPartPath, tag: str, database: Database):
+    def __init__(self, virtual_filename: ArtefactPath, database: Database):
         """
-        :param algorithm_file: Algorithm file.
-        :param tag: Subdirectory of workspace for resulting source.
+        :param virtual_filename: Algorithm file.
         :param database: Build system state and configuration.
         """
-        self._algorithm_file = algorithm_file
-        self._tag = tag
+        self._virtual_filename = virtual_filename
         self._database = database
 
-        self._project_dir = (
-            self._database.script_config["paths"]["build_dir"]
-            / self._tag
-            / self._algorithm_file.branch.parent
+        self._algorithm_path = self._virtual_filename.with_suffix(".f90")
+        all_kernels = self._find_kernels(
+            self._database.artefact_store.get_artefact(
+                self._virtual_filename
+            ).real_filename
         )
-
-        self._alg_name = self._algorithm_file.branch.with_suffix(".f90").name
-        all_kernels = self._find_kernels(self._algorithm_file.full)
         self._psy = all_kernels != []
-        self._psy_name = self._algorithm_file.branch.stem + "_psy.f90"
+        psy_name = self._virtual_filename.stem + "_psy.f90"
+        self._psy_path = self._virtual_filename.with_name(psy_name)
         self._kernels = self._remove_builtins(all_kernels)
 
         arguments = [
@@ -88,16 +97,34 @@ class PSyclone(SubprocessAction):
             "-l",
             "all",
             "-c",
-            self._database.script_config["paths"]["psyclone_config"],
+            self._database.configuration["paths"]["psyclone_config"],
         ]
 
-        arguments.extend(["-oalg", self._project_dir / self._alg_name])
-        arguments.extend(["-opsy", self._project_dir / self._psy_name])
-        arguments.append(self._algorithm_file.full)
+        arguments.extend(
+            [
+                "-oalg",
+                self._database.artefact_store.get_artefact(
+                    self._algorithm_path
+                ).real_filename,
+            ]
+        )
+        arguments.extend(
+            [
+                "-opsy",
+                self._database.artefact_store.get_artefact(
+                    self._psy_path
+                ).real_filename,
+            ]
+        )
+        arguments.append(
+            self._database.artefact_store.get_artefact(
+                self._virtual_filename
+            ).real_filename
+        )
         super().__init__(Path("psyclone"), arguments)
 
     def __str__(self) -> str:
-        return f"PSyclone <{self._algorithm_file.branch}>"
+        return f"PSyclone <{self._virtual_filename}>"
 
     @staticmethod
     def _remove_builtins(kernels: list[str]) -> list[str]:
@@ -173,9 +200,11 @@ class PSyclone(SubprocessAction):
             prereqs.append(SymbolPrerequisite(kernel, self._database))
             symbol = self._database.symbol_table.get(kernel)
             if symbol:
-                prereqs.append(FilePrerequisite(symbol.source_file))
+                prereqs.append(ArtefactPrerequisite(symbol.source_file, self._database))
         prereqs.append(
-            FilePrerequisite(self._database.script_config["paths"]["psyclone_config"])
+            RealFilePrerequisite(
+                self._database.configuration["paths"]["psyclone_config"]
+            )
         )
         return prereqs
 
@@ -190,6 +219,14 @@ class PSyclone(SubprocessAction):
         for kernel in self._kernels:
             kernel_symbol = self._database.symbol_table.get(kernel)
             assert kernel_symbol is not None
+
+            # Kernels are promoted to the working space so PSyclone can find
+            # them.
+            #
+            self._database.artefact_store.promote_artefact(kernel_symbol.source_file)
+
+            # Todo: I suspect there is an opportunity for optimisation here.
+            #
             new_root = kernel_symbol.source_file.parent
             # Remove any directories which are children of the new one
             kernel_roots = [
@@ -206,16 +243,13 @@ class PSyclone(SubprocessAction):
             if not child:
                 kernel_roots.append(new_root)
 
-        self._project_dir.mkdir(parents=True, exist_ok=True)
         arguments: list[str] = []
         for root in kernel_roots:
-            arguments.extend(["-d", str(root)])
-        self.run_subprocess(arguments)
-        actions: list[Action] = [
-            AnalyseFortran(self._project_dir / self._alg_name, self._database)
-        ]
-        if self._psy:
-            actions.append(
-                AnalyseFortran(self._project_dir / self._psy_name, self._database)
+            arguments.extend(
+                ["-d", self._database.artefact_store.ensure_directory(root)]
             )
+        self.run_subprocess(arguments)
+        actions: list[Action] = [AnalyseFortran(self._algorithm_path, self._database)]
+        if self._psy:
+            actions.append(AnalyseFortran(self._psy_path, self._database))
         return actions

@@ -13,47 +13,40 @@ from fabengine.processes import WorkerProcess, MonitorProcess
 
 
 # Todo, convert core to a class with methods called from entry.
-def fab_core(
-    script_config: WriteOnceDict,
-    build_config: WriteOnceDict,
-):
+def fab_core(configuration: WriteOnceDict):
     """
     Build system entry point.
-
-    :param script_config: Configuration settings for the build script
-    :param build_config: Configuration settings for the build
     """
     mp_logger = mp_get_logger()
     mp_logger.setLevel(WARNING)
     mp_logger.addHandler(StreamHandler())
 
     with FabManager() as manager:
-        work_queue = manager.WorkQueue(script_config["queue_strategy"])  # type:ignore
+        database = Database(configuration, manager)
+
+        work_queue = manager.WorkQueue(configuration["queue_strategy"])  # type:ignore
 
         def hit_sentinel() -> None:
             database.reset_work_done()
             work_queue.enter_barrier()
 
-        # Initialise the database with the build script config and the manager
-        database = Database(script_config, build_config, manager)
-
-        sentinel_barrier = Barrier(script_config["worker_threads"], action=hit_sentinel)
+        sentinel_barrier = Barrier(configuration["worker_threads"], action=hit_sentinel)
 
         performance = Performance(manager)
         result_queue: Queue[WorkerException] = manager.Queue()
-        for repository in build_config["repositories"]:
+        for repository in configuration["repositories"]:
             repo_action = repository.create_action(
-                script_config["paths"]["work_dir"], database
+                configuration["paths"]["work_dir"], database
             )
 
             for identifier, path in repository.paths.items():
                 full_path = repo_action.local_copy() / path
-                database.script_config["paths"][identifier] = full_path
+                database.configuration["paths"][identifier] = full_path
 
             for project in repository.projects:
                 for identifier, path in project.paths.items():
                     full_path = repo_action.local_copy() / project.project_dir / path
-                    database.script_config["paths"][identifier] = full_path
+                    database.configuration["paths"][identifier] = full_path
 
                 if project.configuration_meta_data is None:
                     continue
@@ -70,20 +63,20 @@ def fab_core(
             work_queue.new_action(repo_action)
 
         workers: list[WorkerProcess] = []
-        for _ in range(script_config["worker_threads"]):
+        for _ in range(configuration["worker_threads"]):
             process = WorkerProcess(
                 work_queue, result_queue, database, sentinel_barrier, performance
             )
             process.start()
             workers.append(process)
 
-        if script_config["monitor"]:
+        if configuration["monitor"]:
             monitor_process = MonitorProcess(work_queue)
             monitor_process.start()
 
         results: list[WorkerException] = []
         workers_stopped = 0
-        while workers_stopped < script_config["worker_threads"]:
+        while workers_stopped < configuration["worker_threads"]:
             try:
                 result = result_queue.get()
                 if isinstance(result, EndOfWorkException):
@@ -103,7 +96,7 @@ def fab_core(
         for process in workers:
             process.join()
 
-        if script_config["monitor"]:
+        if configuration["monitor"]:
             monitor_process.stop()
             monitor_process.join()
 
@@ -116,8 +109,10 @@ def fab_core(
         for result in results:
             getLogger(__name__).error("Failed " + result.describe())
 
-        if script_config["paths"]["performance_file"]:
-            with script_config["paths"]["performance_file"].open("wt") as fhandle:
+        if configuration["paths"]["performance_file"]:
+            with configuration["paths"]["performance_file"].open("wt") as fhandle:
                 tally = performance.aggregate_action_log()
                 for action_str in sorted(tally.keys()):
                     print(action_str + ", " + str(tally[action_str]), file=fhandle)
+
+        database.artefact_store.dump_map()

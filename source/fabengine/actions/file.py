@@ -1,70 +1,52 @@
 from pathlib import Path
-from shutil import copyfile
-from typing import Iterable
+from typing import Iterable, Optional
 
 from fabengine.actions import (
     Action,
     Prerequisite,
-    SubprocessActionException,
     TwoPartPath,
 )
+from fabengine.artefact_store import Artefact, ArtefactPath
 from fabengine.database import Database
-from fabengine.prerequisite import FilePrerequisite
+from fabengine.prerequisite import RealFilePrerequisite
 
 
-class ImportFile(Action):
+class MapFile(Action):
     """
-    Copies a file into the workspace.
+    Maps a file into the virtual filespace.
     """
 
     def __init__(
-        self, filename: TwoPartPath, tag: str, database: Database, kind="file"
+        self, real_file: TwoPartPath, database: Database, tag: Optional[str] = None
     ):
-        """
-        :param filename: File to copy, relative part is used in working copy.
-        :param tag: Subsection of workspace to copy file to.
-        :param database: Build state and configuration.
-        """
-        super().__init__(str(filename.full))
-        self._filename = filename
+        super().__init__(str(real_file.full))
+        self._real_file = real_file
         self._tag = tag
         self._database = database
-        self._kind = kind
 
     def __str__(self) -> str:
-        return (
-            f"Import {self._kind} <{self._filename.full}> to <{self._filename.branch}>"
-        )
+        return f"Map file: {self._real_file.full}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        """
-        Gets action prerequisites.
-
-        :return: Depends on source file.
-        """
-        return [FilePrerequisite(self._filename.full)]
+        return [RealFilePrerequisite(self._real_file.full)]
 
     @property
-    def source(self) -> Path:
-        return self._filename.full
+    def real_file(self) -> Path:
+        return self._real_file.full
 
     @property
-    def destination(self) -> Path:
-        return (
-            self._database.script_config["paths"]["build_dir"] / self._filename.branch
-        )
+    def artefact(self) -> Artefact:
+        if self._tag:
+            virtual_filename = ArtefactPath(self._tag) / self._real_file.branch
+        else:
+            virtual_filename = ArtefactPath(self._real_file.branch)
+        return Artefact(virtual_filename, self.real_file)
 
     def perform(self) -> list[Action]:
         """
-        Performs action.
-
-        :return: Empty list.
+        Performs the mapping.
         """
-        self.destination.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            copyfile(self.source, self.destination)
-        except FileNotFoundError:
-            raise SubprocessActionException(
-                self, return_code=-1, command=f"cp {self.source} {self.destination}"
-            )
+        self._database.artefact_store.map_file(
+            self.real_file, self.artefact.virtual_filename
+        )
         return []

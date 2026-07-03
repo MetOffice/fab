@@ -9,17 +9,15 @@ from typing import Iterable, Optional
 from urllib.parse import urlparse
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
-from fabengine.prerequisite import FilePrerequisite
-from fabengine.actions.c import ImportC
-from fabengine.actions.fortran import (
-    ImportFortran,
-    PreprocessFortranAction,
-    ImportInclusion,
-)
+from fabengine.actions.file import MapFile
+from fabengine.actions.c import MapC
+from fabengine.actions.fortran import MapFortran, PreprocessFortranAction
 from fabengine.actions.pfunit import PfUnit
-from fabengine.actions.psyclone import PSyclone, PreprocessAlgorithm
+from fabengine.actions.psyclone import MapAlgorithm, PreprocessAlgorithm
 from fabengine.actions.templaterator import Templaterator
+from fabengine.artefact_store import ArtefactPath
 from fabengine.database import Database
+from fabengine.prerequisite import RealFilePrerequisite
 from fabengine.project import Project
 
 
@@ -68,9 +66,10 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         self._remote = remote
         self._database = database
 
-        remote = str(self._remote).rstrip("/")
-        local = str(self._database.script_config["paths"]["work_dir"])
-        SubprocessAction.__init__(self, Path("rsync"), ["-a", remote, local])
+        self._local = self._database.configuration["paths"]["work_dir"]
+        SubprocessAction.__init__(
+            self, Path("rsync"), ["-a", str(self._remote).rstrip("/"), str(self._local)]
+        )
 
     def __str__(self) -> str:
         return "Source from disc: " + str(self._remote)
@@ -86,7 +85,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         :return: Path of local copy.
         """
         filename = Path(self._remote.split(":")[-1])
-        return self._database.script_config["paths"]["work_dir"] / filename.name
+        return self._local / filename.name
 
     def perform(self) -> list[Action]:
         """
@@ -147,7 +146,7 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         """
         _, netloc, path, _, query, fragment = urlparse(self._url)
         name = Path(path).stem
-        return self._database.script_config["paths"]["work_dir"] / name
+        return self._database.configuration["paths"]["work_dir"] / name
 
     def perform(self) -> list[Action]:
         """
@@ -203,7 +202,7 @@ class SourceDirectory(Action):
         """
         :return: Depends on source directory.
         """
-        return [FilePrerequisite(self._source_dir)]
+        return [RealFilePrerequisite(self._source_dir)]
 
     def perform(self) -> Generator[Action, None, list[Action]]:
         """
@@ -228,8 +227,7 @@ class SourceDirectory(Action):
         :return: Action for each actionable file.
         """
         mp_get_logger().info("Scanning " + str(self._source_dir))
-        project_dir = self._database.script_config["paths"]["build_dir"] / self._tag
-        project_dir.mkdir(parents=True, exist_ok=True)
+        self._database.artefact_store.ensure_directory(Path(self._tag))
 
         # Todo: Tree-walk not added to pathlib until v3.12.
         #
@@ -258,11 +256,7 @@ class SourceDirectory(Action):
                 actions: list[Action] = []
                 if full_filename.suffix == ".f90":
                     actions.append(
-                        ImportFortran(
-                            two_part_filename,
-                            self._tag,
-                            self._database,
-                        )
+                        MapFortran(two_part_filename, self._database, tag=self._tag)
                     )
                 elif full_filename.suffix == ".F90":
                     actions.append(
@@ -277,18 +271,19 @@ class SourceDirectory(Action):
                     #       need it?
                     actions.append(
                         PfUnit(
-                            two_part_filename.root,
-                            two_part_filename.branch,
+                            two_part_filename,
                             self._tag,
                             self._database,
                         )
                     )
                 elif full_filename.suffix == ".t90":
                     # Todo: Hardwired to field templating and just nasty.
-                    for mapping in self._database.build_config["field_instances"]:
+                    for mapping in self._database.configuration["field_instances"]:
                         ttype = list(mapping.keys())[0]
                         tkind = mapping[ttype]
-                        leafname = full_filename.stem[:-4] + "_" + tkind + "_mod.f90"
+                        leafname = ArtefactPath(
+                            full_filename.stem[:-4] + "_" + tkind + "_mod.f90"
+                        )
                         inserts = {"type": ttype, "kind": tkind}
                         actions.append(
                             Templaterator(
@@ -301,37 +296,27 @@ class SourceDirectory(Action):
                 elif full_filename.suffix == ".X90":
                     actions.append(
                         PreprocessAlgorithm(
-                            two_part_filename,
-                            self._tag,
-                            self._database,
+                            two_part_filename, self._tag, self._database
                         )
                     )
                 elif full_filename.suffix == ".x90":
                     actions.append(
-                        PSyclone(
-                            two_part_filename,
-                            self._tag,
-                            self._database,
-                        )
+                        MapAlgorithm(two_part_filename, self._database, tag=self._tag)
                     )
                 elif full_filename.suffix == ".c":
                     actions.append(
-                        ImportC(
+                        MapC(
                             two_part_filename,
-                            self._tag,
                             self._database,
+                            self._tag,
                         )
                     )
                 elif (
                     full_filename.suffix
-                    in self._database.build_config["inclusion_suffixes"]
+                    in self._database.configuration["inclusion_suffixes"]
                 ):
                     actions.append(
-                        ImportInclusion(
-                            two_part_filename,
-                            self._tag,
-                            self._database,
-                        )
+                        MapFile(two_part_filename, self._database, tag=self._tag)
                     )
                 else:
                     mp_get_logger().info("Ignoring file: " + full_filename.name)

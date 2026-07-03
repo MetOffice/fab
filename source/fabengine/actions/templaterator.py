@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import Iterable
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction
-from fabengine.prerequisite import FilePrerequisite
+from fabengine.artefact_store import ArtefactPath
+from fabengine.prerequisite import RealFilePrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
 
@@ -15,7 +16,7 @@ class Templaterator(SubprocessAction):
     def __init__(
         self,
         filename: Path,
-        leafname: str,
+        leafname: ArtefactPath,
         inserts: dict[str, str],
         database: Database,
     ):
@@ -26,18 +27,18 @@ class Templaterator(SubprocessAction):
         :param database: Build system state and configuration.
         """
         self._filename = filename
+        self._leafname = leafname
         self._database = database
 
-        self._destination = database.script_config["paths"]["build_dir"] / leafname
-
+        destination = database.artefact_store.get_artefact(leafname).real_filename
         # Todo: Just have the source here?
         # Todo: Put generated files in the correct place.
-        arguments = ["-o", self._destination]
+        arguments = ["-o", destination]
         for key, value in inserts.items():
             arguments.extend(["-s", key + "=" + value])
         arguments.append(self._filename)
         super().__init__(
-            self._database.script_config["paths"]["templaterator"], arguments
+            self._database.configuration["paths"]["templaterator"], arguments
         )
 
     def __str__(self) -> str:
@@ -47,7 +48,7 @@ class Templaterator(SubprocessAction):
         """
         :return: Depends on template file.
         """
-        return [FilePrerequisite(self._filename)]
+        return [RealFilePrerequisite(self._filename)]
 
     def perform(self) -> list[Action]:
         """
@@ -60,4 +61,4 @@ class Templaterator(SubprocessAction):
         :return: Analyse resulting Fortran source.
         """
         self.run_subprocess()
-        return [AnalyseFortran(self._destination, self._database)]
+        return [AnalyseFortran(self._leafname, self._database)]

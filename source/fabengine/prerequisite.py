@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from fabengine.actions import Prerequisite
+from fabengine.artefact_store import Artefact, ArtefactPath
 from fabengine.database import Database
 
 
@@ -56,19 +58,19 @@ class SymbolPrerequisite(Prerequisite):
         return self._symbol in self._database.symbol_table
 
 
-class FilePrerequisite(Prerequisite):
+class RealFilePrerequisite(Prerequisite):
     """
-    Prerequisite on file existing.
+    File exists in "real" filesystem.
     """
 
     def __init__(self, filename: Path):
         """
-        :param filename: File to look for.
+        :param filename: File which is our prerequisite.
         """
         self._filename = filename
 
     def __str__(self) -> str:
-        return "Prerequisite file exists: " + str(self._filename)
+        return f"Prerequisite real file exists: <{str(self._filename)}>"
 
     def __eq__(self, other) -> bool:
         """
@@ -78,7 +80,10 @@ class FilePrerequisite(Prerequisite):
         :param other: Object to compare with.
         :return: True if other is a FilePrerequisite with the same filename.
         """
-        return isinstance(other, FilePrerequisite) and self._filename == other._filename
+        return (
+            isinstance(other, RealFilePrerequisite)
+            and self._filename == other._filename
+        )
 
     def __hash__(self) -> int:
         """
@@ -105,36 +110,46 @@ class FilePrerequisite(Prerequisite):
         return self._filename.exists()
 
 
-class InclusionPrerequisite(Prerequisite):
+class ArtefactPrerequisite(Prerequisite):
     """
-    Prerequisite on inclusion file.
+    File exists in "virtual" filesystem.
     """
 
-    def __init__(self, filename: Path, database: Database):
+    def __init__(self, filename: ArtefactPath, database: Database):
         """
-        :param filename: Inclusion file.
-        :param database: Build state and configuration.
+        :param filename: File which is our prerequisite.
         """
         self._filename = filename
         self._database = database
 
     def __str__(self) -> str:
-        return "Prerequisite inclusion: " + str(self._filename)
+        return f"Prerequisite virtual file exists <{self._filename}>"
+
+    def __hash__(self) -> int:
+        return hash(self._filename)
+
+    def __eq__(self, other: Any) -> bool:
+        return (
+            isinstance(other, ArtefactPrerequisite)
+            and other._filename == self._filename
+        )
+
+    def __lt__(self, other: Any) -> bool:
+        return (
+            isinstance(other, ArtefactPrerequisite) and self._filename < other._filename
+        )
 
     @property
-    def filename(self) -> Path:
-        """
-        Gets prerequisite filename.
-        """
-        return self._filename
+    def filename(self) -> Artefact:
+        return self._database.artefact_store.get_artefact(self._filename)
 
     def ready(self) -> bool:
         """
         Tests prerequisite.
 
-        :return: True if file is in inclusions list.
+        :return: True if file exists.
         """
-        return self._filename in self._database.inclusions
+        return self._database.artefact_store.exists(self._filename)
 
 
 class BooleanPrerequisite(Prerequisite):

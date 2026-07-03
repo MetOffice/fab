@@ -13,7 +13,7 @@ def convert_timings_string(timings: list[str]) -> list[int]:
     """
     deltas: list[int] = []
     for timing in timings:
-        minutes, _, seconds = timing.partition(':')
+        minutes, _, seconds = timing.partition(":")
         if not minutes or not seconds:
             raise RuntimeError("Unable to parse timing string: " + timing)
         deltas.append(int(minutes) * 60 + int(seconds))
@@ -23,7 +23,7 @@ def convert_timings_string(timings: list[str]) -> list[int]:
 def convert_timings_timedelta(timings: list[str]) -> list[timedelta]:
     deltas: list[timedelta] = []
     for timing in timings:
-        minutes, _, seconds = timing.partition(':')
+        minutes, _, seconds = timing.partition(":")
         deltas.append(timedelta(minutes=int(minutes), seconds=int(seconds)))
     return deltas
 
@@ -31,17 +31,19 @@ def convert_timings_timedelta(timings: list[str]) -> list[timedelta]:
 def timedelta_formatter(seconds: float, pos: float):
     delta_minutes = floor(seconds // 60)
     delta_seconds = floor(seconds % 60)
-    return f'{delta_minutes}:{delta_seconds}'
+    return f"{delta_minutes}:{delta_seconds}"
 
 
-def clustered_bar_plot(timings: dict[str, list[str]],
-                       x_groups: list[str],
-                       x_label: str,
-                       y_label: str,
-                       title: str) -> None:
+def clustered_bar_plot(
+    timings: dict[str, list[str]],
+    x_groups: list[str],
+    x_label: str,
+    y_label: str,
+    title: str,
+) -> None:
     """
     Plots a clustered bar chart.
-    
+
     :param timings: Set of timings per named experiment.
     :param x_groups: Names for timing buckets.
     :param x_label: X-axis label.
@@ -50,7 +52,7 @@ def clustered_bar_plot(timings: dict[str, list[str]],
     """
     sizes = [len(data) for data in timings.values()]
     if min(sizes) != max(sizes):
-        raise RuntimeException("Ragged data not supported")
+        raise RuntimeError("Ragged data not supported")
     number_of_readings = sizes[0]
 
     figure, axes = subplots()

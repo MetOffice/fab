@@ -6,15 +6,15 @@ from os import environ as os_environ
 from pathlib import Path
 from re import compile as re_compile, IGNORECASE
 from typing import Optional, Iterable
+from warnings import warn
 
 from fabengine.actions import (
     Action,
     Prerequisite,
     SubprocessAction,
-    SubprocessActionException,
     TwoPartPath,
 )
-from fabengine.actions.file import ImportFile
+from fabengine.artefact_store import ArtefactPath
 from fabengine.database import (
     Database,
     PrerequisiteType,
@@ -22,58 +22,34 @@ from fabengine.database import (
     SymbolType,
     SymbolInfo,
 )
+from fabengine.actions.file import MapFile
 from fabengine.package import LinkerPath, LibraryName
 from fabengine.prerequisite import (
     AnalysedPrerequisite,
-    FilePrerequisite,
-    InclusionPrerequisite,
+    RealFilePrerequisite,
+    ArtefactPrerequisite,
 )
 
 
-class ImportFortran(ImportFile):
+class MapFortran(MapFile):
     """
-    Copies Fortran source into workspace.
+    Maps Fortran source into the virtual filesystem.
     """
 
-    def __init__(self, filename: TwoPartPath, tag: str, database: Database):
-        super().__init__(filename, tag, database, kind="Fortran")
+    def __str__(self) -> str:
+        return f"Map Fortran: {self.real_file}"
+
+    def prerequisites(self) -> Iterable[Prerequisite]:
+        return [RealFilePrerequisite(self.real_file)]
 
     def perform(self) -> list[Action]:
         """
-        Performs the copy.
+        Performs the mapping.
 
         :return: An AnalyseFortran object for the new file.
         """
         actions = super().perform()
-        actions.append(AnalyseFortran(self.destination, self._database))
-        return actions
-
-
-class ImportInclusion(ImportFile):
-    """
-    Copies a file for inclusion into the workspace.
-    """
-
-    def __init__(self, filename: TwoPartPath, tag: str, database: Database):
-        super().__init__(filename, tag, database, kind="inclusion")
-
-    def perform(self) -> list[Action]:
-        """
-        Performs the copy.
-
-        :return: If a file of that name already exists an error ActionResult.
-        """
-        actions = super().perform()
-        if Path(self.destination.name) not in self._database.inclusions:
-            filename = Path(self.destination.name)
-            self._database.inclusions[filename] = self.destination
-        else:
-            raise SubprocessActionException(
-                self,
-                command=f"cp {self.source} {self.destination}",
-                return_code=-1,
-                stderr=f"Duplicate inclusion '{self.destination.name} found",
-            )
+        actions.append(AnalyseFortran(self.artefact.virtual_filename, self._database))
         return actions
 
 
@@ -88,81 +64,133 @@ class PreprocessFortranBase(SubprocessAction, ABC):
 
     def __init__(
         self,
-        fortran_file: TwoPartPath,
+        real_file: TwoPartPath,
         project: str,
         database: Database,
         extra_definitions: Optional[dict[str, str]] = None,
         kind="Fortran",
     ):
         """
-        :param fortran_file: Source file as root and branch.
+        :param real_file: Source file as root and branch.
         :param project: Name under which to collect source in workspace.
         :param database: Build system state and configuration.
         :param extra_definitions: Additional macros to use with this preprocess.
         """
-        self._fortran_file = fortran_file
+        self._real_file = real_file
         self._project = project
         self._database = database
         self._extra_definitions = extra_definitions or {}
         self._kind = kind
 
         self._prereqs: list[Prerequisite] = []
-        for filename in self._determine_prereqs(self._fortran_file.full):
-            self._prereqs.append(InclusionPrerequisite(filename, self._database))
-        self._prereqs.append(FilePrerequisite(self._fortran_file.full))
+        self._inclusions: list[Path] = []
+        for filename in self.determine_prereqs():
+            self._inclusions.append(filename)
+            self._prereqs.append(ArtefactPrerequisite(filename, self._database))
+        self._prereqs.append(RealFilePrerequisite(self.source_file))
 
         # Todo: Hardwired command
-        arguments = ["-traditional-cpp", "-P"]
+        arguments: list[str | Path] = ["-traditional-cpp", "-P"]
 
-        for name, value in self._database.build_config["fpp_definitions"].items():
+        for name, value in self._database.configuration["fpp_definitions"].items():
             arguments.append(f"-D{name}={value}")
 
         for name, value in self._extra_definitions.items():
             arguments.append(f"-D{name}={value}")
 
-        arguments.append(str(self._fortran_file.full))
-        arguments.append(str(self.destination_file))
-
         super().__init__(Path("cpp"), arguments)
 
     def __str__(self) -> str:
-        return f"Preprocess {self._kind} <{self._fortran_file.branch}>"
+        return f"Preprocess {self._kind} <{self._project}:{self._real_file.branch}>"
 
     @property
-    def destination_file(self) -> Path:
+    def source_file(self) -> Path:
         """
-        :return: Full path to destination file.
+        :return: Real path to source file.
         """
-        suffix = self._fortran_file.branch.suffix.lower()
-        return (
-            self._database.script_config["paths"]["build_dir"]
-            / self._project
-            / self._fortran_file.branch.with_suffix(suffix)
+        return self._real_file.full
+
+    @property
+    def destination_file(self) -> ArtefactPath:
+        """
+        :return: Virtual path to destination file.
+        """
+        suffix = self._real_file.branch.suffix.lower()
+        virtual_path = ArtefactPath(self._project) / self._real_file.branch.with_suffix(
+            suffix
         )
+        return virtual_path
 
     _INCLUDE_PATTERN = re_compile(r'\s*#include\s+(?P<quote>[\'"])(.+?)(?P=quote)')
 
-    def _determine_prereqs(self, filename: Path) -> list[Path]:
-        inclusions: set[Path] = set()
+    def determine_prereqs(self) -> list[ArtefactPath]:
+        inclusions: set[ArtefactPath] = set()
+        filename = self._real_file.full
         for line in filename.read_text().splitlines():
             match = self._INCLUDE_PATTERN.match(line)
             if match:
-                include_file = match.group(2)
-                inclusions.add(Path(include_file))
+                include_file = Path(match.group(2))
+                if include_file.is_absolute():
+                    raise NotImplementedError(
+                        f'Absolute import of "{include_file}" was found. '
+                        "It was never imagined absolute imports would be a "
+                        "thing so support is not implemented."
+                    )
+                else:  # include_file.is_relative()
+                    # Relative paths are taken as relative to source file.
+                    #
+                    # There is also magic to take into account the possible
+                    # existence of an "include" directory.
+                    #
+                    absolute_path = self._real_file.full.parent / include_file
+                    if not absolute_path.exists():
+                        absolute_path = (
+                            self._real_file.full.parent / "include" / include_file
+                        )
+                        if absolute_path.exists():
+                            warn(
+                                f'Inclusion "{include_file}" was not found, '
+                                'but one was found in an "include" '
+                                "directory at the same level. Support for "
+                                "this not guaranteed.",
+                                DeprecationWarning,
+                            )
+
+                    virtual_filename = ArtefactPath(
+                        self._project
+                    ) / absolute_path.relative_to(self._real_file.root)
+                inclusions.add(virtual_filename)
         return list(inclusions)
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         return self._prereqs
 
-    def perform(self) -> list[Action]:
+    def preprocess_file(
+        self, additional_arguments: Optional[list[str | Path]] = None
+    ) -> None:
         """
         Performs the preprocessing.
 
         :return: An ActionResult if the preprocessor fails.
         """
-        self.destination_file.parent.mkdir(parents=True, exist_ok=True)
-        self.run_subprocess()
-        return []
+        include_dirs: set[Path] = set()
+        for virtual_filename in self._inclusions:
+            self._database.artefact_store.promote_artefact(virtual_filename)
+            include_dirs.add(virtual_filename.parent)
+
+        arguments: list[str | Path] = additional_arguments or []
+        for include_dir in include_dirs:
+            arguments.append(
+                f"-I{self._database.configuration['paths']['build_dir'] / include_dir}"
+            )
+        arguments.append(self.source_file)
+        arguments.append(
+            self._database.artefact_store.get_artefact(
+                self.destination_file
+            ).real_filename
+        )
+
+        self.run_subprocess(additional_arguments=arguments)
 
 
 class PreprocessFortranAction(PreprocessFortranBase):
@@ -176,16 +204,17 @@ class PreprocessFortranAction(PreprocessFortranBase):
 
         :return: Action to analyse resulting source.
         """
-        arguments: list[str] = []
+        arguments: list[str | Path] = []
+        #
+        # Todo: Shouldn't this inclusion stuff be in the base class?
+        #
         inclusion_dirs: set[Path] = set()
-        for prereq in self._prereqs:
-            if isinstance(prereq, InclusionPrerequisite):
-                inclusion_dirs.add(self._database.inclusions[prereq.filename].parent)
+        for prereq in self.determine_prereqs():
+            inclusion_dirs.add(prereq.parent)
         for directory in inclusion_dirs:
             arguments.append("-I" + str(directory))
 
-        self.destination_file.parent.mkdir(parents=True, exist_ok=True)
-        self.run_subprocess(arguments)
+        super().preprocess_file(additional_arguments=arguments)
         return [AnalyseFortran(self.destination_file, self._database)]
 
 
@@ -217,7 +246,7 @@ class AnalyseFortran(Action):
     _PUBLIC_PATTERN = re_compile(r"\s*public\s*(:?::)?\s*(.+)", IGNORECASE)
     _UM_DEPENDS_ON_PATTERN = re_compile(r"\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)", IGNORECASE)
 
-    def __init__(self, source: Path, database: Database):
+    def __init__(self, source: ArtefactPath, database: Database):
         """
         :param source: Fortran source to analyse.
         :param database: Build system state and configuration.
@@ -234,7 +263,7 @@ class AnalyseFortran(Action):
         return self._source
 
     def __str__(self) -> str:
-        return "Analyse: " + self._source.name
+        return f"Analyse: <{self._source}>"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -242,7 +271,7 @@ class AnalyseFortran(Action):
 
         :return: Source file must exist.
         """
-        return [FilePrerequisite(self._source)]
+        return [ArtefactPrerequisite(self._source, self._database)]
 
     def perform(self) -> list[Action]:
         """
@@ -254,10 +283,12 @@ class AnalyseFortran(Action):
 
         actions: list[Action] = []
 
+        artefact = self._database.artefact_store.get_artefact(self._source)
+
         unit_prereqs: dict[str, PrerequisiteInfo] = {}
         current_unit: Optional[str] = None
         state = "seeking"
-        for line in self._source.read_text().splitlines():
+        for line in artefact.read_text().splitlines():
             # Strip comments, does not handle exclamation marks in quotes.
             match = self._COMMENT_PATTERN.match(line)
             if match:
@@ -315,10 +346,10 @@ class AnalyseFortran(Action):
                     name = match.group(2).lower()
                     open_mp = match.group(1) or ""
                     open_mp = "OpenMP " if open_mp.strip() else ""
-                    if open_mp and not self._database.build_config["use_open_mp"]:
+                    if open_mp and not self._database.configuration["use_open_mp"]:
                         continue
 
-                    if name in self._database.build_config["fc_ignore_modules"]:
+                    if name in self._database.configuration["fc_ignore_modules"]:
                         continue
                     if name not in unit_prereqs:
                         logger.debug(f"Found {open_mp}usage: {name}")
@@ -442,6 +473,9 @@ class DetermineFortranProgram(Action):
         return actions
 
 
+_MODULE_DIR = Path("_fortran_modules")
+
+
 class CompileFortran(SubprocessAction):
     """
     Compiles Fortran source to object and module file.
@@ -449,7 +483,7 @@ class CompileFortran(SubprocessAction):
 
     def __init__(
         self,
-        source: Path,
+        source: ArtefactPath,
         prerequisites: Iterable[PrerequisiteInfo],
         database: Database,
     ):
@@ -458,28 +492,30 @@ class CompileFortran(SubprocessAction):
         :param prerequisites: Dependencies needed to compile this file.
         :param database: Build system state and configuration.
         """
+        # Todo: Shouldn't this action know it's own prerequisites?
+        #
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
 
-        # Todo: Hardwired assumption on workspace layout
         extra_arguments: list[str] = []
-        branch_path = self._source.relative_to(
-            self._database.script_config["paths"]["build_dir"]
-        )
-        for case, tags in self._database.build_config["tag_dirs"].items():
-            if branch_path.is_relative_to(case):
+        for case, tags in self._database.configuration["tag_dirs"].items():
+            if self._source.is_relative_to(case):
                 for tag in tags:
                     extra_arguments.extend(
-                        self._database.build_config["build_tags"][tag]
+                        self._database.configuration["build_tags"][tag]
                     )
         mp_get_logger().debug("Special arguments: " + ", ".join(extra_arguments))
 
+        self._full_module_dir = (
+            self._database.configuration["paths"]["work_dir"] / _MODULE_DIR
+        )
+        self._full_module_dir.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired arguments
         arguments = [
             "-c",
             "-J",
-            str(self._database.script_config["paths"]["module_dir"]),
+            self._full_module_dir,
             "-fopenmp",
             "-std=f2008",
             "-ffree-line-length-none",
@@ -491,14 +527,21 @@ class CompileFortran(SubprocessAction):
         arguments.extend(extra_arguments)
         arguments.append("-fallow-argument-mismatch")
 
-        destination = self._source.with_suffix(".o")
-        arguments.extend([str(self._source), "-o", str(destination)])
+        arguments.extend(
+            [
+                self._database.artefact_store.get_artefact(self._source).real_filename,
+                "-o",
+                self._database.artefact_store.get_artefact(
+                    self._source.with_suffix(".o")
+                ).real_filename,
+            ]
+        )
 
         exe = Path("mpif90")
         super().__init__(exe, arguments)
 
     def __str__(self) -> str:
-        return "Compile: " + self._source.name
+        return f"Compile: <{self._source}>"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -515,8 +558,8 @@ class CompileFortran(SubprocessAction):
         for symbol in self._prerequisites:
             if symbol.nature == PrerequisiteType.USE:
                 name = Path(symbol.name).with_suffix(".mod").name
-                module_file = self._database.script_config["paths"]["module_dir"] / name
-                prereqs.append(FilePrerequisite(module_file))
+                module_file = self._full_module_dir / name
+                prereqs.append(RealFilePrerequisite(module_file))
             elif symbol.nature == PrerequisiteType.EXTERNAL:
                 pass  # The compiler doesn't interrogate externals
             elif symbol.nature == PrerequisiteType.UM:
@@ -554,11 +597,13 @@ class LinkFortran(SubprocessAction):
         self._modules = modules
         self._database = database
 
-        dest = self._database.script_config["paths"]["bin_dir"] / self._program
-        arguments = ["-o", dest, "-fopenmp"]
+        self._exe_file = (
+            self._database.configuration["paths"]["bin_dir"] / self._program
+        )
+        arguments = ["-fopenmp", "-o", self._exe_file]
 
         self._library_args: list[str] = []
-        for package in self._database.build_config["packages"]:
+        for package in self._database.configuration["packages"].values():
             for arg in package.link_arguments:
                 if isinstance(arg, LinkerPath):
                     self._library_args.append("-L" + str(arg.path))
@@ -594,7 +639,7 @@ class LinkFortran(SubprocessAction):
                 object_file = self._database.symbol_table[
                     module
                 ].source_file.with_suffix(".o")
-                prereqs.append(FilePrerequisite(object_file))
+                prereqs.append(ArtefactPrerequisite(object_file, self._database))
             else:  # Module has not yet been analysed
                 prereqs.append(AnalysedPrerequisite(module, self._database))
         return prereqs
@@ -607,15 +652,19 @@ class LinkFortran(SubprocessAction):
         """
         objects: set[Path] = set()
         for module in self._modules:
-            object_file = self._database.symbol_table[module].source_file.with_suffix(
+            virtual_file = self._database.symbol_table[module].source_file.with_suffix(
                 ".o"
             )
-            objects.add(object_file)
+            artefact = self._database.artefact_store.get_artefact(virtual_file)
+            objects.add(artefact.real_filename)
 
-        arguments: list[str] = []
+        arguments: list[str | Path] = []
         for object_file in objects:
-            arguments.append(str(object_file))
+            arguments.append(object_file)
         arguments.extend(self._library_args)
 
         self.run_subprocess(arguments)
+        self._database.artefact_store.map_file(
+            self._exe_file, Path("bin") / self._exe_file.name
+        )
         return []

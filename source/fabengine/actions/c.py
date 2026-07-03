@@ -6,28 +6,16 @@ from pathlib import Path
 from re import compile as re_compile, IGNORECASE
 from typing import Generator, Iterable
 
-from fabengine.actions import (
-    Action,
-    Prerequisite,
-    SubprocessAction,
-    TwoPartPath,
-)
-from fabengine.actions.file import ImportFile
-from fabengine.database import (
-    Database,
-)
-from fabengine.prerequisite import (
-    FilePrerequisite,
-)
+from fabengine.actions import Action, Prerequisite, SubprocessAction
+from fabengine.actions.file import MapFile
+from fabengine.database import ArtefactPath, Database
+from fabengine.prerequisite import ArtefactPrerequisite, RealFilePrerequisite
 
 
-class ImportC(ImportFile):
+class MapC(MapFile):
     """
     Copies C source into workspace.
     """
-
-    def __init__(self, filename: TwoPartPath, tag: str, database: Database):
-        super().__init__(filename, tag, database, kind="C")
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -35,7 +23,7 @@ class ImportC(ImportFile):
 
         :return: Source file must exist.
         """
-        return [FilePrerequisite(self.source)]
+        return [RealFilePrerequisite(self.real_file)]
 
     def perform(self) -> list[Action]:
         """
@@ -44,11 +32,8 @@ class ImportC(ImportFile):
         :return: An AnalyseC object for the new file.
         """
 
-        logger = mp_get_logger()
-        logger.debug(f"ImportC: {self.source}")
-
         actions = super().perform()
-        actions.append(AnalyseC(self.destination, self._database))
+        actions.append(AnalyseC(self.artefact.virtual_filename, self._database))
         return actions
 
 
@@ -70,7 +55,7 @@ class AnalyseC(Action):
         SEEKING = auto()
         IN_COMMENT = auto()
 
-    def __init__(self, source: Path, database: Database):
+    def __init__(self, source: ArtefactPath, database: Database):
         """
         :param source: C source to analyse.
         :param database: Build system state and configuration.
@@ -143,7 +128,7 @@ class AnalyseC(Action):
 
         :return: Source file must exist.
         """
-        return [FilePrerequisite(self._source)]
+        return [ArtefactPrerequisite(self._source, self._database)]
 
     def perform(self) -> list[Action]:
         """
@@ -156,14 +141,15 @@ class AnalyseC(Action):
         logger.debug(f"AnalyseC: {self._source.name}")
 
         source_basename = self._source.stem
-        source_dirname = self._source.parent
 
         actions: list[Action] = []
-        linker_prerequisites: list[FilePrerequisite] = []
+        linker_prerequisites: list[ArtefactPrerequisite] = []
 
         found_main = False
 
-        for normalised_line in self._normalise_source(self._source):
+        for normalised_line in self._normalise_source(
+            self._database.artefact_store.get_artefact(self._source)
+        ):
             # (comments and blank lines have already been removed, so we can just search for includes and main programs without worrying about comment syntax)
 
             match = self._MAIN_PATTERN.match(normalised_line)
@@ -183,8 +169,8 @@ class AnalyseC(Action):
                         f"AnalyseC found a dependency: {included_file} in {self._source.name}"
                     )
                     linker_prerequisites.append(
-                        FilePrerequisite(
-                            source_dirname / (included_file_basename + ".o")
+                        ArtefactPrerequisite(
+                            ArtefactPath(included_file_basename + ".o"), self._database
                         )
                     )
                 continue
@@ -193,7 +179,10 @@ class AnalyseC(Action):
         actions.append(CompileC(self._source, self.prerequisites(), self._database))
         if found_main:
             # those source files w/ a main program, also need to be linked into an executable
-            actions.append(LinkC(self._source, linker_prerequisites, self._database))
+            # Prerequisites are sorted to avoid non-deterministic behaviour upsetting testing.
+            actions.append(
+                LinkC(self._source, sorted(linker_prerequisites), self._database)
+            )
 
         return actions
 
@@ -265,7 +254,7 @@ class LinkC(SubprocessAction):
     def __init__(
         self,
         source: Path,
-        prerequisites: Iterable[FilePrerequisite],
+        prerequisites: Iterable[ArtefactPrerequisite],
         database: Database,
     ):
         """
@@ -277,12 +266,15 @@ class LinkC(SubprocessAction):
         self._prerequisites = set(prerequisites)
         self._database = database
 
-        self._object_file = self._source.with_suffix(".o")
-        self._prerequisites.add(FilePrerequisite(self._object_file))
+        self._object_file = ArtefactPath(self._source.with_suffix(".o"))
+        self._prerequisites.add(ArtefactPrerequisite(self._object_file, self._database))
 
-        dest = self._database.script_config["paths"]["bin_dir"] / self._source.stem
+        dest = self._database.configuration["paths"]["bin_dir"] / self._source.stem
         arguments = [
-            *[prerequisite.filename for prerequisite in self._prerequisites],
+            *[
+                prerequisite.filename.real_filename
+                for prerequisite in sorted(self._prerequisites)
+            ],
             "-o",
             dest,
         ]
@@ -302,7 +294,7 @@ class LinkC(SubprocessAction):
         :return: Collection of prerequisite rules.
         """
         prereqs = self._prerequisites
-        prereqs.add(FilePrerequisite(self._object_file))
+        prereqs.add(ArtefactPrerequisite(self._object_file, self._database))
         return prereqs
 
     def perform(self) -> list[Action]:

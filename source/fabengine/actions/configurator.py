@@ -8,9 +8,17 @@ from fabengine.actions import (
     SubprocessAction,
     Prerequisite,
 )
-from fabengine.prerequisite import FilePrerequisite
+from fabengine.artefact_store import ArtefactPath
+from fabengine.prerequisite import ArtefactPrerequisite
 from fabengine.actions.fortran import AnalyseFortran
 from fabengine.database import Database
+
+
+_CONFIGURATION_DIR = ArtefactPath("_configuration")
+_JSON_FILE = _CONFIGURATION_DIR / "rose-meta.json"
+_LIST_FILE = _CONFIGURATION_DIR / "config_namelists.txt"
+_LOADER_FILE = _CONFIGURATION_DIR / "config_loader_mod.f90"
+_DUPLICATE_FILE = _CONFIGURATION_DIR / "duplicate_namelists.txt"
 
 
 class RosePickerPrerequisite(Prerequisite):
@@ -106,12 +114,10 @@ class RosePicker(SubprocessAction):
         self._filename = filename
         self._database = database
 
-        self._configuration_dir = (
-            self._database.script_config["paths"]["build_dir"] / "configuration"
+        configuration_dir = self._database.artefact_store.ensure_directory(
+            _CONFIGURATION_DIR
         )
-        self._configuration_dir.mkdir(parents=True, exist_ok=True)
-
-        arguments = [self._filename, "-directory", self._configuration_dir]
+        arguments = [self._filename, "-directory", configuration_dir]
         super().__init__(Path("rose_picker"), arguments)
 
     def __str__(self) -> str:
@@ -130,23 +136,20 @@ class RosePicker(SubprocessAction):
         """
         Performs "Rose Picker" action.
 
-        Generates :class:`ConfigurationLoader` and :class:`NamelistLoader`
-        actions to operate on resulting intermediate files.
+        Generates :class:`ConfigurationLoader`, :class:`NamelistLoader` and
+        :class:NamelistType` actions to operate on resulting intermediate
+        files.
         """
         arguments = []
         for directory in self._database.config_meta_dirs:
             arguments.extend(["-include_dirs", directory])
         self.run_subprocess(additional_arguments=arguments)
+        self._database.artefact_store.notice_file(_LIST_FILE)
+        self._database.artefact_store.notice_file(_JSON_FILE)
         return [
-            ConfigurationLoader(
-                self._configuration_dir / "config_namelists.txt",
-                self._database,
-            ),
-            NamelistType(
-                self._configuration_dir / "rose-meta.json",
-                self._configuration_dir / "config_namelists.txt",
-                self._database,
-            ),
+            ConfigurationLoader(_LIST_FILE, self._database),
+            NamelistType(_JSON_FILE, _LIST_FILE, self._database),
+            NamelistLoader(_JSON_FILE, _LIST_FILE, self._database),
         ]
 
 
@@ -155,24 +158,27 @@ class ConfigurationLoader(SubprocessAction):
     Generates Fortran source to load full configuration.
     """
 
-    def __init__(self, filename: Path, database: Database):
+    def __init__(self, filename: ArtefactPath, database: Database):
         """
-        :param filename: Location of ``config_namelists.txt`` file from Rose
-                         Picker.
+        :param filename: Virtual filename of ``config_namelists.txt`` file from
+                         Rose Picker.
         :param database: Build state and configuration.
         """
         self._filename = filename
         self._database = database
 
-        self._output_dir = self._database.script_config["paths"]["build_dir"]
-        arguments: list[Any] = ["-o", self._output_dir]
+        self._configuration_dir = self._database.artefact_store.ensure_directory(
+            _CONFIGURATION_DIR
+        )
+        arguments: list[Any] = ["-o", self._configuration_dir]
 
-        for line in self._filename.read_text().splitlines():
+        list_artefact = self._database.artefact_store.get_artefact(self._filename)
+        for line in list_artefact.read_text().splitlines():
             for namelist in line.split():
                 arguments.append(namelist)
 
         super().__init__(
-            self._database.script_config["paths"]["generate-config-loader"], arguments
+            self._database.configuration["paths"]["generate-config-loader"], arguments
         )
 
     def __str__(self) -> str:
@@ -183,9 +189,8 @@ class ConfigurationLoader(SubprocessAction):
         Gets all prerequisites.
 
         :return: Requirement on ``config_namelists.txt`` file.
-        :rtype: Iterable[FilePrerequisite]
         """
-        return [FilePrerequisite(self._filename)]
+        return [ArtefactPrerequisite(self._filename, self._database)]
 
     def perform(self) -> Iterable[Action]:
         """
@@ -194,9 +199,9 @@ class ConfigurationLoader(SubprocessAction):
         :return: Action to analyse resulting Fortran source.
         """
         self.run_subprocess()
-        return [
-            AnalyseFortran(self._output_dir / "config_loader_mod.f90", self._database)
-        ]
+
+        self._database.artefact_store.notice_file(_LOADER_FILE)
+        return [AnalyseFortran(_LOADER_FILE, self._database)]
 
 
 class NamelistType(SubprocessAction):
@@ -204,27 +209,29 @@ class NamelistType(SubprocessAction):
     Generates Fortran source to load namelists.
     """
 
-    def __init__(self, json_file: Path, namelist_file: Path, database: Database):
+    def __init__(
+        self, json_file: ArtefactPath, namelist_file: ArtefactPath, database: Database
+    ):
         """
         .. todo:: Change namelist generation to be done namelist at a time.
 
-        :param json_file: Location of ``rose-meta.json`` generated by Rose
-                          Picker.
-        :param namelist_file: Location of ``config_namelists.txt`` generated
-                              by Rose Picker.
+        :param json_file: Virtual filename of ``rose-meta.json`` generated by
+                          Rose Picker.
+        :param namelist_file: Virtual filename of ``config_namelists.txt``
+                              generated by Rose Picker.
         :param database: Build state and configuration.
         """
         self._json_file = json_file
         self._namelist_file = namelist_file
         self._database = database
 
-        self._config_dir = (
-            self._database.script_config["paths"]["build_dir"] / "configuration"
+        self._configuration_dir = self._database.artefact_store.ensure_directory(
+            _CONFIGURATION_DIR
         )
-
-        arguments = [self._json_file, "-directory", self._config_dir]
+        json_artefact = self._database.artefact_store.get_artefact(self._json_file)
+        arguments = [json_artefact.real_filename, "-directory", self._configuration_dir]
         super().__init__(
-            self._database.script_config["paths"]["generate-extended-namelist-type"],
+            self._database.configuration["paths"]["generate-extended-namelist-type"],
             arguments,
         )
 
@@ -237,11 +244,10 @@ class NamelistType(SubprocessAction):
 
         :return: Prerequisites on ``rose-meta.json`` and
                  ``config_namelists.txt`` files.
-        :rtype: Iterable[FilePrerequisite]
         """
         return [
-            FilePrerequisite(self._json_file),
-            FilePrerequisite(self._namelist_file),
+            ArtefactPrerequisite(self._json_file, self._database),
+            ArtefactPrerequisite(self._namelist_file, self._database),
         ]
 
     def perform(self) -> list[Action]:
@@ -253,15 +259,12 @@ class NamelistType(SubprocessAction):
         self.run_subprocess()
 
         actions: list[Action] = []
-        for line in self._namelist_file.read_text().splitlines():
+        list_artefact = self._database.artefact_store.get_artefact(self._namelist_file)
+        for line in list_artefact.read_text().splitlines():
             for namelist in line.split():
-                leafname = namelist + "_nml_mod.f90"
-                actions.append(
-                    AnalyseFortran(self._config_dir / leafname, self._database)
-                )
-        actions.append(
-            NamelistLoader(self._json_file, self._namelist_file, self._database)
-        )
+                virtual_filename = _CONFIGURATION_DIR / f"{namelist}_nml_mod.f90"
+                self._database.artefact_store.notice_file(virtual_filename)
+                actions.append(AnalyseFortran(virtual_filename, self._database))
         return actions
 
 
@@ -272,8 +275,8 @@ class ConfigType(SubprocessAction):
 
     def __init__(
         self,
-        namelist_file: Path,
-        duplicates_file: Path,
+        namelist_file: ArtefactPath,
+        duplicates_file: ArtefactPath,
         database: Database,
     ):
         """
@@ -283,24 +286,29 @@ class ConfigType(SubprocessAction):
         self._duplicates_file = duplicates_file
         self._database = database
 
-        self._config_dir = (
-            self._database.script_config["paths"]["build_dir"] / "configuration"
+        self._configuration_dir = self._database.artefact_store.ensure_directory(
+            _CONFIGURATION_DIR
         )
+        arguments = ["-o", self._configuration_dir]
 
-        arguments = ["-o", self._config_dir]
-
-        for line in self._duplicates_file.read_text().splitlines():
+        duplicates_artefact = self._database.artefact_store.get_artefact(
+            self._duplicates_file
+        )
+        for line in duplicates_artefact.read_text().splitlines():
             if not line:
                 continue
             arguments.extend(["-duplicate", line.strip()])
 
-        for line in self._namelist_file.read_text().splitlines():
+        namelist_artefact = self._database.artefact_store.get_artefact(
+            self._namelist_file
+        )
+        for line in namelist_artefact.read_text().splitlines():
             if not line:
                 continue
             arguments.append(line.strip())
 
         super().__init__(
-            self._database.script_config["paths"]["generate-config-type"], arguments
+            self._database.configuration["paths"]["generate-config-type"], arguments
         )
 
     def __str__(self) -> str:
@@ -311,11 +319,10 @@ class ConfigType(SubprocessAction):
         Gets action prerequisites.
 
         :return: Prerequisites on namelist and duplicate files.
-        :rtype: Iterable[FilePrerequisite]
         """
         return [
-            FilePrerequisite(self._namelist_file),
-            FilePrerequisite(self._duplicates_file),
+            ArtefactPrerequisite(self._namelist_file, self._database),
+            ArtefactPrerequisite(self._duplicates_file, self._database),
         ]
 
     def perform(self) -> list[Action]:
@@ -325,8 +332,10 @@ class ConfigType(SubprocessAction):
         :return: Action to analyse resulting Fortran source.
         """
         self.run_subprocess()
+        virtual_filename = _CONFIGURATION_DIR / "config_mod.f90"
+        self._database.artefact_store.notice_file(virtual_filename)
 
-        return [AnalyseFortran(self._config_dir / "config_mod.f90", self._database)]
+        return [AnalyseFortran(virtual_filename, self._database)]
 
 
 class NamelistLoader(SubprocessAction):
@@ -336,25 +345,28 @@ class NamelistLoader(SubprocessAction):
     .. todo:: Change namelist generation to be done namelist at a time.
     """
 
-    def __init__(self, json_file: Path, namelist_file: Path, database: Database):
+    def __init__(
+        self, json_file: ArtefactPath, namelist_file: ArtefactPath, database: Database
+    ):
         """
-        :param json_file: Location of ``rose-meta.json`` generated by Rose
-                          Picker.
-        :param namelist_file: Location of ``config_namelists.txt`` generated
-                              by Rose Picker.
+        :param json_file: Virtual filename of ``rose-meta.json`` generated by
+                          Rose Picker.
+        :param namelist_file: Virtual filename of ``config_namelists.txt``
+                              generated by Rose Picker.
         :param database: Build state and configuration.
         """
         self._json_file = json_file
         self._namelist_file = namelist_file
         self._database = database
 
-        self._config_dir = (
-            self._database.script_config["paths"]["build_dir"] / "configuration"
+        self._configuration_dir = self._database.artefact_store.ensure_directory(
+            _CONFIGURATION_DIR
         )
 
-        arguments = [self._json_file, "-directory", self._config_dir]
+        json_artefact = self._database.artefact_store.get_artefact(self._json_file)
+        arguments = [json_artefact.real_filename, "-directory", self._configuration_dir]
         super().__init__(
-            self._database.script_config["paths"]["generate-namelist-loader"], arguments
+            self._database.configuration["paths"]["generate-namelist-loader"], arguments
         )
 
     def __str__(self) -> str:
@@ -366,11 +378,10 @@ class NamelistLoader(SubprocessAction):
 
         :return: Prerequisites on ``rose-meta.json`` and
                  ``config_namelists.txt`` files.
-        :rtype: Iterable[FilePrerequisite]
         """
         return [
-            FilePrerequisite(self._json_file),
-            FilePrerequisite(self._namelist_file),
+            ArtefactPrerequisite(self._json_file, self._database),
+            ArtefactPrerequisite(self._namelist_file, self._database),
         ]
 
     def perform(self) -> list[Action]:
@@ -384,14 +395,15 @@ class NamelistLoader(SubprocessAction):
         actions: list[Action] = [
             ConfigType(
                 self._namelist_file,
-                self._config_dir / "duplicate_namelists.txt",
+                _DUPLICATE_FILE,
                 self._database,
             )
         ]
-        for line in self._namelist_file.read_text().splitlines():
+
+        list_artefact = self._database.artefact_store.get_artefact(self._namelist_file)
+        for line in list_artefact.read_text().splitlines():
             for namelist in line.split():
-                leafname = namelist + "_config_mod.f90"
-                actions.append(
-                    AnalyseFortran(self._config_dir / leafname, self._database)
-                )
+                virtual_filename = _CONFIGURATION_DIR / f"{namelist}_config_mod.f90"
+                self._database.artefact_store.notice_file(virtual_filename)
+                actions.append(AnalyseFortran(virtual_filename, self._database))
         return actions
