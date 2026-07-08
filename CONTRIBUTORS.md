@@ -14,6 +14,7 @@ If you are not submitting contributions on behalf of an organisation please use
 |-----------------|-----------------|-------------|
 | MatthewHambley  | Matthew Hambley | Met Office  |
 
+---
 
 ## Momentum Open Source Software Contributor Agreement
 
