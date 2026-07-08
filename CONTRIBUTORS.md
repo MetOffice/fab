@@ -2,8 +2,8 @@
 
 If this is your first contribution, you will need to agree to the
 [Momentum Open Source Software Contributor Agreement](https://github.com/MetOffice/Momentum/blob/main/CLA.md)
-. A copy of v1.0 is provided below for cenvienience but the version linked
-above always takes precidence.
+. A copy of v1.0 is provided [below](#momentum-open-source-software-contributor-agreement) for convenience but the version linked
+above always takes precedence.
 
 To indicate your agreement, add your details to the the following table.
 
