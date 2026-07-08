@@ -26,11 +26,13 @@ found.
 Contributions
 =============
 
-Contributions may be made by raising a pull request against the trunk branch
-at <https://github.com/MetOffice/fab>. You will need a personal fork of the
-repository to host your development branch.
+Contributions may be made by raising a pull request against the
+`trunk branch`_. You will need a personal fork of the repository to host your
+development branch.
 
-If this is your first contribution, you will need to agree to the contributor
-agreement <https://github.com/MetOffice/Momentum/blob/main/CLA.md> and your
-branch will need to include the addition of your details to the the
-``CONTRIBUTORS.md`` file.
+If this is your first contribution, you will need to agree to the `contributor
+agreement`_ and your branch will need to include the addition of your details
+to the the ``CONTRIBUTORS.md`` file.
+
+.. _trunk branch: https://github.com/MetOffice/fab
+.. _contributor agreement: https://github.com/MetOffice/Momentum/blob/main/CLA.md

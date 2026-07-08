@@ -1,10 +1,12 @@
 # Contributor List
 
-If this is your first contribution, your branch will need to agree to the
-MOMENTUM Open Source Software Contributor Agreement (a copy of v1.0 is provided
-below but the current version may be found at
-<https://github.com/MetOffice/Momentum/blob/main/CLA.md?plain=1>). To indica
-your agreement, add your details to the the following table.
+If this is your first contribution, you will need to agree to the [MOMENTUM
+Open Source Software Contributor Agreement]
+(https://github.com/MetOffice/Momentum/blob/main/CLA.md)). A copy of v1.0 is
+provided below for cenvienience but the version linked above always takes
+precidence.
+
+To indicate your agreement, add your details to the the following table.
 
 If you are not submitting contributions on behalf of an organisation please use
 "n/a" for your affiliation.
