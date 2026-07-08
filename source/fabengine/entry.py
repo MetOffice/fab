@@ -134,6 +134,23 @@ def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
         action="store_true",
         help="Get really chatty with running commentary.",
     )
+    # Todo: At the moment, not all unit tests will run due to the feigner
+    #       requiring MPI but only those tests which use it are launched with
+    #       it. For the moment the logic will be inverted, but once
+    #       everything's working right, testing should be the default.
+    #
+    parser.add_argument(
+        "--test",
+        dest="testing",
+        action="store_true",
+        help="Run tests associated with source.",
+    )
+    # parser.add_argument(
+    #     "--no-test",
+    #     dest="testing",
+    #     action="store_false",
+    #     help="Don't run tests associated with source.",
+    # )
     parser.add_argument(
         "--no-monitor",
         dest="monitor",
@@ -221,8 +238,14 @@ def pollute_configuration(configuration: WriteOnceDict) -> None:
         {"real": "real64"},
         {"integer": "int32"},
     ]
-    configuration["build_tags"] = {"um": ["-fdefault-real-8", "-fdefault-double-8"]}
+    configuration["build_tags"] = {
+        "um": ["-fdefault-real-8", "-fdefault-double-8"],
+        "old-mpi": ["-fallow-argument-mismatch"],
+        "gnu-intrinsics": ["-fall-intrinsics"],
+    }
     configuration["tag_dirs"] = {
+        "infrastructure/utilities/lfric_mpi_mod.f90": ["old-mpi"],
+        "infrastructure/utilities/timer_mod_test.f90": ["gnu-intrinsics"],
         "casim/": ["um"],
         "jules/": ["um"],
         "physics_schemes/": ["um"],
@@ -231,6 +254,11 @@ def pollute_configuration(configuration: WriteOnceDict) -> None:
         "ukca/": ["um"],
     }
     configuration["inclusion_suffixes"] = [".h", ".inc"]
+    configuration["mock_tests"] = [
+        "lfric_xios_diag_mod_test",
+        "lfric_xios_read_mod_test",
+        "lfric_xios_write_mod_test",
+    ]
     configuration["use_open_mp"] = True
 
 
@@ -262,9 +290,11 @@ def cli() -> None:
     logger.addHandler(StreamHandler())
 
     configuration = WriteOnceDict()
-    configuration["worker_threads"] = options.jobs
     configuration["monitor"] = options.monitor
     configuration["queue_strategy"] = options.queue_strategy
+    configuration["testing"] = options.testing
+    configuration["worker_threads"] = options.jobs
+
     configuration["paths"] = WriteOnceDict()
     configuration["paths"]["work_dir"] = options.work_dir
     configuration["paths"]["build_dir"] = configuration["paths"]["work_dir"] / "build"

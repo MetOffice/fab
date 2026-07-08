@@ -98,15 +98,39 @@ class Action(ABC):
 
 
 class SubprocessAction(Action, ABC):
-    def __init__(self, executable: Path, arguments: Optional[Iterable[Any]] = None):
+    def __init__(
+        self,
+        executable: Path,
+        arguments: Optional[Iterable[Any]] = None,
+        mpi: Optional[int] = None,
+    ):
         self._executable = executable
         self._arguments = arguments or []
+
+        if mpi is None:
+            self._mpi = mpi
+        elif mpi > 0:
+            self._mpi = mpi
+        else:  # mpi < 1
+            raise ValueError("Number of MPI ranks must be 1 or greater.")
+
         super().__init__(" ".join(str(self._arguments)))
 
+    @property
+    def executable(self) -> Path:
+        return self._executable
+
     def run_subprocess(
-        self, additional_arguments: Optional[Iterable[Any]] = None
+        self,
+        directory: Optional[Path] = None,
+        additional_arguments: Optional[Iterable[Any]] = None,
     ) -> None:
-        command = [str(self._executable)]
+        command: list[str]
+        if self._mpi:
+            command = ["mpiexec", "-n", str(self._mpi)]
+        else:
+            command = []
+        command.append(str(self._executable))
 
         for arg in self._arguments:
             command.append(str(arg))
@@ -114,7 +138,12 @@ class SubprocessAction(Action, ABC):
         for arg in additional_arguments or []:
             command.append(str(arg))
 
-        process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
+        if directory is None:
+            process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
+        else:
+            process = run(
+                command, cwd=directory, stdout=PIPE, stderr=PIPE, encoding="utf8"
+            )
         if process.returncode != 0:
             raise SubprocessActionException(
                 self,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from logging import StreamHandler, getLogger, WARNING
+from logging import StreamHandler, getLogger, DEBUG, INFO
 from multiprocessing import get_logger as mp_get_logger, Barrier
 from queue import Queue
 
@@ -18,8 +18,15 @@ def fab_core(configuration: WriteOnceDict):
     Build system entry point.
     """
     mp_logger = mp_get_logger()
-    mp_logger.setLevel(WARNING)
     mp_logger.addHandler(StreamHandler())
+    if getLogger(__name__).getEffectiveLevel() == DEBUG:
+        # If we put the multiprocess logger into "debug" level we get an
+        # incredible amount of chatter from the multiprocess library itself.
+        # This is only useful if there is a fundamental problem.
+        #
+        mp_logger.setLevel(INFO)
+    else:
+        mp_logger.setLevel(getLogger(__name__).level)
 
     with FabManager() as manager:
         database = Database(configuration, manager)
@@ -35,9 +42,7 @@ def fab_core(configuration: WriteOnceDict):
         performance = Performance(manager)
         result_queue: Queue[WorkerException] = manager.Queue()
         for repository in configuration["repositories"]:
-            repo_action = repository.create_action(
-                configuration["paths"]["work_dir"], database
-            )
+            repo_action = repository.create_action(database)
 
             for identifier, path in repository.paths.items():
                 full_path = repo_action.local_copy() / path
@@ -55,7 +60,6 @@ def fab_core(configuration: WriteOnceDict):
                     repo_action.local_copy() / project.configuration_meta_data
                 )
                 if project.configuration_meta_data.name == "rose-meta.conf":
-                    # Todo: Don't like Core reference here
                     work_queue.new_action(RosePicker(meta_data_path, database))
                 else:  # Is a directory
                     database.config_meta_dirs.append(meta_data_path)
@@ -110,9 +114,9 @@ def fab_core(configuration: WriteOnceDict):
             getLogger(__name__).error("Failed " + result.describe())
 
         if configuration["paths"]["performance_file"]:
-            with configuration["paths"]["performance_file"].open("wt") as fhandle:
+            with configuration["paths"]["performance_file"].open("wt") as stream:
                 tally = performance.aggregate_action_log()
                 for action_str in sorted(tally.keys()):
-                    print(action_str + ", " + str(tally[action_str]), file=fhandle)
+                    print(f'"{action_str}", {tally[action_str]}', file=stream)
 
         database.artefact_store.dump_map()

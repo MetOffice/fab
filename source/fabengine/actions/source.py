@@ -12,7 +12,7 @@ from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPat
 from fabengine.actions.file import MapFile
 from fabengine.actions.c import MapC
 from fabengine.actions.fortran import MapFortran, PreprocessFortranAction
-from fabengine.actions.pfunit import PfUnit
+from fabengine.actions.pfunit import ImportTestData, PfUnit
 from fabengine.actions.psyclone import MapAlgorithm, PreprocessAlgorithm
 from fabengine.actions.templaterator import Templaterator
 from fabengine.artefact_store import ArtefactPath
@@ -29,6 +29,10 @@ class RepositoryAction(ABC):
     def __init__(self, projects: list[Project], database: Database):
         self._projects = projects
         self._database = database
+
+    @property
+    def database(self) -> Database:
+        return self._database
 
     @abstractmethod
     def local_copy(self) -> Path:
@@ -48,6 +52,19 @@ class RepositoryAction(ABC):
                     project.source_include,
                 )
             )
+            unit_test_dir = self.local_copy() / project.unit_test_dir
+            if unit_test_dir.is_dir() and self._database.configuration["testing"]:
+                actions.append(
+                    SourceDirectory(unit_test_dir, project.identifier, self._database)
+                )
+                test_data_dir = unit_test_dir / "data"
+                if test_data_dir.is_dir():
+                    self.database.unit_data_copies_enqueued.append(project.identifier)
+                    actions.append(
+                        ImportTestData(
+                            test_data_dir, project.identifier, self._database
+                        )
+                    )
         return actions
 
 
@@ -64,7 +81,6 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         """
         RepositoryAction.__init__(self, projects, database)
         self._remote = remote
-        self._database = database
 
         self._local = self._database.configuration["paths"]["work_dir"]
         SubprocessAction.__init__(
@@ -127,7 +143,20 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
             raise RuntimeError("Malformed URL in SourceOnGitHubAction")
 
         self._url = url
-        self._database = database
+
+        self._scheme = parse_result.scheme
+        self._netloc = parse_result.netloc
+        self._path = parse_result.path
+
+        self._revision: Optional[str]
+        self._branch: Optional[str]
+        try:
+            _ = int(parse_result.fragment, 16)
+            self._revision = parse_result.fragment
+            self._branch = None
+        except ValueError:
+            self._revision = None
+            self._branch = parse_result.fragment
 
         SubprocessAction.__init__(self, Path("git"))  # Parent constructor
 
@@ -144,9 +173,8 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         """
         :return: Path of local copy.
         """
-        _, netloc, path, _, query, fragment = urlparse(self._url)
-        name = Path(path).stem
-        return self._database.configuration["paths"]["work_dir"] / name
+        name = Path(self._path).stem
+        return self.database.configuration["paths"]["work_dir"] / name
 
     def perform(self) -> list[Action]:
         """
@@ -155,18 +183,37 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         :return: Error result if extraction fails, otherwise action to examine
                  freshly imported source.
         """
+        url = f"{self._scheme}://{self._netloc}{self._path}"
         repo_marker = self.local_copy() / ".git"
         arguments: list[str | Path]
+
         if repo_marker.is_dir():  # Repository is present
-            arguments = ["-C", str(self.local_copy()), "pull"]
+            arguments = ["-C", self.local_copy()]
+            if self._revision is None:
+                arguments.append("pull")
+                self.run_subprocess(additional_arguments=arguments)
+                return self.projects()
         else:  # Repository is missing
-            parse_result = urlparse(self._url)
-            url = f"{parse_result.scheme}://{parse_result.netloc}{':' + str(parse_result.port) if parse_result.port else ''}{parse_result.path}"
             arguments = ["clone", "--depth=1"]
-            if parse_result.fragment:
-                arguments.append(f"--branch={parse_result.fragment}")
+            if self._branch:
+                arguments.append(f"--branch={self._branch}")
             arguments.extend([url, self.local_copy()])
-        self.run_subprocess(additional_arguments=arguments)
+            self.run_subprocess(additional_arguments=arguments)
+
+        if self._revision:
+            arguments = [
+                "-C",
+                self.local_copy(),
+                "fetch",
+                "--depth=1",
+                "origin",
+                self._revision,
+            ]
+            self.run_subprocess(additional_arguments=arguments)
+
+            arguments = ["-C", self.local_copy(), "checkout", self._revision]
+            self.run_subprocess(additional_arguments=arguments)
+
         return self.projects()
 
 
@@ -266,7 +313,15 @@ class SourceDirectory(Action):
                             self._database,
                         )
                     )
-                elif full_filename.suffix == ".pf":
+                elif (
+                    full_filename.suffix == ".pf"
+                    and self._database.configuration["testing"]
+                    and full_filename.stem
+                    not in self._database.configuration["mock_tests"]
+                ):
+                    # Todo: The `mock_test` check is a stop gap until we have
+                    #       support for mocking XIOS.
+                    #
                     # Todo: No support for per-file compiler arguments. Do we
                     #       need it?
                     actions.append(

@@ -248,8 +248,8 @@ class PSyclone(SubprocessAction):
             arguments.extend(
                 ["-d", self._database.artefact_store.ensure_directory(root)]
             )
-        self.run_subprocess(arguments)
-        actions: list[Action] = [AnalyseFortran(self._algorithm_path, self._database)]
+        self.run_subprocess(additional_arguments=arguments)
+        actions: list[Action] = [AnalyseFortran(self._virtual_filename, self._database)]
         if self._psy:
             actions.append(AnalyseFortran(self._psy_path, self._database))
         return actions

@@ -9,4 +9,5 @@ Articles giving technical details about the toy and its processes.
 
    work_queue
    linking
+   testing
    performance

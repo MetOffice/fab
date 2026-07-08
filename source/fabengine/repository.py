@@ -53,11 +53,10 @@ class Repository(ABC):
         return self._projects
 
     @abstractmethod
-    def create_action(self, work_dir: Path, database: Database) -> RepositoryAction:
+    def create_action(self, database: Database) -> RepositoryAction:
         """
         Creates an action to extract repository.
 
-        :param work_dir: Location to place extracted source.
         :param database: Build state and configuration.
         """
         raise NotImplementedError()
@@ -80,7 +79,7 @@ class FileTreeRepository(Repository):
         super().__init__(paths, projects)
         self._filename = filename
 
-    def create_action(self, work_dir: Path, database: Database) -> RepositoryAction:
+    def create_action(self, database: Database) -> RepositoryAction:
         """
         Creates an action to copy source.
 
@@ -108,7 +107,7 @@ class GitHubRepository(Repository):
         super().__init__(paths, projects)
         self._url = url
 
-    def create_action(self, work_dir: Path, database: Database) -> RepositoryAction:
+    def create_action(self, database: Database) -> RepositoryAction:
         """
         Creates an action to get source.
 

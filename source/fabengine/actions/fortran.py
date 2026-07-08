@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC
+from enum import Enum, auto
 from multiprocessing import get_logger as mp_get_logger
 from os import environ as os_environ
 from pathlib import Path
 from re import compile as re_compile, IGNORECASE
-from typing import Optional, Iterable
+from typing import Any, Generator, Optional, Iterable
 from warnings import warn
 
 from fabengine.actions import (
@@ -218,13 +219,46 @@ class PreprocessFortranAction(PreprocessFortranBase):
         return [AnalyseFortran(self.destination_file, self._database)]
 
 
+# Todo: This pattern does not handle exclamation marks in quotes.
+_COMMENT_PATTERN = re_compile(r"(.*?)\s*!(?!\$|\s*DEPENDS\s*ON\s*:\s*).*$", IGNORECASE)
+_CONTINUATION_PATTERN = re_compile(r"\s*&\s*(.*)")
+_CONTINUE_PATTERN = re_compile(r"\s*(.*?)\s*&\s*$")
+
+
+def normalise_source(filename: Path) -> Generator[str, None, None]:
+    line_buffer = ""
+    with filename.open("rt") as stream:
+        for line in stream:
+            match = _COMMENT_PATTERN.match(line)
+            if match:  # Remove comments
+                line = match.group(1)
+
+            if not line.strip():  # Ignore blank lines
+                continue
+
+            match = _CONTINUATION_PATTERN.match(line)
+            if match:  # Remove leading ampersand
+                line = match.group(1)
+
+            match = _CONTINUE_PATTERN.match(line)
+            if match:  # Buffer continuing lines
+                if line_buffer:
+                    line_buffer += " " + match.group(1)
+                else:
+                    line_buffer = match.group(1)
+            else:  # No further continuation
+                if line_buffer:
+                    yield line_buffer + " " + line.strip()
+                    line_buffer = ""
+                else:
+                    yield line.rstrip()
+
+
 class AnalyseFortran(Action):
     """
     Analyses Fortran source for dependency information.
     """
 
-    # Todo: This pattern does not handle exclamation marks in quotes.
-    _COMMENT_PATTERN = re_compile(r"(.*?)![^$].*$")
     _UNIT_PATTERN = re_compile(
         r"\s*(module(?!\s*procedure)|program|function|subroutine)\s*(\w+)", IGNORECASE
     )
@@ -244,7 +278,6 @@ class AnalyseFortran(Action):
     )
     _TYPE_PATTERN = re_compile(r"\s*type\s*,\s*public(:?.*?)::\s*(\w+)", IGNORECASE)
     _PUBLIC_PATTERN = re_compile(r"\s*public\s*(:?::)?\s*(.+)", IGNORECASE)
-    _UM_DEPENDS_ON_PATTERN = re_compile(r"\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)", IGNORECASE)
 
     def __init__(self, source: ArtefactPath, database: Database):
         """
@@ -256,7 +289,7 @@ class AnalyseFortran(Action):
         self._database = database
 
     @property
-    def source(self) -> Path:
+    def source(self) -> ArtefactPath:
         """
         :return: Fortran source file.
         """
@@ -273,6 +306,8 @@ class AnalyseFortran(Action):
         """
         return [ArtefactPrerequisite(self._source, self._database)]
 
+    _UM_DEPENDS_ON_PATTERN = re_compile(r"\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)", IGNORECASE)
+
     def perform(self) -> list[Action]:
         """
         Perform analyses.
@@ -287,24 +322,21 @@ class AnalyseFortran(Action):
 
         unit_prereqs: dict[str, PrerequisiteInfo] = {}
         current_unit: Optional[str] = None
-        state = "seeking"
-        for line in artefact.read_text().splitlines():
-            # Strip comments, does not handle exclamation marks in quotes.
-            match = self._COMMENT_PATTERN.match(line)
-            if match:
-                # We need a special case for UM-era "depends on" comments
-                second_match = self._UM_DEPENDS_ON_PATTERN.match(line)
-                if second_match:
-                    pass
-                else:
-                    line = match.group(1)
+        contains_units: list[str] = []
 
-            if state == "seeking":
+        class State(Enum):
+            SEEKING = auto()
+            IN_UNIT = auto()
+
+        state = State.SEEKING
+        for line in normalise_source(artefact.real_filename):
+            mp_get_logger().debug(f"{state} - {line}")
+            if state == State.SEEKING:
                 match = self._UNIT_PATTERN.match(line)
                 if match:
                     unit = match.group(1).lower()
                     name = match.group(2).lower()
-                    logger.debug("Found unit: " + name)
+                    logger.info("Found unit: " + name)
 
                     if name in self._database.symbol_table:
                         raise RuntimeError(
@@ -317,19 +349,20 @@ class AnalyseFortran(Action):
                     self._database.symbol_table[name] = info
 
                     current_unit = name
+                    contains_units.append(name)
 
                     if unit == "program":
                         actions.append(DetermineFortranProgram(name, self._database))
 
-                    state = "in unit"
+                    state = State.IN_UNIT
 
-            elif state == "in unit":
+            elif state == State.IN_UNIT:
                 match = self._TYPE_PATTERN.match(line)
                 if match:
                     name = match.group(2).lower()
                     info = SymbolInfo(name, SymbolType.TYPE, self._source)
                     self._database.symbol_table[name] = info
-                    logger.debug("Found type: " + name)
+                    logger.info("Found type: " + name)
                     continue
 
                 match = self._PUBLIC_PATTERN.match(line)
@@ -338,7 +371,7 @@ class AnalyseFortran(Action):
                         symbol = symbol.strip()
                         info = SymbolInfo(symbol, SymbolType.PROCEDURE, self._source)
                         self._database.symbol_table[symbol] = info
-                        logger.debug("Found procedure: " + symbol)
+                        logger.info("Found public: " + symbol)
                         continue
 
                 match = self._USE_PATTERN.match(line)
@@ -351,8 +384,12 @@ class AnalyseFortran(Action):
 
                     if name in self._database.configuration["fc_ignore_modules"]:
                         continue
-                    if name not in unit_prereqs:
-                        logger.debug(f"Found {open_mp}usage: {name}")
+
+                    # Todo: We need to reject internal dependencies. This
+                    #       approach only works backwards. i.e. only detects
+                    #       references to units already seen.
+                    #
+                    if name not in unit_prereqs and name not in contains_units:
                         unit_prereqs[name] = PrerequisiteInfo(
                             name, PrerequisiteType.USE
                         )
@@ -362,7 +399,7 @@ class AnalyseFortran(Action):
                 if match:
                     name = match.group(1).lower()
                     if name not in unit_prereqs:
-                        logger.debug("Found external: " + name)
+                        logger.info("Found external: " + name)
                         unit_prereqs[name] = PrerequisiteInfo(
                             name, PrerequisiteType.EXTERNAL
                         )
@@ -372,7 +409,7 @@ class AnalyseFortran(Action):
                 if match:
                     symbol = match.group(1).lower()
                     if symbol not in unit_prereqs:
-                        logger.debug("Found UM dependency comment: " + symbol)
+                        logger.info("Found UM dependency comment: " + symbol)
                         unit_prereqs[symbol] = PrerequisiteInfo(
                             symbol, PrerequisiteType.UM
                         )
@@ -387,7 +424,7 @@ class AnalyseFortran(Action):
                     # We have to cope with the situation where a module end is
                     # unnamed.
                     if name == current_unit or scope_type == "module":
-                        logger.debug("End of unit: " + name)
+                        logger.info("End of unit: " + name)
 
                         self._database.prerequisites[current_unit] = list(
                             unit_prereqs.values()
@@ -395,7 +432,7 @@ class AnalyseFortran(Action):
 
                         current_unit = None
 
-                        state = "seeking"
+                        state = State.SEEKING
                     continue
         return actions
 
@@ -416,6 +453,20 @@ class DetermineFortranProgram(Action):
 
         self._modules: set[str] = set()
         self._units = {name}
+
+    def __eq__(self, other: Any) -> bool:
+        # Because DetermineFortranProgram will be compared against other
+        # Action objects, it can't simply fail if the other is of different
+        # type.
+        #
+        assert isinstance(other, Action)
+        if isinstance(other, DetermineFortranProgram):
+            return self._name == other._name and self._database == other._database
+        else:
+            return False
+
+    def __repr__(self) -> str:
+        return f"DetermineFortranProgram({self._name}, {self._database})"
 
     def __str__(self) -> str:
         return f"DetermineProgram '{self._name}': {len(self._units)}"
@@ -444,31 +495,49 @@ class DetermineFortranProgram(Action):
         """
         actions: list[Action] = []
 
-        new_units: set[str] = set()  # New set to avoid infinite loop
-        while self._units:
-            unit_name = self._units.pop()
-            mp_get_logger().debug("Considering: " + unit_name)
+        working_units = self._units
+        self._units = set()
+        while working_units:
+            unit_name = working_units.pop()
+            mp_get_logger().info(f"Considering: {unit_name}")
             if unit_name in self._database.prerequisites:
+                mp_get_logger().info(f"Modules: {self._modules}")
                 if unit_name in self._modules:
-                    mp_get_logger().debug("Is module: " + unit_name)
+                    mp_get_logger().info("Already seen: " + unit_name)
                     continue
                 self._modules.add(unit_name)
 
+                # Todo: When multiple executables share modules (which happens by
+                #       definition with unit tests) each "DetermineProgram" task
+                #       will enqueue a compile action. These duplicate compile
+                #       actions then race each other causing unpredictable
+                #       and inexplicable failures.
+                #
                 source = self._database.symbol_table[unit_name].source_file
-                prereqs = self._database.prerequisites[unit_name]
-                actions.append(CompileFortran(source, prereqs, self._database))
+                if source not in self._database.compiles_enqueued:
+                    self._database.compiles_enqueued.append(source)
+                    actions.append(
+                        CompileFortran(
+                            source,
+                            self._database.prerequisites[unit_name],
+                            self._database,
+                        )
+                    )
 
+                # We want to catch as many prerequisites as possible per
+                # pass, so they are added to the current list rather than
+                # the future list.
+                #
                 for prereq in self._database.prerequisites[unit_name]:
-                    new_units.add(prereq.name)
+                    working_units.add(prereq.name)
             else:  # Unit has not yet been analysed
-                mp_get_logger().debug("Not yet seen: " + unit_name)
-                new_units.add(unit_name)
-        self._units = new_units
+                mp_get_logger().info("Not yet seen: " + unit_name)
+                self._units.add(unit_name)
 
         if len(self._units) == 0:
             actions.append(LinkFortran(self._name, self._modules, self._database))
         else:
-            mp_get_logger().debug(f"Missing: {', '.join(self._units)}")
+            mp_get_logger().info(f"Missing: {', '.join(self._units)}")
             actions.append(self)
         return actions
 
@@ -525,7 +594,6 @@ class CompileFortran(SubprocessAction):
             arguments.append(arg)
 
         arguments.extend(extra_arguments)
-        arguments.append("-fallow-argument-mismatch")
 
         arguments.extend(
             [
@@ -539,6 +607,19 @@ class CompileFortran(SubprocessAction):
 
         exe = Path("mpif90")
         super().__init__(exe, arguments)
+
+    def __eq__(self, other: Any) -> bool:
+        assert isinstance(other, Action)
+        if isinstance(other, CompileFortran):
+            return (
+                self._source == other._source
+                and self._prerequisites == other._prerequisites
+            )
+        else:
+            return False
+
+    def __repr__(self) -> str:
+        return f"CompileFortran({self._source}, {self._prerequisites})"
 
     def __str__(self) -> str:
         return f"Compile: <{self._source}>"
@@ -597,10 +678,32 @@ class LinkFortran(SubprocessAction):
         self._modules = modules
         self._database = database
 
-        self._exe_file = (
-            self._database.configuration["paths"]["bin_dir"] / self._program
-        )
+        # Todo: Obviously, this action should not be choosing destination like
+        #       this. However, communicating it is made tricky by where the
+        #       knowledge is. For instance, the pFUnit actions know where test
+        #       executables should end up.
+        #
+        #       Maybe Creating the link object at the same time as the source
+        #       is created and passing it along for use later?
+        #
+        #       This may link to the problem that unit testing has to make
+        #       assumptions of where the executable will end up. See pfunit.py.
+        #
+        if self._program.endswith("_test_prog"):
+            self._exe_file = (
+                self._database.configuration["paths"]["work_dir"]
+                / "unit-test"
+                / self._program
+            )
+        else:
+            self._exe_file = (
+                self._database.configuration["paths"]["bin_dir"] / self._program
+            )
+        self._exe_file.parent.mkdir(parents=True, exist_ok=True)
+
         arguments = ["-fopenmp", "-o", self._exe_file]
+
+        # Todo: Support for pure static linkage?
 
         self._library_args: list[str] = []
         for package in self._database.configuration["packages"].values():
@@ -620,6 +723,16 @@ class LinkFortran(SubprocessAction):
         exe = Path("mpif90")
         super().__init__(exe, arguments)
 
+    def __eq__(self, other: Any) -> bool:
+        assert isinstance(other, Action)
+        if isinstance(other, LinkFortran):
+            return self._program == other._program and self._modules == other._modules
+        else:
+            return False
+
+    def __repr__(self) -> str:
+        return f"LinkFortran({self._program}, {self._modules})"
+
     def __str__(self) -> str:
         return "Link: " + self._program
 
@@ -628,8 +741,8 @@ class LinkFortran(SubprocessAction):
         Gets list of prerequisite rules.
 
         The link depends on a set of modules. Those which have been seen by the
-        analyser create a prerequisite on the object file. Those which have not
-        create a prerequisite on the analysis.
+        analyser create a prerequisite on the object file. Those which have
+        not, create a prerequisite on the analysis.
 
         :return: Collection of prerequisite rules.
         """
@@ -663,7 +776,7 @@ class LinkFortran(SubprocessAction):
             arguments.append(object_file)
         arguments.extend(self._library_args)
 
-        self.run_subprocess(arguments)
+        self.run_subprocess(additional_arguments=arguments)
         self._database.artefact_store.map_file(
             self._exe_file, Path("bin") / self._exe_file.name
         )

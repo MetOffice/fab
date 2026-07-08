@@ -13,18 +13,22 @@ class Project:
         self,
         project_dir: Path,
         identifier: Optional[str] = None,
-        source_dir: Path = Path("source"),
+        source_dir=Path("source"),
         source_include: Optional[list[Path]] = None,
         paths: Optional[dict[str, Path]] = None,
+        unit_test_dir: Path = Path("unit-test"),
         configuration_meta_data: Path = Path("rose-meta"),
     ):
         """
         :param project_dir: Directory holding project.
         :param identifier: Identifying name, defaults to directory leaf name.
         :param source_dir: Project subdirectory holding source, defaults to
-                         ``source``.
+                           ``source``.
         :param source_include: List of paths to be extracted from the project.
                                If not specified, everything is imported.
+                               ``source``.
+        :param unit_test_dir: Project subdirectory holding unit tests, defaults
+                              to ``unit-test``.
         :param paths: Mapping of repository executables to tool names.
         :param configuration_meta_data: Project subdirectory holding
                                         configuration metadata, defaults to
@@ -40,6 +44,7 @@ class Project:
         #       be replaced by whatever we develop to manage compilers.
         #
         self._paths = paths or {}
+        self._unit_test_dir = unit_test_dir
         self._configuration_meta_data = configuration_meta_data
 
     @property
@@ -70,6 +75,13 @@ class Project:
     @property
     def paths(self) -> dict[str, Path]:
         return self._paths
+
+    @property
+    def unit_test_dir(self) -> Path:
+        """
+        Gets full unit test directory, including project directory.
+        """
+        return self._project_dir / self._unit_test_dir
 
     @property
     def configuration_meta_data(self) -> Path:

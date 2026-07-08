@@ -37,17 +37,19 @@ nitpick_ignore = {
     ("py:class", "collections.abc.Iterable"),
     ("py:class", "datetime.timedelta"),
     ("py:class", "enum.Enum"),
-    ("py:class", "multiprocessing.Process"),
-    ("py:class", "multiprocessing.managers.SyncManager"),
     ("py:class", "pathlib.Path"),
     ("py:class", "Path"),
-    ("py:class", "Queue"),
     #
     # There are also issues with the proxy objects used by the multiprocessing
-    # library so we ignore those too.
+    # library so we ignore those too. Also, other multiprocessing library
+    # classes.
     #
     ("py:class", "ListProxy"),
     ("py:class", "DictProxy"),
+    ("py:class", "Queue"),
+    ("py:class", "multiprocessing.Process"),
+    ("py:class", "multiprocessing.context.Process"),
+    ("py:class", "multiprocessing.managers.SyncManager"),
 }
 
 # -- Automatic API documentation generator -----------------------------------

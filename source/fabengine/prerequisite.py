@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,13 @@ class AnalysedPrerequisite(Prerequisite):
         """
         self._module = module
         self._database = database
+
+    def __eq__(self, other: Any):
+        assert isinstance(other, AnalysedPrerequisite)
+        return self._module == other._module
+
+    def __repr__(self) -> str:
+        return f"AnalysedPrerequisite({self._module})"
 
     def __str__(self) -> str:
         return "Prerequisite module has been analysed: " + self._module
@@ -69,6 +77,9 @@ class RealFilePrerequisite(Prerequisite):
         """
         self._filename = filename
 
+    def __repr__(self) -> str:
+        return f"RealFilePrerequisite({self._filename})"
+
     def __str__(self) -> str:
         return f"Prerequisite real file exists: <{str(self._filename)}>"
 
@@ -108,6 +119,33 @@ class RealFilePrerequisite(Prerequisite):
         :return: True if file exists.
         """
         return self._filename.exists()
+
+
+class ExecutablePrerequisite(Prerequisite):
+    """
+    Prerequisite on file being executable.
+
+    Also fails if the file is missing.
+    """
+
+    def __init__(self, filename: Path):
+        self._filename = filename
+
+    def __eq__(self, other: Any) -> bool:
+        assert isinstance(other, ExecutablePrerequisite)
+        return self._filename == other._filename
+
+    def __repr__(self) -> str:
+        return f"ExecutablePrerequisite({self._filename})"
+
+    def __str__(self) -> str:
+        return f"Prerequisite file is executable: {self._filename}"
+
+    def ready(self) -> bool:
+        if not self._filename.exists():
+            return False
+        meta = self._filename.stat()
+        return meta.st_mode & stat.S_IEXEC > 0
 
 
 class ArtefactPrerequisite(Prerequisite):

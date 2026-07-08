@@ -145,6 +145,17 @@ class Artefact:
         """
         return self.real_filename.read_text()
 
+    def write_text(self, text: str) -> None:
+        """
+        Writes text into an artefact.
+
+        This is a convenience method to neaten up calling code.
+
+        .. todo:: If Artefact and ArtefactPath were combined this would be
+                  redundant as Path already provides it.
+        """
+        self.real_filename.write_text(text)
+
 
 class ArtefactPath(Path):
     # Todo: Path is only extended clumsily until Python 3.12. Once that
