@@ -8,4 +8,4 @@ jobs:
     uses: MetOffice/growss/.github/workflows/cla-check.yaml@main
     with:
       runner: 'ubuntu-24.04'
-      cla-url: https://github.com/MetOffice/fab/blob/main/CONTRIBUTORS.md
+      cla-url: 'https://github.com/MetOffice/Momentum/blob/main/CLA.md'
