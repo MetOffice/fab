@@ -34,5 +34,5 @@ If this is your first contribution, you will need to agree to the `contributor
 agreement`_ and your branch will need to include the addition of your details
 to the the ``CONTRIBUTORS.md`` file.
 
-.. _trunk branch: https://github.com/MetOffice/fab
+.. _main branch: https://github.com/MetOffice/fab
 .. _contributor agreement: https://github.com/MetOffice/Momentum/blob/main/CLA.md
