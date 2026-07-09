@@ -11,7 +11,7 @@ The full class documentation is at the end of this chapter.
 The constructor sets up ultimately the Fab ``BuildConfig`` for the build.
 It takes the name of the application as argument. The name of the application
 will be used when creating the name of the build directory
-and it is also the default ``root_symbol`` when analysing the source code
+and it is also the default ``root_symbols`` when analysing the source code
 if the script creates an executable (see :ref:`analyse_step`).
 
 The actual build is then started calling the ``build`` method
@@ -115,6 +115,18 @@ A special case is the definition of compilation profiles (like
 configuration object using ``get_valid_profiles()`` to receive a list
 of all valid compilation profile names. This allows each site to
 specify its own profile modes.
+
+Additionally, a method of the same name is called in the site-specific
+configuration after the application's method was called:
+
+.. automethod:: fab.fab_base.site_specific.default.config.Config.define_command_line_options
+    :noindex:
+
+A site-specific configuration can overwrite ``define_command_line_options`` to
+add more, site-specific command line options (e.g. using a specific profiling
+tool), or to modify defaults (e.g. a site might only have small data sets and
+therefore does not require MPI, so it could change the default so that
+MPI does not need to be disabled all the time).
 
 Parsing command line options
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -391,7 +403,7 @@ There is usually no reason for an application to overwrite this step.
 
 In case of creating a binary, the analyse step will use the root symbol,
 which defaults to the name of the application, but can be changed
-using ``set_root_symbol``. This implies that ``set_root_symbol``
+using ``set_root_symbols``. This implies that ``set_root_symbols``
 must be called before ``analyse_step`` is called, e.g. it can be called
 from any method called from the constructor (including defining and
 handling command line options).

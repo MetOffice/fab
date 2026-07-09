@@ -15,7 +15,8 @@ from pytest_subprocess.fake_process import FakeProcess
 from fab.tools.ar import Ar
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler, Gfortran, Ifort
-from fab.tools.compiler_wrapper import Mpif90
+from fab.tools.compiler_wrapper import Mpicc, Mpif90
+from fab.tools.linker import Linker
 from fab.tools.tool_repository import ToolRepository
 
 from tests.conftest import call_list
@@ -125,6 +126,33 @@ def test_get_default(stub_tool_repository, stub_fortran_compiler,
     assert isinstance(ar, Ar)
 
 
+def test_get_default_linker_with_wrapper(stub_tool_repository,
+                                         stub_fortran_compiler,
+                                         stub_c_compiler) -> None:
+    """
+    Tests that we get the right linker if compiler wrapper are used.
+    """
+
+    # Add a linker around a compiler wrapper, to test that the compiler
+    # wrapper is recognised as a Fortran compiler:
+    linker = Linker(Mpif90(stub_fortran_compiler))
+    linker._is_available = True
+    stub_tool_repository.add_tool(linker)
+    for_link = stub_tool_repository.get_default(Category.LINKER, mpi=True,
+                                                openmp=True,
+                                                enforce_fortran_linker=True)
+    assert for_link is linker
+
+    # Now the same for a linker around a C compiler wrapper:
+    linker = Linker(Mpicc(stub_c_compiler))
+    linker._is_available = True
+    stub_tool_repository.add_tool(linker)
+    cc_link = stub_tool_repository.get_default(Category.LINKER, mpi=True,
+                                               openmp=True,
+                                               enforce_fortran_linker=False)
+    assert cc_link is linker
+
+
 def test_get_default_error_invalid_category() -> None:
     """
     Tests error handling in get_default, the category must be a Category,
@@ -151,6 +179,11 @@ def test_get_default_error_missing_mpi() -> None:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
     assert str(err.value) == ("Invalid or missing openmp specification "
                               "for 'FORTRAN_COMPILER'.")
+
+    with raises(RuntimeError) as err:
+        tr.get_default(Category.LINKER, mpi=True, openmp=True)
+    assert str(err.value) == ("Invalid or missing enforce_fortran_linker "
+                              "specification for 'LINKER'.")
 
 
 def test_get_default_error_missing_openmp() -> None:
@@ -201,8 +234,8 @@ def test_get_default_error_missing_openmp_compiler(monkeypatch) -> None:
 
     Todo: Monkeying with internal state is bad.
     """
-    fc = FortranCompiler("Simply Fortran", 'sfc', 'simply', openmp_flag=None,
-                         module_folder_flag="-mods", version_regex=r'([\d.]+]')
+    fc = FortranCompiler("Simply Fortran", 'sfc', 'simply',
+                         version_regex=r'([\d.]+]')
 
     tr = ToolRepository()
     monkeypatch.setitem(tr, Category.FORTRAN_COMPILER, [fc])
@@ -288,6 +321,9 @@ def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
                           stdout='GNU Fortran (gcc) 1.2.3')
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "/usr/bin/gfortran")
+    gfortran = cast(Compiler, gfortran)
+    gfortran._is_available = True
+    gfortran._version = (1, 2)
     assert isinstance(gfortran, Gfortran)
     assert gfortran.name == "gfortran"
     assert gfortran.exec_name == "gfortran"

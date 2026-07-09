@@ -6,16 +6,15 @@
 """
 Tests the PSyclone tool.
 """
-from importlib import reload
 from pathlib import Path
-import typing  # Needed for monkey patching
-from typing import Optional, Tuple
+from typing import Optional
 from unittest.mock import Mock
 
 from pytest import mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
 from fab.tools.category import Category
+from fab.tools.flags import AlwaysFlags
 import fab.tools.psyclone  # Needed for mockery
 from fab.tools.psyclone import Psyclone
 
@@ -30,8 +29,6 @@ def test_constructor():
     assert psyclone.category == Category.PSYCLONE
     assert psyclone.name == "psyclone"
     assert psyclone.exec_name == "psyclone"
-    # pylint: disable=use-implicit-booleaness-not-comparison
-    assert psyclone.get_flags() == []
 
 
 @mark.parametrize("version", ["2.4.0", "2.5.0", "3.0.0", "3.1.0"])
@@ -191,7 +188,7 @@ def test_processing_errors_with_api(api: str,
                           ("gocean1.0", "gocean1.0"),
                           ("gocean", "gocean1.0")
                           ])
-def test_process_api_old_psyclone(api: Tuple[str, str], version: str,
+def test_process_api_old_psyclone(api: tuple[str, str], version: str,
                                   fake_process: FakeProcess) -> None:
     """
     Tests old style API support with PSyclone 2.5.0 and earlier.
@@ -271,7 +268,7 @@ def test_process_nemo_api_old_psyclone(version: str, api: Optional[str],
                       ("gocean1.0", "gocean"),
                       ("gocean", "gocean")
                   ])
-def test_process_api_new_psyclone(api: Tuple[str, str],
+def test_process_api_new_psyclone(api: tuple[str, str],
                                   fake_process: FakeProcess) -> None:
     """
     Test running PSyclone 3.0.0. It uses new API names, and we need to
@@ -334,6 +331,34 @@ def test_process_no_api_new_psyclone(fake_process: FakeProcess) -> None:
     ]
 
 
+def test_process_adding_flags(fake_process: FakeProcess) -> None:
+    """
+    Tests that flag can be added to PSyclone which will be used.
+    """
+    version_command = ['psyclone', '--version']
+    fake_process.register(version_command, stdout='PSyclone version: 3.0.0')
+
+    psyclone_command = ['psyclone', '-o', 'psy_file', '-l', 'all',
+                        '-s', 'script_called', 'x90_file', '-always-flag']
+    fake_process.register(psyclone_command)
+
+    psyclone = Psyclone()
+    psyclone.define_profile("full_debug", inherit_from="")
+    psyclone.add_flags(AlwaysFlags("-always-flag"), profile="full_debug")
+    config = Mock()
+    config.profile = "full_debug"
+
+    psyclone.process(config=config,
+                     api="",
+                     x90_file=Path('x90_file'),
+                     transformed_file=Path('psy_file'),
+                     transformation_script=lambda x, y: Path('script_called'))
+
+    assert call_list(fake_process) == [
+        version_command, psyclone_command
+    ]
+
+
 def test_process_nemo_api_new_psyclone(fake_process: FakeProcess) -> None:
     """
     Test running PSyclone 3.0.0 and test that backwards compatibility of
@@ -361,18 +386,3 @@ def test_process_nemo_api_new_psyclone(fake_process: FakeProcess) -> None:
     assert call_list(fake_process) == [
         version_command, psyclone_command
     ]
-
-
-def test_type_checking_import(monkeypatch) -> None:
-    """
-    PSyclone contains an import of TYPE_CHECKING to break a circular
-    dependency. In order to reach 100% coverage of PSyclone, we set
-    mock TYPE_CHECKING to be true and force a re-import of the module.
-    TODO 314: This test can be removed once #314 is fixed.
-    """
-    monkeypatch.setattr(typing, 'TYPE_CHECKING', True)
-    # This import will not actually re-import, since the module
-    # is already imported. But we need this in order to call reload:
-    # pylint: disable=import-outside-toplevel
-    import fab.tools.psyclone
-    reload(fab.tools.psyclone)

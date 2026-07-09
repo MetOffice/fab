@@ -8,19 +8,21 @@
 '''
 
 import warnings
-from typing import Dict, Optional
+from typing import Optional
 
+from fab.tools.abstract_tool_box import AbstractToolBox
 from fab.tools.category import Category
 from fab.tools.tool import Tool
+from fab.tools.tool_repository import ToolRepository
 
 
-class ToolBox:
+class ToolBox(AbstractToolBox):
     '''This class implements the tool box. It stores one tool for each
     category to be used in a FAB build.
     '''
 
     def __init__(self) -> None:
-        self._all_tools: Dict[Category, Tool] = {}
+        self._all_tools: dict[Category, Tool] = {}
 
     def has(self, category: Category) -> bool:
         '''
@@ -28,10 +30,6 @@ class ToolBox:
             category or not.
         '''
         return category in self._all_tools
-
-    def __getitem__(self, category: Category) -> Tool:
-        '''A convenience function for get_tool.'''
-        return self.get_tool(category)
 
     def add_tool(self, tool: Tool,
                  silent_replace: bool = False) -> None:
@@ -84,10 +82,6 @@ class ToolBox:
         # No tool was specified for this category, get the default tool
         # from the ToolRepository, and add it, so we don't need to look
         # it up again later.
-
-        # Avoid cyclic import:
-        # pylint: disable=import-outside-toplevel
-        from fab.tools.tool_repository import ToolRepository
         tr = ToolRepository()
         tool = tr.get_default(category, mpi=mpi, openmp=openmp,
                               enforce_fortran_linker=enforce_fortran_linker)

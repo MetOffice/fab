@@ -17,7 +17,8 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c
-from fab.tools import ToolBox
+from fab.steps.root_inc_files import root_inc_files
+from fab.tools.tool_box import ToolBox
 
 clang = importorskip('clang', reason="Clang bindings not found.")
 
@@ -32,9 +33,10 @@ def test_CUseHeader(tmp_path):
 
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
+        root_inc_files(config, suffix_list=[".h"])
         c_pragma_injector(config)
         preprocess_c(config)
-        analyse(config, root_symbol='main')
+        analyse(config, root_symbols='main@mainprog')
         compile_c(config, common_flags=['-c', '-std=c99'])
         link_exe(config, flags=['-lgfortran'])
 
@@ -44,4 +46,6 @@ def test_CUseHeader(tmp_path):
     command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output == ''.join(open(PROJECT_SOURCE / 'expected.exec.txt').readlines())
+    with open(PROJECT_SOURCE / 'expected.exec.txt', 'r',
+              encoding="utf-8") as fd:
+        assert output == ''.join(fd.readlines())

@@ -9,19 +9,16 @@ Fortran language handling classes.
 """
 import logging
 from pathlib import Path
-from typing import Union, Optional, Iterable, Dict, Any, Set
+from typing import Union, Optional, Iterable, Any
 
 from fparser.two.Fortran2003 import (  # type: ignore
     Entity_Decl_List, Use_Stmt, Module_Stmt, Program_Stmt, Subroutine_Stmt,
     Function_Stmt, Language_Binding_Spec, Char_Literal_Constant,
     Interface_Block, Name, Comment, Module, Call_Stmt, Derived_Type_Def,
     Derived_Type_Stmt, Type_Attr_Spec_List, Type_Attr_Spec, Type_Name,
-    Subroutine_Subprogram, Function_Subprogram)
+    Subroutine_Subprogram, Function_Subprogram, Internal_Subprogram_Part,
+    External_Stmt, Type_Declaration_Stmt)
 from fparser.two.utils import walk  # type: ignore
-
-# todo: what else should we be importing from 2008 instead of 2003? This seems fragile.
-from fparser.two.Fortran2008 import (  # type: ignore
-    Type_Declaration_Stmt, Attr_Spec_List)
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
@@ -52,7 +49,7 @@ class AnalysedFortran(AnalysedDependent):
                  symbol_deps: Optional[Iterable[str]] = None,
                  mo_commented_file_deps: Optional[Iterable[str]] = None,
                  file_deps: Optional[Iterable[Path]] = None,
-                 psyclone_kernels: Optional[Dict[str, int]] = None):
+                 psyclone_kernels: Optional[dict[str, int]] = None):
         """
         :param fpath:
             The source file that was analysed.
@@ -85,18 +82,32 @@ class AnalysedFortran(AnalysedDependent):
         super().__init__(fpath=fpath, file_hash=file_hash,
                          symbol_defs=symbol_defs, symbol_deps=symbol_deps, file_deps=file_deps)
 
-        self.program_defs: Set[str] = set(program_defs or [])
-        self.module_defs: Set[str] = set(module_defs or [])
-        self.module_deps: Set[str] = set(module_deps or [])
-        self.mo_commented_file_deps: Set[str] = \
+        self.program_defs: set[str] = set(program_defs or [])
+        self.module_defs: set[str] = set(module_defs or [])
+        self.module_deps: set[str] = set(module_deps or [])
+        self.mo_commented_file_deps: set[str] = \
             set(mo_commented_file_deps or [])
 
         # Todo: Ideally Psyclone stuff would not be part of this general
         #       fortran analysis code. Instead, perhaps we could inject
         #       bespoke node handling into the fortran analyser.
-        self.psyclone_kernels: Dict[str, int] = psyclone_kernels or {}
+        self.psyclone_kernels: dict[str, int] = psyclone_kernels or {}
 
         self.validate()
+
+    def add_symbol_def(self, name: str):
+        """
+        Add a Fortran symbol definition, which is case independent.
+        """
+        assert name and len(name)
+        super().add_symbol_def(name.lower())
+
+    def add_symbol_dep(self, name: str):
+        """
+        Add a Fortran dependency, which is case independent
+        """
+        assert name and len(name)
+        super().add_symbol_dep(name.lower())
 
     def add_program_def(self, name):
         self.program_defs.add(name.lower())
@@ -130,7 +141,7 @@ class AnalysedFortran(AnalysedDependent):
             'psyclone_kernels',
         ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         # These dicts will be written to json files, so can't contain sets.
         # We sort the lists for reproducibility in testing.
         result = super().to_dict()
@@ -234,7 +245,9 @@ class FortranAnalyser(FortranAnalyserBase):
                 #        Or the new match statement, Python 3.10
                 if obj_type == Use_Stmt:
                     self._process_use_statement(analysed_fortran, obj)  # raises
-
+                elif obj_type == External_Stmt:
+                    for external in obj.items[1].items:
+                        analysed_fortran.add_symbol_dep(external.string)
                 elif obj_type == Call_Stmt:
                     called_name = _typed_child(obj, Name)
                     # called_name will be None for calls like thing%method(),
@@ -274,10 +287,10 @@ class FortranAnalyser(FortranAnalyserBase):
                             analysed_fortran.add_symbol_dep(called_name.string)
 
                 elif obj_type == Program_Stmt:
-                    analysed_fortran.add_program_def(str(obj.get_name()))
+                    analysed_fortran.add_program_def(obj.get_name().string)
 
                 elif obj_type == Module_Stmt:
-                    analysed_fortran.add_module_def(str(obj.get_name()))
+                    analysed_fortran.add_module_def(obj.get_name().string)
 
                 elif obj_type in (Subroutine_Stmt, Function_Stmt):
                     self._process_subroutine_or_function(analysed_fortran,
@@ -289,12 +302,8 @@ class FortranAnalyser(FortranAnalyserBase):
                 #       use in C. Variable bindings are bidirectional - does
                 #       this work the other way round, too?
                 #       Make sure we have a test for it.
-                elif obj_type == Type_Declaration_Stmt:
-                    # bound?
-                    specs = _typed_child(obj, Attr_Spec_List)
-                    if specs and _typed_child(specs, Language_Binding_Spec):
-                        self._process_variable_binding(analysed_fortran, obj)
-
+                elif isinstance(obj, Type_Declaration_Stmt):
+                    self._process_type_declaration(analysed_fortran, obj)
                 elif obj_type == Comment:
                     self._process_comment(analysed_fortran, obj)
 
@@ -341,6 +350,28 @@ class FortranAnalyser(FortranAnalyserBase):
             # found a dependency on fortran
             analysed_file.add_module_dep(use_name)
 
+    def _process_type_declaration(self, analysed_fortran, obj):
+        """
+        Handles a type declaration statement. A type declaration symbol
+        implies an outside dependency if:
+        1. there is a bind attribute (dependency to other language)
+        2. external attribute.
+
+        Syntax rule:
+            Type_Declaration_Stmt(        ! obj
+                Intrinsic_Type_Spec       ! obj.items[0]
+                Attr_Spec_List            ! obj.items[1]
+                Entity_Decl_List          ! obj.items[2]
+        """
+        attr_spec_list = obj.items[1].items if obj.items[1] else []
+        for attr in attr_spec_list:
+            if attr.string == "EXTERNAL":
+                for symbol in obj.items[2].items:
+                    analysed_fortran.add_symbol_dep(symbol.string)
+            elif isinstance(attr, Language_Binding_Spec):
+                # Bind attribute
+                self._process_variable_binding(analysed_fortran, obj)
+
     def _process_variable_binding(self, analysed_file,
                                   obj: Type_Declaration_Stmt):
         # The name keyword on the bind statement is optional.
@@ -383,7 +414,23 @@ class FortranAnalyser(FortranAnalyserBase):
                 # Without .o means a Fortran symbol
                 analysed_file.add_symbol_dep(dep)
 
-    def _process_subroutine_or_function(self, analysed_file, fpath, obj):
+    def _process_subroutine_or_function(
+            self,
+            analysed_file: AnalysedFortran,
+            fpath: Path,
+            obj: Union[Function_Stmt, Subroutine_Stmt]):
+        """
+        Processes a subroutine statement. It handles:
+        - a potential 'bind' attribute (which can change the external symbol
+          used),
+        - declaration of subroutines/functions in modules (which will not be
+          visible as external symbols, any dependencies will be covered by
+          the module symbol)
+        - declarations contained in other subroutines (which will not
+          at all be visible)
+        - declarations in an interface block (which declare an external
+          dependency)
+        """
         # binding?
         bind = _typed_child(obj, Language_Binding_Spec)
         if bind:
@@ -406,15 +453,20 @@ class FortranAnalyser(FortranAnalyserBase):
             else:
                 analysed_file.add_symbol_def(bind_name)
 
-        # not bound, just record the presence of the fortran symbol
-        # we don't need to record stuff in modules (we think!)
+        # Not bound, just record the presence of the Fortran symbol.
+
+        elif self._find_ancestor(obj, Interface_Block):
+            # If the subroutine/function declaration is inside an interface
+            # block, we have an external dependency:
+            analysed_file.add_symbol_dep(str(obj.get_name()))
+
         elif (not self._find_ancestor(obj, Module) and
-              not self._find_ancestor(obj, Interface_Block)):
-            if isinstance(obj, Subroutine_Stmt):
-                analysed_file.add_symbol_def(str(obj.get_name()))
-            if isinstance(obj, Function_Stmt):
-                _, name, _, _ = obj.items
-                analysed_file.add_symbol_def(name.string)
+              not self._find_ancestor(obj, Internal_Subprogram_Part)):
+            # We don't need to record stuff in modules, and any functions /
+            # subroutines that contained in a subroutine either (since these
+            # will not be externally visible). But otherwise record the
+            # declaration of the subroutine/function.
+            analysed_file.add_symbol_def(str(obj.get_name()))
 
 
 class FortranParserWorkaround():
@@ -459,11 +511,11 @@ class FortranParserWorkaround():
 
         """
         self.fpath = fpath
-        self.module_defs: Set[str] = set(module_defs or {})
-        self.symbol_defs: Set[str] = set(symbol_defs or {})
-        self.module_deps: Set[str] = set(module_deps or {})
-        self.symbol_deps: Set[str] = set(symbol_deps or {})
-        self.mo_commented_file_deps: Set[str] = \
+        self.module_defs: set[str] = set(module_defs or {})
+        self.symbol_defs: set[str] = set(symbol_defs or {})
+        self.module_deps: set[str] = set(module_deps or {})
+        self.symbol_deps: set[str] = set(symbol_deps or {})
+        self.mo_commented_file_deps: set[str] = \
             set(mo_commented_file_deps or [])
 
     def as_analysed_fortran(self):

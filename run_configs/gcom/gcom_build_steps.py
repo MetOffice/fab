@@ -3,12 +3,9 @@
 # For further details please refer to the file COPYRIGHT
 # which you should have received as part of this distribution
 ##############################################################################
-from fab.steps.analyse import analyse
-from fab.steps.compile_c import compile_c
-from fab.steps.compile_fortran import compile_fortran
-from fab.steps.find_source_files import find_source_files
-from fab.steps.grab.folder import grab_folder
-from fab.steps.preprocess import preprocess_c, preprocess_fortran
+
+from fab.api import (analyse, compile_c, compile_fortran, find_source_files,
+                     grab_folder, preprocess_c, preprocess_fortran)
 
 from grab_gcom import grab_config
 

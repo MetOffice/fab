@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+
 '''
 This file contains a function that sets the default flags for the NVIDIA
 compilers and linkers in the ToolRepository.
@@ -8,14 +14,13 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Compiler, Linker, ToolRepository
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_nvidia(build_config: BuildConfig,
-                 args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
+def setup_script_nvidia(build_config: BuildConfig,
+                        args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for nvfortran.
@@ -33,7 +38,7 @@ def setup_nvidia(build_config: BuildConfig,
         nvfortran = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-nvfortran")
         nvfortran = cast(Compiler, nvfortran)
         if not nvfortran.is_available:
-            return {}
+            return
 
     # The base flags
     # ==============
@@ -66,5 +71,3 @@ def setup_nvidia(build_config: BuildConfig,
 
     # Always link with C++ libs
     # linker.add_post_lib_flags(["-c++libs"], "base")
-
-    return {}

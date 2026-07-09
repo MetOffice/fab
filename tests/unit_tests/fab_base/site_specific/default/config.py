@@ -2,19 +2,19 @@
 
 
 '''
-This module contains the default Baf configuration class.
+This module contains the default Fab configuration class.
 '''
 
 import argparse
-from typing import List
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, ToolRepository
+from fab.build_config import BuildConfig
+from fab.tools.category import Category
+from fab.tools.tool_repository import ToolRepository
 
 
 class Config:
     '''
-    This class is the default Configuration object for Baf builds.
+    This class is the default Configuration object for Fab builds.
     It provides several callbacks which will be called from the build
     scripts to allow site-specific customisations.
     '''
@@ -30,14 +30,14 @@ class Config:
         '''
         return self._args
 
-    def get_valid_profiles(self) -> List[str]:
+    def get_valid_profiles(self) -> list[str]:
         '''
         Determines the list of all allowed compiler profiles. The first
         entry in this list is the default profile to be used. This method
         can be overwritten by site configs to add or modify the supported
         profiles.
 
-        :returns List[str]: list of all supported compiler profiles.
+        :returns list[str]: list of all supported compiler profiles.
         '''
         return ["default-profile", "full-debug", "fast-debug", "production"]
 
@@ -71,6 +71,15 @@ class Config:
             for profile in self.get_valid_profiles():
                 compiler.define_profile(profile, inherit_from="base")
 
+    def define_command_line_options(self,
+                                    parser: argparse.ArgumentParser) -> None:
+        '''
+        Callback in which additional, site-specific options can be added,
+        and/or the the defaults for the parser can be changed.
+        '''
+        # Example: change the MPI default (enabling this would break tests):
+        # parser.set_defaults(mpi=False)
+
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         '''
         Additional callback function executed once all command line
@@ -83,11 +92,3 @@ class Config:
         # Keep a copy of the args, so they can be used when
         # initialising compilers
         self._args = args
-
-    def get_path_flags(self, build_config: BuildConfig) -> List[AddFlags]:
-        '''
-        Returns the path-specific flags to be used.
-        TODO #313: Ideally we have only one kind of flag, but as a quick
-        work around we provide this method.
-        '''
-        return []

@@ -6,17 +6,23 @@
 """
 Tests the FabBase class
 """
+import argparse
 import inspect
 import os
 from pathlib import Path
 import sys
+from typing import Optional
 from unittest import mock
 
 import pytest
 
 from fab.build_config import AddFlags
 from fab.fab_base.fab_base import FabBase
-from fab.tools import Category, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_repository import ToolRepository
+
+# Mypy does not handle the relative import here properly, ignore error:
+from site_specific.default.config import Config as SiteConfig   # type: ignore
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -70,6 +76,8 @@ def test_constructor(monkeypatch) -> None:
 
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     fab_base = FabBase(name="test_name", link_target="executable")
+
+    assert fab_base.name == "test_name"
 
     # Check other settings and functions
     # pylint: disable=use-implicit-booleaness-not-comparison
@@ -133,11 +141,11 @@ def test_root_symbol(monkeypatch) -> None:
     fab_base = FabBase(name="test-help")
 
     # Set a single root symbol
-    fab_base.set_root_symbol("root1")
-    assert fab_base.root_symbol == ["root1"]
+    fab_base.set_root_symbols("root1")
+    assert fab_base.root_symbols == ["root1"]
 
-    fab_base.set_root_symbol(["root1", "root2"])
-    assert fab_base.root_symbol == ["root1", "root2"]
+    fab_base.set_root_symbols(["root1", "root2"])
+    assert fab_base.root_symbols == ["root1", "root2"]
 
 
 def test_profile_default(monkeypatch) -> None:
@@ -307,6 +315,35 @@ def test_compiler_flags(monkeypatch, arg) -> None:
         assert fab_base.linker_flags_commandline == [flag_list[1]]
 
 
+def test_site_specific_callbacks(monkeypatch):
+    '''
+    Tests that define/handle_command_line_option in the site-config
+    file get called as expected.
+    '''
+
+    class TestFabBase(FabBase):
+        '''Dummy class to keep track of the parser
+        '''
+        def define_command_line_options(
+                self,
+                parser: Optional[argparse.ArgumentParser] = None
+                ) -> argparse.ArgumentParser:
+            '''Simple class that stores the parser created.
+            '''
+            self.parser = super().define_command_line_options(parser)
+            return self.parser
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    config = "site_specific.default.config.Config."
+    with mock.patch(config+'define_command_line_options') as mock_define, \
+            mock.patch(config+'handle_command_line_options') as mock_handle:
+        tfb = TestFabBase(name="test-help")
+        mock_handle.assert_called_once_with(tfb.args)
+        mock_define.assert_called_once_with(tfb.parser)
+        # Check that the property returns the right object
+        assert isinstance(tfb.site_config, SiteConfig)
+
+
 def test_site_specific_outside_dir(monkeypatch) -> None:
     '''
     Tests site-specific settings if the call is initiated from a different
@@ -388,7 +425,7 @@ def test_build_binary(monkeypatch) -> None:
     # that indeed this flag is passed in.
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, find_programs=True)
+        fab_base.config, find_programs=True, ignore_dependencies=None)
 
 
 def test_build_static_lib(monkeypatch) -> None:
@@ -436,7 +473,7 @@ def test_build_static_lib(monkeypatch) -> None:
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, root_symbol=None)
+        fab_base.config, root_symbols=None, ignore_dependencies=None)
 
     mocks["archive_objects"][0].stop()
     mocks["archive_objects"][1].assert_called_once_with(
@@ -488,7 +525,7 @@ def test_build_shared_lib(monkeypatch) -> None:
 
     mocks["analyse"][0].stop()
     mocks["analyse"][1].assert_called_once_with(
-        fab_base.config, root_symbol=None)
+        fab_base.config, root_symbols=None, ignore_dependencies=None)
 
     mocks["link_shared_object"][0].stop()
     mocks["link_shared_object"][1].assert_called_once_with(

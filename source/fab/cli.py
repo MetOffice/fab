@@ -9,7 +9,7 @@
 
 import sys
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 from fab.artefacts import ArtefactSet, CollectionGetter
 from fab.build_config import BuildConfig
@@ -22,14 +22,17 @@ from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
-from fab.tools import Category, ToolBox, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 from fab.util import common_arg_parser
 
 
 def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     project_label = 'zero_config_build'
     if kwargs:
-        project_label = kwargs.pop('project_label', 'zero_config_build') or project_label
+        project_label = kwargs.pop('project_label',
+                                   'zero_config_build') or project_label
 
     # Set the default Fortran compiler as linker (otherwise e.g. the
     # C compiler might be used in linking, requiring additional flags)
@@ -43,15 +46,18 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     tool_box.add_tool(fc)
     tool_box.add_tool(linker)
     # Within the fab workspace, we'll create a project workspace.
-    # Ideally we'd just use folder.name, but to avoid clashes, we'll use the full absolute path.
+    # Ideally we'd just use folder.name, but to avoid clashes, we'll use the
+    # full absolute path.
     with BuildConfig(project_label=project_label, mpi=False, openmp=False,
                      tool_box=tool_box, **kwargs) as config:
         grab_folder(config, folder)
         find_source_files(config)
-        root_inc_files(config)  # JULES helper, get rid of this eventually
+        # JULES helper, get rid of this eventually
+        root_inc_files(config, suffix_list=[".inc", ".h"])
         preprocess_fortran(config)
         c_pragma_injector(config)
-        preprocess_c(config, source=CollectionGetter(ArtefactSet.C_BUILD_FILES))
+        preprocess_c(config,
+                     source=CollectionGetter(ArtefactSet.C_COMPILER_FILES))
         analyse(config, find_programs=True)
         compile_fortran(config)
         compile_c(config)
@@ -63,11 +69,11 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     return config
 
 
-def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
+def cli_fab(folder: Optional[Path] = None, kwargs: Optional[dict] = None):
     """
-    Running Fab from the command line will attempt to build the project in the current or
-    given folder. The following params are used for testing. When run normally any parameters
-    will be caught by a common_arg_parser.
+    Running Fab from the command line will attempt to build the project in
+    the current or given folder. The following params are used for testing.
+    When run normally any parameters will be caught by a common_arg_parser.
 
     :param folder:
         source folder (Testing Only)
@@ -77,9 +83,9 @@ def cli_fab(folder: Optional[Path] = None, kwargs: Optional[Dict] = None):
     """
     kwargs = kwargs or {}
 
-    # We check if 'fab' was called directly. As it can be called by other things like 'pytest',
-    # the cli arguments may not apply to 'fab' which will cause arg_parser to fail with an
-    # invalid argument message.
+    # We check if 'fab' was called directly. As it can be called by other
+    # things like 'pytest', the cli arguments may not apply to 'fab' which
+    # will cause arg_parser to fail with an invalid argument message.
     if Path(sys.argv[0]).parts[-1] == 'fab':
         arg_parser = common_arg_parser()
         kwargs = vars(arg_parser.parse_args())

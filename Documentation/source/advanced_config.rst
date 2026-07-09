@@ -7,6 +7,40 @@ A lot can be achieved with simple configurations but some of the more esoteric
 aspects of software building may require more esoteric Fab features.
 
 
+.. _importing_from_api:
+
+Importing from a Path-independent Location
+==========================================
+Fab is providing an ``api`` submodule, from which the important
+classes and functions that a user script will need can be imported,
+e.g.:
+
+.. code-block::
+    :caption: my_grab.py
+
+    from fab.api import analyse, BuildConfig, find_source_files, ToolBox
+
+The advantage of using this is that the script will be independent
+of the actual location of the source files within Fab. A potential
+disadvantage is that importing from the ``api`` submodule imports very
+many different function, and as such can be slower than just importing
+a few classes. On the other hand, a complex build script will typically
+explicitly or implicitly import all these functions and classes anyway.
+In not-representative tests, importing tool using ``api`` takes around
+0.2 seconds, while importing it from ``fab.tools.tool`` only takes
+0.05 seconds.
+
+The list of functions and classes provided:
+
+.. literalinclude:: ../../source/fab/api.py
+    :start-after: __all__ = [
+    :end-before:     ]
+
+Note that this documentation will show import from ``fab.api``
+in all code examples. But in the text, the full path within the
+Fab repository is used to make it easier to find the actual source
+code in case a more detailed study of the source code is required.
+
 .. _env_vars:
 
 Understanding the Environment
@@ -202,7 +236,7 @@ when defining flags:
 .. code-block::
     :linenos:
 
-    git = config.tool_box[Category.GIT]
+    git = config.tool_box.get_tool(Category.GIT)
     git.add_flags(["-c", "foo.bar=123"])
 
 This effectively adds the flags to the to the dummy profile, allowing
@@ -370,6 +404,144 @@ instance itself, as shown further above, is the better approach.
 
 Path-specific flags
 -------------------
+A common use case in complex applications is the need to specify
+file-specific compiler flags. For example, a file might need to enable
+additional optimisations, or disable other optimisations.
+
+Fab uses a set of classes to manage flags consistently across
+all tools.
+
+AlwaysFlags
+    This object represents a list of flags that are always used, i.e.
+    they are independent of the filename being processed. It provides
+    templating capabilities, i.e. a set of keywords starting with `$`
+    will be replaced with a value. The following keywords are defined
+    if a config file is specified:
+
+    - ``$source`` for *<project workspace>/source*
+    - ``$output`` for *<project workspace>/build_output*
+    - ``$relative`` for *<the source file's folder>*
+
+    These values are taken from the build configuration (if specified).
+
+    Example:
+
+    .. code-block::
+        :linenos:
+        :caption: Creating an AlwaysFlags instance
+
+        from fab.api import AlwaysFlags
+
+        # Assuming that build_config specifies /some/path/fab
+        # as project directory for Fab:
+        af = AlwaysFlags(["-g", "-O2", "-I$source/um/include/other"])
+        assert (af.get_flags(build_config) ==
+                ["-g", "-O2", "-I/some/path/fab/source/um/include/other"])
+
+
+MatchFlags (based on ``AlwaysFlags``)
+    This represents a set of flags that are only applied if a wildcard
+    search matches the source file to be processed. Note that a wildcard
+    search must in general match the full path (unless the pattern starts
+    with a ``*``). The templates explained in the ``AlwaysFlags`` can be
+    used to create absolute paths in the pattern as well.
+
+    Example:
+
+    .. code-block::
+        :linenos:
+        :caption: Creating a MatchFlags instance
+
+        from fab.api import MatchFlags
+
+        mf = MatchFlags("/some/dir", "-g")
+
+        assert mf.get_flags(file_path=Path("/some/dir")) == ["-g"]
+        assert mf.get_flags(file_path=Path("/other/some/dir")) == []
+
+        # Starting a pattern with * will match a:
+        mf = MatchFlags("*/some/dir", "-g")
+        assert mf.get_flags(file_path=Path("/other/some/dir")) == ["-g"]
+
+
+ContainFlags (based on ``AlwaysFlags``)
+    Flags that are only applied if the file path contains the specified
+    string. The difference to ``MatchFlags`` is that ``ContainFlags`` do not
+    need the full path to be specified.
+
+    Example:
+
+    .. code-block::
+        :linenos:
+        :caption: Creating a ContainFlags instance
+
+        from fab.api import ContainFlags
+
+        cf = ContainFlags(pattern="/some/dir", "-g")
+
+        assert cf.get_flags(file_path=Path("/not/in/root/some/dir")) == ["-g"]
+        assert cf.get_flags(file_path=Path("/some/other")) == []
+
+FlagList:
+    This class represents the main class to manage a set of flags.
+    Each of its members is either an ``AlwaysFlags``, ``MatchFlags``
+    or ``ContainFlags``. When the list is evaluated, each individual
+    flag instance is evaluated and will depending on the processed
+    file add flags or not.
+
+    This class provides convenient constructor which will convert
+    a string or list of strings to an ``AlwaysFlags`` instance.
+    It also provides backwards compatibility to the previous
+    ``AddFlag`` object (see :ref:`add_flag`):
+
+    Example:
+
+    .. code-block::
+        :linenos:
+        :caption: Creating a FlagList
+
+        from fab.api import ContainFlags, FlagList
+        from fab.build_config import AddFlags
+
+        cf = ContainFlags(pattern="/some/dir", "-g")
+        add_flags = AddFlags(match="/some/pattern", flags=["-g", "-O0"])
+        # This will trigger conversion of add_flags to MathFlags
+        flag_list = FlagList(add_flags=[add_flags])
+
+ProfileFlags:
+    Tools have a ``ProfileFlags`` as member, which they use to manage
+    all their flags. Depending on the selected profile, this ``ProfileFlags``
+    members returns the ``FlagList`` to use. As explained earlier, each of
+    the members of FlagList can be any of the previous flag types to give
+    flexibility for a user to specify the compilation flags. See
+    :ref:`Advanced Flags` for details about profiling modes.
+
+    Example:
+
+    .. code-block::
+        :linenos:
+        :caption: Setting up compiler for the UM
+
+        tr = ToolRepository()
+        ifx = tr.get_tool(Category.FORTRAN_COMPILER, "ifx")
+
+        # These will be converted to an AlwaysFlag:
+        ifx.add_flags(["-stand", "f08"], "base")
+
+        # ifx 2025.2 has no omp_version in omp_lib, so we
+        # have to disable OpenMP:
+        if (2025, 2) <= ifx.get_version() < (2025, 3):
+            ifx.add_flags(ContainFlags("/um_shell.", ["-qno-openmp"]), "base")
+
+        # Prevent loss of comparison across decompositions when OpenMP on
+        ifx.add_flags(ContainFlags("/ni_imp_ctl.", "-qno-openmp"), "base")
+
+
+
+.. _add_flag:
+
+Path-specific flags - old style
+-------------------------------
 
 For preprocessing and compilation, we sometimes need to specify flags
 *per-file*. These steps accept both common flags and *path specific* flags.
@@ -564,7 +736,7 @@ symbol and add it, *and all its dependencies*, to every :term:`Build Tree`.
     :linenos:
 
     ...
-    analyse(state, root_symbol='my_prog', unreferenced_deps=['my_func'])
+    analyse(state, root_symbols='my_prog', unreferenced_deps=['my_func'])
     ...
 
 Unparsable Files
@@ -589,7 +761,7 @@ definitions and dependencies found in one source file.
     ...
     analyse(
         config,
-        root_symbol='my_prog',
+        root_symbols='my_prog',
         special_measure_analysis_results=[
             FortranParserWorkaround(
                 fpath=Path(state.build_output / "path/to/file.f90"),

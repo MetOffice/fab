@@ -2,7 +2,6 @@ from datetime import timedelta, datetime
 import logging
 import os
 from pathlib import Path
-from typing import List
 from unittest.mock import Mock
 import zlib
 
@@ -19,7 +18,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
 from fab.util import file_walk, get_prebuild_file_groups
 
 PROJECT_LABEL = 'tiny_project'
@@ -57,7 +56,7 @@ class TestIncremental:
     def run_steps(self, build_config):
         find_source_files(build_config)
         preprocess_fortran(build_config)
-        analyse(build_config, root_symbol='my_prog')
+        analyse(build_config, root_symbols='my_prog')
         compile_fortran(build_config)
         link_exe(build_config, flags=['-lgfortran'])
         # Add a permissive cleanup step because we want to know about every file which is created,
@@ -257,7 +256,7 @@ class TestCleanupPrebuilds:
         return configuration
 
     @staticmethod
-    def prebuilt_files(configuration: BuildConfig) -> List[str]:
+    def prebuilt_files(configuration: BuildConfig) -> list[str]:
         """
         Determines a list of files in the pre-build directory.
 

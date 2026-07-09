@@ -10,14 +10,15 @@ from the tool box.
 '''
 
 from pathlib import Path
-from typing import Optional, Union, Tuple
+from typing import Optional, Union
 import xml.etree.ElementTree as ET
 
 from fab.steps import step
-from fab.tools import Category, Versioning
+from fab.tools.category import Category
+from fab.tools.versioning import Versioning
 
 
-def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
+def _get_revision(src, revision=None) -> tuple[str, Union[str, None]]:
     """
     Pull out the revision if it's part of the url.
 
@@ -47,7 +48,7 @@ def _get_revision(src, revision=None) -> Tuple[str, Union[str, None]]:
 
 def _svn_prep_common(config, src: str,
                      dst_label: Optional[str],
-                     revision: Optional[str]) -> Tuple[str, Path,
+                     revision: Optional[str]) -> tuple[str, Path,
                                                        Optional[str]]:
     src, revision = _get_revision(src, revision)
     if not config.source_root.exists():
@@ -67,7 +68,7 @@ def svn_export(config, src: str,
     Export an FCM repo folder to the project workspace.
 
     """
-    svn = config.tool_box[category]
+    svn = config.tool_box.get_tool(category)
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
     svn.export(src, dst, revision)
 
@@ -84,7 +85,7 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None,
         be provided via the argument, not as part of the url.
 
     """
-    svn = config.tool_box[category]
+    svn = config.tool_box.get_tool(category)
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     # new folder?
@@ -102,7 +103,7 @@ def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
     Merge an FCM repo into a local working copy.
 
     """
-    svn = config.tool_box[category]
+    svn = config.tool_box.get_tool(category)
     src, dst, revision = _svn_prep_common(config, src, dst_label, revision)
 
     svn.merge(src, dst, revision)

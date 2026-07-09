@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+
 '''
 This file contains a function that sets the default flags for all
 GNU based compilers and linkers in the ToolRepository.
@@ -8,14 +14,13 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Linker, ToolRepository
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_gnu(build_config: BuildConfig,
-              args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
+def setup_script_gnu(build_config: BuildConfig,
+                     args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument
     '''
     Defines the default flags for all GNU compilers and linkers.
@@ -31,7 +36,9 @@ def setup_gnu(build_config: BuildConfig,
     if not gfortran.is_available:
         gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "mpif90-gfortran")
         if not gfortran.is_available:
-            return {}
+            return
+
+    gfortran = cast(Compiler, gfortran)
 
     # The base flags
     # ==============
@@ -68,5 +75,3 @@ def setup_gnu(build_config: BuildConfig,
 
     # Add more flags to be always used, e.g.:
     # linker.add_post_lib_flags(["-lstdc++"], "base")
-
-    return {}

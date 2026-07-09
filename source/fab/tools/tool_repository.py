@@ -22,9 +22,14 @@ from fab.tools.compiler_wrapper import (CompilerWrapper, CrayCcWrapper,
                                         CrayFtnWrapper, Mpif90, Mpicc)
 from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
-from fab.tools import (Ar, Cpp, CppFortran, Craycc, Crayftn,
-                       Gcc, Gfortran, Icc, Icx, Ifort, Ifx,
-                       Nvc, Nvfortran, Psyclone, Rsync, Shell)
+from fab.tools.ar import Ar
+from fab.tools.preprocessor import Cpp, CppFortran
+from fab.tools.compiler import (Craycc, Crayftn, Gcc, Gfortran, Icc, Icx,
+                                Ifort, Ifx, Nvc, Nvfortran)
+from fab.tools.pfunit import PfUnit
+from fab.tools.psyclone import Psyclone
+from fab.tools.rsync import Rsync
+from fab.tools.shell import Shell
 
 
 class ToolRepository(dict):
@@ -70,7 +75,7 @@ class ToolRepository(dict):
                     Icc, Icx, Ifort, Ifx,
                     Nvc, Nvfortran,
                     Cpp, CppFortran,
-                    Ar, Fcm, Git, Psyclone, Rsync, Subversion]:
+                    Ar, Fcm, Git, PfUnit, Psyclone, Rsync, Subversion]:
             self.add_tool(cls())
 
         # Add a standard shell. Additional shells (bash, ksh, dash)
@@ -88,7 +93,7 @@ class ToolRepository(dict):
                 mpif90 = Mpif90(fc)
                 self.add_tool(mpif90)
             # I assume cray has (besides cray) only support for Intel and GNU
-            if fc.name in ["gfortran", "ifort"]:
+            if fc.name in ["gfortran", "ifort", "ifx"]:
                 crayftn = CrayFtnWrapper(fc)
                 self.add_tool(crayftn)
 
@@ -98,7 +103,7 @@ class ToolRepository(dict):
             mpicc = Mpicc(cc)
             self.add_tool(mpicc)
             # I assume cray has (besides cray) only support for Intel and GNU
-            if cc.name in ["gcc", "icc"]:
+            if cc.name in ["gcc", "icc", "icx"]:
                 craycc = CrayCcWrapper(cc)
                 self.add_tool(craycc)
 
@@ -290,6 +295,9 @@ class ToolRepository(dict):
             if category == Category.LINKER:
                 tool = cast(Linker, tool)
                 compiler = tool.compiler
+                # Find the real compiler if we have a compiler wrapper:
+                while isinstance(compiler, CompilerWrapper):
+                    compiler = compiler.compiler
                 # Ignore C linker if Fortran is requested and vice versa:
                 if (enforce_fortran_linker and
                         not isinstance(compiler, FortranCompiler)):

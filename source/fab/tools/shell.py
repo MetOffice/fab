@@ -9,7 +9,7 @@ other scripts.
 """
 
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -23,12 +23,15 @@ class Shell(Tool):
 
     :name: the path to the script to run.
     '''
+
+    Category.add("SHELL")
+
     def __init__(self, name: str):
         super().__init__(name=name, exec_name=name,
                          availability_option=["-c", "echo hello"],
                          category=Category.SHELL)
 
-    def exec(self, command: Union[str, List[Union[Path, str]]]) -> str:
+    def exec(self, command: Union[str, list[Union[Path, str]]]) -> str:
         '''Executes the specified command.
 
         :param command: the command and potential parameters to execute.
@@ -36,7 +39,7 @@ class Shell(Tool):
         :returns: stdout of the result.
         '''
         # Make mypy happy:
-        params: List[Union[str, Path]]
+        params: list[Union[str, Path]]
         if isinstance(command, str):
             params = ["-c", command]
         else:

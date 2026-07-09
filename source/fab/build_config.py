@@ -10,7 +10,6 @@ Contains the :class:`~fab.build_config.BuildConfig` and helper classes.
 import getpass
 import logging
 import os
-import sys
 import warnings
 from datetime import datetime
 from fnmatch import fnmatch
@@ -18,14 +17,14 @@ from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import List, Optional, Iterable
+from typing import Optional, Iterable
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
 from fab.metrics import (send_metric, init_metrics, stop_metrics,
                          metrics_summary)
 from fab.tools.category import Category
-from fab.tools.tool_box import ToolBox
+from fab.tools.abstract_tool_box import AbstractToolBox
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
@@ -41,7 +40,7 @@ class BuildConfig():
 
     """
     def __init__(self, project_label: str,
-                 tool_box: ToolBox,
+                 tool_box: AbstractToolBox,
                  mpi: bool = False,
                  openmp: bool = False,
                  profile: Optional[str] = None,
@@ -91,9 +90,9 @@ class BuildConfig():
         self._openmp = openmp
         if profile is None:
             # An empty string is used for non-profiled flags
-            self._profile = ""
+            self.set_profile("")
         else:
-            self._profile = profile
+            self.set_profile(profile)
         self.two_stage = two_stage
         self.verbose = verbose
         compiler = tool_box.get_tool(Category.FORTRAN_COMPILER, mpi=mpi,
@@ -129,7 +128,7 @@ class BuildConfig():
         # turn off multiprocessing when debugging
         # todo: turn off multiprocessing when running tests, as a good test
         # runner will run using mp
-        if 'pydevd' in str(sys.gettrace()):
+        if "PYTEST_CURRENT_TEST" in os.environ:
             logger.info('debugger detected, running without multiprocessing')
             self.multiprocessing = False
 
@@ -186,7 +185,7 @@ class BuildConfig():
         self._finalise_logging()
 
     @property
-    def tool_box(self) -> ToolBox:
+    def tool_box(self) -> AbstractToolBox:
         ''':returns: the tool box to use.'''
         return self._tool_box
 
@@ -222,6 +221,13 @@ class BuildConfig():
     def profile(self) -> str:
         ''':returns: the name of the compiler profile to use.'''
         return self._profile
+
+    def set_profile(self, profile: str) -> None:
+        """Sets the compilation profile.
+
+        :param profile: the name of the profile.
+        """
+        self._profile = profile.lower()
 
     def add_current_prebuilds(self, artefacts: Iterable[Path]):
         """
@@ -288,13 +294,19 @@ class BuildConfig():
 
 
 # todo: better name? perhaps PathFlags?
+# todo: This is going to be replaced with tools.flags.MatchFlags
+
 class AddFlags():
     """
     Add command-line flags when our path filter matches.
-    Generally used inside a :class:`~fab.build_config.FlagsConfig`.
+    This class is deprecated, use the new
+    :class:`~fab.tools.flags.FlagList` and
+    :class:`~fab.tools.flags.MatchFlag` instead.
+    The compile and preprocess steps will convert AddFlags into
+    MatchFlags
 
     """
-    def __init__(self, match: str, flags: List[str]):
+    def __init__(self, match: str, flags: list[str]):
         """
         :param match:
             The string to match against each file path.
@@ -318,11 +330,11 @@ class AddFlags():
 
         """
         self.match: str = match
-        self.flags: List[str] = flags
+        self.flags: list[str] = flags
 
     # todo: we don't need the project_workspace, we could just pass in the
     # output folder
-    def run(self, fpath: Path, input_flags: List[str], config):
+    def run(self, fpath: Path, input_flags: list[str], config):
         """
         Check if our filter matches a given file. If it does, add our flags.
 
@@ -347,48 +359,3 @@ class AddFlags():
 
             # add our flags
             input_flags += add_flags
-
-
-class FlagsConfig():
-    """
-    Return command-line flags for a given path.
-
-    Simply allows appending flags but may evolve to also replace and
-    remove flags.
-
-    """
-    def __init__(self, common_flags: Optional[List[str]] = None,
-                 path_flags: Optional[List[AddFlags]] = None):
-        """
-        :param common_flags:
-            List of flags to apply to all files. E.g `['-O2']`.
-        :param path_flags:
-            List of :class:`~fab.build_config.AddFlags` objects which apply
-            flags to selected paths.
-
-        """
-        self.common_flags = common_flags or []
-        self.path_flags = path_flags or []
-
-    # todo: there's templating both in this method and the run method it calls.
-    #       make sure it's all properly documented and rationalised.
-    def flags_for_path(self, path: Path, config):
-        """
-        Get all the flags for a given file, in a reproducible order.
-
-        :param path:
-            The file path for which we want command-line flags.
-        :param config:
-            The config contains the source root and project workspace.
-
-        """
-        # We COULD make the user pass these template params to the constructor
-        # but we have a design requirement to minimise the config burden on
-        # the user, so we take care of it for them here instead.
-        params = {'source': config.source_root, 'output': config.build_output}
-        flags = [Template(i).substitute(params) for i in self.common_flags]
-
-        for flags_modifier in self.path_flags:
-            flags_modifier.run(path, flags, config=config)
-
-        return flags

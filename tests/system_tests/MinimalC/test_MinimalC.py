@@ -17,7 +17,7 @@ from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
 
 clang = importorskip('clang', reason="Clang bindings not found.")
 
@@ -34,7 +34,7 @@ def test_minimal_c(tmp_path):
         find_source_files(config)
         c_pragma_injector(config)
         preprocess_c(config)
-        analyse(config, root_symbol='main')
+        analyse(config, root_symbols='main@main')
         compile_c(config, common_flags=['-c', '-std=c99'])
         link_exe(config)
 

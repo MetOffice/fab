@@ -8,7 +8,7 @@ Versioning tools such as Subversion and Git.
 """
 from abc import ABC
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -38,6 +38,8 @@ class Git(Versioning):
     Interface to Git version control system.
     """
 
+    Category.add("GIT")
+
     def __init__(self):
         super().__init__("git", "git",
                          category=Category.GIT)
@@ -45,7 +47,7 @@ class Git(Versioning):
     def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
         ''':returns: the hash of the current commit.
 
-        :param folder: the folder for which to determine the current commitf
+        :param folder: the folder for which to determine the current commit
             (defaults to .).
         '''
         folder = folder or '.'
@@ -77,7 +79,7 @@ class Git(Versioning):
         :param dst: the directory in which to run fetch.
         '''
         # todo: allow shallow fetch with --depth 1
-        command: List[Union[str, Path]] = ['fetch', str(src)]
+        command: list[Union[str, Path]] = ['fetch', str(src)]
         if revision:
             command.append(revision)
         self.run(command, cwd=str(dst), capture_output=False)
@@ -117,6 +119,9 @@ class Subversion(Versioning):
     """
     Interface to the Subversion version control system.
     """
+
+    Category.add("SUBVERSION")
+
     def __init__(self, name: Optional[str] = None,
                  exec_name: Optional[Union[str, Path]] = None,
                  category: Category = Category.SUBVERSION):
@@ -135,25 +140,25 @@ class Subversion(Versioning):
         super().__init__(name, exec_name, category=category)
 
     # pylint: disable-next=too-many-arguments
-    def execute(self, pre_commands: Optional[List[str]] = None,
+    def execute(self, pre_commands: Optional[list[str]] = None,
                 revision: Optional[Union[int, str]] = None,
-                post_commands: Optional[List[str]] = None,
-                env: Optional[Dict[str, str]] = None,
+                post_commands: Optional[list[str]] = None,
+                env: Optional[dict[str, str]] = None,
                 cwd: Optional[Union[Path, str]] = None,
                 capture_output=True) -> str:
         '''Executes a svn command.
 
-        :param pre_commands: List of strings to be sent to
+        :param pre_commands: list of strings to be sent to
             :func:`subprocess.run` as the command.
         :param revision: optional revision number as argument
-        :param post_commands: List of additional strings to be sent to
+        :param post_commands: list of additional strings to be sent to
             :func:`subprocess.run` after the optional revision number.
         :param env: Optional env for the command. By default it will use
             the current session's environment.
         :param capture_output: If True, capture and return stdout. If False,
             the command will print its output directly to the console.
         '''
-        command: List[Union[str, Path]] = []
+        command: list[Union[str, Path]] = []
         if pre_commands:
             command.extend(pre_commands)
         if revision:
@@ -220,6 +225,8 @@ class Fcm(Subversion):
     '''This is the base class for FCM. All commands will be mapped back
     to the corresponding subversion commands.
     '''
+
+    Category.add("FCM")
 
     def __init__(self):
         super().__init__("FCM", "fcm", Category.FCM)

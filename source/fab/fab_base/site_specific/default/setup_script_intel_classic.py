@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+
 '''
 This file contains a function that sets the default flags for all
 Intel classic based compilers in the ToolRepository (ifort, icc).
@@ -8,21 +14,20 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Compiler, Linker, ToolRepository
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_intel_classic(build_config: BuildConfig,
-                        args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
+def setup_script_intel_classic(build_config: BuildConfig,
+                               args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument, too-many-locals
     '''
     Defines the default flags for all Intel classic compilers and linkers.
 
     :param build_config: the Fab build config instance from which
         required parameters can be taken.
-    :param argparse.Namespace args: all command line options
+    :param args: all command line options
     '''
 
     tr = ToolRepository()
@@ -38,7 +43,7 @@ def setup_intel_classic(build_config: BuildConfig,
         if not ifort.is_available:
             # Since some flags depends on version, the code below requires
             # that the intel compiler actually works.
-            return {}
+            return
 
     # The base flags
     # ==============
@@ -75,5 +80,3 @@ def setup_intel_classic(build_config: BuildConfig,
 
     # Add more flags to be always used, e.g.:
     # linker.add_post_lib_flags(["-lstdc++"], "base")
-
-    return {}

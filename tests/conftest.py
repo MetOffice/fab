@@ -8,12 +8,13 @@ Fixtures and helpers for testing.
 """
 import os
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 from pytest import fixture
 from pytest_subprocess.fake_process import FakeProcess, ProcessRecorder
 
 from fab.build_config import BuildConfig
+from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.linker import Linker
 from fab.tools.tool_box import ToolBox
@@ -31,19 +32,19 @@ def not_found_callback(process):
     raise FileNotFoundError("Executable file missing")
 
 
-def call_list(fake_process: FakeProcess) -> List[List[str]]:
+def call_list(fake_process: FakeProcess) -> list[list[str]]:
     """
     Converts FakeProcess calls to strings.
 
     :returns: List of argument strings per call.
     """
-    result: List[List[str]] = []
+    result: list[list[str]] = []
     for call in fake_process.calls:
         result.append([str(arg) for arg in call])
     return result
 
 
-def arg_list(record: ProcessRecorder) -> List[Dict[str, str]]:
+def arg_list(record: ProcessRecorder) -> list[dict[str, str]]:
     """
     Converts ProcessRecorder calls to subprocess arguments.
 
@@ -51,7 +52,7 @@ def arg_list(record: ProcessRecorder) -> List[Dict[str, str]]:
 
     :returns: Dictionary of argument passed to subprocess per call.
     """
-    result: List[Dict[str, str]] = []
+    result: list[dict[str, str]] = []
     for call in record.calls:
         if call.kwargs is None:
             args = {}
@@ -68,7 +69,7 @@ class ExtendedRecorder:
     def __init__(self, recorder: ProcessRecorder):
         self.recorder = recorder
 
-    def invocations(self) -> List[List[str]]:
+    def invocations(self) -> list[list[str]]:
         """
         Lists invocations as simple string lists.
         """
@@ -77,15 +78,15 @@ class ExtendedRecorder:
             calls.append([str(arg) for arg in call.args])
         return calls
 
-    def extras(self) -> List[Dict[str, Optional[str]]]:
+    def extras(self) -> list[dict[str, Optional[str]]]:
         """
         Lists arguments passed to subprocess.
 
         This allows .e.g. pwd to be seen, if set.
         """
-        args: List[Dict[str, Optional[str]]] = []
+        args: list[dict[str, Optional[str]]] = []
         for call in self.recorder.calls:
-            things: Dict[str, Optional[str]] = {}
+            things: dict[str, Optional[str]] = {}
             if call.kwargs is None:
                 continue
             for key, value in call.kwargs.items():
@@ -115,8 +116,9 @@ def stub_fortran_compiler() -> FortranCompiler:
     Provides a minimal Fortran compiler.
     """
     compiler = FortranCompiler('some Fortran compiler', 'sfc', 'stub',
-                               r'([\d.]+)', openmp_flag='-omp',
-                               module_folder_flag='-mods')
+                               r'([\d.]+)')
+    compiler["openmp"] = '-omp'
+    compiler["module-out-folder"] = '-mods'
     return compiler
 
 
@@ -126,7 +128,8 @@ def stub_c_compiler() -> CCompiler:
     Provides a minimal C compiler.
     """
     compiler = CCompiler("some C compiler", "scc", "stub",
-                         version_regex=r"([\d.]+)", openmp_flag='-omp')
+                         version_regex=r"([\d.]+)")
+    compiler["openmp"] = '-omp'
     return compiler
 
 
@@ -192,6 +195,11 @@ def stub_tool_repository(stub_fortran_compiler,
     monkeypatch.setattr(stub_c_compiler, 'check_available', return_true)
     monkeypatch.setattr(stub_linker, 'check_available', return_true)
     tool_repository = ToolRepository()
+    # Remove all compiler and linker, since they might exist on the system
+    # running these tests, which can break tests.
+    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
+                Category.LINKER]:
+        tool_repository[cat] = []
     tool_repository.add_tool(stub_fortran_compiler)
     tool_repository.add_tool(stub_c_compiler)
     tool_repository.add_tool(stub_linker)

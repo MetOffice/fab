@@ -9,6 +9,7 @@ Exercise compiler tools.
 from pathlib import Path
 from textwrap import dedent
 from unittest import mock
+from zlib import crc32
 
 from pytest import mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
@@ -21,40 +22,39 @@ from fab.tools.compiler import (Compiler, CCompiler, FortranCompiler,
                                 Icc, Ifort,
                                 Icx, Ifx,
                                 Nvc, Nvfortran)
+from fab.tools.flags import ContainFlags
 
 from tests.conftest import arg_list, call_list
 
 
 def test_compiler() -> None:
     '''Test the compiler constructor.'''
-    cc = Compiler("gcc", "gcc", "gnu", version_regex="",
-                  category=Category.C_COMPILER, openmp_flag="-fopenmp")
+    cc = Gcc()
     assert cc.category == Category.C_COMPILER
-    assert cc._compile_flag == "-c"
-    assert cc.output_flag == "-o"
+    assert cc["compile-only"] == ["-c"]
+    assert cc["output"] == ["-o"]
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert cc.get_flags() == []
     assert cc.suite == "gnu"
     assert not cc.mpi
-    assert cc.openmp_flag == "-fopenmp"
+    assert cc["openmp"] == ["-fopenmp"]
 
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="", module_folder_flag="-J")
-    assert fc._compile_flag == "-c"
-    assert fc.output_flag == "-o"
+    fc = Gfortran()
+    assert fc["compile-only"] == ["-c"]
+    assert fc["output"] == ["-o"]
     assert fc.category == Category.FORTRAN_COMPILER
     assert fc.suite == "gnu"
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert fc.get_flags() == []
     assert not fc.mpi
-    assert fc.openmp_flag == "-fopenmp"
+    assert fc["openmp"] == ["-fopenmp"]
 
 
 def test_compiler_exec_paths() -> None:
     '''Tests compiler with absolute paths.
     '''
     cc = Compiler("gcc", "gcc", "gnu", version_regex="",
-                  category=Category.C_COMPILER, openmp_flag="-fopenmp")
+                  category=Category.C_COMPILER)
     assert cc.exec_name == "gcc"
     assert cc.exec_path == Path("gcc")
     cc.set_full_path(Path("/usr/bin/gcc"))
@@ -65,28 +65,18 @@ def test_compiler_exec_paths() -> None:
 def test_compiler_openmp() -> None:
     '''Test that the openmp flag is correctly reflected in the test if
     a compiler supports OpenMP or not.'''
-    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag="-fopenmp",
-                   version_regex="")
-    assert cc.openmp_flag == "-fopenmp"
-    assert cc.openmp
-    cc = CCompiler("gcc", "gcc", "gnu", openmp_flag=None, version_regex="")
-    assert cc.openmp_flag == ""
-    assert not cc.openmp
     cc = CCompiler("gcc", "gcc", "gnu", version_regex="")
-    assert cc.openmp_flag == ""
+    cc["openmp"] = "-fopenmp"
+    assert cc["openmp"] == ["-fopenmp"]
+    assert cc.openmp
+    cc = CCompiler("gcc", "gcc", "gnu", version_regex="")
     assert not cc.openmp
 
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         module_folder_flag="-J", version_regex="")
-    assert fc.openmp_flag == "-fopenmp"
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
+    fc["openmp"] = "-fopenmp"
+    assert fc["openmp"] == ["-fopenmp"]
     assert fc.openmp
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag=None,
-                         module_folder_flag="-J", version_regex="")
-    assert fc.openmp_flag == ""
-    assert not fc.openmp
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         module_folder_flag="-J", version_regex="")
-    assert fc.openmp_flag == ""
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
     assert not fc.openmp
 
 
@@ -108,68 +98,94 @@ def test_compiler_check_available_runtime_error():
         assert not cc.check_available()
 
 
-def test_compiler_hash():
+def test_compiler_hash(stub_configuration):
     '''Test the hash functionality.'''
     cc = Gcc()
     with mock.patch.object(cc, "_version", (5, 6, 7)):
-        hash1 = cc.get_hash()
-        assert hash1 == 2991650113
+        hash1 = cc.get_hash(stub_configuration, Path('.'))
+        assert hash1 == 804998173
 
     # A change in the version number must change the hash:
     with mock.patch.object(cc, "_version", (8, 9)):
-        hash2 = cc.get_hash()
+        hash2 = cc.get_hash(stub_configuration, Path('.'))
         assert hash2 != hash1
 
         # A change in the name must change the hash, again:
         cc._name = "new_name"
-        hash3 = cc.get_hash()
+        hash3 = cc.get_hash(stub_configuration, Path('.'))
         assert hash3 not in (hash1, hash2)
 
 
-def test_compiler_hash_compiler_error():
+def test_compiler_path_specific_flags(stub_configuration,
+                                      stub_fortran_compiler):
+    """
+    Tests that path-specific flags are used as expected.
+    """
+    fc = stub_fortran_compiler
+    # Make sure we can get a version number for the stub compiler:
+    fc._version = (1, 2)
+    print(fc.name, fc.get_version())
+
+    contain_flag = ContainFlags(pattern="myfile",
+                                flags=["-myflag"])
+    fc.add_flags("-always-flag")
+    fc.add_flags(contain_flag)
+
+    flags = fc.get_flags(stub_configuration, Path("."))
+    assert flags == ["-always-flag"]
+    flags = fc.get_flags(stub_configuration, Path("/somewhere/myfile.F90"))
+    assert flags == ["-always-flag", "-myflag"]
+
+    compiler_info = "some Fortran compiler1.2['-always-flag']"
+    hash_without = fc.get_hash(stub_configuration, Path('.'))
+    assert hash_without == crc32(compiler_info.encode())
+
+    compiler_info = "some Fortran compiler1.2['-always-flag', '-myflag']"
+    hash_with = fc.get_hash(stub_configuration, Path('/somewhere/myfile.F90'))
+    assert hash_with == crc32(compiler_info.encode())
+    # Just to be certain they are indeed different
+    assert hash_with != hash_without
+
+
+def test_compiler_hash_compiler_error(stub_configuration):
     '''Test the hash functionality when version info is missing.'''
     cc = Gcc()
 
     # raise an error when trying to get compiler version
     with mock.patch.object(cc, 'run', side_effect=RuntimeError()):
         with raises(RuntimeError) as err:
-            cc.get_hash()
+            cc.get_hash(stub_configuration, Path('.'))
         assert "Error asking for version of compiler" in str(err.value)
 
 
-def test_compiler_hash_invalid_version():
+def test_compiler_hash_invalid_version(stub_configuration):
     '''Test the hash functionality when version info is missing.'''
     cc = Gcc()
 
     # returns an invalid compiler version string
     with mock.patch.object(cc, "run", mock.Mock(return_value='foo v1')):
         with raises(RuntimeError) as err:
-            cc.get_hash()
+            cc.get_hash(stub_configuration, Path('.'))
         assert ("Unexpected version output format for compiler 'gcc'"
                 in str(err.value))
 
 
 def test_compiler_syntax_only():
     '''Tests handling of syntax only flags.'''
-    fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="",
-                         openmp_flag="-fopenmp", module_folder_flag="-J")
-    # Empty since no flag is defined
-    assert not fc.has_syntax_only
-
-    fc = FortranCompiler("gfortran", "gfortran", "gnu", openmp_flag="-fopenmp",
-                         version_regex="", module_folder_flag="-J",
-                         syntax_only_flag=None)
+    fc = FortranCompiler("gfortran", "gfortran", "gnu", version_regex="")
     # Empty since no flag is defined
     assert not fc.has_syntax_only
 
     fc = FortranCompiler("gfortran", "gfortran", "gnu",
-                         version_regex="",
-                         openmp_flag="-fopenmp",
-                         module_folder_flag="-J",
-                         syntax_only_flag="-fsyntax-only")
+                         version_regex="")
+    # Empty since no flag is defined
+    assert not fc.has_syntax_only
+
+    fc = FortranCompiler("gfortran", "gfortran", "gnu",
+                         version_regex="")
+    fc["syntax-only"] = "-fsyntax-only"
     assert fc.has_syntax_only
-    assert fc._syntax_only_flag == "-fsyntax-only"
+    assert fc["syntax-only"] == ["-fsyntax-only"]
 
 
 def test_compiler_without_openmp(stub_fortran_compiler: FortranCompiler,

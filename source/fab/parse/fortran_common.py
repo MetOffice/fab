@@ -10,7 +10,7 @@ Common functionality for both Fortran and (sanitised) X90 processing.
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Tuple, Type, Union
+from typing import Optional, Union
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
@@ -26,7 +26,7 @@ from fab.util import log_or_dot, file_checksum
 logger = logging.getLogger(__name__)
 
 
-def _typed_child(parent, child_type: Type, must_exist=False):
+def _typed_child(parent, child_type: type, must_exist=False):
     # Look for a child of a certain type.
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
@@ -74,9 +74,9 @@ class FortranAnalyserBase(ABC):
         return self._config
 
     def run(self, fpath: Path) \
-            -> Union[Tuple[AnalysedDependent, Path],
-                     Tuple[EmptySourceFile, None],
-                     Tuple[Exception, None]]:
+            -> Union[tuple[AnalysedDependent, Path],
+                     tuple[EmptySourceFile, None],
+                     tuple[Exception, None]]:
         """
         Parse the source file and record what we're interested in (subclass
         specific).
@@ -127,8 +127,12 @@ class FortranAnalyserBase(ABC):
         return analysed_file, analysis_fpath
 
     def _get_analysis_fpath(self, fpath, file_hash) -> Path:
+        """
+        :returns: the name to use for the analysis file. It consists of
+            the original filename, the hash, and a `.an` suffix.
+        """
         return Path(self.config.prebuild_folder /
-                    f'{fpath.stem}.{file_hash}.an')
+                    f'{fpath.name}.{file_hash}.an')
 
     def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""

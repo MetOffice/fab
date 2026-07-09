@@ -9,7 +9,7 @@ import logging
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import List, Optional, Union, Tuple
+from typing import Optional, Union
 
 try:
     import clang  # type: ignore
@@ -52,7 +52,7 @@ class CAnalyser:
 
         # runtime
         self._config = config
-        self._include_region: List[Tuple[int, str]] = []
+        self._include_region: list[tuple[int, str]] = []
 
     # todo: simplifiy by passing in the file path instead of the analysed tokens?
     def _locate_include_regions(self, trans_unit) -> None:
@@ -107,7 +107,7 @@ class CAnalyser:
         return None
 
     def run(self, fpath: Path) \
-            -> Union[Tuple[AnalysedC, Path], Tuple[Exception, None]]:
+            -> Union[tuple[AnalysedC, Path], tuple[Exception, None]]:
 
         if not clang:
             msg = 'clang not available, C analysis disabled'
@@ -143,7 +143,7 @@ class CAnalyser:
 
         # Now walk the actual nodes and find all relevant external symbols
         try:
-            usr_symbols: List[str] = []
+            usr_symbols: list[str] = []
             for node in translation_unit.cursor.walk_preorder():
                 if not node.spelling:
                     continue
@@ -175,7 +175,13 @@ class CAnalyser:
                 # the rest of the application
                 logger.debug('  * Is defined in this file')
                 # todo: ignore if inside user pragmas?
-                analysed_file.add_symbol_def(node.spelling)
+                if node.spelling == "main":
+                    # To allow multiple main programs in c, change the
+                    # 'main' symbol to include the file name:
+                    main_symbol = f"main@{analysed_file.fpath.stem}"
+                    analysed_file.add_symbol_def(main_symbol)
+                else:
+                    analysed_file.add_symbol_def(node.spelling)
         else:
             # Record any user included symbols in case they're referenced later in the code
             if self._check_for_include(node.location.line) == "usr_include":

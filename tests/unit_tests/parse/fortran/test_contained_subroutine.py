@@ -18,7 +18,9 @@ from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
-from fab.tools import Category, ToolBox, ToolRepository
+from fab.tools.category import Category
+from fab.tools.tool_box import ToolBox
+from fab.tools.tool_repository import ToolRepository
 
 
 PROJECT_SOURCE = Path(__file__).parent / 'test_contained_subroutine'
@@ -47,18 +49,19 @@ def test_contained_subroutine(tmp_path):
                      multiprocessing=False) as config:
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
-        analyse(config, root_symbol='main')
+        analyse(config, root_symbols='main')
         build_tree = config.artefact_store[ArtefactSet.BUILD_TREES]["main"]
 
-        af_mod_with_contain = None
-        for file_name in build_tree:
-            if "mod_with_contain" in str(file_name):
-                af_mod_with_contain = build_tree[file_name]
-                break
+        source_path = tmp_path / "contained_subroutine" / "source"
 
+        af_mod_with_contain = build_tree[source_path / "mod_with_contain.f90"]
         # The module should not contain any dependencies, the dependency to
         # `contained` is resolved from the subroutine it contains.
         assert af_mod_with_contain.symbol_deps == set()
+
+        # The contained subroutine in main should not be exported
+        af_main = build_tree[source_path / "main.f90"]
+        assert af_main.symbol_defs == set(["main"])
 
         # Just in case, also compile and link
         compile_fortran(config)

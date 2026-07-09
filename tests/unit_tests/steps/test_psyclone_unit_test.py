@@ -4,7 +4,6 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 from pathlib import Path
-from typing import Tuple
 from unittest.mock import Mock
 
 from pytest import fixture, warns
@@ -21,7 +20,7 @@ class TestGenPrebuildHash:
 
     """
     @fixture(scope='function')
-    def data(self, tmp_path) -> Tuple[MpCommonArgs, Path]:
+    def data(self, tmp_path) -> tuple[MpCommonArgs, Path]:
 
         x90_file = Path('foo.x90')
         analysed_x90 = {

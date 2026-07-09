@@ -11,14 +11,16 @@ import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Collection, List, Optional, Tuple, Union
+from typing import Collection, Optional, Union
 
 from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter,
                            CollectionGetter)
-from fab.build_config import BuildConfig, FlagsConfig
+from fab.build_config import BuildConfig
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, run_mp, step
-from fab.tools import Category, Cpp, CppFortran, Preprocessor
+from fab.tools.category import Category
+from fab.tools.preprocessor import Cpp, CppFortran, Preprocessor
+from fab.tools.flags import FlagList
 from fab.util import (log_or_dot_finish, input_to_output_fpath, log_or_dot,
                       suffix_filter, Timer, by_type)
 
@@ -31,7 +33,7 @@ class MpCommonArgs():
     config: BuildConfig
     output_suffix: str
     preprocessor: Preprocessor
-    flags: FlagsConfig
+    flag_list: FlagList
     name: str
 
 
@@ -39,8 +41,8 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
                   files: Collection[Path],
                   output_collection: Union[str, ArtefactSet],
                   output_suffix,
-                  common_flags: Optional[List[str]] = None,
-                  path_flags: Optional[List] = None,
+                  common_flags: Optional[list[str]] = None,
+                  path_flags: Optional[list] = None,
                   name="preprocess"):
     """
     Preprocess Fortran or C files.
@@ -59,15 +61,15 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     :param output_suffix:
         Suffix for output files.
     :param common_flags:
-        Used to construct a :class:`~fab.config.FlagsConfig` object.
+        Path-independent flags for the preprocessor to use.
     :param path_flags:
-        Used to construct a :class:`~fab.build_config.FlagsConfig` object.
+        Path-dependent flags for the preprocessor to use.
     :param name:
         Human friendly name for logger output, with sensible default.
 
     """
     common_flags = common_flags or []
-    flags = FlagsConfig(common_flags=common_flags, path_flags=path_flags)
+    flag_list = FlagList(common_flags, add_flags=path_flags)
 
     logger.info(f"preprocessor is '{preprocessor.name}'.")
 
@@ -78,7 +80,7 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
         config=config,
         output_suffix=output_suffix,
         preprocessor=preprocessor,
-        flags=flags,
+        flag_list=flag_list,
         name=name,
     )
 
@@ -92,7 +94,7 @@ def pre_processor(config: BuildConfig, preprocessor: Preprocessor,
     config.artefact_store.add(output_collection, set(by_type(results, Path)))
 
 
-def process_artefact(arg: Tuple[Path, MpCommonArgs]):
+def process_artefact(arg: tuple[Path, MpCommonArgs]):
     """
     Expects an input file in the source folder.
     Writes the output file to the output folder, with a lower case extension.
@@ -112,12 +114,12 @@ def process_artefact(arg: Tuple[Path, MpCommonArgs]):
         else:
             output_fpath.parent.mkdir(parents=True, exist_ok=True)
 
-            params = args.flags.flags_for_path(path=input_fpath, config=args.config)
-
+            flags = args.flag_list.get_flags(args.config, input_fpath)
             log_or_dot(logger, f"PreProcessor running with parameters: "
-                               f"'{' '.join(params)}'.'")
+                               f"'{' '.join(flags)}'.'")
             try:
-                args.preprocessor.preprocess(input_fpath, output_fpath, params)
+                args.preprocessor.preprocess(input_fpath, output_fpath,
+                                             flags)
             except Exception as err:
                 raise Exception(f"error preprocessing {input_fpath}:\n"
                                 f"{err}") from err
@@ -144,11 +146,11 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
     if source:
         source_files = source(config.artefact_store)
     else:
-        source_files = config.artefact_store[ArtefactSet.FORTRAN_BUILD_FILES]
+        source_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
     F90s = suffix_filter(source_files, '.F90')
     f90s = suffix_filter(source_files, '.f90')
 
-    fpp = config.tool_box[Category.FORTRAN_PREPROCESSOR]
+    fpp = config.tool_box.get_tool(Category.FORTRAN_PREPROCESSOR)
     if not isinstance(fpp, CppFortran):
         raise RuntimeError(f"Unexpected tool '{fpp.name}' of type "
                            f"'{type(fpp)}' instead of CppFortran")
@@ -170,7 +172,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
         **kwargs,
     )
 
-    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.FORTRAN_COMPILER_FILES,
                                   remove_files=F90s,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_FORTRAN])
 
@@ -190,7 +192,7 @@ def preprocess_fortran(config: BuildConfig, source: Optional[ArtefactsGetter] = 
             remove_files.append(f90)
             new_files.append(output_path)
 
-    config.artefact_store.replace(ArtefactSet.FORTRAN_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.FORTRAN_COMPILER_FILES,
                                   remove_files=remove_files,
                                   add_files=new_files)
 
@@ -204,7 +206,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
     """
     def __call__(self, artefact_store):
         return CollectionGetter(ArtefactSet.PRAGMAD_C)(artefact_store) \
-               or SuffixFilter(ArtefactSet.INITIAL_SOURCE, '.c')(artefact_store)
+               or SuffixFilter(ArtefactSet.INITIAL_SOURCE_FILES, '.c')(artefact_store)
 
 
 # todo: rename preprocess_c
@@ -221,7 +223,7 @@ def preprocess_c(config: BuildConfig,
     """
     source_getter = source or DefaultCPreprocessorSource()
     source_files = source_getter(config.artefact_store)
-    cpp = config.tool_box[Category.C_PREPROCESSOR]
+    cpp = config.tool_box.get_tool(Category.C_PREPROCESSOR)
     if not isinstance(cpp, Cpp):
         raise RuntimeError(f"Unexpected tool '{cpp.name}' of type "
                            f"'{type(cpp)}' instead of Cpp")
@@ -236,6 +238,6 @@ def preprocess_c(config: BuildConfig,
         **kwargs,
     )
 
-    config.artefact_store.replace(ArtefactSet.C_BUILD_FILES,
+    config.artefact_store.replace(ArtefactSet.C_COMPILER_FILES,
                                   remove_files=source_files,
                                   add_files=config.artefact_store[ArtefactSet.PREPROCESSED_C])

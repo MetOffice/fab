@@ -12,7 +12,7 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.grab.prebuild import grab_pre_build
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
-from fab.tools import ToolBox
+from fab.tools.tool_box import ToolBox
 from fab.util import file_walk
 
 
@@ -33,7 +33,7 @@ class TestFortranPrebuild(object):
                 grab_pre_build(config, grab_prebuild_folder)
             find_source_files(config)
             preprocess_fortran(config)
-            analyse(config, root_symbol='my_prog')
+            analyse(config, root_symbols='my_prog')
             compile_fortran(config)
             link_exe(config, flags=['-lgfortran'])
 

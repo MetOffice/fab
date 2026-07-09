@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+
 '''
 This file contains a function that sets the default flags for the Cray
 compilers and linkers in the ToolRepository.
@@ -8,14 +14,13 @@ This function gets called from the default site-specific config file
 '''
 
 import argparse
-from typing import cast, Dict, List
+from typing import cast
 
-from fab.build_config import AddFlags, BuildConfig
-from fab.tools import Category, Compiler, Linker, ToolRepository
+from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_cray(build_config: BuildConfig,
-               args: argparse.Namespace) -> Dict[str, List[AddFlags]]:
+def setup_script_cray(build_config: BuildConfig,
+                      args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument, too-many-branches
     '''
     Defines the default flags for ftn.
@@ -30,7 +35,7 @@ def setup_cray(build_config: BuildConfig,
     ftn = cast(Compiler, ftn)
 
     if not ftn.is_available:
-        return {}
+        return
 
     # The base flags
     # ==============
@@ -101,5 +106,3 @@ def setup_cray(build_config: BuildConfig,
     # You can use:
     # ftn = tr.get_tool(Category.FORTRAN_COMPILER, "crayftn-gfortran")
     # ftn.add_flags("-fallow-argument-mismatch")
-
-    return {}
