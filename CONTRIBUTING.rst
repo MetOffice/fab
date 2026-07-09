@@ -27,7 +27,7 @@ Contributions
 =============
 
 Contributions may be made by raising a pull request against the
-`trunk branch`_. You will need a personal fork of the repository to host your
+`main branch`_. You will need a personal fork of the repository to host your
 development branch.
 
 If this is your first contribution, you will need to agree to the `contributor
