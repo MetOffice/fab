@@ -1,3 +1,9 @@
+# ------------------------------------------------------------------------------
+# (c) Crown copyright Met Office. All rights reserved.
+# The file LICENCE, distributed with this code, contains details of the terms
+# under which the code may be used.
+# ------------------------------------------------------------------------------
+
 name: Documentation
 
 permissions:
@@ -7,71 +13,66 @@ on:
   push:
     branches:
       - 'main'
+  pull_request:
+    branches:
+      - 'main'
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   sphinx-build:
     name: Build
     runs-on: ubuntu-24.04
 
-    env:
-      cache-name: python-docs-cache
-
     steps:
-    - name: Cache Python packages
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-      with:
-        path: ~/.pip/cache
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/pyproject.toml') }}
+      - name: Check out Fab source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
 
-    - name: Install Python
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
-      with:
-        python-version: '3.14'
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+        with:
+          python-version: '3.14'
+          enable-cache: true
 
-    - name: Check out Fab source
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      with:
-        persist-credentials: false
+      - name: Install documentation tools
+        run: uv sync --extra docs
 
-    - name: Install documentation tools
-      run: pip install .[docs]
+      - name: Build HTML documentation
+        working-directory: Documentation
+        run: uv run make clean html
 
-    - name: Install LaTeX packages
-      run: |
-        sudo apt-get update -y
-        sudo apt-get install -y \
-          librsvg2-bin \
-          texlive-latex-base \
-          texlive-latex-recommended \
-          texlive-fonts-recommended \
-          texlive-latex-extra \
-          latexmk
+      - name: Install LaTeX packages for PDF generation
+        if: github.event_name != 'pull_request'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y \
+            librsvg2-bin \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-fonts-recommended \
+            texlive-latex-extra \
+            latexmk
 
-    - name: Build HTML documentation
-      working-directory: Documentation
-      run: make clean html
+      - name: Generate PDF documentation
+        if: github.event_name != 'pull_request'
+        working-directory: Documentation
+        run: |
+          uv run make latexpdf
+          cp -r build/latex build/html/
 
-    - name: Build PDF documentation
-      working-directory: Documentation
-      run: make latexpdf
-
-    - name: Copy PDF to HTML build directory
-      working-directory: Documentation
-      run: cp -r build/latex build/html/
-
-    - name: Prepare and upload asset
-      uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-      with:
-        path: Documentation/build/html
+      - name: Prepare and upload asset
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: Documentation/build/html
 
   deploy-documentation:
     name: Deploy
-    if: github.repository == 'MetOffice/fab'
+    if: github.repository == 'MetOffice/fab' && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     permissions:
       pages: write # Required to write and publish compiled HTML/PDF artifacts
       id-token: write # Required to securely mint the OpenID Connect (OIDC) token

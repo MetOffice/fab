@@ -13,6 +13,7 @@ If you are not submitting contributions on behalf of an organisation please use
 | GitHub Username | Real Name       | Affiliation |
 |-----------------|-----------------|-------------|
 | MatthewHambley  | Matthew Hambley | Met Office  |
+| yaswant         | Yaswant Pradhan | Met Office  |
 
 ---
 
