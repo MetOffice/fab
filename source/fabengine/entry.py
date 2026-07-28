@@ -2,27 +2,27 @@ from __future__ import annotations
 
 import sys
 from argparse import ArgumentParser, Namespace
+from collections.abc import Sequence
 from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_file_location
 from inspect import getmembers, isclass
-from logging import StreamHandler, getLogger, DEBUG, INFO, WARNING
+from logging import DEBUG, INFO, WARNING, StreamHandler, getLogger
 from pathlib import Path
 from sys import argv
-from typing import Optional, Sequence
 
 from fabengine.build_script import BuildScript
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.core import fab_core
 from fabengine.package import (
+    CompilerArgument,
     IncludePath,
     LibraryName,
     LinkerArgument,
     LinkerPath,
     Package,
+    VariableDefinition,
     partition_specification,
     pkg_config,
-    VariableDefinition,
-    CompilerArgument,
 )
 from fabengine.work_queue import QueueStrategy
 
@@ -80,10 +80,10 @@ def parse_libmap(argument: str) -> Package:
 
     largs.append(LibraryName(bits[0].strip()))
 
-    return Package(bits[0].strip(), tuple(), cargs, largs)
+    return Package(bits[0].strip(), (), cargs, largs)
 
 
-def command_line(arguments: Optional[Sequence[str]] = None) -> Namespace:
+def command_line(arguments: Sequence[str] | None = None) -> Namespace:
     """
     Parses command line arguments for use by Fab.
     """
@@ -239,9 +239,13 @@ def pollute_configuration(configuration: WriteOnceDict) -> None:
         {"integer": "int32"},
     ]
     configuration["build_tags"] = {
+        "crusty": ["-std=gnu"],
         "um": ["-fdefault-real-8", "-fdefault-double-8"],
         "old-mpi": ["-fallow-argument-mismatch"],
         "gnu-intrinsics": ["-fall-intrinsics"],
+        "nemo-nasty": ["-fdefault-real-8"],
+        "nemo-crusty": ["-std=legacy"],
+        "gnu-extensions": ["-std=gnu"],
     }
     configuration["tag_dirs"] = {
         "infrastructure/utilities/lfric_mpi_mod.f90": ["old-mpi"],
@@ -252,8 +256,36 @@ def pollute_configuration(configuration: WriteOnceDict) -> None:
         "physics_schemes_interface/legacy/": ["um"],
         "socrates/": ["um"],
         "ukca/": ["um"],
+        "OCE/": ["nemo-nasty"],
+        "OCE/nemogcm.f90": ["nemo-crusty"],
+        "OCE/step.f90": ["gnu-extensions"],
+        "OCE/stpctl.f90": ["nemo-crusty"],
+        "OCE/timing.f90": ["nemo-crusty"],
+        "OCE/DIA/diadct.f90": ["gnu-extensions"],
+        "OCE/DIA/diaharm.f90": ["gnu-extensions"],
+        "OCE/FLO/flodom.f90": ["gnu-extensions"],
+        "OCE/ICB/icbdia.f90": ["gnu-extensions"],
+        "OCE/ICB/icbdyn.f90": ["gnu-extensions"],
+        "OCE/ICB/icbini.f90": ["gnu-extensions"],
+        "OCE/ICB/icblbc.f90": ["nemo-crusty"],
+        "OCE/ICB/icbstp.f90": ["gnu-extensions"],
+        "OCE/ICB/icbthm.f90": ["gnu-extensions"],
+        "OCE/ICB/icbutl.f90": ["gnu-extensions"],
+        "OCE/ICB/icbtrj.f90": ["nemo-crusty"],
+        "OCE/LBC/lib_mpp.f90": ["nemo-crusty"],
+        "OCE/LBC/lbclnk.f90": ["nemo-crusty"],
+        "OCE/OBS/mpp_map.f90": ["nemo-crusty"],
+        "OCE/OBS/obs_mpp.f90": ["nemo-crusty"],
+        "OCE/OBS/obs_oper.f90": ["gnu-extensions"],
+        "OCE/OBS/obs_prep.f90": ["gnu-extensions"],
+        "OCE/OBS/obs_readmdt.f90": ["gnu-extensions"],
+        "OCE/SBC/fldread.f90": ["gnu-extensions"],
+        "OCE/SBC/tide_mod.f90": ["gnu-extensions"],
+        "OCE/TRD/trdvor.f90": ["gnu-extensions"],
+        "ICE/": ["nemo-nasty"],
+        "ioipsl/": ["nemo-nasty"],
     }
-    configuration["inclusion_suffixes"] = [".h", ".inc"]
+    configuration["inclusion_suffixes"] = [".h", ".inc", ".h90"]
     configuration["mock_tests"] = [
         "lfric_xios_diag_mod_test",
         "lfric_xios_read_mod_test",
@@ -273,7 +305,8 @@ def process_packages(
         else:  # package_name not in package_table
             configuration["packages"][package_name] = pkg_config(specification)
     # Todo: Hardwired C++ runtime. Need a proper solution for language runtimes.
-    if "stdc++" not in configuration["packages"].keys():
+    #
+    if "stdc++" not in configuration["packages"]:
         configuration["packages"]["stdc++"] = Package(
             "stdc++", (0, 0, 0), [], [LibraryName("stdc++")]
         )
@@ -299,7 +332,7 @@ def cli() -> None:
     configuration["paths"]["work_dir"] = options.work_dir
     configuration["paths"]["build_dir"] = configuration["paths"]["work_dir"] / "build"
     configuration["paths"]["module_dir"] = (
-        configuration["paths"]["work_dir"] / "fortran_modules"
+        configuration["paths"]["work_dir"] / "_fortran_modules"
     )
     configuration["paths"]["bin_dir"] = options.bin_dir
     configuration["paths"]["performance_file"] = options.timing_file
@@ -313,6 +346,7 @@ def cli() -> None:
     build_script = instantiate_build_script(options.fabfile)
     process_packages(build_script, options.map_library, configuration)
     configuration["repositories"] = build_script.repositories()
+    configuration["forced_prerequisites"] = build_script.force_prerequisites()
     build_script.add_configuration(configuration)
 
     pollute_configuration(configuration)

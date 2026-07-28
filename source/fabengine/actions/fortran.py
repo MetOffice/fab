@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Generator, Iterable
 from enum import Enum, auto
 from multiprocessing import get_logger as mp_get_logger
 from os import environ as os_environ
 from pathlib import Path
-from re import compile as re_compile, IGNORECASE
-from typing import Any, Generator, Optional, Iterable
-from warnings import warn
+from re import IGNORECASE
+from re import compile as re_compile
 
 from fabengine.actions import (
     Action,
@@ -15,20 +15,20 @@ from fabengine.actions import (
     SubprocessAction,
     TwoPartPath,
 )
-from fabengine.artefact_store import ArtefactPath
+from fabengine.actions.file import MapFile
+from fabengine.artefact_store import ENCODING_META, Artefact, ArtefactPath
 from fabengine.database import (
     Database,
-    PrerequisiteType,
     PrerequisiteInfo,
-    SymbolType,
+    PrerequisiteType,
     SymbolInfo,
+    SymbolType,
 )
-from fabengine.actions.file import MapFile
-from fabengine.package import LinkerPath, LibraryName
+from fabengine.package import LibraryName, LinkerPath
 from fabengine.prerequisite import (
     AnalysedPrerequisite,
-    RealFilePrerequisite,
     ArtefactPrerequisite,
+    RealFilePrerequisite,
 )
 
 
@@ -37,11 +37,21 @@ class MapFortran(MapFile):
     Maps Fortran source into the virtual filesystem.
     """
 
+    def __init__(
+        self,
+        real_file: TwoPartPath,
+        encoding: str,
+        database: Database,
+        tag: str | None,
+    ):
+        super().__init__(real_file, database, tag)
+        self._encoding = encoding
+
     def __str__(self) -> str:
         return f"Map Fortran: {self.real_file}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        return [RealFilePrerequisite(self.real_file)]
+        return [RealFilePrerequisite(self.real_path)]
 
     def perform(self) -> list[Action]:
         """
@@ -50,7 +60,12 @@ class MapFortran(MapFile):
         :return: An AnalyseFortran object for the new file.
         """
         actions = super().perform()
-        actions.append(AnalyseFortran(self.artefact.virtual_filename, self._database))
+        actions.append(AnalyseFortran(self.artefact_path, self._database))
+
+        artefact = Artefact(self.artefact_path, self.real_path)
+        artefact.set_meta(ENCODING_META, self._encoding)
+        self._database.artefact_store.set_artefact(artefact)
+
         return actions
 
 
@@ -67,28 +82,29 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         self,
         real_file: TwoPartPath,
         project: str,
+        encoding: str,
         database: Database,
-        extra_definitions: Optional[dict[str, str]] = None,
+        macros: dict[str, str],
+        force_include_dir: list[Path],
         kind="Fortran",
     ):
         """
         :param real_file: Source file as root and branch.
         :param project: Name under which to collect source in workspace.
         :param database: Build system state and configuration.
-        :param extra_definitions: Additional macros to use with this preprocess.
+        :param macros: Additional macros to use with this preprocess.
         """
         self._real_file = real_file
         self._project = project
+        self._encoding = encoding
         self._database = database
-        self._extra_definitions = extra_definitions or {}
+        self._macros = macros
+        self._force_include_dir = force_include_dir
         self._kind = kind
 
-        self._prereqs: list[Prerequisite] = []
-        self._inclusions: list[Path] = []
-        for filename in self.determine_prereqs():
-            self._inclusions.append(filename)
-            self._prereqs.append(ArtefactPrerequisite(filename, self._database))
-        self._prereqs.append(RealFilePrerequisite(self.source_file))
+        suffix = self._real_file.branch.suffix.lower()
+        filename = self._real_file.branch.with_suffix(suffix)
+        self._destination_path = ArtefactPath(self._project / filename)
 
         # Todo: Hardwired command
         arguments: list[str | Path] = ["-traditional-cpp", "-P"]
@@ -96,13 +112,13 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         for name, value in self._database.configuration["fpp_definitions"].items():
             arguments.append(f"-D{name}={value}")
 
-        for name, value in self._extra_definitions.items():
+        for name, value in self._macros.items():
             arguments.append(f"-D{name}={value}")
 
         super().__init__(Path("cpp"), arguments)
 
     def __str__(self) -> str:
-        return f"Preprocess {self._kind} <{self._project}:{self._real_file.branch}>"
+        return f"Preprocess {self._kind} <({self._project}) {self._real_file.branch}>"
 
     @property
     def source_file(self) -> Path:
@@ -116,80 +132,30 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         """
         :return: Virtual path to destination file.
         """
-        suffix = self._real_file.branch.suffix.lower()
-        virtual_path = ArtefactPath(self._project) / self._real_file.branch.with_suffix(
-            suffix
-        )
-        return virtual_path
-
-    _INCLUDE_PATTERN = re_compile(r'\s*#include\s+(?P<quote>[\'"])(.+?)(?P=quote)')
-
-    def determine_prereqs(self) -> list[ArtefactPath]:
-        inclusions: set[ArtefactPath] = set()
-        filename = self._real_file.full
-        for line in filename.read_text().splitlines():
-            match = self._INCLUDE_PATTERN.match(line)
-            if match:
-                include_file = Path(match.group(2))
-                if include_file.is_absolute():
-                    raise NotImplementedError(
-                        f'Absolute import of "{include_file}" was found. '
-                        "It was never imagined absolute imports would be a "
-                        "thing so support is not implemented."
-                    )
-                else:  # include_file.is_relative()
-                    # Relative paths are taken as relative to source file.
-                    #
-                    # There is also magic to take into account the possible
-                    # existence of an "include" directory.
-                    #
-                    absolute_path = self._real_file.full.parent / include_file
-                    if not absolute_path.exists():
-                        absolute_path = (
-                            self._real_file.full.parent / "include" / include_file
-                        )
-                        if absolute_path.exists():
-                            warn(
-                                f'Inclusion "{include_file}" was not found, '
-                                'but one was found in an "include" '
-                                "directory at the same level. Support for "
-                                "this not guaranteed.",
-                                DeprecationWarning,
-                            )
-
-                    virtual_filename = ArtefactPath(
-                        self._project
-                    ) / absolute_path.relative_to(self._real_file.root)
-                inclusions.add(virtual_filename)
-        return list(inclusions)
+        return self._destination_path
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        return self._prereqs
+        return [RealFilePrerequisite(self._real_file.full)]
 
     def preprocess_file(
-        self, additional_arguments: Optional[list[str | Path]] = None
+        self, additional_arguments: list[str | Path] | None = None
     ) -> None:
         """
         Performs the preprocessing.
 
         :return: An ActionResult if the preprocessor fails.
         """
-        include_dirs: set[Path] = set()
-        for virtual_filename in self._inclusions:
-            self._database.artefact_store.promote_artefact(virtual_filename)
-            include_dirs.add(virtual_filename.parent)
+        artefact = self._database.artefact_store.get_artefact(self.destination_file)
+        artefact.set_meta(ENCODING_META, self._encoding)
+        self._database.artefact_store.set_artefact(artefact)
 
         arguments: list[str | Path] = additional_arguments or []
-        for include_dir in include_dirs:
-            arguments.append(
-                f"-I{self._database.configuration['paths']['build_dir'] / include_dir}"
-            )
+
+        for path in self._force_include_dir:
+            arguments.append(f"-I{path}")
+
         arguments.append(self.source_file)
-        arguments.append(
-            self._database.artefact_store.get_artefact(
-                self.destination_file
-            ).real_filename
-        )
+        arguments.append(artefact.real_filename)
 
         self.run_subprocess(additional_arguments=arguments)
 
@@ -205,17 +171,7 @@ class PreprocessFortranAction(PreprocessFortranBase):
 
         :return: Action to analyse resulting source.
         """
-        arguments: list[str | Path] = []
-        #
-        # Todo: Shouldn't this inclusion stuff be in the base class?
-        #
-        inclusion_dirs: set[Path] = set()
-        for prereq in self.determine_prereqs():
-            inclusion_dirs.add(prereq.parent)
-        for directory in inclusion_dirs:
-            arguments.append("-I" + str(directory))
-
-        super().preprocess_file(additional_arguments=arguments)
+        super().preprocess_file()
         return [AnalyseFortran(self.destination_file, self._database)]
 
 
@@ -225,9 +181,13 @@ _CONTINUATION_PATTERN = re_compile(r"\s*&\s*(.*)")
 _CONTINUE_PATTERN = re_compile(r"\s*(.*?)\s*&\s*$")
 
 
-def normalise_source(filename: Path) -> Generator[str, None, None]:
+def normalise_source(artefact: Artefact) -> Generator[str, None, None]:
+    try:
+        encoding = artefact.get_meta(ENCODING_META)
+    except KeyError:
+        encoding = "utf8"
     line_buffer = ""
-    with filename.open("rt") as stream:
+    with artefact.real_filename.open("rt", encoding=encoding) as stream:
         for line in stream:
             match = _COMMENT_PATTERN.match(line)
             if match:  # Remove comments
@@ -321,7 +281,7 @@ class AnalyseFortran(Action):
         artefact = self._database.artefact_store.get_artefact(self._source)
 
         unit_prereqs: dict[str, PrerequisiteInfo] = {}
-        current_unit: Optional[str] = None
+        current_unit: str | None = None
         contains_units: list[str] = []
 
         class State(Enum):
@@ -329,7 +289,7 @@ class AnalyseFortran(Action):
             IN_UNIT = auto()
 
         state = State.SEEKING
-        for line in normalise_source(artefact.real_filename):
+        for line in normalise_source(artefact):
             mp_get_logger().debug(f"{state} - {line}")
             if state == State.SEEKING:
                 match = self._UNIT_PATTERN.match(line)
@@ -454,7 +414,7 @@ class DetermineFortranProgram(Action):
         self._modules: set[str] = set()
         self._units = {name}
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         # Because DetermineFortranProgram will be compared against other
         # Action objects, it can't simply fail if the other is of different
         # type.
@@ -501,7 +461,7 @@ class DetermineFortranProgram(Action):
             unit_name = working_units.pop()
             mp_get_logger().info(f"Considering: {unit_name}")
             if unit_name in self._database.prerequisites:
-                mp_get_logger().info(f"Modules: {self._modules}")
+                mp_get_logger().debug(f"Modules: {self._modules}")
                 if unit_name in self._modules:
                     mp_get_logger().info("Already seen: " + unit_name)
                     continue
@@ -530,6 +490,13 @@ class DetermineFortranProgram(Action):
                 #
                 for prereq in self._database.prerequisites[unit_name]:
                     working_units.add(prereq.name)
+
+                # Deal with any hand specified dependencies:
+                #
+                for prereq in self._database.configuration["forced_prerequisites"].get(
+                    unit_name, []
+                ):
+                    working_units.add(prereq)
             else:  # Unit has not yet been analysed
                 mp_get_logger().info("Not yet seen: " + unit_name)
                 self._units.add(unit_name)
@@ -540,9 +507,6 @@ class DetermineFortranProgram(Action):
             mp_get_logger().info(f"Missing: {', '.join(self._units)}")
             actions.append(self)
         return actions
-
-
-_MODULE_DIR = Path("_fortran_modules")
 
 
 class CompileFortran(SubprocessAction):
@@ -574,11 +538,9 @@ class CompileFortran(SubprocessAction):
                     extra_arguments.extend(
                         self._database.configuration["build_tags"][tag]
                     )
-        mp_get_logger().debug("Special arguments: " + ", ".join(extra_arguments))
+        mp_get_logger().info("Special arguments: " + ", ".join(extra_arguments))
 
-        self._full_module_dir = (
-            self._database.configuration["paths"]["work_dir"] / _MODULE_DIR
-        )
+        self._full_module_dir = self._database.configuration["paths"]["module_dir"]
         self._full_module_dir.mkdir(parents=True, exist_ok=True)
         # Todo: Hardwired arguments
         arguments = [
@@ -589,10 +551,7 @@ class CompileFortran(SubprocessAction):
             "-std=f2008",
             "-ffree-line-length-none",
         ]
-
-        for arg in os_environ["FFLAGS"].split():
-            arguments.append(arg)
-
+        arguments.extend(os_environ["FFLAGS"].split())
         arguments.extend(extra_arguments)
 
         arguments.extend(
@@ -608,7 +567,7 @@ class CompileFortran(SubprocessAction):
         exe = Path("mpif90")
         super().__init__(exe, arguments)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         assert isinstance(other, Action)
         if isinstance(other, CompileFortran):
             return (
@@ -645,6 +604,8 @@ class CompileFortran(SubprocessAction):
                 pass  # The compiler doesn't interrogate externals
             elif symbol.nature == PrerequisiteType.UM:
                 pass  # Nor does it interrogate UM-era dependency comments
+            elif symbol.nature == PrerequisiteType.FORCED:
+                pass  # Nor does it interrogate forced dependencies
             else:
                 raise RuntimeError(
                     f"Unrecognised prerequisite type '{symbol.nature}'of {symbol.name}."
@@ -718,12 +679,12 @@ class LinkFortran(SubprocessAction):
                 elif isinstance(arg, LibraryName):
                     self._library_args.append("-l" + arg.name)
                 else:
-                    raise RuntimeError("Unrecognised linker argument: " + str(arg))
+                    raise TypeError("Unrecognised linker argument: " + str(arg))
 
         exe = Path("mpif90")
         super().__init__(exe, arguments)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         assert isinstance(other, Action)
         if isinstance(other, LinkFortran):
             return self._program == other._program and self._modules == other._modules
@@ -771,9 +732,7 @@ class LinkFortran(SubprocessAction):
             artefact = self._database.artefact_store.get_artefact(virtual_file)
             objects.add(artefact.real_filename)
 
-        arguments: list[str | Path] = []
-        for object_file in objects:
-            arguments.append(object_file)
+        arguments: list[str | Path] = list(objects)
         arguments.extend(self._library_args)
 
         self.run_subprocess(additional_arguments=arguments)

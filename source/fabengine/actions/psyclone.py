@@ -1,20 +1,20 @@
 from __future__ import annotations
 
-from re import compile as re_compile, IGNORECASE
+from collections.abc import Generator, Iterable
 from pathlib import Path
-from typing import Generator, Iterable, Optional
+from re import IGNORECASE
+from re import compile as re_compile
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.actions.file import MapFile
-from fabengine.actions.fortran import PreprocessFortranBase
+from fabengine.actions.fortran import AnalyseFortran, PreprocessFortranBase
 from fabengine.artefact_store import ArtefactPath
+from fabengine.database import Database
 from fabengine.prerequisite import (
+    ArtefactPrerequisite,
     RealFilePrerequisite,
     SymbolPrerequisite,
-    ArtefactPrerequisite,
 )
-from fabengine.actions.fortran import AnalyseFortran
-from fabengine.database import Database
 
 
 class MapAlgorithm(MapFile):
@@ -29,7 +29,7 @@ class MapAlgorithm(MapFile):
         :return: An AnalyseFortran object for the new file.
         """
         actions = super().perform()
-        actions.append(PSyclone(self.artefact.virtual_filename, self._database))
+        actions.append(PSyclone(self.artefact_path, self._database))
         return actions
 
 
@@ -42,8 +42,9 @@ class PreprocessAlgorithm(PreprocessFortranBase):
         self,
         filename: TwoPartPath,
         project: str,
+        encoding: str,
         database: Database,
-        extra_definitions: Optional[dict[str, str]] = None,
+        extra_definitions: dict[str, str] | None = None,
     ):
         """
         :param filename: Algorithm file.
@@ -52,7 +53,13 @@ class PreprocessAlgorithm(PreprocessFortranBase):
         :param extra_definitions: Additional macros to use with preprocessor.
         """
         super().__init__(
-            filename, project, database, extra_definitions, kind="PSyKAl algorithm"
+            filename,
+            project,
+            encoding,
+            database,
+            macros=extra_definitions or {},
+            force_include_dir=[],
+            kind="PSyKAl algorithm",
         )
 
     def perform(self) -> list[Action]:
@@ -249,7 +256,7 @@ class PSyclone(SubprocessAction):
                 ["-d", self._database.artefact_store.ensure_directory(root)]
             )
         self.run_subprocess(additional_arguments=arguments)
-        actions: list[Action] = [AnalyseFortran(self._virtual_filename, self._database)]
+        actions: list[Action] = [AnalyseFortran(self._algorithm_path, self._database)]
         if self._psy:
             actions.append(AnalyseFortran(self._psy_path, self._database))
         return actions

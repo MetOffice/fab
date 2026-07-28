@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional
+from urllib.parse import urlparse
 
 from fabengine.actions.source import (
     RepositoryAction,
     SourceOnDiscAction,
-    SourceOnGitHubAction,
+    SourceOnGitAction,
+    SourceOnSubversionAction,
 )
 from fabengine.database import Database
 from fabengine.project import Project
@@ -20,8 +21,8 @@ class Repository(ABC):
 
     def __init__(
         self,
-        paths: Optional[dict[str, Path]] = None,
-        projects: Optional[list[Project]] = None,
+        paths: dict[str, Path] | None = None,
+        projects: list[Project] | None = None,
     ):
         """
         :param paths: Named paths in this directory.
@@ -70,8 +71,8 @@ class FileTreeRepository(Repository):
     def __init__(
         self,
         filename: str,
-        paths: Optional[dict[str, Path]] = None,
-        projects: Optional[list[Project]] = None,
+        paths: dict[str, Path] | None = None,
+        projects: list[Project] | None = None,
     ):
         """
         :param filename: Location of source.
@@ -88,20 +89,20 @@ class FileTreeRepository(Repository):
         return SourceOnDiscAction(self._filename, self.projects, database)
 
 
-class GitHubRepository(Repository):
+class GitRepository(Repository):
     """
-    Fetches source from Git repository associated with a GitHub project.
+    Fetches source from a Git repository.
     """
 
     def __init__(
         self,
         url: str,
-        paths: Optional[dict[str, Path]] = None,
-        projects: Optional[list[Project]] = None,
+        paths: dict[str, Path] | None = None,
+        projects: list[Project] | None = None,
     ):
         """
-        :param url: GitHub project URL.
-                    e.g. ssh://git@github.com/Example/project.git
+        :param url: Git project URL.
+                    e.g. ssh://git@example.com/Example/project.git
         :param projects: Initial list of projects held in repository.
         """
         super().__init__(paths, projects)
@@ -111,6 +112,51 @@ class GitHubRepository(Repository):
         """
         Creates an action to get source.
 
-        :rtype: SourceOnGitHubAction
+        :rtype: SourceOnGitAction
         """
-        return SourceOnGitHubAction(self._url, self.projects, database)
+        return SourceOnGitAction(self._url, self.projects, database)
+
+
+class GitHubRepository(GitRepository):
+    """
+    Fetches source for a Git repository hosted by GitHub.
+    """
+
+    def __init__(
+        self,
+        url: str,
+        paths: dict[str, Path] | None = None,
+        projects: list[Project] | None = None,
+    ):
+        parse_result = urlparse(url)
+        if parse_result.hostname != "github.com":
+            raise RuntimeError(
+                f"URL passed to GitHubRepository is not on GitHub: {parse_result.hostname}"
+            )
+        if parse_result.scheme not in ["https", "ssh"]:
+            raise RuntimeError(
+                f"Unsupported URL scheme in GitHubRepository: {parse_result.scheme}"
+            )
+        if (
+            ":" in parse_result.netloc
+            and not parse_result.netloc.split(":")[-1].isdigit()
+        ):
+            # a common mistake is to copy the SSH URI from github; this will include a colon instead of a slash
+            # that _could_ represent a port number, but if it doesn't then future calls to git will fail
+            raise RuntimeError("Malformed URL in SourceOnGitHubAction")
+
+        super().__init__(url, paths, projects)
+
+
+class SubversionRepository(Repository):
+    def __init__(
+        self,
+        url: str,
+        paths: dict[str, Path] | None = None,
+        projects: list[Project] | None = None,
+    ):
+        super().__init__(paths, projects)
+        self._url = url
+
+    def create_action(self, database: Database) -> RepositoryAction:
+        return SourceOnSubversionAction(self._url, self.projects, database)

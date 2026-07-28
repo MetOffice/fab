@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from logging import getLogger
 from multiprocessing import Process
 from queue import Queue
@@ -132,8 +132,8 @@ class WorkerProcess(Process):
                 if not ready:
                     self._work_queue.requeue_action(action)
                     continue
-            except Exception as ex:
-                logger.error("Exception in prerequisites: ({prereq}) {ex}")
+            except Exception as ex:  # noqa: BLE001
+                logger.error(f"Exception in prerequisites: ({prereq}) {ex}")
                 result = ExceptionActionException(action, ex)
                 self._result_queue.put(result)
                 self._work_queue.stop()
@@ -141,9 +141,11 @@ class WorkerProcess(Process):
             try:
                 logger.debug("Performing: " + str(action))
                 try:
-                    start_time = datetime.now()
+                    start_time = datetime.now(tz=timezone.utc)
                     resulting_actions = action.perform()
-                    self._performance.log_action(action, datetime.now() - start_time)
+                    self._performance.log_action(
+                        action, datetime.now(tz=timezone.utc) - start_time
+                    )
                     #
                     # An action is only considered "stalled" if it returns only
                     # itself.
@@ -161,7 +163,7 @@ class WorkerProcess(Process):
                     logger.debug("Action failed, requesting stop")
                     self._work_queue.stop()
                 logger.debug("Done: " + str(action))
-            except Exception as ex:
+            except Exception as ex:  # noqa: BLE001
                 logger.error("Exception in process: " + str(ex))
                 self._result_queue.put(ExceptionActionException(action, ex))
                 self._work_queue.stop()

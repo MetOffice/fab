@@ -16,5 +16,5 @@ class WriteOnceDict(dict):
 
     def __setitem__(self, key: str, value: Any):
         if key in self:
-            raise KeyError("{} has already been set".format(key))
+            raise KeyError(f"{key} has already been set")
         super().__setitem__(key, value)

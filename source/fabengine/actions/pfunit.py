@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from os import environ as os_environ
 from pathlib import Path
-from re import compile as re_compile, IGNORECASE
-from typing import Iterable, Optional
+from re import IGNORECASE
+from re import compile as re_compile
 
-from fabengine.actions import Action, SubprocessAction, Prerequisite, TwoPartPath
-from fabengine.prerequisite import ExecutablePrerequisite, RealFilePrerequisite
+from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.actions.fortran import PreprocessFortranAction
 from fabengine.database import Database
+from fabengine.prerequisite import ExecutablePrerequisite, RealFilePrerequisite
 
 
 class ImportTestData(SubprocessAction):
@@ -79,7 +80,9 @@ class PfUnit(SubprocessAction):
         r"\s*@test\s*\(.*?npes\s*=\s*\[\s*(.+?)\s*].*?\)", IGNORECASE
     )
 
-    def __init__(self, filename: TwoPartPath, tag: str, database: Database):
+    def __init__(
+        self, filename: TwoPartPath, tag: str, encoding: str, database: Database
+    ):
         """
         :param filename: ``.pf`` file.
         :param tag: Collection in workspace for generated source.
@@ -87,6 +90,7 @@ class PfUnit(SubprocessAction):
         """
         self._filename = filename
         self._tag = tag
+        self._encoding = encoding
         self._database = database
 
         # Determine whether this is a parallel test and if so, how many ranks
@@ -188,15 +192,13 @@ class PfUnit(SubprocessAction):
                  resulting driver. Task to run the test.
         """
         self.run_subprocess()
+        real_path = TwoPartPath(
+            self._database.configuration["paths"]["build_dir"].absolute() / self._tag,
+            self._filename.branch.with_suffix(".F90"),
+        )
         actions: list[Action] = [
             PreprocessFortranAction(
-                TwoPartPath(
-                    self._database.configuration["paths"]["build_dir"].absolute()
-                    / self._tag,
-                    self._filename.branch.with_suffix(".F90"),
-                ),
-                self._tag,
-                self._database,
+                real_path, self._tag, self._encoding, self._database, {}, []
             )
         ]
         driver_source, driver_inclusion = self._driver(
@@ -213,8 +215,10 @@ class PfUnit(SubprocessAction):
                     ),
                 ),
                 "",
+                "utf8",
                 self._database,
                 {"_TEST_SUITES": f'"{driver_inclusion.absolute()}"'},
+                [],
             )
         )
         # Todo: We have to make an assumption as to where the executable will
@@ -272,8 +276,8 @@ class RunTest(SubprocessAction):
         self,
         executable: Path,
         database: Database,
-        run_dir: Optional[Path] = None,
-        ranks: Optional[int] = None,
+        run_dir: Path | None = None,
+        ranks: int | None = None,
     ):
         """
         :param executable: Filename of executable.

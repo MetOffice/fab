@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Iterable
+from collections.abc import Iterable
 
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.repository import Repository
@@ -17,3 +17,6 @@ class BuildScript(ABC):
         configuration: WriteOnceDict,
     ) -> None:
         pass
+
+    def force_prerequisites(self) -> dict[str, str]:
+        return {}

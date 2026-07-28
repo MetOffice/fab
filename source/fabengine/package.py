@@ -10,12 +10,12 @@ Makes use of pkg-config files to find out about libraries.
 from __future__ import annotations
 
 from abc import ABC
-from os import environ as os_environ
+from collections.abc import Iterable
 from enum import Enum
+from os import environ as os_environ
 from pathlib import Path
 from re import match as re_match
-from subprocess import run, PIPE
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from subprocess import run
 
 
 class PackageException(Exception):
@@ -37,7 +37,7 @@ class IncludePath(CompilerArgument):
     def __init__(self, path: Path):
         self._path = path
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, IncludePath):
             raise TypeError(f"Cannot compare IncludePath with {type(other).__name__}")
         return self._path == other._path
@@ -51,11 +51,11 @@ class IncludePath(CompilerArgument):
 
 
 class VariableDefinition(CompilerArgument):
-    def __init__(self, name: str, value: Optional[str] = None):
+    def __init__(self, name: str, value: str | None = None):
         self._name = name
         self._value = value
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, VariableDefinition):
             raise TypeError(
                 f"Cannot compare VariableDefinition with {type(other).__name__}"
@@ -70,7 +70,7 @@ class VariableDefinition(CompilerArgument):
         return self._name
 
     @property
-    def value(self) -> Optional[str]:
+    def value(self) -> str | None:
         return self._value
 
 
@@ -82,7 +82,7 @@ class LinkerPath(LinkerArgument):
     def __init__(self, path: Path):
         self._path = path
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, LinkerPath):
             raise TypeError(f"Cannot compare LinkerPath with {type(other).__name__}")
         return self._path == other._path
@@ -99,7 +99,7 @@ class LibraryName(LinkerArgument):
     def __init__(self, name: str):
         self._name = name
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, LibraryName):
             raise TypeError(f"Cannot compare LibraryName with {type(other).__name__}")
         return self._name == other._name
@@ -134,7 +134,7 @@ class Package:
     def __repr__(self) -> str:
         return f"Package({self._name}, {self._version}, {self._compile_arguments}, {self._link_arguments})"
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, Package):
             raise TypeError(f"Cannot compare Package with {type(other).__name__}")
         return (
@@ -152,21 +152,21 @@ class Package:
         return self._name
 
     @property
-    def version(self) -> Tuple[Union[int, str], ...]:
+    def version(self) -> tuple[int | str, ...]:
         """
         Gets library version.
         """
         return self._version
 
     @property
-    def compile_arguments(self) -> Tuple[CompilerArgument, ...]:
+    def compile_arguments(self) -> tuple[CompilerArgument, ...]:
         """
         Gets arguments for compiler.
         """
         return self._compile_arguments
 
     @property
-    def link_arguments(self) -> Tuple[LinkerArgument, ...]:
+    def link_arguments(self) -> tuple[LinkerArgument, ...]:
         """
         Gets arguments for linker.
         """
@@ -212,7 +212,7 @@ def pkg_config(specification: str, link_type: LinkType = LinkType.SHARED) -> Pac
             ]
         )
     else:  # No version string
-        version = tuple()
+        version = ()
 
     compile_arguments: list[CompilerArgument] = []
     carg_list = _call_pkg_config(specification, ["--cflags", link_type.value])
@@ -274,8 +274,8 @@ def pkg_config(specification: str, link_type: LinkType = LinkType.SHARED) -> Pac
     return Package(name, version, compile_arguments, link_arguments)
 
 
-def _call_pkg_config(specification: str, arguments: List[str]) -> List[str]:
-    environment: Dict[str, str] = {"PKG_CONFIG_DEBUG_SPEW": "YES"}
+def _call_pkg_config(specification: str, arguments: list[str]) -> list[str]:
+    environment: dict[str, str] = {"PKG_CONFIG_DEBUG_SPEW": "YES"}
     if "PKG_CONFIG_LIBDIR" in os_environ:
         environment["PKG_CONFIG_LIBDIR"] = os_environ["PKG_CONFIG_LIBDIR"]
     if "PKG_CONFIG_PATH" in os_environ:
@@ -283,7 +283,9 @@ def _call_pkg_config(specification: str, arguments: List[str]) -> List[str]:
     command = ["pkg-config"]
     command.extend(arguments)
     command.append(specification)
-    process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8", env=environment)
+    process = run(
+        command, env=environment, check=False, capture_output=True, encoding="utf8"
+    )
     if process.returncode != 0:
         raise PackageException(f"Failed to run [{command}]:\n{process.stderr}")
     if process.stderr:

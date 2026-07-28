@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from logging import StreamHandler, getLogger, DEBUG, INFO
-from multiprocessing import get_logger as mp_get_logger, Barrier
+from logging import DEBUG, INFO, StreamHandler, getLogger
+from multiprocessing import Barrier
+from multiprocessing import get_logger as mp_get_logger
 from queue import Queue
 
 from fabengine.actions import Action, EndOfWorkException, WorkerException
 from fabengine.actions.configurator import RosePicker
 from fabengine.configuration_tools import WriteOnceDict
-from fabengine.database import Database, Performance
+from fabengine.database import Database, Performance, PrerequisiteInfo, PrerequisiteType
 from fabengine.manager import FabManager
-from fabengine.processes import WorkerProcess, MonitorProcess
+from fabengine.processes import MonitorProcess, WorkerProcess
 
 
 # Todo, convert core to a class with methods called from entry.
@@ -37,8 +38,14 @@ def fab_core(configuration: WriteOnceDict):
             database.reset_work_done()
             work_queue.enter_barrier()
 
+        for symbol, prereqs in configuration["forced_prerequisites"].items():
+            database.prerequisites[symbol] = [
+                PrerequisiteInfo(prereq, PrerequisiteType.FORCED) for prereq in prereqs
+            ]
+
         sentinel_barrier = Barrier(configuration["worker_threads"], action=hit_sentinel)
 
+        database.configuration["force_include_dir"] = []
         performance = Performance(manager)
         result_queue: Queue[WorkerException] = manager.Queue()
         for repository in configuration["repositories"]:
@@ -52,6 +59,10 @@ def fab_core(configuration: WriteOnceDict):
                 for identifier, path in project.paths.items():
                     full_path = repo_action.local_copy() / project.project_dir / path
                     database.configuration["paths"][identifier] = full_path
+
+                for path in project.force_include_dir:
+                    full_path = repo_action.local_copy() / project.source_dir / path
+                    database.configuration["force_include_dir"].append(full_path)
 
                 if project.configuration_meta_data is None:
                     continue

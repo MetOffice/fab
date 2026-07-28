@@ -1,12 +1,12 @@
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
 
 from fabengine.actions import (
     Action,
     Prerequisite,
     TwoPartPath,
 )
-from fabengine.artefact_store import Artefact, ArtefactPath
+from fabengine.artefact_store import ArtefactPath
 from fabengine.database import Database
 from fabengine.prerequisite import RealFilePrerequisite
 
@@ -17,7 +17,7 @@ class MapFile(Action):
     """
 
     def __init__(
-        self, real_file: TwoPartPath, database: Database, tag: Optional[str] = None
+        self, real_file: TwoPartPath, database: Database, tag: str | None = None
     ):
         super().__init__(str(real_file.full))
         self._real_file = real_file
@@ -31,22 +31,24 @@ class MapFile(Action):
         return [RealFilePrerequisite(self._real_file.full)]
 
     @property
-    def real_file(self) -> Path:
+    def real_file(self) -> TwoPartPath:
+        return self._real_file
+
+    @property
+    def real_path(self) -> Path:
         return self._real_file.full
 
     @property
-    def artefact(self) -> Artefact:
+    def artefact_path(self) -> ArtefactPath:
         if self._tag:
             virtual_filename = ArtefactPath(self._tag) / self._real_file.branch
         else:
             virtual_filename = ArtefactPath(self._real_file.branch)
-        return Artefact(virtual_filename, self.real_file)
+        return virtual_filename
 
     def perform(self) -> list[Action]:
         """
         Performs the mapping.
         """
-        self._database.artefact_store.map_file(
-            self.real_file, self.artefact.virtual_filename
-        )
+        self._database.artefact_store.map_file(self.real_path, self.artefact_path)
         return []

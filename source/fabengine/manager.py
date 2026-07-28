@@ -11,8 +11,6 @@ class FabManager(SyncManager):
     Multiprocessing shared data manager which understands Fab data.
     """
 
-    pass
-
 
 FabManager.register(ArtefactStore.__name__, ArtefactStore)
 FabManager.register(WorkQueue.__name__, WorkQueue)

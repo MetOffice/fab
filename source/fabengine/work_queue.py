@@ -1,7 +1,6 @@
 from collections import defaultdict, deque
 from enum import Enum, auto
 from logging import getLogger
-from typing import Optional, Type
 
 from fabengine.actions import Action
 from fabengine.actions.sentinel import Sentinel
@@ -31,9 +30,9 @@ class WorkQueue:
         self._queue: deque[Action] = deque()
         self._stop = False
         self._in_barrier = False
-        self._sentinel: Optional[int] = None
+        self._sentinel: int | None = None
         self._length = 0
-        self._work_tally: dict[Type[Action], int] = defaultdict(int)
+        self._work_tally: dict[type[Action], int] = defaultdict(int)
 
     def stop(self) -> None:
         """
@@ -75,7 +74,7 @@ class WorkQueue:
     # This method cannot be a "property" as it will be accessed through a
     # multiprocessing AutoProxy. These only support methods.
     #
-    def work_tally(self) -> dict[Type[Action], int]:
+    def work_tally(self) -> dict[type[Action], int]:
         """
         Gets number of each action type on queue.
         """

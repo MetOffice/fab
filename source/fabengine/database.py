@@ -6,7 +6,6 @@ from datetime import timedelta
 from enum import Enum, auto
 from multiprocessing.managers import DictProxy, ListProxy, ValueProxy
 from pathlib import Path
-from typing import Any, Type
 
 from fabengine.actions import Action
 from fabengine.artefact_store import ArtefactPath
@@ -39,7 +38,6 @@ class Database:
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
         self.config_meta_dirs: ListProxy[Path] = manager.list()
-        self.inclusions: DictProxy[Path, Path] = manager.dict()
         self.unit_test_data: ListProxy[str] = manager.list()
 
         self._processed_this_round: ValueProxy[int] = manager.Value("i", 0)
@@ -91,7 +89,8 @@ class PrerequisiteType(Enum):
 
     USE = auto()
     EXTERNAL = auto()
-    UM = auto()
+    UM = (auto(),)
+    FORCED = auto()
 
 
 class PrerequisiteInfo:
@@ -110,7 +109,7 @@ class PrerequisiteInfo:
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._nature)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         assert isinstance(other, PrerequisiteInfo)
         return self._name == other._name and self._nature == other._nature
 
@@ -162,7 +161,7 @@ class SymbolInfo:
         self._nature = nature
         self._source_file = source_file
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: object):
         assert isinstance(other, SymbolInfo)
         return (
             self._name == other._name
@@ -201,7 +200,7 @@ class ActionTiming:
     Record of one action run.
     """
 
-    action: Type[Action]
+    action: type[Action]
     identifier: str
     timing: timedelta
 

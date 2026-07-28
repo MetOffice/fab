@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from multiprocessing import get_logger as mp_get_logger
 from os import walk as os_walk
 from pathlib import Path
-from typing import Iterable, Optional
+from re import compile as re_compile
 from urllib.parse import urlparse
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
-from fabengine.actions.file import MapFile
 from fabengine.actions.c import MapC
 from fabengine.actions.fortran import MapFortran, PreprocessFortranAction
 from fabengine.actions.pfunit import ImportTestData, PfUnit
@@ -48,6 +47,7 @@ class RepositoryAction(ABC):
                 SourceDirectory(
                     self.local_copy() / project.source_dir,
                     project.identifier,
+                    project.source_encoding,
                     self._database,
                     project.source_include,
                 )
@@ -55,7 +55,12 @@ class RepositoryAction(ABC):
             unit_test_dir = self.local_copy() / project.unit_test_dir
             if unit_test_dir.is_dir() and self._database.configuration["testing"]:
                 actions.append(
-                    SourceDirectory(unit_test_dir, project.identifier, self._database)
+                    SourceDirectory(
+                        unit_test_dir,
+                        project.identifier,
+                        project.source_encoding,
+                        self._database,
+                    )
                 )
                 test_data_dir = unit_test_dir / "data"
                 if test_data_dir.is_dir():
@@ -114,42 +119,28 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         return self.projects()
 
 
-class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
+class SourceOnGitAction(SubprocessAction, RepositoryAction):
     """
-    Source tree is held by GitHub.
-
-    Specific to GitHub, doesn't work on other Git repositories.
+    Source tree is held in a Git repository.
     """
 
     def __init__(self, url: str, projects: list[Project], database: Database):
         """
-        :param url: Location of ``.git`` file.
+        :param url: URL for project's ``.git`` file.
         :param projects: Subtrees of concern.
         :param database: Build system state and configuration.
         """
         RepositoryAction.__init__(self, projects, database)  # Parent constructor
 
-        parse_result = urlparse(url)
-        if parse_result.hostname != "github.com":
-            raise RuntimeError("URL passed to SourceOnGitHubAction is not on GitHub")
-        if parse_result.scheme not in ["https", "ssh"]:
-            raise RuntimeError("Unsupported URL scheme in SourceOnGitHubAction")
-        if (
-            ":" in parse_result.netloc
-            and not parse_result.netloc.split(":")[-1].isdigit()
-        ):
-            # a common mistake is to copy the SSH URI from github; this will include a colon instead of a slash
-            # that _could_ represent a port number, but if it doesn't then future calls to git will fail
-            raise RuntimeError("Malformed URL in SourceOnGitHubAction")
-
         self._url = url
 
+        parse_result = urlparse(self._url)
         self._scheme = parse_result.scheme
         self._netloc = parse_result.netloc
         self._path = parse_result.path
 
-        self._revision: Optional[str]
-        self._branch: Optional[str]
+        self._revision: str | None
+        self._branch: str | None
         try:
             _ = int(parse_result.fragment, 16)
             self._revision = parse_result.fragment
@@ -161,7 +152,7 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         SubprocessAction.__init__(self, Path("git"))  # Parent constructor
 
     def __str__(self) -> str:
-        return "GitHub repository: " + self._url
+        return "Git repository: " + self._url
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -217,6 +208,63 @@ class SourceOnGitHubAction(SubprocessAction, RepositoryAction):
         return self.projects()
 
 
+class SourceOnSubversionAction(SubprocessAction, RepositoryAction):
+    def __init__(self, url: str, projects: list[Project], database: Database):
+        RepositoryAction.__init__(self, projects, database)  # Parent constructor
+
+        self._url = url
+        self._database = database
+
+        SubprocessAction.__init__(self, Path("svn"))  # Parent constructor
+
+    def __str__(self) -> str:
+        return "Subversion repository: " + self._url
+
+    def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: No prerequisites.
+        """
+        return []
+
+    _PATH_PATTERN = re_compile(r"(.*?)/(trunk|branches|tags)/(/*)")
+
+    def local_copy(self) -> Path:
+        """
+        :return: Path of local copy.
+        """
+        url_parts = urlparse(self._url)
+        match = self._PATH_PATTERN.match(url_parts.path)
+        if match:
+            path_head, _, _ = match.groups()
+            _, _, project_name = path_head.rpartition("/")
+        else:  # No match
+            raise NotImplementedError(
+                "Unable to cope with nonstandard repository layouts"
+            )
+        return self._database.configuration["paths"]["work_dir"] / project_name
+
+    def perform(self) -> list[Action]:
+        """
+        Perform the extraction.
+
+        :return: Error result if extraction fails, otherwise action to examine
+                 freshly imported source.
+        """
+        repo_marker = self.local_copy() / ".svn"
+        arguments: list[str | Path]
+        if repo_marker.is_dir():  # Repository is present
+            arguments = ["update", self.local_copy()]
+        else:  # Repository is missing
+            parse_result = urlparse(self._url)
+            url = f"{parse_result.scheme}://{parse_result.netloc}{':' + str(parse_result.port) if parse_result.port else ''}{parse_result.path}"
+            arguments = ["checkout"]
+            if parse_result.fragment:
+                arguments.append(f"--branch={parse_result.fragment}")
+            arguments.extend([url, self.local_copy()])
+        self.run_subprocess(additional_arguments=arguments)
+        return self.projects()
+
+
 class SourceDirectory(Action):
     """
     Examines source tree for actionable files.
@@ -226,8 +274,9 @@ class SourceDirectory(Action):
         self,
         filename: Path,
         tag: str,
+        source_encoding: str,
         database: Database,
-        source_include: Optional[list[Path]] = None,
+        source_include: list[Path] | None = None,
     ):
         """
         :param filename: Root of source tree.
@@ -239,6 +288,7 @@ class SourceDirectory(Action):
         super().__init__(str(filename))
         self._source_dir = filename
         self._source_include = source_include or [Path(".")]
+        self._source_encoding = source_encoding
         self._tag = tag
         self._database = database
 
@@ -303,14 +353,24 @@ class SourceDirectory(Action):
                 actions: list[Action] = []
                 if full_filename.suffix == ".f90":
                     actions.append(
-                        MapFortran(two_part_filename, self._database, tag=self._tag)
+                        MapFortran(
+                            two_part_filename,
+                            self._source_encoding,
+                            self._database,
+                            self._tag,
+                        )
                     )
                 elif full_filename.suffix == ".F90":
                     actions.append(
                         PreprocessFortranAction(
                             two_part_filename,
                             self._tag,
-                            self._database,
+                            self._source_encoding,
+                            database=self._database,
+                            macros=self._database.configuration["fpp_definitions"],
+                            force_include_dir=self._database.configuration[
+                                "force_include_dir"
+                            ],
                         )
                     )
                 elif (
@@ -328,13 +388,14 @@ class SourceDirectory(Action):
                         PfUnit(
                             two_part_filename,
                             self._tag,
+                            self._source_encoding,
                             self._database,
                         )
                     )
                 elif full_filename.suffix == ".t90":
                     # Todo: Hardwired to field templating and just nasty.
                     for mapping in self._database.configuration["field_instances"]:
-                        ttype = list(mapping.keys())[0]
+                        ttype = list(mapping.keys())[0]  # noqa: RUF015
                         tkind = mapping[ttype]
                         leafname = ArtefactPath(
                             full_filename.stem[:-4] + "_" + tkind + "_mod.f90"
@@ -351,7 +412,10 @@ class SourceDirectory(Action):
                 elif full_filename.suffix == ".X90":
                     actions.append(
                         PreprocessAlgorithm(
-                            two_part_filename, self._tag, self._database
+                            two_part_filename,
+                            self._tag,
+                            self._source_encoding,
+                            self._database,
                         )
                     )
                 elif full_filename.suffix == ".x90":
@@ -366,16 +430,8 @@ class SourceDirectory(Action):
                             self._tag,
                         )
                     )
-                elif (
-                    full_filename.suffix
-                    in self._database.configuration["inclusion_suffixes"]
-                ):
-                    actions.append(
-                        MapFile(two_part_filename, self._database, tag=self._tag)
-                    )
                 else:
                     mp_get_logger().info("Ignoring file: " + full_filename.name)
 
-                for action in actions:
-                    yield action
+                yield from actions
         return []

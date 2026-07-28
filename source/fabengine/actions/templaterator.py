@@ -1,11 +1,11 @@
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction
-from fabengine.artefact_store import ArtefactPath
-from fabengine.prerequisite import RealFilePrerequisite
 from fabengine.actions.fortran import AnalyseFortran
+from fabengine.artefact_store import ArtefactPath
 from fabengine.database import Database
+from fabengine.prerequisite import RealFilePrerequisite
 
 
 class Templaterator(SubprocessAction):

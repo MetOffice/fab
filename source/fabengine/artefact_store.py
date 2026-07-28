@@ -1,7 +1,19 @@
+"""
+Implements a virtual filesystem which allows static source files and
+transitory build files to be managed in the same namespace.
+
+.. todo:: Implementation is messy and needs to be rationalised.
+"""
+
 from __future__ import annotations
 
 from pathlib import Path
 from sys import version_info as python_version
+from typing import Any
+
+# Artefact metadata keys used by the build framework:
+#
+ENCODING_META = "encoding"
 
 
 class ArtefactStore:
@@ -41,7 +53,7 @@ class ArtefactStore:
                 print(f"{virtual_filename}: {artefact.real_filename}", file=stream)
 
     def map_file(self, real_filename: Path, virtual_filename: ArtefactPath):
-        if virtual_filename in self._map.keys():
+        if virtual_filename in self._map:
             raise RuntimeError(
                 f"Attempted to map <{real_filename}> to <{virtual_filename}>"
                 f" but <{self._map[virtual_filename].real_filename}> already does."
@@ -81,6 +93,9 @@ class ArtefactStore:
         full_filename.mkdir(parents=True, exist_ok=True)
         return full_filename
 
+    def set_artefact(self, artefact: Artefact) -> None:
+        self._map[artefact.virtual_filename] = artefact
+
     def get_artefact(self, virtual_filename: ArtefactPath) -> Artefact:
         """
         Retrieves an artefact from the store.
@@ -88,14 +103,13 @@ class ArtefactStore:
         If it is not in the store, create it in the intermediate directory.
         """
         if virtual_filename not in self._map:
+            new_filename = self._intermediate_dir / virtual_filename
+
             # Ensure directory tree
-            directory = self._intermediate_dir / virtual_filename.parent
-            directory.mkdir(parents=True, exist_ok=True)
+            new_filename.parent.mkdir(parents=True, exist_ok=True)
 
             # New file
-            self._map[virtual_filename] = Artefact(
-                virtual_filename, self._intermediate_dir / virtual_filename
-            )
+            self._map[virtual_filename] = Artefact(virtual_filename, new_filename)
         return self._map[virtual_filename]
 
     def promote_artefact(self, virtual_filename: ArtefactPath) -> Artefact:
@@ -121,6 +135,7 @@ class Artefact:
     def __init__(self, virtual_filename: ArtefactPath, real_filename: Path):
         self._virtual_filename = virtual_filename
         self._real_filename = real_filename
+        self._meta: dict[str, Any] = {}
 
     @property
     def virtual_filename(self) -> ArtefactPath:
@@ -133,6 +148,12 @@ class Artefact:
     @property
     def name(self) -> str:
         return self._virtual_filename.name
+
+    def set_meta(self, key: str, value: Any) -> None:
+        self._meta[key] = value
+
+    def get_meta(self, key: str) -> Any:
+        return self._meta[key]
 
     def read_text(self) -> str:
         """

@@ -3,9 +3,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from subprocess import run, PIPE
+from subprocess import run
 from traceback import format_exception
-from typing import Any, Optional
+from typing import Any
 
 
 class TwoPartPath:
@@ -101,20 +101,20 @@ class SubprocessAction(Action, ABC):
     def __init__(
         self,
         executable: Path,
-        arguments: Optional[Iterable[Any]] = None,
-        mpi: Optional[int] = None,
+        arguments: Iterable[Any] | None = None,
+        mpi: int | None = None,
     ):
         self._executable = executable
         self._arguments = arguments or []
 
-        if mpi is None:
-            self._mpi = mpi
-        elif mpi > 0:
+        if mpi is None or mpi > 0:
             self._mpi = mpi
         else:  # mpi < 1
             raise ValueError("Number of MPI ranks must be 1 or greater.")
 
-        super().__init__(" ".join(str(self._arguments)))
+        super().__init__(
+            f"{self._executable} {' '.join(str(arg) for arg in self._arguments)}"
+        )
 
     @property
     def executable(self) -> Path:
@@ -122,8 +122,8 @@ class SubprocessAction(Action, ABC):
 
     def run_subprocess(
         self,
-        directory: Optional[Path] = None,
-        additional_arguments: Optional[Iterable[Any]] = None,
+        directory: Path | None = None,
+        additional_arguments: Iterable[Any] | None = None,
     ) -> None:
         command: list[str]
         if self._mpi:
@@ -139,10 +139,14 @@ class SubprocessAction(Action, ABC):
             command.append(str(arg))
 
         if directory is None:
-            process = run(command, stdout=PIPE, stderr=PIPE, encoding="utf8")
+            process = run(command, check=False, capture_output=True, encoding="utf8")
         else:
             process = run(
-                command, cwd=directory, stdout=PIPE, stderr=PIPE, encoding="utf8"
+                command,
+                cwd=directory,
+                check=False,
+                capture_output=True,
+                encoding="utf8",
             )
         if process.returncode != 0:
             raise SubprocessActionException(
@@ -233,8 +237,8 @@ class SubprocessActionException(ActionException):
         action: Action,
         command: str,
         return_code: int = 0,
-        stdout: Optional[str] = None,
-        stderr: Optional[str] = None,
+        stdout: str | None = None,
+        stderr: str | None = None,
     ):
         super().__init__(action)
         self._command = command
@@ -258,14 +262,14 @@ class SubprocessActionException(ActionException):
         return self._command
 
     @property
-    def stdout(self) -> Optional[str]:
+    def stdout(self) -> str | None:
         """
         :return: Command's standard output text.
         """
         return self._stdout
 
     @property
-    def stderr(self) -> Optional[str]:
+    def stderr(self) -> str | None:
         """
         :return: Command's standard error text.
         """

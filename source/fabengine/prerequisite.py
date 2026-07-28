@@ -22,7 +22,7 @@ class AnalysedPrerequisite(Prerequisite):
         self._module = module
         self._database = database
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: object):
         assert isinstance(other, AnalysedPrerequisite)
         return self._module == other._module
 
@@ -81,7 +81,7 @@ class RealFilePrerequisite(Prerequisite):
         return f"RealFilePrerequisite({self._filename})"
 
     def __str__(self) -> str:
-        return f"Prerequisite real file exists: <{str(self._filename)}>"
+        return f"Prerequisite real file exists: <{self._filename!s}>"
 
     def __eq__(self, other) -> bool:
         """
@@ -131,7 +131,7 @@ class ExecutablePrerequisite(Prerequisite):
     def __init__(self, filename: Path):
         self._filename = filename
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         assert isinstance(other, ExecutablePrerequisite)
         return self._filename == other._filename
 
@@ -163,10 +163,13 @@ class ArtefactPrerequisite(Prerequisite):
     def __str__(self) -> str:
         return f"Prerequisite virtual file exists <{self._filename}>"
 
+    def __repr__(self) -> str:
+        return f"ArtefactPrerequisite({self._filename})"
+
     def __hash__(self) -> int:
         return hash(self._filename)
 
-    def __eq__(self, other: Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         return (
             isinstance(other, ArtefactPrerequisite)
             and other._filename == self._filename

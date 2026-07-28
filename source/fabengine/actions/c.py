@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Generator, Iterable
 from enum import Enum, auto
 from multiprocessing import get_logger as mp_get_logger
 from pathlib import Path
-from re import compile as re_compile, IGNORECASE
-from typing import Generator, Iterable
+from re import IGNORECASE
+from re import compile as re_compile
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction
 from fabengine.actions.file import MapFile
@@ -23,7 +24,7 @@ class MapC(MapFile):
 
         :return: Source file must exist.
         """
-        return [RealFilePrerequisite(self.real_file)]
+        return [RealFilePrerequisite(self.real_path)]
 
     def perform(self) -> list[Action]:
         """
@@ -33,7 +34,7 @@ class MapC(MapFile):
         """
 
         actions = super().perform()
-        actions.append(AnalyseC(self.artefact.virtual_filename, self._database))
+        actions.append(AnalyseC(self.artefact_path, self._database))
         return actions
 
 

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 
+# Todo: Given that they share "paths" it may be that Project and Repository
+#       are aspects of the same concept.
+#
 class Project:
     """
     Represents a software project.
@@ -12,12 +14,14 @@ class Project:
     def __init__(
         self,
         project_dir: Path,
-        identifier: Optional[str] = None,
+        identifier: str | None = None,
         source_dir=Path("source"),
-        source_include: Optional[list[Path]] = None,
-        paths: Optional[dict[str, Path]] = None,
+        source_include: list[Path] | None = None,
+        source_encoding: str | None = None,
+        paths: dict[str, Path] | None = None,
         unit_test_dir: Path = Path("unit-test"),
         configuration_meta_data: Path = Path("rose-meta"),
+        force_include_dir: list[Path] | None = None,
     ):
         """
         :param project_dir: Directory holding project.
@@ -38,6 +42,8 @@ class Project:
         self._identifier = identifier or self._project_dir.name
         self._source_dir = source_dir
         self._source_include = source_include
+        self._source_encoding = source_encoding or "utf8"
+        self._force_include_dir = force_include_dir or []
 
         # Todo: This is a fix for the immediate problem of finding the
         #       build tools, configurator and templaterator. It may well
@@ -69,12 +75,20 @@ class Project:
         return self._project_dir / self._source_dir
 
     @property
-    def source_include(self) -> Optional[list[Path]]:
+    def source_include(self) -> list[Path] | None:
         return self._source_include
+
+    @property
+    def source_encoding(self) -> str:
+        return self._source_encoding
 
     @property
     def paths(self) -> dict[str, Path]:
         return self._paths
+
+    @property
+    def force_include_dir(self) -> list[Path]:
+        return self._force_include_dir
 
     @property
     def unit_test_dir(self) -> Path:

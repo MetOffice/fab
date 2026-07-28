@@ -1,17 +1,19 @@
+from collections.abc import Iterable
 from multiprocessing import get_logger as mp_get_logger
 from pathlib import Path
-from re import compile as re_compile, IGNORECASE
-from typing import Any, Iterable
+from re import IGNORECASE
+from re import compile as re_compile
+from typing import Any
 
 from fabengine.actions import (
     Action,
-    SubprocessAction,
     Prerequisite,
+    SubprocessAction,
 )
-from fabengine.artefact_store import ArtefactPath
-from fabengine.prerequisite import ArtefactPrerequisite
 from fabengine.actions.fortran import AnalyseFortran
+from fabengine.artefact_store import ArtefactPath
 from fabengine.database import Database
+from fabengine.prerequisite import ArtefactPrerequisite
 
 _CONFIGURATION_DIR = ArtefactPath("_configuration")
 _JSON_FILE = _CONFIGURATION_DIR / "rose-meta.json"
@@ -174,8 +176,7 @@ class ConfigurationLoader(SubprocessAction):
 
         list_artefact = self._database.artefact_store.get_artefact(self._filename)
         for line in list_artefact.read_text().splitlines():
-            for namelist in line.split():
-                arguments.append(namelist)
+            arguments.extend(line.split())
 
         super().__init__(
             self._database.configuration["paths"]["generate-config-loader"], arguments
@@ -286,10 +287,10 @@ class ConfigType(SubprocessAction):
         self._duplicates_file = duplicates_file
         self._database = database
 
-        self._configuration_dir = self._database.artefact_store.ensure_directory(
+        configuration_dir = self._database.artefact_store.ensure_directory(
             _CONFIGURATION_DIR
         )
-        arguments = ["-o", self._configuration_dir]
+        arguments = ["-o", configuration_dir]
 
         self._multi_lists: list[str] = []
         duplicates_artefact = self._database.artefact_store.get_artefact(
@@ -299,8 +300,6 @@ class ConfigType(SubprocessAction):
             if not line:
                 continue
             self._multi_lists.append(line.strip())
-
-        arguments = ["-o", self._configuration_dir]
 
         for multi_list in self._multi_lists:
             arguments.extend(["-duplicate", multi_list])
@@ -338,16 +337,16 @@ class ConfigType(SubprocessAction):
         :return: Action to analyse resulting Fortran source.
         """
         self.run_subprocess()
-        virtual_filename = _CONFIGURATION_DIR / "config_mod.f90"
-        self._database.artefact_store.notice_file(virtual_filename)
 
-        actions: list[Action] = [AnalyseFortran(virtual_filename, self._database)]
-
+        actions: list[Action] = []
         for multi_list in self._multi_lists:
-            iterator_path = (
-                self._configuration_dir / f"{multi_list}_nml_iterator_mod.f90"
-            )
+            iterator_path = _CONFIGURATION_DIR / f"{multi_list}_nml_iterator_mod.f90"
+            self._database.artefact_store.notice_file(iterator_path)
             actions.append(AnalyseFortran(iterator_path, self._database))
+
+        config_path = _CONFIGURATION_DIR / "config_mod.f90"
+        self._database.artefact_store.notice_file(config_path)
+        actions.append(AnalyseFortran(config_path, self._database))
 
         return actions
 
@@ -373,12 +372,12 @@ class NamelistLoader(SubprocessAction):
         self._namelist_file = namelist_file
         self._database = database
 
-        self._configuration_dir = self._database.artefact_store.ensure_directory(
+        configuration_dir = self._database.artefact_store.ensure_directory(
             _CONFIGURATION_DIR
         )
 
         json_artefact = self._database.artefact_store.get_artefact(self._json_file)
-        arguments = [json_artefact.real_filename, "-directory", self._configuration_dir]
+        arguments = [json_artefact.real_filename, "-directory", configuration_dir]
         super().__init__(
             self._database.configuration["paths"]["generate-namelist-loader"], arguments
         )
