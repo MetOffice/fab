@@ -10,10 +10,11 @@ To indicate your agreement, add your details to the the following table.
 If you are not submitting contributions on behalf of an organisation please use
 "n/a" for your affiliation.
 
-| GitHub Username | Real Name       | Affiliation |
-|-----------------|-----------------|-------------|
-| MatthewHambley  | Matthew Hambley | Met Office  |
-| yaswant         | Yaswant Pradhan | Met Office  |
+| GitHub Username | Real Name       | Affiliation                      |
+|-----------------|-----------------|----------------------------------|
+| MatthewHambley  | Matthew Hambley | Met Office                       |
+| yaswant         | Yaswant Pradhan | Met Office                       |
+| hiker           | Joerg Henrichs  | Bureau of Meteorology, Australia |
 
 ---
 
