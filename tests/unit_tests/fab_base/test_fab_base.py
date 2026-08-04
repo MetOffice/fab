@@ -8,6 +8,7 @@ Tests the FabBase class
 """
 import argparse
 import inspect
+import logging
 import os
 from pathlib import Path
 import sys
@@ -344,7 +345,23 @@ def test_site_specific_callbacks(monkeypatch):
         assert isinstance(tfb.site_config, SiteConfig)
 
 
-def test_site_specific_outside_dir(monkeypatch) -> None:
+def test_site_specific_outside_dir_default(monkeypatch) -> None:
+    '''
+    Tests site-specific settings if the call is initiated from a different
+    directory with the default site_specific directory. In this case, the
+    `cwd` and `cwd/site_specific` should be added to the Python path (to allow
+    importing the site-specific settings.
+    '''
+    # First test default directory:
+    this_dir = Path(__file__).parent
+    old_path = sys.path[:]
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    _ = FabBase(name="test-help")
+    assert sys.path == [str(this_dir / "site_specific"),
+                        str(this_dir)] + old_path
+
+
+def test_site_specific_outside_dir_overwrite(monkeypatch) -> None:
     '''
     Tests site-specific settings if the call is initiated from a different
     directory. In this case, the `cwd` and `cwd/site_specific` should
@@ -353,14 +370,29 @@ def test_site_specific_outside_dir(monkeypatch) -> None:
     '''
     this_dir = Path(__file__).parent
     old_path = sys.path[:]
+
+    overwrite_dir = this_dir.resolve() / "overwrite_site_specific"
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
-    _ = FabBase(name="test-help")
-    assert sys.path[2:] == old_path
-    assert str(this_dir / "site_specific") in sys.path[0]
-    assert str(this_dir) in sys.path[1]
+    _ = FabBase(name="test-help", site_specific_dir=overwrite_dir)
+    assert sys.path == [str(overwrite_dir / "site_specific"),
+                        str(overwrite_dir)] + old_path
 
 
 def test_site_specific_inside_dir(monkeypatch) -> None:
+    '''
+    Tests site-specific settings if the call is initiated from the
+    same directory as FabBase. This is done by patching inspect
+    to return an empty list.
+    '''
+    old_path = sys.path[:]
+    monkeypatch.setattr(sys, "argv", ["fab_base.py"])
+    monkeypatch.setattr(inspect, "stack", lambda: [])
+    _ = FabBase(name="test-help")
+    assert sys.path == ["site_specific", "."] + old_path
+
+
+def test_overwrite_non_existing_site_specific_dir(monkeypatch,
+                                                  caplog) -> None:
     '''
     Tests site-specific settings if the call is initiated from the
     same directory as FabBase. This is done by patching inspect
@@ -370,9 +402,14 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     old_path = sys.path[:]
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     monkeypatch.setattr(inspect, "stack", lambda: [])
-    _ = FabBase(name="test-help")
-    assert sys.path[1:] == old_path
-    assert "site_specific" == sys.path[0]
+    overwrite_dir = Path(".").resolve() / "does_not_exist"
+    with caplog.at_level(logging.ERROR):
+        _ = FabBase(name="test-help", site_specific_dir=overwrite_dir)
+    assert len(caplog.records) == 1
+    assert (f"Site-specific directory '{overwrite_dir}' does not exist"
+            in caplog.text)
+    # Path should not be modified:
+    assert sys.path == old_path
 
 
 def test_build_binary(monkeypatch) -> None:

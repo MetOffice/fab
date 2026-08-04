@@ -52,11 +52,16 @@ class FabBase:
         the name of the compiler will be added to it.
     :param link_target: what target should be created. Must be one of
         "executable" (default), "static-library", or "shared-library"
+    :param site_specific_dir: the base directory for the site-specific
+        files. If not specified, it will default to "directory
+        of the calling script" / site_specific
+
     '''
     # pylint: disable=too-many-instance-attributes
     def __init__(self,
                  name: str,
-                 link_target: str = "executable") -> None:
+                 link_target: str = "executable",
+                 site_specific_dir: Optional[Path] = None) -> None:
         self.set_link_target(link_target)
         self._logger = logging.getLogger(__name__)
         self._site = None
@@ -87,7 +92,7 @@ class FabBase:
 
         # Now that site, platform and target are defined, import any
         # site-specific settings
-        self.site_specific_setup()
+        self.site_specific_setup(site_specific_dir)
 
         # Define the tool box, which might be started to be filled
         # when handling command line options:
@@ -301,39 +306,54 @@ class FabBase:
         """
         return self._linker_flags_commandline
 
-    def setup_site_specific_location(self) -> None:
+    def setup_site_specific_location(
+            self,
+            site_specific_dir: Optional[Path]) -> None:
         '''
         This method adds the required directories for site-specific
-        configurations to the Python search path. This implementation will
-        search the call tree to find the first call that's not from Fab,
-        i.e. the user script. It then adds ``site_specific`` and
-        ``site_specific/default`` to the directory in which the user script
-        is located. An application can overwrite this method to change this
-        behaviour and point at site-specific directories elsewhere.
-        '''
-        my_base_dir = Path(__file__).parent
-        for caller in inspect.stack():
-            dir_caller = Path(caller[1]).parent
-            if not my_base_dir.samefile(dir_caller):
-                # This is required in case that the script is not
-                # called from the script directory, but site_specific
-                # is in the directory of the script.
-                sys.path.insert(0, str(dir_caller))
-                break
-        else:
-            # All callers are in this directory? Add a warning, and
-            # setup `dir_caller` to . (which is already added to the
-            # path, so it doesn't need to be added), so site-specific
-            # will be added below.
-            dir_caller = Path(".")
-            self.logger.warning("Could not find caller directory, "
-                                "defaulting to '.'.")
+        configurations to the Python search path. If ``site_specific_dir``
+        is not specified, it will search the call tree to find the first call
+        that's not from Fab, i.e. the user script and uses this directory
+        with ``site_specific`` appended.
 
+        It then adds ``site_specific`` and ``site_specific/default`` to the
+        directory in which the user script is located. An application can
+        overwrite this method to change this behaviour and point at
+        site-specific directories elsewhere.
+
+        :param site_specific_dir: the base directory for the site-specific
+            files. If not specified, it will default to "directory
+            of the calling script" / site_specific
+        '''
+        if site_specific_dir is None:
+            my_base_dir = Path(__file__).parent
+            for caller in inspect.stack():
+                dir_caller = Path(caller[1]).parent
+                if not my_base_dir.samefile(dir_caller):
+                    site_specific_dir = dir_caller
+                    break
+            else:
+                # All callers are in this directory? Add a warning, and
+                # setup `dir_caller` to . (which is already added to the
+                # path, so it doesn't need to be added), so site-specific
+                # will be added below.
+                site_specific_dir = Path(".")
+                self.logger.warning("Could not find caller directory, "
+                                    "defaulting to '.'.")
+
+        if not site_specific_dir.is_dir():
+            self.logger.error(f"Site-specific directory '{site_specific_dir}' "
+                              f"does not exist.")
+            # We don't abort, since in zero-config mode there would be
+            # no site-specific directory
+            return
+
+        sys.path.insert(0, str(site_specific_dir))
         # We need to add the 'site_specific' directory to the path, so
         # each config can import from 'default' (instead of having to
         # use 'site_specific.default', which would hard-code the name
         # `site_specific` in more scripts).
-        sys.path.insert(0, str(dir_caller / "site_specific"))
+        sys.path.insert(0, str(site_specific_dir / "site_specific"))
 
     def define_site_platform_target(self) -> None:
         '''
@@ -370,14 +390,21 @@ class FabBase:
         else:
             self._target = f"{self._site}_{self._platform}"
 
-    def site_specific_setup(self) -> None:
+    def site_specific_setup(
+            self,
+            site_specific_dir: Optional[Path]) -> None:
         '''
         Imports a site-specific config file. The location is based
         on the attribute ``target`` (which is set to be ``{site}_{platform}"
         based on the command line options, and the path is specified
-        in ``setup_site_specific_location``).
+        in ``setup_site_specific_location``), relative to the
+        site_specific_dir
+
+        :param site_specific_dir: the base directory for the site-specific
+            files. If not specified, it will default to "directory
+            of the calling script" / site_specific
         '''
-        self.setup_site_specific_location()
+        self.setup_site_specific_location(site_specific_dir)
         try:
             config_name = f"site_specific.{self.target}.config"
             config_module = import_module(config_name)
