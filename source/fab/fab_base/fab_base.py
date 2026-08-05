@@ -316,7 +316,7 @@ class FabBase:
         that's not from Fab, i.e. the user script and uses this directory
         with ``site_specific`` appended.
 
-        It then adds ``site_specific`` and ``site_specific/default`` to the
+        It then adds ``site_specific`` to the
         directory in which the user script is located. An application can
         overwrite this method to change this behaviour and point at
         site-specific directories elsewhere.
@@ -349,11 +349,6 @@ class FabBase:
             return
 
         sys.path.insert(0, str(site_specific_dir))
-        # We need to add the 'site_specific' directory to the path, so
-        # each config can import from 'default' (instead of having to
-        # use 'site_specific.default', which would hard-code the name
-        # `site_specific` in more scripts).
-        sys.path.insert(0, str(site_specific_dir / "site_specific"))
 
     def define_site_platform_target(self) -> None:
         '''

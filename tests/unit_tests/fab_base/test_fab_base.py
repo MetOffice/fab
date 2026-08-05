@@ -357,8 +357,7 @@ def test_site_specific_outside_dir_default(monkeypatch) -> None:
     old_path = sys.path[:]
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     _ = FabBase(name="test-help")
-    assert sys.path == [str(this_dir / "site_specific"),
-                        str(this_dir)] + old_path
+    assert sys.path == [str(this_dir)] + old_path
 
 
 def test_site_specific_outside_dir_overwrite(monkeypatch) -> None:
@@ -374,8 +373,7 @@ def test_site_specific_outside_dir_overwrite(monkeypatch) -> None:
     overwrite_dir = this_dir.resolve() / "overwrite_site_specific"
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     _ = FabBase(name="test-help", site_specific_dir=overwrite_dir)
-    assert sys.path == [str(overwrite_dir / "site_specific"),
-                        str(overwrite_dir)] + old_path
+    assert sys.path == [str(overwrite_dir)] + old_path
 
 
 def test_site_specific_inside_dir(monkeypatch) -> None:
@@ -388,7 +386,7 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     monkeypatch.setattr(inspect, "stack", lambda: [])
     _ = FabBase(name="test-help")
-    assert sys.path == ["site_specific", "."] + old_path
+    assert sys.path == ["."] + old_path
 
 
 def test_overwrite_non_existing_site_specific_dir(monkeypatch,
