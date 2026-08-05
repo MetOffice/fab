@@ -8,6 +8,7 @@ Tests the FabBase class
 """
 import argparse
 import inspect
+import json
 import os
 from pathlib import Path
 import sys
@@ -531,3 +532,46 @@ def test_build_shared_lib(monkeypatch) -> None:
     mocks["link_shared_object"][1].assert_called_once_with(
         fab_base.config, output_fpath=str(workspace / 'libtest.so'),
         flags=[])
+
+
+def test_caching_options(capsys, monkeypatch) -> None:
+    '''
+    Tests command line argument options are present.
+    '''
+    monkeypatch.setattr(sys, "argv", ["fab", "--help"])
+
+    with pytest.raises(SystemExit):
+        FabBase(name="test-caching")
+
+    captured = capsys.readouterr()
+    assert "--save-cache" in captured.out
+    assert "--use-cache" in captured.out
+
+
+def test_caching_feature(monkeypatch) -> None:
+    '''Test cache save and load features.
+
+    Both these operations are done in a single test to remove the need
+    to duplicate the creation of the cache file for the load test.
+    '''
+
+    # Set an argument and check that it
+    monkeypatch.setattr(sys, "argv", ["fab", "--save-cache",
+                                      "--fflag", "ftn"])
+
+    fab_base = FabBase(name="test-caching")
+    assert fab_base.fortran_compiler_flags_commandline == ["ftn"]
+
+    # Check the cache has been created
+    assert os.path.exists("fab.cache.json")
+
+    # Check the contents of the cached file
+    values = json.load(open("fab.cache.json"))
+    assert "fflags" in values
+    assert values["fflags"] == "ftn"
+
+    # Load the cached values
+    monkeypatch.setattr(sys, "argv", ["fab", "--use-cache"])
+
+    fab_base = FabBase(name="test-caching")
+    assert fab_base.fortran_compiler_flags_commandline == ["ftn"]

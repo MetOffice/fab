@@ -19,6 +19,7 @@ argument and adds its own arguments.
 """
 
 import argparse
+import json
 import os
 from pathlib import Path
 from typing import Callable
@@ -62,6 +63,11 @@ def _parser_wrapper(func: Callable) -> Callable:
             self._add_output_group()
             self._add_info_group()
 
+            if hasattr(self, "_add_cache_group"):
+                # Only call if the wrapped class includes features
+                # from the _FabArgumentCache mixin
+                self._add_cache_group()
+
         result = func(self, *args, **kwargs)
 
         if isinstance(result, argparse.Namespace):
@@ -79,18 +85,149 @@ def _parser_wrapper(func: Callable) -> Callable:
         self._check_fabfile(namespace)
         self._configure_logging(namespace)
 
+        if hasattr(self, "_process_cache_args"):
+            # Only handle the caching arguments when running with the
+            # _FabArgumentCache mixin
+            self._process_cache_args(namespace)
+
         return result
 
     return inner
 
 
-class FabArgumentParser(argparse.ArgumentParser):
+class _FabArgumentCache:
+    """Mixin which caches arguments passed on the command line."""
+
+    # Path to options cache file
+    _cache_file = Path("fab.cache.json")
+
+    # Default cache setting
+    cache = False
+
+    def _add_cache_group(self) -> None:
+        """Add a group containing cache arguments to the parser."""
+
+        if not self.cache:
+            # Do not add the group if caching is disabled
+            return
+
+        group = self.add_argument_group("fab cache arguments")  # type: ignore[attr-defined]
+
+        group.add_argument(
+            "--save-cache",
+            action="store_true",
+            help="create a command line argument cache",
+        )
+
+        group.add_argument(
+            "--use-cache",
+            action="store_true",
+            help="use a command line argument cache if it exists",
+        )
+
+    def _save_namespace(self, namespace: argparse.Namespace) -> None:
+        """Save the argument namespace to a cache file.
+
+        Save the contents of the namespace to a cache file for use in
+        a subsequent fab run.  This is intended to simplify the
+        process of setting up and re-executing complex commands.
+
+        :param namespace: values from the argument parser
+        """
+
+        if not self.cache:
+            # Do not save the file if caching is off
+            return
+
+        with self._cache_file.open("wt", encoding="utf-8") as fd:
+            print(json.dumps(namespace.__dict__, default=lambda x: str(x)), file=fd)
+
+    def _merge_cached_namespace(
+        self, action_values, namespace: argparse.Namespace
+    ) -> None:
+        """Merge cached arguments into a namespace.
+
+        Where a cache file exists and argument caching is enabled,
+        load the values from the file and merge them into the
+        namespace instance according to the following rules:
+
+          * command line arguments always take priority
+          * cached values supersede argparse defaults
+          * defaults are used if no other value is available
+          * arguments with no defaults will not be set
+
+        :param namespace: values from the argument parser
+        """
+
+        if not self.cache or not self._cache_file.is_file():
+            # Do nothing if cache is off or file does not exist
+            return
+
+        with self._cache_file.open("rt", encoding="utf-8") as fd:
+            cached_args = json.load(fd)
+
+        for action in action_values:
+            # For each defined option
+            name = action.dest
+            default = getattr(action, "default", None)
+            cache = cached_args.get(name, None)
+            value = getattr(namespace, name, None)
+
+            if (isinstance(value, str) and value.startswith("==")) or (
+                isinstance(default, str)
+                and default.startswith("==")
+                or (name in ("save_cache", "use_cache"))
+            ):
+                # Ignore internal options, e.g. help, and any
+                # save/load cache arguments to avoid caching becoming
+                # sticky
+                continue
+
+            if (
+                value is not None
+                and default is not None
+                and cache is not None
+                and value == default
+            ) or (value is None and cache is not None):
+                # Value is set to the default.  It probably hasn't
+                # been set on the command line, so use the cached
+                # value instead
+                value = cache
+
+                if action.type is not None:
+                    # Convert the value if necessary
+                    value = action.type(value)
+
+            setattr(namespace, name, value)
+
+    def _process_cache_args(self, namespace: argparse.Namespace) -> None:
+        """Handle cache arguments in Namespace instance."""
+
+        if getattr(namespace, "use_cache", False):
+            # Add cached argument settings if enabled
+            try:
+                self._merge_cached_namespace(
+                    self._option_string_actions.values(), namespace  # type: ignore[attr-defined]
+                )
+            except json.JSONDecodeError as err:
+                self.error(  # type: ignore[attr-defined]
+                    "--use-cache: "
+                    f"decode error at line {err.lineno} column {err.colno}"
+                )
+
+        if getattr(namespace, "save_cache", False):
+            # Save arguments to the ache
+            self._save_namespace(namespace)
+
+
+class FabArgumentParser(argparse.ArgumentParser, _FabArgumentCache):
     """Fab command argument parser."""
 
     def __init__(self, *args, **kwargs):
 
         self.version = kwargs.pop("version", str(fab_version))
         self.fabfile = full_path_type(kwargs.pop("fabfile", "FabFile") or "FabFile")
+        self.cache = kwargs.pop("cache", False)
 
         if "usage" not in kwargs:
             # Default to a simplified usage line
@@ -288,3 +425,27 @@ class FabArgumentParser(argparse.ArgumentParser):
     def parse_known_args(self, *args, **kwargs):
 
         return super().parse_known_args(*args, **kwargs)
+
+
+class CachingArgumentParser(_FabArgumentCache, argparse.ArgumentParser):
+    """Argument parser which can save option to a cache.
+
+    This adds a default group of argument options and
+    """
+
+    # Enable the cache functionality by default
+    cache = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._add_cache_group()
+
+    def parse_args(self, *args, **kwargs):
+        namespace = super().parse_args(*args, **kwargs)
+        self._process_cache_args(namespace)
+        return namespace
+
+    def parse_known_args(self, *args, **kwargs):
+        namespace, rest = super().parse_known_args(*args, **kwargs)
+        self._process_cache_args(namespace)
+        return namespace, rest
