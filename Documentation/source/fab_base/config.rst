@@ -18,12 +18,12 @@ based on the concatenation of these names. In the example above, this would be
 ``site_specific/meto_xc40`` or ``site_specific/meto_ex1a``.
 The site and platform can be specified as command line option (see
 :ref:`Command Line Options<command_line_options>`). All these
-directories are stored under the ``site_specific`` directories
+directories are stored under the ``site_specific`` directory
 to keep the directory structure cleaner.
 
 If no site name is specified, ``default`` is used as site. And
 similarly, if no platform is specified, ``default`` is used as platform
-(resulting e.g. in ``site_specific/meto-default`` etc). If neither site
+(resulting e.g. in ``site_specific/meto_default`` etc). If neither site
 nor platform is specified, the name ``site_specific/default`` is used.
 
 Fab comes with a template for a ``site_specific`` setup. It only
@@ -41,7 +41,7 @@ setup done by the default.
 
 .. code-block:: python
 
-    from default.config import Config as DefaultConfig
+    from site_specific.default.config import Config as DefaultConfig
 
     class Config(DefaultConfig):
         '''Make intel-classic the default compiler
