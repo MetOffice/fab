@@ -355,9 +355,7 @@ def test_site_specific_outside_dir(monkeypatch) -> None:
     old_path = sys.path[:]
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     _ = FabBase(name="test-help")
-    assert sys.path[2:] == old_path
-    assert str(this_dir / "site_specific") in sys.path[0]
-    assert str(this_dir) in sys.path[1]
+    assert sys.path == [str(this_dir)] + old_path
 
 
 def test_site_specific_inside_dir(monkeypatch) -> None:
@@ -371,8 +369,7 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     monkeypatch.setattr(inspect, "stack", lambda: [])
     _ = FabBase(name="test-help")
-    assert sys.path[1:] == old_path
-    assert "site_specific" == sys.path[0]
+    assert sys.path == old_path
 
 
 def test_build_binary(monkeypatch) -> None:
