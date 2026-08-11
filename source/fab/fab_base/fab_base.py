@@ -201,7 +201,7 @@ class FabBase:
     def name(self) -> str:
 
         '''
-        :returns: the name of the apps.
+        :returns: the name of the app.
         '''
         return self._name
 
@@ -373,7 +373,7 @@ class FabBase:
         '''
         self.setup_site_specific_location()
         try:
-            config_name = f"apps_specific.{self.target}.config"
+            config_name = f"app_specific.{self.target}.config"
             config_module = import_module(config_name)
         except ModuleNotFoundError:
             try:

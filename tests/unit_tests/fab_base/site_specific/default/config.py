@@ -22,6 +22,9 @@ class Config:
     def __init__(self):
         self._args = None
 
+    def __str__(self) -> str:
+        return "SiteSpecificDefault"
+
     @property
     def args(self) -> argparse.Namespace:
         '''
