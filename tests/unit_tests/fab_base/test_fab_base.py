@@ -372,6 +372,38 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     assert sys.path == old_path
 
 
+def test_app_specifc(monkeypatch) -> None:
+    '''
+    Tests that an app_specific directory works as expected.
+    The setup in the test dir is:
+        site_specific/default/config
+        site_specific/site/config
+        app_specific/default/config
+        app_specific/site/config
+    The last class uses multiple inheritance:
+        config(AppSpecificDefaultConfig, SiteSpecificSiteConfig)
+
+    With each function calling super(), the following call order
+    should happen:
+    AppSpecificSite
+    --> AppSpecificDefault
+        --> SiteSpecificSite
+            --> SiteSpecificDefault
+    Which allows an app-specific setup to modify the settings from
+    site-specific setup etc.
+    Note that this is not actually a Fab test, but it is important
+    to ensure that the call sequence works as expected.
+    '''
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--site", "site",
+                                      "--platform", "platform"])
+    monkeypatch.setattr(inspect, "stack", lambda: [])
+    fab_base = FabBase(name="test-help")
+
+    assert (str(fab_base.site_config) ==
+            "SiteSpecificDefault -> SiteSpecificSitePlatform -> "
+            "AppSpecificDefault -> AppSpecificSitePlatform")
+
+
 def test_build_binary(monkeypatch) -> None:
     '''
     Tests an actual trivial build. We patch all fab functions called
