@@ -12,13 +12,11 @@ from pathlib import Path
 from typing import Union
 
 from fab.steps import step
-from fab.tools.category import Category
 from fab.steps.grab.files import grab_files
 
 logger = logging.getLogger(__name__)
 
 
-@step
 def grab_folder(config, src: Union[Path, str], dst_label: str = ''):
     """
     Copy a source folder to the project workspace. This function is
