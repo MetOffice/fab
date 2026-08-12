@@ -21,6 +21,7 @@ from fab.steps.compile_c import compile_c
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import Exclude, find_source_files, Include
 from fab.steps.grab.fcm import fcm_export
+from fab.steps.grab.files import grab_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.grab.git import git_checkout
 from fab.steps.grab.prebuild import grab_pre_build
