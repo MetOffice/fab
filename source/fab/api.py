@@ -69,6 +69,7 @@ __all__ = [
     "FlagList",
     "get_fab_workspace",
     "git_checkout",
+    "grab_files",
     "grab_folder",
     "grab_pre_build",
     "find_source_files",
