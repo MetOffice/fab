@@ -338,3 +338,10 @@ The usage of ``nci_gadi`` means that additional compiler flags can easily be
 added, since it will only affect runs on NCI. If a flag would be useful for
 any site (e.g. to work around a compiler bug), this flag would eventually be moved
 into the ``default`` setup.
+
+.. important::
+    If there is a application-specific configuration, it is important that
+    each site specifies its own application-specific setup. Otherwise only
+    the site-specific configuration would be used (since the import from
+    ``app_specific/SITE`` fails, which means that the application specific
+    setup would not be executed at all).
