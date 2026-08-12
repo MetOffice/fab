@@ -11,7 +11,6 @@ import logging
 from pathlib import Path
 from typing import Union
 
-from fab.steps import step
 from fab.steps.grab.files import grab_files
 
 logger = logging.getLogger(__name__)
