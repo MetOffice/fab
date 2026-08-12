@@ -38,6 +38,8 @@ def test_import_from_api() -> None:
         "file_checksum",
         "get_fab_workspace",
         "git_checkout",
+        "grab_files",
+        "grab_folder",
         "grab_folder",
         "grab_pre_build",
         "find_source_files",
