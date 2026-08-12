@@ -13,9 +13,12 @@ from site_specific.default.config import Config as ConfigSiteDefault   # type: i
 
 
 class Config(ConfigSiteDefault):
+    """A simple site-specific configuration for a given site/platform.
+    It inherits from the site-specific default configuration.
+    """
 
     def __str__(self) -> str:
         """
         This str method also collects the call-order.
         """
-        return f"{super().__str__()} -> SiteSpecificSitePlatform"
+        return f"SiteSpecificSitePlatform -> {super().__str__()}"

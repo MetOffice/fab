@@ -14,9 +14,15 @@ from site_specific.site_platform.config import Config as ConfigSiteSitePlatform 
 
 
 class Config(ConfigAppDefault, ConfigSiteSitePlatform):
+    """A simple app-specific configuration for a specific site/platform.
+    It inherits from both the default app-specific config and the
+    site-specific configuration. The order of the base classes is important
+    to achieve the expected call sequence across all classes:
+    this -> AppSpecificDefault -> SiteSpecificConfig -> SiteSpecificDefault
+    """
 
     def __str__(self):
         """
         This str method also collects the call-order.
         """
-        return f"{super().__str__()} -> AppSpecificSitePlatform"
+        return f"AppSpecificSitePlatform -> {super().__str__()}"

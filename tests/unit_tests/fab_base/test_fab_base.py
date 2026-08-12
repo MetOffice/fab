@@ -383,16 +383,17 @@ def test_app_specifc(monkeypatch) -> None:
     The last class uses multiple inheritance:
         config(AppSpecificDefaultConfig, SiteSpecificSiteConfig)
 
-    With each function calling super(), the following call order
+    With each method calling super(), the following call order
     should happen:
     AppSpecificSite
     --> AppSpecificDefault
         --> SiteSpecificSite
             --> SiteSpecificDefault
-    Which allows an app-specific setup to modify the settings from
+    This allows an app-specific setup to modify the settings from
     site-specific setup etc.
-    Note that this is not actually a Fab test, but it is important
-    to ensure that the call sequence works as expected.
+    This test calls ``__str__``, which goes through all base classes
+    to assemble a string that represents the order in which the base
+    classes are called.
     '''
     monkeypatch.setattr(sys, "argv", ["fab_base.py", "--site", "site",
                                       "--platform", "platform"])
@@ -400,8 +401,8 @@ def test_app_specifc(monkeypatch) -> None:
     fab_base = FabBase(name="test-help")
 
     assert (str(fab_base.site_config) ==
-            "SiteSpecificDefault -> SiteSpecificSitePlatform -> "
-            "AppSpecificDefault -> AppSpecificSitePlatform")
+            "AppSpecificSitePlatform -> AppSpecificDefault -> "
+            "SiteSpecificSitePlatform -> SiteSpecificDefault")
 
 
 def test_build_binary(monkeypatch) -> None:

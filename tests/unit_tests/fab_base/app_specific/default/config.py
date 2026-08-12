@@ -13,9 +13,12 @@ from site_specific.default.config import Config as ConfigSiteDefault   # type: i
 
 
 class Config(ConfigSiteDefault):
+    """A simple app-specific default configuration. It inherits
+    from the site-specific default configuration.
+    """
 
     def __str__(self):
         """
         This str method also collects the call-order.
         """
-        return f"{super().__str__()} -> AppSpecificDefault"
+        return f"AppSpecificDefault -> {super().__str__()}"
