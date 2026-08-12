@@ -250,3 +250,98 @@ instance that uses other shells. Usage:
         nc_flibs = []
 
     linker.add_lib_flags("netcdf", nc_flibs)
+
+Application-specific settings
+=============================
+Besides site-specific settings, the Fab base class also allows to use
+application-specific setups, which can work together with site-specific
+configurations using inheritance. These config files are the same
+as site-specific configuration files described previously, but are
+imported from the directory ``app_specific``.
+
+An example of this is LFRic. The infrastructure (lfric_core) repository
+contains site-specific configuration. For example, they will define
+the required compilation flags for files. These settings will be used
+even for applications in applications in the lfric_apps repository.
+But certain applications needs additional flags. For example, the
+lfric_atm application will compile the UM physics code, and this require
+that by default any real values are double precision (and in some cases
+file-specific work arounds for compiler bugs. To avoid that the site-settings
+from lfric_core need to be duplicated, the following structure is
+recommended (and used in lfric_atm), in this example for the site
+`nci` on the platform `gadi` - the arrows indicating an 'inherit from'
+relationship::
+
+     SiteConfig/default  <-  AppConfig/default
+           ^                          ^
+           |                          |
+     SiteConfig/NciGadi  <-  AppConfig/NciGadi
+
+At start up, the application-specific configuration for the specified site
+will be read in. The Python method resolution order then guarantees that
+any ``super()`` access will first call ``AppConfig/default``, which will
+then call ``SiteConfig/NciGadi``, and then ``SiteConfig/default``.
+
+In Python code, this looks as follows:
+
+``app_specific/nci_gadi``:
+
+.. code-block:: python
+
+    from app_specific.default.config import Config as ConfigAppDefault
+    from site_specific.nci_gadi.config import Config as ConfigSiteNciGadi
+
+    class Config(ConfigAppDefault, ConfigSiteNciGadi):
+        def __init__(self):
+            super().__init__()
+
+``app_specific/default:``
+
+.. code-block:: python
+
+    from site_specific.default.config import Config as ConfigSiteDefault
+
+    class Config(ConfigSiteDefault):
+        def __init__(self):
+            super().__init__()
+            
+``site_specific/nci_gadi:``
+
+.. code-block:: python
+
+    from site_specific.default.config import Config as ConfigSiteDefault
+
+    class Config(ConfigSiteDefault):
+        def __init__(self):
+            super().__init__()
+
+``site_specific/default:``
+
+.. code-block:: python
+
+    class Config:
+        def __init__(self):
+            ...
+                
+This setup will allow to reuse site-specific setup, which can be overwritten
+by application-specific settings. As an example of what to do on what level:
+
+1. ``site_specific/default`` would define optimisation levels (depending on profile)
+2. ``site_specific/nci_gadi`` could add flags for more thorough full-debug tests.
+   It would also contain all required library definitions.
+3. ``app_specific/default`` would add flags for compiling UM (e.g. 8 byte default reals)
+4. ``app_specific/nci_gadi`` could add additional compiler optimisation flags for
+   certain files, which are beneficial for the resolution usually used at NCI. Also,
+   if an application needs additional libraries, they can be added here.
+
+The usage of ``nci_gadi`` means that additional compiler flags can easily be
+added, since it will only affect runs on NCI. If a flag would be useful for
+any site (e.g. to work around a compiler bug), this flag would eventually be moved
+into the ``default`` setup.
+
+.. important::
+    If there is a application-specific configuration, it is important that
+    each site specifies its own application-specific setup. Otherwise only
+    the site-specific configuration would be used (since the import from
+    ``app_specific/SITE`` fails, which means that the application specific
+    setup would not be executed at all).
