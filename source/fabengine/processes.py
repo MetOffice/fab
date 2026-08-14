@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from logging import getLogger
 from multiprocessing import Process
 from queue import Queue
+from signal import SIG_DFL, SIGABRT, SIGINT, SIGTERM, signal
 from threading import BrokenBarrierError
 from time import sleep
 
@@ -18,7 +19,33 @@ from fabengine.database import Database, Performance
 from fabengine.work_queue import Sentinel, WorkQueue
 
 
-class MonitorProcess(Process):
+class SignalHandler:
+    """Class to catch and handle signals in Processes."""
+
+    def __init__(self):
+        self._stopping = False
+        self._setup_signals()
+
+    @property
+    def stopping(self):
+        return self._stopping
+
+    def _stop_process(self, signum, frame):
+        """Begin a controlled shutdown of the Process."""
+        self._stopping = True
+
+    def _setup_signals(self):
+        """Set signals which trigger a controlled shutdown."""
+        for sig in (SIGABRT, SIGINT, SIGTERM):
+            signal(sig, self._stop_process)
+
+    def restore_signals(self):
+        """Restore the default behaviours."""
+        for sig in (SIGABRT, SIGINT, SIGTERM):
+            signal(sig, SIG_DFL)
+
+
+class MonitorProcess(Process, SignalHandler):
     """
     Reports on build progress.
     """
@@ -28,8 +55,8 @@ class MonitorProcess(Process):
         :param work_queue: Queue to monitor.
         """
         super().__init__(name="Build monitor", target=self._monitor)
+        SignalHandler.__init__(self)
         self._work_queue = work_queue
-        self._stopping = False
 
     def stop(self) -> None:
         """
@@ -61,7 +88,7 @@ class MonitorProcess(Process):
         logger.debug("Monitor stopped")
 
 
-class WorkerProcess(Process):
+class WorkerProcess(Process, SignalHandler):
     """
     Task farmworker process.
     """
@@ -87,6 +114,7 @@ class WorkerProcess(Process):
         self._sentinel_barrier = sentinel_barrier
         self._performance = performance
         super().__init__(name="Build worker", target=self._worker)
+        SignalHandler.__init__(self)
 
     def _worker(self) -> None:
         """
@@ -96,7 +124,7 @@ class WorkerProcess(Process):
 
         self._work_queue.new_action(Sentinel())
 
-        while not self._work_queue.stopping():
+        while not self._work_queue.stopping() and not self._stopping:
             # We stop on a barrier at the sentinel to make sure we don't loose
             # any actions down the cracks.
             #

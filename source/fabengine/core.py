@@ -10,7 +10,7 @@ from fabengine.actions.configurator import RosePicker
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.database import Database, Performance, PrerequisiteInfo, PrerequisiteType
 from fabengine.manager import FabManager
-from fabengine.processes import MonitorProcess, WorkerProcess
+from fabengine.processes import MonitorProcess, SignalHandler, WorkerProcess
 
 
 # Todo, convert core to a class with methods called from entry.
@@ -89,9 +89,13 @@ def fab_core(configuration: WriteOnceDict):
             monitor_process = MonitorProcess(work_queue)
             monitor_process.start()
 
+        signaller = SignalHandler()
+
         results: list[WorkerException] = []
         workers_stopped = 0
-        while workers_stopped < configuration["worker_threads"]:
+        while (
+            workers_stopped < configuration["worker_threads"] and not signaller.stopping
+        ):
             try:
                 result = result_queue.get()
                 if isinstance(result, EndOfWorkException):
@@ -101,9 +105,14 @@ def fab_core(configuration: WriteOnceDict):
             except KeyboardInterrupt:
                 work_queue.stop()
 
+        if signaller.stopping:
+            mp_logger.error("controlled shutdown triggered")
+
+        signaller.restore_signals()
+
         remainder: list[Action] = []
         try:
-            while True:
+            while not signaller.stopping:
                 remainder.append(work_queue.pop())
         except IndexError:
             pass  # No more to do
@@ -114,6 +123,10 @@ def fab_core(configuration: WriteOnceDict):
         if configuration["monitor"]:
             monitor_process.stop()
             monitor_process.join()
+
+        if signaller.stopping:
+            # Do not produce diagnostics if build has been interrupted
+            raise SystemExit(1)
 
         for action in remainder:
             message = "Still on the queue: " + str(action)
