@@ -46,6 +46,7 @@ def parse_libmap(argument: str) -> Package:
             carg_path = Path(carg)
             cargs.append(IncludePath(carg_path))
     except IndexError:
+        # If bits[1] doesn't exist, we're okay with that.
         pass
 
     try:  # Variable definitions
@@ -56,6 +57,7 @@ def parse_libmap(argument: str) -> Package:
             variable_name, _, variable_value = carg.partition("=")
             cargs.append(VariableDefinition(variable_name, variable_value or None))
     except IndexError:
+        # If bits[2] doesn't exist, we're okay with that.
         pass
 
     largs: list[LinkerArgument] = []
@@ -67,6 +69,7 @@ def parse_libmap(argument: str) -> Package:
             larg_path = Path(larg)
             largs.append(LinkerPath(larg_path))
     except IndexError:
+        # If bits[3] doesn't exist, we're okay with that.
         pass
 
     try:  # Additional libraries
@@ -76,6 +79,7 @@ def parse_libmap(argument: str) -> Package:
                 continue
             largs.append(LibraryName(larg))
     except IndexError:
+        # If bits[4] doesn't exist, we're okay with that.
         pass
 
     largs.append(LibraryName(bits[0].strip()))
