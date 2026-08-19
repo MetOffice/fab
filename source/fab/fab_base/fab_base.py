@@ -308,7 +308,7 @@ class FabBase:
 
     def setup_site_specific_location(
             self,
-            site_specific_dir: Optional[Path]) -> None:
+            site_specific_dir: Optional[Path] = None) -> None:
         '''
         This method adds the required directories for site-specific
         configurations to the Python search path. If ``site_specific_dir``
@@ -387,7 +387,7 @@ class FabBase:
 
     def site_specific_setup(
             self,
-            site_specific_dir: Optional[Path]) -> None:
+            site_specific_dir: Optional[Path] = None) -> None:
         '''
         Imports a site-specific config file. The location is based
         on the attribute ``target`` (which is set to be ``{site}_{platform}"
