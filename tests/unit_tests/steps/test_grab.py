@@ -6,6 +6,7 @@
 """
 Validate methods to obtain source.
 """
+import logging
 from pathlib import Path
 
 from pyfakefs.fake_filesystem import FakeFilesystem
@@ -14,12 +15,13 @@ from pytest_subprocess.fake_process import FakeProcess
 
 from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import fcm_export
+from fab.steps.grab.files import grab_files
 from fab.steps.grab.folder import grab_folder
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 
 
-class TestGrabFolder:
+class TestGrabFiles:
     """
     Tests file directory grabbing.
     """
@@ -30,15 +32,16 @@ class TestGrabFolder:
             ['/grab/source', '/grab/source/']
         ]
     )
-    def test_source_path(self,
-                         source: str,
-                         expected: str,
-                         stub_tool_repository: ToolRepository,
-                         fs: FakeFilesystem,
-                         fake_process: FakeProcess) -> None:
+    def test_grab_files(self,
+                        source: str,
+                        expected: str,
+                        stub_tool_repository: ToolRepository,
+                        fs: FakeFilesystem,
+                        fake_process: FakeProcess) -> None:
         """
         Tests file directory grabbery.
         """
+        fs.create_dir("/grab/source")
         version_command = ['rsync', '--version']
         fake_process.register(version_command, stdout='1.2.3')
         grab_command = ['rsync', '--times', '--links', '--stats',
@@ -51,7 +54,43 @@ class TestGrabFolder:
 
         with warns(UserWarning,
                    match="_metric_send_conn not set, cannot send metrics"):
-            grab_folder(config, src=source, dst_label='bar')
+            grab_files(config, src=source, dst_label='bar')
+        assert fake_process.call_count(grab_command) == 1
+
+    @mark.parametrize(
+        ['source', 'expected'],
+        [
+            ['/grab/source/', '/grab/source/'],
+            ['/grab/source', '/grab/source/']
+        ]
+    )
+    def test_grab_folder(self,
+                         source: str,
+                         expected: str,
+                         stub_tool_repository: ToolRepository,
+                         fs: FakeFilesystem,
+                         fake_process: FakeProcess,
+                         caplog) -> None:
+        """
+        Tests file directory grabbery.
+        """
+        fs.create_dir("/grab/source")
+        version_command = ['rsync', '--version']
+        fake_process.register(version_command, stdout='1.2.3')
+        grab_command = ['rsync', '--times', '--links', '--stats',
+                        '-ru', expected, '/fab/project/source/bar']
+        fake_process.register(grab_command)
+
+        config = BuildConfig('project', ToolBox(),
+                             mpi=False, openmp=False, multiprocessing=False,
+                             fab_workspace=Path('/fab'))
+
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            with caplog.at_level(logging.WARNING):
+                grab_folder(config, src=source, dst_label='bar')
+            assert ("Using deprecated `grab_folder`. Use `grab_files` instead."
+                    in caplog.text)
         assert fake_process.call_count(grab_command) == 1
 
 

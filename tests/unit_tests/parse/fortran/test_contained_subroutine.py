@@ -16,7 +16,7 @@ from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
-from fab.steps.grab.folder import grab_folder
+from fab.steps.grab.files import grab_files
 from fab.steps.link import link_exe
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
@@ -47,7 +47,7 @@ def test_contained_subroutine(tmp_path):
     with BuildConfig(fab_workspace=tmp_path, tool_box=tb,
                      project_label='contained_subroutine',
                      multiprocessing=False) as config:
-        grab_folder(config, PROJECT_SOURCE)
+        grab_files(config, PROJECT_SOURCE)
         find_source_files(config)
         analyse(config, root_symbols='main')
         build_tree = config.artefact_store[ArtefactSet.BUILD_TREES]["main"]
