@@ -15,6 +15,7 @@ from fabengine.actions import (
     ExceptionActionException,
     WorkerException,
 )
+from fabengine.cui.status import set_ps_name
 from fabengine.database import Database, Performance
 from fabengine.work_queue import Sentinel, WorkQueue
 
@@ -64,6 +65,7 @@ class MonitorProcess(Process, SignalHandler):
         """
         self._stopping = True
 
+    @set_ps_name
     def _monitor(self):
         """
         Body of subprocess.
@@ -113,9 +115,10 @@ class WorkerProcess(Process, SignalHandler):
         self._database = database
         self._sentinel_barrier = sentinel_barrier
         self._performance = performance
-        super().__init__(name="Build worker", target=self._worker)
+        super().__init__(target=self._worker)
         SignalHandler.__init__(self)
 
+    @set_ps_name
     def _worker(self) -> None:
         """
         Body of the subprocess.

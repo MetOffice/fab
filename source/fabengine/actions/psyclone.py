@@ -9,6 +9,7 @@ from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPat
 from fabengine.actions.file import MapFile
 from fabengine.actions.fortran import AnalyseFortran, PreprocessFortranBase
 from fabengine.artefact_store import ArtefactPath
+from fabengine.cui.status import set_ps_name
 from fabengine.database import Database
 from fabengine.prerequisite import (
     ArtefactPrerequisite,
@@ -62,6 +63,7 @@ class PreprocessAlgorithm(PreprocessFortranBase):
             kind="PSyKAl algorithm",
         )
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Performs the preprocessing.
@@ -215,6 +217,7 @@ class PSyclone(SubprocessAction):
         )
         return prereqs
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Performs the transformation.

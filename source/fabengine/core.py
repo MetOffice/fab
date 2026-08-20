@@ -12,12 +12,14 @@ from fabengine.actions.configurator import RosePicker
 from fabengine.actions.sentinel import Sentinel
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.cui import format_file_details, show_errors, show_stalled_actions
+from fabengine.cui.status import set_ps_name
 from fabengine.database import Database, Performance, PrerequisiteInfo, PrerequisiteType
 from fabengine.manager import FabManager
 from fabengine.processes import MonitorProcess, SignalHandler, WorkerProcess
 
 
 # Todo, convert core to a class with methods called from entry.
+@set_ps_name
 def fab_core(configuration: WriteOnceDict):
     """
     Build system entry point.

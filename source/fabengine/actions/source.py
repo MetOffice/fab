@@ -15,6 +15,7 @@ from fabengine.actions.pfunit import ImportTestData, PfUnit
 from fabengine.actions.psyclone import MapAlgorithm, PreprocessAlgorithm
 from fabengine.actions.templaterator import Templaterator
 from fabengine.artefact_store import ArtefactPath
+from fabengine.cui.status import set_ps_name
 from fabengine.database import Database
 from fabengine.prerequisite import RealFilePrerequisite
 from fabengine.project import Project
@@ -108,6 +109,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         filename = Path(self._remote.split(":")[-1])
         return self._local / filename.name
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Performs copy.
@@ -167,6 +169,7 @@ class SourceOnGitAction(SubprocessAction, RepositoryAction):
         name = Path(self._path).stem
         return self.database.configuration["paths"]["work_dir"] / name
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Perform the extraction.
@@ -243,6 +246,7 @@ class SourceOnSubversionAction(SubprocessAction, RepositoryAction):
             )
         return self._database.configuration["paths"]["work_dir"] / project_name
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Perform the extraction.
@@ -301,6 +305,7 @@ class SourceDirectory(Action):
         """
         return [RealFilePrerequisite(self._source_dir)]
 
+    @set_ps_name
     def perform(self) -> Generator[Action, None, list[Action]]:
         """
         Performs examination.

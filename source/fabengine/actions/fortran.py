@@ -17,6 +17,7 @@ from fabengine.actions import (
 )
 from fabengine.actions.file import MapFile
 from fabengine.artefact_store import ENCODING_META, Artefact, ArtefactPath
+from fabengine.cui.status import set_ps_name
 from fabengine.database import (
     Database,
     PrerequisiteInfo,
@@ -165,6 +166,7 @@ class PreprocessFortranAction(PreprocessFortranBase):
     Preprocesses Fortran source.
     """
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Performs the preprocessing.
@@ -268,6 +270,7 @@ class AnalyseFortran(Action):
 
     _UM_DEPENDS_ON_PATTERN = re_compile(r"\s*!\s*DEPENDS\s*ON\s*:\s*(\w+)", IGNORECASE)
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Perform analyses.
@@ -612,6 +615,7 @@ class CompileFortran(SubprocessAction):
                 )
         return prereqs
 
+    @set_ps_name
     def perform(self) -> Iterable[Action]:
         """
         Performs the compilation.
@@ -718,6 +722,7 @@ class LinkFortran(SubprocessAction):
                 prereqs.append(AnalysedPrerequisite(module, self._database))
         return prereqs
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Perform the link action.

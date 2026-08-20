@@ -8,6 +8,7 @@ from re import compile as re_compile
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.actions.fortran import PreprocessFortranAction
+from fabengine.cui.status import set_ps_name
 from fabengine.database import Database
 from fabengine.prerequisite import ExecutablePrerequisite, RealFilePrerequisite
 
@@ -184,6 +185,7 @@ class PfUnit(SubprocessAction):
             prereqs.append(TestDataPrerequisite(self._tag, self._database))
         return prereqs
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Processes the test source and produces a driver for it.
@@ -299,6 +301,7 @@ class RunTest(SubprocessAction):
         """
         return [ExecutablePrerequisite(self.executable)]
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Performs the test.

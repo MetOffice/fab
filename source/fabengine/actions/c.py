@@ -9,6 +9,7 @@ from re import compile as re_compile
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction
 from fabengine.actions.file import MapFile
+from fabengine.cui.status import set_ps_name
 from fabengine.database import ArtefactPath, Database
 from fabengine.prerequisite import ArtefactPrerequisite, RealFilePrerequisite
 
@@ -131,6 +132,7 @@ class AnalyseC(Action):
         """
         return [ArtefactPrerequisite(self._source, self._database)]
 
+    @set_ps_name
     def perform(self) -> list[Action]:
         """
         Perform analyses.
@@ -232,6 +234,7 @@ class CompileC(SubprocessAction):
         prereqs: list[Prerequisite] = []
         return prereqs
 
+    @set_ps_name
     def perform(self) -> Iterable[Action]:
         """
         Performs the compilation.
