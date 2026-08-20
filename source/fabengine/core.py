@@ -5,10 +5,13 @@ from multiprocessing import Barrier
 from multiprocessing import get_logger as mp_get_logger
 from queue import Queue
 
+from rich.console import Console  # type: ignore
+
 from fabengine.actions import Action, EndOfWorkException, WorkerException
 from fabengine.actions.configurator import RosePicker
+from fabengine.actions.sentinel import Sentinel
 from fabengine.configuration_tools import WriteOnceDict
-from fabengine.cui import format_file_details
+from fabengine.cui import format_file_details, show_errors, show_stalled_actions
 from fabengine.database import Database, Performance, PrerequisiteInfo, PrerequisiteType
 from fabengine.manager import FabManager
 from fabengine.processes import MonitorProcess, SignalHandler, WorkerProcess
@@ -114,7 +117,10 @@ def fab_core(configuration: WriteOnceDict):
         remainder: list[Action] = []
         try:
             while not signaller.stopping:
-                remainder.append(work_queue.pop())
+                action = work_queue.pop()
+                if isinstance(action, Sentinel):
+                    continue
+                remainder.append(action)
         except IndexError:
             pass  # No more to do
 
@@ -128,15 +134,16 @@ def fab_core(configuration: WriteOnceDict):
         if signaller.stopping:
             # Do not produce diagnostics if build has been interrupted
             raise SystemExit(1)
+        console = Console()
 
-        for action in remainder:
-            message = "Still on the queue: " + str(action)
-            for prereq in action.prerequisites():
-                message += f"\nWaiting for ({prereq.ready()}) {prereq}"
-            getLogger(__name__).warning(message)
+        # todo: systematise the exit codes
+        show_errors(console, results)
+        if results:
+            raise SystemExit(2)
 
-        for result in results:
-            getLogger(__name__).error("Failed " + result.describe())
+        show_stalled_actions(console, remainder)
+        if remainder:
+            raise SystemExit(2)
 
         if configuration["paths"]["performance_file"]:
             with configuration["paths"]["performance_file"].open("wt") as stream:

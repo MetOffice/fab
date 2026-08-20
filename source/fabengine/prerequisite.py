@@ -30,7 +30,8 @@ class AnalysedPrerequisite(Prerequisite):
         return f"AnalysedPrerequisite({self._module})"
 
     def __str__(self) -> str:
-        return "Prerequisite module has been analysed: " + self._module
+        status = "" if self.ready() else " not"
+        return f"Prerequisite module has{status} been analysed: {self._module!s}"
 
     def ready(self) -> bool:
         """
@@ -55,7 +56,8 @@ class SymbolPrerequisite(Prerequisite):
         self._database = database
 
     def __str__(self) -> str:
-        return "Prerequisite symbol has been analysed: " + self._symbol
+        status = "" if self.ready() else " not"
+        return f"Prerequisite symbol has{status} been analysed: {self._symbol!s}"
 
     def ready(self) -> bool:
         """
@@ -81,7 +83,8 @@ class RealFilePrerequisite(Prerequisite):
         return f"RealFilePrerequisite({self._filename})"
 
     def __str__(self) -> str:
-        return f"Prerequisite real file exists: <{self._filename!s}>"
+        status = "exists" if self.ready() else "does not exist"
+        return f"Prerequisite real file {status}: <{self._filename!s}>"
 
     def __eq__(self, other) -> bool:
         """
@@ -139,7 +142,8 @@ class ExecutablePrerequisite(Prerequisite):
         return f"ExecutablePrerequisite({self._filename})"
 
     def __str__(self) -> str:
-        return f"Prerequisite file is executable: {self._filename}"
+        status = "" if self.ready() else " not"
+        return f"Prerequisite file is{status} executable: {self._filename!s}"
 
     def ready(self) -> bool:
         if not self._filename.exists():
@@ -161,7 +165,8 @@ class ArtefactPrerequisite(Prerequisite):
         self._database = database
 
     def __str__(self) -> str:
-        return f"Prerequisite virtual file exists <{self._filename}>"
+        status = "exists" if self.ready() else "does not exist"
+        return f"Prerequisite virtual file {status}: <{self._filename!s}>"
 
     def __repr__(self) -> str:
         return f"ArtefactPrerequisite({self._filename})"
