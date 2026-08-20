@@ -8,6 +8,7 @@ from queue import Queue
 from fabengine.actions import Action, EndOfWorkException, WorkerException
 from fabengine.actions.configurator import RosePicker
 from fabengine.configuration_tools import WriteOnceDict
+from fabengine.cui import format_file_details
 from fabengine.database import Database, Performance, PrerequisiteInfo, PrerequisiteType
 from fabengine.manager import FabManager
 from fabengine.processes import MonitorProcess, SignalHandler, WorkerProcess
@@ -144,3 +145,8 @@ def fab_core(configuration: WriteOnceDict):
                     print(f'"{action_str}", {tally[action_str]}', file=stream)
 
         database.artefact_store.dump_map()
+
+        # todo: fix the proxy
+        for artefact in database.artefact_store._getvalue():
+            if artefact.get_meta("binary_target") is not None:
+                print(format_file_details(artefact.real_filename))

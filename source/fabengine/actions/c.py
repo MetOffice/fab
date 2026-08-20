@@ -270,14 +270,16 @@ class LinkC(SubprocessAction):
         self._object_file = ArtefactPath(self._source.with_suffix(".o"))
         self._prerequisites.add(ArtefactPrerequisite(self._object_file, self._database))
 
-        dest = self._database.configuration["paths"]["bin_dir"] / self._source.stem
+        self._exe_file = (
+            self._database.configuration["paths"]["bin_dir"] / self._source.stem
+        )
         arguments = [
             *[
                 prerequisite.filename.real_filename
                 for prerequisite in sorted(self._prerequisites)
             ],
             "-o",
-            dest,
+            self._exe_file,
         ]
 
         exe = Path(self._LINKER)
@@ -308,4 +310,14 @@ class LinkC(SubprocessAction):
         logger.debug(f"LinkC: {self._source.name}")
 
         self.run_subprocess()
+
+        # todo: what if there is a pre-existing executable with the
+        # same name?
+        if self._exe_file.exists():
+            self._database.artefact_store.map_file(
+                self._exe_file,
+                Path("bin") / self._exe_file.name,
+                binary_target=True,
+            )
+
         return []

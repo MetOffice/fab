@@ -35,6 +35,9 @@ class ArtefactStore:
     def __len__(self) -> int:
         return len(self._map)
 
+    def __iter__(self):
+        yield from self._map.values()
+
     @property
     def intermediate_dir(self) -> Path:
         """
@@ -52,15 +55,17 @@ class ArtefactStore:
             for virtual_filename, artefact in self._map.items():
                 print(f"{virtual_filename}: {artefact.real_filename}", file=stream)
 
-    def map_file(self, real_filename: Path, virtual_filename: ArtefactPath):
+    def map_file(self, real_filename: Path, virtual_filename: ArtefactPath, **kwargs):
         if virtual_filename in self._map:
             raise RuntimeError(
                 f"Attempted to map <{real_filename}> to <{virtual_filename}>"
                 f" but <{self._map[virtual_filename].real_filename}> already does."
             )
-        self._map[virtual_filename] = Artefact(virtual_filename, real_filename)
+        self._map[virtual_filename] = Artefact(
+            virtual_filename, real_filename, **kwargs
+        )
 
-    def notice_file(self, virtual_filename: ArtefactPath) -> None:
+    def notice_file(self, virtual_filename: ArtefactPath, **kwargs) -> None:
         """
         Notifies the artefact store that a file has been added to it.
 
@@ -70,7 +75,9 @@ class ArtefactStore:
         """
         real_filename = self._intermediate_dir / virtual_filename
         if real_filename.exists():
-            self._map[virtual_filename] = Artefact(virtual_filename, real_filename)
+            self._map[virtual_filename] = Artefact(
+                virtual_filename, real_filename, **kwargs
+            )
         else:
             raise RuntimeError(f"Asked to notice nonexistent file <{virtual_filename}>")
 
@@ -132,10 +139,10 @@ class ArtefactStore:
 # Todo: Can we do away with "Artefact" and just use "ArtefactPath"?
 #
 class Artefact:
-    def __init__(self, virtual_filename: ArtefactPath, real_filename: Path):
+    def __init__(self, virtual_filename: ArtefactPath, real_filename: Path, **kwargs):
         self._virtual_filename = virtual_filename
         self._real_filename = real_filename
-        self._meta: dict[str, Any] = {}
+        self._meta: dict[str, Any] = {k: v for k, v in kwargs.items()}
 
     @property
     def virtual_filename(self) -> ArtefactPath:
@@ -152,8 +159,8 @@ class Artefact:
     def set_meta(self, key: str, value: Any) -> None:
         self._meta[key] = value
 
-    def get_meta(self, key: str) -> Any:
-        return self._meta[key]
+    def get_meta(self, key: str, default: Any = None) -> Any:
+        return self._meta.get(key, default)
 
     def read_text(self) -> str:
         """

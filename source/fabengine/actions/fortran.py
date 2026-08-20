@@ -736,7 +736,14 @@ class LinkFortran(SubprocessAction):
         arguments.extend(self._library_args)
 
         self.run_subprocess(additional_arguments=arguments)
-        self._database.artefact_store.map_file(
-            self._exe_file, Path("bin") / self._exe_file.name
-        )
+
+        # todo: what if there is a pre-existing executable with the
+        # same name?
+        if self._exe_file.exists():
+            self._database.artefact_store.map_file(
+                self._exe_file,
+                Path("bin") / self._exe_file.name,
+                binary_target=True,
+            )
+
         return []
