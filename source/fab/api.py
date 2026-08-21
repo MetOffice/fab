@@ -35,6 +35,7 @@ from fab.tools.compiler_wrapper import CompilerWrapper
 from fab.tools.flags import AlwaysFlags, ContainFlags, FlagList, MatchFlags
 from fab.tools.linker import Linker
 from fab.tools.pkg_config import PkgConfig
+from fab.tools.preprocessor import Cpp, Fpp
 from fab.tools.tool import Tool
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
@@ -61,11 +62,13 @@ __all__ = [
     "compile_fortran",
     "ContainFlags",
     "c_pragma_injector",
+    "Cpp",
     "Exclude",
     "FabBase",
     "fcm_export",
     "file_checksum",
     "FlagList",
+    "Fpp",
     "get_fab_workspace",
     "git_checkout",
     "grab_files",
