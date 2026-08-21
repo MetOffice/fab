@@ -1,9 +1,9 @@
 from collections import defaultdict, deque
 from enum import Enum, auto
-from logging import getLogger
 
 from fabengine.actions import Action
 from fabengine.actions.sentinel import Sentinel
+from fabengine.logserver import make_loggers
 
 
 # Todo: Can this be managed by the strategy pattern?
@@ -25,7 +25,8 @@ class WorkQueue:
 
     def __init__(self, strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK) -> None:
         self._strategy = strategy
-        getLogger(__name__).debug("Queue strategy is: " + self._strategy.name.lower())
+        self._user_logger, self._system_logger = make_loggers()
+        self._system_logger.debug("Queue strategy is: " + self._strategy.name.lower())
 
         self._queue: deque[Action] = deque()
         self._stop = False
@@ -38,7 +39,7 @@ class WorkQueue:
         """
         Signals queue to stop work.
         """
-        getLogger(__name__).debug("Stop requested")
+        self._user_logger.debug("Stop requested")
         self._stop = True
 
     # This method cannot be a "property" as it will be accessed through a
@@ -86,7 +87,7 @@ class WorkQueue:
 
         Respects queue strategy.
         """
-        getLogger(__name__).debug("Queueing action: " + str(action))
+        self._system_logger.debug("Queueing action: " + str(action))
         if isinstance(action, Sentinel):
             self._add_back(action)
             return
@@ -114,7 +115,7 @@ class WorkQueue:
 
         Respects queue strategy.
         """
-        getLogger(__name__).debug("Requeueing: " + str(action))
+        self._system_logger.debug("Requeueing: " + str(action))
         #
         # Todo: Is there performance to be had by rotating the queue rather
         #       that explicit pop/push?

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Generator, Iterable
 from enum import Enum, auto
-from multiprocessing import get_logger as mp_get_logger
 from pathlib import Path
 from re import IGNORECASE
 from re import compile as re_compile
@@ -11,6 +10,7 @@ from fabengine.actions import Action, Prerequisite, SubprocessAction
 from fabengine.actions.file import MapFile
 from fabengine.cui.status import set_ps_name
 from fabengine.database import ArtefactPath, Database
+from fabengine.logserver import make_logger
 from fabengine.prerequisite import ArtefactPrerequisite, RealFilePrerequisite
 
 
@@ -140,7 +140,7 @@ class AnalyseC(Action):
         :return: Every source file must be return a CompileC action, and those with a main program must also return a LinkC action.
         """
 
-        logger = mp_get_logger()
+        logger = make_logger("system")
         logger.debug(f"AnalyseC: {self._source.name}")
 
         source_basename = self._source.stem
@@ -241,7 +241,7 @@ class CompileC(SubprocessAction):
 
         :return: Error if the compilation failed.
         """
-        logger = mp_get_logger()
+        logger = make_logger("system")
         logger.debug(f"CompileC: {self._source.name}")
 
         self.run_subprocess()
@@ -309,7 +309,7 @@ class LinkC(SubprocessAction):
 
         :return: Error result if the linker failed.
         """
-        logger = mp_get_logger()
+        logger = make_logger("system")
         logger.debug(f"LinkC: {self._source.name}")
 
         self.run_subprocess()

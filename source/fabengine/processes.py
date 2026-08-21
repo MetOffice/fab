@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from logging import getLogger
 from multiprocessing import Process
 from queue import Queue
 from signal import SIG_DFL, SIGABRT, SIGINT, SIGTERM, signal
@@ -17,6 +16,7 @@ from fabengine.actions import (
 )
 from fabengine.cui.status import set_ps_name
 from fabengine.database import Database, Performance
+from fabengine.logserver import make_logger, make_loggers
 from fabengine.work_queue import Sentinel, WorkQueue
 
 
@@ -70,7 +70,7 @@ class MonitorProcess(Process, SignalHandler):
         """
         Body of subprocess.
         """
-        logger = getLogger(__name__)
+        logger = make_logger("user")
         sleep_count = 0
         while not self._stopping:
             sleep(1)
@@ -80,7 +80,6 @@ class MonitorProcess(Process, SignalHandler):
                 continue
             sleep_count = 0
 
-            logger.info("---")
             logger.info(f"Queue stopping: {self._work_queue.stopping()}")
             length = self._work_queue.length
             for action, tally in self._work_queue.work_tally().items():
@@ -115,6 +114,7 @@ class WorkerProcess(Process, SignalHandler):
         self._database = database
         self._sentinel_barrier = sentinel_barrier
         self._performance = performance
+        self._user_logger, self._system_logger = make_loggers()
         super().__init__(target=self._worker)
         SignalHandler.__init__(self)
 
@@ -123,8 +123,6 @@ class WorkerProcess(Process, SignalHandler):
         """
         Body of the subprocess.
         """
-        logger = getLogger(__name__)
-
         self._work_queue.new_action(Sentinel())
 
         while not self._work_queue.stopping() and not self._stopping:
@@ -140,8 +138,10 @@ class WorkerProcess(Process, SignalHandler):
                     barrier_id = self._sentinel_barrier.wait()
                     if barrier_id == 0:
                         self._work_queue.leave_barrier()
-                        logger.info("Sentinel comes round: " + str(self.pid))
-                        logger.info(
+                        self._system_logger.info(
+                            "Sentinel comes round: " + str(self.pid)
+                        )
+                        self._system_logger.info(
                             "Number of actions processed this round: "
                             + str(self._database.processed_last_round)
                         )
@@ -154,23 +154,25 @@ class WorkerProcess(Process, SignalHandler):
                 continue
 
             try:
-                logger.debug("Trying: " + str(action))
+                self._system_logger.debug("Trying: " + str(action))
                 ready = True
                 for prereq in action.prerequisites():
                     this_ready = prereq.ready()
-                    logger.debug(f"Testing ({this_ready}): {prereq}")
+                    self._system_logger.debug(f"Testing ({this_ready}): {prereq}")
                     ready &= this_ready
                 if not ready:
                     self._work_queue.requeue_action(action)
                     continue
             except Exception as ex:  # noqa: BLE001
-                logger.error(f"Exception in prerequisites: ({prereq}) {ex}")
+                self._system_logger.error(
+                    f"Exception in prerequisites: ({prereq}) {ex}"
+                )
                 result = ExceptionActionException(action, ex)
                 self._result_queue.put(result)
                 self._work_queue.stop()
 
             try:
-                logger.debug("Performing: " + str(action))
+                self._user_logger.debug("Performing: " + str(action))
                 try:
                     start_time = datetime.now(tz=timezone.utc)
                     resulting_actions = action.perform()
@@ -189,13 +191,13 @@ class WorkerProcess(Process, SignalHandler):
                         else:
                             self._work_queue.new_action(resulting_action)
                 except ActionException as result:
-                    logger.debug("Queueing result: " + str(result))
+                    self._system_logger.debug("Queueing result: " + str(result))
                     self._result_queue.put(result)
-                    logger.debug("Action failed, requesting stop")
+                    self._system_logger.debug("Action failed, requesting stop")
                     self._work_queue.stop()
-                logger.debug("Done: " + str(action))
+                self._user_logger.debug("Done: " + str(action))
             except Exception as ex:  # noqa: BLE001
-                logger.error("Exception in process: " + str(ex))
+                self._system_logger.error("Exception in process: " + str(ex))
                 self._result_queue.put(ExceptionActionException(action, ex))
                 self._work_queue.stop()
 
@@ -203,5 +205,5 @@ class WorkerProcess(Process, SignalHandler):
         #
         self._sentinel_barrier.reset()
 
-        logger.debug("Done processing actions")
+        self._user_logger.debug("Done processing actions")
         self._result_queue.put(EndOfWorkException())

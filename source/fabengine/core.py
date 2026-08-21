@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from logging import DEBUG, INFO, StreamHandler, getLogger
 from multiprocessing import Barrier
-from multiprocessing import get_logger as mp_get_logger
 from queue import Queue
 
 from rich.console import Console  # type: ignore
@@ -14,6 +12,7 @@ from fabengine.configuration_tools import WriteOnceDict
 from fabengine.cui import format_file_details, show_errors, show_stalled_actions
 from fabengine.cui.status import set_ps_name
 from fabengine.database import Database, Performance, PrerequisiteInfo, PrerequisiteType
+from fabengine.logserver import make_logger
 from fabengine.manager import FabManager
 from fabengine.processes import MonitorProcess, SignalHandler, WorkerProcess
 
@@ -24,16 +23,7 @@ def fab_core(configuration: WriteOnceDict):
     """
     Build system entry point.
     """
-    mp_logger = mp_get_logger()
-    mp_logger.addHandler(StreamHandler())
-    if getLogger(__name__).getEffectiveLevel() == DEBUG:
-        # If we put the multiprocess logger into "debug" level we get an
-        # incredible amount of chatter from the multiprocess library itself.
-        # This is only useful if there is a fundamental problem.
-        #
-        mp_logger.setLevel(INFO)
-    else:
-        mp_logger.setLevel(getLogger(__name__).level)
+    user_logger = make_logger("user")
 
     with FabManager() as manager:
         database = Database(configuration, manager)
@@ -112,7 +102,7 @@ def fab_core(configuration: WriteOnceDict):
                 work_queue.stop()
 
         if signaller.stopping:
-            mp_logger.error("controlled shutdown triggered")
+            user_logger.error("controlled shutdown triggered")
 
         signaller.restore_signals()
 

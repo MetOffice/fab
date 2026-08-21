@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterable
-from multiprocessing import get_logger as mp_get_logger
 from os import walk as os_walk
 from pathlib import Path
 from re import compile as re_compile
@@ -17,6 +16,7 @@ from fabengine.actions.templaterator import Templaterator
 from fabengine.artefact_store import ArtefactPath
 from fabengine.cui.status import set_ps_name
 from fabengine.database import Database
+from fabengine.logserver import make_logger
 from fabengine.prerequisite import RealFilePrerequisite
 from fabengine.project import Project
 
@@ -328,7 +328,9 @@ class SourceDirectory(Action):
 
         :return: Action for each actionable file.
         """
-        mp_get_logger().info("Scanning " + str(self._source_dir))
+        system_logger = make_logger("system")
+
+        system_logger.info("Scanning " + str(self._source_dir))
         self._database.artefact_store.ensure_directory(Path(self._tag))
 
         # Todo: Tree-walk not added to pathlib until v3.12.
@@ -352,7 +354,7 @@ class SourceDirectory(Action):
                     two_part_filename.branch.is_relative_to(path)
                     for path in self._source_include
                 ):
-                    mp_get_logger().info(f"Ignoring file <{two_part_filename.branch}>")
+                    system_logger.debug(f"Ignoring file <{two_part_filename.branch}>")
                     continue
 
                 actions: list[Action] = []
@@ -436,7 +438,7 @@ class SourceDirectory(Action):
                         )
                     )
                 else:
-                    mp_get_logger().info("Ignoring file: " + full_filename.name)
+                    system_logger.debug("Ignoring file: " + full_filename.name)
 
                 yield from actions
         return []

@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC
 from collections.abc import Generator, Iterable
 from enum import Enum, auto
-from multiprocessing import get_logger as mp_get_logger
 from os import environ as os_environ
 from pathlib import Path
 from re import IGNORECASE
@@ -25,6 +24,7 @@ from fabengine.database import (
     SymbolInfo,
     SymbolType,
 )
+from fabengine.logserver import make_logger
 from fabengine.package import LibraryName, LinkerPath
 from fabengine.prerequisite import (
     AnalysedPrerequisite,
@@ -277,7 +277,7 @@ class AnalyseFortran(Action):
 
         :return: If a ``program`` is discovered, A task to resolve it.
         """
-        logger = mp_get_logger()
+        logger = make_logger("system")
 
         actions: list[Action] = []
 
@@ -293,7 +293,7 @@ class AnalyseFortran(Action):
 
         state = State.SEEKING
         for line in normalise_source(artefact):
-            mp_get_logger().debug(f"{state} - {line}")
+            logger.debug(f"{state} - {line}")
             if state == State.SEEKING:
                 match = self._UNIT_PATTERN.match(line)
                 if match:
@@ -456,17 +456,18 @@ class DetermineFortranProgram(Action):
                  determined a "link" action is returned, otherwise the action
                  returns itself.
         """
+        logger = make_logger("system")
         actions: list[Action] = []
 
         working_units = self._units
         self._units = set()
         while working_units:
             unit_name = working_units.pop()
-            mp_get_logger().info(f"Considering: {unit_name}")
+            logger.debug("Considering: " + unit_name)
             if unit_name in self._database.prerequisites:
-                mp_get_logger().debug(f"Modules: {self._modules}")
+                logger.debug(f"Modules: {self._modules}")
                 if unit_name in self._modules:
-                    mp_get_logger().info("Already seen: " + unit_name)
+                    logger.debug("Is module: " + unit_name)
                     continue
                 self._modules.add(unit_name)
 
@@ -501,13 +502,13 @@ class DetermineFortranProgram(Action):
                 ):
                     working_units.add(prereq)
             else:  # Unit has not yet been analysed
-                mp_get_logger().info("Not yet seen: " + unit_name)
+                logger.debug("Not yet seen: " + unit_name)
                 self._units.add(unit_name)
 
         if len(self._units) == 0:
             actions.append(LinkFortran(self._name, self._modules, self._database))
         else:
-            mp_get_logger().info(f"Missing: {', '.join(self._units)}")
+            logger.debug(f"Missing: {', '.join(self._units)}")
             actions.append(self)
         return actions
 
@@ -541,7 +542,7 @@ class CompileFortran(SubprocessAction):
                     extra_arguments.extend(
                         self._database.configuration["build_tags"][tag]
                     )
-        mp_get_logger().info("Special arguments: " + ", ".join(extra_arguments))
+        make_logger("system").debug("Special arguments: " + ", ".join(extra_arguments))
 
         self._full_module_dir = self._database.configuration["paths"]["module_dir"]
         self._full_module_dir.mkdir(parents=True, exist_ok=True)

@@ -6,13 +6,14 @@ from collections.abc import Sequence
 from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_file_location
 from inspect import getmembers, isclass
-from logging import DEBUG, INFO, WARNING, StreamHandler, getLogger
+from logging import DEBUG, INFO, WARNING
 from pathlib import Path
 from sys import argv
 
 from fabengine.build_script import BuildScript
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.core import fab_core
+from fabengine.logserver import LoggingServer
 from fabengine.package import (
     CompilerArgument,
     IncludePath,
@@ -129,13 +130,13 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
     parser.add_argument(
         "--verbose",
         "-v",
-        action="store_true",
+        action="count",
         help="Provide running commentary on progress.",
     )
     parser.add_argument(
         "--debug",
         "-d",
-        action="store_true",
+        action="count",
         help="Get really chatty with running commentary.",
     )
     # Todo: At the moment, not all unit tests will run due to the feigner
@@ -156,6 +157,12 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
     #     help="Don't run tests associated with source.",
     # )
     parser.add_argument(
+        "--logfile",
+        "-l",
+        type=Path,
+        help="Path to comprehensive log file.",
+    )
+    parser.add_argument(
         "--no-monitor",
         dest="monitor",
         action="store_false",
@@ -173,11 +180,19 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
     )
     options = parser.parse_args(arguments)
 
-    options.level = WARNING
-    if options.verbose:
-        options.level = INFO
-    if options.debug:
-        options.level = DEBUG
+    if options.verbose is None:
+        options.user_level = WARNING
+    elif options.verbose == 1:
+        options.user_level = INFO
+    else:
+        options.user_level = DEBUG
+
+    if options.debug is None:
+        options.system_level = WARNING
+    elif options.debug == 1:
+        options.system_level = INFO
+    else:
+        options.system_level = DEBUG
 
     if not options.bin_dir.is_absolute():
         options.bin_dir = options.work_dir / options.bin_dir
@@ -322,37 +337,40 @@ def cli() -> None:
     """
     options = command_line()
 
-    logger = getLogger(__package__)
-    logger.setLevel(options.level)
-    logger.addHandler(StreamHandler())
-
-    configuration = WriteOnceDict()
-    configuration["monitor"] = options.monitor
-    configuration["queue_strategy"] = options.queue_strategy
-    configuration["testing"] = options.testing
-    configuration["worker_threads"] = options.jobs
-
-    configuration["paths"] = WriteOnceDict()
-    configuration["paths"]["work_dir"] = options.work_dir
-    configuration["paths"]["build_dir"] = configuration["paths"]["work_dir"] / "build"
-    configuration["paths"]["module_dir"] = (
-        configuration["paths"]["work_dir"] / "_fortran_modules"
+    log_server = LoggingServer(
+        options.logfile, options.user_level, options.system_level
     )
-    configuration["paths"]["bin_dir"] = options.bin_dir
-    configuration["paths"]["performance_file"] = options.timing_file
-    configuration["packages"] = WriteOnceDict()
 
-    # All directory paths have to exist
-    for key, value in configuration["paths"].items():
-        if key.endswith("_dir"):
-            value.mkdir(exist_ok=True, parents=True)
+    with log_server:
+        configuration = WriteOnceDict()
+        configuration["monitor"] = options.monitor
+        configuration["queue_strategy"] = options.queue_strategy
+        configuration["testing"] = options.testing
+        configuration["worker_threads"] = options.jobs
 
-    build_script = instantiate_build_script(options.fabfile)
-    process_packages(build_script, options.map_library, configuration)
-    configuration["repositories"] = build_script.repositories()
-    configuration["forced_prerequisites"] = build_script.force_prerequisites()
-    build_script.add_configuration(configuration)
+        configuration["paths"] = WriteOnceDict()
+        configuration["paths"]["work_dir"] = options.work_dir
+        configuration["paths"]["build_dir"] = (
+            configuration["paths"]["work_dir"] / "build"
+        )
+        configuration["paths"]["module_dir"] = (
+            configuration["paths"]["work_dir"] / "_fortran_modules"
+        )
+        configuration["paths"]["bin_dir"] = options.bin_dir
+        configuration["paths"]["performance_file"] = options.timing_file
+        configuration["packages"] = WriteOnceDict()
 
-    pollute_configuration(configuration)
+        # All directory paths have to exist
+        for key, value in configuration["paths"].items():
+            if key.endswith("_dir"):
+                value.mkdir(exist_ok=True, parents=True)
 
-    fab_core(configuration)
+        build_script = instantiate_build_script(options.fabfile)
+        process_packages(build_script, options.map_library, configuration)
+        configuration["repositories"] = build_script.repositories()
+        configuration["forced_prerequisites"] = build_script.force_prerequisites()
+        build_script.add_configuration(configuration)
+
+        pollute_configuration(configuration)
+
+        fab_core(configuration)

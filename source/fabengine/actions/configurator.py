@@ -1,5 +1,4 @@
 from collections.abc import Iterable
-from multiprocessing import get_logger as mp_get_logger
 from pathlib import Path
 from re import IGNORECASE
 from re import compile as re_compile
@@ -20,6 +19,8 @@ _JSON_FILE = _CONFIGURATION_DIR / "rose-meta.json"
 _LIST_FILE = _CONFIGURATION_DIR / "config_namelists.txt"
 _LOADER_FILE = _CONFIGURATION_DIR / "config_loader_mod.f90"
 _DUPLICATE_FILE = _CONFIGURATION_DIR / "duplicate_namelists.txt"
+
+from fabengine.logserver import make_logger
 
 
 class RosePickerPrerequisite(Prerequisite):
@@ -69,20 +70,20 @@ class RosePickerPrerequisite(Prerequisite):
         if not self._filename.exists():
             return False
 
+        system_logger = make_logger("system")
+
         okay = True
         import_files = [self._filename]
         while import_files:
             meta_file = import_files.pop()
-            mp_get_logger().debug("Examining: " + str(meta_file))
+            system_logger.debug("Examining: " + str(meta_file))
             imports = self._scan_meta(meta_file)
             for head in imports:
                 found = False
-                mp_get_logger().debug("Considering: " + str(head))
+                system_logger.debug("Considering: " + str(head))
                 for root in self._database.config_meta_dirs:
                     test_name = root / head / "rose-meta.conf"
-                    mp_get_logger().debug(
-                        f"Possible ({test_name.exists()}): {test_name}"
-                    )
+                    system_logger.debug(f"Possible ({test_name.exists()}): {test_name}")
                     if test_name.exists():
                         import_files.append(test_name)
                         found = True
