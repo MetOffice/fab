@@ -20,3 +20,11 @@ class BuildScript(ABC):
 
     def force_prerequisites(self) -> dict[str, str]:
         return {}
+
+    @property
+    def build_name(self) -> str:
+        """Determine the build name based on a property of the class name."""
+
+        if hasattr(self, "__build_name"):
+            return self.__build_name
+        return self.__class__.__name__

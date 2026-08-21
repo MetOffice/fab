@@ -13,6 +13,7 @@ from sys import argv
 from fabengine.build_script import BuildScript
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.core import fab_core
+from fabengine.cui.status import set_terminal_title
 from fabengine.logserver import LoggingServer
 from fabengine.package import (
     CompilerArgument,
@@ -373,4 +374,5 @@ def cli() -> None:
 
         pollute_configuration(configuration)
 
+        set_terminal_title(build_script.build_name)
         fab_core(configuration)
