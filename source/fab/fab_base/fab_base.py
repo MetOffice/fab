@@ -28,7 +28,7 @@ from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files, Exclude, Include
-from fab.steps.grab.folder import grab_folder
+from fab.steps.grab.files import grab_files
 from fab.steps.link import link_exe, link_shared_object
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.tools.category import Category
@@ -656,7 +656,7 @@ class FabBase:
         if type(self).__name__ == "FabBase":
             # Do a simple build based on files in "." if FabBase is
             # started by itself (and not inherited):
-            grab_folder(self.config, src=".")
+            grab_files(self.config, src=".")
 
     def find_source_files_step(
             self,
