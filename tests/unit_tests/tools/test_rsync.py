@@ -45,23 +45,36 @@ def test_check_available(fake_process: FakeProcess) -> None:
     ]
 
 
-def test_rsync_create(fake_process: FakeProcess) -> None:
+def test_rsync_create(fake_process: FakeProcess,
+                      change_into_tmpdir: Path) -> None:
     """
     Tests performing a sync. Ensure source always ends with a '/'.
     """
-    with_command = ['rsync', '--times', '--links', '--stats', '-ru', '/src/', '/dst']
-    fake_process.register(with_command)
-    without_command = ['rsync', '--times', '--links', '--stats', '-ru', '/src/', '/dst']
-    fake_process.register(without_command)
+    tmp_dir = change_into_tmpdir
+    # Create a directory"
+    directory = tmp_dir / "directory"
+    directory.mkdir()
+    file = tmp_dir / "file"
+    file.write_text("A file\n")
 
     rsync = Rsync()
 
-    # Test 1: src with /
-    rsync.execute(src=Path("/src/"), dst=Path("/dst"))
+    # Test 1: Directory must have a '/' at the end:
+    dir_command = ['rsync', '--times', '--links', '--stats', '-ru',
+                   f'{directory}/', '/dst']
+    fake_process.register(dir_command)
+    rsync.execute(src=directory, dst=Path("/dst"))
 
-    # Test 2: src without /
-    rsync.execute(src=Path("/src"), dst=Path("/dst"))
+    # Test 2: a file should not have a '/' at the end. First ensure
+    # that file does indeed not have a '/' at the end (Path should discard
+    # trailing / ... but just in case:)
+    assert str(file)[-1] != "/"
+    file_command = ['rsync', '--times', '--links', '--stats', '-ru',
+                    f'{file}', '/dst']
+    fake_process.register(file_command)
+
+    rsync.execute(src=file, dst=Path("/dst"))
 
     assert call_list(fake_process) == [
-        with_command, without_command
+        dir_command, file_command
     ]
