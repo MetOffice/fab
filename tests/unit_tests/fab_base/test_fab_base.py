@@ -390,7 +390,7 @@ def test_build_binary(monkeypatch) -> None:
     # We need to patch a lot of Fab functions (to avoid dependencies
     # on the runtime environment):
     mocks = {}
-    for function_name in ["grab_folder", "find_source_files",
+    for function_name in ["grab_files", "find_source_files",
                           "preprocess_c", "preprocess_fortran",
                           "compile_fortran", "compile_c", "analyse"]:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
@@ -400,8 +400,8 @@ def test_build_binary(monkeypatch) -> None:
         fab_base.build()
     assert "No target objects defined, linking aborted" in str(err.value)
 
-    mocks["grab_folder"][0].stop()
-    mocks["grab_folder"][1].assert_called_once_with(
+    mocks["grab_files"][0].stop()
+    mocks["grab_files"][1].assert_called_once_with(
         fab_base.config, src=".")
 
     mocks["find_source_files"][0].stop()
@@ -443,7 +443,7 @@ def test_build_static_lib(monkeypatch) -> None:
     # We need to patch a lot of Fab functions (to avoid dependencies
     # on the runtime environment):
     mocks = {}
-    for function_name in ["grab_folder", "find_source_files", "preprocess_c",
+    for function_name in ["grab_files", "find_source_files", "preprocess_c",
                           "preprocess_fortran", "compile_fortran",
                           "compile_c", "analyse", "archive_objects"]:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
@@ -451,8 +451,8 @@ def test_build_static_lib(monkeypatch) -> None:
 
     fab_base.build()
 
-    mocks["grab_folder"][0].stop()
-    mocks["grab_folder"][1].assert_called_once_with(
+    mocks["grab_files"][0].stop()
+    mocks["grab_files"][1].assert_called_once_with(
         fab_base.config, src=".")
 
     mocks["find_source_files"][0].stop()
@@ -495,7 +495,7 @@ def test_build_shared_lib(monkeypatch) -> None:
     # We need to patch a lot of Fab functions (to avoid dependencies
     # on the runtime environment):
     mocks = {}
-    for function_name in ["grab_folder", "find_source_files", "preprocess_c",
+    for function_name in ["grab_files", "find_source_files", "preprocess_c",
                           "preprocess_fortran", "compile_fortran",
                           "compile_c", "analyse", "link_shared_object"]:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
@@ -503,8 +503,8 @@ def test_build_shared_lib(monkeypatch) -> None:
 
     fab_base.build()
 
-    mocks["grab_folder"][0].stop()
-    mocks["grab_folder"][1].assert_called_once_with(
+    mocks["grab_files"][0].stop()
+    mocks["grab_files"][1].assert_called_once_with(
         fab_base.config, src=".")
 
     mocks["find_source_files"][0].stop()
