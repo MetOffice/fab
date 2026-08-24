@@ -5,7 +5,7 @@
 # ##############################################################################
 """
 A preprocessor and code generation step using PSyclone's transmute (Fortran to
-Fortran) ability. .
+Fortran) ability.
 https://github.com/stfc/PSyclone
 
 """
