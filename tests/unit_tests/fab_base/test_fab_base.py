@@ -411,6 +411,20 @@ def test_checkout_only(monkeypatch, caplog) -> None:
         func_patcher[1].assert_not_called()
 
 
+def test_exclusive_checkout_skip(monkeypatch, capsys) -> None:
+    '''
+    Tests that the flags --checkout-only and --skip-checkout
+    are exclusive.
+    '''
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--checkout-only",
+                                      "--skip-checkout"])
+    with pytest.raises(SystemExit):
+        _ = FabBase(name="test-exclusive")
+    _, err = capsys.readouterr()
+    assert ("error: argument --skip-checkout: not allowed with argument "
+            "--checkout-only\n" in err)
+
+
 def test_build_binary(monkeypatch) -> None:
     '''
     Tests an actual trivial build. We patch all fab functions called

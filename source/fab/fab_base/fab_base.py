@@ -472,12 +472,13 @@ class FabBase:
             '--host', '-host', default="cpu", type=str,
             help="Determine the OpenACC or OpenMP: either 'cpu' or 'gpu'.")
 
-        parser.add_argument(
+        checkout_group = parser.add_mutually_exclusive_group()
+        checkout_group.add_argument(
             '--checkout-only', action="store_true", default=False,
             help=("Only do the checkout steps, not any actual build steps."
                   "This can be useful if checkout and compilation steps "
                   "need to run on different nodes."))
-        parser.add_argument(
+        checkout_group.add_argument(
             '--skip-checkout', action="store_true", default=False,
             help=("Do not do any checkouts. This flag can be used if a "
                   "checkout was already done, to just do the compilation. "
