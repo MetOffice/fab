@@ -119,7 +119,7 @@ def process_artefact(arg: tuple[Path, MpCommonArgs]):
                                f"'{' '.join(flags)}'.'")
             try:
                 args.preprocessor.preprocess(input_fpath, output_fpath,
-                                             flags)
+                                             args.config, flags)
             except Exception as err:
                 raise Exception(f"error preprocessing {input_fpath}:\n"
                                 f"{err}") from err
