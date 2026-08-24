@@ -21,6 +21,7 @@ from fab.steps.compile_c import compile_c
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import Exclude, find_source_files, Include
 from fab.steps.grab.fcm import fcm_export
+from fab.steps.grab.files import grab_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.grab.git import git_checkout
 from fab.steps.grab.prebuild import grab_pre_build
@@ -34,6 +35,7 @@ from fab.tools.compiler_wrapper import CompilerWrapper
 from fab.tools.flags import AlwaysFlags, ContainFlags, FlagList, MatchFlags
 from fab.tools.linker import Linker
 from fab.tools.pkg_config import PkgConfig
+from fab.tools.preprocessor import Cpp, Fpp
 from fab.tools.tool import Tool
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
@@ -60,13 +62,16 @@ __all__ = [
     "compile_fortran",
     "ContainFlags",
     "c_pragma_injector",
+    "Cpp",
     "Exclude",
     "FabBase",
     "fcm_export",
     "file_checksum",
     "FlagList",
+    "Fpp",
     "get_fab_workspace",
     "git_checkout",
+    "grab_files",
     "grab_folder",
     "grab_pre_build",
     "find_source_files",
