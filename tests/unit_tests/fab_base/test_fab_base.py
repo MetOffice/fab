@@ -356,9 +356,7 @@ def test_site_specific_outside_dir(monkeypatch) -> None:
     old_path = sys.path[:]
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     _ = FabBase(name="test-help")
-    assert sys.path[2:] == old_path
-    assert str(this_dir / "site_specific") in sys.path[0]
-    assert str(this_dir) in sys.path[1]
+    assert sys.path == [str(this_dir)] + old_path
 
 
 def test_site_specific_inside_dir(monkeypatch) -> None:
@@ -372,8 +370,40 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     monkeypatch.setattr(inspect, "stack", lambda: [])
     _ = FabBase(name="test-help")
-    assert sys.path[1:] == old_path
-    assert "site_specific" == sys.path[0]
+    assert sys.path == old_path
+
+
+def test_app_specifc(monkeypatch) -> None:
+    '''
+    Tests that an app_specific directory works as expected.
+    The setup in the test dir is:
+        site_specific/default/config
+        site_specific/site/config
+        app_specific/default/config
+        app_specific/site/config
+    The last class uses multiple inheritance:
+        config(AppSpecificDefaultConfig, SiteSpecificSiteConfig)
+
+    With each method calling super(), the following call order
+    should happen:
+    AppSpecificSite
+    --> AppSpecificDefault
+        --> SiteSpecificSite
+            --> SiteSpecificDefault
+    This allows an app-specific setup to modify the settings from
+    site-specific setup etc.
+    This test calls ``__str__``, which goes through all base classes
+    to assemble a string that represents the order in which the base
+    classes are called.
+    '''
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--site", "site",
+                                      "--platform", "platform"])
+    monkeypatch.setattr(inspect, "stack", lambda: [])
+    fab_base = FabBase(name="test-help")
+
+    assert (str(fab_base.site_config) ==
+            "AppSpecificSitePlatform -> AppSpecificDefault -> "
+            "SiteSpecificSitePlatform -> SiteSpecificDefault")
 
 
 def test_checkout_only(monkeypatch, caplog) -> None:
