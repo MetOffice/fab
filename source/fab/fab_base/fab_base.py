@@ -472,6 +472,19 @@ class FabBase:
             '--host', '-host', default="cpu", type=str,
             help="Determine the OpenACC or OpenMP: either 'cpu' or 'gpu'.")
 
+        checkout_group = parser.add_mutually_exclusive_group()
+        checkout_group.add_argument(
+            '--checkout-only', action="store_true", default=False,
+            help=("Only do the checkout steps, not any actual build steps."
+                  "This can be useful if checkout and compilation steps "
+                  "need to run on different nodes."))
+        checkout_group.add_argument(
+            '--skip-checkout', action="store_true", default=False,
+            help=("Do not do any checkouts. This flag can be used if a "
+                  "checkout was already done, to just do the compilation. "
+                  "This is useful if checkout and compilation needs to be "
+                  "done on different nodes."))
+
         parser.add_argument("--site", "-s", type=str,
                             default="$SITE or 'default'",
                             help="Name of the site to use.")
@@ -791,6 +804,10 @@ class FabBase:
         # need to use it anywhere.
         with self._config as _:
             self.grab_files_step()
+            if self.args.checkout_only:
+                self.logger.info("Aborting after checkout due to "
+                                 "'--checkout-only' flag.")
+                return
             self.find_source_files_step()
             # This is a Fab function, which the user won't need to be
             # able to overwrite.
