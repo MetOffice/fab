@@ -37,7 +37,8 @@ description of the all options:
 .. parsed-literal::
 
     usage: fab_base.py [-h] [--suite SUITE] [--available-compilers] [--fc FC] [--cc CC] [--ld LD] [--fflags FFLAGS] [--cflags CFLAGS] [--ldflags LDFLAGS] [--nprocs NPROCS]
-                       [--mpi] [--no-mpi] [--openmp] [--no-openmp] [--openacc] [--host HOST] [--site SITE] [--platform PLATFORM]
+                       [--mpi] [--no-mpi] [--openmp] [--no-openmp] [--openacc] [--host HOST] [--checkout-only] [--skip-checkout] [--site SITE] [--platform PLATFORM]
+                       [--fab-workspace FAB_WORKSPACE] [--profile PROFILE]
 
     A Fab-based build system. Note that if --suite is specified, this will change the default for compiler and linker
 
@@ -69,9 +70,17 @@ description of the all options:
       --openacc, -openacc   Enable OpenACC (default: True)
       --host HOST, -host HOST
                             Determine the OpenACC or OpenMP: either 'cpu' or 'gpu'. (default: cpu)
+      --checkout-only       Only do the checkout steps, not any actual build steps.This can be useful if checkout and compilation steps need to run on different nodes. (default:
+                            False)
+      --skip-checkout       Do not do any checkouts. This flag can be used if a checkout was already done, to just do the compilation. This is useful if checkout and compilation
+                            needs to be done on different nodes. (default: False)
       --site SITE, -s SITE  Name of the site to use. (default: $SITE or 'default')
       --platform PLATFORM, -p PLATFORM
                             Name of the platform of the site to use. (default: $PLATFORM or 'default')
+      --fab-workspace FAB_WORKSPACE
+                            Fab workspace, in which the build directory will be created. (default: None)
+      --profile PROFILE, -pro PROFILE
+                            Sets the compiler profile, choose from '['full-debug', 'fast-debug', 'production', 'unit-tests']'. (default: full-debug)
 
 
 Some command line option have an environment variable as default
