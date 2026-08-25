@@ -151,27 +151,21 @@ class Test_parse_files(object):
     """
     def test_exceptions(self, tmp_path: Path,
                         stub_tool_repository: ToolRepository,
-                        monkeypatch) -> None:
+                        ) -> None:
         """
-        Tests exceptions thrown from processing do not halt build.
-
-        ToDo: Do we want this? Shouldn't exceptions stop build?
+        Tests exceptions from processing halt the build.
 
         ToDo: Messing with "private" methods.
         """
-        def raises(*args, **kwargs):
-            raise Exception("foo")
-
-        # The warning "deprecated 'DEPENDS ON:' comment found in fortran
-        # code" is in "def _parse_files" in "source/steps/analyse.py"
         config = BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
+        source_file = tmp_path / "bad.f90"
+        analyser = Mock()
+        analyser.depends_on_comment_found = False
+        analyser.run.return_value = (Exception("foo"), Path("bad.an"))
 
-        monkeypatch.setattr('fab.steps.run_mp', raises)
-        with warns(UserWarning, match="deprecated 'DEPENDS ON:'"):
-            # the exception should be suppressed (and logged) and this step
-            # should run to completion
-            _parse_files(config, files=[],
-                         fortran_analyser=Mock(),
+        with raises(RuntimeError, match="1 error\\(s\\) found during analyse"):
+            _parse_files(config, files=[source_file],
+                         fortran_analyser=analyser,
                          c_analyser=Mock())
 
 
