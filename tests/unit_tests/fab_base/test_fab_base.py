@@ -8,6 +8,7 @@ Tests the FabBase class
 """
 import argparse
 import inspect
+import logging
 import os
 from pathlib import Path
 import sys
@@ -355,9 +356,7 @@ def test_site_specific_outside_dir(monkeypatch) -> None:
     old_path = sys.path[:]
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     _ = FabBase(name="test-help")
-    assert sys.path[2:] == old_path
-    assert str(this_dir / "site_specific") in sys.path[0]
-    assert str(this_dir) in sys.path[1]
+    assert sys.path == [str(this_dir)] + old_path
 
 
 def test_site_specific_inside_dir(monkeypatch) -> None:
@@ -371,8 +370,89 @@ def test_site_specific_inside_dir(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["fab_base.py"])
     monkeypatch.setattr(inspect, "stack", lambda: [])
     _ = FabBase(name="test-help")
-    assert sys.path[1:] == old_path
-    assert "site_specific" == sys.path[0]
+    assert sys.path == old_path
+
+
+def test_app_specifc(monkeypatch) -> None:
+    '''
+    Tests that an app_specific directory works as expected.
+    The setup in the test dir is:
+        site_specific/default/config
+        site_specific/site/config
+        app_specific/default/config
+        app_specific/site/config
+    The last class uses multiple inheritance:
+        config(AppSpecificDefaultConfig, SiteSpecificSiteConfig)
+
+    With each method calling super(), the following call order
+    should happen:
+    AppSpecificSite
+    --> AppSpecificDefault
+        --> SiteSpecificSite
+            --> SiteSpecificDefault
+    This allows an app-specific setup to modify the settings from
+    site-specific setup etc.
+    This test calls ``__str__``, which goes through all base classes
+    to assemble a string that represents the order in which the base
+    classes are called.
+    '''
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--site", "site",
+                                      "--platform", "platform"])
+    monkeypatch.setattr(inspect, "stack", lambda: [])
+    fab_base = FabBase(name="test-help")
+
+    assert (str(fab_base.site_config) ==
+            "AppSpecificSitePlatform -> AppSpecificDefault -> "
+            "SiteSpecificSitePlatform -> SiteSpecificDefault")
+
+
+def test_checkout_only(monkeypatch, caplog) -> None:
+    '''
+    Tests that FabBase does not run any build steps if
+    the --checkout-only flag is provided.
+    '''
+
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--checkout-only"])
+
+    fab_base = FabBase(name="test")
+
+    # We need to patch a lot of Fab functions (to avoid dependencies
+    # on the runtime environment):
+    mocks = {}
+    for function_name in ["grab_files", "find_source_files",
+                          "preprocess_c", "preprocess_fortran",
+                          "compile_fortran", "compile_c", "analyse"]:
+        patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
+        mocks[function_name] = (patcher, patcher.start())
+
+    with caplog.at_level(logging.INFO):
+        fab_base.build()
+    assert ("Aborting after checkout due to '--checkout-only' flag."
+            in caplog.text)
+
+    mocks["grab_files"][0].stop()
+    mocks["grab_files"][1].assert_called_once_with(
+        fab_base.config, src=".")
+    # Check that no other function (except grab_folder) is being called.
+    for function_name, func_patcher in mocks.items():
+        if function_name == "grab_files":
+            continue
+        func_patcher[0].stop()
+        func_patcher[1].assert_not_called()
+
+
+def test_exclusive_checkout_skip(monkeypatch, capsys) -> None:
+    '''
+    Tests that the flags --checkout-only and --skip-checkout
+    are exclusive.
+    '''
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--checkout-only",
+                                      "--skip-checkout"])
+    with pytest.raises(SystemExit):
+        _ = FabBase(name="test-exclusive")
+    _, err = capsys.readouterr()
+    assert ("error: argument --skip-checkout: not allowed with argument "
+            "--checkout-only\n" in err)
 
 
 def test_build_binary(monkeypatch) -> None:

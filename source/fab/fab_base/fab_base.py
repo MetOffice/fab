@@ -201,7 +201,7 @@ class FabBase:
     def name(self) -> str:
 
         '''
-        :returns: the name of the apps.
+        :returns: the name of the app.
         '''
         return self._name
 
@@ -329,12 +329,6 @@ class FabBase:
             self.logger.warning("Could not find caller directory, "
                                 "defaulting to '.'.")
 
-        # We need to add the 'site_specific' directory to the path, so
-        # each config can import from 'default' (instead of having to
-        # use 'site_specific.default', which would hard-code the name
-        # `site_specific` in more scripts).
-        sys.path.insert(0, str(dir_caller / "site_specific"))
-
     def define_site_platform_target(self) -> None:
         '''
         This method defines the attributes site, platform (and
@@ -379,15 +373,19 @@ class FabBase:
         '''
         self.setup_site_specific_location()
         try:
-            config_name = f"site_specific.{self.target}.config"
+            config_name = f"app_specific.{self.target}.config"
             config_module = import_module(config_name)
-        except ModuleNotFoundError as err:
-            # We log a warning, but proceed, since there is no need to
-            # have a site-specific file.
-            self._logger.warning(f"Cannot find site-specific module "
-                                 f"'{config_name}': {err}.")
-            self._site_config = None
-            return
+        except ModuleNotFoundError:
+            try:
+                config_name = f"site_specific.{self.target}.config"
+                config_module = import_module(config_name)
+            except ModuleNotFoundError as err:
+                # We log a warning, but proceed, since there is no need to
+                # have a site-specific file.
+                self._logger.warning(f"Cannot find site-specific module "
+                                     f"'{config_name}': {err}.")
+                self._site_config = None
+                return
         self.logger.info(f"fab_base: Imported '{config_module.__file__}'.")
         # The constructor handles everything.
         self._site_config = config_module.Config()
@@ -471,6 +469,19 @@ class FabBase:
         parser.add_argument(
             '--host', '-host', default="cpu", type=str,
             help="Determine the OpenACC or OpenMP: either 'cpu' or 'gpu'.")
+
+        checkout_group = parser.add_mutually_exclusive_group()
+        checkout_group.add_argument(
+            '--checkout-only', action="store_true", default=False,
+            help=("Only do the checkout steps, not any actual build steps."
+                  "This can be useful if checkout and compilation steps "
+                  "need to run on different nodes."))
+        checkout_group.add_argument(
+            '--skip-checkout', action="store_true", default=False,
+            help=("Do not do any checkouts. This flag can be used if a "
+                  "checkout was already done, to just do the compilation. "
+                  "This is useful if checkout and compilation needs to be "
+                  "done on different nodes."))
 
         parser.add_argument("--site", "-s", type=str,
                             default="$SITE or 'default'",
@@ -791,6 +802,10 @@ class FabBase:
         # need to use it anywhere.
         with self._config as _:
             self.grab_files_step()
+            if self.args.checkout_only:
+                self.logger.info("Aborting after checkout due to "
+                                 "'--checkout-only' flag.")
+                return
             self.find_source_files_step()
             # This is a Fab function, which the user won't need to be
             # able to overwrite.
