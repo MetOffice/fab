@@ -253,7 +253,7 @@ instance that uses other shells. Usage:
 
 Application-specific settings
 =============================
-Besides site-specific settings, the Fab base class also allows to use
+Besides site-specific settings, the Fab base class also allows
 application-specific setups, which can work together with site-specific
 configurations using inheritance. These config files are the same
 as site-specific configuration files described previously, but are
@@ -262,12 +262,12 @@ imported from the directory ``app_specific``.
 An example of this is LFRic. The infrastructure (lfric_core) repository
 contains site-specific configuration. For example, they will define
 the required compilation flags for files. These settings will be used
-even for applications in applications in the lfric_apps repository.
+even for applications in the lfric_apps repository.
 But certain applications needs additional flags. For example, the
 lfric_atm application will compile the UM physics code, and this require
 that by default any real values are double precision (and in some cases
-file-specific work arounds for compiler bugs. To avoid that the site-settings
-from lfric_core need to be duplicated, the following structure is
+file-specific work arounds for compiler bugs). To avoid that the site-settings
+from lfric_core need to be duplicated. The following structure is
 recommended (and used in lfric_atm), in this example for the site
 `nci` on the platform `gadi` - the arrows indicating an 'inherit from'
 relationship::
@@ -323,7 +323,7 @@ In Python code, this looks as follows:
         def __init__(self):
             ...
                 
-This setup will allow to reuse site-specific setup, which can be overwritten
+This setup will allow us to reuse site-specific setup, which can be overwritten
 by application-specific settings. As an example of what to do on what level:
 
 1. ``site_specific/default`` would define optimisation levels (depending on profile)
@@ -340,7 +340,7 @@ any site (e.g. to work around a compiler bug), this flag would eventually be mov
 into the ``default`` setup.
 
 .. important::
-    If there is a application-specific configuration, it is important that
+    If there is an application-specific configuration, it is important that
     each site specifies its own application-specific setup. Otherwise only
     the site-specific configuration would be used (since the import from
     ``app_specific/SITE`` fails, which means that the application specific

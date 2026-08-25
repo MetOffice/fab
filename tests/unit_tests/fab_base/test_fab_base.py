@@ -419,7 +419,7 @@ def test_checkout_only(monkeypatch, caplog) -> None:
     # We need to patch a lot of Fab functions (to avoid dependencies
     # on the runtime environment):
     mocks = {}
-    for function_name in ["grab_folder", "find_source_files",
+    for function_name in ["grab_files", "find_source_files",
                           "preprocess_c", "preprocess_fortran",
                           "compile_fortran", "compile_c", "analyse"]:
         patcher = mock.patch(f"fab.fab_base.fab_base.{function_name}")
@@ -430,15 +430,29 @@ def test_checkout_only(monkeypatch, caplog) -> None:
     assert ("Aborting after checkout due to '--checkout-only' flag."
             in caplog.text)
 
-    mocks["grab_folder"][0].stop()
-    mocks["grab_folder"][1].assert_called_once_with(
+    mocks["grab_files"][0].stop()
+    mocks["grab_files"][1].assert_called_once_with(
         fab_base.config, src=".")
     # Check that no other function (except grab_folder) is being called.
     for function_name, func_patcher in mocks.items():
-        if function_name == "grab_folder":
+        if function_name == "grab_files":
             continue
         func_patcher[0].stop()
         func_patcher[1].assert_not_called()
+
+
+def test_exclusive_checkout_skip(monkeypatch, capsys) -> None:
+    '''
+    Tests that the flags --checkout-only and --skip-checkout
+    are exclusive.
+    '''
+    monkeypatch.setattr(sys, "argv", ["fab_base.py", "--checkout-only",
+                                      "--skip-checkout"])
+    with pytest.raises(SystemExit):
+        _ = FabBase(name="test-exclusive")
+    _, err = capsys.readouterr()
+    assert ("error: argument --skip-checkout: not allowed with argument "
+            "--checkout-only\n" in err)
 
 
 def test_build_binary(monkeypatch) -> None:
