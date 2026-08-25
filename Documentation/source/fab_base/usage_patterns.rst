@@ -225,3 +225,44 @@ For example:
 
         linker = tr.get_tool(Category.LINKER, "linker-gfortran")
         linker.add_post_lib_flags(["-static-libasan"], "memory-debug")
+
+Running checkout and building independently
+-------------------------------------------
+On many platforms, only a few dedicated nodes might have internet access,
+while the majority of compute nodes cannot access the internet at all.
+In order to support these platforms, it is important that the checkout
+of an application (e.g. using git) can be done without building, and
+similarly that building can be executed without a checkout (meaning the
+checkout must have ran before).
+
+The FabBase class provides two command line options to support this:
+
+1. ``--checkout-only``
+    If this command line option is specified, Fab will exit (successfully)
+    after ``grab_files_step``. If the user should be running additional
+    tasks that require internet access, these must therefore be part of
+    ``grab_files_step``. A user code might need to check for this flag
+    (using ``fab_application.args.checkout_only``).
+
+2. ``--skip-checkout``
+    This command line parameter is intended to avoid running any checkouts
+    (git, svn, ...). The Fab base class itself does not trigger any
+    checkouts, and so this flag is not actually used internally. It is the
+    responsibility of the application to implement this behaviour.
+    Example code for this:
+
+    .. code-block:: python
+
+        for repo_info in repo_infos:
+            if self.args.skip_checkout:
+                logger.info(f"Skipping extraction of '{repo}' from "
+                            f"'{repo_info.source}' ")
+                continue
+
+            logger.info(f"Extracting '{repo}' from '{repo_info.source}' "
+                        f" to 'science/{repo}', "
+                        f"revisions {repo_info.ref}")
+            git_checkout(self.config,
+                         repo_info.source,
+                         dst_label=f'science/{repo}',
+                         revision=repo_info.ref)
