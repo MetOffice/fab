@@ -70,14 +70,15 @@ class RepoInfo:
 class DependencyInfo(dict):
     '''
     A simple dictionary-like class that stores the version information
-    from a yaml file:
+    from a yaml file::
 
         casim:
             source: git@github.com:MetOffice/casim.git
             ref: 2025.12.1
         ...
 
-    The information can be accessed as a dictionary, e.g.:
+    The information can be accessed as a dictionary, e.g.::
+
         gr = DependencyInfo("$LFRIC_APPS_SRC/dependencies.yaml")
         gr["casim"] --> {"source": "git@.../casim.git",
                          "ref": "2025.12.1"}
@@ -135,6 +136,6 @@ class DependencyInfo(dict):
         """
         :returns: the list of repository infos for a given dependency.
 
-        :raises:KeyError if the repository is not defined.
+        :raises KeyError: if the repository is not defined.
         """
         return self[repo]
