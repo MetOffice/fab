@@ -39,7 +39,8 @@ dev = [
     'pytest-subprocess >= 1.5.3',
     'pyfakefs',
     'flake8 >= 5.0.4',
-    'mypy'
+    'mypy',
+    'pyyaml'
 ]
 
 [project.scripts]
