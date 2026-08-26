@@ -40,7 +40,8 @@ dev = [
     'pyfakefs',
     'flake8 >= 5.0.4',
     'mypy',
-    'pyyaml'
+    'pyyaml',
+    'types-PyYAML'
 ]
 
 [project.scripts]
