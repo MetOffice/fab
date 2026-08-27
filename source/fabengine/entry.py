@@ -312,6 +312,7 @@ def pollute_configuration(configuration: WriteOnceDict) -> None:
         "lfric_xios_write_mod_test",
     ]
     configuration["use_open_mp"] = True
+    configuration["internal_psyclone"] = True
 
 
 def process_packages(

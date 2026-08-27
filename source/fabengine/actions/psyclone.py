@@ -4,6 +4,7 @@ from collections.abc import Generator, Iterable
 from pathlib import Path
 from re import IGNORECASE
 from re import compile as re_compile
+from typing import Any
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.actions.file import MapFile
@@ -16,6 +17,11 @@ from fabengine.prerequisite import (
     RealFilePrerequisite,
     SymbolPrerequisite,
 )
+
+try:
+    from psyclone.generator import main as psyclone_main  # type: ignore
+except ModuleNotFoundError:
+    pass
 
 
 class MapAlgorithm(MapFile):
@@ -88,6 +94,9 @@ class PSyclone(SubprocessAction):
         """
         self._virtual_filename = virtual_filename
         self._database = database
+        self._internal_mode = self._database.configuration.get(
+            "internal_psyclone", True
+        )
 
         self._algorithm_path = self._virtual_filename.with_suffix(".f90")
         all_kernels = self._find_kernels(
@@ -258,8 +267,35 @@ class PSyclone(SubprocessAction):
             arguments.extend(
                 ["-d", self._database.artefact_store.ensure_directory(root)]
             )
-        self.run_subprocess(additional_arguments=arguments)
+
+        method = self.psyclone_method()
+        method(additional_arguments=arguments)
+
         actions: list[Action] = [AnalyseFortran(self._algorithm_path, self._database)]
         if self._psy:
             actions.append(AnalyseFortran(self._psy_path, self._database))
         return actions
+
+    def run_internal(
+        self,
+        directory: Path | None = None,
+        additional_arguments: Iterable[Any] | None = None,
+    ) -> None:
+        """Run psyclone from within the current python instance."""
+
+        command = []
+
+        for arg in self._arguments:
+            command.append(str(arg))
+
+        for arg in additional_arguments or []:
+            command.append(str(arg))
+
+        # todo: ignore directory argument for now
+        psyclone_main(command)
+
+    def psyclone_method(self):
+        """Support internal and subprocess methods of running psyclone."""
+        if self._internal_mode:
+            return self.run_internal
+        return self.run_subprocess
