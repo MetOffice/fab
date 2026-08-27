@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Optional, TYPE_CHECKING, Union
 
 from fab.tools.category import Category
-from fab.tools.flags import AbstractFlags, ProfileFlags
+from fab.tools.flags import AbstractFlags
+from fab.tools.profile_flags import ProfileFlags
 from fab.tools.tool import Tool
 
 if TYPE_CHECKING:

@@ -8,8 +8,7 @@ This module contains the default Fab configuration class.
 import argparse
 
 from fab.build_config import BuildConfig
-from fab.tools.category import Category
-from fab.tools.tool_repository import ToolRepository
+from fab.tools.profile_flags import ProfileFlags
 
 
 class Config:
@@ -52,27 +51,13 @@ class Config:
         :param build_config: the Fab build configuration instance
         :type build_config: :py:class:`fab.BuildConfig`
         '''
-        # First create the default compiler profiles for all available
-        # compilers. While we have a tool box with exactly one compiler
-        # in it, compiler wrappers will require more than one compiler
-        # to be initialised - so we just initialise all of them (including
-        # the linker):
-        tr = ToolRepository()
-        for compiler in (tr[Category.C_COMPILER] +
-                         tr[Category.FORTRAN_COMPILER] +
-                         tr[Category.LINKER]):
-            # Define a base profile, which contains the common
-            # compilation flags. This 'base' is not accessible to
-            # the user, so it's not part of the profile list. Also,
-            # make it inherit from the default profile '', so that
-            # a user does not have to specify the "base" profile.
-            # Note that we set this even if a compiler is not available.
-            # This is required in case that compilers are not in PATH,
-            # so e.g. mpif90-ifort works, but ifort cannot be found.
-            # We still need to be able to set and query flags for ifort.
-            compiler.define_profile("base", inherit_from="")
-            for profile in self.get_valid_profiles():
-                compiler.define_profile(profile, inherit_from="base")
+        # First create the default compiler profiles.
+        # Define a base profile, which contains the common
+        # compilation flags. This 'base' is not accessible to
+        # the user, so it's not part of the profile list.
+        ProfileFlags.define_profile("base")
+        for profile in self.get_valid_profiles():
+            ProfileFlags.define_profile(profile, inherit_from="base")
 
     def define_command_line_options(self,
                                     parser: argparse.ArgumentParser) -> None:
