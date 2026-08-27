@@ -55,6 +55,7 @@ def test_import_from_api() -> None:
         "preprocess_c",
         "preprocess_fortran",
         "preprocess_x90",
+        "ProfileFlags",
         "psyclone",
         "root_inc_files",
         "run_mp",

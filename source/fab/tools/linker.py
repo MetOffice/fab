@@ -16,7 +16,7 @@ import warnings
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
-from fab.tools.flags import ProfileFlags
+from fab.tools.profile_flags import ProfileFlags
 from fab.tools.compiler_suite_tool import CompilerSuiteTool
 
 
