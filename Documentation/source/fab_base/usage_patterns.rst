@@ -266,3 +266,61 @@ The FabBase class provides two command line options to support this:
                          repo_info.source,
                          dst_label=f'science/{repo}',
                          revision=repo_info.ref)
+
+.. _dependencies_yaml_support:
+
+Using a UK Met Office ``dependencies.yaml`` file
+-------------------------------------------------
+Many UK Met office repositories, for example LFRic and UM,
+provide a ``dependencies.yaml`` file to specify dependencies
+on other repositories. Here a (shortened) example from
+LFRic:
+
+.. code-block:: yaml
+
+    casim:
+        source: git@github.com:MetOffice/casim.git
+        ref: 2026.07.1
+
+    jules:
+        source: git@github.com:MetOffice/jules.git
+        ref: 2026.07.1
+
+    lfric_core:
+       source: git@github.com:MetOffice/lfric_core.git
+       ref: 2026.07.1
+    ...
+
+Fab provides the class ``DependencyInfo`` to manage this kind
+of yaml file. Example usage, taken from LFRic:
+
+.. code-block:: python
+
+    from fab.api import DependencyInfo
+    ...
+
+    def grab_files_step(self) -> None:
+
+        yaml_file = Path("/some/path/to/dep.yaml")
+        dep_info = DependencyInfo(yaml_file)
+
+        # Loop over all dependency repositories:
+        for repo in self.dependency_info.get_repo_names():
+            repo_infos = self.dependency_info.get_repo_info(repo)
+
+            # Each repo could have more than one branch listed,
+            # so we might need to extract more than one branch:
+            for repo_info in repo_infos:
+                logger.info(f"Extracting '{repo}' from '{repo_info.source}' "
+                            f" to 'science/{repo}', "
+                            f"revisions {repo_info.ref}")
+                try:
+                    git_checkout(self.config,
+                                 repo_info.source,
+                                 dst_label=f'science/{repo}',
+                                 revision=repo_info.ref)
+                except RuntimeError as error:
+                    logger.error(f"Cannot checkout '{repo}' from "
+                                 f"'{repo_info.source}' revision "
+                                 f"'{repo_info.ref}': {error}. ")
+                    sys.exit(-1)

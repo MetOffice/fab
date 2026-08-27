@@ -235,7 +235,10 @@ in this step various Fab functions are used to get the source files:
 
 ``git_checkout``
     Fab's ``git_checkout`` checks out a git repository, and puts the files
-    into the working directory.
+    into the working directory. Note that there is a convenience class
+    called ``DependencyInfo`` provided in Fab, that will manage the
+    yaml file provided in many suites from the UK MetOffice - see
+    :ref:`dependencies_yaml_support` for details.
 
 ``svn_export``, ``svn_checkout``
     Fab provides these two interfaces to svn, and similar to
