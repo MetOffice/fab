@@ -96,7 +96,7 @@ class DependencyInfo(dict):
     '''
 
     def __init__(self, filename: Optional[Union[str, Path]],
-                 only_repos: Optional[list[str]]) -> None:
+                 only_repos: Optional[list[str]] = None) -> None:
         super().__init__()
 
         # If there are no dependencies, just return (this object will
