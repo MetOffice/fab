@@ -36,7 +36,7 @@ def test_dependency_info_empty_filename(filename) -> None:
     """
     Check that no filename creates an empty dependency set.
     """
-    dependency_info = DependencyInfo(filename, [])
+    dependency_info = DependencyInfo(filename)
 
     assert dependency_info == {}
     assert dependency_info.get_repo_names() == []
@@ -62,7 +62,7 @@ def test_dependency_info_reads_single_and_multiple_dependencies(
         encoding="utf8"
     )
 
-    dependency_info = DependencyInfo(dependency_file, [])
+    dependency_info = DependencyInfo(dependency_file)
 
     assert dependency_info.get_repo_names() == ["lfric_core", "SimSys_Scripts"]
     assert list(dependency_info.get_repo_info("lfric_core")) == [
@@ -98,7 +98,7 @@ def test_dependency_info_only(tmp_path: Path) -> None:
         encoding="utf8"
     )
 
-    dependency_info = DependencyInfo(dependency_file, [])
+    dependency_info = DependencyInfo(dependency_file)
     assert dependency_info.get_repo_names() == ["repo1", "repo2", "repo3"]
 
     dependency_info = DependencyInfo(dependency_file, ["repo1"])
@@ -138,4 +138,4 @@ def test_dependency_info_rejects_missing_required_keys(
     dependency_file.write_text(yaml_text, encoding="utf8")
 
     with pytest.raises(RuntimeError, match=expected_message):
-        DependencyInfo(dependency_file, [])
+        DependencyInfo(dependency_file)
