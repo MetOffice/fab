@@ -8,6 +8,7 @@ Articles giving technical details about the toy and its processes.
    :caption: Contents:
 
    work_queue
+   compilers
    linking
    testing
    performance
