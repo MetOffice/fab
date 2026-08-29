@@ -5,7 +5,7 @@
 ##############################################################################
 
 """This file contains the base class for any compiler-wrapper, including
-the derived classes for mpif90, mpicc, and CrayFtnWrapper and CrayCcWrapper.
+the derived classes for mpif90, mpifort, mpicc, and the Cray wrappers.
 """
 
 from pathlib import Path
@@ -202,6 +202,21 @@ class Mpif90(CompilerWrapper):
     def __init__(self, compiler: Compiler):
         super().__init__(name=f"mpif90-{compiler.name}",
                          exec_name="mpif90", compiler=compiler, mpi=True)
+
+
+# ============================================================================
+class Mpifort(CompilerWrapper):
+    '''Class for a simple wrapper for using a compiler driver (like mpifort).
+    It will be using the name "mpifort-COMPILER_NAME" and calls `mpifort`.
+    All flags from the original compiler will be used when using the wrapper
+    as compiler.
+
+    :param compiler: the compiler that the mpifort wrapper will use.
+    '''
+
+    def __init__(self, compiler: Compiler):
+        super().__init__(name=f"mpifort-{compiler.name}",
+                         exec_name="mpifort", compiler=compiler, mpi=True)
 
 
 # ============================================================================
