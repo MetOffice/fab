@@ -273,8 +273,7 @@ Using a UK Met Office ``dependencies.yaml`` file
 -------------------------------------------------
 Many UK Met office repositories, for example LFRic and UM,
 provide a ``dependencies.yaml`` file to specify dependencies
-on other repositories. Here a (shortened) example from
-LFRic:
+on other repositories. Here an example:
 
 .. code-block:: yaml
 
@@ -286,13 +285,19 @@ LFRic:
         source: git@github.com:MetOffice/jules.git
         ref: 2026.07.1
 
-    lfric_core:
-       source: git@github.com:MetOffice/lfric_core.git
-       ref: 2026.07.1
+    SimSys_Scripts:
+        - source: git@github.com:MetOffice/SimSys_Scripts.git
+          ref: cab3315147a3c7e8546dda559d3da0fccd702f29
+        - source: git@github.com:MetOffice/SimSys_Scripts-fork.git
+          ref: feature-branch
     ...
 
 Fab provides the class ``DependencyInfo`` to manage this kind
-of yaml file. Example usage, taken from LFRic:
+of yaml file. Note that a dependcency can have more than one sources.
+This is typically used to merge several branches together before
+building.
+
+Example usage, taken from LFRic:
 
 .. code-block:: python
 
@@ -305,8 +310,7 @@ of yaml file. Example usage, taken from LFRic:
         dep_info = DependencyInfo(yaml_file)
 
         # Loop over all dependency repositories:
-        for repo in self.dependency_info.get_repo_names():
-            repo_infos = self.dependency_info.get_repo_info(repo)
+        for repo, repo_infos in self.dependency_info.items():
 
             # Each repo could have more than one branch listed,
             # so we might need to extract more than one branch:
@@ -324,3 +328,9 @@ of yaml file. Example usage, taken from LFRic:
                                  f"'{repo_info.source}' revision "
                                  f"'{repo_info.ref}': {error}. ")
                     sys.exit(-1)
+
+Note that this simplified example would just run ``git checkout``
+on the same directory repeatedly, it needs more sophisticated
+code in order to merge various branches together.
+The `SimSys_Script repository <https://github.com/MetOffice/SimSys_Scripts>`_
+contains code for this.
