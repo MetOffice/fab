@@ -35,7 +35,7 @@ class RepoInfo:
         """
         A simple data class that stores a source and ref, and allows
         to access and update them individually. Source and ref can
-        are None if there is no information for a repository.
+        be None if there is no information for a repository.
         """
         source: Optional[str]
         ref: Optional[str]
