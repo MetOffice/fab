@@ -54,7 +54,7 @@ class ProfileFlags:
     # as an always available dummy profile.
     _inherit_from: dict[str, str] = {"": ""}
 
-    def __init__(self: "ProfileFlags",
+    def __init__(self,
                  flags: Optional[Union[AbstractFlags, str, list[str]]] = None,
                  profile: str = "") -> None:
         # Stores the flags for each profile mode. The key is the (lower case)
@@ -80,16 +80,18 @@ class ProfileFlags:
         :param inherit_from: Optional name of a profile to inherit
             settings from.
         '''
+        name = name.lower()
         if name in cls._inherit_from:
             raise KeyError(f"Profile '{name}' is already defined.")
 
         if inherit_from is not None:
+            inherit_from = inherit_from.lower()
             if inherit_from not in cls._inherit_from:
                 raise KeyError(f"Inherited profile '{inherit_from}' is "
                                f"not defined.")
-            cls._inherit_from[name.lower()] = inherit_from.lower()
+            cls._inherit_from[name] = inherit_from
         else:
-            cls._inherit_from[name.lower()] = ""
+            cls._inherit_from[name] = ""
 
     def get_flags(self,
                   config: Optional["BuildConfig"] = None,
@@ -106,9 +108,7 @@ class ProfileFlags:
             expressions.
         :param file_path: path to the source file to compile.
         '''
-        if not file_path:
-            # If no path, provide a dummy path
-            file_path = Path()
+
         if config:
             profile = config.profile
         else:
