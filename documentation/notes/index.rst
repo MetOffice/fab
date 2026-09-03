@@ -11,4 +11,5 @@ Articles giving technical details about the toy and its processes.
    compilers
    linking
    testing
+   incremental
    performance
