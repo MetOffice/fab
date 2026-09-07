@@ -19,6 +19,7 @@ from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.compiler_wrapper import CompilerWrapper, Mpif90
 from fab.tools.linker import Linker
+from fab.tools.profile_flags import ProfileFlags
 
 
 def test_c_linker(stub_c_compiler: CCompiler,
@@ -389,9 +390,9 @@ def test_linker_profile_flags_inheriting(stub_c_compiler,
     linker_wrapper = Linker(stub_c_compiler_wrapper, linker=linker)
 
     count = 0
+    ProfileFlags.define_profile("base")
+    ProfileFlags.define_profile("derived", "base")
     for compiler in [stub_c_compiler, stub_c_compiler_wrapper]:
-        compiler.define_profile("base")
-        compiler.define_profile("derived", "base")
         compiler.add_flags(f"-f{count}", "base")
         compiler.add_flags(f"-f{count+1}", "derived")
         count += 2
@@ -417,13 +418,13 @@ def test_linker_profile_modes(stub_linker):
         stub_linker._post_lib_flags["base"]
     assert "Profile 'base' is not defined" in str(err.value)
 
-    stub_linker.define_profile("base")
+    # Defining a profile should also work for the pre and post
+    # lib flags:
+    ProfileFlags.define_profile("base")
     assert stub_linker._pre_lib_flags["base"] == []
-    assert "base" not in stub_linker._pre_lib_flags._inherit_from
     assert stub_linker._post_lib_flags["base"] == []
-    assert "base" not in stub_linker._post_lib_flags._inherit_from
 
-    stub_linker.define_profile("full-debug", "base")
+    ProfileFlags.define_profile("full-debug", "base")
     assert stub_linker._pre_lib_flags["full-debug"] == []
     assert stub_linker._pre_lib_flags._inherit_from["full-debug"] == "base"
     assert stub_linker._post_lib_flags["full-debug"] == []

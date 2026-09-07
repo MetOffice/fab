@@ -37,6 +37,7 @@ from fab.tools.flags import AlwaysFlags, ContainFlags, FlagList, MatchFlags
 from fab.tools.linker import Linker
 from fab.tools.pkg_config import PkgConfig
 from fab.tools.preprocessor import Cpp, Fpp
+from fab.tools.profile_flags import ProfileFlags
 from fab.tools.tool import Tool
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
@@ -88,6 +89,7 @@ __all__ = [
     "preprocess_c",
     "preprocess_fortran",
     "preprocess_x90",
+    "ProfileFlags",
     "psyclone",
     "psyclone_transmute",
     "root_inc_files",

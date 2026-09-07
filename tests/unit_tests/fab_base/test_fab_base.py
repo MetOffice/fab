@@ -176,7 +176,9 @@ def test_profile_invalid(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["fab_base.py", "--profile", "invalid"])
     with pytest.raises(RuntimeError) as err:
         _ = FabBase(name="test-help")
-    assert "Invalid profile 'invalid" == str(err.value)
+    assert ("Invalid profile 'invalid'. Valid profiles are: "
+            "\"['default-profile', 'full-debug', 'fast-debug', "
+            "'production']\"." == str(err.value))
 
 
 def test_suite_no_compiler(monkeypatch) -> None:

@@ -17,7 +17,7 @@ from fab.build_config import AddFlags, BuildConfig
 from fab.parse.c import AnalysedC
 from fab.steps.compile_c import _get_obj_combo_hash, _compile_file, compile_c
 from fab.tools.category import Category
-from fab.tools.flags import ProfileFlags
+from fab.tools.profile_flags import ProfileFlags
 from fab.tools.tool_box import ToolBox
 
 
