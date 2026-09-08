@@ -20,6 +20,7 @@ from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.compile_c import compile_c
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import Exclude, find_source_files, Include
+from fab.steps.grab.dependency_info import DependencyInfo
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.files import grab_files
 from fab.steps.grab.folder import grab_folder
@@ -64,6 +65,7 @@ __all__ = [
     "ContainFlags",
     "c_pragma_injector",
     "Cpp",
+    "DependencyInfo",
     "Exclude",
     "FabBase",
     "fcm_export",
