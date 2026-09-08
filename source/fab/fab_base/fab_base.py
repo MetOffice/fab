@@ -16,6 +16,7 @@ import argparse
 from importlib import import_module
 import inspect
 import logging
+import multiprocessing
 import os
 from pathlib import Path
 import sys
@@ -57,6 +58,7 @@ class FabBase:
     def __init__(self,
                  name: str,
                  link_target: str = "executable") -> None:
+        multiprocessing.set_start_method("fork", force=True)
         self.set_link_target(link_target)
         self._logger = logging.getLogger(__name__)
         self._site = None
