@@ -89,7 +89,7 @@ class PrerequisiteType(Enum):
 
     USE = auto()
     EXTERNAL = auto()
-    UM = (auto(),)
+    UM = auto()
     FORCED = auto()
 
 
