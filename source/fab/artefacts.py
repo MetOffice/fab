@@ -18,7 +18,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import auto, Enum
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Sequence, Union
 
 from fab.dep_tree import filter_source_tree, AnalysedDependent
 from fab.util import suffix_filter
@@ -115,8 +115,8 @@ class ArtefactStore(dict):
             self.add(dest, self[source])
 
     def replace(self, artefact: Union[str, ArtefactSet],
-                remove_files: list[Union[str, Path]],
-                add_files: Union[list[Union[str, Path]], dict]):
+                remove_files: Union[Sequence[str], Sequence[Path]],
+                add_files: Union[Sequence[str], Sequence[Path]]):
         '''Replaces artefacts in one artefact set with other artefacts. This
         can be used e.g to replace files that have been preprocessed
         and renamed. There is no requirement for these lists to have the
