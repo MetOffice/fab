@@ -170,13 +170,16 @@ class LoggingServer:
 
         if self._logfile is not None:
             formatter = Formatter(
-                "%(asctime)s:%(levelname)s:%(processName)s:%(name)s:%(message)s"
+                "%(asctime)s:%(levelname)s:%(processName)s:%(name)s:%(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
             )
             fh = FileHandler(filename=self._logfile)
             fh.setFormatter(formatter)
             handlers.append(fh)
 
-        formatter = Formatter("%(asctime)s %(levelname)-8s %(message)s")
+        formatter = Formatter(
+            "%(asctime)s %(levelname)-8s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
         sh = StreamHandler()
         sh.setFormatter(formatter)
         sh.addFilter(EventLogFilter(self._user_level, self._system_level))
