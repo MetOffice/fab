@@ -18,6 +18,7 @@ from fab.cui.arguments import full_path_type, FabArgumentParser
 import pytest
 from typing import Optional
 from pyfakefs.fake_filesystem import FakeFilesystem
+from unittest.mock import Mock
 
 
 class TestFullPathType:
@@ -123,6 +124,23 @@ class TestFabFile:
         assert isinstance(args, argparse.Namespace)
         assert args.file is None
 
+    def test_error_handling(self, monkeypatch):
+        """Check the ArgumentError exception handling."""
+
+        parser = FabArgumentParser()
+
+        def replacement(*args, **kwargs):
+            raise argparse.ArgumentError(
+                Mock(option_strings=["--test"]), "error testing"
+            )
+
+        monkeypatch.setattr(argparse.ArgumentParser, "parse_known_args", replacement)
+
+        args = parser.parse_fabfile_only([])
+        assert isinstance(args, argparse.Namespace)
+        assert args.file is None
+        assert args.zero_config
+
 
 class TestParser:
     """Test the core parser and its default options."""
@@ -214,7 +232,9 @@ class TestParser:
             pytest.param(
                 [], None, Path("fab-workspace").expanduser().resolve(), id="default"
             ),
-            pytest.param([], Path("/tmp/fab"), Path("/tmp/fab").resolve(), id="environment"),
+            pytest.param(
+                [], Path("/tmp/fab"), Path("/tmp/fab").resolve(), id="environment"
+            ),
             pytest.param(
                 ["--workspace", "/run/fab"],
                 Path("/tmp/fab"),
@@ -298,3 +318,86 @@ class TestParser:
         # Python 3.14 changes the behaviour, the output starts with
         # python -m pytest
         assert captured.out.startswith("fab ")
+
+    def test_error_handling(self, monkeypatch):
+        """Check the ArgumentError exception handling."""
+
+        parser = FabArgumentParser()
+
+        def replacement(*args, **kwargs):
+            return None, None
+
+        monkeypatch.setattr(argparse.ArgumentParser, "parse_args", replacement)
+
+        with pytest.raises(ValueError) as exc:
+            parser.parse_args(["--version"])
+        assert "invalid return value from wrapped function" in str(exc.value)
+
+
+class TestCompilerFlags:
+    """Test the compiler target flags."""
+
+    def test_defaults(self, monkeypatch):
+        """Test class default settings."""
+
+        if "CC" in os.environ:
+            monkeypatch.delenv("CC")
+        if "CXX" in os.environ:
+            monkeypatch.delenv("CXX")
+        if "FC" in os.environ:
+            monkeypatch.delenv("FC")
+
+        parser = FabArgumentParser()
+        args = parser.parse_args([])
+
+        assert args.cc == "gcc"
+        assert args.cxx == "g++"
+        assert args.fc == "gfortran"
+
+    @pytest.mark.parametrize(
+        "argv,env,cc,cxx,fc",
+        [
+            pytest.param(["--cc", "icc"], {}, "icc", "g++", "gfortran", id="cc flag"),
+            pytest.param(["--cxx", "icx"], {}, "gcc", "icx", "gfortran", id="cxx flag"),
+            pytest.param(["--fc", "ifx"], {}, "gcc", "g++", "ifx", id="fc flag"),
+            pytest.param([], {"CC": "icc"}, "icc", "g++", "gfortran", id="CC env"),
+            pytest.param([], {"CXX": "icx"}, "gcc", "icx", "gfortran", id="CXX env"),
+            pytest.param([], {"FC": "ifx"}, "gcc", "g++", "ifx", id="FC env"),
+            pytest.param(
+                ["--cc", "cc"],
+                {"CC": "icc"},
+                "cc",
+                "g++",
+                "gfortran",
+                id="cc flag+env",
+            ),
+            pytest.param(
+                ["--cxx", "CC"],
+                {"CXX": "icc"},
+                "gcc",
+                "CC",
+                "gfortran",
+                id="cxx flag+env",
+            ),
+            pytest.param(
+                ["--fc", "ftn"],
+                {"FC": "ifx"},
+                "gcc",
+                "g++",
+                "ftn",
+                id="FC flag+env",
+            ),
+        ],
+    )
+    def test_from_env(self, argv, env, cc, cxx, fc, monkeypatch):
+        """Check compiler settings and environment overrides."""
+
+        for key, value in env.items():
+            monkeypatch.setenv(key, value)
+
+        parser = FabArgumentParser()
+        args = parser.parse_args(argv)
+
+        assert args.cc == cc
+        assert args.cxx == cxx
+        assert args.fc == fc

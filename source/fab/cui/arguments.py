@@ -60,6 +60,7 @@ def _parser_wrapper(func: Callable) -> Callable:
             self._setup_needed = False
             self._add_location_group()
             self._add_output_group()
+            self._add_compiler_group()
             self._add_info_group()
 
         result = func(self, *args, **kwargs)
@@ -86,6 +87,11 @@ def _parser_wrapper(func: Callable) -> Callable:
 
 class FabArgumentParser(argparse.ArgumentParser):
     """Fab command argument parser."""
+
+    # Fallback compiler family names
+    _default_cc = "gcc"
+    _default_cxx = "g++"
+    _default_fc = "gfortran"
 
     def __init__(self, *args, **kwargs):
 
@@ -174,11 +180,40 @@ class FabArgumentParser(argparse.ArgumentParser):
         """Add informative options."""
 
         # Create an info group
-        group = self.add_argument_group("info arguments")
+        group = self.add_argument_group("fab info arguments")
 
         if "--version" not in self._option_string_actions:
             group.add_argument(
                 "--version", action="version", version=f"%(prog)s {self.version}"
+            )
+
+    def _add_compiler_group(self):
+        """Add compiler options."""
+
+        group = self.add_argument_group("fab compiler arguments")
+
+        if "--cc" not in self._option_string_actions:
+            group.add_argument(
+                "--cc",
+                type=str,
+                default=os.environ.get("CC", self._default_cc),
+                help="name of the C compiler (default: %(default)s)",
+            )
+
+        if "--cxx" not in self._option_string_actions:
+            group.add_argument(
+                "--cxx",
+                type=str,
+                default=os.environ.get("CXX", self._default_cxx),
+                help="name of the C++ compiler (default: %(default)s)",
+            )
+
+        if "--fc" not in self._option_string_actions:
+            group.add_argument(
+                "--fc",
+                type=str,
+                default=os.environ.get("FC", self._default_fc),
+                help="name of the Fortran compiler (default: %(default)s)",
             )
 
     def _configure_logging(self, namespace: argparse.Namespace) -> None:
