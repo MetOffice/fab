@@ -179,6 +179,11 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
         default="always_to_back",
         help="Experiment with queue strategy.",
     )
+    parser.add_argument(
+        "--two-pass-compiles",
+        action="store_true",
+        help="Enable two pass compilations.",
+    )
     options = parser.parse_args(arguments)
 
     if options.verbose is None:
@@ -349,6 +354,7 @@ def cli() -> None:
         configuration["queue_strategy"] = options.queue_strategy
         configuration["testing"] = options.testing
         configuration["worker_threads"] = options.jobs
+        configuration["two_pass_compiles"] = options.two_pass_compiles
 
         configuration["paths"] = WriteOnceDict()
         configuration["paths"]["work_dir"] = options.work_dir

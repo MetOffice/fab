@@ -523,17 +523,20 @@ class CompileFortran(SubprocessAction):
         source: ArtefactPath,
         prerequisites: Iterable[PrerequisiteInfo],
         database: Database,
+        syntax_only: bool = True,
     ):
         """
         :param source: Fortran source file.
         :param prerequisites: Dependencies needed to compile this file.
         :param database: Build system state and configuration.
+        :param syntax_only: Optionally compile to generate the module files.
         """
         # Todo: Shouldn't this action know it's own prerequisites?
         #
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
+        self._syntax_only = syntax_only
 
         extra_arguments: list[str] = []
         for case, tags in self._database.configuration["tag_dirs"].items():
@@ -555,6 +558,10 @@ class CompileFortran(SubprocessAction):
             "-std=f2008",
             "-ffree-line-length-none",
         ]
+
+        if self.first_pass:
+            arguments.append("-fsyntax-only")
+
         arguments.extend(os_environ["FFLAGS"].split())
         arguments.extend(extra_arguments)
 
@@ -626,7 +633,18 @@ class CompileFortran(SubprocessAction):
         :return: Error if the compilation failed.
         """
         self.run_subprocess()
+
+        if self.first_pass:
+            return [CompileFortran(self._source, [], self._database, False)]
         return []
+
+    @property
+    def first_pass(self):
+        """If two pass compiles are enabled and this is the first pass."""
+        return (
+            self._database.configuration.get("two_pass_compilation", False)
+            and self._syntax_only
+        )
 
 
 class LinkFortran(SubprocessAction):
