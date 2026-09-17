@@ -171,8 +171,8 @@ part of Fab, there is no need to explicitly add this yourself):
 The tool system allows several different tools to use the same name
 for the executable, as long as the Fab name is different, i.e. the
 `mpicc-{compiler.name}`. The tool
-repository will automatically add compiler wrapper for `mpicc` and
-`mpif90` for any compiler that is added by Fab. If you want to add
+repository will automatically add compiler wrapper for `mpicc`, `mpif90`
+and `mpifort` for any compiler that is added by Fab. If you want to add
 a new compiler, which can also be invoked using `mpicc`, you need
 to add a compiler wrapper as follows:
 
