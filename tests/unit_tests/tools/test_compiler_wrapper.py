@@ -17,6 +17,7 @@ from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.compiler_wrapper import (CompilerWrapper,
                                         CrayCcWrapper, CrayFtnWrapper,
                                         Mpicc, Mpif90)
+from fab.tools.profile_flags import ProfileFlags
 
 from tests.conftest import ExtendedRecorder, call_list, not_found_callback
 
@@ -315,9 +316,8 @@ def test_compiler_wrapper_flags_with_add_arg(stub_c_compiler: CCompiler,
                                              subproc_record: ExtendedRecorder):
     '''Tests that flags set in the base compiler will be accessed in the
     wrapper if also additional flags are specified.'''
+    ProfileFlags.define_profile('default', inherit_from='')
     mpicc = Mpicc(stub_c_compiler)
-    stub_c_compiler.define_profile('default', inherit_from="")
-    mpicc.define_profile('default', inherit_from="")
     # Due to inheritance, this will give "-a -b" for gcc
     stub_c_compiler.add_flags(['-a'])
     stub_c_compiler.add_flags(['-b'], 'default')

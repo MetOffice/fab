@@ -17,6 +17,7 @@ from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.linker import Linker
+from fab.tools.profile_flags import ProfileFlags
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 
@@ -176,10 +177,20 @@ def reset_tool_repository(stub_fortran_compiler):
     A fixture that resets the ToolRepository singleton
     (and esp. will remove existing compiler instance which
     might have had a state change in a test). It is automatically
-    applies to each function, to ensure all tests will execute
+    applied to each function, to ensure all tests will execute
     in parallel as well.
     """
     ToolRepository._singleton = None
+
+
+@fixture(scope="function", autouse=True)
+def reset_compilation_profiles(stub_fortran_compiler):
+    """
+    A fixture that resets the class variable in ProfileFlags. It is
+    automatically applied to each function, to ensure all tests will
+    execute as expected in parallel as well.
+    """
+    ProfileFlags._inherit_from = {"": ""}
 
 
 @fixture(scope='function')
