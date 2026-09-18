@@ -13,6 +13,12 @@ from fab.metrics import send_metric
 from fab.util import by_type, TimerLogger
 from functools import wraps
 
+# For python 3.14, switch explicitly back to the old-style
+# fork method for subprocesses (otherwise subprocesses will
+# not get class variables, which especially causes problems
+# with fparser).
+multiprocessing.set_start_method("fork", force=True)
+
 
 def step(func):
     """Function decorator for steps."""
