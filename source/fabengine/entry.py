@@ -180,6 +180,9 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
         help="Experiment with queue strategy.",
     )
     parser.add_argument(
+        "--save-archive", type=Path, help="save the work directory to an archive file."
+    )
+    parser.add_argument(
         "--two-pass-compiles",
         action="store_true",
         help="Enable two pass compilations.",
@@ -354,6 +357,7 @@ def cli() -> None:
         configuration["queue_strategy"] = options.queue_strategy
         configuration["testing"] = options.testing
         configuration["worker_threads"] = options.jobs
+        configuration["archive_path"] = options.save_archive
         configuration["two_pass_compiles"] = options.two_pass_compiles
 
         configuration["paths"] = WriteOnceDict()

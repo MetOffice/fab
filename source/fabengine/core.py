@@ -6,6 +6,7 @@ from queue import Queue
 from rich.console import Console  # type: ignore
 
 from fabengine.actions import Action, EndOfWorkException, WorkerException
+from fabengine.actions.archive import CreateArchive
 from fabengine.actions.configurator import RosePicker
 from fabengine.actions.sentinel import Sentinel
 from fabengine.configuration_tools import WriteOnceDict
@@ -144,6 +145,13 @@ def fab_core(configuration: WriteOnceDict):
                     print(f'"{action_str}", {tally[action_str]}', file=stream)
 
         database.artefact_store.dump_map()
+
+        if database.configuration["archive_path"] is not None:
+            user_logger.info(
+                "Creating archive %s", database.configuration["archive_path"]
+            )
+            archive = CreateArchive(database.configuration["archive_path"], database)
+            archive.perform()
 
         # todo: fix the proxy
         for artefact in database.artefact_store._getvalue():
