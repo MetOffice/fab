@@ -7,6 +7,7 @@ from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_file_location
 from inspect import getmembers, isclass
 from logging import DEBUG, INFO, WARNING
+from multiprocessing import set_start_method
 from pathlib import Path
 from sys import argv
 
@@ -345,6 +346,8 @@ def cli() -> None:
     """
     Command-line interface for Fab.
     """
+    # Required to prevent multiprocessing failures >= 3.14
+    set_start_method("fork")
     options = command_line()
 
     log_server = LoggingServer(
