@@ -17,7 +17,10 @@ from functools import wraps
 # fork method for subprocesses (otherwise subprocesses will
 # not get class variables, which especially causes problems
 # with fparser).
-multiprocessing.set_start_method("fork", force=True)
+try:
+    multiprocessing.set_start_method("fork")
+except RuntimeError:
+    pass
 
 
 def step(func):
