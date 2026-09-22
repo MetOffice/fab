@@ -6,7 +6,7 @@ from queue import Queue
 from rich.console import Console  # type: ignore
 
 from fabengine.actions import Action, EndOfWorkException, WorkerException
-from fabengine.actions.archive import CreateArchive
+from fabengine.actions.archive import CreateArchive, ExtractArchive
 from fabengine.actions.configurator import RosePicker
 from fabengine.actions.sentinel import Sentinel
 from fabengine.configuration_tools import WriteOnceDict
@@ -30,6 +30,10 @@ def fab_core(configuration: WriteOnceDict):
         database = Database(configuration, manager)
 
         work_queue = manager.WorkQueue(configuration["queue_strategy"])  # type:ignore
+
+        if configuration["extract_path"] is not None:
+            extract = ExtractArchive(database.configuration["extract_path"], database)
+            work_queue.new_action(extract)
 
         def hit_sentinel() -> None:
             database.reset_work_done()

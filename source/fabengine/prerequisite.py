@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fabengine.actions import Prerequisite
+from fabengine.actions.archive import METAFILE
 from fabengine.artefact_store import Artefact, ArtefactPath
 from fabengine.database import Database
 
@@ -219,3 +220,26 @@ class BooleanPrerequisite(Prerequisite):
         :return: Current value.
         """
         return self._value
+
+
+class ExtractArchivePrerequisite(Prerequisite):
+    """Prerequisite on extracted tar archive."""
+
+    def __init__(self, database: Database):
+        self._filename = database.configuration.get("extract_path", None)
+        self._database = database
+
+    def __str__(self) -> str:
+        if self._filename is None:
+            return "Prerequisite archive not enabled"
+
+        status = "has been" if self.ready() else "has not been"
+        return f"Prerequisite archive {status} extracted: <{self._filename!s}>"
+
+    def ready(self) -> bool:
+        if self._filename is None:
+            # Always true if there is no archive to extract
+            return True
+
+        metadata = Path(self._database.configuration["paths"]["work_dir"]) / METAFILE
+        return metadata.is_file()

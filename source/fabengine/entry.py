@@ -181,6 +181,11 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
         help="Experiment with queue strategy.",
     )
     parser.add_argument(
+        "--extract-archive",
+        type=Path,
+        help="populate the work directory from an archive file.",
+    )
+    parser.add_argument(
         "--save-archive", type=Path, help="save the work directory to an archive file."
     )
     parser.add_argument(
@@ -361,6 +366,7 @@ def cli() -> None:
         configuration["testing"] = options.testing
         configuration["worker_threads"] = options.jobs
         configuration["archive_path"] = options.save_archive
+        configuration["extract_path"] = options.extract_archive
         configuration["two_pass_compiles"] = options.two_pass_compiles
 
         configuration["paths"] = WriteOnceDict()

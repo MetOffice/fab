@@ -96,3 +96,52 @@ class CreateArchive(Action):
         info.type = REGTYPE
 
         return info, contents
+
+
+class ExtractArchive(Action):
+    """Action to extract an archive build into the work directory.
+
+    :param filename: Name of the tar file being extracted..
+    :param database: State and configuration database.
+    """
+
+    def __init__(self, filename: Path, database: Database):
+        super().__init__(f"extract {filename}")
+        self._filename = Path(filename)
+        self._database = database
+        self._work_dir = Path(database.configuration["paths"]["work_dir"])
+
+        # Remove any possible metafile as soon as possible
+        metafile = self._work_dir / METAFILE
+        if metafile.is_file():
+            metafile.unlink()
+
+    def prerequisites(self) -> Iterable[Prerequisite]:
+        """Action dependencies"""
+        return []
+
+    def perform(self) -> list[Action]:
+        """Extract the tar archive."""
+
+        with tar_open(self._filename, mode="r:*") as tarfile:
+            # Use the existence of METAFILE to validate the archive
+            # before anything is extracted
+            tarfile.getmember(METAFILE)
+
+            tarfile.extractall(filter=self._extract_filter)
+
+        return []
+
+    def _extract_filter(self, member: TarInfo, path: str) -> TarInfo | None:
+        """Extract archived items that do not exist already."""
+
+        if not (member.isfile() or member.isdir() or member.issym()):
+            # Do not extract any unusual file types
+            return None
+
+        dest = self._work_dir / member.name
+        if dest.exists():
+            # Ignore anything that already exists in the working directory
+            return None
+
+        return member.replace(name=str(dest))

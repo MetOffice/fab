@@ -17,7 +17,7 @@ from fabengine.artefact_store import ArtefactPath
 from fabengine.cui.status import set_ps_name
 from fabengine.database import Database
 from fabengine.logserver import make_logger
-from fabengine.prerequisite import RealFilePrerequisite
+from fabengine.prerequisite import ExtractArchivePrerequisite, RealFilePrerequisite
 from fabengine.project import Project
 
 
@@ -100,7 +100,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         """
         :return: No prerequisites.
         """
-        return []
+        return [ExtractArchivePrerequisite(self._database)]
 
     def local_copy(self) -> Path:
         """
@@ -160,7 +160,7 @@ class SourceOnGitAction(SubprocessAction, RepositoryAction):
         """
         :return: No prerequisites.
         """
-        return []
+        return [ExtractArchivePrerequisite(self._database)]
 
     def local_copy(self) -> Path:
         """
@@ -227,7 +227,7 @@ class SourceOnSubversionAction(SubprocessAction, RepositoryAction):
         """
         :return: No prerequisites.
         """
-        return []
+        return [ExtractArchivePrerequisite(self._database)]
 
     _PATH_PATTERN = re_compile(r"(.*?)/(trunk|branches|tags)/(/*)")
 
@@ -303,7 +303,10 @@ class SourceDirectory(Action):
         """
         :return: Depends on source directory.
         """
-        return [RealFilePrerequisite(self._source_dir)]
+        return [
+            RealFilePrerequisite(self._source_dir),
+            ExtractArchivePrerequisite(self._database),
+        ]
 
     @set_ps_name
     def perform(self) -> Generator[Action, None, list[Action]]:
