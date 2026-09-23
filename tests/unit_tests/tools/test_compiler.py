@@ -124,7 +124,6 @@ def test_compiler_path_specific_flags(stub_configuration,
     fc = stub_fortran_compiler
     # Make sure we can get a version number for the stub compiler:
     fc._version = (1, 2)
-    print(fc.name, fc.get_version())
 
     contain_flag = ContainFlags(pattern="myfile",
                                 flags=["-myflag"])

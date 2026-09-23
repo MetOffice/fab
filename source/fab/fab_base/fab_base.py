@@ -548,7 +548,9 @@ class FabBase:
             # profile in the site config file.
             if (self.args.profile and self.args.profile
                     not in self._site_config.get_valid_profiles()):
-                raise RuntimeError(f"Invalid profile '{self.args.profile}")
+                valid = self._site_config.get_valid_profiles()
+                raise RuntimeError(f"Invalid profile '{self.args.profile}'. "
+                                   f"Valid profiles are: \"{valid}\".")
 
         if self.args.suite:
             tr.set_default_compiler_suite(self.args.suite)

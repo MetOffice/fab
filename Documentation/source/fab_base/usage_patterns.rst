@@ -191,7 +191,7 @@ how a site can then add its own compilation profile:
         '''
         Determines the list of all allowed compiler profiles. Here we
         add one additional profile `memory-debug`. Note that the default
-        setup will automatically create that mode for any available compiler.
+        setup will automatically create that profile mode for all tools.
 
         :returns List[str]: list of all supported compiler profiles.
         '''

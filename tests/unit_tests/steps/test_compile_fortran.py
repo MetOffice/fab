@@ -100,11 +100,13 @@ class TestCompilePass:
                                       FlagList(),
                                       {},
                                       syntax_only=True)
-        uncompiled_result = compile_pass(config=config,
-                                         compiled=compiled,
-                                         uncompiled=uncompiled,
-                                         mod_hashes=mod_hashes,
-                                         mp_common_args=mp_common_args)
+        with warns(UserWarning,
+                   match="_metric_send_conn not set, cannot send metrics"):
+            uncompiled_result = compile_pass(config=config,
+                                             compiled=compiled,
+                                             uncompiled=uncompiled,
+                                             mod_hashes=mod_hashes,
+                                             mp_common_args=mp_common_args)
 
         assert Path('/fab/a.f90') not in compiled
         assert Path('/fab/b.f90') in compiled
@@ -446,10 +448,6 @@ class TestProcessFile:
         expect_object_fpath = Path(
             '/fab/proj/build_output/_prebuild/foofile.106dc4756.o'
         )
-        print("XX", res)
-        print("YY", analysed_file.fpath, expect_object_fpath)
-        # XX CompiledFile(foofile, /fab/proj/build_output/_prebuild/foofile.106dc4756.o)
-        # YY foofile /fab/proj/build_output/_prebuild/foofile.1ff6e93b3.o
         assert res == CompiledFile(input_fpath=analysed_file.fpath,
                                    output_fpath=expect_object_fpath)
         assert [call.args for call in record.calls] == [

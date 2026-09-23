@@ -123,26 +123,20 @@ for all compilers and linkers:
 
 .. code-block:: python
 
+    from fab.api import ProfileFlags
+
     def update_toolbox(self, build_config: BuildConfig) -> None:
 
-        for compiler in (tr[Category.C_COMPILER] +
-                         tr[Category.FORTRAN_COMPILER] +
-                         tr[Category.LINKER]):
-            compiler.define_profile("base", inherit_from="")
-            for profile in self.get_valid_profiles():
-                compiler.define_profile(profile, inherit_from="base")
+        ProfileFlags.define_profile("base")
+        for profile in self.get_valid_profiles():
+            ProfileFlags.define_profile(profile, inherit_from="base")
 
 This sets up a hierarchy where each of the valid compilation profiles
-inherits from a ``base`` profile. And they are defined for all
-compilers, even if they might not be available. This will make sure
-that using compilation modes work in a Fab compiler wrapper, since
-it is possible that the wrapped compiler is not available, i.e.
-not in ``$PATH``, but the wrapper is. Additionally, using
-``get_valid_profiles`` also means that any additional profiles defined
-from a derived class will automatically be created. If a different
-hierarchy is requested (e.g. ``memory-profile`` might want to inherit
-from ``full-debug``, this needs to be updated in the inheriting
-class).
+inherits from a ``base`` profile. Using ``get_valid_profiles`` also means
+that any additional profiles defined from a derived class will automatically
+be created. If a different hierarchy is requested (e.g. ``memory-profile``
+might want to inherit from ``full-debug``, this needs to be updated in the
+inheriting class).
 
 After the profiling modes, a ``default`` class should setup
 all compilers (including the various flags for the different
