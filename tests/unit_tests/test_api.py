@@ -33,6 +33,7 @@ def test_import_from_api() -> None:
         "compile_c",
         "compile_fortran",
         "c_pragma_injector",
+        "DependencyInfo",
         "Exclude",
         "fcm_export",
         "file_checksum",
