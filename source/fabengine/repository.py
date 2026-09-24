@@ -70,9 +70,9 @@ class FileTreeRepository(Repository):
 
     def __init__(
         self,
-        filename: str,
-        paths: dict[str, Path] | None = None,
-        projects: list[Project] | None = None,
+        filename: Path,
+        paths: dict[str, Path],
+        projects: list[Project],
     ):
         """
         :param filename: Location of source.

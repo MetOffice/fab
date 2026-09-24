@@ -79,19 +79,34 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
     Source tree is on disc.
     """
 
-    def __init__(self, remote: str, projects: list[Project], database: Database):
+    _REMOTE_PATTERN = re_compile(r"(\w+@)?\w+:")
+
+    def __init__(self, remote: Path, projects: list[Project], database: Database):
         """
         :param remote: Source of source in form [<hostname>:]<path>
         :param projects: Parts of the source tree to consider.
         :param database: Build system state and configuration.
         """
-        RepositoryAction.__init__(self, projects, database)
-        self._remote = remote
+        # In the past this action has supported remote paths. Although it
+        # continues to use rsync, we do not currently support remote paths.
+        #
+        match = self._REMOTE_PATTERN.match(str(remote))
+        if match:
+            raise NotImplementedError("Remote paths are not currently supporter.")
 
-        self._local = self._database.configuration["paths"]["work_dir"]
-        SubprocessAction.__init__(
-            self, Path("rsync"), ["-a", str(self._remote).rstrip("/"), str(self._local)]
-        )
+        RepositoryAction.__init__(self, projects, database)
+        self._remote = remote.resolve()
+        self._local = local = self._database.configuration["paths"][
+            "work_dir"
+        ].resolve()
+
+        arguments: list[str | Path] = []
+        if local.is_relative_to(self._remote):
+            arguments.append(f"--filter=- {local.relative_to(self._remote)}")
+        arguments.append("-a")
+        arguments.append(str(self._remote).rstrip("/"))  # Remote
+        arguments.append(local)
+        SubprocessAction.__init__(self, Path("rsync"), arguments)
 
     def __str__(self) -> str:
         return "Source from disc: " + str(self._remote)
@@ -106,8 +121,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         """
         :return: Path of local copy.
         """
-        filename = Path(self._remote.split(":")[-1])
-        return self._local / filename.name
+        return self._local / self._remote.name
 
     @set_ps_name
     def perform(self) -> list[Action]:
