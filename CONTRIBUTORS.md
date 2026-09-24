@@ -15,6 +15,7 @@ If you are not submitting contributions on behalf of an organisation please use
 | MatthewHambley  | Matthew Hambley | Met Office                       |
 | yaswant         | Yaswant Pradhan | Met Office                       |
 | hiker           | Joerg Henrichs  | Bureau of Meteorology, Australia |
+| t00sa           | Sam Clarke-Green | Met Office                      |
 
 ---
 
