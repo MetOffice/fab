@@ -73,10 +73,15 @@ class Action(ABC):
                            in its class. Often an input filename.
         """
         self._id = identifier
+        self._reused = False
 
     @property
     def action_id(self) -> str:
         return self._id
+
+    @property
+    def reused(self):
+        return self._reused
 
     @abstractmethod
     def prerequisites(self) -> Iterable[Prerequisite]:

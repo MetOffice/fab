@@ -193,6 +193,7 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
         action="store_true",
         help="Enable two pass compilations.",
     )
+    parser.add_argument("--metrics-csv", type=Path, help="Path to metrics CSV file.")
     options = parser.parse_args(arguments)
 
     if options.verbose is None:
@@ -368,6 +369,7 @@ def cli() -> None:
         configuration["archive_path"] = options.save_archive
         configuration["extract_path"] = options.extract_archive
         configuration["two_pass_compiles"] = options.two_pass_compiles
+        configuration["metrics_csv"] = options.metrics_csv
 
         configuration["paths"] = WriteOnceDict()
         configuration["paths"]["work_dir"] = options.work_dir

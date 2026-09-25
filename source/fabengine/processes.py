@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from multiprocessing import Process
 from queue import Queue
 from signal import SIG_DFL, SIGABRT, SIGINT, SIGTERM, signal
@@ -15,8 +14,9 @@ from fabengine.actions import (
     WorkerException,
 )
 from fabengine.cui.status import set_ps_name
-from fabengine.database import Database, Performance
+from fabengine.database import Database
 from fabengine.logserver import make_logger, make_loggers
+from fabengine.metrics import PerformanceTable, PerformanceTimer
 from fabengine.work_queue import Sentinel, WorkQueue
 
 
@@ -100,7 +100,7 @@ class WorkerProcess(Process, SignalHandler):
         result_queue: Queue[WorkerException],
         database: Database,
         sentinel_barrier,
-        performance: Performance,
+        performance: PerformanceTable,
     ):
         """
         :param work_queue: Queue to pull work from and push it to.
@@ -131,11 +131,13 @@ class WorkerProcess(Process, SignalHandler):
             #
             # Todo: Is there a better way to do this which doesn't involve a
             #       barrier?
-            action: Action = self._work_queue.pop()
+            with PerformanceTimer("__queue"):
+                action: Action = self._work_queue.pop()
 
             if isinstance(action, Sentinel):
                 try:
-                    barrier_id = self._sentinel_barrier.wait()
+                    with PerformanceTimer("__barrier"):
+                        barrier_id = self._sentinel_barrier.wait()
                     if barrier_id == 0:
                         self._work_queue.leave_barrier()
                         self._system_logger.info(
@@ -174,11 +176,9 @@ class WorkerProcess(Process, SignalHandler):
             try:
                 self._user_logger.debug("Performing: " + str(action))
                 try:
-                    start_time = datetime.now(tz=timezone.utc)
-                    resulting_actions = action.perform()
-                    self._performance.log_action(
-                        action, datetime.now(tz=timezone.utc) - start_time
-                    )
+                    with PerformanceTimer(action.__class__.__name__) as timer:
+                        resulting_actions = action.perform()
+                        timer.set_reuse(action.reused)
                     #
                     # An action is only considered "stalled" if it returns only
                     # itself.
@@ -200,6 +200,11 @@ class WorkerProcess(Process, SignalHandler):
                 self._system_logger.error("Exception in process: " + str(ex))
                 self._result_queue.put(ExceptionActionException(action, ex))
                 self._work_queue.stop()
+
+        # Add timings to the global performance table
+        for key, values in PerformanceTimer.items():
+            for measurement in values:
+                self._performance.add(self.name, key, measurement)
 
         # Release any workers waiting on a sentinel
         #

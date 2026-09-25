@@ -12,7 +12,7 @@ from fabengine.actions.sentinel import Sentinel
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.cui import format_file_details, show_errors, show_stalled_actions
 from fabengine.cui.status import set_ps_name
-from fabengine.database import Database, Performance, PrerequisiteInfo, PrerequisiteType
+from fabengine.database import Database, PrerequisiteInfo, PrerequisiteType
 from fabengine.logserver import make_logger
 from fabengine.manager import FabManager
 from fabengine.processes import MonitorProcess, SignalHandler, WorkerProcess
@@ -47,7 +47,7 @@ def fab_core(configuration: WriteOnceDict):
         sentinel_barrier = Barrier(configuration["worker_threads"], action=hit_sentinel)
 
         database.configuration["force_include_dir"] = []
-        performance = Performance(manager)
+        performance = manager.PerformanceTable()  # type:ignore
         result_queue: Queue[WorkerException] = manager.Queue()
         for repository in configuration["repositories"]:
             repo_action = repository.create_action(database)
@@ -149,6 +149,9 @@ def fab_core(configuration: WriteOnceDict):
                     print(f'"{action_str}", {tally[action_str]}', file=stream)
 
         database.artefact_store.dump_map()
+
+        if configuration["metrics_csv"] is not None:
+            performance.to_csv(configuration["metrics_csv"])
 
         if database.configuration["archive_path"] is not None:
             user_logger.info(

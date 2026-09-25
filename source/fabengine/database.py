@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from dataclasses import dataclass
-from datetime import timedelta
 from enum import Enum, auto
 from multiprocessing.managers import DictProxy, ListProxy, ValueProxy
 from pathlib import Path
 
-from fabengine.actions import Action
 from fabengine.artefact_store import ArtefactPath
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.manager import FabManager
@@ -192,58 +188,3 @@ class SymbolInfo:
         :return: Symbol declaration is here.
         """
         return self._source_file
-
-
-@dataclass
-class ActionTiming:
-    """
-    Record of one action run.
-    """
-
-    action: type[Action]
-    identifier: str
-    timing: timedelta
-
-    def __hash__(self):
-        return hash(self.action) + hash(self.timing)
-
-
-class Performance:
-    """
-    Tally of performance timings.
-    """
-
-    def __init__(self, manager: FabManager):
-        """
-        :param manager: Multiprocess shared data controller.
-        """
-        self._action_log: ListProxy[ActionTiming] = manager.list()
-
-    def log_action(self, action: Action, timing: timedelta):
-        """
-        Logs a timing for an action.
-
-        :param action: Timed action.
-        :param timing: Time taken for action.
-        """
-        self._action_log.append(ActionTiming(type(action), action.action_id, timing))
-
-    def aggregate_action_log(self) -> dict[str, timedelta]:
-        """
-        Gets a summary of total time taken for each action type.
-        """
-        result: dict[str, timedelta] = defaultdict(timedelta)
-        for item in self._action_log:
-            result[item.action.__name__] += item.timing
-        return dict(result)
-
-    # Todo: We might want more granular output, which is why ActionTiming
-    #       stores a unique identifier. If this is needed it will be important
-    #       to take into account that some actions are repeatedly requeued. In
-    #       those cases it will be important to accumulate their time.
-
-
-# Todo: We may need to consider some sort of output server to stream the log to
-#       disc. Possibly in buffered chunks to optimise disc access. The reason
-#       would be to reduce RAM usage for builds of large code bases requiring
-#       many actions.
