@@ -5,7 +5,8 @@ from collections.abc import Generator, Iterable
 from os import walk as os_walk
 from pathlib import Path
 from re import compile as re_compile
-from urllib.parse import urlparse
+from shlex import split as shsplit
+from subprocess import CompletedProcess
 
 from fabengine.actions import Action, Prerequisite, SubprocessAction, TwoPartPath
 from fabengine.actions.c import MapC
@@ -79,37 +80,31 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
     Source tree is on disc.
     """
 
-    _REMOTE_PATTERN = re_compile(r"(\w+@)?\w+:")
+    _REMOTE_PATTERN = re_compile(r"([\w\.]+@)?[\w\.]+:")
 
-    def __init__(self, remote: Path, projects: list[Project], database: Database):
+    def __init__(
+        self,
+        identity: str,
+        source: str | Path,
+        projects: list[Project],
+        database: Database,
+    ):
         """
         :param remote: Source of source in form [<hostname>:]<path>
         :param projects: Parts of the source tree to consider.
         :param database: Build system state and configuration.
         """
-        # In the past this action has supported remote paths. Although it
-        # continues to use rsync, we do not currently support remote paths.
-        #
-        match = self._REMOTE_PATTERN.match(str(remote))
-        if match:
-            raise NotImplementedError("Remote paths are not currently supporter.")
-
         RepositoryAction.__init__(self, projects, database)
-        self._remote = remote.resolve()
-        self._local = local = self._database.configuration["paths"][
-            "work_dir"
-        ].resolve()
 
-        arguments: list[str | Path] = []
-        if local.is_relative_to(self._remote):
-            arguments.append(f"--filter=- {local.relative_to(self._remote)}")
-        arguments.append("-a")
-        arguments.append(str(self._remote).rstrip("/"))  # Remote
-        arguments.append(local)
-        SubprocessAction.__init__(self, Path("rsync"), arguments)
+        self._source = source
+        self._identity = identity
+        self._dest = database.configuration["paths"]["work_dir"].resolve()
+        self._is_remote = self._REMOTE_PATTERN.match(str(source))
+
+        SubprocessAction.__init__(self, identification=f"Local source {identity} copy")
 
     def __str__(self) -> str:
-        return "Source from disc: " + str(self._remote)
+        return "Source from disc: " + str(self._source)
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -121,7 +116,7 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         """
         :return: Path of local copy.
         """
-        return self._local / self._remote.name
+        return self._dest / self._identity
 
     @set_ps_name
     def perform(self) -> list[Action]:
@@ -131,44 +126,49 @@ class SourceOnDiscAction(SubprocessAction, RepositoryAction):
         :return: Error result if copy fails, otherwise action to examine
                  freshly imported source.
         """
-        self.run_subprocess()
+
+        command = (
+            f"rsync -a {str(self._source).removesuffix('/')}/ {self.local_copy()} "
+        )
+
+        if not self._is_remote and Path(self._source).is_relative_to(self._dest):
+            command += f"--filter=- {self._dest.relative_to(self._source)} "
+
+        self.run_subprocess(additional_arguments=shsplit(command))
+
         return self.projects()
 
 
-class SourceOnGitAction(SubprocessAction, RepositoryAction):
+class RemoteGitAction(SubprocessAction, RepositoryAction):
     """
-    Source tree is held in a Git repository.
+    Source tree is a remotely held git repository, eg. on github
     """
 
-    def __init__(self, url: str, projects: list[Project], database: Database):
+    def __init__(
+        self,
+        identity: str,
+        source: str,
+        ref: str | None,
+        projects: list[Project],
+        database: Database,
+    ):
         """
-        :param url: URL for project's ``.git`` file.
+        :param identity: name of the repo
+        :param source: url to remote source
+        :param ref: git version control reference (eg. hash, tag, branch)
         :param projects: Subtrees of concern.
         :param database: Build system state and configuration.
         """
-        RepositoryAction.__init__(self, projects, database)  # Parent constructor
+        RepositoryAction.__init__(self, projects, database)
 
-        self._url = url
+        self._identity = identity
+        self._source = source
+        self._ref = ref
 
-        parse_result = urlparse(self._url)
-        self._scheme = parse_result.scheme
-        self._netloc = parse_result.netloc
-        self._path = parse_result.path
-
-        self._revision: str | None
-        self._branch: str | None
-        try:
-            _ = int(parse_result.fragment, 16)
-            self._revision = parse_result.fragment
-            self._branch = None
-        except ValueError:
-            self._revision = None
-            self._branch = parse_result.fragment
-
-        SubprocessAction.__init__(self, Path("git"))  # Parent constructor
+        SubprocessAction.__init__(self, identification=f"Remote Git Extract {identity}")
 
     def __str__(self) -> str:
-        return "Git repository: " + self._url
+        return "Remote Git repository: " + self._source
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -180,8 +180,7 @@ class SourceOnGitAction(SubprocessAction, RepositoryAction):
         """
         :return: Path of local copy.
         """
-        name = Path(self._path).stem
-        return self.database.configuration["paths"]["work_dir"] / name
+        return self.database.configuration["paths"]["work_dir"] / self._identity
 
     @set_ps_name
     def perform(self) -> list[Action]:
@@ -191,51 +190,62 @@ class SourceOnGitAction(SubprocessAction, RepositoryAction):
         :return: Error result if extraction fails, otherwise action to examine
                  freshly imported source.
         """
-        url = f"{self._scheme}://{self._netloc}{self._path}"
+
         repo_marker = self.local_copy() / ".git"
-        arguments: list[str | Path]
 
-        if repo_marker.is_dir():  # Repository is present
-            arguments = ["-C", self.local_copy()]
-            if self._revision is None:
-                arguments.append("pull")
-                self.run_subprocess(additional_arguments=arguments)
-                return self.projects()
-        else:  # Repository is missing
-            arguments = ["clone", "--depth=1"]
-            if self._branch:
-                arguments.append(f"--branch={self._branch}")
-            arguments.extend([url, self.local_copy()])
-            self.run_subprocess(additional_arguments=arguments)
+        if not repo_marker.is_dir():
+            self.run_subprocess(
+                additional_arguments=shsplit(
+                    f"git clone {self._source} {self.local_copy()} --depth=1"
+                )
+            )
 
-        if self._revision:
-            arguments = [
-                "-C",
-                self.local_copy(),
-                "fetch",
-                "--depth=1",
-                "origin",
-                self._revision,
-            ]
-            self.run_subprocess(additional_arguments=arguments)
-
-            arguments = ["-C", self.local_copy(), "checkout", self._revision]
-            self.run_subprocess(additional_arguments=arguments)
+        if self._ref:
+            self.run_subprocess(
+                additional_arguments=shsplit(
+                    f"git -C {self.local_copy()} fetch origin {self._ref} --depth=1"
+                )
+            )
+            self.run_subprocess(
+                additional_arguments=shsplit(
+                    f"git -C {self.local_copy()} checkout FETCH_HEAD"
+                )
+            )
 
         return self.projects()
 
 
-class SourceOnSubversionAction(SubprocessAction, RepositoryAction):
-    def __init__(self, url: str, projects: list[Project], database: Database):
-        RepositoryAction.__init__(self, projects, database)  # Parent constructor
+class LocalGitAction(SubprocessAction, RepositoryAction):
+    """
+    Source tree is a locally held git repository, either on this filesystem or and ssh
+    accessible filesystem
+    """
 
-        self._url = url
-        self._database = database
+    def __init__(
+        self,
+        identity: str,
+        source: str | Path,
+        ref: str | None,
+        projects: list[Project],
+        database: Database,
+    ):
+        """
+        :param identity: name of the repo
+        :param source: local source path (optionally with hostname)
+        :param ref: git version control reference (eg. hash, tag, branch)
+        :param projects: Subtrees of concern.
+        :param database: Build system state and configuration.
+        """
+        RepositoryAction.__init__(self, projects, database)
 
-        SubprocessAction.__init__(self, Path("svn"))  # Parent constructor
+        self._identity = identity
+        self._source = str(source)
+        self._ref = ref
+
+        SubprocessAction.__init__(self, identification=f"Local Git Extract {identity}")
 
     def __str__(self) -> str:
-        return "Subversion repository: " + self._url
+        return f"Local Git repository: {self._source}"
 
     def prerequisites(self) -> Iterable[Prerequisite]:
         """
@@ -243,22 +253,101 @@ class SourceOnSubversionAction(SubprocessAction, RepositoryAction):
         """
         return [ExtractArchivePrerequisite(self._database)]
 
-    _PATH_PATTERN = re_compile(r"(.*?)/(trunk|branches|tags)/(/*)")
+    def local_copy(self) -> Path:
+        """
+        :return: Path of local copy.
+        """
+        return self.database.configuration["paths"]["work_dir"] / self._identity
+
+    @set_ps_name
+    def perform(self) -> list[Action]:
+        """
+        Perform the extraction.
+
+        :return: Error result if extraction fails, otherwise action to examine
+                 freshly imported source.
+        """
+
+        try:
+            host, path = self._source.split(":", 1)
+        except ValueError:
+            host = None
+            path = self._source
+
+        # Populate a list of paths to ignore in the rsync based on the git ignore
+        # eg. Ignores command line build work/bin directories
+        exclude_paths = []
+        if host:
+            command = f"ssh {host} "
+        command += f"git -C {path} status --ignored -s"
+        result: CompletedProcess = self.run_subprocess(
+            additional_arguments=shsplit(command), output=True
+        )  # type: ignore
+        for ignore_file in result.stdout.split("\n"):
+            ignore_file = ignore_file.strip()
+            if not ignore_file.startswith("!!"):
+                continue
+            ignore_file = ignore_file.removeprefix("!!").strip()
+            exclude_paths.append(ignore_file)
+
+        # Trailing slash required for rsync - ensure we don't double up
+        command = f"rsync -a {self._source.removesuffix('/')}/ {self.local_copy()}"
+        for item in exclude_paths:
+            command += f" --exclude '{item}'"
+        self.run_subprocess(additional_arguments=shsplit(command))
+
+        if self._ref:
+            self.run_subprocess(
+                additional_arguments=shsplit(
+                    f"git -C {self.local_copy()} checkout {self._ref}"
+                )
+            )
+
+        return self.projects()
+
+
+class RemoteSVNAction(SubprocessAction, RepositoryAction):
+    def __init__(
+        self,
+        identity: str,
+        source: str,
+        ref: str | None,
+        projects: list[Project],
+        database: Database,
+    ):
+        """
+        :param identity: name of the repo
+        :param source: url to remote source
+        :param ref: git version control reference (eg. hash, tag, branch)
+        :param projects: Subtrees of concern.
+        :param database: Build system state and configuration.
+        """
+
+        RepositoryAction.__init__(self, projects, database)
+
+        self._identity = identity
+        self._source = source
+        self._ref = ref
+        self._database = database
+
+        SubprocessAction.__init__(
+            self, executable=Path("svn"), identification=f"SVN Extract {identity}"
+        )
+
+    def __str__(self) -> str:
+        return "Subversion repository: " + self._source
+
+    def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        :return: No prerequisites.
+        """
+        return []
 
     def local_copy(self) -> Path:
         """
         :return: Path of local copy.
         """
-        url_parts = urlparse(self._url)
-        match = self._PATH_PATTERN.match(url_parts.path)
-        if match:
-            path_head, _, _ = match.groups()
-            _, _, project_name = path_head.rpartition("/")
-        else:  # No match
-            raise NotImplementedError(
-                "Unable to cope with nonstandard repository layouts"
-            )
-        return self._database.configuration["paths"]["work_dir"] / project_name
+        return self._database.configuration["paths"]["work_dir"] / self._identity
 
     @set_ps_name
     def perform(self) -> list[Action]:
@@ -273,12 +362,11 @@ class SourceOnSubversionAction(SubprocessAction, RepositoryAction):
         if repo_marker.is_dir():  # Repository is present
             arguments = ["update", self.local_copy()]
         else:  # Repository is missing
-            parse_result = urlparse(self._url)
-            url = f"{parse_result.scheme}://{parse_result.netloc}{':' + str(parse_result.port) if parse_result.port else ''}{parse_result.path}"
-            arguments = ["checkout"]
-            if parse_result.fragment:
-                arguments.append(f"--branch={parse_result.fragment}")
-            arguments.extend([url, self.local_copy()])
+            if self._ref:
+                source = f"{self._source}@{self._ref}"
+            else:
+                source = self._source
+            arguments = ["checkout", source, self.local_copy()]
         self.run_subprocess(additional_arguments=arguments)
         return self.projects()
 

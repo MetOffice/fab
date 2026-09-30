@@ -1,12 +1,15 @@
 from abc import ABC
 from collections.abc import Iterable
+from pathlib import Path
 
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.repository import Repository
 
 
 class BuildScript(ABC):
-    def repositories(self) -> Iterable[Repository]:
+    def repositories(
+        self, dependencies_file: Path | str | None
+    ) -> Iterable[Repository]:
         return []
 
     def packages(self) -> list[str]:

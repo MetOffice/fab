@@ -132,7 +132,7 @@ class ExecutablePrerequisite(Prerequisite):
     Also fails if the file is missing.
     """
 
-    def __init__(self, filename: Path):
+    def __init__(self, filename: Path | None):
         self._filename = filename
 
     def __eq__(self, other: object) -> bool:
@@ -147,6 +147,8 @@ class ExecutablePrerequisite(Prerequisite):
         return f"Prerequisite file is{status} executable: {self._filename!s}"
 
     def ready(self) -> bool:
+        if not self._filename:
+            return False
         if not self._filename.exists():
             return False
         meta = self._filename.stat()

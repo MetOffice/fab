@@ -193,6 +193,12 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
         action="store_true",
         help="Enable two pass compilations.",
     )
+    parser.add_argument(
+        "-s",
+        "--dependencies-file",
+        type=Path,
+        help="Path to file containing repository source information.",
+    )
     parser.add_argument("--metrics-csv", type=Path, help="Path to metrics CSV file.")
     options = parser.parse_args(arguments)
 
@@ -390,7 +396,9 @@ def cli() -> None:
 
         build_script = instantiate_build_script(options.fabfile)
         process_packages(build_script, options.map_library, configuration)
-        configuration["repositories"] = build_script.repositories()
+        configuration["repositories"] = build_script.repositories(
+            options.dependencies_file
+        )
         configuration["forced_prerequisites"] = build_script.force_prerequisites()
         build_script.add_configuration(configuration)
 

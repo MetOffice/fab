@@ -3,9 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from pathlib import Path
-from subprocess import run
-from traceback import format_exception
+from subprocess import CompletedProcess, run
+from traceback import extract_stack, format_exception
 from typing import Any
+
+from fabengine.logserver import make_logger
 
 
 class TwoPartPath:
@@ -105,37 +107,41 @@ class Action(ABC):
 class SubprocessAction(Action, ABC):
     def __init__(
         self,
-        executable: Path,
+        executable: Path | None = None,
         arguments: Iterable[Any] | None = None,
+        identification: str | None = None,
         mpi: int | None = None,
     ):
         self._executable = executable
         self._arguments = arguments or []
-
         if mpi is None or mpi > 0:
             self._mpi = mpi
         else:  # mpi < 1
             raise ValueError("Number of MPI ranks must be 1 or greater.")
-
-        super().__init__(
-            f"{self._executable} {' '.join(str(arg) for arg in self._arguments)}"
-        )
+        if not identification:
+            identification = (
+                f"{self._executable} {' '.join(str(arg) for arg in self._arguments)}"
+            )
+        super().__init__(identification)
 
     @property
-    def executable(self) -> Path:
+    def executable(self) -> Path | None:
         return self._executable
 
     def run_subprocess(
         self,
         directory: Path | None = None,
         additional_arguments: Iterable[Any] | None = None,
-    ) -> None:
+        output=False,
+    ) -> None | CompletedProcess:
         command: list[str]
         if self._mpi:
             command = ["mpiexec", "-n", str(self._mpi)]
         else:
             command = []
-        command.append(str(self._executable))
+
+        if self._executable:
+            command.append(str(self._executable))
 
         for arg in self._arguments:
             command.append(str(arg))
@@ -143,16 +149,24 @@ class SubprocessAction(Action, ABC):
         for arg in additional_arguments or []:
             command.append(str(arg))
 
-        if directory is None:
-            process = run(command, check=False, capture_output=True, encoding="utf8")
-        else:
-            process = run(
-                command,
-                cwd=directory,
-                check=False,
-                capture_output=True,
-                encoding="utf8",
+        # Check that a command has been defined
+        if not command:
+            logger = make_logger("system")
+            logger.warning(
+                (
+                    "A run_subprocess action has been called, but no action defined",
+                    extract_stack(),
+                )
             )
+            return None
+
+        if directory:
+            process = run(
+                command, cwd=directory, capture_output=True, text=True, check=False
+            )
+        else:
+            process = run(command, capture_output=True, text=True, check=False)
+
         if process.returncode != 0:
             raise SubprocessActionException(
                 self,
@@ -161,6 +175,9 @@ class SubprocessAction(Action, ABC):
                 process.stdout,
                 process.stderr,
             )
+        if output:
+            return process
+        return None
 
 
 class WorkerException(BaseException, ABC):

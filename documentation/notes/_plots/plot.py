@@ -1,8 +1,8 @@
 from datetime import timedelta
 from math import floor
 
-from matplotlib.pyplot import show, subplots
 import numpy as np
+from matplotlib.pyplot import show, subplots
 
 
 def convert_timings_string(timings: list[str]) -> list[int]:
