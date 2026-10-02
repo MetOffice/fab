@@ -15,7 +15,7 @@ import sys
 
 from fab import __version__ as fab_version
 
-sys.path.insert(0, os.path.abspath('../../source'))
+sys.path.insert(0, os.path.abspath('../../../source'))
 
 
 # -- Project information -----------------------------------------------------
