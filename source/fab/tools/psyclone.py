@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the tool class for PSyclone.
-"""
+"""This file contains the tool class for PSyclone."""
 
 from pathlib import Path
 import re
@@ -18,8 +17,7 @@ from fab.tools.tool_with_flags import ToolWithFlags
 
 
 class Psyclone(ToolWithFlags):
-    '''This is the base class for `PSyclone`.
-    '''
+    """This is the base class for `PSyclone`."""
 
     Category.add("PSYCLONE")
 
@@ -28,10 +26,10 @@ class Psyclone(ToolWithFlags):
         self._version = None
 
     def check_available(self) -> bool:
-        '''This function determines if PSyclone is available. Additionally,
+        """This function determines if PSyclone is available. Additionally,
         it established the version, since command line option changes
         significantly from python 2.5.0 to the next release.
-        '''
+        """
 
         # First get the version (and confirm that PSyclone is installed):
         try:
@@ -44,31 +42,32 @@ class Psyclone(ToolWithFlags):
         exp = r"PSyclone version: (\d[\d.]+\d)"
         matches = re.search(exp, version_output)
         if not matches:
-            warnings.warn(f"Unexpected version information for PSyclone: "
-                          f"'{version_output}'.")
+            warnings.warn(
+                f"Unexpected version information for PSyclone: '{version_output}'."
+            )
             # If we don't recognise the version number, something is wrong
             return False
 
         # Now convert the version info to integer. The regular expression
         # match guarantees that we have integer numbers now:
-        self._version = tuple(int(x) for x in matches.groups()[0].split('.'))
+        self._version = tuple(int(x) for x in matches.groups()[0].split("."))
 
         return True
 
-    def process(self,
-                config: "BuildConfig",
-                x90_file: Path,
-                psy_file: Optional[Path] = None,
-                alg_file: Optional[Union[Path, str]] = None,
-                transformed_file: Optional[Path] = None,
-                transformation_script: Optional[Callable[[Path, "BuildConfig"],
-                                                         Path]] = None,
-                additional_parameters: Optional[list[str]] = None,
-                kernel_roots: Optional[list[Union[str, Path]]] = None,
-                api: Optional[str] = None,
-                ):
+    def process(
+        self,
+        config: "BuildConfig",
+        x90_file: Path,
+        psy_file: Optional[Path] = None,
+        alg_file: Optional[Union[Path, str]] = None,
+        transformed_file: Optional[Path] = None,
+        transformation_script: Optional[Callable[[Path, "BuildConfig"], Path]] = None,
+        additional_parameters: Optional[list[str]] = None,
+        kernel_roots: Optional[list[Union[str, Path]]] = None,
+        api: Optional[str] = None,
+    ):
         # pylint: disable=too-many-arguments, too-many-branches
-        '''Run PSyclone with the specified parameters. If PSyclone is used to
+        """Run PSyclone with the specified parameters. If PSyclone is used to
         transform existing Fortran files, `api` must be None, and the output
         file name is `transformed_file`. If PSyclone is using its DSL
         features, api must be a valid PSyclone API, and the two output
@@ -84,7 +83,7 @@ class Psyclone(ToolWithFlags):
         :param additional_parameters: optional additional parameters
             for PSyclone
         :param kernel_roots: optional directories with kernels.
-        '''
+        """
 
         if not self.is_available:
             raise RuntimeError("PSyclone is not available.")
@@ -97,24 +96,31 @@ class Psyclone(ToolWithFlags):
             # API specified, we need both psy- and alg-file, but not
             # transformed file.
             if not psy_file:
-                raise RuntimeError(f"PSyclone called with api '{api}', but "
-                                   f"no psy_file is specified.")
+                raise RuntimeError(
+                    f"PSyclone called with api '{api}', but no psy_file is specified."
+                )
             if not alg_file:
-                raise RuntimeError(f"PSyclone called with api '{api}', but "
-                                   f"no alg_file is specified.")
+                raise RuntimeError(
+                    f"PSyclone called with api '{api}', but no alg_file is specified."
+                )
             if transformed_file:
-                raise RuntimeError(f"PSyclone called with api '{api}' and "
-                                   f"transformed_file.")
+                raise RuntimeError(
+                    f"PSyclone called with api '{api}' and transformed_file."
+                )
         else:
             if psy_file:
-                raise RuntimeError("PSyclone called without api, but "
-                                   "psy_file is specified.")
+                raise RuntimeError(
+                    "PSyclone called without api, but psy_file is specified."
+                )
             if alg_file:
-                raise RuntimeError("PSyclone called without api, but "
-                                   "alg_file is specified.")
+                raise RuntimeError(
+                    "PSyclone called without api, but alg_file is specified."
+                )
             if not transformed_file:
-                raise RuntimeError("PSyclone called without api, but "
-                                   "transformed_file is not specified.")
+                raise RuntimeError(
+                    "PSyclone called without api, but "
+                    "transformed_file is not specified."
+                )
 
         parameters: list[Union[str, Path]] = []
         # If an api is defined in this call (or in the constructor) add it
@@ -125,20 +131,19 @@ class Psyclone(ToolWithFlags):
             if self._version >= (3, 0, 0):
                 api_param = "--psykal-dsl"
                 # Mapping from old names to new names:
-                mapping = {"dynamo0.3": "lfric",
-                           "gocean1.0": "gocean"}
+                mapping = {"dynamo0.3": "lfric", "gocean1.0": "gocean"}
             else:
                 api_param = "-api"
                 # Mapping from new names to old names:
-                mapping = {"lfric": "dynamo0.3",
-                           "gocean": "gocean1.0"}
+                mapping = {"lfric": "dynamo0.3", "gocean": "gocean1.0"}
             # Make mypy happy - we tested above that these variables
             # are defined
             assert psy_file
             assert alg_file
-            parameters.extend([api_param, mapping.get(api, api),
-                               "-opsy", psy_file, "-oalg", alg_file])
-        else:   # no api
+            parameters.extend(
+                [api_param, mapping.get(api, api), "-opsy", psy_file, "-oalg", alg_file]
+            )
+        else:  # no api
             # Make mypy happy - we tested above that transformed_file is
             # specified when no api is specified.
             assert transformed_file
@@ -151,16 +156,16 @@ class Psyclone(ToolWithFlags):
         parameters.extend(["-l", "all"])
 
         if transformation_script:
-            transformation_script_return_path = \
-                transformation_script(x90_file, config)
+            transformation_script_return_path = transformation_script(x90_file, config)
             if transformation_script_return_path:
-                parameters.extend(['-s', transformation_script_return_path])
+                parameters.extend(["-s", transformation_script_return_path])
 
         if additional_parameters:
             parameters.extend(additional_parameters)
         if kernel_roots:
-            roots_with_dash_d: list[str] = sum([['-d', str(k)]
-                                                for k in kernel_roots], [])
+            roots_with_dash_d: list[str] = sum(
+                [["-d", str(k)] for k in kernel_roots], []
+            )
             parameters.extend(roots_with_dash_d)
         parameters.append(str(x90_file))
 

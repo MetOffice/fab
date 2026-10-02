@@ -10,6 +10,7 @@ Most of the testing happens at the task level.
 
 ToDo: Messing with "private" members.
 """
+
 from typing import Optional
 
 from pytest import mark, raises
@@ -21,29 +22,30 @@ class TestRevision(object):
     """
     Tests handling of revisions.
     """
+
     @mark.parametrize(
-        ['url', 'expected'],
+        ["url", "expected"],
         [
-            ('http://example.net/repo', ('http://example.net/repo', None)),
-            ('http://example.net/repo@rev', ('http://example.net/repo', 'rev'))
-        ]
+            ("http://example.net/repo", ("http://example.net/repo", None)),
+            ("http://example.net/repo@rev", ("http://example.net/repo", "rev")),
+        ],
     )
-    def test_no_revision(self, url: str,
-                         expected: tuple[str, Optional[str]]) -> None:
+    def test_no_revision(self, url: str, expected: tuple[str, Optional[str]]) -> None:
         """
         Tests revision argument not given.
         """
         assert _get_revision(src=url) == expected
 
     @mark.parametrize(
-        ['url', 'revision', 'expected'],
+        ["url", "revision", "expected"],
         [
-            ('http://example.net/repo', 'rev', ('http://example.net/repo', 'rev')),
-            ('http://example.net/repo@rev', 'rev', ('http://example.net/repo', 'rev'))
-        ]
+            ("http://example.net/repo", "rev", ("http://example.net/repo", "rev")),
+            ("http://example.net/repo@rev", "rev", ("http://example.net/repo", "rev")),
+        ],
     )
-    def test_revision_param(self, url: str, revision: str,
-                            expected: tuple[str, Optional[str]]):
+    def test_revision_param(
+        self, url: str, revision: str, expected: tuple[str, Optional[str]]
+    ):
         """
         Tests revision argument given.
         """
@@ -54,4 +56,4 @@ class TestRevision(object):
         Tests mismatch between URL revision and argument.
         """
         with raises(ValueError):
-            assert _get_revision(src='url@rev', revision='bez')
+            assert _get_revision(src="url@rev", revision="bez")

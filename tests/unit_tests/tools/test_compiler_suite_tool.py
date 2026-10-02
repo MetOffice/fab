@@ -6,6 +6,7 @@
 """
 Tests tooling base classes.
 """
+
 import logging
 from pathlib import Path
 
@@ -17,8 +18,12 @@ def test_compiler_suite_toolconstructor() -> None:
     """
     Tests construction from argument list.
     """
-    tool = CompilerSuiteTool(name="gfortran", exec_name="gfortran",
-                             suite="gnu", category=Category.FORTRAN_COMPILER)
+    tool = CompilerSuiteTool(
+        name="gfortran",
+        exec_name="gfortran",
+        suite="gnu",
+        category=Category.FORTRAN_COMPILER,
+    )
     assert tool.suite == "gnu"
     assert str(tool) == "CompilerSuiteTool - gfortran: gfortran"
     assert tool.exec_name == "gfortran"

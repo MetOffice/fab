@@ -7,12 +7,12 @@
 Link an executable.
 
 """
+
 import logging
 from string import Template
 from typing import Optional
 
-from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
-                           CollectionGetter)
+from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, CollectionGetter
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import step
 from fab.tools.category import Category
@@ -28,16 +28,20 @@ class DefaultLinkerSource(ArtefactsGetter):
     a preceding object archive step.
 
     """
+
     def __call__(self, artefact_store: ArtefactStore):
-        return CollectionGetter(ArtefactSet.OBJECT_ARCHIVES)(artefact_store) \
-               or CollectionGetter(ArtefactSet.OBJECT_FILES)(artefact_store)
+        return CollectionGetter(ArtefactSet.OBJECT_ARCHIVES)(
+            artefact_store
+        ) or CollectionGetter(ArtefactSet.OBJECT_FILES)(artefact_store)
 
 
 @step
-def link_exe(config,
-             libs: Optional[list[str]] = None,
-             flags: Optional[list[str]] = None,
-             source: Optional[ArtefactsGetter] = None) -> None:
+def link_exe(
+    config,
+    libs: Optional[list[str]] = None,
+    flags: Optional[list[str]] = None,
+    source: Optional[ArtefactsGetter] = None,
+) -> None:
     """
     Link object files into an executable for every build target.
 
@@ -69,8 +73,9 @@ def link_exe(config,
         raise ValueError("No target objects defined, linking aborted")
 
     if config.tool_box.has(Category.LINKER):
-        linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
-                                          openmp=config.openmp)
+        linker = config.tool_box.get_tool(
+            Category.LINKER, mpi=config.mpi, openmp=config.openmp
+        )
     else:
         # The tool box does not contain a linker. Try to identify if we need
         # a Fortran- or C-based linker, depending on the main program.
@@ -84,30 +89,34 @@ def link_exe(config,
                 is_fortran = True
                 break
 
-        linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
-                                          openmp=config.openmp,
-                                          enforce_fortran_linker=is_fortran)
-    logger.info(f'Linker is {linker.name}')
+        linker = config.tool_box.get_tool(
+            Category.LINKER,
+            mpi=config.mpi,
+            openmp=config.openmp,
+            enforce_fortran_linker=is_fortran,
+        )
+    logger.info(f"Linker is {linker.name}")
 
     libs = libs or []
     flags = flags or []
 
     for root, objects in target_objects.items():
         if root.startswith("main@"):
-            root = root[len("main@"):]
-        exe_path = config.project_workspace / f'{root}'
-        linker.link(objects, exe_path, config=config, libs=libs,
-                    add_flags=flags)
+            root = root[len("main@") :]
+        exe_path = config.project_workspace / f"{root}"
+        linker.link(objects, exe_path, config=config, libs=libs, add_flags=flags)
         config.artefact_store.add(ArtefactSet.EXECUTABLES, exe_path)
 
 
 # todo: the bit about Dict[None, object_files] seems too obscure - try to
 # rethink this.
 @step
-def link_shared_object(config,
-                       output_fpath: str,
-                       flags: Optional[list[str]] = None,
-                       source: Optional[ArtefactsGetter] = None):
+def link_shared_object(
+    config,
+    output_fpath: str,
+    flags: Optional[list[str]] = None,
+    source: Optional[ArtefactsGetter] = None,
+):
     """
     Produce a shared object (*.so*) file from the given build target.
 
@@ -130,13 +139,14 @@ def link_shared_object(config,
         An optional :class:`~fab.artefacts.ArtefactsGetter`.
         Typically not required, as there is a sensible default.
     """
-    linker = config.tool_box.get_tool(Category.LINKER, mpi=config.mpi,
-                                      openmp=config.openmp)
-    logger.info(f'linker is {linker}')
+    linker = config.tool_box.get_tool(
+        Category.LINKER, mpi=config.mpi, openmp=config.openmp
+    )
+    logger.info(f"linker is {linker}")
 
     flags = flags or []
 
-    ensure_flags = ['-fPIC', '-shared']
+    ensure_flags = ["-fPIC", "-shared"]
     for f in ensure_flags:
         if f not in flags:
             flags.append(f)

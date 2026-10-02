@@ -7,6 +7,7 @@
 Pruning of old files from the incremental/prebuild folder.
 
 """
+
 import logging
 import os
 from datetime import timedelta, datetime
@@ -20,12 +21,16 @@ from fab.util import file_walk, get_prebuild_file_groups
 logger = logging.getLogger(__name__)
 
 
-CLEANUP_COUNT = 'cleanup_count'
+CLEANUP_COUNT = "cleanup_count"
 
 
 @step
 def cleanup_prebuilds(
-        config, older_than: Optional[timedelta] = None, n_versions: int = 0, all_unused: Optional[bool] = None):
+    config,
+    older_than: Optional[timedelta] = None,
+    n_versions: int = 0,
+    all_unused: Optional[bool] = None,
+):
     """
     A step to delete old files from the local incremental/prebuild folder.
 
@@ -52,7 +57,9 @@ def cleanup_prebuilds(
 
     # if we're doing a hard cleanup, there's no point providing the softer options
     if all_unused and (n_versions or older_than):
-        raise ValueError("n_versions or older_than should not be specified with all_unused")
+        raise ValueError(
+            "n_versions or older_than should not be specified with all_unused"
+        )
 
     num_removed = 0
 
@@ -60,34 +67,45 @@ def cleanup_prebuilds(
     prebuild_files = list(file_walk(config.prebuild_folder))
     current_prebuild = ArtefactSet.CURRENT_PREBUILDS
     if not prebuild_files:
-        logger.info('no prebuild files found')
+        logger.info("no prebuild files found")
 
     elif all_unused:
         num_removed = remove_all_unused(
             found_files=prebuild_files,
-            current_files=config.artefact_store[current_prebuild])
+            current_files=config.artefact_store[current_prebuild],
+        )
 
     else:
         # get the file access time for every artefact
-        prebuilds_ts = \
-            dict(zip(prebuild_files, run_mp(config, prebuild_files, get_access_time)))  # type: ignore
+        prebuilds_ts = dict(
+            zip(prebuild_files, run_mp(config, prebuild_files, get_access_time))
+        )  # type: ignore
 
         # work out what to delete
-        to_delete = by_age(older_than, prebuilds_ts,
-                           current_files=config.artefact_store[current_prebuild])
-        to_delete |= by_version_age(n_versions, prebuilds_ts,
-                                    current_files=config.artefact_store[current_prebuild])
+        to_delete = by_age(
+            older_than,
+            prebuilds_ts,
+            current_files=config.artefact_store[current_prebuild],
+        )
+        to_delete |= by_version_age(
+            n_versions,
+            prebuilds_ts,
+            current_files=config.artefact_store[current_prebuild],
+        )
 
         # delete them all
         run_mp(config, to_delete, os.remove)
         num_removed = len(to_delete)
 
-    logger.info(f'removed {num_removed} prebuild files')
+    logger.info(f"removed {num_removed} prebuild files")
     config.artefact_store[CLEANUP_COUNT] = num_removed
 
 
-def by_age(older_than: Optional[timedelta],
-           prebuilds_ts: dict[Path, datetime], current_files: Iterable[Path]) -> set[Path]:
+def by_age(
+    older_than: Optional[timedelta],
+    prebuilds_ts: dict[Path, datetime],
+    current_files: Iterable[Path],
+) -> set[Path]:
     to_delete = set()
 
     if older_than:
@@ -106,7 +124,9 @@ def by_age(older_than: Optional[timedelta],
     return to_delete
 
 
-def by_version_age(n_versions: int, prebuilds_ts: dict[Path, datetime], current_files: Iterable[Path]) -> set[Path]:
+def by_version_age(
+    n_versions: int, prebuilds_ts: dict[Path, datetime], current_files: Iterable[Path]
+) -> set[Path]:
     to_delete = set()
 
     if n_versions:

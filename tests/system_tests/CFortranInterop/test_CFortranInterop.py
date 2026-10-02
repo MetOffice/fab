@@ -21,27 +21,31 @@ from fab.steps.preprocess import preprocess_fortran, preprocess_c
 from fab.steps.root_inc_files import root_inc_files
 from fab.tools.tool_box import ToolBox
 
-clang = importorskip('clang', reason="Clang bindings not found.")
+clang = importorskip("clang", reason="Clang bindings not found.")
 
-PROJECT_SOURCE = Path(__file__).parent / 'project-source'
+PROJECT_SOURCE = Path(__file__).parent / "project-source"
 
 
 def test_CFortranInterop(tmp_path):
 
     # build
-    with BuildConfig(fab_workspace=tmp_path, project_label='foo',
-                     tool_box=ToolBox(), multiprocessing=False) as config:
+    with BuildConfig(
+        fab_workspace=tmp_path,
+        project_label="foo",
+        tool_box=ToolBox(),
+        multiprocessing=False,
+    ) as config:
         grab_folder(config, src=PROJECT_SOURCE)
         find_source_files(config)
         root_inc_files(config, suffix_list=[".h"])
         c_pragma_injector(config)
         preprocess_c(config)
         preprocess_fortran(config)
-        analyse(config, root_symbols='main@c_roundtrip')
-        compile_c(config, common_flags=['-c', '-std=c99'])
+        analyse(config, root_symbols="main@c_roundtrip")
+        compile_c(config, common_flags=["-c", "-std=c99"])
         with warns(UserWarning, match="Removing managed flag"):
-            compile_fortran(config, common_flags=['-c'])
-        link_exe(config, flags=['-lgfortran'])
+            compile_fortran(config, common_flags=["-c"])
+        link_exe(config, flags=["-lgfortran"])
         # todo: on an ubuntu vm, we needed these before the object files - investigate further
         # [
         #     '/lib/x86_64-linux-gnu/libc.so.6',
@@ -54,4 +58,4 @@ def test_CFortranInterop(tmp_path):
     command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output == ''.join(open(PROJECT_SOURCE / 'expected.exec.txt').readlines())
+    assert output == "".join(open(PROJECT_SOURCE / "expected.exec.txt").readlines())

@@ -15,8 +15,7 @@ from itertools import chain
 from pathlib import Path
 from typing import cast, Optional, Union
 
-from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
-                           FilterBuildTrees)
+from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, FilterBuildTrees
 from fab.build_config import BuildConfig
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
@@ -24,18 +23,25 @@ from fab.steps import check_for_errors, run_mp, step
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler
 from fab.tools.flags import FlagList
-from fab.util import (CompiledFile, log_or_dot_finish, log_or_dot, Timer,
-                      by_type, file_checksum)
+from fab.util import (
+    CompiledFile,
+    log_or_dot_finish,
+    log_or_dot,
+    Timer,
+    by_type,
+    file_checksum,
+)
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix=['.f', '.f90'])
+DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix=[".f", ".f90"])
 
 
 @dataclass
 class MpCommonArgs:
     """Arguments to be passed into the multiprocessing function,
     alongside the filenames."""
+
     config: BuildConfig
     flag_list: FlagList
     mod_hashes: dict[str, int]
@@ -43,10 +49,12 @@ class MpCommonArgs:
 
 
 @step
-def compile_fortran(config: BuildConfig,
-                    common_flags: Optional[list[str]] = None,
-                    path_flags: Optional[list] = None,
-                    source: Optional[ArtefactsGetter] = None):
+def compile_fortran(
+    config: BuildConfig,
+    common_flags: Optional[list[str]] = None,
+    path_flags: Optional[list] = None,
+    source: Optional[ArtefactsGetter] = None,
+):
     """
     Compiles all Fortran files in all build trees, creating/extending a set
     of compiled files for each build target.
@@ -87,28 +95,35 @@ def compile_fortran(config: BuildConfig,
     if len(uncompiled) == 0:
         return
 
-    compiler, flag_list = handle_compiler_args(config, common_flags,
-                                               path_flags)
+    compiler, flag_list = handle_compiler_args(config, common_flags, path_flags)
     # Set module output folder:
     compiler.set_module_output_path(config.build_output)
 
     syntax_only = compiler.has_syntax_only and config.two_stage
     # build the arguments passed to the multiprocessing function
     mp_common_args = MpCommonArgs(
-        config=config, flag_list=flag_list,
-        mod_hashes=mod_hashes, syntax_only=syntax_only)
+        config=config,
+        flag_list=flag_list,
+        mod_hashes=mod_hashes,
+        syntax_only=syntax_only,
+    )
 
     if syntax_only:
         logger.info("Starting two-stage compile: mod files, multiple passes")
     elif config.two_stage:
-        logger.info(f"Compiler {compiler.name} does not support syntax-only, "
-                    f"disabling two-stage compile.")
+        logger.info(
+            f"Compiler {compiler.name} does not support syntax-only, "
+            f"disabling two-stage compile."
+        )
 
     while uncompiled:
-        uncompiled = compile_pass(config=config, compiled=compiled,
-                                  uncompiled=uncompiled,
-                                  mp_common_args=mp_common_args,
-                                  mod_hashes=mod_hashes)
+        uncompiled = compile_pass(
+            config=config,
+            compiled=compiled,
+            uncompiled=uncompiled,
+            mp_common_args=mp_common_args,
+            mod_hashes=mod_hashes,
+        )
     log_or_dot_finish(logger)
 
     if syntax_only:
@@ -129,20 +144,21 @@ def compile_fortran(config: BuildConfig,
     store_artefacts(compiled, build_lists, config.artefact_store)
 
 
-def handle_compiler_args(config: BuildConfig,
-                         common_flags=None,
-                         path_flags=None) -> tuple[FortranCompiler, FlagList]:
+def handle_compiler_args(
+    config: BuildConfig, common_flags=None, path_flags=None
+) -> tuple[FortranCompiler, FlagList]:
 
     # Command line tools are sometimes specified with flags attached.
     compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER)
     if compiler.category != Category.FORTRAN_COMPILER:
-        raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
-                           f"'{compiler.category}' instead of FortranCompiler")
+        raise RuntimeError(
+            f"Unexpected tool '{compiler.name}' of category "
+            f"'{compiler.category}' instead of FortranCompiler"
+        )
     # The ToolBox returns a Tool. In order to make mypy happy, we need to
     # cast this to become a Compiler.
     compiler = cast(FortranCompiler, compiler)
-    logger.info(
-        f'Fortran compiler is {compiler} {compiler.get_version_string()}')
+    logger.info(f"Fortran compiler is {compiler} {compiler.get_version_string()}")
 
     # Collate the flags from 1) flags env and 2) parameters.
     common_flags = common_flags or []
@@ -151,23 +167,26 @@ def handle_compiler_args(config: BuildConfig,
     return compiler, flag_list
 
 
-def compile_pass(config, compiled: dict[Path, CompiledFile],
-                 uncompiled: set[AnalysedFortran],
-                 mp_common_args: MpCommonArgs, mod_hashes: dict[str, int]):
+def compile_pass(
+    config,
+    compiled: dict[Path, CompiledFile],
+    uncompiled: set[AnalysedFortran],
+    mp_common_args: MpCommonArgs,
+    mod_hashes: dict[str, int],
+):
     # what can we compile next?
     compile_next = get_compile_next(compiled, uncompiled)
 
     # compile
-    logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} "
-                f"remaining files")
+    logger.info(f"\ncompiling {len(compile_next)} of {len(uncompiled)} remaining files")
     mp_args = [(fpath, mp_common_args) for fpath in compile_next]
     results_this_pass = run_mp(config, items=mp_args, func=process_file)
 
     # there's a compilation result and a list of prebuild files for each
     # compiled file
-    compilation_results, prebuild_files = (zip(*results_this_pass)
-                                           if results_this_pass
-                                           else (tuple(), tuple()))
+    compilation_results, prebuild_files = (
+        zip(*results_this_pass) if results_this_pass else (tuple(), tuple())
+    )
     check_for_errors(compilation_results, caller_label="compile_pass")
     compiled_this_pass = list(by_type(compilation_results, CompiledFile))
     logger.debug(f"compiled {len(compiled_this_pass)} files")
@@ -188,19 +207,21 @@ def compile_pass(config, compiled: dict[Path, CompiledFile],
     return uncompiled
 
 
-def get_compile_next(compiled: dict[Path, CompiledFile],
-                     uncompiled: set[AnalysedFortran]) -> set[AnalysedFortran]:
-    '''Find what to compile next.
+def get_compile_next(
+    compiled: dict[Path, CompiledFile], uncompiled: set[AnalysedFortran]
+) -> set[AnalysedFortran]:
+    """Find what to compile next.
     :param compiled: A dictionary with already compiled files.
     :param uncompiled: The set of still to be compiled files.
     :returns: A set with all files that can now be compiled.
-    '''
+    """
     compile_next = set()
     not_ready: dict[Path, list[Path]] = {}
     for af in uncompiled:
         # all deps ready?
-        unfulfilled = [dep for dep in af.file_deps
-                       if dep not in compiled and dep.suffix == '.f90']
+        unfulfilled = [
+            dep for dep in af.file_deps if dep not in compiled and dep.suffix == ".f90"
+        ]
         if unfulfilled:
             not_ready[af.fpath] = unfulfilled
         else:
@@ -208,20 +229,22 @@ def get_compile_next(compiled: dict[Path, CompiledFile],
 
     # unable to compile anything?
     if len(uncompiled) and not compile_next:
-        msg = 'Nothing more can be compiled due to unfulfilled dependencies:\n'
+        msg = "Nothing more can be compiled due to unfulfilled dependencies:\n"
         for f, unf in not_ready.items():
-            msg += f'\n\n{f}'
+            msg += f"\n\n{f}"
             for u in unf:
-                msg += f'\n    {str(u)}'
+                msg += f"\n    {str(u)}"
 
         raise ValueError(msg)
 
     return compile_next
 
 
-def store_artefacts(compiled_files: dict[Path, CompiledFile],
-                    build_lists: dict[str, list],
-                    artefact_store: ArtefactStore):
+def store_artefacts(
+    compiled_files: dict[Path, CompiledFile],
+    build_lists: dict[str, list],
+    artefact_store: ArtefactStore,
+):
     """
     Create our artefact collection; object files for each compiled file, per
     root symbol.
@@ -234,8 +257,9 @@ def store_artefacts(compiled_files: dict[Path, CompiledFile],
         artefact_store.update_dict(ArtefactSet.OBJECT_FILES, new_objects, root)
 
 
-def process_file(arg: tuple[AnalysedFortran, MpCommonArgs]) \
-        -> Union[tuple[CompiledFile, list[Path]], tuple[Exception, None]]:
+def process_file(
+    arg: tuple[AnalysedFortran, MpCommonArgs],
+) -> Union[tuple[CompiledFile, list[Path]], tuple[Exception, None]]:
     """
     Prepare to compile a fortran file, and compile it if anything has changed
     since it was last compiled.
@@ -263,74 +287,87 @@ def process_file(arg: tuple[AnalysedFortran, MpCommonArgs]) \
     with Timer() as timer:
         analysed_file, mp_common_args = arg
         config = mp_common_args.config
-        compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER,
-                                            config.mpi)
+        compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER, config.mpi)
         if compiler.category != Category.FORTRAN_COMPILER:
-            raise RuntimeError(f"Unexpected tool '{compiler.name}' of "
-                               f"category '{compiler.category}' instead of "
-                               f"FortranCompiler")
+            raise RuntimeError(
+                f"Unexpected tool '{compiler.name}' of "
+                f"category '{compiler.category}' instead of "
+                f"FortranCompiler"
+            )
         # The ToolBox returns a Tool, but we need to tell mypy that
         # this is a FortranCompiler
         compiler = cast(FortranCompiler, compiler)
         flag_list = mp_common_args.flag_list
 
-        mod_combo_hash = _get_mod_combo_hash(config, analysed_file,
-                                             compiler=compiler)
-        obj_combo_hash = _get_obj_combo_hash(config, analysed_file,
-                                             mp_common_args=mp_common_args,
-                                             compiler=compiler,
-                                             flag_list=flag_list)
+        mod_combo_hash = _get_mod_combo_hash(config, analysed_file, compiler=compiler)
+        obj_combo_hash = _get_obj_combo_hash(
+            config,
+            analysed_file,
+            mp_common_args=mp_common_args,
+            compiler=compiler,
+            flag_list=flag_list,
+        )
 
         # calculate the incremental/prebuild artefact filenames
         obj_file_prebuild = (
-            mp_common_args.config.prebuild_folder /
-            f'{analysed_file.fpath.stem}.{obj_combo_hash:x}.o')
+            mp_common_args.config.prebuild_folder
+            / f"{analysed_file.fpath.stem}.{obj_combo_hash:x}.o"
+        )
         mod_file_prebuilds = [
-            (mp_common_args.config.prebuild_folder /
-             f'{mod_def}.{mod_combo_hash:x}.mod')
+            (
+                mp_common_args.config.prebuild_folder
+                / f"{mod_def}.{mod_combo_hash:x}.mod"
+            )
             for mod_def in analysed_file.module_defs
         ]
 
         # have we got all the prebuilt artefacts we need to avoid a recompile?
-        prebuilds_exist = list(map(lambda f: f.exists(),
-                                   [obj_file_prebuild] + mod_file_prebuilds))
+        prebuilds_exist = list(
+            map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds)
+        )
         if not all(prebuilds_exist):
             # compile
-            logger.debug(f'CompileFortran compiling {analysed_file.fpath}')
+            logger.debug(f"CompileFortran compiling {analysed_file.fpath}")
             flags = flag_list.get_flags(config, analysed_file.fpath)
             try:
-                compile_file(analysed_file.fpath, flags,
-                             output_fpath=obj_file_prebuild,
-                             mp_common_args=mp_common_args)
+                compile_file(
+                    analysed_file.fpath,
+                    flags,
+                    output_fpath=obj_file_prebuild,
+                    mp_common_args=mp_common_args,
+                )
             except Exception as err:
-                return Exception(f"Error compiling {analysed_file.fpath}:\n"
-                                 f"{err}"), None
+                return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
 
             # copy the mod files to the prebuild folder as artefacts for reuse
             # note: perhaps we could sometimes avoid these copies because mods
             # can change less frequently than obj
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
-                    mp_common_args.config.build_output / f'{mod_def}.mod',
-                    (mp_common_args.config.prebuild_folder /
-                     f'{mod_def}.{mod_combo_hash:x}.mod'),
+                    mp_common_args.config.build_output / f"{mod_def}.mod",
+                    (
+                        mp_common_args.config.prebuild_folder
+                        / f"{mod_def}.{mod_combo_hash:x}.mod"
+                    ),
                 )
 
         else:
-            log_or_dot(logger,
-                       f'CompileFortran using prebuild: {analysed_file.fpath}')
+            log_or_dot(logger, f"CompileFortran using prebuild: {analysed_file.fpath}")
 
             # copy the prebuilt mod files from the prebuild folder
             for mod_def in analysed_file.module_defs:
                 shutil.copy2(
-                    (mp_common_args.config.prebuild_folder
-                        / f'{mod_def}.{mod_combo_hash:x}.mod'),
-                    mp_common_args.config.build_output / f'{mod_def}.mod',
+                    (
+                        mp_common_args.config.prebuild_folder
+                        / f"{mod_def}.{mod_combo_hash:x}.mod"
+                    ),
+                    mp_common_args.config.build_output / f"{mod_def}.mod",
                 )
 
         # return the results
-        compiled_file = CompiledFile(input_fpath=analysed_file.fpath,
-                                     output_fpath=obj_file_prebuild)
+        compiled_file = CompiledFile(
+            input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild
+        )
         artefacts = [obj_file_prebuild] + mod_file_prebuilds
 
     metric_name = "compile fortran"
@@ -340,51 +377,59 @@ def process_file(arg: tuple[AnalysedFortran, MpCommonArgs]) \
     send_metric(
         group=metric_name,
         name=str(analysed_file.fpath),
-        value={'time_taken': timer.taken, 'start': timer.start})
+        value={"time_taken": timer.taken, "start": timer.start},
+    )
 
     return compiled_file, artefacts
 
 
-def _get_obj_combo_hash(config: BuildConfig,
-                        analysed_file: AnalysedFortran,
-                        mp_common_args: MpCommonArgs,
-                        compiler: Compiler,
-                        flag_list: FlagList):
+def _get_obj_combo_hash(
+    config: BuildConfig,
+    analysed_file: AnalysedFortran,
+    mp_common_args: MpCommonArgs,
+    compiler: Compiler,
+    flag_list: FlagList,
+):
     # get a combo hash of things which matter to the object file we define
     # todo: don't just silently use 0 for a missing dep hash
     mod_deps_hashes = {
         mod_dep: mp_common_args.mod_hashes.get(mod_dep, 0)
-        for mod_dep in analysed_file.module_deps}
+        for mod_dep in analysed_file.module_deps
+    }
     try:
-        obj_combo_hash = sum([
-            analysed_file.file_hash,
-            flag_list.checksum(config, analysed_file.fpath),
-            sum(mod_deps_hashes.values()),
-            compiler.get_hash(config, analysed_file.fpath),
-        ])
+        obj_combo_hash = sum(
+            [
+                analysed_file.file_hash,
+                flag_list.checksum(config, analysed_file.fpath),
+                sum(mod_deps_hashes.values()),
+                compiler.get_hash(config, analysed_file.fpath),
+            ]
+        )
     except TypeError as err:
-        raise ValueError("Could not generate combo hash "
-                         "for object file") from err
+        raise ValueError("Could not generate combo hash for object file") from err
     return obj_combo_hash
 
 
 def _get_mod_combo_hash(config, analysed_file, compiler: Compiler):
     # get a combo hash of things which matter to the mod files we define
     try:
-        mod_combo_hash = sum([
-            analysed_file.file_hash,
-            compiler.get_hash(config, analysed_file.fpath),
-        ])
+        mod_combo_hash = sum(
+            [
+                analysed_file.file_hash,
+                compiler.get_hash(config, analysed_file.fpath),
+            ]
+        )
     except TypeError as err:
-        raise ValueError("Could not generate combo "
-                         "hash for mod files") from err
+        raise ValueError("Could not generate combo hash for mod files") from err
     return mod_combo_hash
 
 
-def compile_file(input_fpath: Path,
-                 flags: list[str],
-                 output_fpath: Path,
-                 mp_common_args: MpCommonArgs) -> None:
+def compile_file(
+    input_fpath: Path,
+    flags: list[str],
+    output_fpath: Path,
+    mp_common_args: MpCommonArgs,
+) -> None:
     """
     Call the compiler.
 
@@ -400,15 +445,18 @@ def compile_file(input_fpath: Path,
     compiler = config.tool_box.get_tool(Category.FORTRAN_COMPILER)
     compiler = cast(FortranCompiler, compiler)
 
-    compiler.compile_file(input_file=input_fpath,
-                          output_file=output_fpath,
-                          config=config,
-                          add_flags=flags,
-                          syntax_only=mp_common_args.syntax_only)
+    compiler.compile_file(
+        input_file=input_fpath,
+        output_file=output_fpath,
+        config=config,
+        add_flags=flags,
+        syntax_only=mp_common_args.syntax_only,
+    )
 
 
-def get_mod_hashes(analysed_files: set[AnalysedFortran],
-                   config: BuildConfig) -> dict[str, int]:
+def get_mod_hashes(
+    analysed_files: set[AnalysedFortran], config: BuildConfig
+) -> dict[str, int]:
     """
     Get the hash of every module file defined in the list of analysed files.
 
@@ -416,7 +464,7 @@ def get_mod_hashes(analysed_files: set[AnalysedFortran],
     mod_hashes = {}
     for af in analysed_files:
         for mod_def in af.module_defs:
-            fpath: Path = config.build_output / f'{mod_def}.mod'
+            fpath: Path = config.build_output / f"{mod_def}.mod"
             mod_hashes[mod_def] = file_checksum(fpath).file_hash
 
     return mod_hashes

@@ -22,7 +22,7 @@ from fab.tools.category import Category
 
 
 class Tool:
-    '''This is the base class for all tools. It stores the name of the tool,
+    """This is the base class for all tools. It stores the name of the tool,
     the name of the executable, and provides a `run` method.
 
     :param name: name of the tool.
@@ -31,11 +31,15 @@ class Tool:
     :param availability_option: a command line option for the tool to test
         if the tool is available on the current system. Defaults to
         `--version`.
-    '''
+    """
 
-    def __init__(self, name: str, exec_name: Union[str, Path],
-                 category: Category = Category.MISC,
-                 availability_option: Optional[Union[str, list[str]]] = None):
+    def __init__(
+        self,
+        name: str,
+        exec_name: Union[str, Path],
+        category: Category = Category.MISC,
+        availability_option: Optional[Union[str, list[str]]] = None,
+    ):
         self._logger = logging.getLogger(__name__)
         self._name = name
         self._exec_path = Path(exec_name)
@@ -56,10 +60,10 @@ class Tool:
         self._is_available: Optional[bool] = None
 
     def check_available(self) -> bool:
-        '''Run a 'test' command to check if this tool is available in the
+        """Run a 'test' command to check if this tool is available in the
         system.
         :returns: whether the tool is working (True) or not.
-        '''
+        """
         try:
             self.run(self._availability_option)
         except (RuntimeError, FileNotFoundError):
@@ -67,74 +71,74 @@ class Tool:
         return True
 
     def set_full_path(self, full_path: Path):
-        '''This function adds the full path to a tool. This allows
+        """This function adds the full path to a tool. This allows
         tools to be used that are not in the user's PATH. The ToolRepository
         will automatically update the path for a tool if the user specified
         a full path.
 
         :param full_path: the full path to the executable.
-        '''
+        """
         self._exec_path = full_path
 
     @property
     def is_available(self) -> bool:
-        '''Checks if the tool is available or not. It will call a tool-specific
+        """Checks if the tool is available or not. It will call a tool-specific
         function check_available to determine this, but will cache the results
         to avoid testing a tool more than once.
 
         :returns: whether the tool is available (i.e. installed and
             working).
-        '''
+        """
         if self._is_available is None:
             self._is_available = self.check_available()
         return self._is_available
 
     @property
     def is_compiler(self) -> bool:
-        '''Returns whether this tool is a (Fortran or C) compiler or not.'''
+        """Returns whether this tool is a (Fortran or C) compiler or not."""
         return self._category.is_compiler
 
     @property
     def exec_path(self) -> Path:
-        ''':returns: the path of the executable.'''
+        """:returns: the path of the executable."""
         return self._exec_path
 
     @property
     def exec_name(self) -> str:
-        ''':returns: the name of the executable.'''
+        """:returns: the name of the executable."""
         return self.exec_path.name
 
     @property
     def name(self) -> str:
-        ''':returns: the name of the tool.'''
+        """:returns: the name of the tool."""
         return self._name
 
     @property
     def availability_option(self) -> Union[str, list[str]]:
-        ''':returns: the option to use to check if the tool is available.'''
+        """:returns: the option to use to check if the tool is available."""
         return self._availability_option
 
     @property
     def category(self) -> Category:
-        ''':returns: the category of this tool.'''
+        """:returns: the category of this tool."""
         return self._category
 
     @property
     def logger(self) -> logging.Logger:
-        ''':returns: a logger object for convenience.'''
+        """:returns: a logger object for convenience."""
         return self._logger
 
     def __str__(self):
-        '''Returns a name for this string.
-        '''
+        """Returns a name for this string."""
         return f"{type(self).__name__} - {self._name}: {self._exec_path}"
 
-    def run(self,
-            additional_parameters: Optional[
-                Union[str, Sequence[Union[Path, str]]]] = None,
-            env: Optional[dict[str, str]] = None,
-            cwd: Optional[Union[Path, str]] = None,
-            capture_output=True) -> str:
+    def run(
+        self,
+        additional_parameters: Optional[Union[str, Sequence[Union[Path, str]]]] = None,
+        env: Optional[dict[str, str]] = None,
+        cwd: Optional[Union[Path, str]] = None,
+        capture_output=True,
+    ) -> str:
         """
         Run the binary as a subprocess.
 
@@ -168,22 +172,22 @@ class Tool:
         # is available or not. Testing for `False` only means this `run`
         # function can be used to test if a tool is available.
         if self._is_available is False:
-            raise RuntimeError(f"Tool '{self.name}' is not available to run "
-                               f"'{command}'.")
-        self._logger.debug(f'run_command: {" ".join(command)}')
+            raise RuntimeError(
+                f"Tool '{self.name}' is not available to run '{command}'."
+            )
+        self._logger.debug(f"run_command: {' '.join(command)}")
         try:
-            res = subprocess.run(command, capture_output=capture_output,
-                                 env=env, cwd=cwd, check=False)
+            res = subprocess.run(
+                command, capture_output=capture_output, env=env, cwd=cwd, check=False
+            )
         except FileNotFoundError as err:
-            raise RuntimeError("Unable to execute command: "
-                               + str(command)) from err
+            raise RuntimeError("Unable to execute command: " + str(command)) from err
         if res.returncode != 0:
-            msg = (f'Command failed with return code {res.returncode}:\n'
-                   f'{command}')
+            msg = f"Command failed with return code {res.returncode}:\n{command}"
             if res.stdout:
-                msg += f'\n{res.stdout.decode()}'
+                msg += f"\n{res.stdout.decode()}"
             if res.stderr:
-                msg += f'\n{res.stderr.decode()}'
+                msg += f"\n{res.stderr.decode()}"
             raise RuntimeError(msg)
         if capture_output:
             return res.stdout.decode()

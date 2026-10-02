@@ -7,13 +7,13 @@
 C file compilation.
 
 """
+
 import logging
 from dataclasses import dataclass
 from typing import cast, Optional
 
 from fab import FabException
-from fab.artefacts import (ArtefactsGetter, ArtefactSet, ArtefactStore,
-                           FilterBuildTrees)
+from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, FilterBuildTrees
 from fab.build_config import AddFlags, BuildConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
@@ -25,22 +25,25 @@ from fab.util import CompiledFile, log_or_dot, Timer, by_type
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix='.c')
-DEFAULT_OUTPUT_ARTEFACT = ''
+DEFAULT_SOURCE_GETTER = FilterBuildTrees(suffix=".c")
+DEFAULT_OUTPUT_ARTEFACT = ""
 
 
 @dataclass
 class MpCommonArgs:
-    '''A simple class to pass arguments to subprocesses.'''
+    """A simple class to pass arguments to subprocesses."""
+
     config: BuildConfig
     flag_list: FlagList
 
 
 @step
-def compile_c(config: BuildConfig,
-              common_flags: Optional[list[str]] = None,
-              path_flags: Optional[list[AddFlags]] = None,
-              source: Optional[ArtefactsGetter] = None):
+def compile_c(
+    config: BuildConfig,
+    common_flags: Optional[list[str]] = None,
+    path_flags: Optional[list[AddFlags]] = None,
+    source: Optional[ArtefactsGetter] = None,
+):
     """
     Compiles all C files in all build trees, creating or extending a set of
     compiled files for each target.
@@ -83,16 +86,17 @@ def compile_c(config: BuildConfig,
         # No need to look for compiler etc if there is nothing to do
         return
 
-    compiler = config.tool_box.get_tool(Category.C_COMPILER, mpi=config.mpi,
-                                        openmp=config.openmp)
-    logger.info(f'C compiler is {compiler}')
+    compiler = config.tool_box.get_tool(
+        Category.C_COMPILER, mpi=config.mpi, openmp=config.openmp
+    )
+    logger.info(f"C compiler is {compiler}")
 
     mp_payload = MpCommonArgs(config=config, flag_list=flag_list)
     mp_items = [(fpath, mp_payload) for fpath in to_compile]
 
     # compile everything in one go
     compilation_results = run_mp(config, items=mp_items, func=_compile_file)
-    check_for_errors(compilation_results, caller_label='compile c')
+    check_for_errors(compilation_results, caller_label="compile c")
     compiled_c = list(by_type(compilation_results, CompiledFile))
     logger.info(f"compiled {len(compiled_c)} c files")
 
@@ -106,9 +110,11 @@ def compile_c(config: BuildConfig,
 
 
 # todo: very similar code in fortran compiler
-def store_artefacts(compiled_files: list[CompiledFile],
-                    build_lists: dict[str, list],
-                    artefact_store: ArtefactStore):
+def store_artefacts(
+    compiled_files: list[CompiledFile],
+    build_lists: dict[str, list],
+    artefact_store: ArtefactStore,
+):
     """
     Create our artefact collection; object files for each compiled file,
     per root symbol.
@@ -127,54 +133,58 @@ def _compile_file(arg: tuple[AnalysedC, MpCommonArgs]):
     config = mp_payload.config
     compiler = config.tool_box.get_tool(Category.C_COMPILER)
     if compiler.category != Category.C_COMPILER:
-        raise RuntimeError(f"Unexpected tool '{compiler.name}' of category "
-                           f"'{compiler.category}' instead of CCompiler")
+        raise RuntimeError(
+            f"Unexpected tool '{compiler.name}' of category "
+            f"'{compiler.category}' instead of CCompiler"
+        )
     # Tool box returns a Tool, in order to make mypy happy, we need
     # to cast it to be a Compiler.
     compiler = cast(Compiler, compiler)
     with Timer() as timer:
         flag_list = mp_payload.flag_list
-        obj_combo_hash = _get_obj_combo_hash(config, compiler,
-                                             analysed_file, flag_list)
+        obj_combo_hash = _get_obj_combo_hash(config, compiler, analysed_file, flag_list)
 
-        obj_file_prebuild = (config.prebuild_folder /
-                             f'{analysed_file.fpath.stem}.'
-                             f'{obj_combo_hash:x}.o')
+        obj_file_prebuild = (
+            config.prebuild_folder / f"{analysed_file.fpath.stem}.{obj_combo_hash:x}.o"
+        )
 
         # prebuild available?
         if obj_file_prebuild.exists():
-            log_or_dot(logger, f'CompileC using prebuild: '
-                               f'{analysed_file.fpath}')
+            log_or_dot(logger, f"CompileC using prebuild: {analysed_file.fpath}")
         else:
             obj_file_prebuild.parent.mkdir(parents=True, exist_ok=True)
-            log_or_dot(logger, f'CompileC compiling {analysed_file.fpath}')
+            log_or_dot(logger, f"CompileC compiling {analysed_file.fpath}")
             flags = flag_list.get_flags(config, analysed_file.fpath)
             try:
-                compiler.compile_file(analysed_file.fpath, obj_file_prebuild,
-                                      config=config,
-                                      add_flags=flags)
+                compiler.compile_file(
+                    analysed_file.fpath,
+                    obj_file_prebuild,
+                    config=config,
+                    add_flags=flags,
+                )
             except RuntimeError as err:
-                return FabException(f"error compiling "
-                                    f"{analysed_file.fpath}:\n{err}")
+                return FabException(f"error compiling {analysed_file.fpath}:\n{err}")
 
     send_metric(
         group="compile c",
         name=str(analysed_file.fpath),
-        value={'time_taken': timer.taken, 'start': timer.start})
-    return CompiledFile(input_fpath=analysed_file.fpath,
-                        output_fpath=obj_file_prebuild)
+        value={"time_taken": timer.taken, "start": timer.start},
+    )
+    return CompiledFile(input_fpath=analysed_file.fpath, output_fpath=obj_file_prebuild)
 
 
-def _get_obj_combo_hash(config: BuildConfig,
-                        compiler: Compiler, analysed_file, flags: FlagList):
+def _get_obj_combo_hash(
+    config: BuildConfig, compiler: Compiler, analysed_file, flags: FlagList
+):
     # get a combo hash of things which matter to the object file we define
     try:
-        obj_combo_hash = sum([
-            analysed_file.file_hash,
-            flags.checksum(config, analysed_file.fpath),
-            compiler.get_hash(config, analysed_file.fpath),
-        ])
+        obj_combo_hash = sum(
+            [
+                analysed_file.file_hash,
+                flags.checksum(config, analysed_file.fpath),
+                compiler.get_hash(config, analysed_file.fpath),
+            ]
+        )
     except TypeError as err:
-        raise ValueError("could not generate combo hash for "
-                         "object file") from err
+        raise ValueError("could not generate combo hash for object file") from err
     return obj_combo_hash

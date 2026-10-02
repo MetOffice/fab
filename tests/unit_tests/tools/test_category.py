@@ -26,7 +26,7 @@ def test_duplicate_categories():
 
 
 def test_category():
-    '''Tests the categories.'''
+    """Tests the categories."""
     # Make sure that str of a category only prints the name (which is more
     # useful for error messages).
     for cat in list(Category):
@@ -34,7 +34,7 @@ def test_category():
 
 
 def test_is_compiler():
-    '''Tests that compiler correctly sets the `is_compiler` property.'''
+    """Tests that compiler correctly sets the `is_compiler` property."""
     for cat in Category:
         if cat in [Category.FORTRAN_COMPILER, Category.C_COMPILER]:
             assert cat.is_compiler

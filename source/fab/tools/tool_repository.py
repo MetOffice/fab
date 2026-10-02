@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''This file contains the ToolRepository class.
-'''
+"""This file contains the ToolRepository class."""
 
 # We can't declare _singleton and __new__() using ToolRepository, but
 # it is allowed if we use this import:
@@ -18,14 +17,29 @@ from typing import cast, Optional, Union
 from fab.tools.tool import Tool
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler
-from fab.tools.compiler_wrapper import (CompilerWrapper, CrayCcWrapper,
-                                        CrayFtnWrapper, Mpif90, Mpicc)
+from fab.tools.compiler_wrapper import (
+    CompilerWrapper,
+    CrayCcWrapper,
+    CrayFtnWrapper,
+    Mpif90,
+    Mpicc,
+)
 from fab.tools.linker import Linker
 from fab.tools.versioning import Fcm, Git, Subversion
 from fab.tools.ar import Ar
 from fab.tools.preprocessor import Cpp, CppFortran
-from fab.tools.compiler import (Craycc, Crayftn, Gcc, Gfortran, Icc, Icx,
-                                Ifort, Ifx, Nvc, Nvfortran)
+from fab.tools.compiler import (
+    Craycc,
+    Crayftn,
+    Gcc,
+    Gfortran,
+    Icc,
+    Icx,
+    Ifort,
+    Ifx,
+    Nvc,
+    Nvfortran,
+)
 from fab.tools.pfunit import PfUnit
 from fab.tools.psyclone import Psyclone
 from fab.tools.rsync import Rsync
@@ -33,18 +47,18 @@ from fab.tools.shell import Shell
 
 
 class ToolRepository(dict):
-    '''This class implements the tool repository. It stores a list of
+    """This class implements the tool repository. It stores a list of
     tools for various categories. For each compiler, it will automatically
     create a tool called "linker-{compiler-name}" which can be used for
     linking with the specified compiler.
-    '''
+    """
 
     _singleton: None | ToolRepository = None
 
     def __new__(cls) -> ToolRepository:
-        '''Singleton access. Changes the value of _singleton so that the
+        """Singleton access. Changes the value of _singleton so that the
         constructor can verify that it is indeed called from here.
-        '''
+        """
         if not cls._singleton:
             cls._singleton = super().__new__(cls)
 
@@ -70,12 +84,27 @@ class ToolRepository(dict):
         # TODO: sort the defaults so that they actually work (since not all
         # tools FAB knows about are available). For now, disable Fpp (by not
         # adding it). If someone actually uses it it can added.
-        for cls in [Craycc, Crayftn,
-                    Gcc, Gfortran,
-                    Icc, Icx, Ifort, Ifx,
-                    Nvc, Nvfortran,
-                    Cpp, CppFortran,
-                    Ar, Fcm, Git, PfUnit, Psyclone, Rsync, Subversion]:
+        for cls in [
+            Craycc,
+            Crayftn,
+            Gcc,
+            Gfortran,
+            Icc,
+            Icx,
+            Ifort,
+            Ifx,
+            Nvc,
+            Nvfortran,
+            Cpp,
+            CppFortran,
+            Ar,
+            Fcm,
+            Git,
+            PfUnit,
+            Psyclone,
+            Rsync,
+            Subversion,
+        ]:
             self.add_tool(cls())
 
         # Add a standard shell. Additional shells (bash, ksh, dash)
@@ -108,12 +137,12 @@ class ToolRepository(dict):
                 self.add_tool(craycc)
 
     def add_tool(self, tool: Tool):
-        '''Creates an instance of the specified class and adds it
+        """Creates an instance of the specified class and adds it
         to the tool repository. If the tool is a compiler, it automatically
         adds the compiler as a linker as well (named "linker-{tool.name}").
 
         :param tool: the tool to add.
-        '''
+        """
 
         # We do not test if a tool is actually available. The ToolRepository
         # contains the tools that FAB knows about. It is the responsibility
@@ -134,20 +163,19 @@ class ToolRepository(dict):
                 # linker for this compiler was already created and must
                 # exist).
                 other_linker = self.get_tool(
-                    category=Category.LINKER,
-                    name=f"linker-{compiler.compiler.name}")
+                    category=Category.LINKER, name=f"linker-{compiler.compiler.name}"
+                )
                 other_linker = cast(Linker, other_linker)
-                linker = Linker(compiler,
-                                linker=other_linker,
-                                name=f"linker-{compiler.name}")
+                linker = Linker(
+                    compiler, linker=other_linker, name=f"linker-{compiler.name}"
+                )
                 self[linker.category].append(linker)
             else:
-                linker = Linker(compiler=compiler,
-                                name=f"linker-{compiler.name}")
+                linker = Linker(compiler=compiler, name=f"linker-{compiler.name}")
                 self[linker.category].append(linker)
 
     def get_tool(self, category: Category, name: str) -> Tool:
-        '''This functions returns a tool with a given name. The name can
+        """This functions returns a tool with a given name. The name can
         either be a Fab compiler name (including wrapper naming), e.g.
         mpif90-gfortran, or linker-mpif90-ifort, or just the name of the
         executable (mpif90). If a Fab name is specified, the corresponding
@@ -176,11 +204,12 @@ class ToolRepository(dict):
         :raises KeyError: if there is no tool in this category.
         :raises KeyError: if no tool in the given category has the
             requested name.
-        '''
+        """
 
         if category not in self:
-            raise KeyError(f"Unknown category '{category}' "
-                           f"in ToolRepository.get_tool().")
+            raise KeyError(
+                f"Unknown category '{category}' in ToolRepository.get_tool()."
+            )
 
         path_name = Path(name)
         all_tools = self[category]
@@ -208,8 +237,9 @@ class ToolRepository(dict):
                 if tool.is_available:
                     return tool
 
-        raise KeyError(f"Unknown tool '{name}' in category '{category}' "
-                       f"in ToolRepository.")
+        raise KeyError(
+            f"Unknown tool '{name}' in category '{category}' in ToolRepository."
+        )
 
     def set_default_compiler_suite(self, suite: str):
         """
@@ -218,24 +248,28 @@ class ToolRepository(dict):
 
         :param suite: the name of the compiler suite to make the default.
         """
-        for category in [Category.FORTRAN_COMPILER, Category.C_COMPILER,
-                         Category.LINKER]:
+        for category in [
+            Category.FORTRAN_COMPILER,
+            Category.C_COMPILER,
+            Category.LINKER,
+        ]:
             # Now sort the tools in this category to have all tools with the
             # right suite at the front. We use the stable sorted function with
             # the key being tool.suite != suite --> all tools with the right
             # suite use False as key, all other tools True. Since False < True
             # this results in all suite tools to be at the front of the list
-            self[category] = sorted(self[category],
-                                    key=lambda x: x.suite != suite)
+            self[category] = sorted(self[category], key=lambda x: x.suite != suite)
             if len(self[category]) > 0 and self[category][0].suite != suite:
-                raise RuntimeError(f"Cannot find '{category}' "
-                                   f"in the suite '{suite}'.")
+                raise RuntimeError(f"Cannot find '{category}' in the suite '{suite}'.")
 
-    def get_default(self, category: Category,
-                    mpi: Optional[bool] = None,
-                    openmp: Optional[bool] = None,
-                    enforce_fortran_linker: Optional[bool] = None) -> Tool:
-        '''Returns the default tool for a given category that is available.
+    def get_default(
+        self,
+        category: Category,
+        mpi: Optional[bool] = None,
+        openmp: Optional[bool] = None,
+        enforce_fortran_linker: Optional[bool] = None,
+    ) -> Tool:
+        """Returns the default tool for a given category that is available.
         For most tools that will be the first entry in the list of tools. The
         exception are compilers and linker: in this case it must be specified
         if MPI support is required or not. And the default return will be
@@ -254,11 +288,10 @@ class ToolRepository(dict):
             available on the system.
         :raises RuntimeError: if no compiler/linker is found with the
             requested level of MPI support (yes or no).
-        '''
+        """
 
         if not isinstance(category, Category):
-            raise RuntimeError(f"Invalid category type "
-                               f"'{type(category).__name__}'.")
+            raise RuntimeError(f"Invalid category type '{type(category).__name__}'.")
 
         tool: Tool
         # If not a compiler or linker, return the first tool
@@ -267,24 +300,28 @@ class ToolRepository(dict):
                 if tool.is_available:
                     return tool
             tool_names = ",".join(i.name for i in self[category])
-            raise RuntimeError(f"Can't find available '{category}' tool. "
-                               f"Tools are '{tool_names}'.")
+            raise RuntimeError(
+                f"Can't find available '{category}' tool. Tools are '{tool_names}'."
+            )
 
         if not isinstance(mpi, bool):
-            raise RuntimeError(f"Invalid or missing mpi specification "
-                               f"for '{category}'.")
+            raise RuntimeError(
+                f"Invalid or missing mpi specification for '{category}'."
+            )
 
         if not isinstance(openmp, bool):
-            raise RuntimeError(f"Invalid or missing openmp specification "
-                               f"for '{category}'.")
+            raise RuntimeError(
+                f"Invalid or missing openmp specification for '{category}'."
+            )
 
-        if (category is Category.LINKER and
-                not isinstance(enforce_fortran_linker, bool)):
-            raise RuntimeError(f"Invalid or missing enforce_fortran_linker "
-                               f"specification for '{category}'.")
+        if category is Category.LINKER and not isinstance(enforce_fortran_linker, bool):
+            raise RuntimeError(
+                f"Invalid or missing enforce_fortran_linker "
+                f"specification for '{category}'."
+            )
 
         for tool in self[category]:
-            tool = cast(Union[Compiler, Linker], tool)   # make mypy happy
+            tool = cast(Union[Compiler, Linker], tool)  # make mypy happy
             # If OpenMP is requested, but the tool does not support openmp,
             # ignore the tool.
             if openmp and not tool.openmp:
@@ -299,11 +336,9 @@ class ToolRepository(dict):
                 while isinstance(compiler, CompilerWrapper):
                     compiler = compiler.compiler
                 # Ignore C linker if Fortran is requested and vice versa:
-                if (enforce_fortran_linker and
-                        not isinstance(compiler, FortranCompiler)):
+                if enforce_fortran_linker and not isinstance(compiler, FortranCompiler):
                     continue
-                if (not enforce_fortran_linker and
-                        isinstance(compiler, FortranCompiler)):
+                if not enforce_fortran_linker and isinstance(compiler, FortranCompiler):
                     continue
             # If the tool supports/does not support MPI, return the first one
             if tool.is_available and mpi == tool.mpi:
@@ -313,12 +348,11 @@ class ToolRepository(dict):
         # that seems to be an unlikely scenario.
         if mpi:
             if openmp:
-                raise RuntimeError(f"Could not find '{category}' that "
-                                   f"supports MPI and OpenMP.")
-            raise RuntimeError(f"Could not find '{category}' that "
-                               f"supports MPI.")
+                raise RuntimeError(
+                    f"Could not find '{category}' that supports MPI and OpenMP."
+                )
+            raise RuntimeError(f"Could not find '{category}' that supports MPI.")
 
         if openmp:
-            raise RuntimeError(f"Could not find '{category}' that "
-                               f"supports OpenMP.")
+            raise RuntimeError(f"Could not find '{category}' that supports OpenMP.")
         raise RuntimeError(f"Could not find any '{category}'.")

@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the Ar class for archiving files.
-"""
+"""This file contains the Ar class for archiving files."""
 
 from pathlib import Path
 from typing import Union
@@ -15,22 +14,20 @@ from fab.tools.tool import Tool
 
 
 class Ar(Tool):
-    '''This is the base class for `ar`.
-    '''
+    """This is the base class for `ar`."""
 
     Category.add("AR")
 
     def __init__(self):
         super().__init__("ar", "ar", Category.AR)
 
-    def create(self, output_fpath: Path,
-               members: list[Union[Path, str]]):
-        '''Create the archive with the specified name, containing the
+    def create(self, output_fpath: Path, members: list[Union[Path, str]]):
+        """Create the archive with the specified name, containing the
         listed members.
 
         :param output_fpath: the output path.
         :param members: the list of objects to be added to the archive.
-        '''
+        """
         # Explicit type is required to avoid mypy errors :(
         output_fpath.unlink(missing_ok=True)
         parameters: list[Union[Path, str]] = ["cr", output_fpath]

@@ -12,7 +12,7 @@ from fab.steps import step
 
 
 @step
-def grab_archive(config, src: Union[Path, str], dst_label: str = ''):
+def grab_archive(config, src: Union[Path, str], dst_label: str = ""):
     """
     Copy source from an archive into the project folder.
 
@@ -33,12 +33,12 @@ def grab_archive(config, src: Union[Path, str], dst_label: str = ''):
     # behaviour of the filter changes at v3.14.
     #
     unpack_archive_sig = signature(unpack_archive)
-    if 'filter' in unpack_archive_sig.parameters:
+    if "filter" in unpack_archive_sig.parameters:
         #
         # The "data" filter does a number of things including disallowing
         # symlinks. It also does not recreate ownership or permissions from
         # the archive.
         #
-        unpack_archive(src, dst, filter='data')
+        unpack_archive(src, dst, filter="data")
     else:
         unpack_archive(src, dst)

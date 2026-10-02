@@ -5,10 +5,10 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''
+"""
 This module contains a class that manages the dependencies specified in
 a dependencies.yaml file.
-'''
+"""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -37,6 +37,7 @@ class RepoInfo:
         to access and update them individually. Source and ref can
         be None if there is no information for a repository.
         """
+
         source: Optional[str]
         ref: Optional[str]
 
@@ -68,7 +69,7 @@ class RepoInfo:
 
 # ============================================================================
 class DependencyInfo(dict):
-    '''
+    """
     A simple dictionary-like class that stores the version information
     from a yaml file::
 
@@ -93,10 +94,13 @@ class DependencyInfo(dict):
     If the requested section does not exist, a key error is raised.
 
     :param filename: The path to the dependencies.yaml file.
-    '''
+    """
 
-    def __init__(self, filename: Optional[Union[str, Path]],
-                 only_repos: Optional[list[str]] = None) -> None:
+    def __init__(
+        self,
+        filename: Optional[Union[str, Path]],
+        only_repos: Optional[list[str]] = None,
+    ) -> None:
         super().__init__()
 
         # If there are no dependencies, just return (this object will
@@ -118,12 +122,16 @@ class DependencyInfo(dict):
             self[repo] = RepoInfo()
             for dep in all_deps:
                 if "source" not in dep:
-                    raise RuntimeError(f"'{filename} does not contain a "
-                                       f"'source' definition for repo "
-                                       f"'{repo}'.")
+                    raise RuntimeError(
+                        f"'{filename} does not contain a "
+                        f"'source' definition for repo "
+                        f"'{repo}'."
+                    )
                 if "ref" not in dep:
-                    raise RuntimeError(f"'{filename} does not contain a "
-                                       f"'ref' definition for repo '{repo}'.")
+                    raise RuntimeError(
+                        f"'{filename} does not contain a "
+                        f"'ref' definition for repo '{repo}'."
+                    )
                 self[repo].append(dep["source"], dep["ref"])
 
     def get_repo_names(self) -> list[str]:

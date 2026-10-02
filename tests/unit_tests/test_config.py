@@ -6,26 +6,34 @@ from fab.tools.tool_box import ToolBox
 
 
 class TestAddFlags:
-
     def test_run(self, stub_tool_repository):
-        add_flags = AddFlags(match="$source/foo/*",
-                             flags=['-I', '$relative/include'])
-        config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                             fab_workspace=Path("/fab_workspace"))
+        add_flags = AddFlags(match="$source/foo/*", flags=["-I", "$relative/include"])
+        config = BuildConfig(
+            "proj",
+            ToolBox(),
+            mpi=False,
+            openmp=False,
+            fab_workspace=Path("/fab_workspace"),
+        )
 
         # anything in $source/foo should get the include folder
         my_flags = ["-foo"]
         add_flags.run(
             fpath=Path(f"/fab_workspace/proj/{SOURCE_ROOT}/foo/bar.c"),
             input_flags=my_flags,
-            config=config)
-        assert my_flags == ['-foo', '-I',
-                            f'/fab_workspace/proj/{SOURCE_ROOT}/foo/include']
+            config=config,
+        )
+        assert my_flags == [
+            "-foo",
+            "-I",
+            f"/fab_workspace/proj/{SOURCE_ROOT}/foo/include",
+        ]
 
         # anything in $source/bar should NOT get the include folder
         my_flags = ["-foo"]
         add_flags.run(
             fpath=Path(f"/workspace/{SOURCE_ROOT}/bar/bar.c"),
             input_flags=my_flags,
-            config=config)
-        assert my_flags == ['-foo']
+            config=config,
+        )
+        assert my_flags == ["-foo"]

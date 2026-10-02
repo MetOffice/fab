@@ -35,12 +35,15 @@ class AnalysedDependent(AnalysedFile, ABC):
     dependencies.
 
     """
-    def __init__(self,
-                 fpath: Union[str, Path],
-                 file_hash: Optional[int] = None,
-                 symbol_defs: Optional[Iterable[str]] = None,
-                 symbol_deps: Optional[Iterable[str]] = None,
-                 file_deps: Optional[Iterable[Path]] = None):
+
+    def __init__(
+        self,
+        fpath: Union[str, Path],
+        file_hash: Optional[int] = None,
+        symbol_defs: Optional[Iterable[str]] = None,
+        symbol_deps: Optional[Iterable[str]] = None,
+        file_deps: Optional[Iterable[Path]] = None,
+    ):
         """
         :param fpath:
             The source file that was analysed.
@@ -63,10 +66,8 @@ class AnalysedDependent(AnalysedFile, ABC):
         self.symbol_deps: set[str] = set(symbol_deps or {})
         self.file_deps: set[Path] = set(file_deps or [])
 
-        assert all([d and len(d) for d in self.symbol_defs]), \
-            "bad symbol definitions"
-        assert all([d and len(d) for d in self.symbol_deps]), \
-            "bad symbol dependencies"
+        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
+        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
 
     def add_symbol_def(self, name: str) -> None:
         """
@@ -95,18 +96,20 @@ class AnalysedDependent(AnalysedFile, ABC):
     @classmethod
     def field_names(cls):
         return super().field_names() + [
-            'symbol_defs',
-            'symbol_deps',
-            'file_deps',
+            "symbol_defs",
+            "symbol_deps",
+            "file_deps",
         ]
 
     def to_dict(self) -> dict[str, Any]:
         result = super().to_dict()
-        result.update({
-            "symbol_defs": list(sorted(self.symbol_defs)),
-            "symbol_deps": list(sorted(self.symbol_deps)),
-            "file_deps": list(sorted(map(str, self.file_deps))),
-        })
+        result.update(
+            {
+                "symbol_defs": list(sorted(self.symbol_defs)),
+                "symbol_deps": list(sorted(self.symbol_deps)),
+                "file_deps": list(sorted(map(str, self.file_deps))),
+            }
+        )
         return result
 
     @classmethod
@@ -122,10 +125,9 @@ class AnalysedDependent(AnalysedFile, ABC):
         return result
 
 
-def extract_sub_tree(source_tree: dict[Path, AnalysedDependent],
-                     root: Path,
-                     verbose=False)\
-        -> dict[Path, AnalysedDependent]:
+def extract_sub_tree(
+    source_tree: dict[Path, AnalysedDependent], root: Path, verbose=False
+) -> dict[Path, AnalysedDependent]:
     """
     Extract the subtree required to build the target, from the full
     source tree of all analysed source files.
@@ -142,11 +144,13 @@ def extract_sub_tree(source_tree: dict[Path, AnalysedDependent],
     result: dict[Path, AnalysedDependent] = {}
     missing: set[Path] = set()
 
-    _extract_sub_tree(src_tree=source_tree,
-                      key=root,
-                      dst_tree=result,
-                      missing=missing,
-                      verbose=verbose)
+    _extract_sub_tree(
+        src_tree=source_tree,
+        key=root,
+        dst_tree=result,
+        missing=missing,
+        verbose=verbose,
+    )
 
     if missing:
         logger.warning(f"{root} has missing deps: {missing}")
@@ -154,12 +158,14 @@ def extract_sub_tree(source_tree: dict[Path, AnalysedDependent],
     return result
 
 
-def _extract_sub_tree(src_tree: dict[Path, AnalysedDependent],
-                      key: Path,
-                      dst_tree: dict[Path, AnalysedDependent],
-                      missing: set[Path],
-                      verbose: bool,
-                      indent: int = 0):
+def _extract_sub_tree(
+    src_tree: dict[Path, AnalysedDependent],
+    key: Path,
+    dst_tree: dict[Path, AnalysedDependent],
+    missing: set[Path],
+    verbose: bool,
+    indent: int = 0,
+):
     # is this node already in the sub tree?
     if key in dst_tree:
         return
@@ -174,7 +180,6 @@ def _extract_sub_tree(src_tree: dict[Path, AnalysedDependent],
 
     # add its child deps
     for file_dep in node.file_deps:
-
         # one of its deps is missing!
         if not src_tree.get(file_dep):
             if logger and verbose:
@@ -184,12 +189,18 @@ def _extract_sub_tree(src_tree: dict[Path, AnalysedDependent],
 
         # add this child dep
         _extract_sub_tree(
-            src_tree=src_tree, key=file_dep, dst_tree=dst_tree,
-            missing=missing, verbose=verbose, indent=indent + 1)
+            src_tree=src_tree,
+            key=file_dep,
+            dst_tree=dst_tree,
+            missing=missing,
+            verbose=verbose,
+            indent=indent + 1,
+        )
 
 
-def filter_source_tree(source_tree: dict[Path, AnalysedDependent],
-                       suffixes: Iterable[str]) -> list[AnalysedDependent]:
+def filter_source_tree(
+    source_tree: dict[Path, AnalysedDependent], suffixes: Iterable[str]
+) -> list[AnalysedDependent]:
     """
     Pull out files with the given extensions from a source tree.
 
@@ -216,9 +227,12 @@ def validate_dependencies(source_tree):
     """
     missing = set()
     for f in source_tree.values():
-        missing.update([str(file_dep) for file_dep in f.file_deps
-                        if file_dep not in source_tree])
+        missing.update(
+            [str(file_dep) for file_dep in f.file_deps if file_dep not in source_tree]
+        )
 
     if missing:
-        logger.error(f"Unknown dependencies, expecting build to fail: "
-                     f"{', '.join(sorted(missing))}")
+        logger.error(
+            f"Unknown dependencies, expecting build to fail: "
+            f"{', '.join(sorted(missing))}"
+        )

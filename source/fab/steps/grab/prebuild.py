@@ -21,8 +21,8 @@ def grab_pre_build(config, path, allow_fail=False):
         res = rsync.execute(src=path, dst=dst)
 
         # log the number of files transferred
-        to_print = [line for line in res.splitlines() if 'Number of' in line]
-        logger.info('\n'.join(to_print))
+        to_print = [line for line in res.splitlines() if "Number of" in line]
+        logger.info("\n".join(to_print))
 
     except RuntimeError as err:
         msg = f"could not grab pre-build '{path}':\n{err}"

@@ -2,6 +2,7 @@
 Test CAnalyser.
 
 """
+
 from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
@@ -13,31 +14,40 @@ from fab.parse.c import CAnalyser, AnalysedC
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 
-clang = importorskip('clang')
+clang = importorskip("clang")
 
 
-def test_simple_result(tmp_path: Path,
-                       stub_tool_repository: ToolRepository) -> None:
-    config = BuildConfig('proj', ToolBox(), mpi=False, openmp=False,
-                         fab_workspace=tmp_path)
+def test_simple_result(tmp_path: Path, stub_tool_repository: ToolRepository) -> None:
+    config = BuildConfig(
+        "proj", ToolBox(), mpi=False, openmp=False, fab_workspace=tmp_path
+    )
     c_analyser = CAnalyser(config)
 
-    with mock.patch('fab.parse.AnalysedFile.save'):
+    with mock.patch("fab.parse.AnalysedFile.save"):
         fpath = Path(__file__).parent / "test_c_analyser.c"
         analysis, artefact = c_analyser.run(fpath)
 
     expected = AnalysedC(
         fpath=fpath,
         file_hash=1429445462,
-        symbol_deps={'usr_var', 'usr_func'},
-        symbol_defs={'func_decl', 'func_def', 'var_def', 'var_extern_def',
-                     'main@test_c_analyser'},
+        symbol_deps={"usr_var", "usr_func"},
+        symbol_defs={
+            "func_decl",
+            "func_def",
+            "var_def",
+            "var_extern_def",
+            "main@test_c_analyser",
+        },
     )
     assert analysis == expected
     assert isinstance(analysis, AnalysedC)
-    assert artefact == c_analyser._config.prebuild_folder / f'test_c_analyser.{analysis.file_hash}.an'
+    assert (
+        artefact
+        == c_analyser._config.prebuild_folder
+        / f"test_c_analyser.{analysis.file_hash}.an"
+    )
 
-    with mock.patch('fab.parse.AnalysedFile.save'):
+    with mock.patch("fab.parse.AnalysedFile.save"):
         fpath = Path(__file__).parent / "other_main_program.c"
         analysis, artefact = c_analyser.run(fpath)
 
@@ -45,13 +55,12 @@ def test_simple_result(tmp_path: Path,
         fpath=fpath,
         file_hash=1458424101,
         symbol_deps={},
-        symbol_defs={'CaSeSeNsItIvE', 'main@other_main_program'},
+        symbol_defs={"CaSeSeNsItIvE", "main@other_main_program"},
     )
     assert analysis == expected
 
 
 class Test__locate_include_regions:
-
     def test_vanilla(self) -> None:
         lines: list[tuple[int, str]] = [
             (5, "foo"),
@@ -64,12 +73,15 @@ class Test__locate_include_regions:
             (40, "# pragma FAB UsrIncludeEnd"),
         ]
 
-        self._run(lines=lines, expect=[
-            (10, "sys_include_start"),
-            (20, "sys_include_end"),
-            (30, "usr_include_start"),
-            (40, "usr_include_end"),
-        ])
+        self._run(
+            lines=lines,
+            expect=[
+                (10, "sys_include_start"),
+                (20, "sys_include_end"),
+                (30, "usr_include_start"),
+                (40, "usr_include_end"),
+            ],
+        )
 
     def test_empty_file(self):
         self._run(lines=[], expect=[])
@@ -82,7 +94,12 @@ class Test__locate_include_regions:
 
         tokens = []
         for line in lines:
-            tokens.extend(map(lambda token: MockToken(line=line[0], spelling=token), line[1].split()))
+            tokens.extend(
+                map(
+                    lambda token: MockToken(line=line[0], spelling=token),
+                    line[1].split(),
+                )
+            )
 
         mock_trans_unit = Mock()
         mock_trans_unit.cursor.get_tokens.return_value = tokens
@@ -94,7 +111,6 @@ class Test__locate_include_regions:
 
 
 class Test__check_for_include:
-
     def test_vanilla(self):
         analyser = CAnalyser(config=None)
         analyser._include_region = [
@@ -112,14 +128,17 @@ class Test__check_for_include:
 
 
 class Test_process_symbol_declaration:
-
     # definitions
     def test_external_definition(self):
-        analysed_file = self._definition(spelling="foo", linkage=clang.cindex.LinkageKind.EXTERNAL)
+        analysed_file = self._definition(
+            spelling="foo", linkage=clang.cindex.LinkageKind.EXTERNAL
+        )
         analysed_file.add_symbol_def.assert_called_with("foo")
 
     def test_internal_definition(self):
-        analysed_file = self._definition(spelling=None, linkage=clang.cindex.LinkageKind.INTERNAL)
+        analysed_file = self._definition(
+            spelling=None, linkage=clang.cindex.LinkageKind.INTERNAL
+        )
         analysed_file.add_symbol_def.assert_not_called()
 
     def _definition(self, spelling, linkage):
@@ -131,7 +150,9 @@ class Test_process_symbol_declaration:
         analyser = CAnalyser(config=None)
         analysed_file = Mock()
 
-        analyser._process_symbol_declaration(analysed_file=analysed_file, node=node, usr_symbols=None)
+        analyser._process_symbol_declaration(
+            analysed_file=analysed_file, node=node, usr_symbols=None
+        )
 
         return analysed_file
 
@@ -154,13 +175,14 @@ class Test_process_symbol_declaration:
 
         usr_symbols = []
 
-        analyser._process_symbol_declaration(analysed_file=None, node=node, usr_symbols=usr_symbols)
+        analyser._process_symbol_declaration(
+            analysed_file=None, node=node, usr_symbols=usr_symbols
+        )
 
         return usr_symbols
 
 
 class Test_process_symbol_dependency:
-
     def test_usr_symbol(self):
         analysed_file = self._dependency(spelling="foo", usr_symbols=["foo"])
         analysed_file.add_symbol_dep.assert_called_with("foo")
@@ -181,8 +203,8 @@ class Test_process_symbol_dependency:
 
 def test_clang_disable():
 
-    with mock.patch('fab.parse.c.clang', None):
-        with mock.patch('fab.parse.c.file_checksum') as mock_file_checksum:
+    with mock.patch("fab.parse.c.clang", None):
+        with mock.patch("fab.parse.c.file_checksum") as mock_file_checksum:
             c_analyser = CAnalyser(config=None)
             result = c_analyser.run(Path(__file__).parent / "test_c_analyser.c")
 

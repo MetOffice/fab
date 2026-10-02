@@ -10,40 +10,41 @@ from fab.util import input_to_output_fpath, suffix_filter, file_walk
 @pytest.fixture
 def fpaths():
     return [
-        Path('foo.F77'),
-        Path('foo.f77'),
-        Path('foo.F90'),
-        Path('foo.f90'),
-        Path('foo.c'),
+        Path("foo.F77"),
+        Path("foo.f77"),
+        Path("foo.F90"),
+        Path("foo.f90"),
+        Path("foo.c"),
     ]
 
 
-class Test_suffix_filter():
-
+class Test_suffix_filter:
     def test_vanilla(self, fpaths):
-        result = suffix_filter(fpaths=fpaths, suffixes=['.F90', '.f90'])
-        assert result == [Path('foo.F90'), Path('foo.f90')]
+        result = suffix_filter(fpaths=fpaths, suffixes=[".F90", ".f90"])
+        assert result == [Path("foo.F90"), Path("foo.f90")]
 
 
-class TestSuffixFilter():
-
+class TestSuffixFilter:
     def test_constructor_suffix_scalar(self):
-        getter = SuffixFilter('barz', '.c')
-        result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
-        assert result == [Path('bar.c')]
+        getter = SuffixFilter("barz", ".c")
+        result = getter(
+            artefact_store={"barz": [Path("bar.a"), Path("bar.b"), Path("bar.c")]}
+        )
+        assert result == [Path("bar.c")]
 
     def test_constructor_suffix_vector(self):
-        getter = SuffixFilter('barz', ['.b', '.c'])
-        result = getter(artefact_store={'barz': [Path('bar.a'), Path('bar.b'), Path('bar.c')]})
-        assert result == [Path('bar.b'), Path('bar.c')]
+        getter = SuffixFilter("barz", [".b", ".c"])
+        result = getter(
+            artefact_store={"barz": [Path("bar.a"), Path("bar.b"), Path("bar.c")]}
+        )
+        assert result == [Path("bar.b"), Path("bar.c")]
 
 
-class Test_file_walk():
-
+class Test_file_walk:
     @pytest.fixture
     def files(self, tmp_path):
-        f = tmp_path / 'foo/bar/foo.txt'
-        pbf = tmp_path / 'foo/bar/_prebuild/foo.txt'
+        f = tmp_path / "foo/bar/foo.txt"
+        pbf = tmp_path / "foo/bar/_prebuild/foo.txt"
 
         pbf.parent.mkdir(parents=True)
         f.touch()
@@ -54,27 +55,28 @@ class Test_file_walk():
     def test_ignore(self, files, tmp_path):
         f, pbf = files
 
-        result = list(file_walk(tmp_path / 'foo', ignore_folders=[pbf.parent]))
+        result = list(file_walk(tmp_path / "foo", ignore_folders=[pbf.parent]))
         assert result == [f]
 
 
 class Test_input_to_output_fpath(object):
-
     @pytest.fixture
     def config(self):
-        return mock.Mock(source_root=Path('/proj/source'), build_output=Path('/proj/build_output'))
+        return mock.Mock(
+            source_root=Path("/proj/source"), build_output=Path("/proj/build_output")
+        )
 
     def test_vanilla(self, config):
-        input_path = Path('/proj/source/folder/file.txt')
+        input_path = Path("/proj/source/folder/file.txt")
         result = input_to_output_fpath(config, input_path)
-        assert result == Path(config.build_output / 'folder/file.txt')
+        assert result == Path(config.build_output / "folder/file.txt")
 
     def test_already_output(self, config):
-        input_path = Path('/proj/build_output/folder/file.txt')
+        input_path = Path("/proj/build_output/folder/file.txt")
         result = input_to_output_fpath(config, input_path)
         assert result == input_path
 
     def test_outside_project(self, config):
-        input_path = Path('/other/folder/file.txt')
+        input_path = Path("/other/folder/file.txt")
         result = input_to_output_fpath(config, input_path)
-        assert result == Path(config.build_output / 'other/folder/file.txt')
+        assert result == Path(config.build_output / "other/folder/file.txt")

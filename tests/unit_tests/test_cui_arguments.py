@@ -214,7 +214,9 @@ class TestParser:
             pytest.param(
                 [], None, Path("fab-workspace").expanduser().resolve(), id="default"
             ),
-            pytest.param([], Path("/tmp/fab"), Path("/tmp/fab").resolve(), id="environment"),
+            pytest.param(
+                [], Path("/tmp/fab"), Path("/tmp/fab").resolve(), id="environment"
+            ),
             pytest.param(
                 ["--workspace", "/run/fab"],
                 Path("/tmp/fab"),

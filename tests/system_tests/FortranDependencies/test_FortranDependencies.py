@@ -24,16 +24,22 @@ import pytest
 def test_fortran_dependencies(tmp_path):
 
     # build
-    with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
-                     project_label='foo', multiprocessing=False) as config:
-        grab_folder(config, src=Path(__file__).parent / 'project-source')
+    with BuildConfig(
+        fab_workspace=tmp_path,
+        tool_box=ToolBox(),
+        project_label="foo",
+        multiprocessing=False,
+    ) as config:
+        grab_folder(config, src=Path(__file__).parent / "project-source")
         find_source_files(config)
-        preprocess_fortran(config)  # nothing to preprocess, actually, it's all little f90 files
-        analyse(config, root_symbols=['first', 'second'])
-        compile_c(config, common_flags=['-c', '-std=c99'])
+        preprocess_fortran(
+            config
+        )  # nothing to preprocess, actually, it's all little f90 files
+        analyse(config, root_symbols=["first", "second"])
+        compile_c(config, common_flags=["-c", "-std=c99"])
         with pytest.warns(UserWarning, match="Removing managed flag"):
-            compile_fortran(config, common_flags=['-c'])
-        link_exe(config, flags=['-lgfortran'])
+            compile_fortran(config, common_flags=["-c"])
+        link_exe(config, flags=["-lgfortran"])
 
     assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 2
 
@@ -45,34 +51,64 @@ def test_fortran_dependencies(tmp_path):
 
     # check output
     assert output == {
-        'Hello               \n',
-        'Good bye            \n',
+        "Hello               \n",
+        "Good bye            \n",
     }
 
     # check the analysis results
-    assert AnalysedFortran.load(config.prebuild_folder / 'first.f90.193489053.an') == AnalysedFortran(
-        fpath=config.build_output / 'first.f90', file_hash=193489053,
-        program_defs={'first'},
-        module_defs=None, symbol_defs={'first'},
-        module_deps={'greeting_mod', 'constants_mod'}, symbol_deps={'greeting_mod', 'constants_mod', 'greet'})
+    assert AnalysedFortran.load(
+        config.prebuild_folder / "first.f90.193489053.an"
+    ) == AnalysedFortran(
+        fpath=config.build_output / "first.f90",
+        file_hash=193489053,
+        program_defs={"first"},
+        module_defs=None,
+        symbol_defs={"first"},
+        module_deps={"greeting_mod", "constants_mod"},
+        symbol_deps={"greeting_mod", "constants_mod", "greet"},
+    )
 
-    assert AnalysedFortran.load(config.prebuild_folder / 'two.f90.2557739057.an') == AnalysedFortran(
-        fpath=config.build_output / 'two.f90', file_hash=2557739057,
-        program_defs={'second'},
-        module_defs=None, symbol_defs={'second'},
-        module_deps={'constants_mod', 'bye_mod'}, symbol_deps={'constants_mod', 'bye_mod', 'farewell'})
+    assert AnalysedFortran.load(
+        config.prebuild_folder / "two.f90.2557739057.an"
+    ) == AnalysedFortran(
+        fpath=config.build_output / "two.f90",
+        file_hash=2557739057,
+        program_defs={"second"},
+        module_defs=None,
+        symbol_defs={"second"},
+        module_deps={"constants_mod", "bye_mod"},
+        symbol_deps={"constants_mod", "bye_mod", "farewell"},
+    )
 
-    assert AnalysedFortran.load(config.prebuild_folder / 'greeting_mod.f90.62446538.an') == AnalysedFortran(
-        fpath=config.build_output / 'greeting_mod.f90', file_hash=62446538,
-        module_defs={'greeting_mod'}, symbol_defs={'greeting_mod'},
-        module_deps={'constants_mod'}, symbol_deps={'constants_mod'})
+    assert AnalysedFortran.load(
+        config.prebuild_folder / "greeting_mod.f90.62446538.an"
+    ) == AnalysedFortran(
+        fpath=config.build_output / "greeting_mod.f90",
+        file_hash=62446538,
+        module_defs={"greeting_mod"},
+        symbol_defs={"greeting_mod"},
+        module_deps={"constants_mod"},
+        symbol_deps={"constants_mod"},
+    )
 
-    assert AnalysedFortran.load(config.prebuild_folder / 'bye_mod.f90.3332267073.an') == AnalysedFortran(
-        fpath=config.build_output / 'bye_mod.f90', file_hash=3332267073,
-        module_defs={'bye_mod'}, symbol_defs={'bye_mod'},
-        module_deps={'constants_mod'}, symbol_deps={'constants_mod'})
+    assert AnalysedFortran.load(
+        config.prebuild_folder / "bye_mod.f90.3332267073.an"
+    ) == AnalysedFortran(
+        fpath=config.build_output / "bye_mod.f90",
+        file_hash=3332267073,
+        module_defs={"bye_mod"},
+        symbol_defs={"bye_mod"},
+        module_deps={"constants_mod"},
+        symbol_deps={"constants_mod"},
+    )
 
-    assert AnalysedFortran.load(config.prebuild_folder / 'constants_mod.f90.233796393.an') == AnalysedFortran(
-        fpath=config.build_output / 'constants_mod.f90', file_hash=233796393,
-        module_defs={'constants_mod'}, symbol_defs={'constants_mod'},
-        module_deps=None, symbol_deps=None)
+    assert AnalysedFortran.load(
+        config.prebuild_folder / "constants_mod.f90.233796393.an"
+    ) == AnalysedFortran(
+        fpath=config.build_output / "constants_mod.f90",
+        file_hash=233796393,
+        module_defs={"constants_mod"},
+        symbol_defs={"constants_mod"},
+        module_deps=None,
+        symbol_deps=None,
+    )

@@ -7,6 +7,7 @@
 Gather files from a source folder.
 
 """
+
 import logging
 from pathlib import Path
 from typing import Iterable, Optional, Union
@@ -19,7 +20,7 @@ from fab.util import file_walk
 logger = logging.getLogger(__name__)
 
 
-class _PathFilter():
+class _PathFilter:
     """
     Simple pattern matching using string containment check.
     Deems an incoming path as included or excluded.
@@ -65,6 +66,7 @@ class Include(_PathFilter):
     improves config readability.
 
     """
+
     def __init__(self, *filter_strings: str):
         """
         :param filter_strings:
@@ -74,7 +76,7 @@ class Include(_PathFilter):
         super().__init__(*filter_strings, include=True)
 
     def __str__(self):
-        return f'Include({", ".join(self.filter_strings)})'
+        return f"Include({', '.join(self.filter_strings)})"
 
 
 class Exclude(_PathFilter):
@@ -93,16 +95,16 @@ class Exclude(_PathFilter):
         super().__init__(*filter_strings, include=False)
 
     def __str__(self):
-        return f'Exclude({", ".join(self.filter_strings)})'
+        return f"Exclude({', '.join(self.filter_strings)})"
 
 
 @step
 def find_source_files(
-        config: BuildConfig,
-        source_root: Optional[Path] = None,
-        output_collection: Union[ArtefactSet,
-                                 str] = ArtefactSet.INITIAL_SOURCE_FILES,
-        path_filters: Optional[Iterable[_PathFilter]] = None) -> None:
+    config: BuildConfig,
+    source_root: Optional[Path] = None,
+    output_collection: Union[ArtefactSet, str] = ArtefactSet.INITIAL_SOURCE_FILES,
+    path_filters: Optional[Iterable[_PathFilter]] = None,
+) -> None:
     """
     Find the files in the source folder, with filtering.
 
@@ -163,8 +165,7 @@ def find_source_files(
     filtered_fpaths = set()
     # todo: we shouldn't need to ignore the prebuild folder here, it's not
     # underneath the source root.
-    for fpath in file_walk(source_root,
-                           ignore_folders=[config.prebuild_folder]):
+    for fpath in file_walk(source_root, ignore_folders=[config.prebuild_folder]):
         # Search for the longest match (and latest one in case of
         # equal length)
         wanted = True
@@ -188,14 +189,16 @@ def find_source_files(
 
     # Now split the files into the various main groups:
     # Fortran, C, and PSyclone
-    config.artefact_store.copy_artefacts(output_collection,
-                                         ArtefactSet.FORTRAN_COMPILER_FILES,
-                                         suffixes=[".f", ".F", ".f90", ".F90"])
+    config.artefact_store.copy_artefacts(
+        output_collection,
+        ArtefactSet.FORTRAN_COMPILER_FILES,
+        suffixes=[".f", ".F", ".f90", ".F90"],
+    )
 
-    config.artefact_store.copy_artefacts(output_collection,
-                                         ArtefactSet.C_COMPILER_FILES,
-                                         suffixes=[".c"])
+    config.artefact_store.copy_artefacts(
+        output_collection, ArtefactSet.C_COMPILER_FILES, suffixes=[".c"]
+    )
 
-    config.artefact_store.copy_artefacts(output_collection,
-                                         ArtefactSet.X90_COMPILER_FILES,
-                                         suffixes=[".x90", ".X90"])
+    config.artefact_store.copy_artefacts(
+        output_collection, ArtefactSet.X90_COMPILER_FILES, suffixes=[".x90", ".X90"]
+    )

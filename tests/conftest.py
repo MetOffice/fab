@@ -6,6 +6,7 @@
 """
 Fixtures and helpers for testing.
 """
+
 import os
 from pathlib import Path
 from typing import Optional
@@ -67,6 +68,7 @@ class ExtendedRecorder:
     """
     Adds convenience functionality to ProcessRecorder.
     """
+
     def __init__(self, recorder: ProcessRecorder):
         self.recorder = recorder
 
@@ -94,7 +96,7 @@ class ExtendedRecorder:
                 if value is None:
                     things[key] = None
                 else:
-                    if key in ('stdout', 'stderr') and value == -1:
+                    if key in ("stdout", "stderr") and value == -1:
                         things[key] = None
                     else:
                         things[key] = str(value)
@@ -102,7 +104,7 @@ class ExtendedRecorder:
         return args
 
 
-@fixture(scope='function')
+@fixture(scope="function")
 def subproc_record(fake_process: FakeProcess) -> ExtendedRecorder:
     """
     Mocks the 'subprocess' module and returns a recorder of commands issued.
@@ -111,35 +113,33 @@ def subproc_record(fake_process: FakeProcess) -> ExtendedRecorder:
     return ExtendedRecorder(fake_process.register([FakeProcess.any()]))
 
 
-@fixture(scope='function')
+@fixture(scope="function")
 def stub_fortran_compiler() -> FortranCompiler:
     """
     Provides a minimal Fortran compiler.
     """
-    compiler = FortranCompiler('some Fortran compiler', 'sfc', 'stub',
-                               r'([\d.]+)')
-    compiler["openmp"] = '-omp'
-    compiler["module-out-folder"] = '-mods'
+    compiler = FortranCompiler("some Fortran compiler", "sfc", "stub", r"([\d.]+)")
+    compiler["openmp"] = "-omp"
+    compiler["module-out-folder"] = "-mods"
     return compiler
 
 
-@fixture(scope='function')
+@fixture(scope="function")
 def stub_c_compiler() -> CCompiler:
     """
     Provides a minimal C compiler.
     """
-    compiler = CCompiler("some C compiler", "scc", "stub",
-                         version_regex=r"([\d.]+)")
-    compiler["openmp"] = '-omp'
+    compiler = CCompiler("some C compiler", "scc", "stub", version_regex=r"([\d.]+)")
+    compiler["openmp"] = "-omp"
     return compiler
 
 
-@fixture(scope='function')
+@fixture(scope="function")
 def stub_linker(stub_c_compiler) -> Linker:
     """
     Provides a minimal linker.
     """
-    linker = Linker(stub_c_compiler, None, 'sln')
+    linker = Linker(stub_c_compiler, None, "sln")
     return linker
 
 
@@ -152,18 +152,17 @@ def return_true():
     return True
 
 
-@fixture(scope='function')
-def stub_tool_box(stub_fortran_compiler,
-                  stub_c_compiler,
-                  stub_linker,
-                  monkeypatch) -> ToolBox:
+@fixture(scope="function")
+def stub_tool_box(
+    stub_fortran_compiler, stub_c_compiler, stub_linker, monkeypatch
+) -> ToolBox:
     """
     Provides a minimal toolbox containing just Fortran and C compilers and a
     linker.
     """
-    monkeypatch.setattr(stub_fortran_compiler, 'check_available', return_true)
-    monkeypatch.setattr(stub_c_compiler, 'check_available', return_true)
-    monkeypatch.setattr(stub_linker, 'check_available', return_true)
+    monkeypatch.setattr(stub_fortran_compiler, "check_available", return_true)
+    monkeypatch.setattr(stub_c_compiler, "check_available", return_true)
+    monkeypatch.setattr(stub_linker, "check_available", return_true)
     toolbox = ToolBox()
     toolbox.add_tool(stub_fortran_compiler)
     toolbox.add_tool(stub_c_compiler)
@@ -193,23 +192,21 @@ def reset_compilation_profiles(stub_fortran_compiler):
     ProfileFlags._inherit_from = {"": ""}
 
 
-@fixture(scope='function')
-def stub_tool_repository(stub_fortran_compiler,
-                         stub_c_compiler,
-                         stub_linker,
-                         monkeypatch) -> ToolRepository:
+@fixture(scope="function")
+def stub_tool_repository(
+    stub_fortran_compiler, stub_c_compiler, stub_linker, monkeypatch
+) -> ToolRepository:
     """
     Provides a minimal ToolRepository containing just Fortran and
     C compilers and a linker.
     """
-    monkeypatch.setattr(stub_fortran_compiler, 'check_available', return_true)
-    monkeypatch.setattr(stub_c_compiler, 'check_available', return_true)
-    monkeypatch.setattr(stub_linker, 'check_available', return_true)
+    monkeypatch.setattr(stub_fortran_compiler, "check_available", return_true)
+    monkeypatch.setattr(stub_c_compiler, "check_available", return_true)
+    monkeypatch.setattr(stub_linker, "check_available", return_true)
     tool_repository = ToolRepository()
     # Remove all compiler and linker, since they might exist on the system
     # running these tests, which can break tests.
-    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER,
-                Category.LINKER]:
+    for cat in [Category.C_COMPILER, Category.FORTRAN_COMPILER, Category.LINKER]:
         tool_repository[cat] = []
     tool_repository.add_tool(stub_fortran_compiler)
     tool_repository.add_tool(stub_c_compiler)
@@ -218,22 +215,21 @@ def stub_tool_repository(stub_fortran_compiler,
     return tool_repository
 
 
-@fixture(scope='function')
+@fixture(scope="function")
 def stub_configuration(stub_tool_box: ToolBox, tmp_path: Path) -> BuildConfig:
     """
     Provides a minimal configuration with stub compilers.
     """
-    return BuildConfig("Stub config", stub_tool_box,
-                       fab_workspace=tmp_path / 'fab')
+    return BuildConfig("Stub config", stub_tool_box, fab_workspace=tmp_path / "fab")
 
 
 @fixture(scope="function")
 def change_into_tmpdir(tmp_path):
-    '''
+    """
     This fixture changes into a temporary working directory,
     and changes automatically back at the end. The path can
     be queried in a test: tmp_path = change_into_tmpdir
-    '''
+    """
     prev_dir = Path(".")
     os.chdir(tmp_path)
     try:

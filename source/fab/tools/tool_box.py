@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''This file contains the ToolBox class.
-'''
+"""This file contains the ToolBox class."""
 
 import warnings
 from typing import Optional
@@ -17,44 +16,48 @@ from fab.tools.tool_repository import ToolRepository
 
 
 class ToolBox(AbstractToolBox):
-    '''This class implements the tool box. It stores one tool for each
+    """This class implements the tool box. It stores one tool for each
     category to be used in a FAB build.
-    '''
+    """
 
     def __init__(self) -> None:
         self._all_tools: dict[Category, Tool] = {}
 
     def has(self, category: Category) -> bool:
-        '''
+        """
         :returns: whether this tool box has a tool of the specified
             category or not.
-        '''
+        """
         return category in self._all_tools
 
-    def add_tool(self, tool: Tool,
-                 silent_replace: bool = False) -> None:
-        '''Adds a tool for a given category.
+    def add_tool(self, tool: Tool, silent_replace: bool = False) -> None:
+        """Adds a tool for a given category.
 
         :param tool: the tool to add.
         :param silent_replace: if set, no warning will be printed
             if an existing tool is replaced.
 
         :raises RuntimeError: if the tool to be added is not available.
-        '''
+        """
         if not tool.is_available:
             raise RuntimeError(f"Tool '{tool}' is not available.")
 
         if tool.category in self._all_tools and not silent_replace:
-            warnings.warn(f"Replacing existing tool "
-                          f"'{self._all_tools[tool.category]}' with "
-                          f"'{tool}'.")
+            warnings.warn(
+                f"Replacing existing tool "
+                f"'{self._all_tools[tool.category]}' with "
+                f"'{tool}'."
+            )
         self._all_tools[tool.category] = tool
 
-    def get_tool(self, category: Category,
-                 mpi: Optional[bool] = None,
-                 openmp: Optional[bool] = None,
-                 enforce_fortran_linker: Optional[bool] = None) -> Tool:
-        '''Returns the tool for the specified category.
+    def get_tool(
+        self,
+        category: Category,
+        mpi: Optional[bool] = None,
+        openmp: Optional[bool] = None,
+        enforce_fortran_linker: Optional[bool] = None,
+    ) -> Tool:
+        """Returns the tool for the specified category.
 
         :param category: the name of the category in which to look
             for the tool.
@@ -69,7 +72,7 @@ class ToolBox(AbstractToolBox):
             Otherwise, a C-based linker will be returned.
 
         :raises KeyError: if the category is not known.
-        '''
+        """
 
         if category in self._all_tools:
             # TODO: Should we test if the compiler has MPI support if
@@ -83,7 +86,11 @@ class ToolBox(AbstractToolBox):
         # from the ToolRepository, and add it, so we don't need to look
         # it up again later.
         tr = ToolRepository()
-        tool = tr.get_default(category, mpi=mpi, openmp=openmp,
-                              enforce_fortran_linker=enforce_fortran_linker)
+        tool = tr.get_default(
+            category,
+            mpi=mpi,
+            openmp=openmp,
+            enforce_fortran_linker=enforce_fortran_linker,
+        )
         self._all_tools[category] = tool
         return tool

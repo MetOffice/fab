@@ -32,7 +32,7 @@ def log_or_dot(logger, msg):
     if logger.isEnabledFor(logging.DEBUG):
         logger.debug(msg)
     elif logger.isEnabledFor(logging.INFO):
-        print('.', end='')
+        print(".", end="")
         sys.stdout.flush()
 
 
@@ -43,10 +43,10 @@ def log_or_dot_finish(logger):
 
     """
     if logger.isEnabledFor(logging.INFO):
-        print('')
+        print("")
 
 
-HashedFile = namedtuple("HashedFile", ['fpath', 'file_hash'])
+HashedFile = namedtuple("HashedFile", ["fpath", "file_hash"])
 
 
 def file_checksum(fpath):
@@ -76,7 +76,9 @@ def string_checksum(s: str) -> int:
     return zlib.crc32(s.encode())
 
 
-def file_walk(path: Union[str, Path], ignore_folders: Optional[list[Path]] = None) -> Iterator[Path]:
+def file_walk(
+    path: Union[str, Path], ignore_folders: Optional[list[Path]] = None
+) -> Iterator[Path]:
     """
     Return every file in *path* and its sub-folders.
 
@@ -103,7 +105,7 @@ def file_walk(path: Union[str, Path], ignore_folders: Optional[list[Path]] = Non
         if i.is_dir():
             # Don't recurse into the given folders.
             if i in ignore_folders:
-                logger.debug(f'file_walk ignoring {i}')
+                logger.debug(f"file_walk ignoring {i}")
                 continue
             yield from file_walk(path=i, ignore_folders=ignore_folders)
         else:
@@ -115,6 +117,7 @@ class Timer:
     A simple timing context manager.
 
     """
+
     def __init__(self) -> None:
         self.start: Optional[float] = None
         self.taken: Optional[float] = None
@@ -133,6 +136,7 @@ class TimerLogger(Timer):
     A labelled timing context manager which logs the label and the time taken.
 
     """
+
     def __init__(self, label, res=0.001):
         super().__init__()
         self.label = label
@@ -150,7 +154,6 @@ class TimerLogger(Timer):
         # don't bother reporting trivial timings
         seconds = int(self.taken / self.res) * self.res
         if seconds >= self.res:
-
             if seconds > 60:
                 # convert to timedelta for human-friendly str()
                 td = datetime.timedelta(seconds=seconds)
@@ -165,6 +168,7 @@ class CompiledFile:
     A Fortran or C file which has been compiled.
 
     """
+
     def __init__(self, input_fpath, output_fpath):
         """
         :param input_fpath:
@@ -181,7 +185,7 @@ class CompiledFile:
         return vars(self) == vars(other)
 
     def __repr__(self):
-        return f'CompiledFile({self.input_fpath}, {self.output_fpath})'
+        return f"CompiledFile({self.input_fpath}, {self.output_fpath})"
 
 
 # todo: we should probably pass in the output folder, not the project workspace
@@ -220,7 +224,7 @@ def input_to_output_fpath(config, input_path: Path):
     # It's neither in the project source folder nor the output folder.
     # This can happen if we're pointing the FindFiles step elsewhere.
     # We'll just have to convert the entire path to be inside the output folder.
-    return build_output / '/'.join(input_path.parts[1:])
+    return build_output / "/".join(input_path.parts[1:])
 
 
 def suffix_filter(fpaths: Iterable[Path], suffixes: Iterable[str]):
@@ -278,8 +282,8 @@ def get_prebuild_file_groups(prebuild_files: Iterable[Path]) -> dict[str, set]:
     pbf_groups = defaultdict(set)
 
     for pbf in prebuild_files:
-        stem_stem = pbf.stem.split('.')[0]
-        wildcard_key = f'{stem_stem}.*{pbf.suffix}'
+        stem_stem = pbf.stem.split(".")[0]
+        wildcard_key = f"{stem_stem}.*{pbf.suffix}"
         pbf_groups[wildcard_key].add(pbf)
 
     return pbf_groups
@@ -294,15 +298,29 @@ def common_arg_parser() -> ArgumentParser:
     """
     # consider adding preprocessor, linker, optimisation, two-stage
     arg_parser = ArgumentParser()
-    arg_parser.add_argument('--verbose', action='store_true', help='DEBUG level logging')
-    arg_parser.add_argument('--version', action='version', version=f'%(prog)s {fab.__version__}')
+    arg_parser.add_argument(
+        "--verbose", action="store_true", help="DEBUG level logging"
+    )
+    arg_parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {fab.__version__}"
+    )
     group = arg_parser.add_argument_group(
-        title='common arguments',
-        description='Common arguments which can be passed to the BuildConfig.')
-    arg_parser.add_argument('folder', nargs='?', default='.', type=Path, help='Source path')
-    group.add_argument('--project_label', default=None, help='Project Label')
-    group.add_argument('--fab_workspace', nargs='?', default=None, help='Fab working directory')
-    group.add_argument('--multiprocessing', default=True, help='Turns OFF multiprocessing.')
-    group.add_argument('--two-stage', action='store_true',
-                       help='Compile .mod files first in a separate pass. Theoretically faster in some projects.')
+        title="common arguments",
+        description="Common arguments which can be passed to the BuildConfig.",
+    )
+    arg_parser.add_argument(
+        "folder", nargs="?", default=".", type=Path, help="Source path"
+    )
+    group.add_argument("--project_label", default=None, help="Project Label")
+    group.add_argument(
+        "--fab_workspace", nargs="?", default=None, help="Fab working directory"
+    )
+    group.add_argument(
+        "--multiprocessing", default=True, help="Turns OFF multiprocessing."
+    )
+    group.add_argument(
+        "--two-stage",
+        action="store_true",
+        help="Compile .mod files first in a separate pass. Theoretically faster in some projects.",
+    )
     return arg_parser

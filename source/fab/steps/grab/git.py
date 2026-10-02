@@ -4,8 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''This module contains the git related steps.
-'''
+"""This module contains the git related steps."""
 
 import warnings
 
@@ -15,7 +14,7 @@ from fab.tools.category import Category
 
 # todo: allow cli args, e.g to set the depth
 @step
-def git_checkout(config, src: str, dst_label: str = '', revision=None):
+def git_checkout(config, src: str, dst_label: str = "", revision=None):
     """
     Checkout or update a Git repo.
 
@@ -33,11 +32,11 @@ def git_checkout(config, src: str, dst_label: str = '', revision=None):
         dst.relative_to(config.project_workspace)
         git.clean(dst)
     except RuntimeError:
-        warnings.warn(f'not safe to clean git source in {dst}')
+        warnings.warn(f"not safe to clean git source in {dst}")
 
 
 @step
-def git_merge(config, src: str, dst_label: str = '', revision=None):
+def git_merge(config, src: str, dst_label: str = "", revision=None):
     """
     Merge a git repo into a local working copy.
 

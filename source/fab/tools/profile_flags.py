@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''
+"""
 This file contains the ProfileFlag class used to manage command line flags
 for tools, especially path-specific flags for compiler. A ProfileFlag
 manages flags for specific profiles, including inheritance.
@@ -19,7 +19,7 @@ converting them from left to right into a list of strings. For example,
 will be convert to `["-g", "-O3"]` if the file contains the string
 `special_file`, and otherwise it will be `["-g"]`.
 
-'''
+"""
 
 import logging
 from pathlib import Path
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProfileFlags:
-    '''A list of flags that support a 'profile' to be used. If no profile is
+    """A list of flags that support a 'profile' to be used. If no profile is
     specified, it will use "" (empty string) as 'profile'. If a profile
     is defined without an explicit inherit, this dummy profile "" will be
     used (which implies that any flags specified with a profile will
@@ -46,7 +46,7 @@ class ProfileFlags:
     :param flags: optional flags to be added to this profile.
     :param profile: optional profile to use if flags are specified,
         defaults to "".
-    '''
+    """
 
     # This dictionary stores inheritance, where one mode
     # 'inherits' the flags from a different mode (recursively). To
@@ -54,9 +54,11 @@ class ProfileFlags:
     # as an always available dummy profile.
     _inherit_from: dict[str, str] = {"": ""}
 
-    def __init__(self,
-                 flags: Optional[Union[AbstractFlags, str, list[str]]] = None,
-                 profile: str = "") -> None:
+    def __init__(
+        self,
+        flags: Optional[Union[AbstractFlags, str, list[str]]] = None,
+        profile: str = "",
+    ) -> None:
         # Stores the flags for each profile mode. The key is the (lower case)
         # name of the profile mode, and it contains a list of flags.
         # Initialise the dict with the default (empty) profile
@@ -68,10 +70,8 @@ class ProfileFlags:
             self.add_flags(flags, profile)
 
     @classmethod
-    def define_profile(cls,
-                       name: str,
-                       inherit_from: Optional[str] = None):
-        '''Defines a new profile name, and allows to specify if this new
+    def define_profile(cls, name: str, inherit_from: Optional[str] = None):
+        """Defines a new profile name, and allows to specify if this new
         profile inherit settings from an existing profile. If inherit_from
         is specified, the newly defined profile will inherit from an existing
         profile (including the default profile "").
@@ -79,7 +79,7 @@ class ProfileFlags:
         :param name: Name of the profile to define.
         :param inherit_from: Optional name of a profile to inherit
             settings from.
-        '''
+        """
         name = name.lower()
         if name in cls._inherit_from:
             raise KeyError(f"Profile '{name}' is already defined.")
@@ -87,16 +87,15 @@ class ProfileFlags:
         if inherit_from is not None:
             inherit_from = inherit_from.lower()
             if inherit_from not in cls._inherit_from:
-                raise KeyError(f"Inherited profile '{inherit_from}' is "
-                               f"not defined.")
+                raise KeyError(f"Inherited profile '{inherit_from}' is not defined.")
             cls._inherit_from[name] = inherit_from
         else:
             cls._inherit_from[name] = ""
 
-    def get_flags(self,
-                  config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> list[str]:
-        '''
+    def get_flags(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> list[str]:
+        """
         This method returns the flags used for the specified file,
         i.e. it will support path-specific flags. The BuildConfig
         is added as parameter to get the profile, but also to
@@ -107,7 +106,7 @@ class ProfileFlags:
             compilation profile, and paths that can be used in templated
             expressions.
         :param file_path: path to the source file to compile.
-        '''
+        """
 
         if config:
             profile = config.profile
@@ -122,9 +121,8 @@ class ProfileFlags:
 
         return resolved_flags
 
-    def __getitem__(self,
-                    profile: Optional[str] = None) -> list[AbstractFlags]:
-        '''Returns the flags for the requested profile. If profile is not
+    def __getitem__(self, profile: Optional[str] = None) -> list[AbstractFlags]:
+        """Returns the flags for the requested profile. If profile is not
         specified, the empty profile ("") will be used. It will also take
         inheritance into account, so add flags (recursively) from inherited
         profiles. But this function will not resolve the flags, i.e. replace
@@ -133,7 +131,7 @@ class ProfileFlags:
         :param profile: the optional profile to use.
 
         :raises KeyError: if a profile is specified it is not defined
-        '''
+        """
         if profile is None:
             profile = ""
         else:
@@ -158,14 +156,16 @@ class ProfileFlags:
             flags.extend(self._profiles[profile])
         return flags
 
-    def add_flags(self,
-                  new_flags: Union[AbstractFlags, str, list[str]],
-                  profile: Optional[str] = None) -> None:
-        '''Adds the specified flags to the list of flags.
+    def add_flags(
+        self,
+        new_flags: Union[AbstractFlags, str, list[str]],
+        profile: Optional[str] = None,
+    ) -> None:
+        """Adds the specified flags to the list of flags.
 
         :param new_flags: A single string or list of strings which are the
             flags to be added.
-        '''
+        """
         if profile is None:
             profile = ""
         else:
@@ -182,11 +182,13 @@ class ProfileFlags:
 
         self._profiles[profile].add_flags(new_flags)
 
-    def remove_flag(self,
-                    remove_flag: str,
-                    profile: Optional[str] = None,
-                    has_parameter: bool = False):
-        '''Removes all occurrences of `remove_flag` in flags.
+    def remove_flag(
+        self,
+        remove_flag: str,
+        profile: Optional[str] = None,
+        has_parameter: bool = False,
+    ):
+        """Removes all occurrences of `remove_flag` in flags.
         If `has_parameter` is defined, the next entry in flags will also be
         removed, and if this object contains this flag+parameter without space
         (e.g. `-J/tmp`), it will be correctly removed. Note that only the
@@ -196,7 +198,7 @@ class ProfileFlags:
 
         :param remove_flag: the flag to remove
         :param has_parameter: if the flag to remove takes a parameter
-        '''
+        """
 
         if not profile:
             profile = ""
@@ -208,9 +210,9 @@ class ProfileFlags:
 
         self._profiles[profile].remove_flag(remove_flag, has_parameter)
 
-    def checksum(self,
-                 config: Optional["BuildConfig"] = None,
-                 file_path: Optional[Path] = None) -> int:
+    def checksum(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> int:
         """
         :param config: the config object (used for templating)
         :param file_path: the file path of the source file, used for
@@ -228,8 +230,7 @@ class ProfileFlags:
             profile = ""
 
         if profile not in self._profiles:
-            raise KeyError(f"checksum: Profile '{profile}' is "
-                           f"not defined.")
+            raise KeyError(f"checksum: Profile '{profile}' is not defined.")
 
         resolve_flags: list[str] = self.get_flags(config, file_path)
         return string_checksum(str(resolve_flags))

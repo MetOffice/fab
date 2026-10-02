@@ -16,28 +16,31 @@ from fab.tools.tool import Tool
 
 
 class Shell(Tool):
-    '''A simple wrapper that runs a shell script. There seems to be no
+    """A simple wrapper that runs a shell script. There seems to be no
     consistent way to simply check if a shell is working - not only support
     a version command (e.g. sh and dash don't). Instead, availability
     is tested by running a simple 'echo' command.
 
     :name: the path to the script to run.
-    '''
+    """
 
     Category.add("SHELL")
 
     def __init__(self, name: str):
-        super().__init__(name=name, exec_name=name,
-                         availability_option=["-c", "echo hello"],
-                         category=Category.SHELL)
+        super().__init__(
+            name=name,
+            exec_name=name,
+            availability_option=["-c", "echo hello"],
+            category=Category.SHELL,
+        )
 
     def exec(self, command: Union[str, list[Union[Path, str]]]) -> str:
-        '''Executes the specified command.
+        """Executes the specified command.
 
         :param command: the command and potential parameters to execute.
 
         :returns: stdout of the result.
-        '''
+        """
         # Make mypy happy:
         params: list[Union[str, Path]]
         if isinstance(command, str):
@@ -45,5 +48,4 @@ class Shell(Tool):
         else:
             params = ["-c"]
             params.extend(command)
-        return super().run(additional_parameters=params,
-                           capture_output=True)
+        return super().run(additional_parameters=params, capture_output=True)

@@ -6,12 +6,12 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''
+"""
 This file contains a function that sets the default flags for all
 GNU based compilers and linkers in the ToolRepository.
 
 This function gets called from the default site-specific config file
-'''
+"""
 
 import argparse
 from typing import cast
@@ -19,16 +19,15 @@ from typing import cast
 from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_script_gnu(build_config: BuildConfig,
-                     args: argparse.Namespace) -> None:
+def setup_script_gnu(build_config: BuildConfig, args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument
-    '''
+    """
     Defines the default flags for all GNU compilers and linkers.
 
     :param build_config: the Fab build config instance from which
         required parameters can be taken.
     :param args: all command line options
-    '''
+    """
 
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "gfortran")
@@ -42,11 +41,14 @@ def setup_script_gnu(build_config: BuildConfig,
 
     # The base flags
     # ==============
-    gfortran.add_flags(['-ffree-line-length-none', '-Wall', '-g'],
-                       "base")
+    gfortran.add_flags(["-ffree-line-length-none", "-Wall", "-g"], "base")
     runtime = ["-fcheck=all", "-ffpe-trap=invalid,zero,overflow"]
-    init = ["-finit-integer=31173",  "-finit-real=snan",
-            "-finit-logical=true", "-finit-character=85"]
+    init = [
+        "-finit-integer=31173",
+        "-finit-real=snan",
+        "-finit-logical=true",
+        "-finit-character=85",
+    ]
     # Full debug
     # ==========
     gfortran.add_flags(runtime + ["-O0"] + init, "full-debug")

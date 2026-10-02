@@ -4,10 +4,10 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''This module tests if the Fortran analyser handles contained subroutines and
+"""This module tests if the Fortran analyser handles contained subroutines and
 subroutines in the same module - none of which should be listed as external
 dependency.
-'''
+"""
 
 from pathlib import Path
 
@@ -23,11 +23,11 @@ from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 
 
-PROJECT_SOURCE = Path(__file__).parent / 'test_contained_subroutine'
+PROJECT_SOURCE = Path(__file__).parent / "test_contained_subroutine"
 
 
 def test_contained_subroutine(tmp_path):
-    '''The test_contained_subroutine directory contains two main programs, one
+    """The test_contained_subroutine directory contains two main programs, one
     called `main`, one `contained`. The first one uses `mod_with_contain`,
     which calls a `contained` subroutine `contained`. This test makes sure
     that:
@@ -35,7 +35,7 @@ def test_contained_subroutine(tmp_path):
         duplicated main symbols defined at link time)
     2. the `contained` subroutine `contained` is indeed not listed as a
         dependency
-    '''
+    """
 
     tb = ToolBox()
     compiler = tb.get_tool(Category.FORTRAN_COMPILER, mpi=False, openmp=False)
@@ -44,12 +44,15 @@ def test_contained_subroutine(tmp_path):
     linker = tr.get_tool(Category.LINKER, f"linker-{compiler.name}")
     tb.add_tool(linker)
 
-    with BuildConfig(fab_workspace=tmp_path, tool_box=tb,
-                     project_label='contained_subroutine',
-                     multiprocessing=False) as config:
+    with BuildConfig(
+        fab_workspace=tmp_path,
+        tool_box=tb,
+        project_label="contained_subroutine",
+        multiprocessing=False,
+    ) as config:
         grab_files(config, PROJECT_SOURCE)
         find_source_files(config)
-        analyse(config, root_symbols='main')
+        analyse(config, root_symbols="main")
         build_tree = config.artefact_store[ArtefactSet.BUILD_TREES]["main"]
 
         source_path = tmp_path / "contained_subroutine" / "source"

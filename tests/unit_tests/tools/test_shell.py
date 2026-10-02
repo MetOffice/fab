@@ -6,6 +6,7 @@
 """
 Tests Shell tools.
 """
+
 from pytest_subprocess.fake_process import FakeProcess
 
 from tests.conftest import ExtendedRecorder, call_list, not_found_callback
@@ -38,8 +39,8 @@ def test_check_available(fake_process: FakeProcess) -> None:
     assert not shell.check_available()
 
     assert call_list(fake_process) == [
-        ['nish', '-c', 'echo hello'],
-        ['nish', '-c', 'echo hello']
+        ["nish", "-c", "echo hello"],
+        ["nish", "-c", "echo hello"],
     ]
 
 
@@ -49,9 +50,7 @@ def test_exec_single_arg(subproc_record: ExtendedRecorder) -> None:
     """
     ksh = Shell("ksh")
     ksh.exec("echo")
-    assert subproc_record.invocations() == [
-        ['ksh', '-c', 'echo']
-    ]
+    assert subproc_record.invocations() == [["ksh", "-c", "echo"]]
 
 
 def test_shell_exec_multiple_args(subproc_record: ExtendedRecorder) -> None:
@@ -60,6 +59,4 @@ def test_shell_exec_multiple_args(subproc_record: ExtendedRecorder) -> None:
     """
     csh = Shell("csh")
     csh.exec(["some", "shell", "function"])
-    assert subproc_record.invocations() == [
-        ['csh', '-c', 'some', 'shell', 'function']
-    ]
+    assert subproc_record.invocations() == [["csh", "-c", "some", "shell", "function"]]

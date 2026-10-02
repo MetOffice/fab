@@ -6,6 +6,7 @@
 """
 Versioning tools such as Subversion and Git.
 """
+
 from abc import ABC
 from pathlib import Path
 from typing import Optional, Union
@@ -18,9 +19,8 @@ class Versioning(Tool, ABC):
     """
     Base class for versioning tools like Git and Subversion.
     """
-    def __init__(self, name: str,
-                 exec_name: Union[str, Path],
-                 category: Category):
+
+    def __init__(self, name: str, exec_name: Union[str, Path], category: Category):
         """
         Constructor.
 
@@ -28,8 +28,7 @@ class Versioning(Tool, ABC):
         :param exec_name: Executable for this tool.
         :param category: Tool belongs to this category.
         """
-        super().__init__(name, exec_name, category,
-                         availability_option="help")
+        super().__init__(name, exec_name, category, availability_option="help")
 
 
 # =============================================================================
@@ -41,52 +40,49 @@ class Git(Versioning):
     Category.add("GIT")
 
     def __init__(self):
-        super().__init__("git", "git",
-                         category=Category.GIT)
+        super().__init__("git", "git", category=Category.GIT)
 
     def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
-        ''':returns: the hash of the current commit.
+        """:returns: the hash of the current commit.
 
         :param folder: the folder for which to determine the current commit
             (defaults to .).
-        '''
-        folder = folder or '.'
-        output = self.run(['log', '--oneline', '-n', '1'], cwd=folder)
+        """
+        folder = folder or "."
+        output = self.run(["log", "--oneline", "-n", "1"], cwd=folder)
         commit = output.split()[0]
         return commit
 
     def init(self, folder: Union[Path, str]):
-        '''Initialises a directory.
+        """Initialises a directory.
 
         :param folder: the directory to initialise.
-        '''
-        self.run(['init', '.'], cwd=folder)
+        """
+        self.run(["init", "."], cwd=folder)
 
     def clean(self, folder: Union[Path, str]):
-        '''Removes all non versioned files in a directory.
+        """Removes all non versioned files in a directory.
 
         :param folder: the directory to clean.
-        '''
-        self.run(['clean', '-f'], cwd=folder)
+        """
+        self.run(["clean", "-f"], cwd=folder)
 
-    def fetch(self, src: Union[str, Path],
-              dst: Union[str, Path],
-              revision: Union[None, str]):
-        '''Runs `git fetch` in the specified directory
+    def fetch(
+        self, src: Union[str, Path], dst: Union[str, Path], revision: Union[None, str]
+    ):
+        """Runs `git fetch` in the specified directory
 
         :param src: the source directory from which to fetch
         :param revision: the revision to fetch (can be "" for latest revision)
         :param dst: the directory in which to run fetch.
-        '''
+        """
         # todo: allow shallow fetch with --depth 1
-        command: list[Union[str, Path]] = ['fetch', str(src)]
+        command: list[Union[str, Path]] = ["fetch", str(src)]
         if revision:
             command.append(revision)
         self.run(command, cwd=str(dst), capture_output=False)
 
-    def checkout(self, src: str,
-                 dst: str = '',
-                 revision: Optional[str] = None):
+    def checkout(self, src: str, dst: str = "", revision: Optional[str] = None):
         """Checkout or update a Git repo.
 
         :param src: the source directory from which to checkout.
@@ -95,10 +91,9 @@ class Git(Versioning):
             latest revision).
         """
         self.fetch(src, dst, revision)
-        self.run(['checkout', 'FETCH_HEAD'], cwd=dst, capture_output=False)
+        self.run(["checkout", "FETCH_HEAD"], cwd=dst, capture_output=False)
 
-    def merge(self, dst: Union[str, Path],
-              revision: Optional[str] = None):
+    def merge(self, dst: Union[str, Path], revision: Optional[str] = None):
         """Merge a git repo into a local working copy. If the merge fails,
         it will run `git merge --abort` to clean the directory.
 
@@ -107,11 +102,12 @@ class Git(Versioning):
             it relies on git fetch running previously).
         """
         try:
-            self.run(['merge', 'FETCH_HEAD'], cwd=dst, capture_output=False)
+            self.run(["merge", "FETCH_HEAD"], cwd=dst, capture_output=False)
         except RuntimeError as err:
-            self.run(['merge', '--abort'], cwd=dst, capture_output=False)
-            raise RuntimeError(f"Error merging {revision}. "
-                               f"Merge aborted.\n{err}") from err
+            self.run(["merge", "--abort"], cwd=dst, capture_output=False)
+            raise RuntimeError(
+                f"Error merging {revision}. Merge aborted.\n{err}"
+            ) from err
 
 
 # =============================================================================
@@ -122,9 +118,12 @@ class Subversion(Versioning):
 
     Category.add("SUBVERSION")
 
-    def __init__(self, name: Optional[str] = None,
-                 exec_name: Optional[Union[str, Path]] = None,
-                 category: Category = Category.SUBVERSION):
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        exec_name: Optional[Union[str, Path]] = None,
+        category: Category = Category.SUBVERSION,
+    ):
         """
         Constructor.
 
@@ -140,13 +139,16 @@ class Subversion(Versioning):
         super().__init__(name, exec_name, category=category)
 
     # pylint: disable-next=too-many-arguments
-    def execute(self, pre_commands: Optional[list[str]] = None,
-                revision: Optional[Union[int, str]] = None,
-                post_commands: Optional[list[str]] = None,
-                env: Optional[dict[str, str]] = None,
-                cwd: Optional[Union[Path, str]] = None,
-                capture_output=True) -> str:
-        '''Executes a svn command.
+    def execute(
+        self,
+        pre_commands: Optional[list[str]] = None,
+        revision: Optional[Union[int, str]] = None,
+        post_commands: Optional[list[str]] = None,
+        env: Optional[dict[str, str]] = None,
+        cwd: Optional[Union[Path, str]] = None,
+        capture_output=True,
+    ) -> str:
+        """Executes a svn command.
 
         :param pre_commands: list of strings to be sent to
             :func:`subprocess.run` as the command.
@@ -157,7 +159,7 @@ class Subversion(Versioning):
             the current session's environment.
         :param capture_output: If True, capture and return stdout. If False,
             the command will print its output directly to the console.
-        '''
+        """
         command: list[Union[str, Path]] = []
         if pre_commands:
             command.extend(pre_commands)
@@ -165,66 +167,71 @@ class Subversion(Versioning):
             command.extend(["--revision", f"{revision}"])
         if post_commands:
             command.extend(post_commands)
-        return super().run(command, env=env, cwd=cwd,
-                           capture_output=capture_output)
+        return super().run(command, env=env, cwd=cwd, capture_output=capture_output)
 
-    def export(self, src: Union[str, Path],
-               dst: Union[str, Path],
-               revision: Optional[str] = None):
-        '''Runs svn export.
+    def export(
+        self,
+        src: Union[str, Path],
+        dst: Union[str, Path],
+        revision: Optional[str] = None,
+    ):
+        """Runs svn export.
 
         :param src: from where to export.
         :param dst: destination path.
         :param revision: revision to export.
-        '''
-        self.execute(['export', '--force'],
-                     revision,
-                     [str(src), str(dst)])
+        """
+        self.execute(["export", "--force"], revision, [str(src), str(dst)])
 
-    def checkout(self, src: Union[str, Path],
-                 dst: Union[str, Path],
-                 revision: Optional[str] = None):
-        '''Runs svn checkout.
+    def checkout(
+        self,
+        src: Union[str, Path],
+        dst: Union[str, Path],
+        revision: Optional[str] = None,
+    ):
+        """Runs svn checkout.
 
         :param src: from where to check out.
         :param dst: destination path.
         :param revision: revision to check out.
-        '''
+        """
         self.execute(["checkout"], revision, [str(src), str(dst)])
 
-    def update(self, dst: Union[str, Path],
-               revision: Optional[str] = None):
-        '''Runs svn checkout.
+    def update(self, dst: Union[str, Path], revision: Optional[str] = None):
+        """Runs svn checkout.
 
         :param dst: destination path.
         :param revision: revision to check out.
-        '''
-        self.execute(['update'], revision, cwd=dst)
+        """
+        self.execute(["update"], revision, cwd=dst)
 
-    def merge(self, src: Union[str, Path],
-              dst: Union[str, Path],
-              revision: Optional[str] = None):
-        '''Runs svn merge.
+    def merge(
+        self,
+        src: Union[str, Path],
+        dst: Union[str, Path],
+        revision: Optional[str] = None,
+    ):
+        """Runs svn merge.
 
         :param src: the src URI.
         :param dst: destination path.
         :param revision: revision to check out.
-        '''
+        """
         # We seem to need the url and version combined for this operation.
         # The help for fcm merge says it accepts the --revision param, like
         # other commands, but it doesn't seem to be recognised.
-        rev_url = f'{src}'
+        rev_url = f"{src}"
         if revision is not None:
-            rev_url += f'@{revision}'
+            rev_url += f"@{revision}"
 
-        self.execute(['merge', '--non-interactive', rev_url], cwd=dst)
+        self.execute(["merge", "--non-interactive", rev_url], cwd=dst)
 
 
 # =============================================================================
 class Fcm(Subversion):
-    '''This is the base class for FCM. All commands will be mapped back
+    """This is the base class for FCM. All commands will be mapped back
     to the corresponding subversion commands.
-    '''
+    """
 
     Category.add("FCM")
 

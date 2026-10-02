@@ -6,6 +6,7 @@
 """
 Exercises the compiler step.
 """
+
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -21,21 +22,20 @@ from fab.tools.profile_flags import ProfileFlags
 from fab.tools.tool_box import ToolBox
 
 
-@fixture(scope='function')
+@fixture(scope="function")
 def content(tmp_path: Path, stub_tool_box: ToolBox):
     """
     Provides a test environment consisting of a config instance, analysed
     file.
     """
-    config = BuildConfig('proj',
-                         stub_tool_box,
-                         multiprocessing=False,
-                         fab_workspace=tmp_path)
+    config = BuildConfig(
+        "proj", stub_tool_box, multiprocessing=False, fab_workspace=tmp_path
+    )
 
-    analysed_file = AnalysedC(fpath=Path(f'{config.source_root}/foo.c'),
-                              file_hash=0)
-    config._artefact_store[ArtefactSet.BUILD_TREES] = \
-        {None: {analysed_file.fpath: analysed_file}}
+    analysed_file = AnalysedC(fpath=Path(f"{config.source_root}/foo.c"), file_hash=0)
+    config._artefact_store[ArtefactSet.BUILD_TREES] = {
+        None: {analysed_file.fpath: analysed_file}
+    }
     return config, analysed_file
 
 
@@ -47,7 +47,7 @@ def test_compile_c_wrong_compiler(content, fake_process: FakeProcess) -> None:
     """
     config = content[0]
 
-    fake_process.register(['scc', '--version'], stdout='1.2.3')
+    fake_process.register(["scc", "--version"], stdout="1.2.3")
 
     tb = config.tool_box
     # Take the Fortran compiler
@@ -62,63 +62,79 @@ def test_compile_c_wrong_compiler(content, fake_process: FakeProcess) -> None:
     mp_common_args = Mock(config=config)
     with raises(RuntimeError) as err:
         _compile_file((Mock(), mp_common_args))
-    assert str(err.value) == ("Unexpected tool 'some C compiler' of category "
-                              "'FORTRAN_COMPILER' instead of CCompiler")
+    assert str(err.value) == (
+        "Unexpected tool 'some C compiler' of category "
+        "'FORTRAN_COMPILER' instead of CCompiler"
+    )
 
 
 # This is more of an integration test than a unit test
 class TestCompileC:
-    '''Test various functionalities of the C compilation step.'''
+    """Test various functionalities of the C compilation step."""
 
-    def test_vanilla(self, content,
-                     fake_process: FakeProcess) -> None:
+    def test_vanilla(self, content, fake_process: FakeProcess) -> None:
         """
         Tests correct use of compiler.
         """
         config, _ = content
 
-        fake_process.register(['scc', '--version'], stdout='1.2.3')
-        fake_process.register([
-            'scc', '-c', '-I', 'foo/include',
-            '-Dhello', 'foo.c',
-            '-o', str(config.prebuild_folder / 'foo.17ecdc5e7.o')
-        ])
-        with warns(UserWarning, match="_metric_send_conn not set, "
-                                      "cannot send metrics"):
-            compile_c(config=config,
-                      path_flags=[AddFlags(match='$source/*',
-                                           flags=['-I', 'foo/include',
-                                                  '-Dhello'])])
+        fake_process.register(["scc", "--version"], stdout="1.2.3")
+        fake_process.register(
+            [
+                "scc",
+                "-c",
+                "-I",
+                "foo/include",
+                "-Dhello",
+                "foo.c",
+                "-o",
+                str(config.prebuild_folder / "foo.17ecdc5e7.o"),
+            ]
+        )
+        with warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
+            compile_c(
+                config=config,
+                path_flags=[
+                    AddFlags(match="$source/*", flags=["-I", "foo/include", "-Dhello"])
+                ],
+            )
 
         # ensure it created the correct artefact collection
         assert config.artefact_store[ArtefactSet.OBJECT_FILES] == {
-            None: {config.prebuild_folder / 'foo.17ecdc5e7.o', }
+            None: {
+                config.prebuild_folder / "foo.17ecdc5e7.o",
+            }
         }
 
-    def test_exception_handling(self, content,
-                                fake_process: FakeProcess) -> None:
+    def test_exception_handling(self, content, fake_process: FakeProcess) -> None:
         """
         Tests compiler failure.
         """
         config, _ = content
 
-        fake_process.register(['scc', '--version'], stdout='1.2.3')
-        fake_process.register([
-            'scc', '-c', 'foo.c',
-            '-o', str(config.build_output / '_prebuild/foo.f133e192.o')
-        ], returncode=1)
+        fake_process.register(["scc", "--version"], stdout="1.2.3")
+        fake_process.register(
+            [
+                "scc",
+                "-c",
+                "foo.c",
+                "-o",
+                str(config.build_output / "_prebuild/foo.f133e192.o"),
+            ],
+            returncode=1,
+        )
         with raises(RuntimeError):
             compile_c(config=config)
 
 
 class TestGetObjComboHash:
-    '''Tests the object combo hash functionality.'''
+    """Tests the object combo hash functionality."""
 
-    @fixture(scope='function')
+    @fixture(scope="function")
     def flags(self):
-        '''Returns the flag for these tests.'''
+        """Returns the flag for these tests."""
         pf = ProfileFlags()
-        pf.add_flags(['-Denv_flag', '-I', 'foo/include', '-Dhello'])
+        pf.add_flags(["-Denv_flag", "-I", "foo/include", "-Dhello"])
         return pf
 
     def test_vanilla(self, content, flags, fake_process: FakeProcess) -> None:
@@ -127,7 +143,7 @@ class TestGetObjComboHash:
         """
         config, analysed_file = content
 
-        fake_process.register(['scc', '--version'], stdout='1.2.3')
+        fake_process.register(["scc", "--version"], stdout="1.2.3")
         compiler = config.tool_box.get_tool(Category.C_COMPILER)
         #
         # ToDo: Messing with "private" members.
@@ -135,14 +151,13 @@ class TestGetObjComboHash:
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
         assert result == 5015455762
 
-    def test_change_file(self, content, flags,
-                         fake_process: FakeProcess) -> None:
+    def test_change_file(self, content, flags, fake_process: FakeProcess) -> None:
         """
         Tests changes to source file changes the hash.
         """
         config, analysed_file = content
 
-        fake_process.register(['scc', '--version'], stdout='1.2.3')
+        fake_process.register(["scc", "--version"], stdout="1.2.3")
         compiler = config.tool_box.get_tool(Category.C_COMPILER)
         #
         # ToDo: Messing with "private" members.
@@ -151,27 +166,25 @@ class TestGetObjComboHash:
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
         assert result == 5015455763
 
-    def test_change_flags(self, content, flags,
-                          fake_process: FakeProcess) -> None:
+    def test_change_flags(self, content, flags, fake_process: FakeProcess) -> None:
         """
         Tests changing compiler arguments changes the hash.
         """
         config, analysed_file = content
 
-        fake_process.register(['scc', '--version'], stdout='1.2.3')
+        fake_process.register(["scc", "--version"], stdout="1.2.3")
         compiler = config.tool_box.get_tool(Category.C_COMPILER)
-        flags = ProfileFlags(['-Dfoo'] + flags.get_flags(), config.profile)
+        flags = ProfileFlags(["-Dfoo"] + flags.get_flags(), config.profile)
         result = _get_obj_combo_hash(config, compiler, analysed_file, flags)
         assert result != 5066163117
 
-    def test_change_compiler(self, content, flags,
-                             fake_process: FakeProcess) -> None:
+    def test_change_compiler(self, content, flags, fake_process: FakeProcess) -> None:
         """
         Tests a change in compiler name changes the hash.
         """
         config, analysed_file = content
 
-        fake_process.register(['scc', '--version'], stdout='1.2.3')
+        fake_process.register(["scc", "--version"], stdout="1.2.3")
         compiler = config.tool_box.get_tool(Category.C_COMPILER)
         #
         # Change the name of the compiler

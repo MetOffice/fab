@@ -6,6 +6,7 @@
 """
 Tests 'ar' archiver tool.
 """
+
 from pathlib import Path
 
 from pytest_subprocess.fake_process import FakeProcess
@@ -32,19 +33,18 @@ def test_check_available(subproc_record: ExtendedRecorder) -> None:
     ar = Ar()
     assert ar.check_available()
     assert subproc_record.invocations() == [["ar", "--version"]]
-    assert subproc_record.extras() == [{'cwd': None,
-                                        'env': None,
-                                        'stdout': None,
-                                        'stderr': None}]
+    assert subproc_record.extras() == [
+        {"cwd": None, "env": None, "stdout": None, "stderr": None}
+    ]
 
 
 def test_check_unavailable(fake_process: FakeProcess) -> None:
     """
     Tests availability failure.
     """
-    fake_process.register(['ar', '--version'],
-                          returncode=1,
-                          stderr="Something went wrong.")
+    fake_process.register(
+        ["ar", "--version"], returncode=1, stderr="Something went wrong."
+    )
     ar = Ar()
     assert not ar.check_available()
     assert call_list(fake_process) == [["ar", "--version"]]
@@ -56,9 +56,7 @@ def test_ar_create(subproc_record: ExtendedRecorder) -> None:
     """
     ar = Ar()
     ar.create(Path("out.a"), [Path("a.o"), "b.o"])
-    assert subproc_record.invocations() \
-           == [['ar', 'cr', 'out.a', 'a.o', 'b.o']]
-    assert subproc_record.extras() == [{'cwd': None,
-                                        'env': None,
-                                        'stderr': None,
-                                        'stdout': None}]
+    assert subproc_record.invocations() == [["ar", "cr", "out.a", "a.o", "b.o"]]
+    assert subproc_record.extras() == [
+        {"cwd": None, "env": None, "stderr": None, "stdout": None}
+    ]

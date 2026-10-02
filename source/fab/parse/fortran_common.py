@@ -7,6 +7,7 @@
 Common functionality for both Fortran and (sanitised) X90 processing.
 
 """
+
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -30,8 +31,9 @@ def _typed_child(parent, child_type: type, must_exist=False):
     # Look for a child of a certain type.
     # Returns the child or None.
     # Raises ValueError if more than one child of the given type is found.
-    children = list(filter(lambda child: isinstance(child, child_type),
-                           parent.children))
+    children = list(
+        filter(lambda child: isinstance(child, child_type), parent.children)
+    )
     if len(children) > 1:
         raise ValueError(f"too many children found of type {child_type}")
 
@@ -39,8 +41,7 @@ def _typed_child(parent, child_type: type, must_exist=False):
         return children[0]
 
     if must_exist:
-        raise FabException(f'Could not find child of type {child_type} '
-                           f'in {parent}')
+        raise FabException(f"Could not find child of type {child_type} in {parent}")
     return None
 
 
@@ -50,11 +51,10 @@ class FortranAnalyserBase(ABC):
     X90Analyser.
 
     """
-    _intrinsic_modules = ['iso_fortran_env', 'iso_c_binding']
 
-    def __init__(self, config: BuildConfig,
-                 result_class,
-                 std: Optional[str] = None):
+    _intrinsic_modules = ["iso_fortran_env", "iso_c_binding"]
+
+    def __init__(self, config: BuildConfig, result_class, std: Optional[str] = None):
         """
         :param config: The BuildConfig object.
         :param result_class:
@@ -69,14 +69,16 @@ class FortranAnalyserBase(ABC):
 
     @property
     def config(self) -> BuildConfig:
-        '''Returns the BuildConfig to use.
-        '''
+        """Returns the BuildConfig to use."""
         return self._config
 
-    def run(self, fpath: Path) \
-            -> Union[tuple[AnalysedDependent, Path],
-                     tuple[EmptySourceFile, None],
-                     tuple[Exception, None]]:
+    def run(
+        self, fpath: Path
+    ) -> Union[
+        tuple[AnalysedDependent, Path],
+        tuple[EmptySourceFile, None],
+        tuple[Exception, None],
+    ]:
         """
         Parse the source file and record what we're interested in (subclass
         specific).
@@ -111,8 +113,7 @@ class FortranAnalyserBase(ABC):
         # parse the file, get a node tree
         node_tree = self._parse_file(fpath=fpath)
         if isinstance(node_tree, Exception):
-            return (Exception(f"error parsing file '{fpath}':\n{node_tree}"),
-                    None)
+            return (Exception(f"error parsing file '{fpath}':\n{node_tree}"), None)
         if not node_tree.content or node_tree.content[0] is None:
             logger.debug(f"  empty tree found when parsing {fpath}")
             # todo: If we don't save the empty result we'll keep analysing
@@ -120,8 +121,9 @@ class FortranAnalyserBase(ABC):
             return EmptySourceFile(fpath), None
 
         # find things in the node tree
-        analysed_file = self.walk_nodes(fpath=fpath, file_hash=file_hash,
-                                        node_tree=node_tree)
+        analysed_file = self.walk_nodes(
+            fpath=fpath, file_hash=file_hash, node_tree=node_tree
+        )
         analysed_file.save(analysis_fpath)
 
         return analysed_file, analysis_fpath
@@ -131,15 +133,15 @@ class FortranAnalyserBase(ABC):
         :returns: the name to use for the analysis file. It consists of
             the original filename, the hash, and a `.an` suffix.
         """
-        return Path(self.config.prebuild_folder /
-                    f'{fpath.name}.{file_hash}.an')
+        return Path(self.config.prebuild_folder / f"{fpath.name}.{file_hash}.an")
 
     def _parse_file(self, fpath):
         """Get a node tree from a fortran file."""
         reader = FortranFileReader(
             str(fpath),
             ignore_comments=False,
-            include_omp_conditional_lines=self.config.openmp)
+            include_omp_conditional_lines=self.config.openmp,
+        )
         # don't call sys.exit, it messes up the multi-processing
         reader.exit_on_error = False
 
@@ -152,8 +154,7 @@ class FortranAnalyserBase(ABC):
             return Exception(f"syntax error in {fpath}\n{err}")
         except Exception as err:
             logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
-            return Exception(f"unhandled error '{type(err)}' in "
-                             f"{fpath}\n{err}")
+            return Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
 
     @abstractmethod
     def walk_nodes(self, fpath, file_hash, node_tree) -> AnalysedDependent:

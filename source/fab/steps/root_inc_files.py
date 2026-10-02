@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 @step
-def root_inc_files(config: BuildConfig,
-                   suffix_list: Optional[Union[list[str], str]] = None):
-
+def root_inc_files(
+    config: BuildConfig, suffix_list: Optional[Union[list[str], str]] = None
+):
     """
     Copy include files with a specific suffix into the workspace
     output root.

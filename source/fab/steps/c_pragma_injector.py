@@ -7,6 +7,7 @@
 Add custom pragmas to C code which identify user and system include regions.
 
 """
+
 import re
 from pathlib import Path
 from typing import Generator, Match, Optional, Pattern, Tuple
@@ -17,13 +18,16 @@ from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
 from fab.steps import run_mp, step
 from fab.util import input_to_output_fpath
 
-DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.C_COMPILER_FILES, '.c')
+DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.C_COMPILER_FILES, ".c")
 
 
 # todo: test
 @step
-def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None,
-                      output_name: Optional[ArtefactSet] = None) -> None:
+def c_pragma_injector(
+    config,
+    source: Optional[ArtefactsGetter] = None,
+    output_name: Optional[ArtefactSet] = None,
+) -> None:
     """
     A build step to inject custom pragmas to mark blocks of user and system
     include statements.
@@ -55,24 +59,23 @@ def c_pragma_injector(config, source: Optional[ArtefactsGetter] = None,
     args = [(config, file) for file in files]
     results = run_mp(config, items=args, func=_process_artefact)
     config.artefact_store[output_name] = set(results)
-    config.artefact_store.replace(ArtefactSet.C_COMPILER_FILES,
-                                  remove_files=files,
-                                  add_files=results)
+    config.artefact_store.replace(
+        ArtefactSet.C_COMPILER_FILES, remove_files=files, add_files=results
+    )
 
 
 def _process_artefact(config_fpath: Tuple[BuildConfig, Path]) -> None:
-    '''
+    """
     Adds the pragmas to a given C file, and stores the modified file
     with a ".prag" suffix in the output directory.
 
     :param config_fpath: a tuple of the config directory and the file
         to process.
-    '''
+    """
     config, fpath = config_fpath
-    prag_output_fpath = input_to_output_fpath(config,
-                                              fpath.with_suffix('.prag'))
+    prag_output_fpath = input_to_output_fpath(config, fpath.with_suffix(".prag"))
     prag_output_fpath.parent.mkdir(parents=True, exist_ok=True)
-    prag_output_fpath.open('w').writelines(inject_pragmas(fpath))
+    prag_output_fpath.open("w").writelines(inject_pragmas(fpath))
     return prag_output_fpath
 
 
@@ -84,26 +87,26 @@ def inject_pragmas(fpath) -> Generator:
     after the preprocessing
     """
 
-    _include_re: str = r'^\s*#include\s+(\S+)'
+    _include_re: str = r"^\s*#include\s+(\S+)"
     _include_pattern: Pattern = re.compile(_include_re)
 
-    for line in open(fpath, 'rt', encoding='utf-8'):
+    for line in open(fpath, "rt", encoding="utf-8"):
         include_match: Optional[Match] = _include_pattern.match(line)
         if include_match:
             # For valid C the first character of the matched
             # part of the group will indicate whether this is
             # a system library include or a user include
             include: str = include_match.group(1)
-            if include.startswith('<'):
-                yield '#pragma FAB SysIncludeStart\n'
+            if include.startswith("<"):
+                yield "#pragma FAB SysIncludeStart\n"
                 yield line
-                yield '#pragma FAB SysIncludeEnd\n'
+                yield "#pragma FAB SysIncludeEnd\n"
             elif include.startswith(('"', "'")):
-                yield '#pragma FAB UsrIncludeStart\n'
+                yield "#pragma FAB UsrIncludeStart\n"
                 yield line
-                yield '#pragma FAB UsrIncludeEnd\n'
+                yield "#pragma FAB UsrIncludeEnd\n"
             else:
-                msg = 'Found badly formatted #include'
+                msg = "Found badly formatted #include"
                 raise FabException(msg)
         else:
             yield line

@@ -66,7 +66,7 @@ def test_import_from_api(module) -> None:
         "Tool",
         "ToolBox",
         "ToolRepository",
-        ]
+    ]
 
     fab_api = import_module(module)
     for symbol_name in all_symbols:
@@ -74,5 +74,4 @@ def test_import_from_api(module) -> None:
             symbol = getattr(fab_api, symbol_name)
             assert symbol.__name__ == symbol_name
         except AttributeError:
-            fail(f"Symbol `{symbol_name}` could not be imported "
-                 f"from `fab.api`.")
+            fail(f"Symbol `{symbol_name}` could not be imported from `fab.api`.")

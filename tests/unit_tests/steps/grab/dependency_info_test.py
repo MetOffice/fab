@@ -44,8 +44,7 @@ def test_dependency_info_empty_filename(filename) -> None:
         dependency_info.get_repo_info("missing")
 
 
-def test_dependency_info_reads_single_and_multiple_dependencies(
-        tmp_path: Path) -> None:
+def test_dependency_info_reads_single_and_multiple_dependencies(tmp_path: Path) -> None:
     """
     Check that both single dependency definitions and lists are supported.
     """
@@ -59,7 +58,7 @@ def test_dependency_info_reads_single_and_multiple_dependencies(
         "      ref: cab3315147a3c7e8546dda559d3da0fccd702f29\n"
         "    - source: git@github.com:MetOffice/SimSys_Scripts-fork.git\n"
         "      ref: feature-branch\n",
-        encoding="utf8"
+        encoding="utf8",
     )
 
     dependency_info = DependencyInfo(dependency_file)
@@ -95,7 +94,7 @@ def test_dependency_info_only(tmp_path: Path) -> None:
         "repo3:\n"
         "    source: git@bgithub.com/repo3\n"
         "    ref: 3\n",
-        encoding="utf8"
+        encoding="utf8",
     )
 
     dependency_info = DependencyInfo(dependency_file)
@@ -107,8 +106,7 @@ def test_dependency_info_only(tmp_path: Path) -> None:
     dependency_info = DependencyInfo(dependency_file, ["repo1", "repo2"])
     assert dependency_info.get_repo_names() == ["repo1", "repo2"]
 
-    dependency_info = DependencyInfo(dependency_file, ["repo1", "repo2",
-                                                       "repo3"])
+    dependency_info = DependencyInfo(dependency_file, ["repo1", "repo2", "repo3"])
     assert dependency_info.get_repo_names() == ["repo1", "repo2", "repo3"]
 
 
@@ -116,21 +114,18 @@ def test_dependency_info_only(tmp_path: Path) -> None:
     "yaml_text, expected_message",
     [
         (
-            "test_repo:\n"
-            "    ref: test-ref\n",
+            "test_repo:\n    ref: test-ref\n",
             "does not contain a 'source' definition for repo 'test_repo'",
         ),
         (
-            "test_repo:\n"
-            "    source: git@example.com:test.git\n",
+            "test_repo:\n    source: git@example.com:test.git\n",
             "does not contain a 'ref' definition for repo 'test_repo'",
         ),
     ],
 )
 def test_dependency_info_rejects_missing_required_keys(
-        tmp_path: Path,
-        yaml_text: str,
-        expected_message: str) -> None:
+    tmp_path: Path, yaml_text: str, expected_message: str
+) -> None:
     """
     Check that malformed dependency entries raise a helpful RuntimeError.
     """

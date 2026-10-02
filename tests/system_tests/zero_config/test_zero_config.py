@@ -20,6 +20,7 @@ class TestZeroConfig:
     """
     Exercises "zero configuration" mode.
     """
+
     def test_fortran(self, tmp_path: Path) -> None:
         """
         Tests a sample Fortran source.
@@ -27,19 +28,20 @@ class TestZeroConfig:
         ToDo: Fragile due to assumption of donor code.
         """
         copytree(
-            Path(__file__).parent.parent / 'FortranDependencies' /
-            'project-source',
-            tmp_path / 'source'
+            Path(__file__).parent.parent / "FortranDependencies" / "project-source",
+            tmp_path / "source",
         )
 
-        kwargs = {'project_label': 'fortran test',
-                  'fab_workspace': tmp_path,
-                  'multiprocessing': False}
+        kwargs = {
+            "project_label": "fortran test",
+            "fab_workspace": tmp_path,
+            "multiprocessing": False,
+        }
 
-        config = cli_fab(folder=tmp_path / 'source', kwargs=kwargs)
+        config = cli_fab(folder=tmp_path / "source", kwargs=kwargs)
 
-        assert (config.project_workspace / 'first').exists()
-        assert (config.project_workspace / 'second').exists()
+        assert (config.project_workspace / "first").exists()
+        assert (config.project_workspace / "second").exists()
 
     def test_c(self, tmp_path: Path) -> None:
         """
@@ -47,17 +49,19 @@ class TestZeroConfig:
 
         ToDo: Fragility due to assumption of source donor.
         """
-        pytest.importorskip('clang', reason="Missing libclang bindings.")
+        pytest.importorskip("clang", reason="Missing libclang bindings.")
         copytree(
-            Path(__file__).parent.parent / 'CUserHeader' / 'project-source',
-            tmp_path / 'source'
+            Path(__file__).parent.parent / "CUserHeader" / "project-source",
+            tmp_path / "source",
         )
 
-        kwargs = {'project_label': 'c test',
-                  'fab_workspace': tmp_path,
-                  'multiprocessing': False}
-        config = cli_fab(folder=tmp_path / 'source', kwargs=kwargs)
-        assert (config.project_workspace / 'mainprog').exists()
+        kwargs = {
+            "project_label": "c test",
+            "fab_workspace": tmp_path,
+            "multiprocessing": False,
+        }
+        config = cli_fab(folder=tmp_path / "source", kwargs=kwargs)
+        assert (config.project_workspace / "mainprog").exists()
 
     def test_c_fortran(self, tmp_path: Path) -> None:
         """
@@ -65,14 +69,16 @@ class TestZeroConfig:
 
         ToDo: Fragility due to assumption of source donor.
         """
-        pytest.importorskip('clang', reason="Missing libclang bindings.")
+        pytest.importorskip("clang", reason="Missing libclang bindings.")
         copytree(
-            Path(__file__).parent.parent / 'CFortranInterop' /
-            'project-source', tmp_path / 'source'
+            Path(__file__).parent.parent / "CFortranInterop" / "project-source",
+            tmp_path / "source",
         )
 
-        kwargs = {'project_label': 'C test',
-                  'fab_workspace': tmp_path / 'fab',
-                  'multiprocessing': False}
-        config = cli_fab(folder=tmp_path / 'source', kwargs=kwargs)
-        assert (config.project_workspace / 'c_roundtrip').exists()
+        kwargs = {
+            "project_label": "C test",
+            "fab_workspace": tmp_path / "fab",
+            "multiprocessing": False,
+        }
+        config = cli_fab(folder=tmp_path / "source", kwargs=kwargs)
+        assert (config.project_workspace / "c_roundtrip").exists()

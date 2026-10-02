@@ -20,25 +20,28 @@ from fab.steps.preprocess import preprocess_c
 from fab.steps.root_inc_files import root_inc_files
 from fab.tools.tool_box import ToolBox
 
-clang = importorskip('clang', reason="Clang bindings not found.")
+clang = importorskip("clang", reason="Clang bindings not found.")
 
-PROJECT_SOURCE = Path(__file__).parent / 'project-source'
+PROJECT_SOURCE = Path(__file__).parent / "project-source"
 
 
 def test_CUseHeader(tmp_path):
 
     # build
-    with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
-                     project_label='foo', multiprocessing=False) as config:
-
+    with BuildConfig(
+        fab_workspace=tmp_path,
+        tool_box=ToolBox(),
+        project_label="foo",
+        multiprocessing=False,
+    ) as config:
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
         root_inc_files(config, suffix_list=[".h"])
         c_pragma_injector(config)
         preprocess_c(config)
-        analyse(config, root_symbols='main@mainprog')
-        compile_c(config, common_flags=['-c', '-std=c99'])
-        link_exe(config, flags=['-lgfortran'])
+        analyse(config, root_symbols="main@mainprog")
+        compile_c(config, common_flags=["-c", "-std=c99"])
+        link_exe(config, flags=["-lgfortran"])
 
     assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 1
 
@@ -46,6 +49,5 @@ def test_CUseHeader(tmp_path):
     command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    with open(PROJECT_SOURCE / 'expected.exec.txt', 'r',
-              encoding="utf-8") as fd:
-        assert output == ''.join(fd.readlines())
+    with open(PROJECT_SOURCE / "expected.exec.txt", "r", encoding="utf-8") as fd:
+        assert output == "".join(fd.readlines())

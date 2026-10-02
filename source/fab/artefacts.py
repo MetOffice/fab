@@ -25,8 +25,8 @@ from fab.util import suffix_filter
 
 
 class ArtefactSet(Enum):
-    '''A simple enum with the artefact types used internally in Fab.
-    '''
+    """A simple enum with the artefact types used internally in Fab."""
+
     INITIAL_SOURCE_FILES = auto()
     PREPROCESSED_FORTRAN = auto()
     PREPROCESSED_C = auto()
@@ -42,37 +42,36 @@ class ArtefactSet(Enum):
 
 
 class ArtefactStore(dict):
-    '''This object stores sets of artefacts (which can be of any type).
+    """This object stores sets of artefacts (which can be of any type).
     Each artefact is indexed by either an ArtefactSet enum, or a string.
-    '''
+    """
 
     def __init__(self):
-        '''The constructor calls reset, which will mean all the internal
-        artefact categories are created.'''
+        """The constructor calls reset, which will mean all the internal
+        artefact categories are created."""
         super().__init__()
         self.reset()
 
     def reset(self):
-        '''Clears the artefact store (but does not delete any files).
-        '''
+        """Clears the artefact store (but does not delete any files)."""
         self.clear()
         for artefact in ArtefactSet:
-            if artefact in [ArtefactSet.OBJECT_FILES,
-                            ArtefactSet.OBJECT_ARCHIVES]:
+            if artefact in [ArtefactSet.OBJECT_FILES, ArtefactSet.OBJECT_ARCHIVES]:
                 # ObjectFiles store a default dictionary (i.e. a non-existing
                 # key will automatically add an empty `set`)
                 self[artefact] = defaultdict(set)
             else:
                 self[artefact] = set()
 
-    def add(self, collection: Union[str, ArtefactSet],
-            files: Union[Path, Iterable[Path]]):
-        '''Adds the specified artefacts to a collection. The artefact
+    def add(
+        self, collection: Union[str, ArtefactSet], files: Union[Path, Iterable[Path]]
+    ):
+        """Adds the specified artefacts to a collection. The artefact
         can be specified as a simple string, a list of string or a set, in
         which case all individual entries of the list/set will be added.
         :param collection: the name of the collection to add this to.
         :param files: the artefacts to add.
-        '''
+        """
         if isinstance(files, list):
             files = set(files)
         elif isinstance(files, Path):
@@ -82,9 +81,12 @@ class ArtefactStore(dict):
 
         self[collection].update(files)
 
-    def update_dict(self, collection: Union[str, ArtefactSet],
-                    values: Union[Path, Iterable[Path]],
-                    key: Optional[str] = None):
+    def update_dict(
+        self,
+        collection: Union[str, ArtefactSet],
+        values: Union[Path, Iterable[Path]],
+        key: Optional[str] = None,
+    ):
         """
         Modifies data associated with artefact set.
 
@@ -93,13 +95,15 @@ class ArtefactStore(dict):
         :param key: Executable name associated with data. Do not specify for
                     libraries.
         """
-        self[collection][key].update([values] if isinstance(values, Path)
-                                     else values)
+        self[collection][key].update([values] if isinstance(values, Path) else values)
 
-    def copy_artefacts(self, source: Union[str, ArtefactSet],
-                       dest: Union[str, ArtefactSet],
-                       suffixes: Optional[Union[str, list[str]]] = None):
-        '''Copies all artefacts from `source` to `destination`. If a
+    def copy_artefacts(
+        self,
+        source: Union[str, ArtefactSet],
+        dest: Union[str, ArtefactSet],
+        suffixes: Optional[Union[str, list[str]]] = None,
+    ):
+        """Copies all artefacts from `source` to `destination`. If a
         suffix_fiter is specified, only files with the given suffix
         will be copied.
 
@@ -107,17 +111,20 @@ class ArtefactStore(dict):
         :param dest: the destination artefact set.
         :param suffixes: a string or list of strings specifying the
             suffixes to copy.
-        '''
+        """
         if suffixes:
             suffixes = [suffixes] if isinstance(suffixes, str) else suffixes
             self.add(dest, set(suffix_filter(self[source], suffixes)))
         else:
             self.add(dest, self[source])
 
-    def replace(self, artefact: Union[str, ArtefactSet],
-                remove_files: Union[Sequence[str], Sequence[Path]],
-                add_files: Union[Sequence[str], Sequence[Path]]):
-        '''Replaces artefacts in one artefact set with other artefacts. This
+    def replace(
+        self,
+        artefact: Union[str, ArtefactSet],
+        remove_files: Union[Sequence[str], Sequence[Path]],
+        add_files: Union[Sequence[str], Sequence[Path]],
+    ):
+        """Replaces artefacts in one artefact set with other artefacts. This
         can be used e.g to replace files that have been preprocessed
         and renamed. There is no requirement for these lists to have the
         same number of elements, nor is there any check if an artefact to
@@ -126,12 +133,13 @@ class ArtefactStore(dict):
         :param artefact: the artefact set to modify.
         :param remove_files: files to remove from the artefact set.
         :param add_files: files to add to the artefact set.
-        '''
+        """
 
         art_set = self[artefact]
         if not isinstance(art_set, set):
-            raise RuntimeError(f"Replacing artefacts in dictionary "
-                               f"'{artefact}' is not supported.")
+            raise RuntimeError(
+                f"Replacing artefacts in dictionary '{artefact}' is not supported."
+            )
         art_set.difference_update(set(remove_files))
         art_set.update(add_files)
 
@@ -141,6 +149,7 @@ class ArtefactsGetter(ABC):
     Abstract base class for artefact getters.
 
     """
+
     @abstractmethod
     def __call__(self, artefact_store):
         """
@@ -148,8 +157,9 @@ class ArtefactsGetter(ABC):
             The artefact store from which to retrieve.
 
         """
-        raise NotImplementedError(f"__call__ must be implemented for "
-                                  f"'{type(self).__name__}'.")
+        raise NotImplementedError(
+            f"__call__ must be implemented for '{type(self).__name__}'."
+        )
 
 
 class CollectionGetter(ArtefactsGetter):
@@ -162,6 +172,7 @@ class CollectionGetter(ArtefactsGetter):
         `CollectionGetter('preprocessed_fortran')`
 
     """
+
     def __init__(self, collection_name: Union[str, ArtefactSet]):
         """
         :param collection_name:
@@ -194,8 +205,8 @@ class CollectionConcat(ArtefactsGetter):
         ])
 
     """
-    def __init__(self, collections: Iterable[Union[ArtefactSet, str,
-                                                   ArtefactsGetter]]):
+
+    def __init__(self, collections: Iterable[Union[ArtefactSet, str, ArtefactsGetter]]):
         """
         :param collections:
             An iterable containing collection names (strings) or
@@ -228,9 +239,10 @@ class SuffixFilter(ArtefactsGetter):
         DEFAULT_SOURCE = SuffixFilter(ArtefactSet.INITIAL_SOURCE_FILES, '.F90')
 
     """
-    def __init__(self,
-                 collection_name: Union[str, ArtefactSet],
-                 suffix: Union[str, list[str]]):
+
+    def __init__(
+        self, collection_name: Union[str, ArtefactSet], suffix: Union[str, list[str]]
+    ):
         """
         :param collection_name:
             The name of the artefact collection.
@@ -261,6 +273,7 @@ class FilterBuildTrees(ArtefactsGetter):
         Dict[name, list[AnalysedDependent]]
 
     """
+
     def __init__(self, suffix: Union[str, list[str]]):
         """
         :param suffix:
@@ -275,7 +288,8 @@ class FilterBuildTrees(ArtefactsGetter):
 
         build_lists: dict[str, list[AnalysedDependent]] = {}
         for root, tree in build_trees.items():
-            build_lists[root] = filter_source_tree(source_tree=tree,
-                                                   suffixes=self.suffixes)
+            build_lists[root] = filter_source_tree(
+                source_tree=tree, suffixes=self.suffixes
+            )
 
         return build_lists

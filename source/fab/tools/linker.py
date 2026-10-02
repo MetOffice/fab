@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-"""This file contains the base class for any Linker.
-"""
+"""This file contains the base class for any Linker."""
 
 from __future__ import annotations
 
@@ -21,7 +20,7 @@ from fab.tools.compiler_suite_tool import CompilerSuiteTool
 
 
 class Linker(CompilerSuiteTool):
-    '''This is the base class for any Linker. It takes an existing compiler
+    """This is the base class for any Linker. It takes an existing compiler
     instance as parameter, and optional another linker. The latter is used
     to get linker settings - for example, linker-mpif90-gfortran will use
     mpif90-gfortran as compiler (i.e. to test if it is available and get
@@ -35,11 +34,14 @@ class Linker(CompilerSuiteTool):
 
     :raises RuntimeError: if both compiler and linker are specified.
     :raises RuntimeError: if neither compiler nor linker is specified.
-    '''
+    """
 
-    def __init__(self, compiler: Compiler,
-                 linker: Optional[Linker] = None,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        compiler: Compiler,
+        linker: Optional[Linker] = None,
+        name: Optional[str] = None,
+    ):
 
         self._compiler = compiler
         self._linker = linker
@@ -51,7 +53,8 @@ class Linker(CompilerSuiteTool):
             name=name,
             exec_name=compiler.exec_path,
             suite=self.suite,
-            category=Category.LINKER)
+            category=Category.LINKER,
+        )
 
         # Maintain a set of flags for common libraries.
         self._lib_flags: dict[str, list[str]] = {}
@@ -60,38 +63,38 @@ class Linker(CompilerSuiteTool):
         self._post_lib_flags = ProfileFlags()
 
     def check_available(self) -> bool:
-        '''
+        """
         :returns: whether this linker is available by asking the wrapped
             linker or compiler.
 
-        '''
+        """
         return self._compiler.check_available()
 
     @property
     def suite(self) -> str:
-        '''
+        """
         :returns: the suite this linker belongs to by getting it from
-            the wrapped compiler.'''
+            the wrapped compiler."""
         return self._compiler.suite
 
     @property
     def compiler(self) -> Compiler:
-        '''
-        :returns: the wrapped compiler.'''
+        """
+        :returns: the wrapped compiler."""
         return self._compiler
 
     @property
     def mpi(self) -> bool:
-        '''
+        """
         :returns: whether this linker supports MPI or not by checking
-            with the wrapped compiler.'''
+            with the wrapped compiler."""
         return self._compiler.mpi
 
     @property
     def openmp(self) -> bool:
-        '''
+        """
         :returns: whether this linker supports OpenMP or not by checking
-            with the wrapped compiler.'''
+            with the wrapped compiler."""
         return self._compiler.openmp
 
     def __getitem__(self, generic_name: str) -> list[str]:
@@ -111,27 +114,25 @@ class Linker(CompilerSuiteTool):
             return result
         return self._compiler[generic_name]
 
-    def define_profile(self,
-                       name: str,
-                       inherit_from: Optional[str] = None):
-        '''Defines a new profile name, and allows to specify if this new
+    def define_profile(self, name: str, inherit_from: Optional[str] = None):
+        """Defines a new profile name, and allows to specify if this new
         profile inherit settings from an existing profile.
 
         :param name: Name of the profile to define.
         :param inherit_from: Optional name of a profile to inherit
             settings from.
-        '''
+        """
         self._flags.define_profile(name, inherit_from)
         self._pre_lib_flags.define_profile(name, inherit_from)
         self._post_lib_flags.define_profile(name, inherit_from)
 
     def get_profile_flags(self, config: "BuildConfig") -> list[str]:
-        '''
+        """
         :returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
 
         :param profile: the profile to use.
-        '''
+        """
         if self._linker:
             flags = self._linker.get_profile_flags(config)[:]
         else:
@@ -142,14 +143,14 @@ class Linker(CompilerSuiteTool):
         return flags + self._compiler.get_flags(config, Path(""))
 
     def get_lib_flags(self, lib: str) -> list[str]:
-        '''Gets the standard flags for a standard library
+        """Gets the standard flags for a standard library
 
         :param lib: the library name
 
         :returns: a list of flags
 
         :raises RuntimeError: if lib is not recognised
-        '''
+        """
         try:
             return self._lib_flags[lib]
         except KeyError as err:
@@ -159,41 +160,40 @@ class Linker(CompilerSuiteTool):
                 return self._linker.get_lib_flags(lib)
             raise RuntimeError(f"Unknown library name: '{lib}'") from err
 
-    def add_lib_flags(self, lib: str, flags: list[str],
-                      silent_replace: bool = False):
-        '''Add a set of flags for a standard library
+    def add_lib_flags(self, lib: str, flags: list[str], silent_replace: bool = False):
+        """Add a set of flags for a standard library
 
         :param lib: the library name
         :param flags: the flags to use with the library
         :param silent_replace: if set, no warning will be printed when an
             existing lib is overwritten.
-        '''
+        """
         if lib in self._lib_flags and not silent_replace:
-            warnings.warn(f"Replacing existing flags for library {lib}: "
-                          f"'{self._lib_flags[lib]}' with "
-                          f"'{flags}'.")
+            warnings.warn(
+                f"Replacing existing flags for library {lib}: "
+                f"'{self._lib_flags[lib]}' with "
+                f"'{flags}'."
+            )
 
         # Make a copy to avoid modifying the caller's list
         self._lib_flags[lib] = flags[:]
 
-    def add_pre_lib_flags(self, flags: list[str],
-                          profile: Optional[str] = None):
-        '''Add a set of flags to use before any library-specific flags
+    def add_pre_lib_flags(self, flags: list[str], profile: Optional[str] = None):
+        """Add a set of flags to use before any library-specific flags
 
         :param flags: the flags to include
-        '''
+        """
         self._pre_lib_flags.add_flags(flags, profile)
 
-    def add_post_lib_flags(self, flags: list[str],
-                           profile: Optional[str] = None):
-        '''Add a set of flags to use after any library-specific flags
+    def add_post_lib_flags(self, flags: list[str], profile: Optional[str] = None):
+        """Add a set of flags to use after any library-specific flags
 
         :param flags: the flags to include
-        '''
+        """
         self._post_lib_flags.add_flags(flags, profile)
 
     def get_pre_link_flags(self, config: "BuildConfig") -> list[str]:
-        '''Returns the list of pre-link flags. It will concatenate the
+        """Returns the list of pre-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will come first - the assumption is that
         the pre-link flags are likely paths, so we need a wrapper to
@@ -202,7 +202,7 @@ class Linker(CompilerSuiteTool):
 
         :returns: list of pre-link flags of this linker and all
             wrapped linkers
-        '''
+        """
         params: list[str] = []
         if self._pre_lib_flags:
             params.extend(self._pre_lib_flags.get_flags(config))
@@ -215,13 +215,13 @@ class Linker(CompilerSuiteTool):
         return params
 
     def get_post_link_flags(self, config: "BuildConfig") -> list[str]:
-        '''Returns the list of post-link flags. It will concatenate the
+        """Returns the list of post-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will be added to the end.
 
         :returns: list of post-link flags of this linker and all
             wrapped linkers
-        '''
+        """
         params: list[str] = []
         if self._linker:
             # If we are wrapping a linker, get the wrapped linker's
@@ -233,11 +233,15 @@ class Linker(CompilerSuiteTool):
             params.extend(self._post_lib_flags.get_flags(config))
         return params
 
-    def link(self, input_files: list[Path], output_file: Path,
-             config: "BuildConfig",
-             libs: Optional[list[str]] = None,
-             add_flags: Optional[list[str]] = None) -> str:
-        '''Executes the linker with the specified input files,
+    def link(
+        self,
+        input_files: list[Path],
+        output_file: Path,
+        config: "BuildConfig",
+        libs: Optional[list[str]] = None,
+        add_flags: Optional[list[str]] = None,
+    ) -> str:
+        """Executes the linker with the specified input files,
         creating `output_file`.
 
         :param input_files: list of input files to link.
@@ -247,7 +251,7 @@ class Linker(CompilerSuiteTool):
         :param libs: additional libraries to link with.
 
         :returns: the stdout of the link command
-        '''
+        """
 
         params: list[str] = self.get_flags(config)
 
@@ -260,7 +264,7 @@ class Linker(CompilerSuiteTool):
         params.extend(sorted(map(str, input_files)))
         params.extend(self.get_pre_link_flags(config))
 
-        for lib in (libs or []):
+        for lib in libs or []:
             params.extend(self.get_lib_flags(lib))
 
         params.extend(self.get_post_link_flags(config))
