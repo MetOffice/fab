@@ -59,8 +59,8 @@ class FabBase:
                  link_target: str = "executable") -> None:
         self.set_link_target(link_target)
         self._logger = logging.getLogger(__name__)
-        self._site = None
-        self._platform = None
+        self._site: str | None = None
+        self._platform: str | None = None
         # Save the name to use as library name (if required)
         self._name = name
         self._target = ""
