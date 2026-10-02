@@ -22,7 +22,7 @@ from fab.tools.linker import Linker
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 
-from tests.conftest import call_list
+from tests.fab.conftest import call_list
 
 
 def test_run(fake_process: FakeProcess, stub_fortran_compiler) -> None:

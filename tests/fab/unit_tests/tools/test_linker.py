@@ -13,7 +13,7 @@ import warnings
 from pytest import mark, raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder, not_found_callback
+from tests.fab.conftest import ExtendedRecorder, not_found_callback
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category

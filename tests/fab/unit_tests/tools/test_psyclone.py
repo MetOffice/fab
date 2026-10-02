@@ -19,7 +19,7 @@ from fab.tools.flags import AlwaysFlags
 import fab.tools.psyclone  # Needed for mockery
 from fab.tools.psyclone import Psyclone
 
-from tests.conftest import call_list, not_found_callback
+from tests.fab.conftest import call_list, not_found_callback
 
 
 def test_constructor():

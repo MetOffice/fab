@@ -73,7 +73,7 @@ jobs:
           pip install .[dev,docs]
 
       - name: Type check with mypy
-        run: python -m mypy source tests run_configs
+        run: python -m mypy source/fab tests/fab  run_configs
 
       - name: Code style check with ruff
         if: always()
@@ -82,11 +82,11 @@ jobs:
 
       - name: Unit tests with Pytest
         if: always()
-        run: python -m pytest --cov=fab tests/unit_tests
+        run: python -m pytest --cov=fab tests/fab/unit_tests
 
       - name: System tests with Pytest
         if: always()
-        run: python -m pytest --cov=fab tests/system_tests
+        run: python -m pytest --cov=fab tests/fab/system_tests
 
       # Sphinx linkcheck can potentially detect false negatives due to network
       # issues or slow responses. To avoid failing the build due to these

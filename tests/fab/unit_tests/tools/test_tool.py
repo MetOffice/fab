@@ -13,7 +13,7 @@ from pathlib import Path
 from pytest import raises
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder, call_list, not_found_callback
+from tests.fab.conftest import ExtendedRecorder, call_list, not_found_callback
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool

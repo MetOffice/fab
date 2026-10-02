@@ -34,7 +34,7 @@ from fab.tools.compiler import (
 )
 from fab.tools.flags import ContainFlags
 
-from tests.conftest import arg_list, call_list
+from tests.fab.conftest import arg_list, call_list
 
 
 def test_compiler() -> None:

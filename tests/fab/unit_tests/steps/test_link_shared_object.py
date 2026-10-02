@@ -16,7 +16,7 @@ from fab.steps.link import link_shared_object
 from fab.tools.compiler import FortranCompiler
 from fab.tools.linker import Linker
 
-from tests.conftest import call_list
+from tests.fab.conftest import call_list
 
 
 def test_run(

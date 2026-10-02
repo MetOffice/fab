@@ -20,7 +20,7 @@ from fab.tools.compiler_wrapper import Mpicc, Mpif90
 from fab.tools.linker import Linker
 from fab.tools.tool_repository import ToolRepository
 
-from tests.conftest import call_list
+from tests.fab.conftest import call_list
 
 
 def test_tool_repository_get_singleton_new():

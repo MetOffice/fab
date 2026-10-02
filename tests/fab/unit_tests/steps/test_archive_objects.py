@@ -13,7 +13,7 @@ from pyfakefs.fake_filesystem import FakeFilesystem
 from pytest import raises, warns
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import call_list
+from tests.fab.conftest import call_list
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
