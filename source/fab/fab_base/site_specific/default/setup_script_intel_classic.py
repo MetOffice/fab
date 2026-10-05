@@ -6,12 +6,12 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''
+"""
 This file contains a function that sets the default flags for all
 Intel classic based compilers in the ToolRepository (ifort, icc).
 
 This function gets called from the default site-specific config file
-'''
+"""
 
 import argparse
 from typing import cast
@@ -19,16 +19,17 @@ from typing import cast
 from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_script_intel_classic(build_config: BuildConfig,
-                               args: argparse.Namespace) -> None:
+def setup_script_intel_classic(
+    build_config: BuildConfig, args: argparse.Namespace
+) -> None:
     # pylint: disable=unused-argument, too-many-locals
-    '''
+    """
     Defines the default flags for all Intel classic compilers and linkers.
 
     :param build_config: the Fab build config instance from which
         required parameters can be taken.
     :param args: all command line options
-    '''
+    """
 
     tr = ToolRepository()
     ifort = tr.get_tool(Category.FORTRAN_COMPILER, "ifort")
@@ -48,7 +49,7 @@ def setup_script_intel_classic(build_config: BuildConfig,
     # The base flags
     # ==============
     # The following flags will be applied to all modes:
-    ifort.add_flags(["-g", "-traceback"],            "base")
+    ifort.add_flags(["-g", "-traceback"], "base")
 
     # The "-assume realloc-lhs" switch causes Intel Fortran prior to v17 to
     # actually implement the Fortran2003 standard. At version 17 it becomes the
@@ -58,7 +59,7 @@ def setup_script_intel_classic(build_config: BuildConfig,
 
     # Full debug
     # ==========
-    ifort.add_flags(["-O0", "-ftrapuv"],  "full-debug")
+    ifort.add_flags(["-O0", "-ftrapuv"], "full-debug")
 
     # Fast debug
     # ==========

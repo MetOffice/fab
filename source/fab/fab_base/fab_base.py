@@ -5,10 +5,10 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''
+"""
 This is an OO basic interface to FAB. It allows typical applications to
 only modify very few settings to have a working FAB build script.
-'''
+"""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 
 class FabBase:
-    '''
+    """
     This is a convenience base class for writing Fab scripts. It provides
     an extensive set of command line options that can be used to influence
     the build process, and can be extended by applications. It has already
@@ -52,11 +52,10 @@ class FabBase:
         the name of the compiler will be added to it.
     :param link_target: what target should be created. Must be one of
         "executable" (default), "static-library", or "shared-library"
-    '''
+    """
+
     # pylint: disable=too-many-instance-attributes
-    def __init__(self,
-                 name: str,
-                 link_target: str = "executable") -> None:
+    def __init__(self, name: str, link_target: str = "executable") -> None:
         self.set_link_target(link_target)
         self._logger = logging.getLogger(__name__)
         self._site: str | None = None
@@ -93,8 +92,9 @@ class FabBase:
         # when handling command line options:
         self._tool_box = ToolBox()
         parser = self.define_command_line_options()
-        if (self._site_config and
-                hasattr(self._site_config, "define_command_line_options")):
+        if self._site_config and hasattr(
+            self._site_config, "define_command_line_options"
+        ):
             # Stay backwards compatible and avoid a crash if an old
             # site-config is present without this method.
             self._site_config.define_command_line_options(parser)
@@ -112,105 +112,108 @@ class FabBase:
             # If not specified, set it to None, in which case the
             # Fab default will be used.
             fab_workspace = None
-        self._config = BuildConfig(tool_box=self._tool_box,
-                                   project_label=label,
-                                   verbose=True,
-                                   n_procs=self.args.nprocs,
-                                   mpi=self.args.mpi,
-                                   openmp=self.args.openmp,
-                                   profile=self.args.profile,
-                                   fab_workspace=fab_workspace,
-                                   )
+        self._config = BuildConfig(
+            tool_box=self._tool_box,
+            project_label=label,
+            verbose=True,
+            n_procs=self.args.nprocs,
+            mpi=self.args.mpi,
+            openmp=self.args.openmp,
+            profile=self.args.profile,
+            fab_workspace=fab_workspace,
+        )
 
         if self._site_config:
             self._site_config.update_toolbox(self._config)
 
     def set_link_target(self, link_target: str) -> None:
-        '''
+        """
         Sets the link target.
 
         :param link_target: what target should be created. Must be one of
             "executable"s, "static-library", or "shared-library".
 
         :raises ValueError: if the link_target is invalid
-        '''
+        """
         link_target = link_target.lower()
         valid_targets = ["executable", "static-library", "shared-library"]
         if link_target not in valid_targets:
-            raise ValueError(f"Invalid parameter '{link_target}', must be "
-                             f"one of '{', '.join(valid_targets)}'.")
+            raise ValueError(
+                f"Invalid parameter '{link_target}', must be "
+                f"one of '{', '.join(valid_targets)}'."
+            )
         self._link_target = link_target
 
     def define_project_name(self, name: str) -> str:
-        '''
+        """
         This method defines the project name, i.e. the directory name to
         use in the Fab workspace. It defaults to `name-profile-compiler`.
 
         :param name: the base name of the project as specified by the caller.
 
         :returns: the project name
-        '''
+        """
         label = f"{name}-{self.args.profile}-$compiler"
         return label
 
     def set_root_symbols(self, root_symbols: Union[list[str], str]) -> None:
-        '''Defines the root symbol(s), which is set by default to be the
+        """Defines the root symbol(s), which is set by default to be the
         name given in the constructor.
 
         :param root_symbols: the root symbol(s) to use when creating a binary
             (unused otherwise).
-        '''
+        """
         if isinstance(root_symbols, str):
             self._root_symbols = [root_symbols]
         else:
             self._root_symbols = root_symbols
 
     def set_root_symbol(self, root_symbols: Union[list[str], str]) -> None:
-        '''Defines the root symbol. It defaults to the name given in
+        """Defines the root symbol. It defaults to the name given in
         the constructor.
 
         :param root_symbols: the root symbol(s) to use when creating a binary
             (unused otherwise).
-        '''
-        self.logger.warning("Using deprecated `set_root_symbol`. "
-                            "Use `set_root_symbols` instead.")
+        """
+        self.logger.warning(
+            "Using deprecated `set_root_symbol`. Use `set_root_symbols` instead."
+        )
         self.set_root_symbols(root_symbols)
 
     @property
     def root_symbols(self) -> list[str]:
-        '''
+        """
         This function returns the list of root symbols. It allows an
         application to add or remove to the list of root symbols.
 
         :returns: the list of root symbols.
-        '''
+        """
         return self._root_symbols
 
     @property
     def root_symbol(self) -> list[str]:
-        '''
+        """
         This function is deprecated and only provided for backward
         compatibility. Use `root_symbols` instead.
         :returns: the list of root symbols.
-        '''
-        self.logger.warning("Using deprecated `root_symbol` property. "
-                            "Use `root_symbols` instead.")
+        """
+        self.logger.warning(
+            "Using deprecated `root_symbol` property. Use `root_symbols` instead."
+        )
         return self.root_symbols
 
     @property
     def name(self) -> str:
-
-        '''
+        """
         :returns: the name of the app.
-        '''
+        """
         return self._name
 
     @property
     def site(self) -> Optional[str]:
-
-        '''
+        """
         :returns: the site, or None if no site is specified.
-        '''
+        """
         return self._site
 
     @property
@@ -223,47 +226,47 @@ class FabBase:
 
     @property
     def logger(self) -> logging.Logger:
-        '''
+        """
         :returns: the logging instance to use.
-        '''
+        """
         return self._logger
 
     @property
     def platform(self) -> Optional[str]:
-        '''
+        """
         :returns: the platform, or None if not specified.
-        '''
+        """
         return self._platform
 
     @property
     def target(self) -> str:
-        '''
+        """
         :returns: the target (="site-platform"), or "default"
             if nothing was specified.
-        '''
+        """
         return self._target
 
     @property
     def config(self) -> BuildConfig:
-        '''
+        """
         :returns: the FAB BuildConfig instance.
         :rtype: :py:class:`fab.BuildConfig`
-        '''
+        """
         return self._config
 
     @property
     def args(self) -> argparse.Namespace:
-        '''
+        """
         :returns: the arg parse objects containing the user's
             command line information.
-        '''
+        """
         return self._args
 
     @property
     def project_workspace(self) -> Path:
-        '''
+        """
         :returns: the Fab workspace for this build.
-        '''
+        """
         return self._config.project_workspace
 
     @property
@@ -302,7 +305,7 @@ class FabBase:
         return self._linker_flags_commandline
 
     def setup_site_specific_location(self) -> None:
-        '''
+        """
         This method adds the required directories for site-specific
         configurations to the Python search path. This implementation will
         search the call tree to find the first call that's not from Fab,
@@ -310,7 +313,7 @@ class FabBase:
         ``site_specific/default`` to the directory in which the user script
         is located. An application can overwrite this method to change this
         behaviour and point at site-specific directories elsewhere.
-        '''
+        """
         my_base_dir = Path(__file__).parent
         for caller in inspect.stack():
             dir_caller = Path(caller[1]).parent
@@ -326,17 +329,16 @@ class FabBase:
             # path, so it doesn't need to be added), so site-specific
             # will be added below.
             dir_caller = Path(".")
-            self.logger.warning("Could not find caller directory, "
-                                "defaulting to '.'.")
+            self.logger.warning("Could not find caller directory, defaulting to '.'.")
 
     def define_site_platform_target(self) -> None:
-        '''
+        """
         This method defines the attributes site, platform (and
         target=site-platform) based on the command line option --site
         and --platform (using $SITE and $PLATFORM as a default). If
         site or platform is missing and the corresponding environment
         variable is not set, 'default' will be used.
-        '''
+        """
 
         # Use `argparser.parse_known_args` to just handle --site and
         # --platform. We also suppress help (all of which will be handled
@@ -345,7 +347,7 @@ class FabBase:
         parser.add_argument("--site", "-s", type=str, default="$SITE")
         parser.add_argument("--platform", "-p", type=str, default="$PLATFORM")
 
-        args = parser.parse_known_args()[0]   # Ignore element [1]=unknown args
+        args = parser.parse_known_args()[0]  # Ignore element [1]=unknown args
         if args.site == "$SITE":
             self._site = os.environ.get("SITE", "default")
         else:
@@ -365,12 +367,12 @@ class FabBase:
             self._target = f"{self._site}_{self._platform}"
 
     def site_specific_setup(self) -> None:
-        '''
+        """
         Imports a site-specific config file. The location is based
         on the attribute ``target`` (which is set to be ``{site}_{platform}"
         based on the command line options, and the path is specified
         in ``setup_site_specific_location``).
-        '''
+        """
         self.setup_site_specific_location()
         try:
             config_name = f"app_specific.{self.target}.config"
@@ -382,8 +384,9 @@ class FabBase:
             except ModuleNotFoundError as err:
                 # We log a warning, but proceed, since there is no need to
                 # have a site-specific file.
-                self._logger.warning(f"Cannot find site-specific module "
-                                     f"'{config_name}': {err}.")
+                self._logger.warning(
+                    f"Cannot find site-specific module '{config_name}': {err}."
+                )
                 self._site_config = None
                 return
         self.logger.info(f"fab_base: Imported '{config_module.__file__}'.")
@@ -391,119 +394,186 @@ class FabBase:
         self._site_config = config_module.Config()
 
     def define_command_line_options(
-            self,
-            parser: Optional[argparse.ArgumentParser] = None
-            ) -> argparse.ArgumentParser:
-        '''
+        self, parser: Optional[argparse.ArgumentParser] = None
+    ) -> argparse.ArgumentParser:
+        """
         Defines command line options. Can be overwritten by a derived
         class which can provide its own instance (to easily allow for a
         different description).
 
         :param parser: optional a pre-defined argument parser. If not
             specified, a new instance will be created.
-        '''
+        """
 
         if not parser:
             # The formatter class makes sure to print default settings
             parser = argparse.ArgumentParser(
-                description=("A Fab-based build system. Note that if --suite "
-                             "is specified, this will change the default for "
-                             "compiler and linker"),
-                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                description=(
+                    "A Fab-based build system. Note that if --suite "
+                    "is specified, this will change the default for "
+                    "compiler and linker"
+                ),
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            )
 
         parser.add_argument(
-            '--suite', '-v', type=str, default=None,
-            help="Sets the default suite for compiler and linker")
+            "--suite",
+            "-v",
+            type=str,
+            default=None,
+            help="Sets the default suite for compiler and linker",
+        )
         parser.add_argument(
-            '--available-compilers', default=False, action="store_true",
-            help="Displays the list of available compilers and linkers")
+            "--available-compilers",
+            default=False,
+            action="store_true",
+            help="Displays the list of available compilers and linkers",
+        )
         parser.add_argument(
-            '--fc', '-fc', type=str, default="$FC",
-            help="Name of the Fortran compiler to use")
+            "--fc",
+            "-fc",
+            type=str,
+            default="$FC",
+            help="Name of the Fortran compiler to use",
+        )
         parser.add_argument(
-            '--cc', '-cc', type=str, default="$CC",
-            help="Name of the C compiler to use")
+            "--cc", "-cc", type=str, default="$CC", help="Name of the C compiler to use"
+        )
         parser.add_argument(
-            '--ld', '-ld', type=str, default="$LD",
-            help="Name of the linker to use")
+            "--ld", "-ld", type=str, default="$LD", help="Name of the linker to use"
+        )
         parser.add_argument(
-            '--fflags', '-fflags', type=str, default=None,
+            "--fflags",
+            "-fflags",
+            type=str,
+            default=None,
             help="Flags to be used by the Fortran compiler. The command line "
-                 "flags are appended after compiler flags defined in a "
-                 "site-specific setup and after getting flags from the "
-                 "environment variable $FFLAGS. Therefore, this can be used "
-                 "to overwrite certain flags.")
+            "flags are appended after compiler flags defined in a "
+            "site-specific setup and after getting flags from the "
+            "environment variable $FFLAGS. Therefore, this can be used "
+            "to overwrite certain flags.",
+        )
         parser.add_argument(
-            '--cflags', '-cflags', type=str, default=None,
+            "--cflags",
+            "-cflags",
+            type=str,
+            default=None,
             help="Flags to be used by the C compiler. The command line "
-                 "flags are appended after compiler flags defined in a "
-                 "site-specific setup and after getting flags from the "
-                 "environment variable $CFLAGS. Therefore, this can be used "
-                 "to overwrite certain flags.")
+            "flags are appended after compiler flags defined in a "
+            "site-specific setup and after getting flags from the "
+            "environment variable $CFLAGS. Therefore, this can be used "
+            "to overwrite certain flags.",
+        )
         parser.add_argument(
-            '--ldflags', '-ldflags', type=str, default=None,
+            "--ldflags",
+            "-ldflags",
+            type=str,
+            default=None,
             help="Flags to be used by the linker. The command line "
-                 "flags are appended after linker flags defined in a "
-                 "site-specific setup and after getting flags from the "
-                 "environment variable $LDFLAGS. Therefore, this can be used "
-                 "to overwrite certain flags.")
+            "flags are appended after linker flags defined in a "
+            "site-specific setup and after getting flags from the "
+            "environment variable $LDFLAGS. Therefore, this can be used "
+            "to overwrite certain flags.",
+        )
 
         parser.add_argument(
-            '--nprocs', '-n', type=int, default=1,
-            help="Number of processes (default is 1)")
+            "--nprocs",
+            "-n",
+            type=int,
+            default=1,
+            help="Number of processes (default is 1)",
+        )
         parser.add_argument(
-            '--mpi', '-mpi', default=True, action="store_true",
-            help="Enable MPI")
+            "--mpi", "-mpi", default=True, action="store_true", help="Enable MPI"
+        )
         parser.add_argument(
-            '--no-mpi', '-no-mpi', action="store_false",
-            dest="mpi", help="Disable MPI")
+            "--no-mpi", "-no-mpi", action="store_false", dest="mpi", help="Disable MPI"
+        )
         parser.add_argument(
-            '--openmp', '-openmp', default=True, action="store_true",
-            help="Enable OpenMP")
+            "--openmp",
+            "-openmp",
+            default=True,
+            action="store_true",
+            help="Enable OpenMP",
+        )
         parser.add_argument(
-            '--no-openmp', '-no-openmp', action="store_false",
-            dest="openmp", help="Disable OpenMP")
+            "--no-openmp",
+            "-no-openmp",
+            action="store_false",
+            dest="openmp",
+            help="Disable OpenMP",
+        )
         parser.add_argument(
-            '--openacc', '-openacc', default=True, action="store_true",
-            help="Enable OpenACC")
+            "--openacc",
+            "-openacc",
+            default=True,
+            action="store_true",
+            help="Enable OpenACC",
+        )
         parser.add_argument(
-            '--host', '-host', default="cpu", type=str,
-            help="Determine the OpenACC or OpenMP: either 'cpu' or 'gpu'.")
+            "--host",
+            "-host",
+            default="cpu",
+            type=str,
+            help="Determine the OpenACC or OpenMP: either 'cpu' or 'gpu'.",
+        )
 
         checkout_group = parser.add_mutually_exclusive_group()
         checkout_group.add_argument(
-            '--checkout-only', action="store_true", default=False,
-            help=("Only do the checkout steps, not any actual build steps."
-                  "This can be useful if checkout and compilation steps "
-                  "need to run on different nodes."))
+            "--checkout-only",
+            action="store_true",
+            default=False,
+            help=(
+                "Only do the checkout steps, not any actual build steps."
+                "This can be useful if checkout and compilation steps "
+                "need to run on different nodes."
+            ),
+        )
         checkout_group.add_argument(
-            '--skip-checkout', action="store_true", default=False,
-            help=("Do not do any checkouts. This flag can be used if a "
-                  "checkout was already done, to just do the compilation. "
-                  "This is useful if checkout and compilation needs to be "
-                  "done on different nodes."))
+            "--skip-checkout",
+            action="store_true",
+            default=False,
+            help=(
+                "Do not do any checkouts. This flag can be used if a "
+                "checkout was already done, to just do the compilation. "
+                "This is useful if checkout and compilation needs to be "
+                "done on different nodes."
+            ),
+        )
 
-        parser.add_argument("--site", "-s", type=str,
-                            default="$SITE or 'default'",
-                            help="Name of the site to use.")
-        parser.add_argument("--platform", "-p", type=str,
-                            default="$PLATFORM or 'default'",
-                            help="Name of the platform of the site to use.")
-        parser.add_argument("--fab-workspace", type=str,
-                            default=None,
-                            help="Fab workspace, in which the build "
-                                 "directory will be created.")
+        parser.add_argument(
+            "--site",
+            "-s",
+            type=str,
+            default="$SITE or 'default'",
+            help="Name of the site to use.",
+        )
+        parser.add_argument(
+            "--platform",
+            "-p",
+            type=str,
+            default="$PLATFORM or 'default'",
+            help="Name of the platform of the site to use.",
+        )
+        parser.add_argument(
+            "--fab-workspace",
+            type=str,
+            default=None,
+            help="Fab workspace, in which the build directory will be created.",
+        )
         if self._site_config:
             valid_profiles = self._site_config.get_valid_profiles()
             parser.add_argument(
-                '--profile', '-pro', type=str, default=valid_profiles[0],
-                help=(f"Sets the compiler profile, choose from "
-                      f"'{valid_profiles}'."))
+                "--profile",
+                "-pro",
+                type=str,
+                default=valid_profiles[0],
+                help=(f"Sets the compiler profile, choose from '{valid_profiles}'."),
+            )
         return parser
 
-    def handle_command_line_options(self,
-                                    parser: argparse.ArgumentParser) -> None:
-        '''
+    def handle_command_line_options(self, parser: argparse.ArgumentParser) -> None:
+        """
         Analyse the actual command line options using the specified parser.
         The base implementation will handle the `--suite` parameter, and
         compiler/linker parameters (including the usage of environment
@@ -511,13 +581,13 @@ class FabBase:
         specified by a derived script.
 
         :param argparse.ArgumentParser parser: the argument parser.
-        '''
+        """
         # pylint: disable=too-many-branches
         self._args = parser.parse_args(sys.argv[1:])
         if self.args.host.lower() not in ["", "cpu", "gpu"]:
-            raise RuntimeError(f"Invalid host directive "
-                               f"'{self.args.host}'. Must be "
-                               f"'cpu' or 'gpu'.")
+            raise RuntimeError(
+                f"Invalid host directive '{self.args.host}'. Must be 'cpu' or 'gpu'."
+            )
 
         tr = ToolRepository()
         if self.args.available_compilers:
@@ -546,11 +616,15 @@ class FabBase:
             # Otherwise make sure the selected profile is supported:
             # If no --profile is supported, it will default to the first
             # profile in the site config file.
-            if (self.args.profile and self.args.profile
-                    not in self._site_config.get_valid_profiles()):
+            if (
+                self.args.profile
+                and self.args.profile not in self._site_config.get_valid_profiles()
+            ):
                 valid = self._site_config.get_valid_profiles()
-                raise RuntimeError(f"Invalid profile '{self.args.profile}'. "
-                                   f"Valid profiles are: \"{valid}\".")
+                raise RuntimeError(
+                    f"Invalid profile '{self.args.profile}'. "
+                    f'Valid profiles are: "{valid}".'
+                )
 
         if self.args.suite:
             tr.set_default_compiler_suite(self.args.suite)
@@ -589,48 +663,41 @@ class FabBase:
         # If the user specified compiler flags in the
         # environment variables CFLAGS, FFLAGS, LDFLAGS, add them to the
         # list of flags to be used by the corresponding tools.
-        self._fortran_compiler_flags_commandline = \
-            os.environ.get("FFLAGS", "").split()
-        self._c_compiler_flags_commandline = \
-            os.environ.get("CFLAGS", "").split()
-        self._linker_flags_commandline = \
-            os.environ.get("LDFLAGS", "").split()
+        self._fortran_compiler_flags_commandline = os.environ.get("FFLAGS", "").split()
+        self._c_compiler_flags_commandline = os.environ.get("CFLAGS", "").split()
+        self._linker_flags_commandline = os.environ.get("LDFLAGS", "").split()
 
         if self.args.fflags:
             # If the user specified Fortran compiler flags, add them
             # to the list of flags to be used by the Fortran compiler.
-            self._fortran_compiler_flags_commandline += \
-                self.args.fflags.split()
+            self._fortran_compiler_flags_commandline += self.args.fflags.split()
         if self.args.cflags:
             # If the user specified C compiler flags, add them
             # to the list of flags to be used by the C compiler.
-            self._c_compiler_flags_commandline += \
-                self.args.cflags.split()
+            self._c_compiler_flags_commandline += self.args.cflags.split()
         if self.args.ldflags:
             # If the user specified linker flags, add them
             # to the list of flags to be used by the linker.
-            self._linker_flags_commandline += \
-                self.args.ldflags.split()
+            self._linker_flags_commandline += self.args.ldflags.split()
 
     def define_preprocessor_flags_step(self) -> None:
-        '''
+        """
         Top level function that sets preprocessor flags. The base
         implementation does nothing, should be overwritten.
-        '''
+        """
 
     def get_linker_flags(self) -> list[str]:
-        '''
+        """
         Base class for setting linker flags. This base implementation
         for now just returns an empty list.
 
         :returns: list of flags for the linker.
-        '''
+        """
         return []
 
     def add_preprocessor_flags(
-            self,
-            list_of_flags: Union[AddFlags, str, list[AddFlags], list[str]]
-            ) -> None:
+        self, list_of_flags: Union[AddFlags, str, list[AddFlags], list[str]]
+    ) -> None:
         """
         This function appends a preprocessor flags to the internal list of
         all preprocessor flags, which will be passed to Fab's various
@@ -662,19 +729,18 @@ class FabBase:
                 self._preprocessor_flags_common.append(flag)
 
     def grab_files_step(self) -> None:
-        '''
+        """
         This should typically be overwritten by an application to
         get files e.g. from a repository.
-        '''
+        """
         if type(self).__name__ == "FabBase":
             # Do a simple build based on files in "." if FabBase is
             # started by itself (and not inherited):
             grab_files(self.config, src=".")
 
     def find_source_files_step(
-            self,
-            path_filters: Optional[Iterable[Union[Exclude, Include]]] = None
-            ) -> None:
+        self, path_filters: Optional[Iterable[Union[Exclude, Include]]] = None
+    ) -> None:
         """
         This function calls Fab's find_source_files, to identify and add
         all source files to Fab's artefact store.
@@ -689,22 +755,28 @@ class FabBase:
         Calls Fab's preprocessing of all C files. It passes the
         common and path-specific flags set using add_preprocessor_flags.
         """
-        preprocess_c(self.config,
-                     common_flags=self.preprocess_flags_common,
-                     path_flags=self.preprocess_flags_path)
+        preprocess_c(
+            self.config,
+            common_flags=self.preprocess_flags_common,
+            path_flags=self.preprocess_flags_path,
+        )
 
     def preprocess_fortran_step(self) -> None:
         """
         Calls Fab's preprocessing of all fortran files. It passes the
         common and path-specific flags set using add_preprocessor_flags.
         """
-        preprocess_fortran(self.config,
-                           common_flags=self.preprocess_flags_common,
-                           path_flags=self.preprocess_flags_path)
+        preprocess_fortran(
+            self.config,
+            common_flags=self.preprocess_flags_common,
+            path_flags=self.preprocess_flags_path,
+        )
 
-    def analyse_step(self,
-                     ignore_dependencies: Optional[Iterable[str]] = None,
-                     find_programs: bool = False) -> None:
+    def analyse_step(
+        self,
+        ignore_dependencies: Optional[Iterable[str]] = None,
+        find_programs: bool = False,
+    ) -> None:
         """
         Calls Fab's analyse. It passes the config and root symbol for
         Fab to analyze the source code dependencies.
@@ -719,20 +791,27 @@ class FabBase:
         if self._link_target == "executable":
             if find_programs or type(self).__name__ == "FabBase":
                 # Automatically find the main programs:
-                analyse(self.config, find_programs=True,
-                        ignore_dependencies=ignore_dependencies)
+                analyse(
+                    self.config,
+                    find_programs=True,
+                    ignore_dependencies=ignore_dependencies,
+                )
             else:
-                analyse(self.config, root_symbols=self.root_symbols,
-                        ignore_dependencies=ignore_dependencies)
+                analyse(
+                    self.config,
+                    root_symbols=self.root_symbols,
+                    ignore_dependencies=ignore_dependencies,
+                )
         else:
-            analyse(self.config, root_symbols=None,
-                    ignore_dependencies=ignore_dependencies)
+            analyse(
+                self.config, root_symbols=None, ignore_dependencies=ignore_dependencies
+            )
 
     def compile_c_step(
-            self,
-            common_flags: Optional[list[str]] = None,
-            path_flags: Optional[list[AddFlags]] = None
-            ) -> None:
+        self,
+        common_flags: Optional[list[str]] = None,
+        path_flags: Optional[list[AddFlags]] = None,
+    ) -> None:
         """
         Calls Fab's compile_c. It passes the config for Fab to compile
         all C files. Optionally, common flags, path-specific flags and
@@ -743,16 +822,17 @@ class FabBase:
         if not path_flags:
             path_flags = []
 
-        compile_c(self.config,
-                  common_flags=(common_flags +
-                                self.c_compiler_flags_commandline),
-                  path_flags=path_flags)
+        compile_c(
+            self.config,
+            common_flags=(common_flags + self.c_compiler_flags_commandline),
+            path_flags=path_flags,
+        )
 
     def compile_fortran_step(
-            self,
-            common_flags: Optional[list[str]] = None,
-            path_flags: Optional[list[AddFlags]] = None
-            ) -> None:
+        self,
+        common_flags: Optional[list[str]] = None,
+        path_flags: Optional[list[AddFlags]] = None,
+    ) -> None:
         """
         Calls Fab's compile_fortran. It passes the config for Fab to
         compile all Fortran files. Optionally, common flags, path-specific
@@ -766,10 +846,11 @@ class FabBase:
             common_flags = []
         if not path_flags:
             path_flags = []
-        compile_fortran(self.config,
-                        common_flags=(common_flags +
-                                      self.fortran_compiler_flags_commandline),
-                        path_flags=path_flags)
+        compile_fortran(
+            self.config,
+            common_flags=(common_flags + self.fortran_compiler_flags_commandline),
+            path_flags=path_flags,
+        )
 
     def link_step(self) -> None:
         """
@@ -781,17 +862,21 @@ class FabBase:
         """
         if self._link_target == "static-library":
             out_path = self.config.project_workspace / f"lib{self.name}.a"
-            archive_objects(self.config,
-                            output_fpath=str(out_path))
+            archive_objects(self.config, output_fpath=str(out_path))
         elif self._link_target == "shared-library":
             out_path = self.config.project_workspace / f"lib{self.name}.so"
-            link_shared_object(self.config,
-                               output_fpath=str(out_path),
-                               flags=self.linker_flags_commandline)
+            link_shared_object(
+                self.config,
+                output_fpath=str(out_path),
+                flags=self.linker_flags_commandline,
+            )
         else:
             # Binary:
-            link_exe(self.config, libs=self.get_linker_flags(),
-                     flags=self.linker_flags_commandline)
+            link_exe(
+                self.config,
+                libs=self.get_linker_flags(),
+                flags=self.linker_flags_commandline,
+            )
 
     def build(self) -> None:
         """
@@ -805,8 +890,9 @@ class FabBase:
         with self._config as _:
             self.grab_files_step()
             if self.args.checkout_only:
-                self.logger.info("Aborting after checkout due to "
-                                 "'--checkout-only' flag.")
+                self.logger.info(
+                    "Aborting after checkout due to '--checkout-only' flag."
+                )
                 return
             self.find_source_files_step()
             # This is a Fab function, which the user won't need to be

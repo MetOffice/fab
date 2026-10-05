@@ -23,6 +23,7 @@ class AnalysedFile(ABC):
     Analysis results for a single file. Abstract base class.
 
     """
+
     def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None):
         """
         :param fpath:
@@ -58,10 +59,7 @@ class AnalysedFile(ABC):
         Lists are sorted for reproducibility in testing.
 
         """
-        return {
-            "fpath": str(self.fpath),
-            "file_hash": self.file_hash
-        }
+        return {"fpath": str(self.fpath), "file_hash": self.file_hash}
 
     @classmethod
     def from_dict(cls, d):
@@ -71,7 +69,7 @@ class AnalysedFile(ABC):
         # subclasses don't need to override this method
         d = self.to_dict()
         d["cls"] = self.__class__.__name__
-        json.dump(d, open(fpath, 'wt'), indent=4)
+        json.dump(d, open(fpath, "wt"), indent=4)
 
     @classmethod
     def load(cls, fpath: Union[str, Path]):
@@ -79,7 +77,9 @@ class AnalysedFile(ABC):
         d = json.load(open(fpath))
         found_class = d["cls"]
         if found_class != cls.__name__:
-            raise ValueError(f"Expected class name '{cls.__name__}', found '{found_class}'")
+            raise ValueError(
+                f"Expected class name '{cls.__name__}', found '{found_class}'"
+            )
         return cls.from_dict(d)
 
     # human readability
@@ -92,16 +92,18 @@ class AnalysedFile(ABC):
         e.g when constructing a string representation of the instance, or generating a hash value.
 
         """
-        return ['fpath', 'file_hash']
+        return ["fpath", "file_hash"]
 
     def __str__(self):
         # We use self.field_names() instead of vars(self) in order to evaluate any lazy attributes.
         values = [getattr(self, field_name) for field_name in self.field_names()]
-        return f'{self.__class__.__name__} ' + ' '.join(map(str, values))
+        return f"{self.__class__.__name__} " + " ".join(map(str, values))
 
     def __repr__(self):
-        params = ', '.join([f'{f}={repr(getattr(self, f))}' for f in self.field_names()])
-        return f'{self.__class__.__name__}({params})'
+        params = ", ".join(
+            [f"{f}={repr(getattr(self, f))}" for f in self.field_names()]
+        )
+        return f"{self.__class__.__name__}({params})"
 
     # We need to be hashable before we can go into a set, which is useful for our subclasses.
     # Note, the numerical result will change with each Python invocation.
@@ -132,6 +134,7 @@ class EmptySourceFile(AnalysedFile):
     An analysis result for a file which resulted in an empty parse tree.
 
     """
+
     def __init__(self, fpath: Union[str, Path]):
         """
         :param fpath:

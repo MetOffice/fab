@@ -4,8 +4,7 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''Functions to run Fab from the command line.
-'''
+"""Functions to run Fab from the command line."""
 
 import sys
 from pathlib import Path
@@ -29,10 +28,11 @@ from fab.util import common_arg_parser
 
 
 def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
-    project_label = 'zero_config_build'
+    project_label = "zero_config_build"
     if kwargs:
-        project_label = kwargs.pop('project_label',
-                                   'zero_config_build') or project_label
+        project_label = (
+            kwargs.pop("project_label", "zero_config_build") or project_label
+        )
 
     # Set the default Fortran compiler as linker (otherwise e.g. the
     # C compiler might be used in linking, requiring additional flags)
@@ -48,16 +48,20 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     # Within the fab workspace, we'll create a project workspace.
     # Ideally we'd just use folder.name, but to avoid clashes, we'll use the
     # full absolute path.
-    with BuildConfig(project_label=project_label, mpi=False, openmp=False,
-                     tool_box=tool_box, **kwargs) as config:
+    with BuildConfig(
+        project_label=project_label,
+        mpi=False,
+        openmp=False,
+        tool_box=tool_box,
+        **kwargs,
+    ) as config:
         grab_folder(config, folder)
         find_source_files(config)
         # JULES helper, get rid of this eventually
         root_inc_files(config, suffix_list=[".inc", ".h"])
         preprocess_fortran(config)
         c_pragma_injector(config)
-        preprocess_c(config,
-                     source=CollectionGetter(ArtefactSet.C_COMPILER_FILES))
+        preprocess_c(config, source=CollectionGetter(ArtefactSet.C_COMPILER_FILES))
         analyse(config, find_programs=True)
         compile_fortran(config)
         compile_c(config)
@@ -86,10 +90,10 @@ def cli_fab(folder: Optional[Path] = None, kwargs: Optional[dict] = None):
     # We check if 'fab' was called directly. As it can be called by other
     # things like 'pytest', the cli arguments may not apply to 'fab' which
     # will cause arg_parser to fail with an invalid argument message.
-    if Path(sys.argv[0]).parts[-1] == 'fab':
+    if Path(sys.argv[0]).parts[-1] == "fab":
         arg_parser = common_arg_parser()
         kwargs = vars(arg_parser.parse_args())
-        _folder = kwargs.pop('folder')
+        _folder = kwargs.pop("folder")
     else:
         # Required when testing
         assert folder is not None

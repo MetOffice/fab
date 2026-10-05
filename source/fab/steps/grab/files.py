@@ -16,7 +16,7 @@ from fab.tools.category import Category
 
 
 @step
-def grab_files(config, src: Union[Path, str], dst_label: str = ''):
+def grab_files(config, src: Union[Path, str], dst_label: str = ""):
     """
     Copy a source file or folder to the project workspace.
 

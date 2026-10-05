@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''This simple module defines an Enum for all allowed categories.
-'''
+"""This simple module defines an Enum for all allowed categories."""
 
 from __future__ import annotations
 
@@ -102,8 +101,7 @@ class Category(int, metaclass=CategoryMeta):
         """
         :returns: if this Category is a Fortran or C compiler.
         """
-        return self in [Category.C_COMPILER,
-                        Category.FORTRAN_COMPILER]
+        return self in [Category.C_COMPILER, Category.FORTRAN_COMPILER]
 
     # We need to declare all attributes here, otherwise mypy
     # is not happy. The actual values will be set below (we cannot

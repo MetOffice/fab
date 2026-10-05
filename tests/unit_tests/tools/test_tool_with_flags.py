@@ -32,8 +32,7 @@ def test_tool_with_flags_no_profile(stub_configuration) -> None:
     """
     Test that flags without using a profile work as expected.
     """
-    tool = ToolWithFlags("some tool", "stool",
-                         Category.CATEGORY_FOR_UNIT_TESTS)
+    tool = ToolWithFlags("some tool", "stool", Category.CATEGORY_FOR_UNIT_TESTS)
     # pylint: disable=use-implicit-booleaness-not-comparison
     assert tool.get_flags(stub_configuration, Path()) == []
     tool.add_flags("-a")
@@ -85,5 +84,7 @@ def test_tool_with_flags_generic_flags():
     with pytest.raises(KeyError) as err:
         _ = tool["does-not-exist"]
 
-    assert ("Generic flag name 'does-not-exist' is not defined for "
-            "'ToolWithFlags - name: exec'" in str(err.value))
+    assert (
+        "Generic flag name 'does-not-exist' is not defined for "
+        "'ToolWithFlags - name: exec'" in str(err.value)
+    )

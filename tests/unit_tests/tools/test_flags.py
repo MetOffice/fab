@@ -4,14 +4,13 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''Tests the compiler implementation.
-'''
+"""Tests the compiler implementation."""
 
 from pathlib import Path
 import pytest
 
 from fab.build_config import AddFlags
-from fab.tools.flags import (AlwaysFlags, ContainFlags, FlagList, MatchFlags)
+from fab.tools.flags import AlwaysFlags, ContainFlags, FlagList, MatchFlags
 from fab.util import string_checksum
 
 
@@ -30,25 +29,27 @@ def test_always_flags(stub_configuration):
 
     # Templating
     af = AlwaysFlags(["$source", "$output"])
-    assert (af.get_flags(stub_configuration) ==
-            [str(stub_configuration.source_root),
-            str(stub_configuration.build_output)])
+    assert af.get_flags(stub_configuration) == [
+        str(stub_configuration.source_root),
+        str(stub_configuration.build_output),
+    ]
     af = AlwaysFlags(["$source", "$output", "$relative"])
     file_path = Path("/my/file")
-    assert (af.get_flags(stub_configuration, file_path) ==
-            [str(stub_configuration.source_root),
-             str(stub_configuration.build_output),
-             "/my"])
+    assert af.get_flags(stub_configuration, file_path) == [
+        str(stub_configuration.source_root),
+        str(stub_configuration.build_output),
+        "/my",
+    ]
 
 
 def test_always_flags_remove_flags():
-    '''Test remove_flags functionality.'''
+    """Test remove_flags functionality."""
     flags = AlwaysFlags()
     flags.remove_flag("-c", False)
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert flags.get_flags() == []
 
-    all_flags = ['a.f90', '-c', '-o', 'a.o', '-fsyntax-only', "-J", "/tmp"]
+    all_flags = ["a.f90", "-c", "-o", "a.o", "-fsyntax-only", "-J", "/tmp"]
     flags = AlwaysFlags(all_flags)
     assert flags.get_flags() == all_flags
     with pytest.warns(UserWarning, match="Removing managed flag"):
@@ -60,12 +61,13 @@ def test_always_flags_remove_flags():
     del all_flags[-2:]
     assert flags.get_flags() == all_flags
 
-    for flags_in, expected in [(["-J", "b"], []),
-                               (["-Jb"], []),
-                               (["a", "-J", "c"], ["a"]),
-                               (["a", "-Jc"], ["a"]),
-                               (["a", "-J"], ["a"]),
-                               ]:
+    for flags_in, expected in [
+        (["-J", "b"], []),
+        (["-Jb"], []),
+        (["a", "-J", "c"], ["a"]),
+        (["a", "-Jc"], ["a"]),
+        (["a", "-J"], ["a"]),
+    ]:
         flags = AlwaysFlags(flags_in)
         with pytest.warns(UserWarning, match="Removing managed flag"):
             flags.remove_flag("-J", has_parameter=True)
@@ -95,7 +97,7 @@ def test_contain_flags() -> None:
 
 
 def test_flag_list_constructor():
-    '''Tests the constructor of Flags.'''
+    """Tests the constructor of Flags."""
     f1 = FlagList()
     assert isinstance(f1, list)
 
@@ -107,7 +109,7 @@ def test_flag_list_constructor():
 
 
 def test_flags_adding():
-    '''Tests adding flags.'''
+    """Tests adding flags."""
     f1 = FlagList()
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert f1.get_flags() == []
@@ -133,16 +135,16 @@ def test_flags_adding():
 
 
 def test_remove_flags():
-    '''Test remove_flags functionality. This is a subset of the remove
+    """Test remove_flags functionality. This is a subset of the remove
     tests for AlwaysFlags, just to ensure that the calls are getting
     forwarded from Flags to the AlwaysFlags implementation.
-    '''
+    """
     flags = FlagList()
     flags.remove_flag("-c", False)
     # pylint: disable-next=use-implicit-booleaness-not-comparison
     assert flags == []
 
-    all_flags = ['a.f90', '-c', '-o', 'a.o', '-fsyntax-only', "-J", "/tmp"]
+    all_flags = ["a.f90", "-c", "-o", "a.o", "-fsyntax-only", "-J", "/tmp"]
     flags = FlagList(all_flags)
     assert flags.get_flags() == all_flags
     with pytest.warns(UserWarning, match="Removing managed flag"):
@@ -156,8 +158,8 @@ def test_remove_flags():
 
 
 def test_flags_checksum():
-    '''Tests computation of the checksum.'''
-    list_of_flags = ['one', 'two', 'three', 'four']
+    """Tests computation of the checksum."""
+    list_of_flags = ["one", "two", "three", "four"]
     flags = FlagList(list_of_flags)
     assert flags.checksum() == string_checksum(str(list_of_flags))
 
@@ -174,8 +176,7 @@ def test_old_addflags():
     assert match_flag._flags == ["-g", "-O0"]
 
     # Provide a single AddFlags instead of a list:
-    flag_list = FlagList(["-x"],
-                         add_flags=AddFlags("pattern", ["-y"]))
+    flag_list = FlagList(["-x"], add_flags=AddFlags("pattern", ["-y"]))
     match_flag = flag_list[1]
     assert isinstance(match_flag, MatchFlags)
     assert match_flag._pattern == "pattern"

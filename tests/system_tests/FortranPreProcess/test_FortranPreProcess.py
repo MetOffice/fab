@@ -21,15 +21,19 @@ import pytest
 
 
 def build(fab_workspace, fpp_flags=None):
-    with BuildConfig(fab_workspace=fab_workspace, tool_box=ToolBox(),
-                     project_label='foo', multiprocessing=False) as config:
-        grab_folder(config, Path(__file__).parent / 'project-source')
+    with BuildConfig(
+        fab_workspace=fab_workspace,
+        tool_box=ToolBox(),
+        project_label="foo",
+        multiprocessing=False,
+    ) as config:
+        grab_folder(config, Path(__file__).parent / "project-source")
         find_source_files(config)
         preprocess_fortran(config, common_flags=fpp_flags)
-        analyse(config, root_symbols=['stay_or_go_now'])
+        analyse(config, root_symbols=["stay_or_go_now"])
         with pytest.warns(UserWarning, match="Removing managed flag"):
-            compile_fortran(config, common_flags=['-c'])
-        link_exe(config, flags=['-lgfortran'])
+            compile_fortran(config, common_flags=["-c"])
+        link_exe(config, flags=["-lgfortran"])
 
     return config
 
@@ -37,16 +41,15 @@ def build(fab_workspace, fpp_flags=None):
 def test_FortranPreProcess(tmp_path):
 
     # stay
-    stay_config = build(fab_workspace=tmp_path,
-                        fpp_flags=['-P', '-DSHOULD_I_STAY=yes'])
+    stay_config = build(fab_workspace=tmp_path, fpp_flags=["-P", "-DSHOULD_I_STAY=yes"])
 
     stay_exe = list(stay_config.artefact_store[ArtefactSet.EXECUTABLES])[0]
     stay_res = subprocess.run(str(stay_exe), capture_output=True)
-    assert stay_res.stdout.decode().strip() == 'I should stay'
+    assert stay_res.stdout.decode().strip() == "I should stay"
 
     # go
-    go_config = build(fab_workspace=tmp_path, fpp_flags=['-P'])
+    go_config = build(fab_workspace=tmp_path, fpp_flags=["-P"])
 
     go_exe = list(go_config.artefact_store[ArtefactSet.EXECUTABLES])[0]
     go_res = subprocess.run(str(go_exe), capture_output=True)
-    assert go_res.stdout.decode().strip() == 'I should go now'
+    assert go_res.stdout.decode().strip() == "I should go now"

@@ -6,6 +6,7 @@
 """
 Tests holding tools in a tool box.
 """
+
 import warnings
 
 from pytest import raises, warns
@@ -39,17 +40,15 @@ def test_add_get_tool(stub_tool_repository) -> None:
     tb = ToolBox()
     # No tool is defined, so the default Fortran compiler from the
     # ToolRepository must be returned:
-    default_compiler = tb.get_tool(Category.FORTRAN_COMPILER,
-                                   mpi=False, openmp=False)
-    assert (default_compiler is
-            stub_tool_repository.get_default(Category.FORTRAN_COMPILER,
-                                             mpi=False, openmp=False))
+    default_compiler = tb.get_tool(Category.FORTRAN_COMPILER, mpi=False, openmp=False)
+    assert default_compiler is stub_tool_repository.get_default(
+        Category.FORTRAN_COMPILER, mpi=False, openmp=False
+    )
     # Check getter:
     assert tb.get_tool(Category.FORTRAN_COMPILER) == default_compiler
 
     # Now add a new Fortran compiler to the tool box
-    new_fc = FortranCompiler('new Fortran compiler', 'nfc', 'new',
-                             r'([\d.]+)')
+    new_fc = FortranCompiler("new Fortran compiler", "nfc", "new", r"([\d.]+)")
     new_fc._is_available = True
 
     tb.add_tool(new_fc, silent_replace=True)
@@ -77,17 +76,20 @@ def test_tool_replacement() -> None:
     Tests tool replacement functionality.
     """
     tb = ToolBox()
-    mock_compiler1 = CCompiler("mock_c_compiler1", "mock_exec1", "suite",
-                               version_regex="something")
+    mock_compiler1 = CCompiler(
+        "mock_c_compiler1", "mock_exec1", "suite", version_regex="something"
+    )
     mock_compiler1._is_available = True
-    mock_compiler2 = CCompiler("mock_c_compiler2", "mock_exec2", "suite",
-                               version_regex="something")
+    mock_compiler2 = CCompiler(
+        "mock_c_compiler2", "mock_exec2", "suite", version_regex="something"
+    )
     mock_compiler2._is_available = True
 
     tb.add_tool(mock_compiler1)
 
-    warn_message = (f"Replacing existing tool '{mock_compiler1}' with "
-                    f"'{mock_compiler2}'.")
+    warn_message = (
+        f"Replacing existing tool '{mock_compiler1}' with '{mock_compiler2}'."
+    )
     with warns(UserWarning, match=warn_message):
         tb.add_tool(mock_compiler2)
 
@@ -100,8 +102,7 @@ def test_add_unavailable_tool(fake_process: FakeProcess) -> None:
     """
     Tests unavailable tools are not accepted by toolbox.
     """
-    fake_process.register(['gfortran', '--version'],
-                          callback=not_found_callback)
+    fake_process.register(["gfortran", "--version"], callback=not_found_callback)
 
     tb = ToolBox()
     gfortran = Gfortran()

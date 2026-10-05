@@ -31,6 +31,7 @@ def test_derived():
     """
     Tests that we can create a derived class that can be instantiated.
     """
+
     class DummyToolBox(AbstractToolBox):
         """
         A dummy class to check that we can derive and instantiate from
@@ -40,14 +41,16 @@ def test_derived():
         def __getitem__(self, category: Category) -> Tool:
             return Gfortran()
 
-        def add_tool(self, tool: Tool,
-                     silent_replace: bool = False) -> None:
+        def add_tool(self, tool: Tool, silent_replace: bool = False) -> None:
             pass
 
-        def get_tool(self, category: Category,
-                     mpi: Optional[bool] = None,
-                     openmp: Optional[bool] = None,
-                     enforce_fortran_linker: Optional[bool] = None) -> Tool:
+        def get_tool(
+            self,
+            category: Category,
+            mpi: Optional[bool] = None,
+            openmp: Optional[bool] = None,
+            enforce_fortran_linker: Optional[bool] = None,
+        ) -> Tool:
             return Gfortran()
 
         def has(self, category: Category) -> bool:

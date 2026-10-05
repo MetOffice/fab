@@ -4,7 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''
+"""
 This file contains the flag classes used to manage command line flags
 for tools, especially path-specific flags for compiler.
 
@@ -40,7 +40,7 @@ converting them from left to right into a list of strings. For example,
 will be convert to `["-g", "-O3"]` if the file contains the string
 `special_file`, and otherwise it will be `["-g"]`.
 
-'''
+"""
 
 from abc import ABC, abstractmethod
 from fnmatch import fnmatch
@@ -58,9 +58,9 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractFlags(ABC):
-    '''
+    """
     An abstract class to act as base class for all flag classes.
-    '''
+    """
 
     @abstractmethod
     def __init__(self) -> None:
@@ -69,9 +69,9 @@ class AbstractFlags(ABC):
         """
 
     @abstractmethod
-    def get_flags(self,
-                  config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> list[str]:
+    def get_flags(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename.
@@ -86,7 +86,7 @@ class AbstractFlags(ABC):
 
     @abstractmethod
     def remove_flag(self, remove_flag: str, has_parameter: bool = False):
-        '''Removes all occurrences of `remove_flag` in flags.
+        """Removes all occurrences of `remove_flag` in flags.
         If has_parameter is defined, the next entry in flags will also be
         removed, and if this object contains this flag+parameter without space
         (e.g. `-J/tmp`), it will be correctly removed. Note that only the
@@ -96,7 +96,7 @@ class AbstractFlags(ABC):
 
         :param remove_flag: the flag to remove
         :param has_parameter: if the flag to remove takes a parameter
-        '''
+        """
 
 
 class AlwaysFlags(AbstractFlags):
@@ -108,9 +108,10 @@ class AlwaysFlags(AbstractFlags):
 
     :param flags: a string or list of strings with command line flags.
     """
+
     def __init__(self, flags: Optional[Union[str, list[str]]] = None) -> None:
 
-        super().__init__()   # type: ignore[safe-super]
+        super().__init__()  # type: ignore[safe-super]
         if isinstance(flags, str):
             self._flags = [flags]
         elif flags:
@@ -120,9 +121,11 @@ class AlwaysFlags(AbstractFlags):
             self._flags = []
 
     @staticmethod
-    def replace_template(string_list: list[str],
-                         config: Optional["BuildConfig"] = None,
-                         file_path: Optional[Path] = None) -> list[str]:
+    def replace_template(
+        string_list: list[str],
+        config: Optional["BuildConfig"] = None,
+        file_path: Optional[Path] = None,
+    ) -> list[str]:
         """This function replaces all `$relative`, `$source`, and `$output`
         in the string or list of string with the values taken from
         the config object and the file path.
@@ -141,22 +144,22 @@ class AlwaysFlags(AbstractFlags):
         """
         params = {}
         if config:
-            params['source'] = config.source_root
-            params['output'] = config.build_output
+            params["source"] = config.source_root
+            params["output"] = config.build_output
         else:
-            params['source'] = Path("/")
-            params['output'] = Path("/")
+            params["source"] = Path("/")
+            params["output"] = Path("/")
         if file_path:
-            params['relative'] = file_path.parent
+            params["relative"] = file_path.parent
         else:
-            params['relative'] = Path(".")
+            params["relative"] = Path(".")
 
         # Use templating to render any relative paths in our flags
         return [Template(i).substitute(params) for i in string_list]
 
-    def get_flags(self,
-                  config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> list[str]:
+    def get_flags(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename. This class will not take the file path into account,
@@ -172,7 +175,7 @@ class AlwaysFlags(AbstractFlags):
         return AlwaysFlags.replace_template(self._flags, config, file_path)
 
     def remove_flag(self, remove_flag: str, has_parameter: bool = False):
-        '''Removes all occurrences of `remove_flag` in flags.
+        """Removes all occurrences of `remove_flag` in flags.
         If has_parameter is defined, the next entry in flags will also be
         removed, and if this object contains this flag+parameter without space
         (e.g. `-J/tmp`), it will be correctly removed. Note that only the
@@ -182,7 +185,7 @@ class AlwaysFlags(AbstractFlags):
 
         :param remove_flag: the flag to remove
         :param has_parameter: if the flag to remove takes a parameter
-        '''
+        """
 
         i = 0
         flag_len = len(remove_flag)
@@ -194,13 +197,15 @@ class AlwaysFlags(AbstractFlags):
                 if has_parameter and i + 1 == len(self._flags):
                     # We have a flag which takes a parameter, but there is no
                     # parameter. Issue a warning:
-                    logger.warning(f"Flags '{' '. join(self._flags)}'"
-                                   f" contain '{remove_flag}' but no "
-                                   f"parameter.")
+                    logger.warning(
+                        f"Flags '{' '.join(self._flags)}'"
+                        f" contain '{remove_flag}' but no "
+                        f"parameter."
+                    )
                     del self._flags[i]
                 else:
                     # Delete the argument and if required its parameter
-                    del self._flags[i:i+(2 if has_parameter else 1)]
+                    del self._flags[i : i + (2 if has_parameter else 1)]
                 warnings.warn(f"Removing managed flag '{remove_flag}'.")
                 continue
             # Now check if it has flag and parameter as one argument (-J/tmp)
@@ -223,15 +228,14 @@ class MatchFlags(AlwaysFlags):
     :param pattern: the wildcard pattern which is used when matching.
     :param flags: a string or list of strings with command line flags.
     """
-    def __init__(self,
-                 pattern: str,
-                 flags: Union[str, list[str]]) -> None:
+
+    def __init__(self, pattern: str, flags: Union[str, list[str]]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
-    def get_flags(self,
-                  config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> list[str]:
+    def get_flags(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename if the specified file path matches the pattern specified.
@@ -260,15 +264,13 @@ class ContainFlags(AlwaysFlags):
     :param pattern: the substring which is used when matching.
     """
 
-    def __init__(self,
-                 pattern: str,
-                 flags: Union[str, list[str]]) -> None:
+    def __init__(self, pattern: str, flags: Union[str, list[str]]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
-    def get_flags(self,
-                  config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> list[str]:
+    def get_flags(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
         filename if the specified file path contains the pattern as
@@ -291,20 +293,19 @@ class ContainFlags(AlwaysFlags):
 
 
 class FlagList(list[AbstractFlags]):
-    '''This class represents a list of parameters for a tool. It is a
+    """This class represents a list of parameters for a tool. It is a
     list with some additional functionality.
 
     :param list_of_flags: List of parameters to initialise this object with.
     :param add_flags: List of old-style AddFlags, which will be converted
         to the new MatchFlags.
-    '''
+    """
 
     def __init__(
-            self,
-            list_of_flags: Optional[Union[AbstractFlags, str,
-                                          list[str]]] = None,
-            add_flags: Optional[Union[AddFlags,
-                                      list[AddFlags]]] = None) -> None:
+        self,
+        list_of_flags: Optional[Union[AbstractFlags, str, list[str]]] = None,
+        add_flags: Optional[Union[AddFlags, list[AddFlags]]] = None,
+    ) -> None:
         self._logger = logging.getLogger(__name__)
         super().__init__()
         if isinstance(list_of_flags, (str, list)):
@@ -316,12 +317,11 @@ class FlagList(list[AbstractFlags]):
                 add_flags = [add_flags]
             # Convert old-style AddFlags to the new MatchFlags:
             for add_flag in add_flags:
-                self.add_flags(MatchFlags(add_flag.match,
-                                          add_flag.flags))
+                self.add_flags(MatchFlags(add_flag.match, add_flag.flags))
 
-    def get_flags(self,
-                  config: Optional["BuildConfig"] = None,
-                  file_path: Optional[Path] = None) -> list[str]:
+    def get_flags(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> list[str]:
         """
         :returns: the flags to be used for the compilation profile and
             file path specified.
@@ -338,9 +338,9 @@ class FlagList(list[AbstractFlags]):
 
         return all_flags_resolved
 
-    def checksum(self,
-                 config: Optional["BuildConfig"] = None,
-                 file_path: Optional[Path] = None) -> int:
+    def checksum(
+        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+    ) -> int:
         """
         :param config: the config object (used for templating)
         :param file_path: the file path of the source file, used for
@@ -356,13 +356,12 @@ class FlagList(list[AbstractFlags]):
         resolve_flags: list[str] = self.get_flags(config, file_path)
         return string_checksum(str(resolve_flags))
 
-    def add_flags(self,
-                  new_flags: Union[AbstractFlags, str, list[str]]) -> None:
-        '''Adds the specified flags to the list of flags.
+    def add_flags(self, new_flags: Union[AbstractFlags, str, list[str]]) -> None:
+        """Adds the specified flags to the list of flags.
 
         :param new_flags: New flags to be added. Can be either an class
             derived from AbstractFlags, a single string or list of strings.
-        '''
+        """
 
         if isinstance(new_flags, AbstractFlags):
             self.append(new_flags)
@@ -370,7 +369,7 @@ class FlagList(list[AbstractFlags]):
             self.append(AlwaysFlags(new_flags))
 
     def remove_flag(self, remove_flag: str, has_parameter: bool = False):
-        '''Removes all occurrences of `remove_flag` in flags.
+        """Removes all occurrences of `remove_flag` in flags.
         If `has_parameter` is defined, the next entry in flags will also be
         removed, and if this object contains this flag+parameter without space
         (e.g. `-J/tmp`), it will be correctly removed. Note that only the
@@ -385,7 +384,7 @@ class FlagList(list[AbstractFlags]):
 
         :param remove_flag: the flag to remove
         :param has_parameter: if the flag to remove takes a parameter
-        '''
+        """
 
         for flags in self:
             flags.remove_flag(remove_flag, has_parameter)

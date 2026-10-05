@@ -17,6 +17,7 @@ The repo has the following commit structure, each printing a different variable.
 With this we can test grabbing a branch, tag and commit.
 
 """
+
 import shutil
 from pathlib import Path
 
@@ -29,70 +30,101 @@ from fab.tools.versioning import Git
 
 @pytest.fixture
 def config(tmp_path):
-    return BuildConfig('proj', ToolBox(), fab_workspace=tmp_path)
+    return BuildConfig("proj", ToolBox(), fab_workspace=tmp_path)
 
 
 class TestGitCheckout:
     # Check we can fetch from github.
     @pytest.fixture
     def url(self):
-        return 'https://github.com/metomi/fab-test-data.git'
+        return "https://github.com/metomi/fab-test-data.git"
 
     def test_checkout_url(self, tmp_path, url, config):
         git = Git()
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=url, dst_label='tiny_fortran')
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_checkout(config, src=url, dst_label="tiny_fortran")
             # todo: The commit will keep changing. Perhaps make a non-changing branch
-            assert git.current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
+            assert git.current_commit(config.source_root / "tiny_fortran") == "3cba55e"
 
     def test_checkout_branch(self, tmp_path, url, config):
         git = Git()
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=url, dst_label='tiny_fortran', revision='main')
-            assert git.current_commit(config.source_root / 'tiny_fortran') == '3cba55e'
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_checkout(config, src=url, dst_label="tiny_fortran", revision="main")
+            assert git.current_commit(config.source_root / "tiny_fortran") == "3cba55e"
 
     def test_checkout_tag(self, tmp_path, url, config):
         git = Git()
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=url, dst_label='tiny_fortran', revision='early')
-            assert git.current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_checkout(config, src=url, dst_label="tiny_fortran", revision="early")
+            assert git.current_commit(config.source_root / "tiny_fortran") == "ee56489"
 
     def test_checkout_commit(self, tmp_path, url, config):
         git = Git()
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=url, dst_label='tiny_fortran', revision='ee5648928893701c5dbccdbf0561c0038352a5ff')
-            assert git.current_commit(config.source_root / 'tiny_fortran') == 'ee56489'
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_checkout(
+                config,
+                src=url,
+                dst_label="tiny_fortran",
+                revision="ee5648928893701c5dbccdbf0561c0038352a5ff",
+            )
+            assert git.current_commit(config.source_root / "tiny_fortran") == "ee56489"
 
 
 # todo: we could do with a test to ensure left-over files from previous fetches are cleaned away
 
 
 class TestGitMerge:
-
     @pytest.fixture
     def repo_url(self, tmp_path):
-        shutil.unpack_archive(Path(__file__).parent / 'repo.tar.gz', tmp_path)
-        return f'file://{tmp_path}/repo'
+        shutil.unpack_archive(Path(__file__).parent / "repo.tar.gz", tmp_path)
+        return f"file://{tmp_path}/repo"
 
-    @pytest.mark.filterwarnings("ignore: Python 3.14 will, "
-                                "by default, filter extracted tar archives "
-                                "and reject files or modify their metadata. "
-                                "Use the filter argument to control this behavior.")
+    @pytest.mark.filterwarnings(
+        "ignore: Python 3.14 will, "
+        "by default, filter extracted tar archives "
+        "and reject files or modify their metadata. "
+        "Use the filter argument to control this behavior."
+    )
     def test_vanilla(self, repo_url, config):
 
         # checkout main
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='main')
-            check_file = config.source_root / 'tiny_fortran/file1.txt'
-            assert 'This is sentence one in file one.' in open(check_file).read()
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_checkout(
+                config, src=repo_url, dst_label="tiny_fortran", revision="main"
+            )
+            check_file = config.source_root / "tiny_fortran/file1.txt"
+            assert "This is sentence one in file one." in open(check_file).read()
 
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_a')
-            assert 'This is sentence one, with Experiment A modification.' in open(check_file).read()
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_merge(
+                config, src=repo_url, dst_label="tiny_fortran", revision="experiment_a"
+            )
+            assert (
+                "This is sentence one, with Experiment A modification."
+                in open(check_file).read()
+            )
 
         with pytest.raises(RuntimeError):
-            git_merge(config, src=repo_url, dst_label='tiny_fortran', revision='experiment_b')
+            git_merge(
+                config, src=repo_url, dst_label="tiny_fortran", revision="experiment_b"
+            )
 
         # The conflicted merge must have been aborted, check that we can do another checkout of main
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=repo_url, dst_label='tiny_fortran', revision='main')
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_checkout(
+                config, src=repo_url, dst_label="tiny_fortran", revision="main"
+            )

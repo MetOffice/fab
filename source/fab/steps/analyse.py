@@ -33,6 +33,7 @@ by passing FortranParserWorkaround objects into the `special_measure_analysis_re
 You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
 
 """
+
 from itertools import chain
 import logging
 import sys
@@ -51,10 +52,12 @@ from fab.util import TimerLogger, by_type
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SOURCE_GETTER = CollectionConcat([
-    ArtefactSet.FORTRAN_COMPILER_FILES,
-    ArtefactSet.C_COMPILER_FILES,
-])
+DEFAULT_SOURCE_GETTER = CollectionConcat(
+    [
+        ArtefactSet.FORTRAN_COMPILER_FILES,
+        ArtefactSet.C_COMPILER_FILES,
+    ]
+)
 
 
 # todo: split out c and fortran? this class is still a bit big
@@ -62,15 +65,17 @@ DEFAULT_SOURCE_GETTER = CollectionConcat([
 # (i.e we don't have a list of artefacts and a function to feed them through).
 @step
 def analyse(
-        config,
-        source: Optional[ArtefactsGetter] = None,
-        root_symbols: Optional[Union[str, list[str]]] = None,
-        find_programs: bool = False,
-        std: str = "f2008",
-        special_measure_analysis_results: Optional[Iterable[FortranParserWorkaround]] = None,
-        unreferenced_deps: Optional[Iterable[str]] = None,
-        ignore_dependencies: Optional[Iterable[str]] = None,
-        ):
+    config,
+    source: Optional[ArtefactsGetter] = None,
+    root_symbols: Optional[Union[str, list[str]]] = None,
+    find_programs: bool = False,
+    std: str = "f2008",
+    special_measure_analysis_results: Optional[
+        Iterable[FortranParserWorkaround]
+    ] = None,
+    unreferenced_deps: Optional[Iterable[str]] = None,
+    ignore_dependencies: Optional[Iterable[str]] = None,
+):
     """
     Produce one or more build trees by analysing source code dependencies.
 
@@ -130,9 +135,9 @@ def analyse(
     unreferenced_deps = list(unreferenced_deps or [])
 
     # todo: these seem more like functions
-    fortran_analyser = FortranAnalyser(config=config,
-                                       std=std,
-                                       ignore_dependencies=ignore_dependencies)
+    fortran_analyser = FortranAnalyser(
+        config=config, std=std, ignore_dependencies=ignore_dependencies
+    )
     c_analyser = CAnalyser(config=config)
 
     # Creates the *build_trees* artefact from the files in `self.source_getter`.
@@ -148,15 +153,17 @@ def analyse(
 
     # parse
     files: list[Path] = source_getter(config.artefact_store)
-    analysed_files = _parse_files(config, files=files,
-                                  fortran_analyser=fortran_analyser,
-                                  c_analyser=c_analyser)
+    analysed_files = _parse_files(
+        config, files=files, fortran_analyser=fortran_analyser, c_analyser=c_analyser
+    )
     _add_manual_results(special_measure_analysis_results, analysed_files)
 
     # shall we search the results for fortran programs and a c function called main?
     if find_programs:
         # find fortran programs
-        sets_of_programs = [af.program_defs for af in by_type(analysed_files, AnalysedFortran)]
+        sets_of_programs = [
+            af.program_defs for af in by_type(analysed_files, AnalysedFortran)
+        ]
         root_symbols = list(chain(*sets_of_programs))
         # find c main() symbols. In order to support building multiple
         # C programs, each `main` symbol is replaced with `main@filename` during
@@ -168,7 +175,9 @@ def analyse(
             if main_symbol in analysed_c.symbol_defs:
                 root_symbols.append(main_symbol)
 
-        logger.info(f'automatically found the following programs to build: {", ".join(root_symbols)}')
+        logger.info(
+            f"automatically found the following programs to build: {', '.join(root_symbols)}"
+        )
 
     # analyse
     project_source_tree, symbol_table = _analyse_dependencies(analysed_files)
@@ -181,13 +190,17 @@ def analyse(
 
     # extract "build trees" for executables.
     if root_symbols:
-        build_trees = _extract_build_trees(root_symbols, project_source_tree, symbol_table)
+        build_trees = _extract_build_trees(
+            root_symbols, project_source_tree, symbol_table
+        )
     else:
         build_trees = {None: project_source_tree}
 
     # throw in any extra source we need, which Fab can't automatically detect
     for build_tree in build_trees.values():
-        _add_unreferenced_deps(unreferenced_deps, symbol_table, project_source_tree, build_tree)
+        _add_unreferenced_deps(
+            unreferenced_deps, symbol_table, project_source_tree, build_tree
+        )
         validate_dependencies(build_tree)
 
     config.artefact_store[ArtefactSet.BUILD_TREES] = build_trees
@@ -224,15 +237,21 @@ def _extract_build_trees(root_symbols, project_source_tree, symbol_table):
     assert root_symbols is not None
     for root in root_symbols:
         with TimerLogger(f"extracting build tree for root '{root}'"):
-            build_tree = extract_sub_tree(project_source_tree, symbol_table[root], verbose=False)
+            build_tree = extract_sub_tree(
+                project_source_tree, symbol_table[root], verbose=False
+            )
 
-        logger.info(f"target source tree size {len(build_tree)} (target '{symbol_table[root]}')")
+        logger.info(
+            f"target source tree size {len(build_tree)} (target '{symbol_table[root]}')"
+        )
         build_trees[root] = build_tree
 
     return build_trees
 
 
-def _parse_files(config, files: list[Path], fortran_analyser, c_analyser) -> set[AnalysedDependent]:
+def _parse_files(
+    config, files: list[Path], fortran_analyser, c_analyser
+) -> set[AnalysedDependent]:
     """
     Determine the symbols which are defined in, and used by, each file.
 
@@ -241,33 +260,45 @@ def _parse_files(config, files: list[Path], fortran_analyser, c_analyser) -> set
 
     """
     # fortran
-    fortran_files = set(filter(lambda f: f.suffix in ['.f90', '.f'], files))
+    fortran_files = set(filter(lambda f: f.suffix in [".f90", ".f"], files))
     with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
         fortran_results = run_mp(config, items=fortran_files, func=fortran_analyser.run)
-    fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
+    fortran_analyses, fortran_artefacts = (
+        zip(*fortran_results) if fortran_results else (tuple(), tuple())
+    )
 
     # warn about naughty fortran usage
     if fortran_analyser.depends_on_comment_found:
         warnings.warn("deprecated 'DEPENDS ON:' comment found in fortran code")
 
     # c
-    c_files = set(filter(lambda f: f.suffix == '.c', files))
+    c_files = set(filter(lambda f: f.suffix == ".c", files))
     with TimerLogger(f"analysing {len(c_files)} preprocessed c files"):
         # The C analyser hangs with multiprocessing in Python 3.7!
         # Override the multiprocessing flag.
         no_multiprocessing = False
-        if sys.version.startswith('3.7'):
-            warnings.warn('Python 3.7 detected. Disabling multiprocessing for C analysis.')
+        if sys.version.startswith("3.7"):
+            warnings.warn(
+                "Python 3.7 detected. Disabling multiprocessing for C analysis."
+            )
             no_multiprocessing = True
-        c_results = run_mp(config, items=c_files, func=c_analyser.run, no_multiprocessing=no_multiprocessing)
+        c_results = run_mp(
+            config,
+            items=c_files,
+            func=c_analyser.run,
+            no_multiprocessing=no_multiprocessing,
+        )
     c_analyses, c_artefacts = zip(*c_results) if c_results else (tuple(), tuple())
 
     # Check for parse errors but don't fail. The failed files might not be required.
     analyses = fortran_analyses + c_analyses
     exceptions = list(by_type(analyses, Exception))
     if exceptions:
-        err_str = '\n\n'.join(map(str, exceptions))
-        print(f"\nThere were {len(exceptions)} analysis errors:\n\n{err_str}\n\n", file=sys.stderr)
+        err_str = "\n\n".join(map(str, exceptions))
+        print(
+            f"\nThere were {len(exceptions)} analysis errors:\n\n{err_str}\n\n",
+            file=sys.stderr,
+        )
 
     # record the artefacts as being current
     artefacts = by_type(fortran_artefacts + c_artefacts, Path)
@@ -279,7 +310,9 @@ def _parse_files(config, files: list[Path], fortran_analyser, c_analyser) -> set
     return non_empty
 
 
-def _add_manual_results(special_measure_analysis_results, analysed_files: set[AnalysedDependent]):
+def _add_manual_results(
+    special_measure_analysis_results, analysed_files: set[AnalysedDependent]
+):
     # add manual analysis results for files which could not be parsed
     if special_measure_analysis_results:
         warnings.warn("SPECIAL MEASURE: injecting user-defined analysis results")
@@ -290,10 +323,12 @@ def _add_manual_results(special_measure_analysis_results, analysed_files: set[An
                 # Note: This exception stops the user from being able to override results for files
                 # which don't *crash* the parser. We don't have a use case to do this, but it's worth noting.
                 # If we want to allow this we can raise a warning instead of an exception.
-                raise ValueError(f'Unnecessary ParserWorkaround for {r.fpath}')
+                raise ValueError(f"Unnecessary ParserWorkaround for {r.fpath}")
             analysed_files.add(r.as_analysed_fortran())
 
-        logger.info(f'added {len(special_measure_analysis_results)} manual analysis results')
+        logger.info(
+            f"added {len(special_measure_analysis_results)} manual analysis results"
+        )
 
 
 def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> dict[str, Path]:
@@ -308,8 +343,9 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> dict[str, 
             # check for duplicates
             if symbol_def in symbols:
                 logger.debug(
-                        f"duplicate symbol '{symbol_def}' defined in {analysed_file.fpath} "
-                        f"also found in {symbols[symbol_def]}\n")
+                    f"duplicate symbol '{symbol_def}' defined in {analysed_file.fpath} "
+                    f"also found in {symbols[symbol_def]}\n"
+                )
                 duplicates = True
                 continue
             symbols[symbol_def] = analysed_file.fpath
@@ -324,7 +360,9 @@ def _gen_symbol_table(analysed_files: Iterable[AnalysedDependent]) -> dict[str, 
     return symbols
 
 
-def _gen_file_deps(analysed_files: Iterable[AnalysedDependent], symbols: dict[str, Path]):
+def _gen_file_deps(
+    analysed_files: Iterable[AnalysedDependent], symbols: dict[str, Path]
+):
     """
     Use the symbol table to convert symbol dependencies into file dependencies.
 
@@ -347,9 +385,12 @@ def _gen_file_deps(analysed_files: Iterable[AnalysedDependent], symbols: dict[st
         logger.info(f"{len(deps_not_found)} deps not found")
 
 
-def _add_unreferenced_deps(unreferenced_deps, symbol_table: dict[str, Path],
-                           all_analysed_files: dict[Path, AnalysedDependent],
-                           build_tree: dict[Path, AnalysedDependent]):
+def _add_unreferenced_deps(
+    unreferenced_deps,
+    symbol_table: dict[str, Path],
+    all_analysed_files: dict[Path, AnalysedDependent],
+    build_tree: dict[Path, AnalysedDependent],
+):
     """
     Add files to the build tree.
 
@@ -361,7 +402,6 @@ def _add_unreferenced_deps(unreferenced_deps, symbol_table: dict[str, Path],
     logger.info(f"Adding {len(unreferenced_deps or [])} unreferenced dependencies")
 
     for symbol_dep in unreferenced_deps:
-
         # what file is the symbol in?
         analysed_fpath = symbol_table.get(symbol_dep)
         if not analysed_fpath:
@@ -376,8 +416,10 @@ def _add_unreferenced_deps(unreferenced_deps, symbol_table: dict[str, Path],
 
         # is it already in the build tree?
         if analysed_file.fpath in build_tree:
-            logger.info(f"file {analysed_file.fpath} for unreferenced dependency {symbol_dep} "
-                        f"is already in the build tree")
+            logger.info(
+                f"file {analysed_file.fpath} for unreferenced dependency {symbol_dep} "
+                f"is already in the build tree"
+            )
             continue
 
         # add the file and it's file deps

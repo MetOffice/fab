@@ -6,6 +6,7 @@
 """
 Tests RSync file tree synchronisation tool.
 """
+
 from pathlib import Path
 
 from pytest_subprocess.fake_process import FakeProcess
@@ -30,8 +31,8 @@ def test_check_available(fake_process: FakeProcess) -> None:
     """
     Tests availability checking functionality.
     """
-    fake_process.register(['rsync', '--version'], stdout='1.2.3')
-    fake_process.register(['rsync', '--version'], callback=not_found_callback)
+    fake_process.register(["rsync", "--version"], stdout="1.2.3")
+    fake_process.register(["rsync", "--version"], callback=not_found_callback)
 
     rsync = Rsync()
     assert rsync.check_available()
@@ -39,14 +40,10 @@ def test_check_available(fake_process: FakeProcess) -> None:
     # Test behaviour if a runtime error happens:
     assert not rsync.check_available()
 
-    assert call_list(fake_process) == [
-        ['rsync', '--version'],
-        ['rsync', '--version']
-    ]
+    assert call_list(fake_process) == [["rsync", "--version"], ["rsync", "--version"]]
 
 
-def test_rsync_create(fake_process: FakeProcess,
-                      change_into_tmpdir: Path) -> None:
+def test_rsync_create(fake_process: FakeProcess, change_into_tmpdir: Path) -> None:
     """
     Tests performing a sync. Ensure source always ends with a '/'.
     """
@@ -60,8 +57,15 @@ def test_rsync_create(fake_process: FakeProcess,
     rsync = Rsync()
 
     # Test 1: Directory must have a '/' at the end:
-    dir_command = ['rsync', '--times', '--links', '--stats', '-ru',
-                   f'{directory}/', '/dst']
+    dir_command = [
+        "rsync",
+        "--times",
+        "--links",
+        "--stats",
+        "-ru",
+        f"{directory}/",
+        "/dst",
+    ]
     fake_process.register(dir_command)
     rsync.execute(src=directory, dst=Path("/dst"))
 
@@ -69,12 +73,9 @@ def test_rsync_create(fake_process: FakeProcess,
     # that file does indeed not have a '/' at the end (Path should discard
     # trailing / ... but just in case:)
     assert str(file)[-1] != "/"
-    file_command = ['rsync', '--times', '--links', '--stats', '-ru',
-                    f'{file}', '/dst']
+    file_command = ["rsync", "--times", "--links", "--stats", "-ru", f"{file}", "/dst"]
     fake_process.register(file_command)
 
     rsync.execute(src=file, dst=Path("/dst"))
 
-    assert call_list(fake_process) == [
-        dir_command, file_command
-    ]
+    assert call_list(fake_process) == [dir_command, file_command]

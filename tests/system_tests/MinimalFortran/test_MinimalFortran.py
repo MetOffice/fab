@@ -18,21 +18,25 @@ from fab.tools.tool_box import ToolBox
 
 import pytest
 
-PROJECT_SOURCE = Path(__file__).parent / 'project-source'
+PROJECT_SOURCE = Path(__file__).parent / "project-source"
 
 
 def test_minimal_fortran(tmp_path):
 
     # build
-    with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
-                     project_label='foo', multiprocessing=False) as config:
+    with BuildConfig(
+        fab_workspace=tmp_path,
+        tool_box=ToolBox(),
+        project_label="foo",
+        multiprocessing=False,
+    ) as config:
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
         preprocess_fortran(config)
-        analyse(config, root_symbols='test')
+        analyse(config, root_symbols="test")
         with pytest.warns(UserWarning, match="Removing managed flag"):
-            compile_fortran(config, common_flags=['-c'])
-        link_exe(config, flags=['-lgfortran'])
+            compile_fortran(config, common_flags=["-c"])
+        link_exe(config, flags=["-lgfortran"])
 
     assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 1
 
@@ -40,4 +44,4 @@ def test_minimal_fortran(tmp_path):
     command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output.strip() == 'Hello world!'
+    assert output.strip() == "Hello world!"

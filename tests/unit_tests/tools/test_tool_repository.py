@@ -6,6 +6,7 @@
 """
 Tests ToolBox class.
 """
+
 from pathlib import Path
 from typing import cast
 
@@ -23,7 +24,7 @@ from tests.conftest import call_list
 
 
 def test_tool_repository_get_singleton_new():
-    '''Tests the singleton behaviour.'''
+    """Tests the singleton behaviour."""
     ToolRepository._singleton = None
     tr1 = ToolRepository()
     tr2 = ToolRepository()
@@ -34,14 +35,14 @@ def test_tool_repository_get_singleton_new():
 
 
 def test_tool_repository_constructor():
-    '''Tests the ToolRepository constructor.'''
+    """Tests the ToolRepository constructor."""
     tr = ToolRepository()
     assert Category.C_COMPILER in tr
     assert Category.FORTRAN_COMPILER in tr
 
 
 def test_tool_repository_get_tool():
-    '''Tests get_tool.'''
+    """Tests get_tool."""
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "gfortran")
     assert isinstance(gfortran, Gfortran)
@@ -51,10 +52,10 @@ def test_tool_repository_get_tool():
 
 
 def test_tool_repository_get_tool_with_exec_name(stub_fortran_compiler):
-    '''Tests get_tool when the name of the executable is specified, e.g.
+    """Tests get_tool when the name of the executable is specified, e.g.
     mpif90 (instead of the Fab name mpif90-gfortran etc).
 
-    '''
+    """
     tr = ToolRepository()
     # Keep a copy of gfortran for later
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "gfortran")
@@ -106,19 +107,19 @@ def test_get_tool_error():
 
     with raises(KeyError) as err:
         tr.get_tool(Category.C_COMPILER, "something")
-    assert ("Unknown tool 'something' in category 'C_COMPILER'"
-            in str(err.value))
+    assert "Unknown tool 'something' in category 'C_COMPILER'" in str(err.value)
 
 
-def test_get_default(stub_tool_repository, stub_fortran_compiler,
-                     stub_c_compiler) -> None:
-    '''Tests get_default.'''
-    fc = stub_tool_repository.get_default(Category.FORTRAN_COMPILER, mpi=False,
-                                          openmp=False)
+def test_get_default(
+    stub_tool_repository, stub_fortran_compiler, stub_c_compiler
+) -> None:
+    """Tests get_default."""
+    fc = stub_tool_repository.get_default(
+        Category.FORTRAN_COMPILER, mpi=False, openmp=False
+    )
     assert fc is stub_fortran_compiler
 
-    cc = stub_tool_repository.get_default(Category.C_COMPILER, mpi=False,
-                                          openmp=False)
+    cc = stub_tool_repository.get_default(Category.C_COMPILER, mpi=False, openmp=False)
     assert cc is stub_c_compiler
 
     # Test a non-compiler
@@ -126,9 +127,9 @@ def test_get_default(stub_tool_repository, stub_fortran_compiler,
     assert isinstance(ar, Ar)
 
 
-def test_get_default_linker_with_wrapper(stub_tool_repository,
-                                         stub_fortran_compiler,
-                                         stub_c_compiler) -> None:
+def test_get_default_linker_with_wrapper(
+    stub_tool_repository, stub_fortran_compiler, stub_c_compiler
+) -> None:
     """
     Tests that we get the right linker if compiler wrapper are used.
     """
@@ -138,18 +139,18 @@ def test_get_default_linker_with_wrapper(stub_tool_repository,
     linker = Linker(Mpif90(stub_fortran_compiler))
     linker._is_available = True
     stub_tool_repository.add_tool(linker)
-    for_link = stub_tool_repository.get_default(Category.LINKER, mpi=True,
-                                                openmp=True,
-                                                enforce_fortran_linker=True)
+    for_link = stub_tool_repository.get_default(
+        Category.LINKER, mpi=True, openmp=True, enforce_fortran_linker=True
+    )
     assert for_link is linker
 
     # Now the same for a linker around a C compiler wrapper:
     linker = Linker(Mpicc(stub_c_compiler))
     linker._is_available = True
     stub_tool_repository.add_tool(linker)
-    cc_link = stub_tool_repository.get_default(Category.LINKER, mpi=True,
-                                               openmp=True,
-                                               enforce_fortran_linker=False)
+    cc_link = stub_tool_repository.get_default(
+        Category.LINKER, mpi=True, openmp=True, enforce_fortran_linker=False
+    )
     assert cc_link is linker
 
 
@@ -172,18 +173,21 @@ def test_get_default_error_missing_mpi() -> None:
     tr = ToolRepository()
     with raises(RuntimeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, openmp=True)
-    assert str(err.value) == ("Invalid or missing mpi specification "
-                              "for 'FORTRAN_COMPILER'.")
+    assert str(err.value) == (
+        "Invalid or missing mpi specification for 'FORTRAN_COMPILER'."
+    )
 
     with raises(RuntimeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
-    assert str(err.value) == ("Invalid or missing openmp specification "
-                              "for 'FORTRAN_COMPILER'.")
+    assert str(err.value) == (
+        "Invalid or missing openmp specification for 'FORTRAN_COMPILER'."
+    )
 
     with raises(RuntimeError) as err:
         tr.get_default(Category.LINKER, mpi=True, openmp=True)
-    assert str(err.value) == ("Invalid or missing enforce_fortran_linker "
-                              "specification for 'LINKER'.")
+    assert str(err.value) == (
+        "Invalid or missing enforce_fortran_linker specification for 'LINKER'."
+    )
 
 
 def test_get_default_error_missing_openmp() -> None:
@@ -195,25 +199,26 @@ def test_get_default_error_missing_openmp() -> None:
 
     with raises(RuntimeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
-    assert ("Invalid or missing openmp specification for 'FORTRAN_COMPILER'"
-            in str(err.value))
+    assert "Invalid or missing openmp specification for 'FORTRAN_COMPILER'" in str(
+        err.value
+    )
     with raises(RuntimeError) as err:
-        tr.get_default(Category.FORTRAN_COMPILER, mpi=True,
-                       openmp='123')  # type: ignore[arg-type]
-    assert str(err.value) == ("Invalid or missing openmp specification "
-                              "for 'FORTRAN_COMPILER'.")
+        tr.get_default(Category.FORTRAN_COMPILER, mpi=True, openmp="123")  # type: ignore[arg-type]
+    assert str(err.value) == (
+        "Invalid or missing openmp specification for 'FORTRAN_COMPILER'."
+    )
 
 
-@mark.parametrize("mpi, openmp, message",
-                  [(False, False, "any 'FORTRAN_COMPILER'."),
-                   (False, True,
-                    "'FORTRAN_COMPILER' that supports OpenMP."),
-                   (True, False,
-                    "'FORTRAN_COMPILER' that supports MPI."),
-                   (True, True, "'FORTRAN_COMPILER' that supports MPI "
-                    "and OpenMP.")])
-def test_get_default_error_missing_compiler(mpi, openmp, message,
-                                            monkeypatch) -> None:
+@mark.parametrize(
+    "mpi, openmp, message",
+    [
+        (False, False, "any 'FORTRAN_COMPILER'."),
+        (False, True, "'FORTRAN_COMPILER' that supports OpenMP."),
+        (True, False, "'FORTRAN_COMPILER' that supports MPI."),
+        (True, True, "'FORTRAN_COMPILER' that supports MPI and OpenMP."),
+    ],
+)
+def test_get_default_error_missing_compiler(mpi, openmp, message, monkeypatch) -> None:
     """
     Tests error handling in get_default when there is no compiler
     that fulfils the requirements with regards to OpenMP and MPI.
@@ -234,54 +239,52 @@ def test_get_default_error_missing_openmp_compiler(monkeypatch) -> None:
 
     Todo: Monkeying with internal state is bad.
     """
-    fc = FortranCompiler("Simply Fortran", 'sfc', 'simply',
-                         version_regex=r'([\d.]+]')
+    fc = FortranCompiler("Simply Fortran", "sfc", "simply", version_regex=r"([\d.]+]")
 
     tr = ToolRepository()
     monkeypatch.setitem(tr, Category.FORTRAN_COMPILER, [fc])
 
     with raises(RuntimeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=False, openmp=True)
-    assert (str(err.value) == "Could not find 'FORTRAN_COMPILER' that "
-                              "supports OpenMP.")
+    assert str(err.value) == "Could not find 'FORTRAN_COMPILER' that supports OpenMP."
 
 
-@mark.parametrize('category', [Category.C_COMPILER,
-                               Category.FORTRAN_COMPILER,
-                               Category.LINKER])
+@mark.parametrize(
+    "category", [Category.C_COMPILER, Category.FORTRAN_COMPILER, Category.LINKER]
+)
 def test_default_gcc_suite(category, fake_process: FakeProcess) -> None:
     """
     Tests setting default suite to "GCC" produces correct tools.
     """
-    fake_process.register(['gcc', '--version'], stdout='gcc (foo) 1.2.3')
-    fake_process.register(['gfortran', '--version'],
-                          stdout='GNU Fortran (foo) 1.2.3')
+    fake_process.register(["gcc", "--version"], stdout="gcc (foo) 1.2.3")
+    fake_process.register(["gfortran", "--version"], stdout="GNU Fortran (foo) 1.2.3")
 
     tr = ToolRepository()
-    tr.set_default_compiler_suite('gnu')
-    def_tool = tr.get_default(category, mpi=False, openmp=False,
-                              enforce_fortran_linker=True)
+    tr.set_default_compiler_suite("gnu")
+    def_tool = tr.get_default(
+        category, mpi=False, openmp=False, enforce_fortran_linker=True
+    )
     def_tool = cast(Compiler, def_tool)
-    assert def_tool.suite == 'gnu'
+    assert def_tool.suite == "gnu"
 
 
-@mark.parametrize('category', [Category.C_COMPILER,
-                               Category.FORTRAN_COMPILER,
-                               Category.LINKER])
+@mark.parametrize(
+    "category", [Category.C_COMPILER, Category.FORTRAN_COMPILER, Category.LINKER]
+)
 def test_default_intel_suite(category, fake_process: FakeProcess) -> None:
     """
     Tests setting default suite to "classic-intel" produces correct tools.
     """
-    fake_process.register(['icc', '--version'], stdout='icc (ICC) 1.2.3 foo')
-    fake_process.register(['ifort', '--version'],
-                          stdout='ifort (IFORT) 1.2.3 foo')
+    fake_process.register(["icc", "--version"], stdout="icc (ICC) 1.2.3 foo")
+    fake_process.register(["ifort", "--version"], stdout="ifort (IFORT) 1.2.3 foo")
 
     tr = ToolRepository()
-    tr.set_default_compiler_suite('intel-classic')
-    def_tool = tr.get_default(category, mpi=False, openmp=False,
-                              enforce_fortran_linker=True)
+    tr.set_default_compiler_suite("intel-classic")
+    def_tool = tr.get_default(
+        category, mpi=False, openmp=False, enforce_fortran_linker=True
+    )
     def_tool = cast(Compiler, def_tool)
-    assert def_tool.suite == 'intel-classic'
+    assert def_tool.suite == "intel-classic"
 
 
 def test_default_suite_unknown() -> None:
@@ -291,8 +294,9 @@ def test_default_suite_unknown() -> None:
     repo = ToolRepository()
     with raises(RuntimeError) as err:
         repo.set_default_compiler_suite("does-not-exist")
-    assert str(err.value) == ("Cannot find 'FORTRAN_COMPILER' in "
-                              "the suite 'does-not-exist'.")
+    assert str(err.value) == (
+        "Cannot find 'FORTRAN_COMPILER' in the suite 'does-not-exist'."
+    )
 
 
 def test_no_tool_available(fake_process: FakeProcess) -> None:
@@ -308,17 +312,17 @@ def test_no_tool_available(fake_process: FakeProcess) -> None:
 
     with raises(RuntimeError) as err:
         tr.get_default(Category.SHELL)
-    assert (str(err.value) == "Can't find available 'SHELL' tool. Tools are "
-                              "'sh'.")
+    assert str(err.value) == "Can't find available 'SHELL' tool. Tools are 'sh'."
 
 
 def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
-    '''Tests that a user can request a tool with a full path,
+    """Tests that a user can request a tool with a full path,
     in which case the right tool should be returned with an updated
     exec name that uses the path.
-    '''
-    fake_process.register(['/usr/bin/gfortran', '--version'],
-                          stdout='GNU Fortran (gcc) 1.2.3')
+    """
+    fake_process.register(
+        ["/usr/bin/gfortran", "--version"], stdout="GNU Fortran (gcc) 1.2.3"
+    )
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "/usr/bin/gfortran")
     gfortran = cast(Compiler, gfortran)
@@ -329,17 +333,17 @@ def test_tool_repository_full_path(fake_process: FakeProcess) -> None:
     assert gfortran.exec_name == "gfortran"
     assert gfortran.exec_path == Path("/usr/bin/gfortran")
 
-    expected_command = ['/usr/bin/gfortran', 'a']
+    expected_command = ["/usr/bin/gfortran", "a"]
     fake_process.register(expected_command)
     gfortran.run("a")
     assert expected_command in call_list(fake_process)
 
 
 def test_tool_repository_no_linker(fake_process: FakeProcess) -> None:
-    '''Tests that the correct linker is provided if Fortran is enforced.
-    '''
-    fake_process.register(['/usr/bin/gfortran', '--version'],
-                          stdout='GNU Fortran (gcc) 1.2.3')
+    """Tests that the correct linker is provided if Fortran is enforced."""
+    fake_process.register(
+        ["/usr/bin/gfortran", "--version"], stdout="GNU Fortran (gcc) 1.2.3"
+    )
     tr = ToolRepository()
     gfortran = tr.get_tool(Category.FORTRAN_COMPILER, "/usr/bin/gfortran")
     assert isinstance(gfortran, Gfortran)
@@ -347,7 +351,7 @@ def test_tool_repository_no_linker(fake_process: FakeProcess) -> None:
     assert gfortran.exec_name == "gfortran"
     assert gfortran.exec_path == Path("/usr/bin/gfortran")
 
-    expected_command = ['/usr/bin/gfortran', 'a']
+    expected_command = ["/usr/bin/gfortran", "a"]
     fake_process.register(expected_command)
     gfortran.run("a")
     assert expected_command in call_list(fake_process)

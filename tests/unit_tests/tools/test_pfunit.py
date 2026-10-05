@@ -28,8 +28,10 @@ def test_pfunit_constructor_no_env(monkeypatch, caplog) -> None:
 
     with caplog.at_level(logging.ERROR):
         pfunit = PfUnit()
-    assert ("$PFUNIT not defined in environment, pFUnit will likely "
-            "not work." in caplog.text)
+    assert (
+        "$PFUNIT not defined in environment, pFUnit will likely "
+        "not work." in caplog.text
+    )
     assert len(caplog.records) == 1
     assert caplog.records[0].levelname == "ERROR"
 
@@ -83,8 +85,7 @@ def test_pfunit_driver(monkeypatch, tmp_path: Path) -> None:
     assert pfunit.get_driver_f90() == "DRIVER\n"
 
 
-def test_pfunit_check_available(monkeypatch,
-                                subproc_record: ExtendedRecorder) -> None:
+def test_pfunit_check_available(monkeypatch, subproc_record: ExtendedRecorder) -> None:
     """
     Tests availability functionality.
     """
@@ -92,42 +93,41 @@ def test_pfunit_check_available(monkeypatch,
     pfunit = PfUnit()
     assert pfunit.check_available()
     assert subproc_record.invocations() == [["/tmp/bin/funitproc", "-v"]]
-    assert subproc_record.extras() == [{'cwd': None,
-                                        'env': None,
-                                        'stdout': None,
-                                        'stderr': None}]
+    assert subproc_record.extras() == [
+        {"cwd": None, "env": None, "stdout": None, "stderr": None}
+    ]
 
 
-def test_pfunit_check_unavailable(monkeypatch,
-                                  fake_process: FakeProcess) -> None:
+def test_pfunit_check_unavailable(monkeypatch, fake_process: FakeProcess) -> None:
     """
     Tests availability failure.
     """
     monkeypatch.setenv("PFUNIT", "/tmp")
-    fake_process.register(['/tmp/bin/funitproc', '-v'],
-                          returncode=1,
-                          stderr="Something went wrong.")
+    fake_process.register(
+        ["/tmp/bin/funitproc", "-v"], returncode=1, stderr="Something went wrong."
+    )
     pfunit = PfUnit()
     assert not pfunit.check_available()
     assert call_list(fake_process) == [["/tmp/bin/funitproc", "-v"]]
 
 
-def test_pfunit_process(monkeypatch,
-                        tmp_path: Path,
-                        subproc_record: ExtendedRecorder) -> None:
+def test_pfunit_process(
+    monkeypatch, tmp_path: Path, subproc_record: ExtendedRecorder
+) -> None:
     """
     Tests processing a file
     """
     monkeypatch.setenv("PFUNIT", str(tmp_path))
     pfunit = PfUnit()
-    pfunit.process(pf_path=tmp_path / "file.pf",
-                   f90_out_path=tmp_path / "file.f90")
+    pfunit.process(pf_path=tmp_path / "file.pf", f90_out_path=tmp_path / "file.f90")
 
-    assert subproc_record.invocations() \
-           == [[str(tmp_path / "bin" / "funitproc"),
-                str(tmp_path / "file.pf"),
-                str(tmp_path / "file.f90")]]
-    assert subproc_record.extras() == [{'cwd': None,
-                                        'env': None,
-                                        'stderr': None,
-                                        'stdout': None}]
+    assert subproc_record.invocations() == [
+        [
+            str(tmp_path / "bin" / "funitproc"),
+            str(tmp_path / "file.pf"),
+            str(tmp_path / "file.f90"),
+        ]
+    ]
+    assert subproc_record.extras() == [
+        {"cwd": None, "env": None, "stderr": None, "stdout": None}
+    ]

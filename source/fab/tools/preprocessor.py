@@ -18,33 +18,40 @@ from fab.tools.tool_with_flags import ToolWithFlags
 
 
 class Preprocessor(ToolWithFlags):
-    '''This is the base class for any preprocessor.
+    """This is the base class for any preprocessor.
 
     :param name: the name of the preprocessor.
     :param exec_name: the name of the executable.
     :param category: the category (C_PREPROCESSOR or FORTRAN_PREPROCESSOR)
-    '''
+    """
 
-    def __init__(self, name: str, exec_name: Union[str, Path],
-                 category: Category,
-                 availability_option: Optional[str] = None):
-        super().__init__(name, exec_name, category,
-                         availability_option=availability_option)
+    def __init__(
+        self,
+        name: str,
+        exec_name: Union[str, Path],
+        category: Category,
+        availability_option: Optional[str] = None,
+    ):
+        super().__init__(
+            name, exec_name, category, availability_option=availability_option
+        )
         self._version = None
 
-    def preprocess(self,
-                   input_file: Path,
-                   output_file: Path,
-                   config: "BuildConfig",
-                   add_flags: Optional[Sequence[Union[Path, str]]] = None):
-        '''Calls the preprocessor to process the specified input file,
+    def preprocess(
+        self,
+        input_file: Path,
+        output_file: Path,
+        config: "BuildConfig",
+        add_flags: Optional[Sequence[Union[Path, str]]] = None,
+    ):
+        """Calls the preprocessor to process the specified input file,
         creating the requested output file.
 
         :param input_file: input file.
         :param output_file: the output filename.
         :param config: the build config, used to access mode-specific flags.
         :param add_flags: list with additional flags to be used.
-        '''
+        """
         params: list[Union[str, Path]] = []
         params.extend(self.flags.get_flags(config, input_file))
         if add_flags:
@@ -57,29 +64,33 @@ class Preprocessor(ToolWithFlags):
 
 # ============================================================================
 class Cpp(Preprocessor):
-    '''Class for cpp.
-    '''
+    """Class for cpp."""
+
     def __init__(self):
         super().__init__("cpp", "cpp", Category.C_PREPROCESSOR)
 
 
 # ============================================================================
 class CppFortran(Preprocessor):
-    '''Class for cpp when used as a Fortran preprocessor
-    '''
+    """Class for cpp when used as a Fortran preprocessor"""
+
     def __init__(self):
         super().__init__("cpp", "cpp", Category.FORTRAN_PREPROCESSOR)
 
-    def preprocess(self, input_file: Path, output_file: Path,
-                   config: BuildConfig,
-                   add_flags: Optional[Sequence[Union[Path, str]]] = None):
-        '''Calls the preprocessor to process the specified input file,
+    def preprocess(
+        self,
+        input_file: Path,
+        output_file: Path,
+        config: BuildConfig,
+        add_flags: Optional[Sequence[Union[Path, str]]] = None,
+    ):
+        """Calls the preprocessor to process the specified input file,
         creating the requested output file.
 
         :param input_file: input file.
         :param output_file: the output filename.
         :param add_flags: List with additional flags to be used.
-        '''
+        """
         params: list[Union[str, Path]] = ["-traditional-cpp", "-P"]
 
         if add_flags:
@@ -90,10 +101,11 @@ class CppFortran(Preprocessor):
 
 # ============================================================================
 class Fpp(Preprocessor):
-    '''Class for Intel's Fortran-specific preprocessor.
-    '''
+    """Class for Intel's Fortran-specific preprocessor."""
+
     def __init__(self):
         # fpp -V prints version information, but then hangs (i.e. reading
         # from stdin), so use -what to see if it is available
-        super().__init__("fpp", "fpp", Category.FORTRAN_PREPROCESSOR,
-                         availability_option="-what")
+        super().__init__(
+            "fpp", "fpp", Category.FORTRAN_PREPROCESSOR, availability_option="-what"
+        )

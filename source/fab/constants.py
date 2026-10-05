@@ -13,4 +13,4 @@ SOURCE_ROOT = "source"
 BUILD_OUTPUT = "build_output"
 
 # prebuild folder name
-PREBUILD = '_prebuild'
+PREBUILD = "_prebuild"

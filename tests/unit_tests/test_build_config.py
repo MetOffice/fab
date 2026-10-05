@@ -4,9 +4,9 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''
+"""
 This module tests the BuildConfig class.
-'''
+"""
 
 import os
 from pathlib import Path
@@ -20,15 +20,16 @@ from fab.tools.tool_repository import ToolRepository
 
 
 class TestBuildConfig:
-    '''
+    """
     This class tests the BuildConfig class.
-    '''
+    """
 
     def test_error_newlines(self):
-        '''
+        """
         Check cli tool errors have newlines displayed correctly.
         v0.9.0a1 displayed then as `\\n` (see #164).
-        '''
+        """
+
         @step
         def simple_step(config):
             raise RuntimeError("foo error\n1\n2\n3")
@@ -36,57 +37,54 @@ class TestBuildConfig:
         try:
             simple_step(None)
         except RuntimeError as err:
-            assert '1\n2\n3' in str(err)
+            assert "1\n2\n3" in str(err)
 
     def test_add_cleanup(self, stub_tool_repository: ToolRepository) -> None:
-        '''
+        """
         Ensure the cleanup step is added.
-        '''
-        with BuildConfig('proj', ToolBox()) as config:
+        """
+        with BuildConfig("proj", ToolBox()) as config:
             assert CLEANUP_COUNT not in config.artefact_store
 
         assert CLEANUP_COUNT in config.artefact_store
 
-    @mock.patch.dict('os.environ')
+    @mock.patch.dict("os.environ")
     def test_fab_workspace_no_env(
-          self,
-          tmpdir: Path,
-          stub_tool_repository: ToolRepository) -> None:
-        '''
+        self, tmpdir: Path, stub_tool_repository: ToolRepository
+    ) -> None:
+        """
         Test that the Fab workspace is set as expected when the
         environment variable FAB_WORKSPACE is not used
-        '''
+        """
 
         this_dir = Path.cwd()
-        config = BuildConfig('proj', ToolBox())
-        assert config.project_workspace == this_dir / 'fab-workspace' / 'proj'
+        config = BuildConfig("proj", ToolBox())
+        assert config.project_workspace == this_dir / "fab-workspace" / "proj"
 
-        some_dir = Path('/some_dir')
-        config = BuildConfig('proj', ToolBox(), fab_workspace=some_dir)
-        assert config.project_workspace == some_dir / 'proj'
+        some_dir = Path("/some_dir")
+        config = BuildConfig("proj", ToolBox(), fab_workspace=some_dir)
+        assert config.project_workspace == some_dir / "proj"
 
         # Test again the expected behaviour from a different directory,
         # to ensure that Fab correctly queries cwd
         os.chdir(tmpdir)
-        config = BuildConfig('proj', ToolBox())
-        assert config.project_workspace == tmpdir / 'fab-workspace' / 'proj'
+        config = BuildConfig("proj", ToolBox())
+        assert config.project_workspace == tmpdir / "fab-workspace" / "proj"
 
-    @mock.patch.dict('os.environ', {'FAB_WORKSPACE': '/FAB'})
-    def test_fab_workspace_with_env(
-            self,
-            stub_tool_repository: ToolRepository) -> None:
-        '''
+    @mock.patch.dict("os.environ", {"FAB_WORKSPACE": "/FAB"})
+    def test_fab_workspace_with_env(self, stub_tool_repository: ToolRepository) -> None:
+        """
         Test that the Fab workspace is set as expected when the environment
         variable FAB_WORKSPACE is defined.
-        '''
+        """
 
-        config = BuildConfig('proj', ToolBox())
-        assert config.project_workspace == Path('/FAB') / 'proj'
+        config = BuildConfig("proj", ToolBox())
+        assert config.project_workspace == Path("/FAB") / "proj"
 
         # An explicit option should overwrite FAB_WORKSPACE
-        some_dir = Path('/some_dir')
-        config = BuildConfig('proj', ToolBox(), fab_workspace=some_dir)
-        assert config.project_workspace == some_dir / 'proj'
+        some_dir = Path("/some_dir")
+        config = BuildConfig("proj", ToolBox(), fab_workspace=some_dir)
+        assert config.project_workspace == some_dir / "proj"
 
 
 def test_set_profile(stub_configuration):

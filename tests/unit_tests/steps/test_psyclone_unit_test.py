@@ -19,25 +19,24 @@ class TestGenPrebuildHash:
     Tests for the prebuild hashing calculation.
 
     """
-    @fixture(scope='function')
+
+    @fixture(scope="function")
     def data(self, tmp_path) -> tuple[MpCommonArgs, Path]:
 
-        x90_file = Path('foo.x90')
+        x90_file = Path("foo.x90")
         analysed_x90 = {
             x90_file: AnalysedX90(
-                fpath=x90_file,
-                file_hash=234,
-                kernel_deps={'kernel1', 'kernel2'}
+                fpath=x90_file, file_hash=234, kernel_deps={"kernel1", "kernel2"}
             )
         }
 
         all_kernel_hashes = {
-            'kernel1': 345,
-            'kernel2': 456,
+            "kernel1": 345,
+            "kernel2": 456,
         }
 
         # the script is just hashed later, so any one will do
-        transformation_script = tmp_path / 'transformation.py'
+        transformation_script = tmp_path / "transformation.py"
         transformation_script.write_text("#!/usr/bin/env python\n")
 
         mp_payload = MpCommonArgs(
@@ -47,7 +46,7 @@ class TestGenPrebuildHash:
             config=None,  # type: ignore[arg-type]
             kernel_roots=[],
             transformation_script=lambda x, y: transformation_script,
-            api='lfric',
+            api="lfric",
             overrides_folder=None,
             override_files=None,  # type: ignore[arg-type]
         )
@@ -59,7 +58,10 @@ class TestGenPrebuildHash:
 
         ToDo: Monkeying with "private" members.
         """
-        mp_payload, x90_file,  = data
+        (
+            mp_payload,
+            x90_file,
+        ) = data
         result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
         assert result == 5699416685
 
@@ -81,7 +83,7 @@ class TestGenPrebuildHash:
         ToDo: Monkeying with "private" members.
         """
         mp_payload, x90_file = data
-        mp_payload.all_kernel_hashes['kernel1'] -= 1
+        mp_payload.all_kernel_hashes["kernel1"] -= 1
         result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
         assert result == 5699416684
 
@@ -118,7 +120,7 @@ class TestGenPrebuildHash:
     def test_cli_args(self, data):
         # changing the cli args should change the hash
         mp_payload, x90_file = data
-        mp_payload.cli_args = ['--foo']
+        mp_payload.cli_args = ["--foo"]
         result = _gen_prebuild_hash(x90_file=x90_file, mp_payload=mp_payload)
         assert result != 123
 
@@ -129,14 +131,16 @@ class TestCheckOverride:
 
     ToDo: Monkeying with "private" members.
     """
+
     def test_no_override(self):
         """
         Tests straioght operation with no override.
         """
-        mp_payload = Mock(overrides_folder=Path('/foo'),
-                          override_files=[Path('/foo/bar.f90')])
+        mp_payload = Mock(
+            overrides_folder=Path("/foo"), override_files=[Path("/foo/bar.f90")]
+        )
 
-        check_path = Path('/not_foo/bar.f90')
+        check_path = Path("/not_foo/bar.f90")
         result = _check_override(check_path=check_path, mp_payload=mp_payload)
         assert result == check_path
 
@@ -144,9 +148,10 @@ class TestCheckOverride:
         """
         Tests operation with override.
         """
-        mp_payload = Mock(overrides_folder=Path('/foo'),
-                          override_files=[Path('/foo/bar.f90')])
+        mp_payload = Mock(
+            overrides_folder=Path("/foo"), override_files=[Path("/foo/bar.f90")]
+        )
 
-        check_path = Path('/foo/bar.f90')
+        check_path = Path("/foo/bar.f90")
         result = _check_override(check_path=check_path, mp_payload=mp_payload)
-        assert result == mp_payload.overrides_folder / 'bar.f90'
+        assert result == mp_payload.overrides_folder / "bar.f90"

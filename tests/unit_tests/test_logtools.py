@@ -8,7 +8,6 @@
 Unit tests for fab.logtools.
 """
 
-
 import logging
 import re
 from io import StringIO

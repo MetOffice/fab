@@ -18,8 +18,9 @@ from fab.parse.fortran import AnalysedFortran
 
 
 def add_mo_commented_file_deps(
-       source_tree: dict[Path, AnalysedDependent],
-        ignore_dependencies: Optional[Iterable[str]] = None) -> None:
+    source_tree: dict[Path, AnalysedDependent],
+    ignore_dependencies: Optional[Iterable[str]] = None,
+) -> None:
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which
     refer to a c file. These are the comments which refer to a .o file and
@@ -31,8 +32,9 @@ def add_mo_commented_file_deps(
     """
     ignore_set = set(ignore_dependencies) if ignore_dependencies else set()
 
-    analysed_fortran = [i for i in source_tree.values()
-                        if isinstance(i, AnalysedFortran)]
+    analysed_fortran = [
+        i for i in source_tree.values() if isinstance(i, AnalysedFortran)
+    ]
     analysed_c = [i for i in source_tree.values() if isinstance(i, AnalysedC)]
 
     lookup = {c.fpath.name: c for c in analysed_c}
@@ -52,9 +54,11 @@ def add_mo_commented_file_deps(
                 continue
 
             if dep not in lookup:
-                logger.error(f"DEPENDS ON dependency '{dep}' not found for "
-                             f"file '{f.fpath}' - ignored for now, but "
-                             f"the build might fail because of this.")
+                logger.error(
+                    f"DEPENDS ON dependency '{dep}' not found for "
+                    f"file '{f.fpath}' - ignored for now, but "
+                    f"the build might fail because of this."
+                )
                 continue
             f.file_deps.add(lookup[dep].fpath)
     logger.info(f"processed {num_found} DEPENDS ON file dependencies")

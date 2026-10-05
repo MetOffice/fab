@@ -21,7 +21,7 @@ from fab.tools.tool_with_flags import ToolWithFlags
 
 
 class CompilerSuiteTool(ToolWithFlags):
-    '''A tool that is part of a compiler suite (typically compiler
+    """A tool that is part of a compiler suite (typically compiler
     and linker).
 
     :param name: name of the tool.
@@ -31,20 +31,22 @@ class CompilerSuiteTool(ToolWithFlags):
     :param availability_option: a command line option for the tool to test
         if the tool is available on the current system. Defaults to
         `--version`.
-    '''
+    """
+
     def __init__(
-            self,
-            name: str,
-            exec_name: Union[str, Path],
-            suite: str,
-            category: Category,
-            availability_option: Optional[Union[str,
-                                                List[str]]] = None) -> None:
-        super().__init__(name, exec_name, category,
-                         availability_option=availability_option)
+        self,
+        name: str,
+        exec_name: Union[str, Path],
+        suite: str,
+        category: Category,
+        availability_option: Optional[Union[str, List[str]]] = None,
+    ) -> None:
+        super().__init__(
+            name, exec_name, category, availability_option=availability_option
+        )
         self._suite = suite
 
     @property
     def suite(self) -> str:
-        ''':returns: the compiler suite of this tool.'''
+        """:returns: the compiler suite of this tool."""
         return self._suite

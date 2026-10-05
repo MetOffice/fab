@@ -27,19 +27,24 @@ class PfUnit(Tool):
     contains the source code for a Fortran driver program .
     It assumes that pFUnit's preprocessor `funitproc` is in $PFUNIT/bin.
     """
+
     Category.add("PFUNIT")
 
     def __init__(self):
         pfunit_home = os.environ.get("PFUNIT", "")
         if not pfunit_home:
-            logger.error("$PFUNIT not defined in environment, pFUnit will "
-                         "likely not work.")
+            logger.error(
+                "$PFUNIT not defined in environment, pFUnit will likely not work."
+            )
         self._pfunit_home = Path(pfunit_home)
 
         exec_name = self._pfunit_home / "bin" / "funitproc"
-        super().__init__("funitproc", exec_name=exec_name,
-                         category=Category.PFUNIT,
-                         availability_option="-v")
+        super().__init__(
+            "funitproc",
+            exec_name=exec_name,
+            category=Category.PFUNIT,
+            availability_option="-v",
+        )
 
     def get_root_path(self) -> Path:
         """
@@ -58,12 +63,11 @@ class PfUnit(Tool):
         :returns: the content of pFUnit's driver.F90 file.
         """
         driver_path = self._pfunit_home / "include" / "driver.F90"
-        with driver_path.open("r", encoding='utf-8') as f:
+        with driver_path.open("r", encoding="utf-8") as f:
             driver_f90 = f.read()
         return driver_f90
 
-    def process(self, pf_path: Path,
-                f90_out_path: Path):
+    def process(self, pf_path: Path, f90_out_path: Path):
         """
         Processes the .pf file to create an output f90 file.
 

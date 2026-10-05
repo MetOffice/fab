@@ -6,14 +6,20 @@
 from pathlib import Path
 from typing import Iterable, Union, Optional, Any
 
-from fparser.two.Fortran2003 import (     # type: ignore
-    Use_Stmt, Call_Stmt, Name, Only_List, Actual_Arg_Spec_List,
-    Part_Ref)
+from fparser.two.Fortran2003 import (  # type: ignore
+    Use_Stmt,
+    Call_Stmt,
+    Name,
+    Only_List,
+    Actual_Arg_Spec_List,
+    Part_Ref,
+)
 from fparser.two.utils import walk  # type: ignore
+
 try:
     # In case that PSyclone is not installed, we still want to be
     # able to run all tests
-    from psyclone.domain.lfric.lfric_builtins import BUILTIN_MAP    # type: ignore
+    from psyclone.domain.lfric.lfric_builtins import BUILTIN_MAP  # type: ignore
 except ImportError:
     BUILTIN_MAP = {}
 
@@ -28,10 +34,15 @@ class AnalysedX90(AnalysedFile):
     Analysis results for an x90 file.
 
     """
-    def __init__(self, fpath: Union[str, Path], file_hash: int,
-                 # todo: the fortran version doesn't include the remaining
-                 # args - update this too, for simplicity.
-                 kernel_deps: Optional[Iterable[str]] = None):
+
+    def __init__(
+        self,
+        fpath: Union[str, Path],
+        file_hash: int,
+        # todo: the fortran version doesn't include the remaining
+        # args - update this too, for simplicity.
+        kernel_deps: Optional[Iterable[str]] = None,
+    ):
         """
         :param fpath:
             The path of the x90 file.
@@ -48,9 +59,11 @@ class AnalysedX90(AnalysedFile):
 
     def to_dict(self) -> dict[str, Any]:
         result = super().to_dict()
-        result.update({
-            "kernel_deps": sorted(self.kernel_deps),
-        })
+        result.update(
+            {
+                "kernel_deps": sorted(self.kernel_deps),
+            }
+        )
         return result
 
     @classmethod
@@ -66,12 +79,11 @@ class AnalysedX90(AnalysedFile):
     @classmethod
     def field_names(cls):
         return super().field_names() + [
-            'kernel_deps',
+            "kernel_deps",
         ]
 
 
 class X90Analyser(FortranAnalyserBase):
-
     # Makes a parsable fortran version of x90.
     # todo: Use hashing to reuse previous analysis results.
 
@@ -93,7 +105,9 @@ class X90Analyser(FortranAnalyserBase):
                     self._process_call_statement(symbol_deps, analysed_file, obj)
 
             except Exception:
-                logger.exception(f'error processing node {obj.item or obj_type} in {fpath}')
+                logger.exception(
+                    f"error processing node {obj.item or obj_type} in {fpath}"
+                )
 
         # save results for reuse
         # analysis_fpath = self._get_analysis_fpath(fpath, file_hash)
@@ -123,7 +137,7 @@ class X90Analyser(FortranAnalyserBase):
         if called_name.string == "invoke":
             arg_list = _typed_child(obj, Actual_Arg_Spec_List)
             if not arg_list:
-                logger.debug(f'No arg list passed to invoke: {obj.string}')
+                logger.debug(f"No arg list passed to invoke: {obj.string}")
                 return
             args = by_type(arg_list.children, Part_Ref)
             for arg in args:

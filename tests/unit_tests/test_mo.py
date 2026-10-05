@@ -22,35 +22,31 @@ def test_mo():
     as a dependency as the corresponding '.c' file.
     """
     src_tree = {
-        Path('foo.f90'): AnalysedFortran(fpath=Path('foo.f90'),
-                                         file_hash=0,
-                                         mo_commented_file_deps=["root.o"]),
-        Path('root.c'): AnalysedC(fpath=Path('/some/path/root.c'),
-                                  file_hash=0),
+        Path("foo.f90"): AnalysedFortran(
+            fpath=Path("foo.f90"), file_hash=0, mo_commented_file_deps=["root.o"]
+        ),
+        Path("root.c"): AnalysedC(fpath=Path("/some/path/root.c"), file_hash=0),
     }
-    an_for = src_tree[Path('foo.f90')]
+    an_for = src_tree[Path("foo.f90")]
     assert an_for.file_deps == set()
     add_mo_commented_file_deps(src_tree)
-    assert an_for.file_deps == set([Path('/some/path/root.c')])
+    assert an_for.file_deps == set([Path("/some/path/root.c")])
 
 
 def test_mo_missing_ignored():
-    """Test handling of a missing dependency if it is supposed to be ignored.
-    """
+    """Test handling of a missing dependency if it is supposed to be ignored."""
     src_tree = {
-        Path('foo.f90'): AnalysedFortran(fpath=Path('foo.f90'),
-                                         file_hash=0,
-                                         mo_commented_file_deps=["root.o"]),
+        Path("foo.f90"): AnalysedFortran(
+            fpath=Path("foo.f90"), file_hash=0, mo_commented_file_deps=["root.o"]
+        ),
     }
-    an_for = src_tree[Path('foo.f90')]
+    an_for = src_tree[Path("foo.f90")]
     assert an_for.file_deps == set()
-    add_mo_commented_file_deps(src_tree,
-                               ignore_dependencies=["root.o"])
+    add_mo_commented_file_deps(src_tree, ignore_dependencies=["root.o"])
     assert an_for.file_deps == set()
 
     # Now also check that the ignore list can use the .c name:
-    add_mo_commented_file_deps(src_tree,
-                               ignore_dependencies=["root.c"])
+    add_mo_commented_file_deps(src_tree, ignore_dependencies=["root.c"])
     assert an_for.file_deps == set()
 
 
@@ -59,11 +55,11 @@ def test_mo_missing_warning(caplog):
     for it.
     """
     src_tree = {
-        Path('foo.f90'): AnalysedFortran(fpath=Path('foo.f90'),
-                                         file_hash=0,
-                                         mo_commented_file_deps=["root.o"]),
+        Path("foo.f90"): AnalysedFortran(
+            fpath=Path("foo.f90"), file_hash=0, mo_commented_file_deps=["root.o"]
+        ),
     }
-    an_for = src_tree[Path('foo.f90')]
+    an_for = src_tree[Path("foo.f90")]
     assert an_for.file_deps == set()
     with caplog.at_level(logging.ERROR):
         add_mo_commented_file_deps(src_tree)

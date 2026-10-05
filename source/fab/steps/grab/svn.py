@@ -4,10 +4,10 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''This file contains the steps related to SVN. It is also used by the various
+"""This file contains the steps related to SVN. It is also used by the various
 fcm steps, which call the functions here with just a different category (FCM)
 from the tool box.
-'''
+"""
 
 from pathlib import Path
 from typing import Optional, Union
@@ -33,12 +33,14 @@ def _get_revision(src, revision=None) -> tuple[str, Union[str, None]]:
 
     """
     url_revision = None
-    at_split = src.split('@')
+    at_split = src.split("@")
     if len(at_split) == 2:
         url_revision = at_split[1]
         if url_revision and revision and url_revision != revision:
-            raise ValueError('Conflicting revisions in url and argument. '
-                             'Please provide as argument only.')
+            raise ValueError(
+                "Conflicting revisions in url and argument. "
+                "Please provide as argument only."
+            )
         src = at_split[0]
     else:
         assert len(at_split) == 1
@@ -46,23 +48,25 @@ def _get_revision(src, revision=None) -> tuple[str, Union[str, None]]:
     return src, revision or url_revision
 
 
-def _svn_prep_common(config, src: str,
-                     dst_label: Optional[str],
-                     revision: Optional[str]) -> tuple[str, Path,
-                                                       Optional[str]]:
+def _svn_prep_common(
+    config, src: str, dst_label: Optional[str], revision: Optional[str]
+) -> tuple[str, Path, Optional[str]]:
     src, revision = _get_revision(src, revision)
     if not config.source_root.exists():
         config.source_root.mkdir(parents=True, exist_ok=True)
-    dst: Path = config.source_root / (dst_label or '')
+    dst: Path = config.source_root / (dst_label or "")
 
     return src, dst, revision
 
 
 @step
-def svn_export(config, src: str,
-               dst_label: Optional[str] = None,
-               revision=None,
-               category=Category.SUBVERSION):
+def svn_export(
+    config,
+    src: str,
+    dst_label: Optional[str] = None,
+    revision=None,
+    category=Category.SUBVERSION,
+):
     # todo: params in docstrings
     """
     Export an FCM repo folder to the project workspace.
@@ -74,8 +78,13 @@ def svn_export(config, src: str,
 
 
 @step
-def svn_checkout(config, src: str, dst_label: Optional[str] = None,
-                 revision=None, category=Category.SUBVERSION):
+def svn_checkout(
+    config,
+    src: str,
+    dst_label: Optional[str] = None,
+    revision=None,
+    category=Category.SUBVERSION,
+):
     """
     Checkout or update an FCM repo.
 
@@ -97,8 +106,13 @@ def svn_checkout(config, src: str, dst_label: Optional[str] = None,
         svn.update(dst, revision)
 
 
-def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
-              category=Category.SUBVERSION):
+def svn_merge(
+    config,
+    src: str,
+    dst_label: Optional[str] = None,
+    revision=None,
+    category=Category.SUBVERSION,
+):
     """
     Merge an FCM repo into a local working copy.
 
@@ -111,20 +125,22 @@ def svn_merge(config, src: str, dst_label: Optional[str] = None, revision=None,
 
 
 def check_conflict(tool: Versioning, dst: Union[str, Path]):
-    '''Check if there's a conflict
-    '''
-    xml_str = tool.run(['status', '--xml'], cwd=dst, capture_output=True)
+    """Check if there's a conflict"""
+    xml_str = tool.run(["status", "--xml"], cwd=dst, capture_output=True)
     root = ET.fromstring(xml_str)
 
     for target in root:
-        if target.tag != 'target':
+        if target.tag != "target":
             continue
         for entry in target:
-            if entry.tag != 'entry':
+            if entry.tag != "entry":
                 continue
             for element in entry:
-                if (element.tag == 'wc-status' and
-                        element.attrib['item'] == 'conflicted'):
-                    raise RuntimeError(f'{tool} merge encountered a '
-                                       f'conflict:\n{xml_str}')
+                if (
+                    element.tag == "wc-status"
+                    and element.attrib["item"] == "conflicted"
+                ):
+                    raise RuntimeError(
+                        f"{tool} merge encountered a conflict:\n{xml_str}"
+                    )
     return False

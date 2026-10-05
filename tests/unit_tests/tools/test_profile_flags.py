@@ -4,8 +4,7 @@
 # which you should have received as part of this distribution
 ##############################################################################
 
-'''Tests the compiler implementation.
-'''
+"""Tests the compiler implementation."""
 
 from pathlib import Path
 import pytest
@@ -19,22 +18,22 @@ def test_profile_flags_defining_profiles():
     """
     Tests defining profiles.
     """
-    assert ProfileFlags._inherit_from == {'': ''}
+    assert ProfileFlags._inherit_from == {"": ""}
     ProfileFlags.define_profile("base")
-    assert ProfileFlags._inherit_from == {'base': '', '': ''}
+    assert ProfileFlags._inherit_from == {"base": "", "": ""}
 
     ProfileFlags.define_profile("derived", inherit_from="base")
-    assert ProfileFlags._inherit_from == {'': '',
-                                          'base': '',
-                                          'derived': 'base'}
+    assert ProfileFlags._inherit_from == {"": "", "base": "", "derived": "base"}
 
     # Creating an instance of ProfileFlags will add a profile
     # inheriting from "".
     ProfileFlags(profile="new_profile")
-    assert ProfileFlags._inherit_from == {'': '',
-                                          'base': '',
-                                          'derived': 'base',
-                                          'new_profile': ''}
+    assert ProfileFlags._inherit_from == {
+        "": "",
+        "base": "",
+        "derived": "base",
+        "new_profile": "",
+    }
 
     pr1 = ProfileFlags(profile="another_profile", flags="-flag")
     # This will have added a single AlwaysFlag instance, on which
@@ -43,14 +42,13 @@ def test_profile_flags_defining_profiles():
 
     # Trying to create an already existing profile should raise an error:
     with pytest.raises(KeyError) as err:
-        ProfileFlags.define_profile('base')
+        ProfileFlags.define_profile("base")
     assert "Profile 'base' is already defined" in str(err.value)
 
     # Inheriting from a non-existing profile should raise an error:
     with pytest.raises(KeyError) as err:
         ProfileFlags.define_profile("new", inherit_from="does_not_exist")
-    assert ("Inherited profile 'does_not_exist' is not defined"
-            in str(err.value))
+    assert "Inherited profile 'does_not_exist' is not defined" in str(err.value)
 
     # Check that we get an exception if we specify a profile
     # that does not exist in __get_item__
@@ -159,51 +157,48 @@ def test_profile_flags_removing(stub_configuration):
     # Trying to remove flag from a non-existing profile:
     with pytest.raises(KeyError) as err:
         pf.remove_flag("-some-flag", "does not exist")
-    assert ("remove_flag: Profile 'does not exist' is not defined."
-            in str(err.value))
+    assert "remove_flag: Profile 'does not exist' is not defined." in str(err.value)
 
 
 def test_profile_flags_checksum(stub_configuration):
-    '''Tests computation of the checksum.'''
+    """Tests computation of the checksum."""
     pf = ProfileFlags()
     pf.define_profile("base")
-    list_of_flags = ['one', 'two', 'three', 'four']
+    list_of_flags = ["one", "two", "three", "four"]
     pf.add_flags(list_of_flags, "base")
     stub_configuration._profile = "base"
-    assert (pf.checksum(stub_configuration, Path()) ==
-            string_checksum(str(list_of_flags)))
+    assert pf.checksum(stub_configuration, Path()) == string_checksum(
+        str(list_of_flags)
+    )
 
     # These flags get added to the "" profile, NOT base:
     list_of_flags_new = ["five", "six"]
     pf.add_flags(list_of_flags_new)
     stub_configuration.set_profile("")
-    assert (pf.checksum(stub_configuration, Path()) ==
-            string_checksum(str(list_of_flags_new)))
+    assert pf.checksum(stub_configuration, Path()) == string_checksum(
+        str(list_of_flags_new)
+    )
 
     # Test handling when no config is provided:
-    assert (pf.checksum(file_path=Path()) ==
-            string_checksum(str(list_of_flags_new)))
+    assert pf.checksum(file_path=Path()) == string_checksum(str(list_of_flags_new))
 
     # Test handling when no file_path is provided:
-    assert (pf.checksum(stub_configuration) ==
-            string_checksum(str(list_of_flags_new)))
+    assert pf.checksum(stub_configuration) == string_checksum(str(list_of_flags_new))
 
     # Test checksum from a non-existing profile
     stub_configuration._profile = "does_not_exist"
     with pytest.raises(KeyError) as err:
         pf.checksum(stub_configuration, Path("/some/path"))
-    assert ("checksum: Profile 'does_not_exist' is not defined."
-            in str(err.value))
+    assert "checksum: Profile 'does_not_exist' is not defined." in str(err.value)
 
 
 def test_profile_flags_errors_invalid_profile_name():
-    '''Tests that given undefined profile names will raise
+    """Tests that given undefined profile names will raise
     KeyError in call functions.
-    '''
+    """
     pf = ProfileFlags()
     pf.define_profile("base")
 
     with pytest.raises(KeyError) as err:
         pf.add_flags(["-some-flag"], "does not exist")
-    assert ("add_flags: Profile 'does not exist' is not defined."
-            in str(err.value))
+    assert "add_flags: Profile 'does not exist' is not defined." in str(err.value)

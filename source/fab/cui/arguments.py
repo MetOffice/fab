@@ -100,8 +100,10 @@ class FabArgumentParser(argparse.ArgumentParser):
 
         # Python 3.14 changes the value of .prog to be
         # "python -m pytest"
-        if (self.prog in ["python -m pytest", "__main__.py"] and
-                kwargs.get("prog", None) is None):
+        if (
+            self.prog in ["python -m pytest", "__main__.py"]
+            and kwargs.get("prog", None) is None
+        ):
             # Try to pick up a better program name from the environment
             # or just use a default string
             self.prog = os.environ.get("__PROGNAME", "fab")

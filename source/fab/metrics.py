@@ -36,7 +36,7 @@ from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Optional
 
-JSON_FILENAME = 'metrics.json'
+JSON_FILENAME = "metrics.json"
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,9 @@ def init_metrics(metrics_folder: Path):
     global _metric_recv_process
 
     if any([_metric_recv_conn, _metric_send_conn, _metric_recv_process]):
-        raise ConnectionError('Metrics already initialised. Only one concurrent user of init_metrics is expected.')
+        raise ConnectionError(
+            "Metrics already initialised. Only one concurrent user of init_metrics is expected."
+        )
 
     # the pipe connections for individual metrics
     _metric_recv_conn, _metric_send_conn = Pipe(duplex=False)
@@ -71,7 +73,7 @@ def init_metrics(metrics_folder: Path):
     _metric_recv_process = Process(
         target=_read_metric,
         daemon=True,  # todo: test this thoroughly, manually
-        kwargs={'metrics_folder': metrics_folder},
+        kwargs={"metrics_folder": metrics_folder},
     )
     _metric_recv_process.start()
 
@@ -97,7 +99,7 @@ def _read_metric(metrics_folder: Path):
     # therefore we close *OUR* copy of it now.
     _metric_send_conn.close()  # type: ignore
 
-    logger.debug('read_metric: waiting for metrics')
+    logger.debug("read_metric: waiting for metrics")
     num_recorded = 0
     while True:
         try:
@@ -113,8 +115,8 @@ def _read_metric(metrics_folder: Path):
     logger.debug(f"read_metric: recorded {num_recorded} metrics")
 
     metrics_folder.mkdir(parents=True, exist_ok=True)
-    with open(metrics_folder / JSON_FILENAME, 'wt') as outfile:
-        json.dump(metrics, outfile, indent='\t')
+    with open(metrics_folder / JSON_FILENAME, "wt") as outfile:
+        json.dump(metrics, outfile, indent="\t")
 
 
 def send_metric(group: str, name: str, value):
@@ -137,7 +139,7 @@ def send_metric(group: str, name: str, value):
 
     """
     if not _metric_send_conn:
-        warnings.warn('_metric_send_conn not set, cannot send metrics')
+        warnings.warn("_metric_send_conn not set, cannot send metrics")
         return
     _metric_send_conn.send([group, name, value])  # type: ignore
 
@@ -179,23 +181,27 @@ def metrics_summary(metrics_folder: Path):
 
     try:
         import matplotlib  # type: ignore
-        matplotlib.use('Agg')
+
+        matplotlib.use("Agg")
         import matplotlib.pyplot as plt  # type: ignore
     except ImportError:
-        logger.warning('matplotlib not installed, no metrics summary charts produced')
+        logger.warning("matplotlib not installed, no metrics summary charts produced")
         return
 
-    with open(metrics_folder / JSON_FILENAME, 'rt') as outfile:
+    with open(metrics_folder / JSON_FILENAME, "rt") as outfile:
         metrics = json.load(outfile)
 
-    logger.info('creating metrics summary')
-    logger.debug(f'metrics_summary: got metrics for: {metrics.keys()}')
+    logger.info("creating metrics summary")
+    logger.debug(f"metrics_summary: got metrics for: {metrics.keys()}")
     metrics_folder.mkdir(parents=True, exist_ok=True)
 
     metric_names = [
-        'preprocess fortran', 'preprocess c',
-        'compile fortran', 'compile fortran stage 1', 'compile fortran stage 2',
-        'compile c',
+        "preprocess fortran",
+        "preprocess c",
+        "compile fortran",
+        "compile fortran stage 1",
+        "compile fortran stage 2",
+        "compile c",
     ]
 
     # histogram
@@ -205,13 +211,19 @@ def metrics_summary(metrics_folder: Path):
             continue
 
         values = metrics[step_name].values()
-        run_times = [value['time_taken'] for value in values]
+        run_times = [value["time_taken"] for value in values]
 
         plt.hist(run_times, 10)
-        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
-        plt.xlabel('time (s)')
+        plt.figtext(
+            0.99,
+            0.01,
+            f"{metrics['run']['datetime']}",
+            horizontalalignment="right",
+            fontsize="x-small",
+        )
+        plt.xlabel("time (s)")
 
-        fbase = metrics_folder / ('hist_' + step_name.replace(' ', '_'))
+        fbase = metrics_folder / ("hist_" + step_name.replace(" ", "_"))
         plt.savefig(f"{fbase}.png")
         plt.close()
 
@@ -221,11 +233,13 @@ def metrics_summary(metrics_folder: Path):
         if step_name not in metrics:
             continue
 
-        sorted_items = sorted(metrics[step_name].items(), key=lambda item: item[1]['start'])
+        sorted_items = sorted(
+            metrics[step_name].items(), key=lambda item: item[1]["start"]
+        )
         values = [item[1] for item in sorted_items]
-        t0 = values[0]['start']
-        starts = [value['start'] - t0 for value in values]
-        durations = [value['time_taken'] for value in values]
+        t0 = values[0]["start"]
+        starts = [value["start"] - t0 for value in values]
+        durations = [value["time_taken"] for value in values]
 
         # taller plot after 500 files
         # todo: we should also increase the width when lots of quick files become sub-pixel
@@ -239,25 +253,37 @@ def metrics_summary(metrics_folder: Path):
             height=1,
         )
 
-        fbase = metrics_folder / ('busby_' + step_name.replace(' ', '_'))
+        fbase = metrics_folder / ("busby_" + step_name.replace(" ", "_"))
         plt.savefig(f"{fbase}.png")
         plt.close()
 
     # overall pie chart of time taken by each step
-    run = metrics['run']
-    time_taken = datetime.timedelta(seconds=int(run['time taken']))
+    run = metrics["run"]
+    time_taken = datetime.timedelta(seconds=int(run["time taken"]))
     min_label_thresh = time_taken.seconds * 0.01
-    step_totals = metrics.get('steps')
+    step_totals = metrics.get("steps")
     if step_totals:
         step_metrics = step_totals.items()
         step_times = [kv[1] for kv in step_metrics]
         step_labels = [kv[0] if kv[1] > min_label_thresh else "" for kv in step_metrics]
 
-        plt.pie(step_times, labels=step_labels, normalize=True,
-                wedgeprops={"linewidth": 1, "edgecolor": "white"})
-        plt.suptitle(f"{run['label']} took {time_taken}\n"
-                     f"on {run['sysname']}, {run['nodename']}, {run['machine']}")
-        plt.figtext(0.99, 0.01, f"{metrics['run']['datetime']}", horizontalalignment='right', fontsize='x-small')
+        plt.pie(
+            step_times,
+            labels=step_labels,
+            normalize=True,
+            wedgeprops={"linewidth": 1, "edgecolor": "white"},
+        )
+        plt.suptitle(
+            f"{run['label']} took {time_taken}\n"
+            f"on {run['sysname']}, {run['nodename']}, {run['machine']}"
+        )
+        plt.figtext(
+            0.99,
+            0.01,
+            f"{metrics['run']['datetime']}",
+            horizontalalignment="right",
+            fontsize="x-small",
+        )
         plt.savefig(metrics_folder / "pie.png")
         plt.close()
     else:

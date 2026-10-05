@@ -19,23 +19,26 @@ from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c
 from fab.tools.tool_box import ToolBox
 
-clang = importorskip('clang', reason="Clang bindings not found.")
+clang = importorskip("clang", reason="Clang bindings not found.")
 
-PROJECT_SOURCE = Path(__file__).parent / 'project-source'
+PROJECT_SOURCE = Path(__file__).parent / "project-source"
 
 
 def test_minimal_c(tmp_path):
 
     # build
-    with BuildConfig(fab_workspace=tmp_path, tool_box=ToolBox(),
-                     project_label='foo', multiprocessing=False) as config:
-
+    with BuildConfig(
+        fab_workspace=tmp_path,
+        tool_box=ToolBox(),
+        project_label="foo",
+        multiprocessing=False,
+    ) as config:
         grab_folder(config, PROJECT_SOURCE)
         find_source_files(config)
         c_pragma_injector(config)
         preprocess_c(config)
-        analyse(config, root_symbols='main@main')
-        compile_c(config, common_flags=['-c', '-std=c99'])
+        analyse(config, root_symbols="main@main")
+        compile_c(config, common_flags=["-c", "-std=c99"])
         link_exe(config)
 
     assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 1
@@ -44,4 +47,4 @@ def test_minimal_c(tmp_path):
     command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
     res = subprocess.run(command, capture_output=True)
     output = res.stdout.decode()
-    assert output == 'Hello world!'
+    assert output == "Hello world!"

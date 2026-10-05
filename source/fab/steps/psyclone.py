@@ -8,6 +8,7 @@ A preprocessor and code generation step for PSyclone.
 https://github.com/stfc/PSyclone
 
 """
+
 from dataclasses import dataclass
 import logging
 import shutil
@@ -18,16 +19,24 @@ from typing import Callable, Iterable, Optional, Union
 
 from fab.build_config import BuildConfig
 
-from fab.artefacts import (ArtefactSet, ArtefactsGetter, SuffixFilter)
+from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
 from fab.parse.fortran import FortranAnalyser, AnalysedFortran
 from fab.parse.x90 import X90Analyser, AnalysedX90
 from fab.steps import run_mp, check_for_errors, step
 from fab.steps.preprocess import pre_processor
 from fab.tools.category import Category
 from fab.tools.psyclone import Psyclone
-from fab.util import (log_or_dot, input_to_output_fpath, file_checksum,
-                      file_walk, TimerLogger, string_checksum, suffix_filter,
-                      by_type, log_or_dot_finish)
+from fab.util import (
+    log_or_dot,
+    input_to_output_fpath,
+    file_checksum,
+    file_walk,
+    TimerLogger,
+    string_checksum,
+    suffix_filter,
+    by_type,
+    log_or_dot_finish,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +46,9 @@ def preprocess_x90(config, common_flags: Optional[list[str]] = None):
     common_flags = common_flags or []
 
     fpp = config.tool_box.get_tool(Category.FORTRAN_PREPROCESSOR)
-    source_files = SuffixFilter(ArtefactSet.X90_COMPILER_FILES, '.X90')(config.artefact_store)
+    source_files = SuffixFilter(ArtefactSet.X90_COMPILER_FILES, ".X90")(
+        config.artefact_store
+    )
 
     # Add the pre-processed now .x90 files into X90_COMPILER_FILES
     pre_processor(
@@ -45,14 +56,14 @@ def preprocess_x90(config, common_flags: Optional[list[str]] = None):
         preprocessor=fpp,
         files=source_files,
         output_collection=ArtefactSet.X90_COMPILER_FILES,
-        output_suffix='.x90',
-        name='preprocess x90',
+        output_suffix=".x90",
+        name="preprocess x90",
         common_flags=common_flags,
     )
     # Then remove the .X90 files:
-    config.artefact_store.replace(ArtefactSet.X90_COMPILER_FILES,
-                                  remove_files=source_files,
-                                  add_files=[])
+    config.artefact_store.replace(
+        ArtefactSet.X90_COMPILER_FILES, remove_files=source_files, add_files=[]
+    )
 
 
 @dataclass
@@ -63,6 +74,7 @@ class MpCommonArgs:
     Contains data used to calculate the prebuild hash.
 
     """
+
     config: BuildConfig
     analysed_x90: dict[Path, AnalysedX90]
 
@@ -76,19 +88,20 @@ class MpCommonArgs:
 
 
 # any already preprocessed x90 we pulled in
-DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.X90_COMPILER_FILES, '.x90')
+DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.X90_COMPILER_FILES, ".x90")
 
 
 @step
-def psyclone(config: BuildConfig,
-             kernel_roots: Optional[list[Path]] = None,
-             transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
-             cli_args: Optional[list[str]] = None,
-             source_getter: Optional[ArtefactsGetter] = None,
-             overrides_folder: Optional[Path] = None,
-             api: Optional[str] = None,
-             ignore_dependencies: Optional[Iterable[str]] = None,
-             ):
+def psyclone(
+    config: BuildConfig,
+    kernel_roots: Optional[list[Path]] = None,
+    transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
+    cli_args: Optional[list[str]] = None,
+    source_getter: Optional[ArtefactsGetter] = None,
+    overrides_folder: Optional[Path] = None,
+    api: Optional[str] = None,
+    ignore_dependencies: Optional[Iterable[str]] = None,
+):
     """
     PSyclone runner step.
 
@@ -134,13 +147,21 @@ def psyclone(config: BuildConfig,
     analysed_x90 = _analyse_x90s(config, x90s)
 
     # analyse the kernel files,
-    all_kernel_hashes = _analyse_kernels(config, kernel_roots,
-                                         ignore_dependencies=ignore_dependencies)
+    all_kernel_hashes = _analyse_kernels(
+        config, kernel_roots, ignore_dependencies=ignore_dependencies
+    )
 
     # get the data in a payload object for child processes to calculate prebuild hashes
     mp_payload = _generate_mp_payload(
-        config, analysed_x90, all_kernel_hashes, overrides_folder,
-        kernel_roots, transformation_script, cli_args, api=api)
+        config,
+        analysed_x90,
+        all_kernel_hashes,
+        overrides_folder,
+        kernel_roots,
+        transformation_script,
+        cli_args,
+        api=api,
+    )
 
     # run psyclone.
     # for every file, we get back a list of its output files plus a list of the prebuild copies.
@@ -149,7 +170,7 @@ def psyclone(config: BuildConfig,
         results = run_mp(config, mp_arg, do_one_file)
     log_or_dot_finish(logger)
     outputs, prebuilds = zip(*results) if results else ((), ())
-    check_for_errors(outputs, caller_label='psyclone')
+    check_for_errors(outputs, caller_label="psyclone")
 
     # flatten the list of lists we got back from run_mp
     output_files: set[Path] = set(chain(*by_type(outputs, list)))
@@ -158,21 +179,28 @@ def psyclone(config: BuildConfig,
     # record the output files in the artefact store for further processing
     config.artefact_store.add(ArtefactSet.FORTRAN_COMPILER_FILES, output_files)
     outputs_str = "\n".join(map(str, output_files))
-    logger.debug(f'psyclone outputs:\n{outputs_str}\n')
+    logger.debug(f"psyclone outputs:\n{outputs_str}\n")
 
     # mark the prebuild files as being current so the cleanup step doesn't delete them
     config.add_current_prebuilds(prebuild_files)
     prebuilds_str = "\n".join(map(str, prebuild_files))
-    logger.debug(f'psyclone prebuilds:\n{prebuilds_str}\n')
+    logger.debug(f"psyclone prebuilds:\n{prebuilds_str}\n")
 
     # todo: delete any psy layer files which have hand-written overrides, in a given overrides folder
     # is this called psykal?
     # assert False
 
 
-def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_folder, kernel_roots,
-                         transformation_script, cli_args,
-                         api: Union[str, None]) -> MpCommonArgs:
+def _generate_mp_payload(
+    config,
+    analysed_x90,
+    all_kernel_hashes,
+    overrides_folder,
+    kernel_roots,
+    transformation_script,
+    cli_args,
+    api: Union[str, None],
+) -> MpCommonArgs:
     override_files: list[str] = []
     if overrides_folder:
         override_files = [f.name for f in file_walk(overrides_folder)]
@@ -190,8 +218,7 @@ def _generate_mp_payload(config, analysed_x90, all_kernel_hashes, overrides_fold
     )
 
 
-def _analyse_x90s(config: BuildConfig,
-                  x90s: set[Path]) -> dict[Path, AnalysedX90]:
+def _analyse_x90s(config: BuildConfig, x90s: set[Path]) -> dict[Path, AnalysedX90]:
     """
     Analyse the x90s, finding kernel dependencies.
     """
@@ -212,7 +239,7 @@ def _analyse_x90s(config: BuildConfig,
 
     # record the analysis results against the original x90 filenames
     analysed_x90 = by_type(x90_analyses, AnalysedX90)
-    analysed_x90 = {result.fpath.with_suffix('.x90'): result for result in analysed_x90}
+    analysed_x90 = {result.fpath.with_suffix(".x90"): result for result in analysed_x90}
 
     # make the hashes from the x90s
     for p in analysed_x90:
@@ -222,9 +249,10 @@ def _analyse_x90s(config: BuildConfig,
 
 
 def _analyse_kernels(
-        config: BuildConfig,
-        kernel_roots: list[Path],
-        ignore_dependencies: Optional[Iterable[str]] = None) -> dict[str, int]:
+    config: BuildConfig,
+    kernel_roots: list[Path],
+    ignore_dependencies: Optional[Iterable[str]] = None,
+) -> dict[str, int]:
     """
     We want to hash the kernel metadata (type defs).
 
@@ -251,37 +279,48 @@ def _analyse_kernels(
 
     """
     # Ignore the prebuild folder. Todo: test the prebuild folder is ignored, in case someone breaks this.
-    file_lists = [list(file_walk(root, ignore_folders=[config.prebuild_folder])) for root in kernel_roots]
+    file_lists = [
+        list(file_walk(root, ignore_folders=[config.prebuild_folder]))
+        for root in kernel_roots
+    ]
     all_kernel_files: set[Path] = set(sum(file_lists, []))
-    kernel_files: list[Path] = suffix_filter(all_kernel_files, ['.f90'])
+    kernel_files: list[Path] = suffix_filter(all_kernel_files, [".f90"])
 
     # We use the normal Fortran analyser, which records psyclone kernel metadata.
     # todo: We'd like to separate that from the general fortran analyser at some point, to reduce coupling.
     # The Analyse step also uses the same fortran analyser. It stores its results so they won't be analysed twice.
-    fortran_analyser = FortranAnalyser(config=config,
-                                       ignore_dependencies=ignore_dependencies)
+    fortran_analyser = FortranAnalyser(
+        config=config, ignore_dependencies=ignore_dependencies
+    )
 
     with TimerLogger(f"analysing {len(kernel_files)} potential psyclone kernel files"):
         fortran_results = run_mp(config, items=kernel_files, func=fortran_analyser.run)
     log_or_dot_finish(logger)
-    fortran_analyses, fortran_artefacts = zip(*fortran_results) if fortran_results else (tuple(), tuple())
+    fortran_analyses, fortran_artefacts = (
+        zip(*fortran_results) if fortran_results else (tuple(), tuple())
+    )
 
     errors: list[Exception] = list(by_type(fortran_analyses, Exception))
     if errors:
-        errs_str = '\n\n'.join(map(str, errors))
-        logger.error(f"There were {len(errors)} errors while parsing kernels:\n\n{errs_str}")
+        errs_str = "\n\n".join(map(str, errors))
+        logger.error(
+            f"There were {len(errors)} errors while parsing kernels:\n\n{errs_str}"
+        )
 
     # mark the analysis results files (i.e. prebuilds) as being current, so the cleanup knows not to delete them
     prebuild_files = list(by_type(fortran_artefacts, Path))
     config.add_current_prebuilds(prebuild_files)
 
-    analysed_fortran: list[AnalysedFortran] = list(by_type(fortran_analyses, AnalysedFortran))
+    analysed_fortran: list[AnalysedFortran] = list(
+        by_type(fortran_analyses, AnalysedFortran)
+    )
 
     # gather all kernel hashes into one big lump
     all_kernel_hashes: dict[str, int] = {}
     for af in analysed_fortran:
-        assert set(af.psyclone_kernels).isdisjoint(all_kernel_hashes), \
+        assert set(af.psyclone_kernels).isdisjoint(all_kernel_hashes), (
             f"duplicate kernel name(s): {set(af.psyclone_kernels) & set(all_kernel_hashes)}"
+        )
         all_kernel_hashes.update(af.psyclone_kernels)
 
     return all_kernel_hashes
@@ -293,22 +332,25 @@ def do_one_file(arg: tuple[Path, MpCommonArgs]):
 
     # These are the filenames we expect to be output for this x90 input file.
     # There will always be one modified_alg, and 0-1 generated psy file.
-    modified_alg: Path = x90_file.with_suffix('.f90')
-    modified_alg = input_to_output_fpath(config=mp_payload.config, input_path=modified_alg)
-    psy_file: Path = x90_file.parent / (str(x90_file.stem) + '_psy.f90')
+    modified_alg: Path = x90_file.with_suffix(".f90")
+    modified_alg = input_to_output_fpath(
+        config=mp_payload.config, input_path=modified_alg
+    )
+    psy_file: Path = x90_file.parent / (str(x90_file.stem) + "_psy.f90")
     psy_file = input_to_output_fpath(config=mp_payload.config, input_path=psy_file)
 
     psy_file.parent.mkdir(parents=True, exist_ok=True)
 
     # do we already have prebuilt results for this x90 file?
     prebuilt_alg, prebuilt_gen = _get_prebuild_paths(
-        mp_payload.config.prebuild_folder, modified_alg, psy_file, prebuild_hash)
+        mp_payload.config.prebuild_folder, modified_alg, psy_file, prebuild_hash
+    )
     if prebuilt_alg.exists():
         # todo: error handling in here
-        msg = f'found prebuilds for {x90_file}:\n    {prebuilt_alg}'
+        msg = f"found prebuilds for {x90_file}:\n    {prebuilt_alg}"
         shutil.copy2(prebuilt_alg, modified_alg)
         if prebuilt_gen.exists():
-            msg += f'\n    {prebuilt_gen}'
+            msg += f"\n    {prebuilt_gen}"
             shutil.copy2(prebuilt_gen, psy_file)
         log_or_dot(logger=logger, msg=msg)
 
@@ -316,24 +358,28 @@ def do_one_file(arg: tuple[Path, MpCommonArgs]):
         config = mp_payload.config
         psyclone = config.tool_box.get_tool(Category.PSYCLONE)
         if not isinstance(psyclone, Psyclone):
-            raise RuntimeError(f"Unexpected tool '{psyclone.name}' of type "
-                               f"'{type(psyclone)}' instead of PSyclone")
+            raise RuntimeError(
+                f"Unexpected tool '{psyclone.name}' of type "
+                f"'{type(psyclone)}' instead of PSyclone"
+            )
         try:
             transformation_script = mp_payload.transformation_script
             logger.info(f"running psyclone on '{x90_file}'.")
-            psyclone.process(config=mp_payload.config,
-                             api=mp_payload.api,
-                             x90_file=x90_file,
-                             psy_file=psy_file,
-                             alg_file=modified_alg,
-                             transformation_script=transformation_script,
-                             kernel_roots=mp_payload.kernel_roots,
-                             additional_parameters=mp_payload.cli_args)
+            psyclone.process(
+                config=mp_payload.config,
+                api=mp_payload.api,
+                x90_file=x90_file,
+                psy_file=psy_file,
+                alg_file=modified_alg,
+                transformation_script=transformation_script,
+                kernel_roots=mp_payload.kernel_roots,
+                additional_parameters=mp_payload.cli_args,
+            )
 
             shutil.copy2(modified_alg, prebuilt_alg)
-            msg = f'created prebuilds for {x90_file}:\n    {prebuilt_alg}'
+            msg = f"created prebuilds for {x90_file}:\n    {prebuilt_alg}"
             if Path(psy_file).exists():
-                msg += f'\n    {prebuilt_gen}'
+                msg += f"\n    {prebuilt_gen}"
                 shutil.copy2(psy_file, prebuilt_gen)
             log_or_dot(logger=logger, msg=msg)
 
@@ -373,43 +419,50 @@ def _gen_prebuild_hash(x90_file: Path, mp_payload: MpCommonArgs):
 
     # include the hashes of kernels used by this x90
     kernel_deps_hashes = {
-        mp_payload.all_kernel_hashes[kernel_name] for kernel_name in analysis_result.kernel_deps}  # type: ignore
+        mp_payload.all_kernel_hashes[kernel_name]
+        for kernel_name in analysis_result.kernel_deps
+    }  # type: ignore
 
     # calculate the transformation script hash for this file
     transformation_script_hash = 0
     if mp_payload.transformation_script:
-        transformation_script_return_path = mp_payload.transformation_script(x90_file, mp_payload.config)
+        transformation_script_return_path = mp_payload.transformation_script(
+            x90_file, mp_payload.config
+        )
         if transformation_script_return_path:
-            transformation_script_hash = file_checksum(transformation_script_return_path).file_hash
+            transformation_script_hash = file_checksum(
+                transformation_script_return_path
+            ).file_hash
     if transformation_script_hash == 0:
-        warnings.warn('no transformation script specified')
+        warnings.warn("no transformation script specified")
 
     # hash everything which should trigger re-processing
     # todo: hash the psyclone version in case the built-in kernels change?
-    prebuild_hash = sum([
-
-        # the hash of the x90
-        analysis_result.file_hash,
-
-        # the hashes of the kernels used by this x90
-        sum(kernel_deps_hashes),
-
-        # the hash of the transformation script for this x90
-        transformation_script_hash,
-
-        # command-line arguments
-        string_checksum(str(mp_payload.cli_args)),
-
-        # the API
-        string_checksum(str(mp_payload.api)),
-    ])
+    prebuild_hash = sum(
+        [
+            # the hash of the x90
+            analysis_result.file_hash,
+            # the hashes of the kernels used by this x90
+            sum(kernel_deps_hashes),
+            # the hash of the transformation script for this x90
+            transformation_script_hash,
+            # command-line arguments
+            string_checksum(str(mp_payload.cli_args)),
+            # the API
+            string_checksum(str(mp_payload.api)),
+        ]
+    )
 
     return prebuild_hash
 
 
 def _get_prebuild_paths(prebuild_folder, modified_alg, psy_file, prebuild_hash):
-    prebuilt_alg = Path(prebuild_folder / f'{modified_alg.stem}.{prebuild_hash}{modified_alg.suffix}')
-    prebuilt_gen = Path(prebuild_folder / f'{psy_file.stem}.{prebuild_hash}{psy_file.suffix}')
+    prebuilt_alg = Path(
+        prebuild_folder / f"{modified_alg.stem}.{prebuild_hash}{modified_alg.suffix}"
+    )
+    prebuilt_gen = Path(
+        prebuild_folder / f"{psy_file.stem}.{prebuild_hash}{psy_file.suffix}"
+    )
     return prebuilt_alg, prebuilt_gen
 
 

@@ -6,12 +6,12 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-'''
+"""
 This file contains a function that sets the default flags for the NVIDIA
 compilers and linkers in the ToolRepository.
 
 This function gets called from the default site-specific config file
-'''
+"""
 
 import argparse
 from typing import cast
@@ -19,16 +19,15 @@ from typing import cast
 from fab.api import BuildConfig, Category, Compiler, Linker, ToolRepository
 
 
-def setup_script_nvidia(build_config: BuildConfig,
-                        args: argparse.Namespace) -> None:
+def setup_script_nvidia(build_config: BuildConfig, args: argparse.Namespace) -> None:
     # pylint: disable=unused-argument
-    '''
+    """
     Defines the default flags for nvfortran.
 
     :param build_config: the Fab build config instance from which
         required parameters can be taken.
     :param args: all command line options
-    '''
+    """
 
     tr = ToolRepository()
     nvfortran = tr.get_tool(Category.FORTRAN_COMPILER, "nvfortran")
@@ -42,9 +41,11 @@ def setup_script_nvidia(build_config: BuildConfig,
 
     # The base flags
     # ==============
-    flags = ["-Mextend",           # 132 characters line length
-             "-g", "-traceback",
-             ]
+    flags = [
+        "-Mextend",  # 132 characters line length
+        "-g",
+        "-traceback",
+    ]
     nvfortran.add_flags(flags, "base")
 
     # Full debug

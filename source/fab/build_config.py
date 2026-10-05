@@ -7,6 +7,7 @@
 Contains the :class:`~fab.build_config.BuildConfig` and helper classes.
 
 """
+
 import getpass
 import logging
 import os
@@ -21,8 +22,7 @@ from typing import Optional, Iterable
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
-from fab.metrics import (send_metric, init_metrics, stop_metrics,
-                         metrics_summary)
+from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
 from fab.tools.category import Category
 from fab.tools.abstract_tool_box import AbstractToolBox
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
@@ -31,7 +31,7 @@ from fab.util import TimerLogger, by_type, get_fab_workspace
 logger = logging.getLogger(__name__)
 
 
-class BuildConfig():
+class BuildConfig:
     """
     Contains and runs a list of build steps.
 
@@ -39,17 +39,21 @@ class BuildConfig():
     but rather through the build_config() context manager.
 
     """
-    def __init__(self, project_label: str,
-                 tool_box: AbstractToolBox,
-                 mpi: bool = False,
-                 openmp: bool = False,
-                 profile: Optional[str] = None,
-                 multiprocessing: bool = True,
-                 n_procs: Optional[int] = None,
-                 reuse_artefacts: bool = False,
-                 fab_workspace: Optional[Path] = None,
-                 two_stage: bool = False,
-                 verbose: bool = False):
+
+    def __init__(
+        self,
+        project_label: str,
+        tool_box: AbstractToolBox,
+        mpi: bool = False,
+        openmp: bool = False,
+        profile: Optional[str] = None,
+        multiprocessing: bool = True,
+        n_procs: Optional[int] = None,
+        reuse_artefacts: bool = False,
+        fab_workspace: Optional[Path] = None,
+        two_stage: bool = False,
+        verbose: bool = False,
+    ):
         """
         :param project_label:
             Name of the build project. The project workspace folder is
@@ -95,13 +99,12 @@ class BuildConfig():
             self.set_profile(profile)
         self.two_stage = two_stage
         self.verbose = verbose
-        compiler = tool_box.get_tool(Category.FORTRAN_COMPILER, mpi=mpi,
-                                     openmp=openmp)
+        compiler = tool_box.get_tool(Category.FORTRAN_COMPILER, mpi=mpi, openmp=openmp)
         project_label = Template(project_label).safe_substitute(
-            compiler=compiler.name,
-            two_stage=f'{int(two_stage)+1}stage')
+            compiler=compiler.name, two_stage=f"{int(two_stage) + 1}stage"
+        )
 
-        self.project_label: str = project_label.replace(' ', '_')
+        self.project_label: str = project_label.replace(" ", "_")
 
         # workspace folder
         if not fab_workspace:
@@ -115,8 +118,9 @@ class BuildConfig():
         logger.info(f"fab workspace is {fab_workspace}")
 
         self._project_workspace: Path = fab_workspace / self.project_label
-        self.metrics_folder: Path = (self.project_workspace / 'metrics' /
-                                     self.project_label)
+        self.metrics_folder: Path = (
+            self.project_workspace / "metrics" / self.project_label
+        )
 
         # source config
         self.source_root: Path = self.project_workspace / SOURCE_ROOT
@@ -129,7 +133,7 @@ class BuildConfig():
         # todo: turn off multiprocessing when running tests, as a good test
         # runner will run using mp
         if "PYTEST_CURRENT_TEST" in os.environ:
-            logger.info('debugger detected, running without multiprocessing')
+            logger.info("debugger detected, running without multiprocessing")
             self.multiprocessing = False
 
         self.n_procs = n_procs
@@ -137,7 +141,7 @@ class BuildConfig():
             try:
                 self.n_procs = max(1, len(os.sched_getaffinity(0)))
             except AttributeError:
-                logger.error('could not enable multiprocessing')
+                logger.error("could not enable multiprocessing")
                 self.multiprocessing = False
                 self.n_procs = None
 
@@ -152,19 +156,18 @@ class BuildConfig():
 
     def __enter__(self):
 
-        logger.info('')
-        logger.info(f'initialising {self.project_label}')
-        logger.info('')
+        logger.info("")
+        logger.info(f"initialising {self.project_label}")
+        logger.info("")
 
         if self.verbose:
-            logging.getLogger('fab').setLevel(logging.DEBUG)
+            logging.getLogger("fab").setLevel(logging.DEBUG)
 
-        logger.info(f'building {self.project_label}')
+        logger.info(f"building {self.project_label}")
         self._start_time = datetime.now().replace(microsecond=0)
         self._run_prep()
 
-        with TimerLogger(f'running {self.project_label} '
-                         f'build steps') as build_timer:
+        with TimerLogger(f"running {self.project_label} build steps") as build_timer:
             # this will return to the build script
             self._build_timer = build_timer
             return self
@@ -173,12 +176,14 @@ class BuildConfig():
 
         if not exc_type:  # None if there's no error.
             if CLEANUP_COUNT not in self.artefact_store:
-                logger.info("no housekeeping step was run, using a "
-                            "default hard cleanup")
+                logger.info(
+                    "no housekeeping step was run, using a default hard cleanup"
+                )
                 cleanup_prebuilds(config=self, all_unused=True)
 
-        logger.info(f"Building '{self.project_label}' took "
-                    f"{datetime.now() - self._start_time}")
+        logger.info(
+            f"Building '{self.project_label}' took {datetime.now() - self._start_time}"
+        )
 
         # always
         self._finalise_metrics(self._start_time, self._build_timer)
@@ -186,40 +191,37 @@ class BuildConfig():
 
     @property
     def tool_box(self) -> AbstractToolBox:
-        ''':returns: the tool box to use.'''
+        """:returns: the tool box to use."""
         return self._tool_box
 
     @property
     def artefact_store(self) -> ArtefactStore:
-        ''':returns: the Artefact instance for this configuration.
-        '''
+        """:returns: the Artefact instance for this configuration."""
         return self._artefact_store
 
     @property
     def project_workspace(self) -> Path:
-        ''':returns: the project workspace path.
-        '''
+        """:returns: the project workspace path."""
         return self._project_workspace
 
     @property
     def build_output(self) -> Path:
-        ''':returns: the build output path.
-        '''
+        """:returns: the build output path."""
         return self.project_workspace / BUILD_OUTPUT
 
     @property
     def mpi(self) -> bool:
-        ''':returns: whether MPI is requested or not in this config.'''
+        """:returns: whether MPI is requested or not in this config."""
         return self._mpi
 
     @property
     def openmp(self) -> bool:
-        ''':returns: whether OpenMP is requested or not in this config.'''
+        """:returns: whether OpenMP is requested or not in this config."""
         return self._openmp
 
     @property
     def profile(self) -> str:
-        ''':returns: the name of the compiler profile to use.'''
+        """:returns: the name of the compiler profile to use."""
         return self._profile
 
     def set_profile(self, profile: str) -> None:
@@ -240,9 +242,9 @@ class BuildConfig():
     def _run_prep(self):
         self._init_logging()
 
-        logger.info('')
-        logger.info(f'running {self.project_label}')
-        logger.info('')
+        logger.info("")
+        logger.info(f"running {self.project_label}")
+        logger.info("")
 
         self._prep_folders()
 
@@ -260,35 +262,37 @@ class BuildConfig():
         # add a file logger for our run
         self.project_workspace.mkdir(parents=True, exist_ok=True)
         log_file_handler = RotatingFileHandler(
-            self.project_workspace / 'log.txt', backupCount=5, delay=True)
+            self.project_workspace / "log.txt", backupCount=5, delay=True
+        )
         log_file_handler.doRollover()
-        logging.getLogger('fab').addHandler(log_file_handler)
+        logging.getLogger("fab").addHandler(log_file_handler)
 
         logger.info(f"{datetime.now()}")
         if self.multiprocessing:
-            logger.info(f'machine cores: {cpu_count()}')
-            logger.info(f'available cores: {len(os.sched_getaffinity(0))}')
-            logger.info(f'using n_procs = {self.n_procs}')
+            logger.info(f"machine cores: {cpu_count()}")
+            logger.info(f"available cores: {len(os.sched_getaffinity(0))}")
+            logger.info(f"using n_procs = {self.n_procs}")
         logger.info(f"workspace is {self.project_workspace}")
 
     def _finalise_logging(self):
         # remove our file logger
-        fab_logger = logging.getLogger('fab')
-        log_file_handlers = list(by_type(fab_logger.handlers,
-                                         RotatingFileHandler))
+        fab_logger = logging.getLogger("fab")
+        log_file_handlers = list(by_type(fab_logger.handlers, RotatingFileHandler))
         if len(log_file_handlers) != 1:
-            warnings.warn(f'expected to find 1 RotatingFileHandler for '
-                          f'removal, found {len(log_file_handlers)}')
+            warnings.warn(
+                f"expected to find 1 RotatingFileHandler for "
+                f"removal, found {len(log_file_handlers)}"
+            )
         fab_logger.removeHandler(log_file_handlers[0])
 
     def _finalise_metrics(self, start_time, steps_timer):
-        send_metric('run', 'label', self.project_label)
-        send_metric('run', 'datetime', start_time.isoformat())
-        send_metric('run', 'time taken', steps_timer.taken)
-        send_metric('run', 'sysname', os.uname().sysname)
-        send_metric('run', 'nodename', os.uname().nodename)
-        send_metric('run', 'machine', os.uname().machine)
-        send_metric('run', 'user', getpass.getuser())
+        send_metric("run", "label", self.project_label)
+        send_metric("run", "datetime", start_time.isoformat())
+        send_metric("run", "time taken", steps_timer.taken)
+        send_metric("run", "sysname", os.uname().sysname)
+        send_metric("run", "nodename", os.uname().nodename)
+        send_metric("run", "machine", os.uname().machine)
+        send_metric("run", "user", getpass.getuser())
         stop_metrics()
         metrics_summary(metrics_folder=self.metrics_folder)
 
@@ -296,7 +300,8 @@ class BuildConfig():
 # todo: better name? perhaps PathFlags?
 # todo: This is going to be replaced with tools.flags.MatchFlags
 
-class AddFlags():
+
+class AddFlags:
     """
     Add command-line flags when our path filter matches.
     This class is deprecated, use the new
@@ -306,6 +311,7 @@ class AddFlags():
     MatchFlags
 
     """
+
     def __init__(self, match: str, flags: list[str]):
         """
         :param match:
@@ -346,16 +352,18 @@ class AddFlags():
             Contains the folders for templating `$source` and `$output`.
 
         """
-        params = {'relative': fpath.parent,
-                  'source': config.source_root,
-                  'output': config.build_output}
+        params = {
+            "relative": fpath.parent,
+            "source": config.source_root,
+            "output": config.build_output,
+        }
 
         # does the file path match our filter?
-        if not self.match or fnmatch(str(fpath),
-                                     Template(self.match).substitute(params)):
+        if not self.match or fnmatch(
+            str(fpath), Template(self.match).substitute(params)
+        ):
             # use templating to render any relative paths in our flags
-            add_flags = [Template(flag).substitute(params)
-                         for flag in self.flags]
+            add_flags = [Template(flag).substitute(params) for flag in self.flags]
 
             # add our flags
             input_flags += add_flags

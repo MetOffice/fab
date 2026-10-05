@@ -9,7 +9,7 @@ Example of an app-specific default config class.
 """
 
 # Mypy does not handle the relative import here properly, ignore error:
-from site_specific.default.config import Config as ConfigSiteDefault   # type: ignore
+from site_specific.default.config import Config as ConfigSiteDefault  # type: ignore
 
 
 class Config(ConfigSiteDefault):
