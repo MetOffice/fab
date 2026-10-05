@@ -133,11 +133,11 @@ def test_psyclone_transmute_prebuilt(config, caplog):
     with (
         warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"),
         warns(UserWarning, match="No transformation script specified"),
-        caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute")
+        caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute"),
     ):
-            psyclone_transmute(
-                config, input_files, artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES
-            )
+        psyclone_transmute(
+            config, input_files, artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES
+        )
 
     output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
     assert expected == output_files
@@ -150,11 +150,11 @@ def test_psyclone_transmute_prebuilt(config, caplog):
     with (
         warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"),
         warns(UserWarning, match="No transformation script specified"),
-        caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute")
+        caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute"),
     ):
-            psyclone_transmute(
-                config, input_files, artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES
-            )
+        psyclone_transmute(
+            config, input_files, artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES
+        )
     output_files = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
 
     assert expected == output_files

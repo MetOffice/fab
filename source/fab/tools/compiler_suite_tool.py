@@ -13,8 +13,9 @@ It provides basic support for running a binary, and keeping track if
 a tool is actually available.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import List, Optional, Union
 
 from fab.tools.category import Category
 from fab.tools.tool_with_flags import ToolWithFlags
@@ -36,10 +37,10 @@ class CompilerSuiteTool(ToolWithFlags):
     def __init__(
         self,
         name: str,
-        exec_name: Union[str, Path],
+        exec_name: Path | str,
         suite: str,
         category: Category,
-        availability_option: Optional[Union[str, List[str]]] = None,
+        availability_option: str | list[str] | None = None,
     ) -> None:
         super().__init__(
             name, exec_name, category, availability_option=availability_option

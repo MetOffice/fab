@@ -6,10 +6,13 @@
 
 """This file contains the tool class for PSyclone."""
 
+from __future__ import annotations
+
 import re
 import warnings
+from functools import reduce
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -56,15 +59,15 @@ class Psyclone(ToolWithFlags):
 
     def process(
         self,
-        config: "BuildConfig",
+        config: BuildConfig,
         x90_file: Path,
-        psy_file: Optional[Path] = None,
-        alg_file: Optional[Union[Path, str]] = None,
-        transformed_file: Optional[Path] = None,
-        transformation_script: Optional[Callable[[Path, "BuildConfig"], Path]] = None,
-        additional_parameters: Optional[list[str]] = None,
-        kernel_roots: Optional[list[Union[str, Path]]] = None,
-        api: Optional[str] = None,
+        psy_file: Path | None = None,
+        alg_file: Path | str | None = None,
+        transformed_file: Path | None = None,
+        transformation_script: Callable[[Path, BuildConfig], Path] | None = None,
+        additional_parameters: list[str] | None = None,
+        kernel_roots: list[Path | str] | None = None,
+        api: str | None = None,
     ):
         # pylint: disable=too-many-arguments, too-many-branches
         """Run PSyclone with the specified parameters. If PSyclone is used to
@@ -122,7 +125,7 @@ class Psyclone(ToolWithFlags):
                     "transformed_file is not specified."
                 )
 
-        parameters: list[Union[str, Path]] = []
+        parameters: list[Path | str] = []
         # If an api is defined in this call (or in the constructor) add it
         # as parameter. No API is required if PSyclone works as
         # transformation tool only, so calling PSyclone without api is
@@ -163,9 +166,7 @@ class Psyclone(ToolWithFlags):
         if additional_parameters:
             parameters.extend(additional_parameters)
         if kernel_roots:
-            roots_with_dash_d: list[str] = sum(
-                [["-d", str(k)] for k in kernel_roots], []
-            )
+            roots_with_dash_d = reduce(lambda x, y: x.extend(['-d'], str(y)), kernel_roots)
             parameters.extend(roots_with_dash_d)
         parameters.append(str(x90_file))
 

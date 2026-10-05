@@ -8,6 +8,8 @@ Various utility functions live here - until we give them a proper place to live!
 
 """
 
+from __future__ import annotations
+
 import datetime
 import logging
 import os
@@ -18,7 +20,6 @@ from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 from time import perf_counter
-from typing import Optional, Union
 
 import fab
 
@@ -78,7 +79,7 @@ def string_checksum(s: str) -> int:
 
 
 def file_walk(
-    path: Union[str, Path], ignore_folders: Optional[list[Path]] = None
+    path: str | Path, ignore_folders: list[Path] | None = None
 ) -> Iterator[Path]:
     """
     Return every file in *path* and its sub-folders.
@@ -120,8 +121,8 @@ class Timer:
     """
 
     def __init__(self) -> None:
-        self.start: Optional[float] = None
-        self.taken: Optional[float] = None
+        self.start: float | None = None
+        self.taken: float | None = None
 
     def __enter__(self):
         self.start = perf_counter()

@@ -9,8 +9,10 @@ It is the base class for compiler, linker, and pre-processor.
 
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from fab.tools.category import Category
 from fab.tools.flags import AbstractFlags
@@ -44,9 +46,9 @@ class ToolWithFlags(Tool):
     def __init__(
         self,
         name: str,
-        exec_name: Union[str, Path],
+        exec_name: str | Path,
         category: Category,
-        availability_option: Optional[Union[str, list[str]]] = None,
+        availability_option: str | list[str] | None = None,
     ) -> None:
 
         super().__init__(name, exec_name, category, availability_option)
@@ -77,7 +79,7 @@ class ToolWithFlags(Tool):
             f"Generic flag name '{generic_name}' is not defined for '{self}'."
         )
 
-    def __setitem__(self, generic_name: str, flags: Union[str, list[str]]) -> None:
+    def __setitem__(self, generic_name: str, flags: str |  list[str]) -> None:
         """
         Sets or updates a specified compiler-specific flag for
         a given generic name.
@@ -96,15 +98,15 @@ class ToolWithFlags(Tool):
         return self._flags
 
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """:returns: the flags to be used with this tool."""
         return self.flags.get_flags(config, file_path)
 
     def add_flags(
         self,
-        new_flags: Union[AbstractFlags, str, list[str]],
-        profile: Optional[str] = None,
+        new_flags: AbstractFlags | str | list[str],
+        profile: str | None = None,
     ):
         """Adds the specified flags to the list of flags.
 
@@ -113,7 +115,7 @@ class ToolWithFlags(Tool):
         """
         self._flags.add_flags(new_flags, profile)
 
-    def define_profile(self, name: str, inherit_from: Optional[str] = None):
+    def define_profile(self, name: str, inherit_from: str | None = None):
         """Defines a new profile name, and allows to specify if this new
         profile inherit settings from an existing profile.
 

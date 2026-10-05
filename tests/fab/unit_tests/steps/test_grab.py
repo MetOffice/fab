@@ -107,12 +107,13 @@ class TestGrabFiles:
             fab_workspace=Path("/fab"),
         )
 
-        with warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"), \
-                caplog.at_level(logging.WARNING):
+        with (
+            warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"),
+            caplog.at_level(logging.WARNING),
+        ):
             grab_folder(config, src=source, dst_label="bar")
         assert (
-            "Using deprecated `grab_folder`. Use `grab_files` instead."
-            in caplog.text
+            "Using deprecated `grab_folder`. Use `grab_files` instead." in caplog.text
         )
         assert fake_process.call_count(grab_command) == 1
 

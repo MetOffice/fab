@@ -61,11 +61,12 @@ def main(argv: Optional[list[str]] = None):
     parser = FabArgumentParser(description=__doc__)
     file_args = parser.parse_fabfile_only(argv)
 
+    build_class: Optional[type[FabTargetBase]] = None
     if file_args.file is not None:
-        builder = import_from_path("builder", file_args.file)
-        if builder is None:
+        builder_mod = import_from_path("builder", file_args.file)
+        if builder_mod is None:
             parser.error(f"unable to import {file_args.file}")
-        build_class = getattr(builder, TARGET_CLASS, None)
+        build_class = getattr(builder_mod, TARGET_CLASS, None)
         if build_class is None:
             parser.error(f"unable to find {TARGET_CLASS} in {file_args.file}")
         if not issubclass(build_class, FabTargetBase):
@@ -74,6 +75,8 @@ def main(argv: Optional[list[str]] = None):
     elif file_args.zero_config:
         # There is no --file or FabFile, so use zero config mode
         build_class = FabZeroConfig
+
+    assert build_class is not None
 
     # Allow the build target to add options to the parser
     add_arguments = getattr(build_class, ARGUMENT_METHOD, None)

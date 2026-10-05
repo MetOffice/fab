@@ -9,9 +9,10 @@ classes for cpp and fpp.
 
 """
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Union
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -29,9 +30,9 @@ class Preprocessor(ToolWithFlags):
     def __init__(
         self,
         name: str,
-        exec_name: Union[str, Path],
+        exec_name: Path | str,
         category: Category,
-        availability_option: Optional[str] = None,
+        availability_option: str | None = None,
     ):
         super().__init__(
             name, exec_name, category, availability_option=availability_option
@@ -42,8 +43,8 @@ class Preprocessor(ToolWithFlags):
         self,
         input_file: Path,
         output_file: Path,
-        config: "BuildConfig",
-        add_flags: Optional[Sequence[Union[Path, str]]] = None,
+        config: BuildConfig,
+        add_flags: Sequence[Path | str] | None = None,
     ):
         """Calls the preprocessor to process the specified input file,
         creating the requested output file.
@@ -53,7 +54,7 @@ class Preprocessor(ToolWithFlags):
         :param config: the build config, used to access mode-specific flags.
         :param add_flags: list with additional flags to be used.
         """
-        params: list[Union[str, Path]] = []
+        params: list[Path | str] = []
         params.extend(self.flags.get_flags(config, input_file))
         if add_flags:
             params.extend(add_flags)
@@ -83,7 +84,7 @@ class CppFortran(Preprocessor):
         input_file: Path,
         output_file: Path,
         config: BuildConfig,
-        add_flags: Optional[Sequence[Union[Path, str]]] = None,
+        add_flags: Sequence[Path | str] | None = None,
     ):
         """Calls the preprocessor to process the specified input file,
         creating the requested output file.
@@ -92,7 +93,7 @@ class CppFortran(Preprocessor):
         :param output_file: the output filename.
         :param add_flags: List with additional flags to be used.
         """
-        params: list[Union[str, Path]] = ["-traditional-cpp", "-P"]
+        params: list[Path | str] = ["-traditional-cpp", "-P"]
 
         if add_flags:
             params.extend(add_flags)

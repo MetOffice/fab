@@ -6,13 +6,11 @@
 
 """This file contains the ToolRepository class."""
 
-# We can't declare _singleton and __new__() using ToolRepository, but
-# it is allowed if we use this import:
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import Self, Union, cast
 
 from fab.tools.ar import Ar
 from fab.tools.category import Category
@@ -56,7 +54,7 @@ class ToolRepository(dict):
 
     _singleton: None | ToolRepository = None
 
-    def __new__(cls) -> ToolRepository:
+    def __new__(cls) -> Self:
         """Singleton access. Changes the value of _singleton so that the
         constructor can verify that it is indeed called from here.
         """
@@ -266,9 +264,9 @@ class ToolRepository(dict):
     def get_default(
         self,
         category: Category,
-        mpi: Optional[bool] = None,
-        openmp: Optional[bool] = None,
-        enforce_fortran_linker: Optional[bool] = None,
+        mpi: bool | None = None,
+        openmp: bool | None = None,
+        enforce_fortran_linker: bool | None = None,
     ) -> Tool:
         """Returns the default tool for a given category that is available.
         For most tools that will be the first entry in the list of tools. The
@@ -292,7 +290,7 @@ class ToolRepository(dict):
         """
 
         if not isinstance(category, Category):
-            raise RuntimeError(f"Invalid category type '{type(category).__name__}'.")
+            raise TypeError(f"Invalid category type '{type(category).__name__}'.")
 
         tool: Tool
         # If not a compiler or linker, return the first tool
@@ -306,12 +304,12 @@ class ToolRepository(dict):
             )
 
         if not isinstance(mpi, bool):
-            raise RuntimeError(
+            raise TypeError(
                 f"Invalid or missing mpi specification for '{category}'."
             )
 
         if not isinstance(openmp, bool):
-            raise RuntimeError(
+            raise TypeError(
                 f"Invalid or missing openmp specification for '{category}'."
             )
 
