@@ -14,8 +14,8 @@ from fab.api import (analyse, archive_objects, BuildConfig, compile_fortran,
                      Exclude, find_source_files, grab_folder, link_exe,
                      preprocess_fortran, preprocess_x90, psyclone, ToolBox)
 
-from grab_lfric import lfric_source_config, gpl_utils_source_config
-from lfric_common import (API, configurator, get_transformation_script)
+from .grab_lfric import lfric_source_config, gpl_utils_source_config
+from .lfric_common import (API, configurator, get_transformation_script)
 
 logger = logging.getLogger('fab')
 

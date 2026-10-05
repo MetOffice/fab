@@ -7,7 +7,7 @@
 
 from fab.api import archive_objects, BuildConfig, cleanup_prebuilds, ToolBox
 
-from gcom_build_steps import common_build_steps
+from .gcom_build_steps import common_build_steps
 
 
 if __name__ == '__main__':

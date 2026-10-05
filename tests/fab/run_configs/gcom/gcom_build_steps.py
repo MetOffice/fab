@@ -7,7 +7,7 @@
 from fab.api import (analyse, compile_c, compile_fortran, find_source_files,
                      grab_folder, preprocess_c, preprocess_fortran)
 
-from grab_gcom import grab_config
+from .grab_gcom import grab_config
 
 
 def common_build_steps(config, fpic=False):
