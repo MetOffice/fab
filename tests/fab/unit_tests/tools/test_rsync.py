@@ -9,12 +9,11 @@ Tests RSync file tree synchronisation tool.
 
 from pathlib import Path
 
+from fab.tools.category import Category
+from fab.tools.rsync import Rsync
 from pytest_subprocess.fake_process import FakeProcess
 
 from tests.fab.conftest import call_list, not_found_callback
-
-from fab.tools.category import Category
-from fab.tools.rsync import Rsync
 
 
 def test_constructor():

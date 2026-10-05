@@ -14,9 +14,10 @@ a tool is actually available.
 """
 
 import logging
-from pathlib import Path
 import subprocess
-from typing import Optional, Sequence, Union
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Optional, Union
 
 from fab.tools.category import Category
 

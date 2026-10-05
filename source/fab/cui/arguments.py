@@ -23,9 +23,9 @@ import os
 from pathlib import Path
 from typing import Callable
 
-from ..util import get_fab_workspace
 from .. import __version__ as fab_version
 from ..logtools import setup_logging
+from ..util import get_fab_workspace
 
 
 def full_path_type(opt: str) -> Path:

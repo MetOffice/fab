@@ -11,13 +11,12 @@ be available (otherwise the tests will be skipped).
 
 import logging
 
-from pytest import fixture, mark, raises, warns
-
-from fab.build_config import BuildConfig
 from fab.artefacts import ArtefactSet
+from fab.build_config import BuildConfig
 from fab.steps.psyclone_transmute import psyclone_transmute
 from fab.tools.psyclone import Psyclone
 from fab.tools.tool_box import ToolBox
+from pytest import fixture, mark, raises, warns
 
 
 @fixture(name="config")
@@ -134,8 +133,8 @@ def test_psyclone_transmute_prebuilt(config, caplog):
     with (
         warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"),
         warns(UserWarning, match="No transformation script specified"),
+        caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute")
     ):
-        with caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute"):
             psyclone_transmute(
                 config, input_files, artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES
             )
@@ -151,8 +150,8 @@ def test_psyclone_transmute_prebuilt(config, caplog):
     with (
         warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"),
         warns(UserWarning, match="No transformation script specified"),
+        caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute")
     ):
-        with caplog.at_level(logging.DEBUG, logger="fab.steps.psyclone_transmute"):
             psyclone_transmute(
                 config, input_files, artefact_set=ArtefactSet.FORTRAN_COMPILER_FILES
             )

@@ -18,7 +18,7 @@ class CategoryMeta(type):
     """
 
     # A dictionary used for iterating over all enums.
-    _values: dict[str, "Category"] = {}
+    _values: dict[str, Category] = {}
 
     def __iter__(cls):
         return iter(cls._values.values())

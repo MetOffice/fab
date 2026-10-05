@@ -12,7 +12,7 @@ import logging
 from string import Template
 from typing import Optional
 
-from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, CollectionGetter
+from fab.artefacts import ArtefactSet, ArtefactsGetter, ArtefactStore, CollectionGetter
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import step
 from fab.tools.category import Category
@@ -101,8 +101,7 @@ def link_exe(
     flags = flags or []
 
     for root, objects in target_objects.items():
-        if root.startswith("main@"):
-            root = root[len("main@") :]
+        root = root.removeprefix("main@")
         exe_path = config.project_workspace / f"{root}"
         linker.link(objects, exe_path, config=config, libs=libs, add_flags=flags)
         config.artefact_store.add(ArtefactSet.EXECUTABLES, exe_path)

@@ -75,9 +75,7 @@ def configurator(
     # create configuration_mod.f90 in source root
     # -------------------------------------------
     logger.info("GenerateLoader")
-    names = [
-        name.strip() for name in (config_dir / "config_namelists.txt").read_text()
-    ]
+    names = [name.strip() for name in (config_dir / "config_namelists.txt").read_text()]
     configuration_mod_fpath = config_dir / "configuration_mod.f90"
     gen_loader = Script(gen_loader_tool)
     gen_loader.run(additional_parameters=[configuration_mod_fpath, *names])

@@ -9,7 +9,7 @@ the derived classes for mpif90, mpicc, and CrayFtnWrapper and CrayCcWrapper.
 """
 
 from pathlib import Path
-from typing import cast, Optional, Union
+from typing import Optional, Union, cast
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category

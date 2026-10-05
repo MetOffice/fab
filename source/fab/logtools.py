@@ -8,9 +8,9 @@
 Logging tools for the fab framework.
 """
 
-import sys
-import logging
 import inspect
+import logging
+import sys
 from pathlib import Path
 from typing import Optional
 

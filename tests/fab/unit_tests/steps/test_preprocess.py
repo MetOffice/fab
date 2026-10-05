@@ -10,15 +10,14 @@ Tests running the Fortran preprocessor step.
 
 from pathlib import Path
 
-from pytest import raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
+from fab.artefacts import ArtefactStore
 from fab.build_config import BuildConfig
 from fab.steps.preprocess import preprocess_fortran
 from fab.tools.category import Category
-from fab.artefacts import ArtefactStore
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from pytest import raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 
 def test_big_little(

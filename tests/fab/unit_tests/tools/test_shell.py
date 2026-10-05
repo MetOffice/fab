@@ -7,12 +7,11 @@
 Tests Shell tools.
 """
 
+from fab.tools.category import Category
+from fab.tools.shell import Shell
 from pytest_subprocess.fake_process import FakeProcess
 
 from tests.fab.conftest import ExtendedRecorder, call_list, not_found_callback
-
-from fab.tools.category import Category
-from fab.tools.shell import Shell
 
 
 def test_constructor() -> None:

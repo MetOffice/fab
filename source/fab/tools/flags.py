@@ -42,17 +42,16 @@ will be convert to `["-g", "-O3"]` if the file contains the string
 
 """
 
+import logging
+import warnings
 from abc import ABC, abstractmethod
 from fnmatch import fnmatch
-import logging
 from pathlib import Path
 from string import Template
 from typing import Optional, Union
-import warnings
-
-from fab.util import string_checksum
 
 from fab.build_config import AddFlags, BuildConfig
+from fab.util import string_checksum
 
 logger = logging.getLogger(__name__)
 

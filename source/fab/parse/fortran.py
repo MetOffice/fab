@@ -9,39 +9,40 @@ Fortran language handling classes.
 """
 
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Union, Optional, Iterable, Any
+from typing import Any, Optional, Union
 
 from fparser.two.Fortran2003 import (  # type: ignore
-    Entity_Decl_List,
-    Use_Stmt,
-    Module_Stmt,
-    Program_Stmt,
-    Subroutine_Stmt,
-    Function_Stmt,
-    Language_Binding_Spec,
-    Char_Literal_Constant,
-    Interface_Block,
-    Name,
-    Comment,
-    Module,
     Call_Stmt,
+    Char_Literal_Constant,
+    Comment,
     Derived_Type_Def,
     Derived_Type_Stmt,
-    Type_Attr_Spec_List,
-    Type_Attr_Spec,
-    Type_Name,
-    Subroutine_Subprogram,
-    Function_Subprogram,
-    Internal_Subprogram_Part,
+    Entity_Decl_List,
     External_Stmt,
+    Function_Stmt,
+    Function_Subprogram,
+    Interface_Block,
+    Internal_Subprogram_Part,
+    Language_Binding_Spec,
+    Module,
+    Module_Stmt,
+    Name,
+    Program_Stmt,
+    Subroutine_Stmt,
+    Subroutine_Subprogram,
+    Type_Attr_Spec,
+    Type_Attr_Spec_List,
     Type_Declaration_Stmt,
+    Type_Name,
+    Use_Stmt,
 )
 from fparser.two.utils import walk  # type: ignore
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
-from fab.parse.fortran_common import _typed_child, FortranAnalyserBase
+from fab.parse.fortran_common import FortranAnalyserBase, _typed_child
 from fab.util import file_checksum, string_checksum
 
 logger = logging.getLogger(__name__)
@@ -177,10 +178,10 @@ class AnalysedFortran(AnalysedDependent):
         result = super().to_dict()
         result.update(
             {
-                "program_defs": list(sorted(self.program_defs)),
-                "module_defs": list(sorted(self.module_defs)),
-                "module_deps": list(sorted(self.module_deps)),
-                "mo_commented_file_deps": list(sorted(self.mo_commented_file_deps)),
+                "program_defs": sorted(self.program_defs),
+                "module_defs": sorted(self.module_defs),
+                "module_deps": sorted(self.module_deps),
+                "mo_commented_file_deps": sorted(self.mo_commented_file_deps),
                 "psyclone_kernels": self.psyclone_kernels,
             }
         )

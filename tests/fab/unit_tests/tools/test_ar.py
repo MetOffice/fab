@@ -9,11 +9,11 @@ Tests 'ar' archiver tool.
 
 from pathlib import Path
 
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.tools.ar import Ar
 from fab.tools.category import Category
-from tests.conftest import ExtendedRecorder, call_list
+from pytest_subprocess.fake_process import FakeProcess
+
+from tests.fab.conftest import ExtendedRecorder, call_list
 
 
 def test_constructor() -> None:

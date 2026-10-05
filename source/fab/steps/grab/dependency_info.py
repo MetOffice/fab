@@ -10,9 +10,11 @@ This module contains a class that manages the dependencies specified in
 a dependencies.yaml file.
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator, Optional, Union
+from typing import Optional, Union
+
 import yaml
 
 

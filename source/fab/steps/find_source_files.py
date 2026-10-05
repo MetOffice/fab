@@ -9,8 +9,9 @@ Gather files from a source folder.
 """
 
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Optional, Union
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig

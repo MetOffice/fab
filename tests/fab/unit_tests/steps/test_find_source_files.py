@@ -11,10 +11,9 @@ Test the find_source_files step.
 from pathlib import Path
 
 import pytest
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
-from fab.steps.find_source_files import Exclude, find_source_files, Include
+from fab.steps.find_source_files import Exclude, Include, find_source_files
 from fab.tools.tool_box import ToolBox
 
 
@@ -27,14 +26,7 @@ def setup_files_fixture(tmp_path: Path) -> set[Path]:
     src.mkdir()
     (src / "nested").mkdir()
 
-    files = set(
-        [
-            src / "a.f90",
-            src / "b.F90",
-            src / "nested" / "c.c",
-            src / "psy_file.x90",
-        ]
-    )
+    files = {src / "a.f90", src / "b.F90", src / "nested" / "c.c", src / "psy_file.x90"}
 
     for f in files:
         f.write_text("program test\nend program")
@@ -57,13 +49,13 @@ def test_find_source_files_all_files(setup_files: set[Path], tmp_path: Path):
 
     src = tmp_path / "src"
     artefacts = config.artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES]
-    assert set([src / "a.f90", src / "b.F90"]) == artefacts
+    assert {src / "a.f90", src / "b.F90"} == artefacts
 
     artefacts = config.artefact_store[ArtefactSet.C_COMPILER_FILES]
-    assert set([src / "nested" / "c.c"]) == artefacts
+    assert {src / "nested" / "c.c"} == artefacts
 
     artefacts = config.artefact_store[ArtefactSet.X90_COMPILER_FILES]
-    assert set([src / "psy_file.x90"]) == artefacts
+    assert {src / "psy_file.x90"} == artefacts
 
 
 def test_find_source_files_collection(setup_files: set[Path], tmp_path: Path):

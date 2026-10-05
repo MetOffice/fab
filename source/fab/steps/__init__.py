@@ -8,11 +8,12 @@ Predefined build steps with sensible defaults.
 """
 
 import multiprocessing
-from typing import Iterable, Optional, Union
+from collections.abc import Iterable
+from functools import wraps
+from typing import Optional, Union
 
 from fab.metrics import send_metric
-from fab.util import by_type, TimerLogger
-from functools import wraps
+from fab.util import TimerLogger, by_type
 
 # For python 3.14, switch explicitly back to the old-style
 # fork method for subprocesses (otherwise subprocesses will

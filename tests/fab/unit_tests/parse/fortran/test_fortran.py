@@ -7,11 +7,10 @@ import copy
 from pathlib import Path
 
 import pytest
-
 from fab.parse.fortran import AnalysedFortran
 
 
-class TestAnalysedFortran(object):
+class TestAnalysedFortran:
     @pytest.fixture
     def analysed_fortran(self):
         return AnalysedFortran(

@@ -7,19 +7,17 @@ files using `from fab.api import ...`.
 # TODO #518: allow versioned APIs, and make this file point to the
 # current default API version.
 
-from fab.artefacts import ArtefactSet, CollectionGetter
-from fab.artefacts import SuffixFilter
+from fab.artefacts import ArtefactSet, CollectionGetter, SuffixFilter
 from fab.build_config import AddFlags, BuildConfig
 from fab.fab_base.fab_base import FabBase
-from fab.steps import run_mp
-from fab.steps import step
+from fab.steps import run_mp, step
 from fab.steps.analyse import analyse
 from fab.steps.archive_objects import archive_objects
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.compile_c import compile_c
 from fab.steps.compile_fortran import compile_fortran
-from fab.steps.find_source_files import Exclude, find_source_files, Include
+from fab.steps.find_source_files import Exclude, Include, find_source_files
 from fab.steps.grab.dependency_info import DependencyInfo
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.files import grab_files
@@ -39,68 +37,72 @@ from fab.tools.linker import Linker
 from fab.tools.pkg_config import PkgConfig
 from fab.tools.preprocessor import Cpp, Fpp
 from fab.tools.profile_flags import ProfileFlags
+from fab.tools.shell import Shell
 from fab.tools.tool import Tool
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
-from fab.tools.shell import Shell
-from fab.util import common_arg_parser
-from fab.util import file_checksum, log_or_dot, TimerLogger
-from fab.util import get_fab_workspace
-from fab.util import input_to_output_fpath
+from fab.util import (
+    TimerLogger,
+    common_arg_parser,
+    file_checksum,
+    get_fab_workspace,
+    input_to_output_fpath,
+    log_or_dot,
+)
 
 __all__ = [
     "AddFlags",
     "AlwaysFlags",
-    "analyse",
-    "archive_objects",
     "ArtefactSet",
     "BuildConfig",
     "Category",
-    "cleanup_prebuilds",
     "CollectionGetter",
-    "common_arg_parser",
     "Compiler",
     "CompilerWrapper",
-    "compile_c",
-    "compile_fortran",
     "ContainFlags",
-    "c_pragma_injector",
     "Cpp",
     "DependencyInfo",
     "Exclude",
     "FabBase",
-    "fcm_export",
-    "file_checksum",
     "FlagList",
     "Fpp",
-    "get_fab_workspace",
-    "git_checkout",
-    "grab_files",
-    "grab_folder",
-    "grab_pre_build",
-    "find_source_files",
     "Ifort",
     "Include",
-    "input_to_output_fpath",
     "Linker",
-    "link_exe",
-    "link_shared_object",
-    "log_or_dot",
     "MatchFlags",
     "PkgConfig",
-    "preprocess_c",
-    "preprocess_fortran",
-    "preprocess_x90",
     "ProfileFlags",
-    "psyclone",
-    "psyclone_transmute",
-    "root_inc_files",
-    "run_mp",
     "Shell",
-    "step",
     "SuffixFilter",
     "TimerLogger",
     "Tool",
     "ToolBox",
     "ToolRepository",
+    "analyse",
+    "archive_objects",
+    "c_pragma_injector",
+    "cleanup_prebuilds",
+    "common_arg_parser",
+    "compile_c",
+    "compile_fortran",
+    "fcm_export",
+    "file_checksum",
+    "find_source_files",
+    "get_fab_workspace",
+    "git_checkout",
+    "grab_files",
+    "grab_folder",
+    "grab_pre_build",
+    "input_to_output_fpath",
+    "link_exe",
+    "link_shared_object",
+    "log_or_dot",
+    "preprocess_c",
+    "preprocess_fortran",
+    "preprocess_x90",
+    "psyclone",
+    "psyclone_transmute",
+    "root_inc_files",
+    "run_mp",
+    "step",
 ]

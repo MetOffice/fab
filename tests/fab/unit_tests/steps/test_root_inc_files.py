@@ -10,13 +10,12 @@ Exercises
 from os import walk as os_walk
 from pathlib import Path
 
-from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import mark, raises, warns
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.root_inc_files import root_inc_files
 from fab.tools.tool_box import ToolBox
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import mark, raises, warns
 
 
 class TestRootIncFiles:

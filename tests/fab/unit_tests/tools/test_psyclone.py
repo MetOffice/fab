@@ -7,17 +7,17 @@
 Tests the PSyclone tool.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Optional
 from unittest.mock import Mock
 
-from pytest import mark, raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
+import fab.tools.psyclone  # Needed for mockery
 from fab.tools.category import Category
 from fab.tools.flags import AlwaysFlags
-import fab.tools.psyclone  # Needed for mockery
 from fab.tools.psyclone import Psyclone
+from pytest import mark, raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 from tests.fab.conftest import call_list, not_found_callback
 
@@ -229,7 +229,7 @@ def test_process_api_old_psyclone(
 @mark.parametrize("version", ["2.4.0", "2.5.0"])
 @mark.parametrize("api", [None, "nemo"])
 def test_process_nemo_api_old_psyclone(
-    version: str, api: Optional[str], fake_process: FakeProcess
+    version: str, api: str | None, fake_process: FakeProcess
 ) -> None:
     """
     Tests NEMO API with PSyclone 2.5.0 or earlier.

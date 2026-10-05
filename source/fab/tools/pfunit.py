@@ -12,9 +12,8 @@ import logging
 import os
 from pathlib import Path
 
-from fab.tools.tool import Tool
 from fab.tools.category import Category
-
+from fab.tools.tool import Tool
 
 logger = logging.getLogger(__name__)
 

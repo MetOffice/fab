@@ -9,14 +9,14 @@ classes for gcc, gfortran, icc, ifort
 """
 
 import re
-from pathlib import Path
 import warnings
-from typing import cast, Optional, Union
+from pathlib import Path
+from typing import Optional, Union, cast
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
-from fab.tools.flags import AlwaysFlags
 from fab.tools.compiler_suite_tool import CompilerSuiteTool
+from fab.tools.flags import AlwaysFlags
 from fab.util import string_checksum
 
 

@@ -6,6 +6,7 @@
 import subprocess
 from pathlib import Path
 
+import pytest
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
@@ -15,9 +16,6 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.tools.tool_box import ToolBox
-
-
-import pytest
 
 
 def build(fab_workspace, fpp_flags=None):

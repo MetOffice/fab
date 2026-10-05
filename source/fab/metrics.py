@@ -31,7 +31,7 @@ import json
 import logging
 import warnings
 from collections import defaultdict
-from multiprocessing import Process, Pipe
+from multiprocessing import Pipe, Process
 from multiprocessing.connection import Connection
 from pathlib import Path
 from typing import Optional

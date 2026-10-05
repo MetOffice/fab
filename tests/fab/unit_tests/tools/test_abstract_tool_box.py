@@ -7,10 +7,9 @@
 Tests the AbstractToolBox class.
 """
 
-from typing import Optional
+from __future__ import annotations
 
 import pytest
-
 from fab.tools.abstract_tool_box import AbstractToolBox
 from fab.tools.category import Category
 from fab.tools.compiler import Gfortran
@@ -47,9 +46,9 @@ def test_derived():
         def get_tool(
             self,
             category: Category,
-            mpi: Optional[bool] = None,
-            openmp: Optional[bool] = None,
-            enforce_fortran_linker: Optional[bool] = None,
+            mpi: bool | None = None,
+            openmp: bool | None = None,
+            enforce_fortran_linker: bool | None = None,
         ) -> Tool:
             return Gfortran()
 

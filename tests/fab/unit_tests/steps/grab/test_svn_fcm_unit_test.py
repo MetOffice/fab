@@ -13,12 +13,11 @@ ToDo: Messing with "private" members.
 
 from typing import Optional
 
+from fab.steps.grab.svn import _get_revision
 from pytest import mark, raises
 
-from fab.steps.grab.svn import _get_revision
 
-
-class TestRevision(object):
+class TestRevision:
     """
     Tests handling of revisions.
     """

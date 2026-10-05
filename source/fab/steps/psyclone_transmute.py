@@ -10,28 +10,27 @@ https://github.com/stfc/PSyclone
 
 """
 
-from dataclasses import dataclass
 import logging
 import shutil
 import warnings
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, cast, Optional, Sequence, Union
-
-
-from fab.build_config import BuildConfig
+from typing import Callable, Optional, Union, cast
 
 from fab.artefacts import ArtefactSet
-from fab.steps import run_mp, check_for_errors, step
+from fab.build_config import BuildConfig
+from fab.steps import check_for_errors, run_mp, step
 from fab.tools.category import Category
 from fab.tools.psyclone import Psyclone
 from fab.util import (
-    log_or_dot,
-    input_to_output_fpath,
+    TimerLogger,
     file_checksum,
     file_walk,
-    TimerLogger,
-    string_checksum,
+    input_to_output_fpath,
+    log_or_dot,
     log_or_dot_finish,
+    string_checksum,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,7 +57,7 @@ class MpCommonArgs:
 @step
 def psyclone_transmute(
     config: BuildConfig,
-    fortran_files: Union[Sequence[Path], Sequence[Path]],
+    fortran_files: Sequence[Path],
     transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
     cli_args: Optional[list[str]] = None,
     suffix: Optional[str] = None,

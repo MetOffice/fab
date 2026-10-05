@@ -22,7 +22,6 @@ from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 
-
 PROJECT_SOURCE = Path(__file__).parent / "test_contained_subroutine"
 
 

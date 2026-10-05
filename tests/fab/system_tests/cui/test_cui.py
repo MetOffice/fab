@@ -9,10 +9,11 @@ System tests for the fab command line utility.
 """
 
 import sys
-import pytest
 from pathlib import Path
 from textwrap import dedent
+
 import fab.cui.__main__
+import pytest
 
 
 class TestArgsHandling:

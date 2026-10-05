@@ -9,8 +9,9 @@ be integrated into Fab's internals.
 
 """
 
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
 
 from fab.dep_tree import AnalysedDependent, logger
 from fab.parse.c import AnalysedC

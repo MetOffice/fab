@@ -34,19 +34,20 @@ You'll have to manually read the file to determine which symbol definitions and 
 
 """
 
-from itertools import chain
 import logging
 import sys
 import warnings
+from collections.abc import Iterable
+from itertools import chain
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Optional, Union
 
-from fab.artefacts import ArtefactsGetter, ArtefactSet, CollectionConcat
-from fab.dep_tree import extract_sub_tree, validate_dependencies, AnalysedDependent
+from fab.artefacts import ArtefactSet, ArtefactsGetter, CollectionConcat
+from fab.dep_tree import AnalysedDependent, extract_sub_tree, validate_dependencies
 from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
 from fab.parse.c import AnalysedC, CAnalyser
-from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
+from fab.parse.fortran import AnalysedFortran, FortranAnalyser, FortranParserWorkaround
 from fab.steps import run_mp, step
 from fab.util import TimerLogger, by_type
 

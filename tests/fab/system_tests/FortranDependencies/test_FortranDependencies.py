@@ -6,6 +6,7 @@
 import subprocess
 from pathlib import Path
 
+import pytest
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.parse.fortran import AnalysedFortran
@@ -17,8 +18,6 @@ from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.tools.tool_box import ToolBox
-
-import pytest
 
 
 def test_fortran_dependencies(tmp_path):

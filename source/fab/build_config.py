@@ -12,20 +12,21 @@ import getpass
 import logging
 import os
 import warnings
+from collections.abc import Iterable
 from datetime import datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import Optional, Iterable
+from typing import Optional
 
 from fab.artefacts import ArtefactSet, ArtefactStore
-from fab.constants import BUILD_OUTPUT, SOURCE_ROOT, PREBUILD
-from fab.metrics import send_metric, init_metrics, stop_metrics, metrics_summary
-from fab.tools.category import Category
-from fab.tools.abstract_tool_box import AbstractToolBox
+from fab.constants import BUILD_OUTPUT, PREBUILD, SOURCE_ROOT
+from fab.metrics import init_metrics, metrics_summary, send_metric, stop_metrics
 from fab.steps.cleanup_prebuilds import CLEANUP_COUNT, cleanup_prebuilds
+from fab.tools.abstract_tool_box import AbstractToolBox
+from fab.tools.category import Category
 from fab.util import TimerLogger, by_type, get_fab_workspace
 
 logger = logging.getLogger(__name__)

@@ -3,10 +3,8 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-
-from pytest import raises, warns
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -19,6 +17,7 @@ from fab.steps.cleanup_prebuilds import (
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 from fab.util import get_prebuild_file_groups
+from pytest import raises, warns
 
 
 class TestCleanupPrebuilds:
@@ -136,7 +135,7 @@ def test_remove_all_unused(tmp_path: Path) -> None:
 
     assert num_removed == 3
 
-    assert sorted(list(tmp_path.iterdir())) == sorted(current_files)
+    assert sorted(tmp_path.iterdir()) == sorted(current_files)
 
 
 def test_get_prebuild_file_groups():

@@ -10,9 +10,10 @@ Pruning of old files from the incremental/prebuild folder.
 
 import logging
 import os
-from datetime import timedelta, datetime
+from collections.abc import Iterable
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Optional
 
 from fab.artefacts import ArtefactSet
 from fab.steps import run_mp, step

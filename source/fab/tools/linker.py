@@ -8,15 +8,15 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Optional
-import warnings
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
-from fab.tools.profile_flags import ProfileFlags
 from fab.tools.compiler_suite_tool import CompilerSuiteTool
+from fab.tools.profile_flags import ProfileFlags
 
 
 class Linker(CompilerSuiteTool):
@@ -126,7 +126,7 @@ class Linker(CompilerSuiteTool):
         self._pre_lib_flags.define_profile(name, inherit_from)
         self._post_lib_flags.define_profile(name, inherit_from)
 
-    def get_profile_flags(self, config: "BuildConfig") -> list[str]:
+    def get_profile_flags(self, config: BuildConfig) -> list[str]:
         """
         :returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
@@ -192,7 +192,7 @@ class Linker(CompilerSuiteTool):
         """
         self._post_lib_flags.add_flags(flags, profile)
 
-    def get_pre_link_flags(self, config: "BuildConfig") -> list[str]:
+    def get_pre_link_flags(self, config: BuildConfig) -> list[str]:
         """Returns the list of pre-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will come first - the assumption is that
@@ -214,7 +214,7 @@ class Linker(CompilerSuiteTool):
             params.extend(self._linker.get_pre_link_flags(config))
         return params
 
-    def get_post_link_flags(self, config: "BuildConfig") -> list[str]:
+    def get_post_link_flags(self, config: BuildConfig) -> list[str]:
         """Returns the list of post-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will be added to the end.
@@ -237,7 +237,7 @@ class Linker(CompilerSuiteTool):
         self,
         input_files: list[Path],
         output_file: Path,
-        config: "BuildConfig",
+        config: BuildConfig,
         libs: Optional[list[str]] = None,
         add_flags: Optional[list[str]] = None,
     ) -> str:

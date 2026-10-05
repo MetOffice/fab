@@ -9,14 +9,13 @@ Tests holding tools in a tool box.
 
 import warnings
 
-from pytest import raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler, Gfortran
 from fab.tools.tool_box import ToolBox
+from pytest import raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import not_found_callback
+from tests.fab.conftest import not_found_callback
 
 
 def test_constructor() -> None:

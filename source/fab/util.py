@@ -14,10 +14,11 @@ import os
 import sys
 import zlib
 from argparse import ArgumentParser
-from collections import namedtuple, defaultdict
+from collections import defaultdict, namedtuple
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from time import perf_counter
-from typing import Iterator, Iterable, Optional, Union
+from typing import Optional, Union
 
 import fab
 
@@ -43,7 +44,7 @@ def log_or_dot_finish(logger):
 
     """
     if logger.isEnabledFor(logging.INFO):
-        print("")
+        print()
 
 
 HashedFile = namedtuple("HashedFile", ["fpath", "file_hash"])

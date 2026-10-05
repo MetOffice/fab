@@ -4,7 +4,7 @@ from textwrap import dedent
 from fab.steps.c_pragma_injector import inject_pragmas
 
 
-class Test_inject_pragmas(object):
+class Test_inject_pragmas:
     """
     Tests injection of C inclusion bracketing.
     """

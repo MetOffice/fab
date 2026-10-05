@@ -2,9 +2,8 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-
 from fab.artefacts import SuffixFilter
-from fab.util import input_to_output_fpath, suffix_filter, file_walk
+from fab.util import file_walk, input_to_output_fpath, suffix_filter
 
 
 @pytest.fixture
@@ -59,7 +58,7 @@ class Test_file_walk:
         assert result == [f]
 
 
-class Test_input_to_output_fpath(object):
+class Test_input_to_output_fpath:
     @pytest.fixture
     def config(self):
         return mock.Mock(

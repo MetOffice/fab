@@ -6,10 +6,10 @@
 
 """This file contains the tool class for PSyclone."""
 
-from pathlib import Path
 import re
-from typing import Callable, Optional, Union
 import warnings
+from pathlib import Path
+from typing import Callable, Optional, Union
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category

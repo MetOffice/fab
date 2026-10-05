@@ -1,14 +1,14 @@
 """Tests the artefacts file."""
 
+from pathlib import Path
 from unittest import mock
 from unittest.mock import call
-from pathlib import Path
-import pytest
 
+import pytest
 from fab.artefacts import (
     ArtefactSet,
-    ArtefactStore,
     ArtefactsGetter,
+    ArtefactStore,
     CollectionConcat,
     CollectionGetter,
     FilterBuildTrees,
@@ -42,24 +42,24 @@ def test_artefact_store_copy() -> None:
     artefact_store.copy_artefacts(
         ArtefactSet.INITIAL_SOURCE_FILES, ArtefactSet.CURRENT_PREBUILDS
     )
-    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
+    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == {a}
     artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, [b, c])
-    artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, set([d, e]))
-    assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == set([a, b, c, d, e])
+    artefact_store.add(ArtefactSet.INITIAL_SOURCE_FILES, {d, e})
+    assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == {a, b, c, d, e}
 
     # Make sure that the previous copy did not get modified:
-    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a])
+    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == {a}
     artefact_store.copy_artefacts(
         ArtefactSet.INITIAL_SOURCE_FILES, ArtefactSet.CURRENT_PREBUILDS
     )
-    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == set([a, b, c, d, e])
+    assert artefact_store[ArtefactSet.CURRENT_PREBUILDS] == {a, b, c, d, e}
     # Now copy with suffix filtering:
     artefact_store.copy_artefacts(
         ArtefactSet.INITIAL_SOURCE_FILES,
         ArtefactSet.FORTRAN_COMPILER_FILES,
         suffixes=[".F90", ".f90"],
     )
-    assert artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES] == set([a, b, c])
+    assert artefact_store[ArtefactSet.FORTRAN_COMPILER_FILES] == {a, b, c}
 
     # Make sure filtering is case sensitive
     artefact_store.copy_artefacts(
@@ -67,7 +67,7 @@ def test_artefact_store_copy() -> None:
         ArtefactSet.C_COMPILER_FILES,
         suffixes=[".f90"],
     )
-    assert artefact_store[ArtefactSet.C_COMPILER_FILES] == set([a, c])
+    assert artefact_store[ArtefactSet.C_COMPILER_FILES] == {a, c}
 
 
 def test_artefact_store_update_dict() -> None:
@@ -75,7 +75,7 @@ def test_artefact_store_update_dict() -> None:
     artefact_store = ArtefactStore()
     artefact_store.update_dict(ArtefactSet.OBJECT_FILES, [Path("AA")], "a")
     assert artefact_store[ArtefactSet.OBJECT_FILES] == {"a": {Path("AA")}}
-    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, set([Path("BB")]), "b")
+    artefact_store.update_dict(ArtefactSet.OBJECT_FILES, {Path("BB")}, "b")
     assert artefact_store[ArtefactSet.OBJECT_FILES] == {
         "a": {Path("AA")},
         "b": {Path("BB")},
@@ -93,9 +93,7 @@ def test_artefact_store_replace() -> None:
         remove_files=[Path("a"), Path("b")],
         add_files=[Path("B")],
     )
-    assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == set(
-        [Path("B"), Path("c")]
-    )
+    assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == {Path("B"), Path("c")}
     # Test the behaviour for dictionaries
     with pytest.raises(RuntimeError) as err:
         artefact_store.replace(

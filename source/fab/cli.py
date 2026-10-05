@@ -15,12 +15,12 @@ from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
-from fab.steps.link import link_exe
-from fab.steps.root_inc_files import root_inc_files
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
+from fab.steps.root_inc_files import root_inc_files
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository

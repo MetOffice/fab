@@ -9,9 +9,6 @@ Exercises executable linkage step.
 
 from pathlib import Path
 
-from pytest import warns, raises
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.parse.c import AnalysedC
@@ -21,6 +18,8 @@ from fab.tools.category import Category
 from fab.tools.linker import Linker
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from pytest import raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 from tests.fab.conftest import call_list
 

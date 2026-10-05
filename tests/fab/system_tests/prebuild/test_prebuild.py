@@ -17,7 +17,7 @@ from fab.util import file_walk
 
 
 @mock.patch.dict(os.environ)
-class TestFortranPrebuild(object):
+class TestFortranPrebuild:
     def build_config(self, fab_workspace, grab_prebuild_folder=None):
 
         logging.getLogger("fab").setLevel(logging.WARNING)
@@ -86,16 +86,16 @@ class TestFortranPrebuild(object):
         first_project = self.build_config(fab_workspace=tmp_path / "first_workspace")
 
         # now build the project in our workspace.
-        with mock.patch(
-            "fab.parse.fortran.FortranAnalyser._parse_file"
-        ) as mock_parse_fortran:
-            with mock.patch(
-                "fab.steps.compile_fortran.compile_file"
-            ) as mock_compile_file:
-                second_project = self.build_config(
-                    fab_workspace=tmp_path / "second_workspace",
-                    grab_prebuild_folder=first_project.prebuild_folder,
-                )
+        with (
+            mock.patch(
+                "fab.parse.fortran.FortranAnalyser._parse_file"
+            ) as mock_parse_fortran,
+            mock.patch("fab.steps.compile_fortran.compile_file") as mock_compile_file,
+        ):
+            second_project = self.build_config(
+                fab_workspace=tmp_path / "second_workspace",
+                grab_prebuild_folder=first_project.prebuild_folder,
+            )
 
         # make sure we didn't call the analyser or compiler
         mock_parse_fortran.assert_not_called()

@@ -6,12 +6,11 @@
 from pathlib import Path
 from unittest.mock import Mock
 
+from fab.parse.x90 import AnalysedX90
+from fab.steps.psyclone import MpCommonArgs, _check_override, _gen_prebuild_hash
+from fab.util import string_checksum
 from pytest import fixture, warns
 from pytest_subprocess.fake_process import FakeProcess
-
-from fab.parse.x90 import AnalysedX90
-from fab.steps.psyclone import _check_override, _gen_prebuild_hash, MpCommonArgs
-from fab.util import string_checksum
 
 
 class TestGenPrebuildHash:

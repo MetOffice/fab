@@ -10,7 +10,6 @@ This module tests the Categories.
 
 import pickle
 
-
 from fab.tools.category import Category
 
 

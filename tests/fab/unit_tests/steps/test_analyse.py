@@ -1,8 +1,6 @@
 from pathlib import Path
 from unittest.mock import Mock
 
-from pytest import fixture, warns, raises
-
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround
@@ -16,9 +14,10 @@ from fab.steps.analyse import (
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
 from fab.util import HashedFile
+from pytest import fixture, raises, warns
 
 
-class Test_gen_symbol_table(object):
+class Test_gen_symbol_table:
     """
     Tests source symbol management.
     """
@@ -63,7 +62,7 @@ class Test_gen_symbol_table(object):
             }
 
 
-class Test_gen_file_deps(object):
+class Test_gen_file_deps:
     """
     Tests file dpendency management.
     """
@@ -92,7 +91,7 @@ class Test_gen_file_deps(object):
 
 
 # todo: this is fortran-ey, move it?
-class Test_add_unreferenced_deps(object):
+class Test_add_unreferenced_deps:
     """
     Tests handling unrefrenced dependencies.
     """
@@ -149,7 +148,7 @@ class Test_add_unreferenced_deps(object):
     #     pass
 
 
-class Test_parse_files(object):
+class Test_parse_files:
     """
     Tests examining a file.
 

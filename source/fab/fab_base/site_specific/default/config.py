@@ -13,7 +13,6 @@ This module contains the default FabBase configuration class.
 import argparse
 
 from fab.api import BuildConfig, Category, ToolRepository
-
 from fab.fab_base.site_specific.default.setup_script_cray import setup_script_cray
 from fab.fab_base.site_specific.default.setup_script_gnu import setup_script_gnu
 from fab.fab_base.site_specific.default.setup_script_intel_classic import (
@@ -72,7 +71,6 @@ class Config:
         # Second example: change the default for an existing option, e.g.
         # disabling MPI by default:
         # parser.set_defaults(mpi=False)
-        pass
 
     def handle_command_line_options(self, args: argparse.Namespace) -> None:
         """

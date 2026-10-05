@@ -10,7 +10,7 @@ It is the base class for compiler, linker, and pre-processor.
 """
 
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from fab.tools.category import Category
 from fab.tools.flags import AbstractFlags

@@ -21,8 +21,7 @@ from fab import FabException
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse import EmptySourceFile
-from fab.util import log_or_dot, file_checksum
-
+from fab.util import file_checksum, log_or_dot
 
 logger = logging.getLogger(__name__)
 

@@ -9,9 +9,9 @@ fcm steps, which call the functions here with just a different category (FCM)
 from the tool box.
 """
 
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Optional, Union
-import xml.etree.ElementTree as ET
 
 from fab.steps import step
 from fab.tools.category import Category

@@ -9,18 +9,16 @@ Fab command to build and maintain complex software applications.
 """
 
 import sys
-from importlib.util import module_from_spec, spec_from_loader
 from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
 from pathlib import Path
 from types import ModuleType
 from typing import Optional
 
-
-from .arguments import FabArgumentParser
 from ..logtools import make_logger, setup_file_logging
 from ..target.base import FabTargetBase
 from ..target.zero import FabZeroConfig
-
+from .arguments import FabArgumentParser
 
 # Names of default build recipe class and methods in the FabFile
 TARGET_CLASS = "FabBuildTarget"
@@ -92,7 +90,7 @@ def main(argv: Optional[list[str]] = None):
 
     if args.project is None:
         # Use the project_name from the class
-        args.project = str(getattr(build_class, "project_name"))
+        args.project = str(build_class.project_name)
 
     args.project_workspace = args.workspace / args.project
     args.project_workspace.mkdir(parents=True, exist_ok=True)

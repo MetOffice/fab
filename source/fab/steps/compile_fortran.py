@@ -13,9 +13,9 @@ import shutil
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import cast, Optional, Union
+from typing import Optional, Union, cast
 
-from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, FilterBuildTrees
+from fab.artefacts import ArtefactSet, ArtefactsGetter, ArtefactStore, FilterBuildTrees
 from fab.build_config import BuildConfig
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
@@ -25,11 +25,11 @@ from fab.tools.compiler import Compiler, FortranCompiler
 from fab.tools.flags import FlagList
 from fab.util import (
     CompiledFile,
-    log_or_dot_finish,
-    log_or_dot,
     Timer,
     by_type,
     file_checksum,
+    log_or_dot,
+    log_or_dot_finish,
 )
 
 logger = logging.getLogger(__name__)
@@ -233,7 +233,7 @@ def get_compile_next(
         for f, unf in not_ready.items():
             msg += f"\n\n{f}"
             for u in unf:
-                msg += f"\n    {str(u)}"
+                msg += f"\n    {u!s}"
 
         raise ValueError(msg)
 

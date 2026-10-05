@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -10,8 +9,8 @@ Unit tests for fab recipe classes.
 """
 
 import argparse
-import pytest
 
+import pytest
 from fab.target.base import FabTargetBase
 from fab.target.zero import FabZeroConfig
 

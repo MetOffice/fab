@@ -1,8 +1,7 @@
 from pathlib import Path
 
 import pytest
-
-from fab.dep_tree import extract_sub_tree, AnalysedDependent
+from fab.dep_tree import AnalysedDependent, extract_sub_tree
 
 
 @pytest.fixture
@@ -26,7 +25,7 @@ def src_tree():
     }
 
 
-class Test_extract_sub_tree(object):
+class Test_extract_sub_tree:
     def test_vanilla(self, src_tree):
         result = extract_sub_tree(source_tree=src_tree, root=Path("root.f90"))
         expect = src_tree.copy()

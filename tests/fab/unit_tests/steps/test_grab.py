@@ -10,16 +10,15 @@ Validate methods to obtain source.
 import logging
 from pathlib import Path
 
-from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import mark, warns
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.build_config import BuildConfig
 from fab.steps.grab.fcm import fcm_export
 from fab.steps.grab.files import grab_files
 from fab.steps.grab.folder import grab_folder
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import mark, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 
 class TestGrabFiles:
@@ -108,13 +107,13 @@ class TestGrabFiles:
             fab_workspace=Path("/fab"),
         )
 
-        with warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
-            with caplog.at_level(logging.WARNING):
-                grab_folder(config, src=source, dst_label="bar")
-            assert (
-                "Using deprecated `grab_folder`. Use `grab_files` instead."
-                in caplog.text
-            )
+        with warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"), \
+                caplog.at_level(logging.WARNING):
+            grab_folder(config, src=source, dst_label="bar")
+        assert (
+            "Using deprecated `grab_folder`. Use `grab_files` instead."
+            in caplog.text
+        )
         assert fake_process.call_count(grab_command) == 1
 
 

@@ -11,7 +11,7 @@ corresponding svn steps.
 
 from typing import Optional, Union
 
-from fab.steps.grab.svn import svn_export, svn_checkout, svn_merge
+from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge
 from fab.tools.category import Category
 
 

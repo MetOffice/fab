@@ -3,16 +3,17 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Union, Optional, Any
+from typing import Any, Optional, Union
 
 from fparser.two.Fortran2003 import (  # type: ignore
-    Use_Stmt,
+    Actual_Arg_Spec_List,
     Call_Stmt,
     Name,
     Only_List,
-    Actual_Arg_Spec_List,
     Part_Ref,
+    Use_Stmt,
 )
 from fparser.two.utils import walk  # type: ignore
 
@@ -24,8 +25,8 @@ except ImportError:
     BUILTIN_MAP = {}
 
 from fab.build_config import BuildConfig
-from fab.parse.fortran_common import FortranAnalyserBase, logger, _typed_child
 from fab.parse import AnalysedFile
+from fab.parse.fortran_common import FortranAnalyserBase, _typed_child, logger
 from fab.util import by_type
 
 

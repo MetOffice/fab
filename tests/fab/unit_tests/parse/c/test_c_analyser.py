@@ -7,12 +7,11 @@ from pathlib import Path
 from unittest import mock
 from unittest.mock import Mock
 
-from pytest import importorskip
-
 from fab.build_config import BuildConfig
-from fab.parse.c import CAnalyser, AnalysedC
+from fab.parse.c import AnalysedC, CAnalyser
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from pytest import importorskip
 
 clang = importorskip("clang")
 

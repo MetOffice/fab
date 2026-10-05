@@ -6,7 +6,7 @@
 from fab.parse.fortran_common import _typed_child
 
 
-class Parent(object):
+class Parent:
     def __init__(self, children=None):
         self.children = children
 
@@ -19,7 +19,7 @@ class Child2(Parent):
     pass
 
 
-class Test_typed_child(object):
+class Test_typed_child:
     def test_true(self):
         parent = Parent([Child1(), Child1(), Child2(), Child1()])
         assert _typed_child(parent, Child2)

@@ -11,9 +11,6 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from pytest import fixture
-from pytest_subprocess.fake_process import FakeProcess, ProcessRecorder
-
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
@@ -21,6 +18,8 @@ from fab.tools.linker import Linker
 from fab.tools.profile_flags import ProfileFlags
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+from pytest import fixture
+from pytest_subprocess.fake_process import FakeProcess, ProcessRecorder
 
 
 def not_found_callback(process):

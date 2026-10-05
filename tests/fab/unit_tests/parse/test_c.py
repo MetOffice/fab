@@ -9,7 +9,7 @@ import pytest
 from fab.parse.c import AnalysedC
 
 
-class TestAnalysedC(object):
+class TestAnalysedC:
     @pytest.fixture
     def analysed_c(self):
         return AnalysedC(

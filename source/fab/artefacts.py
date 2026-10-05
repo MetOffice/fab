@@ -16,11 +16,12 @@ have sensible defaults and can be configured with user-defined getters.
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from enum import auto, Enum
+from collections.abc import Iterable, Sequence
+from enum import Enum, auto
 from pathlib import Path
-from typing import Iterable, Optional, Sequence, Union
+from typing import Optional, Union
 
-from fab.dep_tree import filter_source_tree, AnalysedDependent
+from fab.dep_tree import AnalysedDependent, filter_source_tree
 from fab.util import suffix_filter
 
 

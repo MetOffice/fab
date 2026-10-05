@@ -30,7 +30,7 @@ def test_mo():
     an_for = src_tree[Path("foo.f90")]
     assert an_for.file_deps == set()
     add_mo_commented_file_deps(src_tree)
-    assert an_for.file_deps == set([Path("/some/path/root.c")])
+    assert an_for.file_deps == {Path("/some/path/root.c")}
 
 
 def test_mo_missing_ignored():

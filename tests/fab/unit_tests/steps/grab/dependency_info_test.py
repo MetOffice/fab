@@ -11,7 +11,6 @@ This module tests dependency_info.
 from pathlib import Path
 
 import pytest
-
 from fab.steps.grab.dependency_info import DependencyInfo, RepoInfo
 
 

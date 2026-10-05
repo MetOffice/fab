@@ -9,8 +9,8 @@ for easy include by the preprocessor.
 """
 
 import logging
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import Optional, Union
 
 from fab.artefacts import ArtefactSet

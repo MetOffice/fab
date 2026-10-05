@@ -12,11 +12,11 @@ import copy
 from pathlib import Path
 
 import pytest
-from fab.parse import AnalysedFile
 from fab.dep_tree import AnalysedDependent
+from fab.parse import AnalysedFile
 
 
-class TestAnalysedFile(object):
+class TestAnalysedFile:
     @pytest.fixture
     def analysed_file(self):
         return AnalysedFile(fpath=Path("foo.f90"), file_hash=123)
@@ -58,7 +58,7 @@ class TestAnalysedFile(object):
         assert hash(analysed_file) != hash(different_file_hash)
 
 
-class TestAnalysedDependent(object):
+class TestAnalysedDependent:
     @pytest.fixture
     def analysed_dependent(self):
         return AnalysedDependent(

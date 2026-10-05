@@ -25,10 +25,9 @@ import logging
 from pathlib import Path
 from typing import Optional, Union
 
+from fab.build_config import BuildConfig
 from fab.tools.flags import AbstractFlags, FlagList
 from fab.util import string_checksum
-
-from fab.build_config import BuildConfig
 
 logger = logging.getLogger(__name__)
 

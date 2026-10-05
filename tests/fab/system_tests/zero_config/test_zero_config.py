@@ -12,7 +12,6 @@ from pathlib import Path
 from shutil import copytree
 
 import pytest
-
 from fab.cli import cli_fab
 
 

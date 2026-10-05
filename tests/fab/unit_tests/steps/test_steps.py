@@ -7,12 +7,11 @@
 Exercises the multi-process error helper.
 """
 
+from fab.steps import check_for_errors
 from pytest import raises
 
-from fab.steps import check_for_errors
 
-
-class Test_check_for_errors(object):
+class Test_check_for_errors:
     """
     Tests the multi-prcoess error helper.
     """

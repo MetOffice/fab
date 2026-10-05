@@ -13,13 +13,12 @@ from shutil import which
 from subprocess import Popen, run
 from time import sleep
 
+from fab.tools.category import Category
+from fab.tools.versioning import Fcm, Git, Subversion
 from pytest import TempPathFactory, fixture, mark, raises
 from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder, arg_list, call_list, not_found_callback
-
-from fab.tools.category import Category
-from fab.tools.versioning import Fcm, Git, Subversion
+from tests.fab.conftest import ExtendedRecorder, arg_list, call_list, not_found_callback
 
 
 class TestGit:
@@ -312,7 +311,7 @@ class TestSubversionReal:
         """
         repo_path = tmp_path_factory.mktemp("repo", numbered=True)
         command = ["svnadmin", "create", str(repo_path)]
-        assert run(command).returncode == 0
+        assert run(command, check=False).returncode == 0
         tree_path = tmp_path_factory.mktemp("tree", numbered=True)
         (tree_path / "alpha").write_text("First file")
         (tree_path / "beta").mkdir()
@@ -325,7 +324,7 @@ class TestSubversionReal:
             str(tree_path),
             f"file://{repo_path}/trunk",
         ]
-        assert run(command).returncode == 0
+        assert run(command, check=False).returncode == 0
         return repo_path, tree_path
 
     def test_extract_from_file(self, repo: tuple[Path, Path], tmp_path: Path):
@@ -357,9 +356,9 @@ class TestSubversionReal:
         for retry in range(3, 0, -1):
             try:
                 test_unit.export("svn://localhost/trunk", tmp_path)
-            except Exception as ex:
+            except Exception:
                 if retry == 0:
-                    raise ex
+                    raise
                 sleep(1.0)
             else:
                 break

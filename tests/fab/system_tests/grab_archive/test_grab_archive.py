@@ -6,12 +6,11 @@
 from pathlib import Path
 from unittest.mock import Mock
 
+from fab.steps.grab.archive import grab_archive
 from pytest import warns
 
-from fab.steps.grab.archive import grab_archive
 
-
-class TestGrabArchive(object):
+class TestGrabArchive:
     def test(self, tmp_path):
         tar_file = Path(__file__).parent / "../git/tiny_fortran.tar"
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -9,14 +8,15 @@
 Tests for fab argument parser.
 """
 
-import sys
-import os
+from __future__ import annotations
+
 import argparse
+import os
+import sys
 from pathlib import Path
-from fab.cui.arguments import full_path_type, FabArgumentParser
 
 import pytest
-from typing import Optional
+from fab.cui.arguments import FabArgumentParser, full_path_type
 from pyfakefs.fake_filesystem import FakeFilesystem
 
 
@@ -56,9 +56,7 @@ class TestFabFile:
             pytest.param(Path("myfile"), "myfile", id="override"),
         ],
     )
-    def test_fabfile(
-        self, filename: Path, arg: Optional[str], fs: FakeFilesystem
-    ) -> None:
+    def test_fabfile(self, filename: Path, arg: str | None, fs: FakeFilesystem) -> None:
         """Check specified path with no user arguments."""
 
         fs.create_file(filename)

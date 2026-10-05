@@ -7,8 +7,8 @@
 """Tests the compiler implementation."""
 
 from pathlib import Path
-import pytest
 
+import pytest
 from fab.tools.flags import AlwaysFlags
 from fab.tools.profile_flags import ProfileFlags
 from fab.util import string_checksum

@@ -1,19 +1,15 @@
 from pathlib import Path
 from unittest.mock import Mock
 
-from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import fixture, mark, raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.build_config import BuildConfig
 from fab.parse.fortran import AnalysedFortran
 from fab.steps.compile_fortran import (
+    MpCommonArgs,
     compile_pass,
     get_compile_next,
     get_mod_hashes,
     handle_compiler_args,
-    MpCommonArgs,
     process_file,
     store_artefacts,
 )
@@ -21,6 +17,9 @@ from fab.tools.category import Category
 from fab.tools.flags import FlagList
 from fab.tools.tool_box import ToolBox
 from fab.util import CompiledFile
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import fixture, mark, raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 
 @fixture(scope="function")
@@ -121,7 +120,7 @@ class TestCompilePass:
 
         assert Path("/fab/a.f90") not in compiled
         assert Path("/fab/b.f90") in compiled
-        assert list(uncompiled_result)[0].fpath == Path("/fab/a.f90")
+        assert next(iter(uncompiled_result)).fpath == Path("/fab/a.f90")
 
 
 class TestGetCompileNext:
@@ -219,7 +218,7 @@ class TestProcessFile:
         """
         Tests compile when prebuids are not present.
         """
-        mp_common_args, flags, analysed_file = content
+        mp_common_args, _, analysed_file = content
 
         fake_process.register(["sfc", "--version"], stdout="1.2.3")
         record = fake_process.register(["sfc", fake_process.any()])
@@ -340,7 +339,7 @@ class TestProcessFile:
         """
         Tests changing source hash leads to new module and object hashes.
         """
-        mp_common_args, flags, analysed_file = content
+        mp_common_args, _, analysed_file = content
 
         analysed_file._file_hash += 1
 

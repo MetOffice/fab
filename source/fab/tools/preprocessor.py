@@ -9,8 +9,9 @@ classes for cpp and fpp.
 
 """
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence, Union
+from typing import Optional, Union
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category

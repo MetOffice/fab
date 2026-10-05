@@ -9,16 +9,15 @@
 from pathlib import Path
 from unittest import mock
 
+import pytest
+from fab.build_config import BuildConfig
+from fab.parse import EmptySourceFile
+from fab.parse.fortran import AnalysedFortran, FortranAnalyser
+from fab.tools.tool_box import ToolBox
 from fparser.common.readfortran import FortranStringReader  # type: ignore
 from fparser.two.Fortran2003 import Type_Declaration_Stmt  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
 from fparser.two.utils import walk  # type: ignore
-import pytest
-
-from fab.build_config import BuildConfig
-from fab.parse import EmptySourceFile
-from fab.parse.fortran import FortranAnalyser, AnalysedFortran
-from fab.tools.tool_box import ToolBox
 
 # todo: test function binding
 

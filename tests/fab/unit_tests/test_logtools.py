@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -11,9 +10,9 @@ Unit tests for fab.logtools.
 import logging
 import re
 from io import StringIO
-from fab.logtools import make_logger, make_loggers, setup_logging, setup_file_logging
 
 import pytest
+from fab.logtools import make_logger, make_loggers, setup_file_logging, setup_logging
 
 
 class TestCreateLoggers:
@@ -62,61 +61,53 @@ class TestSetupLogging:
             (
                 0,
                 0,
-                set(["build error", "build warning", "system error", "system warning"]),
+                {"build error", "build warning", "system error", "system warning"},
             ),
             (
                 1,
                 0,
-                set(
-                    [
-                        "build error",
-                        "build warning",
-                        "system error",
-                        "system warning",
-                        "build info",
-                    ]
-                ),
+                {
+                    "build error",
+                    "build warning",
+                    "system error",
+                    "system warning",
+                    "build info",
+                },
             ),
             (
                 2,
                 0,
-                set(
-                    [
-                        "build error",
-                        "build warning",
-                        "system error",
-                        "system warning",
-                        "build info",
-                        "build debug",
-                    ]
-                ),
+                {
+                    "build error",
+                    "build warning",
+                    "system error",
+                    "system warning",
+                    "build info",
+                    "build debug",
+                },
             ),
             (
                 0,
                 1,
-                set(
-                    [
-                        "build error",
-                        "build warning",
-                        "system error",
-                        "system warning",
-                        "system info",
-                    ]
-                ),
+                {
+                    "build error",
+                    "build warning",
+                    "system error",
+                    "system warning",
+                    "system info",
+                },
             ),
             (
                 0,
                 2,
-                set(
-                    [
-                        "build error",
-                        "build warning",
-                        "system error",
-                        "system warning",
-                        "system info",
-                        "system debug",
-                    ]
-                ),
+                {
+                    "build error",
+                    "build warning",
+                    "system error",
+                    "system warning",
+                    "system info",
+                    "system debug",
+                },
             ),
         ],
         ids=["nothing", "build info", "build debug", "system info", "system debug"],
@@ -140,7 +131,7 @@ class TestSetupLogging:
         system_logger.info("system info")
         system_logger.debug("system debug")
 
-        found = set([])
+        found = set()
 
         for line in messages.getvalue().split("\n"):
             # The regexp contains an optional middle section to match both

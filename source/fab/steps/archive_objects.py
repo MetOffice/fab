@@ -9,17 +9,16 @@ Object archive creation from a list of object files for use in static linking.
 """
 
 import logging
-from typing import Optional
 from pathlib import Path
 from string import Template
+from typing import Optional
 
-from fab.artefacts import ArtefactSet
+from fab.artefacts import ArtefactSet, ArtefactsGetter, CollectionGetter
 from fab.build_config import BuildConfig
 from fab.steps import step
-from fab.util import log_or_dot
 from fab.tools.ar import Ar
 from fab.tools.category import Category
-from fab.artefacts import ArtefactsGetter, CollectionGetter
+from fab.util import log_or_dot
 
 logger = logging.getLogger(__name__)
 

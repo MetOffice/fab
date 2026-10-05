@@ -6,8 +6,6 @@
 import subprocess
 from pathlib import Path
 
-from pytest import importorskip, warns
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
@@ -17,9 +15,10 @@ from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.link import link_exe
-from fab.steps.preprocess import preprocess_fortran, preprocess_c
+from fab.steps.preprocess import preprocess_c, preprocess_fortran
 from fab.steps.root_inc_files import root_inc_files
 from fab.tools.tool_box import ToolBox
+from pytest import importorskip, warns
 
 clang = importorskip("clang", reason="Clang bindings not found.")
 

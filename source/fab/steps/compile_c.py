@@ -10,10 +10,10 @@ C file compilation.
 
 import logging
 from dataclasses import dataclass
-from typing import cast, Optional
+from typing import Optional, cast
 
 from fab import FabException
-from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, FilterBuildTrees
+from fab.artefacts import ArtefactSet, ArtefactsGetter, ArtefactStore, FilterBuildTrees
 from fab.build_config import AddFlags, BuildConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
@@ -21,7 +21,7 @@ from fab.steps import check_for_errors, run_mp, step
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
 from fab.tools.flags import FlagList
-from fab.util import CompiledFile, log_or_dot, Timer, by_type
+from fab.util import CompiledFile, Timer, by_type, log_or_dot
 
 logger = logging.getLogger(__name__)
 

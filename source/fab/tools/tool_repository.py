@@ -12,25 +12,15 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import cast, Optional, Union
+from typing import Optional, Union, cast
 
-from fab.tools.tool import Tool
-from fab.tools.category import Category
-from fab.tools.compiler import Compiler, FortranCompiler
-from fab.tools.compiler_wrapper import (
-    CompilerWrapper,
-    CrayCcWrapper,
-    CrayFtnWrapper,
-    Mpif90,
-    Mpicc,
-)
-from fab.tools.linker import Linker
-from fab.tools.versioning import Fcm, Git, Subversion
 from fab.tools.ar import Ar
-from fab.tools.preprocessor import Cpp, CppFortran
+from fab.tools.category import Category
 from fab.tools.compiler import (
+    Compiler,
     Craycc,
     Crayftn,
+    FortranCompiler,
     Gcc,
     Gfortran,
     Icc,
@@ -40,10 +30,21 @@ from fab.tools.compiler import (
     Nvc,
     Nvfortran,
 )
+from fab.tools.compiler_wrapper import (
+    CompilerWrapper,
+    CrayCcWrapper,
+    CrayFtnWrapper,
+    Mpicc,
+    Mpif90,
+)
+from fab.tools.linker import Linker
 from fab.tools.pfunit import PfUnit
+from fab.tools.preprocessor import Cpp, CppFortran
 from fab.tools.psyclone import Psyclone
 from fab.tools.rsync import Rsync
 from fab.tools.shell import Shell
+from fab.tools.tool import Tool
+from fab.tools.versioning import Fcm, Git, Subversion
 
 
 class ToolRepository(dict):

@@ -1,12 +1,9 @@
-from datetime import timedelta, datetime
 import logging
 import os
+import zlib
+from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import Mock
-import zlib
-
-from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import fixture, mark, warns
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.build_config import BuildConfig
@@ -20,6 +17,8 @@ from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_fortran
 from fab.tools.tool_box import ToolBox
 from fab.util import file_walk, get_prebuild_file_groups
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import fixture, mark, warns
 
 PROJECT_LABEL = "tiny_project"
 

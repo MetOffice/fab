@@ -11,10 +11,11 @@ the analysis stage.
 
 # todo: we've since adopted the term "source tree", so we should probably
 # rename this module to match.
-from abc import ABC
 import logging
+from abc import ABC
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Optional, Union
 
 from fab.parse import AnalysedFile
 
@@ -105,9 +106,9 @@ class AnalysedDependent(AnalysedFile, ABC):
         result = super().to_dict()
         result.update(
             {
-                "symbol_defs": list(sorted(self.symbol_defs)),
-                "symbol_deps": list(sorted(self.symbol_deps)),
-                "file_deps": list(sorted(map(str, self.file_deps))),
+                "symbol_defs": sorted(self.symbol_defs),
+                "symbol_deps": sorted(self.symbol_deps),
+                "file_deps": sorted(map(str, self.file_deps)),
             }
         )
         return result

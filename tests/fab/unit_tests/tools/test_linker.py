@@ -7,13 +7,8 @@
 Exercises linker tooling.
 """
 
-from pathlib import Path
 import warnings
-
-from pytest import mark, raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
-from tests.fab.conftest import ExtendedRecorder, not_found_callback
+from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -21,6 +16,10 @@ from fab.tools.compiler import CCompiler, FortranCompiler
 from fab.tools.compiler_wrapper import CompilerWrapper, Mpif90
 from fab.tools.linker import Linker
 from fab.tools.profile_flags import ProfileFlags
+from pytest import mark, raises, warns
+from pytest_subprocess.fake_process import FakeProcess
+
+from tests.fab.conftest import ExtendedRecorder, not_found_callback
 
 
 def test_c_linker(stub_c_compiler: CCompiler, stub_configuration: BuildConfig) -> None:

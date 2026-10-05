@@ -13,13 +13,14 @@ only modify very few settings to have a working FAB build script.
 from __future__ import annotations
 
 import argparse
-from importlib import import_module
 import inspect
 import logging
 import os
-from pathlib import Path
 import sys
-from typing import Iterable, Optional, TYPE_CHECKING, Union
+from collections.abc import Iterable
+from importlib import import_module
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional, Union
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.steps.analyse import analyse
@@ -27,7 +28,7 @@ from fab.steps.archive_objects import archive_objects
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
 from fab.steps.compile_fortran import compile_fortran
-from fab.steps.find_source_files import find_source_files, Exclude, Include
+from fab.steps.find_source_files import Exclude, Include, find_source_files
 from fab.steps.grab.files import grab_files
 from fab.steps.link import link_exe, link_shared_object
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
@@ -715,9 +716,7 @@ class FabBase:
         """
 
         # This convoluted test makes mypy happy
-        if isinstance(list_of_flags, AddFlags):
-            list_of_flags = [list_of_flags]
-        elif isinstance(list_of_flags, str):
+        if isinstance(list_of_flags, AddFlags) or isinstance(list_of_flags, str):
             list_of_flags = [list_of_flags]
 
         # While Fab still distinguishes between path-specific and common

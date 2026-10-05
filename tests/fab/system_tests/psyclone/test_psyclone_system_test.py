@@ -7,18 +7,17 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-from pytest import fixture, mark, warns
-
 from fab.build_config import BuildConfig
-from fab.parse.x90 import X90Analyser, AnalysedX90
+from fab.parse.x90 import AnalysedX90, X90Analyser
 from fab.steps.cleanup_prebuilds import cleanup_prebuilds
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
 from fab.steps.preprocess import preprocess_fortran
-from fab.steps.psyclone import _analyse_x90s, _analyse_kernels, preprocess_x90, psyclone
+from fab.steps.psyclone import _analyse_kernels, _analyse_x90s, preprocess_x90, psyclone
 from fab.tools.psyclone import Psyclone
 from fab.tools.tool_box import ToolBox
 from fab.util import file_checksum
+from pytest import fixture, mark, warns
 
 SAMPLE_KERNEL = Path(__file__).parent / "kernel.f90"
 

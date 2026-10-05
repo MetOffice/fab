@@ -7,12 +7,11 @@
 Tests the pkg-config wrapper.
 """
 
-from pytest_subprocess.fake_process import FakeProcess
-
-from tests.conftest import call_list
-
 from fab.tools.category import Category
 from fab.tools.pkg_config import PkgConfig
+from pytest_subprocess.fake_process import FakeProcess
+
+from tests.fab.conftest import call_list
 
 
 def test_constructor() -> None:

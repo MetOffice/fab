@@ -9,33 +9,33 @@ https://github.com/stfc/PSyclone
 
 """
 
-from dataclasses import dataclass
 import logging
 import shutil
 import warnings
+from collections.abc import Iterable
+from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Union
-
-from fab.build_config import BuildConfig
+from typing import Callable, Optional, Union
 
 from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
-from fab.parse.fortran import FortranAnalyser, AnalysedFortran
-from fab.parse.x90 import X90Analyser, AnalysedX90
-from fab.steps import run_mp, check_for_errors, step
+from fab.build_config import BuildConfig
+from fab.parse.fortran import AnalysedFortran, FortranAnalyser
+from fab.parse.x90 import AnalysedX90, X90Analyser
+from fab.steps import check_for_errors, run_mp, step
 from fab.steps.preprocess import pre_processor
 from fab.tools.category import Category
 from fab.tools.psyclone import Psyclone
 from fab.util import (
-    log_or_dot,
-    input_to_output_fpath,
+    TimerLogger,
+    by_type,
     file_checksum,
     file_walk,
-    TimerLogger,
+    input_to_output_fpath,
+    log_or_dot,
+    log_or_dot_finish,
     string_checksum,
     suffix_filter,
-    by_type,
-    log_or_dot_finish,
 )
 
 logger = logging.getLogger(__name__)

@@ -9,17 +9,16 @@ Test for the archive step.
 
 from pathlib import Path
 
-from pyfakefs.fake_filesystem import FakeFilesystem
-from pytest import raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
-from tests.fab.conftest import call_list
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.archive_objects import archive_objects
 from fab.tools.category import Category
 from fab.tools.tool_repository import ToolRepository
+from pyfakefs.fake_filesystem import FakeFilesystem
+from pytest import raises, warns
+from pytest_subprocess.fake_process import FakeProcess
+
+from tests.fab.conftest import call_list
 
 
 class TestArchiveObjects:

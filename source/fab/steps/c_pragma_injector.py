@@ -9,12 +9,14 @@ Add custom pragmas to C code which identify user and system include regions.
 """
 
 import re
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator, Match, Optional, Pattern, Tuple
+from re import Match, Pattern
+from typing import Optional, Tuple
 
 from fab import FabException
-from fab.build_config import BuildConfig
 from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
+from fab.build_config import BuildConfig
 from fab.steps import run_mp, step
 from fab.util import input_to_output_fpath
 

@@ -10,14 +10,13 @@ Tests source preprocessor tools.
 from logging import Logger
 from pathlib import Path
 
-from pytest import mark
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.preprocessor import Cpp, CppFortran, Fpp, Preprocessor
+from pytest import mark
+from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import call_list, ExtendedRecorder
+from tests.fab.conftest import ExtendedRecorder, call_list
 
 
 def test_constructor() -> None:

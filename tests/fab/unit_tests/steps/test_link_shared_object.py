@@ -7,14 +7,13 @@
 Tests linking a shared library.
 """
 
-from pytest import warns
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
 from fab.steps.link import link_shared_object
 from fab.tools.compiler import FortranCompiler
 from fab.tools.linker import Linker
+from pytest import warns
+from pytest_subprocess.fake_process import FakeProcess
 
 from tests.fab.conftest import call_list
 

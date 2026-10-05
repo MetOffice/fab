@@ -10,7 +10,7 @@ import pytest
 from fab.parse.x90 import AnalysedX90
 
 
-class TestAnalysedX90(object):
+class TestAnalysedX90:
     @pytest.fixture
     def analysed_x90(self):
         return AnalysedX90(

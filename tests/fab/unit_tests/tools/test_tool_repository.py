@@ -10,15 +10,14 @@ Tests ToolBox class.
 from pathlib import Path
 from typing import cast
 
-from pytest import mark, raises
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.tools.ar import Ar
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler, FortranCompiler, Gfortran, Ifort
 from fab.tools.compiler_wrapper import Mpicc, Mpif90
 from fab.tools.linker import Linker
 from fab.tools.tool_repository import ToolRepository
+from pytest import mark, raises
+from pytest_subprocess.fake_process import FakeProcess
 
 from tests.fab.conftest import call_list
 

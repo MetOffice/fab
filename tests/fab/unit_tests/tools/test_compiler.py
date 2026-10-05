@@ -12,27 +12,26 @@ from textwrap import dedent
 from unittest import mock
 from zlib import crc32
 
-from pytest import mark, raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import (
-    Compiler,
     CCompiler,
-    FortranCompiler,
+    Compiler,
     Craycc,
     Crayftn,
+    FortranCompiler,
     Gcc,
     Gfortran,
     Icc,
-    Ifort,
     Icx,
+    Ifort,
     Ifx,
     Nvc,
     Nvfortran,
 )
 from fab.tools.flags import ContainFlags
+from pytest import mark, raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
 from tests.fab.conftest import arg_list, call_list
 
@@ -482,9 +481,8 @@ def test_get_version_bad_result_is_not_cached():
     """Checks that the compiler can be re-run after failing to get the version."""
     # Set up the compiler to fail the first time
     c = Gfortran()
-    with mock.patch.object(c, "run", side_effect=RuntimeError()):
-        with raises(RuntimeError):
-            c.get_version()
+    with mock.patch.object(c, "run", side_effect=RuntimeError()), raises(RuntimeError):
+        c.get_version()
 
     # Now let the run method run successfully and we should get the version.
     valid_output = "GNU Fortran (gcc) 6.1.0"

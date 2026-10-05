@@ -10,24 +10,25 @@ Fortran and C Preprocessing.
 
 import logging
 import shutil
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Collection, Optional, Union
+from typing import Optional, Union
 
-from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter, CollectionGetter
+from fab.artefacts import ArtefactSet, ArtefactsGetter, CollectionGetter, SuffixFilter
 from fab.build_config import BuildConfig
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, run_mp, step
 from fab.tools.category import Category
-from fab.tools.preprocessor import Cpp, CppFortran, Preprocessor
 from fab.tools.flags import FlagList
+from fab.tools.preprocessor import Cpp, CppFortran, Preprocessor
 from fab.util import (
-    log_or_dot_finish,
-    input_to_output_fpath,
-    log_or_dot,
-    suffix_filter,
     Timer,
     by_type,
+    input_to_output_fpath,
+    log_or_dot,
+    log_or_dot_finish,
+    suffix_filter,
 )
 
 logger = logging.getLogger(__name__)

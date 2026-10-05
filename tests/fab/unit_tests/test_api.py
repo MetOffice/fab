@@ -10,6 +10,7 @@ which atm is v1 (i.e. fab.api and fab.v1 will export the same symbols).
 """
 
 from importlib import import_module
+
 from pytest import fail, mark
 
 

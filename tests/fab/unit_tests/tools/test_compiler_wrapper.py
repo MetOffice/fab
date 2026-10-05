@@ -9,9 +9,6 @@ Tests the compiler wrapper implementation.
 
 from pathlib import Path
 
-from pytest import raises, warns
-from pytest_subprocess.fake_process import FakeProcess
-
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import CCompiler, FortranCompiler
@@ -23,8 +20,10 @@ from fab.tools.compiler_wrapper import (
     Mpif90,
 )
 from fab.tools.profile_flags import ProfileFlags
+from pytest import raises, warns
+from pytest_subprocess.fake_process import FakeProcess
 
-from tests.conftest import ExtendedRecorder, call_list, not_found_callback
+from tests.fab.conftest import ExtendedRecorder, call_list, not_found_callback
 
 
 def test_compiler_getter(stub_c_compiler: CCompiler) -> None:
@@ -292,12 +291,12 @@ def test_c_with_add_args(
             config=stub_configuration,
         )
 
-        assert subproc_record.invocations() == [
-            ["mpicc", "-c", "-O3", "a.f90", "-o", "a.o"],
-            ["mpicc", "-c", "-omp", "-O3", "a.f90", "-o", "a.o"],
-        ]
-        assert subproc_record.extras()[0]["cwd"] == "."
-        assert subproc_record.extras()[1]["cwd"] == "."
+    assert subproc_record.invocations() == [
+        ["mpicc", "-c", "-O3", "a.f90", "-o", "a.o"],
+        ["mpicc", "-c", "-omp", "-O3", "a.f90", "-o", "a.o"],
+    ]
+    assert subproc_record.extras()[0]["cwd"] == "."
+    assert subproc_record.extras()[1]["cwd"] == "."
 
 
 def test_flags_independent(
