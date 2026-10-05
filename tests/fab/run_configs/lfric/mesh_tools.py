@@ -1,67 +1,89 @@
 #!/usr/bin/env python3
 from pathlib import Path
 
+from fab.api import (
+    BuildConfig,
+    Exclude,
+    ToolBox,
+    analyse,
+    archive_objects,
+    compile_fortran,
+    find_source_files,
+    grab_folder,
+    link_exe,
+    preprocess_fortran,
+    preprocess_x90,
+    psyclone,
+)
 
-from fab.api import (analyse, archive_objects, BuildConfig, compile_fortran,
-                     Exclude, find_source_files, grab_folder, link_exe,
-                     preprocess_fortran, preprocess_x90, psyclone, ToolBox)
-
+from .grab_lfric import gpl_utils_source_config, lfric_source_config
 from .lfric_common import API, configurator
-from .grab_lfric import lfric_source_config, gpl_utils_source_config
 
-
-if __name__ == '__main__':
-    lfric_source = lfric_source_config.source_root / 'lfric'
-    gpl_utils_source = gpl_utils_source_config.source_root / 'gpl_utils'
+if __name__ == "__main__":
+    lfric_source = lfric_source_config.source_root / "lfric"
+    gpl_utils_source = gpl_utils_source_config.source_root / "gpl_utils"
 
     # this folder just contains previous output, for testing the overrides mechanism.
-    psyclone_overrides = Path(__file__).parent / 'mesh_tools_overrides'
+    psyclone_overrides = Path(__file__).parent / "mesh_tools_overrides"
 
-    with BuildConfig(project_label='mesh tools $compiler $two_stage',
-                     mpi=True, openmp=False, tool_box=ToolBox()) as state:
-        grab_folder(state, src=lfric_source / 'infrastructure/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'mesh_tools/source/', dst_label='')
-        grab_folder(state, src=lfric_source / 'components/science/source/', dst_label='')
+    with BuildConfig(
+        project_label="mesh tools $compiler $two_stage",
+        mpi=True,
+        openmp=False,
+        tool_box=ToolBox(),
+    ) as state:
+        grab_folder(state, src=lfric_source / "infrastructure/source/", dst_label="")
+        grab_folder(state, src=lfric_source / "mesh_tools/source/", dst_label="")
+        grab_folder(
+            state, src=lfric_source / "components/science/source/", dst_label=""
+        )
 
         # grab the psyclone overrides folder into the source folder
-        grab_folder(state, src=psyclone_overrides, dst_label='mesh_tools_overrides')
+        grab_folder(state, src=psyclone_overrides, dst_label="mesh_tools_overrides")
 
         # generate more source files in source and source/configuration
         configurator(
             state,
             lfric_source=lfric_source,
             gpl_utils_source=gpl_utils_source,
-            rose_meta_conf=lfric_source / 'mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf',
+            rose_meta_conf=lfric_source
+            / "mesh_tools/rose-meta/lfric-mesh_tools/HEAD/rose-meta.conf",
         )
 
         find_source_files(
             state,
             path_filters=[
                 # todo: allow a single string
-                Exclude('unit-test', '/test/'),
-            ])
+                Exclude("unit-test", "/test/"),
+            ],
+        )
 
         preprocess_fortran(state)
 
-        preprocess_x90(state, common_flags=['-DRDEF_PRECISION=64', '-DUSE_XIOS', '-DCOUPLED'])
+        preprocess_x90(
+            state, common_flags=["-DRDEF_PRECISION=64", "-DUSE_XIOS", "-DCOUPLED"]
+        )
 
         psyclone(
             state,
             kernel_roots=[state.build_output],
-            cli_args=['--config', Path(__file__).parent / 'psyclone.cfg'],
-            overrides_folder=state.source_root / 'mesh_tools_overrides',
+            cli_args=["--config", Path(__file__).parent / "psyclone.cfg"],
+            overrides_folder=state.source_root / "mesh_tools_overrides",
             api=API,
         )
 
         analyse(
             state,
-            root_symbol=['cubedsphere_mesh_generator', 'planar_mesh_generator',
-                         'summarise_ugrid'],
+            root_symbol=[
+                "cubedsphere_mesh_generator",
+                "planar_mesh_generator",
+                "summarise_ugrid",
+            ],
             # ignore_dependencies=['netcdf', 'MPI', 'yaxt', 'pfunit_mod',
             #                      'xios', 'mod_wait'],
         )
 
-        compile_fortran(state, common_flags=['-c'])
+        compile_fortran(state, common_flags=["-c"])
 
         archive_objects(state)
 
@@ -69,8 +91,12 @@ if __name__ == '__main__':
         link_exe(
             state,
             flags=[
-                '-lyaxt', '-lyaxt_c', '-lnetcdff', '-lnetcdf', '-lhdf5',  # EXTERNAL_DYNAMIC_LIBRARIES
-                '-lxios',  # EXTERNAL_STATIC_LIBRARIES
-                '-lstdc++',
+                "-lyaxt",
+                "-lyaxt_c",
+                "-lnetcdff",
+                "-lnetcdf",
+                "-lhdf5",  # EXTERNAL_DYNAMIC_LIBRARIES
+                "-lxios",  # EXTERNAL_STATIC_LIBRARIES
+                "-lstdc++",
             ],
         )
