@@ -14,7 +14,7 @@ import logging
 import os
 import warnings
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
@@ -165,7 +165,7 @@ class BuildConfig:
             logging.getLogger("fab").setLevel(logging.DEBUG)
 
         logger.info(f"building {self.project_label}")
-        self._start_time = datetime.now(tz=UTC).replace(microsecond=0)
+        self._start_time = datetime.now(tz=timezone.utc).replace(microsecond=0)
         self._run_prep()
 
         with TimerLogger(f"running {self.project_label} build steps") as build_timer:
@@ -180,7 +180,7 @@ class BuildConfig:
             cleanup_prebuilds(config=self, all_unused=True)
 
         logger.info(
-            f"Building '{self.project_label}' took {datetime.now(tz=UTC) - self._start_time}"
+            f"Building '{self.project_label}' took {datetime.now(tz=timezone.utc) - self._start_time}"
         )
 
         # always
@@ -265,7 +265,7 @@ class BuildConfig:
         log_file_handler.doRollover()
         logging.getLogger("fab").addHandler(log_file_handler)
 
-        logger.info(f"{datetime.now(tz=UTC)}")
+        logger.info(f"{datetime.now(tz=timezone.utc)}")
         if self.multiprocessing:
             logger.info(f"machine cores: {cpu_count()}")
             logger.info(f"available cores: {len(os.sched_getaffinity(0))}")

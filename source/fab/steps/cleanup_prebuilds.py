@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fab.artefacts import ArtefactSet
@@ -169,4 +169,4 @@ def get_access_time(fpath: Path) -> datetime:
 
     """
     ts = fpath.stat().st_atime
-    return datetime.fromtimestamp(ts, tz=UTC)
+    return datetime.fromtimestamp(ts, tz=timezone.utc)
