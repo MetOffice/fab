@@ -3,14 +3,14 @@
 # which you should have received as part of this distribution
 """
 C language handling classes.
-
 """
+
+from __future__ import annotations
 
 import logging
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import Optional, Union
 
 try:
     import clang  # type: ignore
@@ -90,7 +90,7 @@ class CAnalyser:
                 elif full == "# pragma FAB UsrIncludeEnd":
                     self._include_region.append((lineno, "usr_include_end"))
 
-    def _check_for_include(self, lineno) -> Optional[str]:
+    def _check_for_include(self, lineno) -> str | None:
         """Check whether a given line number is in a region that has come from an include."""
         # todo: don't need a stack?
         include_stack = []
@@ -105,7 +105,7 @@ class CAnalyser:
             return include_stack[-1]
         return None
 
-    def run(self, fpath: Path) -> Union[tuple[AnalysedC, Path], tuple[Exception, None]]:
+    def run(self, fpath: Path) -> tuple[AnalysedC, Path] | Exception | None:
 
         if not clang:
             msg = "clang not available, C analysis disabled"

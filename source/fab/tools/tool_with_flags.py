@@ -79,7 +79,7 @@ class ToolWithFlags(Tool):
             f"Generic flag name '{generic_name}' is not defined for '{self}'."
         )
 
-    def __setitem__(self, generic_name: str, flags: str |  list[str]) -> None:
+    def __setitem__(self, generic_name: str, flags: str | list[str]) -> None:
         """
         Sets or updates a specified compiler-specific flag for
         a given generic name.

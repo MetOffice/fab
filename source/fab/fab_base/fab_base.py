@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # ##############################################################################
 #  (c) Crown copyright Met Office. All rights reserved.
 #  For further details please refer to the file COPYRIGHT
@@ -20,7 +19,7 @@ import sys
 from collections.abc import Iterable
 from importlib import import_module
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from fab.build_config import AddFlags, BuildConfig
 from fab.steps.analyse import analyse
@@ -157,7 +156,7 @@ class FabBase:
         label = f"{name}-{self.args.profile}-$compiler"
         return label
 
-    def set_root_symbols(self, root_symbols: Union[list[str], str]) -> None:
+    def set_root_symbols(self, root_symbols: str | list[str]) -> None:
         """Defines the root symbol(s), which is set by default to be the
         name given in the constructor.
 
@@ -169,7 +168,7 @@ class FabBase:
         else:
             self._root_symbols = root_symbols
 
-    def set_root_symbol(self, root_symbols: Union[list[str], str]) -> None:
+    def set_root_symbol(self, root_symbols: str | list[str]) -> None:
         """Defines the root symbol. It defaults to the name given in
         the constructor.
 
@@ -211,14 +210,14 @@ class FabBase:
         return self._name
 
     @property
-    def site(self) -> Optional[str]:
+    def site(self) -> str | None:
         """
         :returns: the site, or None if no site is specified.
         """
         return self._site
 
     @property
-    def site_config(self) -> Optional[SiteConfig]:
+    def site_config(self) -> SiteConfig | None:
         """
         :returns: the site configuration to use (or None if
             no site config is used).
@@ -233,7 +232,7 @@ class FabBase:
         return self._logger
 
     @property
-    def platform(self) -> Optional[str]:
+    def platform(self) -> str | None:
         """
         :returns: the platform, or None if not specified.
         """
@@ -395,7 +394,7 @@ class FabBase:
         self._site_config = config_module.Config()
 
     def define_command_line_options(
-        self, parser: Optional[argparse.ArgumentParser] = None
+        self, parser: argparse.ArgumentParser | None = None
     ) -> argparse.ArgumentParser:
         """
         Defines command line options. Can be overwritten by a derived
@@ -697,7 +696,7 @@ class FabBase:
         return []
 
     def add_preprocessor_flags(
-        self, list_of_flags: Union[AddFlags, str, list[AddFlags], list[str]]
+        self, list_of_flags: AddFlags | str | list[AddFlags] | list[str]
     ) -> None:
         """
         This function appends a preprocessor flags to the internal list of
@@ -716,7 +715,7 @@ class FabBase:
         """
 
         # This convoluted test makes mypy happy
-        if isinstance(list_of_flags, AddFlags) or isinstance(list_of_flags, str):
+        if isinstance(list_of_flags, (AddFlags, str)):
             list_of_flags = [list_of_flags]
 
         # While Fab still distinguishes between path-specific and common
@@ -738,7 +737,7 @@ class FabBase:
             grab_files(self.config, src=".")
 
     def find_source_files_step(
-        self, path_filters: Optional[Iterable[Union[Exclude, Include]]] = None
+        self, path_filters: Iterable[Exclude | Include] | None = None
     ) -> None:
         """
         This function calls Fab's find_source_files, to identify and add
@@ -773,7 +772,7 @@ class FabBase:
 
     def analyse_step(
         self,
-        ignore_dependencies: Optional[Iterable[str]] = None,
+        ignore_dependencies: Iterable[str] | None = None,
         find_programs: bool = False,
     ) -> None:
         """
@@ -808,8 +807,8 @@ class FabBase:
 
     def compile_c_step(
         self,
-        common_flags: Optional[list[str]] = None,
-        path_flags: Optional[list[AddFlags]] = None,
+        common_flags: list[str] | None = None,
+        path_flags: list[AddFlags] | None = None,
     ) -> None:
         """
         Calls Fab's compile_c. It passes the config for Fab to compile
@@ -829,8 +828,8 @@ class FabBase:
 
     def compile_fortran_step(
         self,
-        common_flags: Optional[list[str]] = None,
-        path_flags: Optional[list[AddFlags]] = None,
+        common_flags: list[str] | None = None,
+        path_flags: list[AddFlags] | None = None,
     ) -> None:
         """
         Calls Fab's compile_fortran. It passes the config for Fab to

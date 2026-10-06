@@ -94,10 +94,7 @@ class TestLocateIncludeRegions:
         tokens: list[MockToken] = []
         for line in lines:
             tokens.extend(
-                
-                    MockToken(line=line[0], spelling=token)
-                    for token in line[1].split()
-                
+                MockToken(line=line[0], spelling=token) for token in line[1].split()
             )
 
         mock_trans_unit = Mock()
@@ -202,10 +199,12 @@ class Test_process_symbol_dependency:
 
 def test_clang_disable():
 
-    with mock.patch("fab.parse.c.clang", None), \
-        mock.patch("fab.parse.c.file_checksum") as mock_file_checksum:
-            c_analyser = CAnalyser(config=None)
-            result = c_analyser.run(Path(__file__).parent / "test_c_analyser.c")
+    with (
+        mock.patch("fab.parse.c.clang", None),
+        mock.patch("fab.parse.c.file_checksum") as mock_file_checksum,
+    ):
+        c_analyser = CAnalyser(config=None)
+        result = c_analyser.run(Path(__file__).parent / "test_c_analyser.c")
 
     assert isinstance(result[0], ImportWarning)
     mock_file_checksum.assert_not_called()

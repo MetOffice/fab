@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -8,12 +7,13 @@
 Fab command to build and maintain complex software applications.
 """
 
+from __future__ import annotations
+
 import sys
 from importlib.machinery import SourceFileLoader
 from importlib.util import module_from_spec, spec_from_loader
 from pathlib import Path
 from types import ModuleType
-from typing import Optional
 
 from ..logtools import make_logger, setup_file_logging
 from ..target.base import FabTargetBase
@@ -26,7 +26,7 @@ ARGUMENT_METHOD = "add_arguments"
 CHECK_METHOD = "check_arguments"
 
 
-def import_from_path(module_name: str, file_path: Path) -> Optional[ModuleType]:
+def import_from_path(module_name: str, file_path: Path) -> ModuleType | None:
     """Load a module by file path."""
     # Temporarily disable bytecode genearation to prevent __pycache__
     # directories from being created in the current working directory
@@ -48,7 +48,7 @@ def import_from_path(module_name: str, file_path: Path) -> Optional[ModuleType]:
     return module
 
 
-def main(argv: Optional[list[str]] = None):
+def main(argv: list[str] | None = None):
     """Main function.
 
     :param argv: list of command line arguments.  Use sys.argv if not specified.
@@ -61,7 +61,7 @@ def main(argv: Optional[list[str]] = None):
     parser = FabArgumentParser(description=__doc__)
     file_args = parser.parse_fabfile_only(argv)
 
-    build_class: Optional[type[FabTargetBase]] = None
+    build_class: type[FabTargetBase] | None = None
     if file_args.file is not None:
         builder_mod = import_from_path("builder", file_args.file)
         if builder_mod is None:

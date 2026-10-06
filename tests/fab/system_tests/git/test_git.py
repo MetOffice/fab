@@ -96,9 +96,12 @@ class TestGitMerge:
     def test_vanilla(self, repo_url, config):
 
         # checkout main
-        with pytest.warns(UserWarning,
-                          match="_metric_send_conn not set, cannot send metrics"):
-            git_checkout(config, src=repo_url, dst_label="tiny_fortran", revision="main")
+        with pytest.warns(
+            UserWarning, match="_metric_send_conn not set, cannot send metrics"
+        ):
+            git_checkout(
+                config, src=repo_url, dst_label="tiny_fortran", revision="main"
+            )
         check_file = config.source_root / "tiny_fortran/file1.txt"
         assert "This is sentence one in file one." in check_file.read_text()
 

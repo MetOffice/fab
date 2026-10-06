@@ -3,11 +3,13 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+from __future__ import annotations
+
 import json
 import logging
 from abc import ABC
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from fab.util import file_checksum
 
@@ -24,7 +26,7 @@ class AnalysedFile(ABC):
 
     """
 
-    def __init__(self, fpath: Union[str, Path], file_hash: Optional[int] = None):
+    def __init__(self, fpath: Path | str, file_hash: int | None = None):
         """
         :param fpath:
             The path of the file which was analysed.
@@ -65,16 +67,20 @@ class AnalysedFile(ABC):
     def from_dict(cls, d):
         raise NotImplementedError
 
-    def save(self, fpath: Union[str, Path]):
+    def save(self, fpath: Path | str):
         # subclasses don't need to override this method
+        if isinstance(fpath, str):
+            fpath = Path(fpath)
         d = self.to_dict()
         d["cls"] = self.__class__.__name__
-        json.dump(d, open(fpath, "wt"), indent=4)
+        json.dump(d, fpath.open("wt"), indent=4)
 
     @classmethod
-    def load(cls, fpath: Union[str, Path]):
+    def load(cls, fpath: Path | str):
         # subclasses don't need to override this method
-        d = json.load(open(fpath))
+        if isinstance(fpath, str):
+            fpath = Path(fpath)
+        d = json.load(fpath.open())
         found_class = d["cls"]
         if found_class != cls.__name__:
             raise ValueError(
@@ -130,10 +136,9 @@ class AnalysedFile(ABC):
 class EmptySourceFile(AnalysedFile):
     """
     An analysis result for a file which resulted in an empty parse tree.
-
     """
 
-    def __init__(self, fpath: Union[str, Path]):
+    def __init__(self, fpath: Path | str):
         """
         :param fpath:
             The path of the file which was analysed.

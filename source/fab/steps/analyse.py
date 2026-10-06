@@ -31,8 +31,9 @@ Sometimes a language parser will crash while parsing a *valid* source file, even
 can compile the file perfectly well. In this case we can give Fab the analysis results it should have made
 by passing FortranParserWorkaround objects into the `special_measure_analysis_results` argument.
 You'll have to manually read the file to determine which symbol definitions and dependencies it contains.
-
 """
+
+from __future__ import annotations
 
 import logging
 import sys
@@ -40,7 +41,6 @@ import warnings
 from collections.abc import Iterable
 from itertools import chain
 from pathlib import Path
-from typing import Optional, Union
 
 from fab.artefacts import ArtefactSet, ArtefactsGetter, CollectionConcat
 from fab.dep_tree import AnalysedDependent, extract_sub_tree, validate_dependencies
@@ -67,15 +67,13 @@ DEFAULT_SOURCE_GETTER = CollectionConcat(
 @step
 def analyse(
     config,
-    source: Optional[ArtefactsGetter] = None,
-    root_symbols: Optional[Union[str, list[str]]] = None,
+    source: ArtefactsGetter | None = None,
+    root_symbols: str | list[str] | None = None,
     find_programs: bool = False,
     std: str = "f2008",
-    special_measure_analysis_results: Optional[
-        Iterable[FortranParserWorkaround]
-    ] = None,
-    unreferenced_deps: Optional[Iterable[str]] = None,
-    ignore_dependencies: Optional[Iterable[str]] = None,
+    special_measure_analysis_results: Iterable[FortranParserWorkaround] | None = None,
+    unreferenced_deps: Iterable[str] | None = None,
+    ignore_dependencies: Iterable[str] | None = None,
 ):
     """
     Produce one or more build trees by analysing source code dependencies.
@@ -265,7 +263,7 @@ def _parse_files(
     with TimerLogger(f"analysing {len(fortran_files)} preprocessed fortran files"):
         fortran_results = run_mp(config, items=fortran_files, func=fortran_analyser.run)
     fortran_analyses, fortran_artefacts = (
-        zip(*fortran_results) if fortran_results else (tuple(), tuple())
+        zip(*fortran_results) if fortran_results else ((), ())
     )
 
     # warn about naughty fortran usage
@@ -289,7 +287,7 @@ def _parse_files(
             func=c_analyser.run,
             no_multiprocessing=no_multiprocessing,
         )
-    c_analyses, c_artefacts = zip(*c_results) if c_results else (tuple(), tuple())
+    c_analyses, c_artefacts = zip(*c_results) if c_results else ((), ())
 
     # Check for parse errors but don't fail. The failed files might not be required.
     analyses = fortran_analyses + c_analyses

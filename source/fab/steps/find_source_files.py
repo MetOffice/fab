@@ -5,13 +5,13 @@
 ##############################################################################
 """
 Gather files from a source folder.
-
 """
+
+from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Optional, Union
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -27,7 +27,7 @@ class _PathFilter:
     Deems an incoming path as included or excluded.
     """
 
-    def __init__(self, *filter_strings: Union[str, Path], include: bool):
+    def __init__(self, *filter_strings: Path | str, include: bool):
         """
         :param filter_strings:
             One or more strings to be used as pattern matches.
@@ -39,7 +39,7 @@ class _PathFilter:
         self.filter_strings: Iterable[str] = [str(i) for i in filter_strings]
         self.include = include
 
-    def check(self, path: Path) -> tuple[int, Optional[bool]]:
+    def check(self, path: Path) -> tuple[int, bool | None]:
         """
         Checks if the specified path contains one of the filter strings.
         If so, it returns the length of the longest filter string
@@ -102,9 +102,9 @@ class Exclude(_PathFilter):
 @step
 def find_source_files(
     config: BuildConfig,
-    source_root: Optional[Path] = None,
-    output_collection: Union[ArtefactSet, str] = ArtefactSet.INITIAL_SOURCE_FILES,
-    path_filters: Optional[Iterable[_PathFilter]] = None,
+    source_root: Path | None = None,
+    output_collection: ArtefactSet | str = ArtefactSet.INITIAL_SOURCE_FILES,
+    path_filters: Iterable[_PathFilter] | None = None,
 ) -> None:
     """
     Find the files in the source folder, with filtering.

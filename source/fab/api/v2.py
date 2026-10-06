@@ -4,9 +4,6 @@ functions from fab to be imported independent of the location of the
 files using `from fab.api import ...`.
 """
 
-# TODO #518: allow versioned APIs, and make this file point to the
-# current default API version.
-
 from fab.artefacts import ArtefactSet, CollectionGetter, SuffixFilter
 from fab.build_config import AddFlags, BuildConfig
 from fab.fab_base.fab_base import FabBase

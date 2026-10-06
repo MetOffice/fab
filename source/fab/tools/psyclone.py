@@ -166,7 +166,9 @@ class Psyclone(ToolWithFlags):
         if additional_parameters:
             parameters.extend(additional_parameters)
         if kernel_roots:
-            roots_with_dash_d = reduce(lambda x, y: x.extend(['-d'], str(y)), kernel_roots)
+            roots_with_dash_d = reduce(
+                lambda x, y: x.extend(["-d"], str(y)), kernel_roots
+            )
             parameters.extend(roots_with_dash_d)
         parameters.append(str(x90_file))
 

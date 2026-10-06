@@ -5,14 +5,14 @@
 ##############################################################################
 """
 Add custom pragmas to C code which identify user and system include regions.
-
 """
+
+from __future__ import annotations
 
 import re
 from collections.abc import Generator
 from pathlib import Path
-from re import Match, Pattern
-from typing import Optional, Tuple
+from re import Pattern
 
 from fab import FabException
 from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
@@ -27,8 +27,8 @@ DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.C_COMPILER_FILES, ".c")
 @step
 def c_pragma_injector(
     config,
-    source: Optional[ArtefactsGetter] = None,
-    output_name: Optional[ArtefactSet] = None,
+    source: ArtefactsGetter | None = None,
+    output_name: ArtefactSet | None = None,
 ) -> None:
     """
     A build step to inject custom pragmas to mark blocks of user and system
@@ -66,7 +66,7 @@ def c_pragma_injector(
     )
 
 
-def _process_artefact(config_fpath: Tuple[BuildConfig, Path]) -> None:
+def _process_artefact(config_fpath: BuildConfig | Path) -> None:
     """
     Adds the pragmas to a given C file, and stores the modified file
     with a ".prag" suffix in the output directory.
@@ -81,7 +81,7 @@ def _process_artefact(config_fpath: Tuple[BuildConfig, Path]) -> None:
     return prag_output_fpath
 
 
-def inject_pragmas(fpath) -> Generator:
+def inject_pragmas(fpath: Path) -> Generator:
     """
     Reads a C source file but when encountering an #include
     preprocessor directive injects a special Fab-specific
@@ -92,8 +92,8 @@ def inject_pragmas(fpath) -> Generator:
     _include_re: str = r"^\s*#include\s+(\S+)"
     _include_pattern: Pattern = re.compile(_include_re)
 
-    for line in open(fpath, "rt", encoding="utf-8"):
-        include_match: Optional[Match] = _include_pattern.match(line)
+    for line in fpath.open("rt", encoding="utf-8"):
+        include_match = _include_pattern.match(line)
         if include_match:
             # For valid C the first character of the matched
             # part of the group will indicate whether this is

@@ -10,13 +10,15 @@ https://github.com/stfc/PSyclone
 
 """
 
+from __future__ import annotations
+
 import logging
 import shutil
 import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Optional, Union, cast
+from typing import Callable, cast
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -47,9 +49,9 @@ class MpCommonArgs:
 
     config: BuildConfig
     suffix: str
-    transformation_script: Optional[Callable[[Path, BuildConfig], Path]]
+    transformation_script: Callable[[Path, BuildConfig], Path] | None
     cli_args: list[str]
-    overrides_folder: Optional[Path]
+    overrides_folder: Path | None
     # filenames (not paths) of hand crafted overrides
     override_files: list[str]
 
@@ -58,11 +60,11 @@ class MpCommonArgs:
 def psyclone_transmute(
     config: BuildConfig,
     fortran_files: Sequence[Path],
-    transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
-    cli_args: Optional[list[str]] = None,
-    suffix: Optional[str] = None,
-    overrides_folder: Optional[Path] = None,
-    artefact_set: Optional[ArtefactSet] = None,
+    transformation_script: Callable[[Path, BuildConfig], Path] | None = None,
+    cli_args: list[str] | None = None,
+    suffix: str | None = None,
+    overrides_folder: Path | None = None,
+    artefact_set: ArtefactSet | None = None,
 ):
     """
     PSyclone runner step.
@@ -162,7 +164,7 @@ def _generate_mp_payload(
 
 def transmute_one_file(
     arg: tuple[Path, MpCommonArgs],
-) -> Union[tuple[Path, Path], tuple[Exception, None]]:
+) -> tuple[Path, Path] | tuple[Exception | None]:
     """
     Transmutes a single file. This function is called in parallel
     from psyclone_transmute.

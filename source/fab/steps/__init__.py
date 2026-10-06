@@ -7,10 +7,11 @@
 Predefined build steps with sensible defaults.
 """
 
+from __future__ import annotations
+
 import multiprocessing
 from collections.abc import Iterable
 from functools import wraps
-from typing import Optional, Union
 
 from fab.metrics import send_metric
 from fab.util import TimerLogger, by_type
@@ -92,7 +93,7 @@ def run_mp_imap(config, items, func, result_handler):
 
 
 def check_for_errors(
-    results: Iterable[Union[str, Exception]], caller_label: Optional[str] = None
+    results: Iterable[str | Exception], caller_label: str | None = None
 ) -> None:
     """
     Check an iterable of results for any exceptions and handle them gracefully.

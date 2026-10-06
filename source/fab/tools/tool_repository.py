@@ -304,9 +304,7 @@ class ToolRepository(dict):
             )
 
         if not isinstance(mpi, bool):
-            raise TypeError(
-                f"Invalid or missing mpi specification for '{category}'."
-            )
+            raise TypeError(f"Invalid or missing mpi specification for '{category}'.")
 
         if not isinstance(openmp, bool):
             raise TypeError(

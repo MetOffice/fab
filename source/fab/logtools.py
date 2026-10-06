@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -8,11 +7,12 @@
 Logging tools for the fab framework.
 """
 
+from __future__ import annotations
+
 import inspect
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
 
 
 def make_logger(feature: str, offset: int = 1):
@@ -86,9 +86,7 @@ class FabLogFilter(logging.Filter):
     output seen by the user.
     """
 
-    def __init__(
-        self, build_level: Optional[int], system_level: Optional[int], quiet=False
-    ):
+    def __init__(self, build_level: int | None, system_level: int | None, quiet=False):
         super().__init__()
         self.build_level = build_level
         self.system_level = system_level
@@ -112,17 +110,13 @@ class FabLogFilter(logging.Filter):
             # Filter out anything below warning
             return False
 
-        if level == 1 and record.levelno < logging.INFO:
-            # Filter out anything below info
-            return False
-
-        # Log all messages that have made it this far
-        return True
+        # Filter out anything below info
+        return not (level == 1 and record.levelno < logging.INFO)
 
 
 def setup_logging(
-    build_level: Optional[int],
-    system_level: Optional[int],
+    build_level: int | None,
+    system_level: int | None,
     quiet=False,
     iostream=sys.stderr,
 ):

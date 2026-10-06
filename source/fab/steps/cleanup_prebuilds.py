@@ -8,12 +8,12 @@ Pruning of old files from the incremental/prebuild folder.
 
 """
 
+from __future__ import annotations
+
 import logging
 import os
-from collections.abc import Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 from fab.artefacts import ArtefactSet
 from fab.steps import run_mp, step
@@ -28,9 +28,9 @@ CLEANUP_COUNT = "cleanup_count"
 @step
 def cleanup_prebuilds(
     config,
-    older_than: Optional[timedelta] = None,
+    older_than: timedelta | None = None,
     n_versions: int = 0,
-    all_unused: Optional[bool] = None,
+    all_unused: bool | None = None,
 ):
     """
     A step to delete old files from the local incremental/prebuild folder.
@@ -103,9 +103,9 @@ def cleanup_prebuilds(
 
 
 def by_age(
-    older_than: Optional[timedelta],
+    older_than: timedelta | None,
     prebuilds_ts: dict[Path, datetime],
-    current_files: Iterable[Path],
+    current_files: Path | None,
 ) -> set[Path]:
     to_delete = set()
 
@@ -126,7 +126,7 @@ def by_age(
 
 
 def by_version_age(
-    n_versions: int, prebuilds_ts: dict[Path, datetime], current_files: Iterable[Path]
+    n_versions: int, prebuilds_ts: dict[Path, datetime], current_files: Path | None
 ) -> set[Path]:
     to_delete = set()
 
@@ -148,7 +148,7 @@ def by_version_age(
     return to_delete
 
 
-def remove_all_unused(found_files: Iterable[Path], current_files: Iterable[Path]):
+def remove_all_unused(found_files: Path | None, current_files: Path | None):
     num_removed = 0
 
     for f in found_files:
@@ -169,4 +169,4 @@ def get_access_time(fpath: Path) -> datetime:
 
     """
     ts = fpath.stat().st_atime
-    return datetime.fromtimestamp(ts)
+    return datetime.fromtimestamp(ts, tz=UTC)

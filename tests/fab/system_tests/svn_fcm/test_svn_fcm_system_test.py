@@ -181,10 +181,14 @@ class TestCheckout:
         else:
             assert False
 
-        with pytest.warns(UserWarning,
-                          match="_metric_send_conn not set, cannot send metrics"), \
-            mock.patch("fab.tools.tool.subprocess.run",
-                       wraps=fab.tools.tool.subprocess.run) as wrap:
+        with (
+            pytest.warns(
+                UserWarning, match="_metric_send_conn not set, cannot send metrics"
+            ),
+            mock.patch(
+                "fab.tools.tool.subprocess.run", wraps=fab.tools.tool.subprocess.run
+            ) as wrap,
+        ):
             checkout_func(config, src=file2_experiment, dst_label="proj", revision="7")
         assert confirm_file2_experiment_r7(config)
         wrap.assert_called_with(
@@ -202,9 +206,14 @@ class TestCheckout:
             check=False,
         )
 
-        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"), \
-                mock.patch("fab.tools.tool.subprocess.run",
-                           wraps=fab.tools.tool.subprocess.run) as wrap:
+        with (
+            pytest.warns(
+                UserWarning, match="_metric_send_conn not set, cannot send metrics"
+            ),
+            mock.patch(
+                "fab.tools.tool.subprocess.run", wraps=fab.tools.tool.subprocess.run
+            ) as wrap,
+        ):
             checkout_func(config, src=file2_experiment, dst_label="proj", revision="8")
         assert confirm_file2_experiment_r8(config)
         wrap.assert_called_with(

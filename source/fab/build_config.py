@@ -5,21 +5,21 @@
 ##############################################################################
 """
 Contains the :class:`~fab.build_config.BuildConfig` and helper classes.
-
 """
+
+from __future__ import annotations
 
 import getpass
 import logging
 import os
 import warnings
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import UTC, datetime
 from fnmatch import fnmatch
 from logging.handlers import RotatingFileHandler
 from multiprocessing import cpu_count
 from pathlib import Path
 from string import Template
-from typing import Optional
 
 from fab.artefacts import ArtefactSet, ArtefactStore
 from fab.constants import BUILD_OUTPUT, PREBUILD, SOURCE_ROOT
@@ -47,11 +47,11 @@ class BuildConfig:
         tool_box: AbstractToolBox,
         mpi: bool = False,
         openmp: bool = False,
-        profile: Optional[str] = None,
+        profile: str | None = None,
         multiprocessing: bool = True,
-        n_procs: Optional[int] = None,
+        n_procs: int | None = None,
         reuse_artefacts: bool = False,
-        fab_workspace: Optional[Path] = None,
+        fab_workspace: Path | None = None,
         two_stage: bool = False,
         verbose: bool = False,
     ):
@@ -165,7 +165,7 @@ class BuildConfig:
             logging.getLogger("fab").setLevel(logging.DEBUG)
 
         logger.info(f"building {self.project_label}")
-        self._start_time = datetime.now().replace(microsecond=0)
+        self._start_time = datetime.now(tz=UTC).replace(microsecond=0)
         self._run_prep()
 
         with TimerLogger(f"running {self.project_label} build steps") as build_timer:
@@ -175,15 +175,12 @@ class BuildConfig:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
 
-        if not exc_type:  # None if there's no error.
-            if CLEANUP_COUNT not in self.artefact_store:
-                logger.info(
-                    "no housekeeping step was run, using a default hard cleanup"
-                )
-                cleanup_prebuilds(config=self, all_unused=True)
+        if not exc_type and CLEANUP_COUNT not in self.artefact_store:
+            logger.info("no housekeeping step was run, using a default hard cleanup")
+            cleanup_prebuilds(config=self, all_unused=True)
 
         logger.info(
-            f"Building '{self.project_label}' took {datetime.now() - self._start_time}"
+            f"Building '{self.project_label}' took {datetime.now(tz=UTC) - self._start_time}"
         )
 
         # always
@@ -268,7 +265,7 @@ class BuildConfig:
         log_file_handler.doRollover()
         logging.getLogger("fab").addHandler(log_file_handler)
 
-        logger.info(f"{datetime.now()}")
+        logger.info(f"{datetime.now(tz=UTC)}")
         if self.multiprocessing:
             logger.info(f"machine cores: {cpu_count()}")
             logger.info(f"available cores: {len(os.sched_getaffinity(0))}")

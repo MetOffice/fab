@@ -9,16 +9,17 @@ fcm steps, which call the functions here with just a different category (FCM)
 from the tool box.
 """
 
+from __future__ import annotations
+
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Optional, Union
 
 from fab.steps import step
 from fab.tools.category import Category
 from fab.tools.versioning import Versioning
 
 
-def _get_revision(src, revision=None) -> tuple[str, Union[str, None]]:
+def _get_revision(src, revision=None) -> tuple[str, str | None]:
     """
     Pull out the revision if it's part of the url.
 
@@ -49,8 +50,8 @@ def _get_revision(src, revision=None) -> tuple[str, Union[str, None]]:
 
 
 def _svn_prep_common(
-    config, src: str, dst_label: Optional[str], revision: Optional[str]
-) -> tuple[str, Path, Optional[str]]:
+    config, src: str, dst_label: str | None, revision: str | None
+) -> tuple[str, Path, str | None]:
     src, revision = _get_revision(src, revision)
     if not config.source_root.exists():
         config.source_root.mkdir(parents=True, exist_ok=True)
@@ -63,7 +64,7 @@ def _svn_prep_common(
 def svn_export(
     config,
     src: str,
-    dst_label: Optional[str] = None,
+    dst_label: str | None = None,
     revision=None,
     category=Category.SUBVERSION,
 ):
@@ -81,7 +82,7 @@ def svn_export(
 def svn_checkout(
     config,
     src: str,
-    dst_label: Optional[str] = None,
+    dst_label: str | None = None,
     revision=None,
     category=Category.SUBVERSION,
 ):
@@ -109,7 +110,7 @@ def svn_checkout(
 def svn_merge(
     config,
     src: str,
-    dst_label: Optional[str] = None,
+    dst_label: str | None = None,
     revision=None,
     category=Category.SUBVERSION,
 ):
@@ -124,7 +125,7 @@ def svn_merge(
     check_conflict(svn, dst)
 
 
-def check_conflict(tool: Versioning, dst: Union[str, Path]):
+def check_conflict(tool: Versioning, dst: Path | str):
     """Check if there's a conflict"""
     xml_str = tool.run(["status", "--xml"], cwd=dst, capture_output=True)
     root = ET.fromstring(xml_str)

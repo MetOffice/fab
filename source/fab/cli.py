@@ -1,14 +1,16 @@
-# ##############################################################################
-#  (c) Crown copyright Met Office. All rights reserved.
-#  For further details please refer to the file COPYRIGHT
-#  which you should have received as part of this distribution
-# ##############################################################################
+###############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+###############################################################################
 
 """Functions to run Fab from the command line."""
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 from fab.artefacts import ArtefactSet, CollectionGetter
 from fab.build_config import BuildConfig
@@ -73,7 +75,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     return config
 
 
-def cli_fab(folder: Optional[Path] = None, kwargs: Optional[dict] = None):
+def cli_fab(folder: Path | None = None, kwargs: dict[str, Any] | None = None):
     """
     Running Fab from the command line will attempt to build the project in
     the current or given folder. The following params are used for testing.

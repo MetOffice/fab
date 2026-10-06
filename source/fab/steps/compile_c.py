@@ -5,12 +5,14 @@
 ##############################################################################
 """
 C file compilation.
-
 """
+
+from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional, cast
+from functools import reduce
+from typing import cast
 
 from fab import FabException
 from fab.artefacts import ArtefactSet, ArtefactsGetter, ArtefactStore, FilterBuildTrees
@@ -40,9 +42,9 @@ class MpCommonArgs:
 @step
 def compile_c(
     config: BuildConfig,
-    common_flags: Optional[list[str]] = None,
-    path_flags: Optional[list[AddFlags]] = None,
-    source: Optional[ArtefactsGetter] = None,
+    common_flags: list[str] | None = None,
+    path_flags: list[AddFlags] | None = None,
+    source: ArtefactsGetter | None = None,
 ):
     """
     Compiles all C files in all build trees, creating or extending a set of
@@ -79,7 +81,7 @@ def compile_c(
 
     # gather all the source to compile, for all build trees, into one big lump
     build_lists: dict = source_getter(config.artefact_store)
-    to_compile: list = sum(build_lists.values(), [])
+    to_compile: list = reduce(lambda l, v: l.extend(v), build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
 
     if len(to_compile) == 0:

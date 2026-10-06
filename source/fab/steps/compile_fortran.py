@@ -5,18 +5,20 @@
 ##############################################################################
 """
 Fortran file compilation.
-
 """
+
+from __future__ import annotations
 
 import logging
 import shutil
 from dataclasses import dataclass
+from functools import reduce
 from itertools import chain
 from pathlib import Path
-from typing import Optional, Union, cast
+from typing import cast
 
 from fab.artefacts import ArtefactSet, ArtefactsGetter, ArtefactStore, FilterBuildTrees
-from fab.build_config import BuildConfig
+from fab.build_config import AddFlags, BuildConfig
 from fab.metrics import send_metric
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import check_for_errors, run_mp, step
@@ -51,9 +53,9 @@ class MpCommonArgs:
 @step
 def compile_fortran(
     config: BuildConfig,
-    common_flags: Optional[list[str]] = None,
-    path_flags: Optional[list] = None,
-    source: Optional[ArtefactsGetter] = None,
+    common_flags: list[str] | None = None,
+    path_flags: list[AddFlags] | None = None,
+    source: ArtefactsGetter | None = None,
 ):
     """
     Compiles all Fortran files in all build trees, creating/extending a set
@@ -88,7 +90,9 @@ def compile_fortran(
 
     # compile everything in multiple passes
     compiled: dict[Path, CompiledFile] = {}
-    uncompiled: set[AnalysedFortran] = set(sum(build_lists.values(), []))
+    uncompiled: set[AnalysedFortran] = reduce(
+        lambda s, v: s.add(v), build_lists.values(), set()
+    )
     logger.info(f"compiling {len(uncompiled)} fortran files")
 
     # No need to do anything else if there are no files to compile
@@ -132,7 +136,7 @@ def compile_fortran(
 
         # A single pass should now compile all the object files in one go
         # todo: order by last compile duration
-        uncompiled = set(sum(build_lists.values(), []))
+        uncompiled = reduce(lambda s, i: s.add(i), build_lists.values(), set())
         mp_args = [(fpath, mp_common_args) for fpath in uncompiled]
         results_this_pass = run_mp(config, items=mp_args, func=process_file)
         log_or_dot_finish(logger)
@@ -185,7 +189,7 @@ def compile_pass(
     # there's a compilation result and a list of prebuild files for each
     # compiled file
     compilation_results, prebuild_files = (
-        zip(*results_this_pass) if results_this_pass else (tuple(), tuple())
+        zip(*results_this_pass) if results_this_pass else ((), ())
     )
     check_for_errors(compilation_results, caller_label="compile_pass")
     compiled_this_pass = list(by_type(compilation_results, CompiledFile))
@@ -259,7 +263,7 @@ def store_artefacts(
 
 def process_file(
     arg: tuple[AnalysedFortran, MpCommonArgs],
-) -> Union[tuple[CompiledFile, list[Path]], tuple[Exception, None]]:
+) -> tuple[CompiledFile, list[Path]] | Exception | None:
     """
     Prepare to compile a fortran file, and compile it if anything has changed
     since it was last compiled.
@@ -322,9 +326,9 @@ def process_file(
         ]
 
         # have we got all the prebuilt artefacts we need to avoid a recompile?
-        prebuilds_exist = list(
-            map(lambda f: f.exists(), [obj_file_prebuild] + mod_file_prebuilds)
-        )
+        prebuilds_exist = [
+            file.exists() for file in [obj_file_prebuild] + mod_file_prebuilds
+        ]
         if not all(prebuilds_exist):
             # compile
             logger.debug(f"CompileFortran compiling {analysed_file.fpath}")
@@ -336,7 +340,9 @@ def process_file(
                     output_fpath=obj_file_prebuild,
                     mp_common_args=mp_common_args,
                 )
-            except Exception as err:
+            # Todo: This "catch" needs to be more specific.
+            #
+            except Exception as err:  # noqa: BLE001
                 return Exception(f"Error compiling {analysed_file.fpath}:\n{err}"), None
 
             # copy the mod files to the prebuild folder as artefacts for reuse

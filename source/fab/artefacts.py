@@ -11,15 +11,15 @@ This module contains :term:`Artefacts Getter` classes which return
 These classes are used by the `run` method of :class:`~fab.steps.Step`
 classes to retrieve the artefacts which need to be processed. Most steps
 have sensible defaults and can be configured with user-defined getters.
-
 """
+
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from enum import Enum, auto
 from pathlib import Path
-from typing import Optional, Union
 
 from fab.dep_tree import AnalysedDependent, filter_source_tree
 from fab.util import suffix_filter
@@ -64,9 +64,7 @@ class ArtefactStore(dict):
             else:
                 self[artefact] = set()
 
-    def add(
-        self, collection: Union[str, ArtefactSet], files: Union[Path, Iterable[Path]]
-    ):
+    def add(self, collection: str | ArtefactSet, files: Path | Iterable[Path]):
         """Adds the specified artefacts to a collection. The artefact
         can be specified as a simple string, a list of string or a set, in
         which case all individual entries of the list/set will be added.
@@ -84,9 +82,9 @@ class ArtefactStore(dict):
 
     def update_dict(
         self,
-        collection: Union[str, ArtefactSet],
-        values: Union[Path, Iterable[Path]],
-        key: Optional[str] = None,
+        collection: str | ArtefactSet,
+        values: Path | Iterable[Path],
+        key: str | None = None,
     ):
         """
         Modifies data associated with artefact set.
@@ -100,9 +98,9 @@ class ArtefactStore(dict):
 
     def copy_artefacts(
         self,
-        source: Union[str, ArtefactSet],
-        dest: Union[str, ArtefactSet],
-        suffixes: Optional[Union[str, list[str]]] = None,
+        source: str | ArtefactSet,
+        dest: str | ArtefactSet,
+        suffixes: str | list[str] | None = None,
     ):
         """Copies all artefacts from `source` to `destination`. If a
         suffix_fiter is specified, only files with the given suffix
@@ -121,9 +119,9 @@ class ArtefactStore(dict):
 
     def replace(
         self,
-        artefact: Union[str, ArtefactSet],
-        remove_files: Union[Sequence[str], Sequence[Path]],
-        add_files: Union[Sequence[str], Sequence[Path]],
+        artefact: str | ArtefactSet,
+        remove_files: Sequence[str] | Sequence[Path],
+        add_files: Sequence[str] | Sequence[Path],
     ):
         """Replaces artefacts in one artefact set with other artefacts. This
         can be used e.g to replace files that have been preprocessed
@@ -138,7 +136,7 @@ class ArtefactStore(dict):
 
         art_set = self[artefact]
         if not isinstance(art_set, set):
-            raise RuntimeError(
+            raise TypeError(
                 f"Replacing artefacts in dictionary '{artefact}' is not supported."
             )
         art_set.difference_update(set(remove_files))
@@ -174,7 +172,7 @@ class CollectionGetter(ArtefactsGetter):
 
     """
 
-    def __init__(self, collection_name: Union[str, ArtefactSet]):
+    def __init__(self, collection_name: str | ArtefactSet):
         """
         :param collection_name:
             The name of the artefact collection to retrieve.
@@ -207,7 +205,7 @@ class CollectionConcat(ArtefactsGetter):
 
     """
 
-    def __init__(self, collections: Iterable[Union[ArtefactSet, str, ArtefactsGetter]]):
+    def __init__(self, collections: Iterable[ArtefactSet | str | ArtefactsGetter]):
         """
         :param collections:
             An iterable containing collection names (strings) or
@@ -241,9 +239,7 @@ class SuffixFilter(ArtefactsGetter):
 
     """
 
-    def __init__(
-        self, collection_name: Union[str, ArtefactSet], suffix: Union[str, list[str]]
-    ):
+    def __init__(self, collection_name: str | ArtefactSet, suffix: str | list[str]):
         """
         :param collection_name:
             The name of the artefact collection.
@@ -275,7 +271,7 @@ class FilterBuildTrees(ArtefactsGetter):
 
     """
 
-    def __init__(self, suffix: Union[str, list[str]]):
+    def __init__(self, suffix: str | list[str]):
         """
         :param suffix:
             A suffix string, or iterable of, including the preceding dot.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -71,7 +70,7 @@ def _parser_wrapper(func: Callable) -> Callable:
             # parse_known_args
             namespace = result[0]
         else:
-            raise ValueError("invalid return value from wrapped function")
+            raise TypeError("invalid return value from wrapped function")
 
         # Save the name used to refer to the current program
         namespace._progname = self.prog
@@ -270,7 +269,7 @@ class FabArgumentParser(argparse.ArgumentParser):
         self._add_fabfile_argument(file_only)
 
         try:
-            nspace, rest = file_only.parse_known_args(*args, **kwargs)
+            nspace, _ = file_only.parse_known_args(*args, **kwargs)
         except argparse.ArgumentError as err:
             if err.argument_name == "--file":
                 # Deal with --file problems immediately

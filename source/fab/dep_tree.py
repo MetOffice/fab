@@ -6,16 +6,17 @@
 """
 Classes and helper functions related to the dependency tree, as created by
 the analysis stage.
-
 """
 
 # todo: we've since adopted the term "source tree", so we should probably
-# rename this module to match.
+#       rename this module to match.
+from __future__ import annotations
+
 import logging
 from abc import ABC
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 from fab.parse import AnalysedFile
 
@@ -34,16 +35,15 @@ class AnalysedDependent(AnalysedFile, ABC):
     During parsing, the symbol definitions and dependencies are filled in.
     During dependency analysis, symbol dependencies are turned into file
     dependencies.
-
     """
 
     def __init__(
         self,
-        fpath: Union[str, Path],
-        file_hash: Optional[int] = None,
-        symbol_defs: Optional[Iterable[str]] = None,
-        symbol_deps: Optional[Iterable[str]] = None,
-        file_deps: Optional[Iterable[Path]] = None,
+        fpath: Path | str,
+        file_hash: int | None = None,
+        symbol_defs: Iterable[str] | None = None,
+        symbol_deps: Iterable[str] | None = None,
+        file_deps: Iterable[Path] | None = None,
     ):
         """
         :param fpath:
@@ -63,12 +63,12 @@ class AnalysedDependent(AnalysedFile, ABC):
         """
         super().__init__(fpath=fpath, file_hash=file_hash)
 
-        self.symbol_defs: set[str] = set(symbol_defs or {})
-        self.symbol_deps: set[str] = set(symbol_deps or {})
+        self.symbol_defs: set[str] = {dep.strip() for dep in symbol_defs or ()}
+        self.symbol_deps: set[str] = {dep.strip() for dep in symbol_deps or ()}
         self.file_deps: set[Path] = set(file_deps or [])
 
-        assert all([d and len(d) for d in self.symbol_defs]), "bad symbol definitions"
-        assert all([d and len(d) for d in self.symbol_deps]), "bad symbol dependencies"
+        assert all(self.symbol_defs), "bad symbol definitions"
+        assert all(self.symbol_deps), "bad symbol dependencies"
 
     def add_symbol_def(self, name: str) -> None:
         """
@@ -234,6 +234,5 @@ def validate_dependencies(source_tree):
 
     if missing:
         logger.error(
-            f"Unknown dependencies, expecting build to fail: "
-            f"{', '.join(sorted(missing))}"
+            f"Unknown dependencies, expecting build to fail: {', '.join(sorted(missing))}"
         )

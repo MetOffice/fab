@@ -68,9 +68,7 @@ class Git(Versioning):
         """
         self.run(["clean", "-f"], cwd=folder)
 
-    def fetch(
-        self, src: str | Path, dst: str | Path, revision: str | None
-    ):
+    def fetch(self, src: str | Path, dst: str | Path, revision: str | None):
         """Runs `git fetch` in the specified directory
 
         :param src: the source directory from which to fetch
