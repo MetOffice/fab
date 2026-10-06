@@ -53,8 +53,9 @@ def test_CFortranInterop(tmp_path):
 
     assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 1
 
-    # run
-    command = [str(list(config.artefact_store[ArtefactSet.EXECUTABLES])[0])]
-    res = subprocess.run(command, capture_output=True)
+    # Note: Sets are unordered, the first item could be anything.
+    #
+    command = [str(next(config.artefact_store[ArtefactSet.EXECUTABLES].__iter__()))]
+    res = subprocess.run(command, check=False, capture_output=True)
     output = res.stdout.decode()
-    assert output == "".join(open(PROJECT_SOURCE / "expected.exec.txt").readlines())
+    assert output == (PROJECT_SOURCE / "expected.exec.txt").read_text()

@@ -5,7 +5,6 @@
 # ##############################################################################
 """
 Test svn and fcm steps, if their underlying cli tools are available.
-
 """
 
 import shutil
@@ -89,15 +88,13 @@ def confirm_trunk(config: BuildConfig) -> bool:
     """:returns: whether the source directory is at trunk or not."""
     file1_txt = (config.source_root / "proj/file1.txt").read_text()
     file2_txt = (config.source_root / "proj/file2.txt").read_text()
-    if not file1_txt.startswith("This is sentence one in file one."):
-        return False
-    if not file2_txt.strip().endswith("This is sentence two in file two."):
-        return False
-    return True
+    if file1_txt.startswith("This is sentence one in file one."):
+        return True
+    return file2_txt.strip().endswith("This is sentence two in file two.")
 
 
 def confirm_file1_experiment_a(config) -> bool:
-    """:returns: wheter we got the revision 7 text in file 2 or not."""
+    """:returns: whether we got the revision 7 text in file 2 or not."""
     file1_txt = (config.source_root / "proj/file2.txt").read_text()
     return file1_txt.startswith("This is sentence one, with Experiment A modification.")
 
@@ -137,7 +134,7 @@ class TestExport:
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
         ):
             export_func(config, src=file2_experiment, dst_label="proj", revision=7)
-            assert confirm_file2_experiment_r7(config)
+        assert confirm_file2_experiment_r7(config)
 
         # Make sure we can export twice into the same folder.
         # Todo: should the export step wipe the destination first?
@@ -146,7 +143,7 @@ class TestExport:
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
         ):
             export_func(config, src=file2_experiment, dst_label="proj", revision=8)
-            assert confirm_file2_experiment_r8(config)
+        assert confirm_file2_experiment_r8(config)
 
 
 @pytest.mark.filterwarnings(
@@ -165,7 +162,7 @@ class TestCheckout:
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
         ):
             checkout_func(config, src=trunk, dst_label="proj")
-            assert confirm_trunk(config)
+        assert confirm_trunk(config)
 
     @pytest.mark.parametrize("checkout_func", checkout_funcs)
     def test_working_copy(self, file2_experiment, config, checkout_func):
@@ -184,40 +181,39 @@ class TestCheckout:
         else:
             assert False
 
-        with (
-            mock.patch(
-                "fab.tools.tool.subprocess.run", wraps=fab.tools.tool.subprocess.run
-            ) as wrap,
-            pytest.warns(
-                UserWarning, match="_metric_send_conn not set, cannot send metrics"
-            ),
-        ):
+        with pytest.warns(UserWarning,
+                          match="_metric_send_conn not set, cannot send metrics"), \
+            mock.patch("fab.tools.tool.subprocess.run",
+                       wraps=fab.tools.tool.subprocess.run) as wrap:
             checkout_func(config, src=file2_experiment, dst_label="proj", revision="7")
-            assert confirm_file2_experiment_r7(config)
-            wrap.assert_called_with(
-                [
-                    expect_tool,
-                    "checkout",
-                    "--revision",
-                    "7",
-                    file2_experiment,
-                    str(config.source_root / "proj"),
-                ],
-                capture_output=True,
-                env=None,
-                cwd=None,
-                check=False,
-            )
+        assert confirm_file2_experiment_r7(config)
+        wrap.assert_called_with(
+            [
+                expect_tool,
+                "checkout",
+                "--revision",
+                "7",
+                file2_experiment,
+                str(config.source_root / "proj"),
+            ],
+            capture_output=True,
+            env=None,
+            cwd=None,
+            check=False,
+        )
 
+        with pytest.warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"), \
+                mock.patch("fab.tools.tool.subprocess.run",
+                           wraps=fab.tools.tool.subprocess.run) as wrap:
             checkout_func(config, src=file2_experiment, dst_label="proj", revision="8")
-            assert confirm_file2_experiment_r8(config)
-            wrap.assert_called_with(
-                [expect_tool, "update", "--revision", "8"],
-                capture_output=True,
-                env=None,
-                cwd=config.source_root / "proj",
-                check=False,
-            )
+        assert confirm_file2_experiment_r8(config)
+        wrap.assert_called_with(
+            [expect_tool, "update", "--revision", "8"],
+            capture_output=True,
+            env=None,
+            cwd=config.source_root / "proj",
+            check=False,
+        )
 
     @pytest.mark.parametrize(
         "export_func,checkout_func", zip(export_funcs, checkout_funcs)
@@ -253,11 +249,11 @@ class TestMerge:
         ):
             # something to merge into; checkout trunk
             checkout_func(config, src=trunk, dst_label="proj")
-            confirm_trunk(config)
+        confirm_trunk(config)
 
-            # merge another branch in
-            merge_func(config, src=file2_experiment, dst_label="proj")
-            confirm_file2_experiment_r8(config)
+        # merge another branch in
+        merge_func(config, src=file2_experiment, dst_label="proj")
+        confirm_file2_experiment_r8(config)
 
     @pytest.mark.parametrize(
         "checkout_func,merge_func", zip(checkout_funcs, merge_funcs)
@@ -269,11 +265,11 @@ class TestMerge:
         ):
             # something to merge into; checkout trunk
             checkout_func(config, src=trunk, dst_label="proj")
-            confirm_trunk(config)
+        confirm_trunk(config)
 
-            # merge another branch in
-            merge_func(config, src=file2_experiment, dst_label="proj", revision=7)
-            confirm_file2_experiment_r7(config)
+        # merge another branch in
+        merge_func(config, src=file2_experiment, dst_label="proj", revision=7)
+        confirm_file2_experiment_r7(config)
 
     @pytest.mark.parametrize("export_func,merge_func", zip(export_funcs, merge_funcs))
     def test_not_working_copy(
@@ -300,7 +296,7 @@ class TestMerge:
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
         ):
             checkout_func(config, src=file1_experiment_a, dst_label="proj")
-            confirm_file1_experiment_a(config)
+        confirm_file1_experiment_a(config)
 
         # this branch modifies the same line of text
         with pytest.raises(RuntimeError):
@@ -323,10 +319,10 @@ class TestMerge:
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
         ):
             checkout_func(config, src=trunk, dst_label="proj")
-            confirm_trunk(config)
+        confirm_trunk(config)
 
-            merge_func(config, src=file1_experiment_a, dst_label="proj")
-            confirm_file1_experiment_a(config)
+        merge_func(config, src=file1_experiment_a, dst_label="proj")
+        confirm_file1_experiment_a(config)
 
-            merge_func(config, src=file2_experiment, dst_label="proj", revision=7)
-            confirm_file2_experiment_r7(config)
+        merge_func(config, src=file2_experiment, dst_label="proj", revision=7)
+        confirm_file2_experiment_r7(config)

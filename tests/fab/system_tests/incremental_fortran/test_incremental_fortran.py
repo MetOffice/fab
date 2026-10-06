@@ -1,8 +1,9 @@
 import logging
 import os
 import zlib
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import ClassVar
 from unittest.mock import Mock
 
 from fab.artefacts import ArtefactSet, ArtefactStore
@@ -84,7 +85,7 @@ class TestIncremental:
         # ensure a rebuild with no change does not recreate our prebuild artefacts
 
         # clean build
-        clean_files, clean_timestamps, clean_hashes = self.build(config)
+        _, clean_timestamps, clean_hashes = self.build(config)
 
         # rebuild
         rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(config)
@@ -114,14 +115,14 @@ class TestIncremental:
         # test a code change without a module interface change
 
         # clean build
-        clean_files, clean_timestamps, clean_hashes = self.build(config)
+        _, clean_timestamps, clean_hashes = self.build(config)
 
         # modify the fortran module source without changing the module interface
         mod_source = config.source_root / "src/my_mod.F90"
-        lines = open(mod_source, "rt").readlines()
+        source_list = mod_source.read_text().splitlines()
         with open(mod_source, "wt") as out:
-            for line in lines:
-                out.write(line)
+            for line in source_list:
+                out.write(line + "\n")
                 # duplicate the print line
                 if "PRINT" in line:
                     out.write(line)
@@ -162,14 +163,14 @@ class TestIncremental:
         # test a module interface change
 
         # clean build
-        clean_files, clean_timestamps, clean_hashes = self.build(config)
+        _, clean_timestamps, clean_hashes = self.build(config)
 
         # modify the fortran module source, changing the module interface
         mod_source = config.source_root / "src/my_mod.F90"
-        lines = open(mod_source, "rt").readlines()
-        with open(mod_source, "wt") as out:
-            for line in lines:
-                out.write(line)
+        source_list = mod_source.read_text().splitlines()
+        with mod_source.open("wt") as out:
+            for line in source_list:
+                out.write(line + "\n")
                 # add an extra subroutine
                 if "END SUBROUTINE" in line:
                     out.write("""
@@ -180,7 +181,7 @@ class TestIncremental:
 
                         END SUBROUTINE added_func
                     """)
-
+        print(mod_source.read_text())
         # rebuild
         rebuild_files, rebuild_timestamps, rebuild_hashes = self.build(config)
 
@@ -225,7 +226,7 @@ class TestIncremental:
         all_files = set(file_walk(build_config.build_output))
 
         timestamps = {f: f.stat().st_mtime_ns for f in all_files}
-        hashes = {f: zlib.crc32(open(f, "rb").read()) for f in all_files}
+        hashes = {f: zlib.crc32(f.read_bytes()) for f in all_files}
         return all_files, timestamps, hashes
 
     def assert_two_different_artefacts(
@@ -245,10 +246,10 @@ class TestIncremental:
             )
 
     def assert_two_identical_artefacts(
-        self, pb_keys, prebuild_groups, prebuild_folder, rebuild_hashes
+        self, prebuild_keys, prebuild_groups, prebuild_folder, rebuild_hashes
     ):
         # Make sure there are two versions for each given artefact wildcard, with identical contents.
-        for pb in pb_keys:
+        for pb in prebuild_keys:
             # check there's two versions of this artefact
             pb_group = prebuild_groups[pb]
             assert len(pb_group) == 2, f"expected two artefacts for {pb}"
@@ -300,10 +301,10 @@ class TestCleanupPrebuilds:
         Creates several versions of the same artefact.
         """
         artefacts = [
-            ("a.123.foo", datetime(2022, 10, 31)),
-            ("a.234.foo", datetime(2022, 10, 21)),
-            ("a.345.foo", datetime(2022, 10, 11)),
-            ("a.456.foo", datetime(2022, 10, 1)),
+            ("a.123.foo", datetime(2022, 10, 31, tzinfo=UTC)),
+            ("a.234.foo", datetime(2022, 10, 21, tzinfo=UTC)),
+            ("a.345.foo", datetime(2022, 10, 11, tzinfo=UTC)),
+            ("a.456.foo", datetime(2022, 10, 1, tzinfo=UTC)),
         ]
         configuration = BuildConfig(
             PROJECT_LABEL, Mock(), fab_workspace=Path("/fab"), multiprocessing=False
@@ -328,7 +329,7 @@ class TestCleanupPrebuilds:
         filenames = [str(f.name) for f in files]
         return sorted(filenames)
 
-    in_out = [
+    in_out: ClassVar = [
         # prune artefacts by age
         ({"older_than": timedelta(days=15)}, ["a.123.foo", "a.234.foo"]),
         ({"older_than": timedelta(days=25)}, ["a.123.foo", "a.234.foo", "a.345.foo"]),

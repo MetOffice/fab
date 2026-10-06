@@ -56,10 +56,11 @@ class CAnalyser:
         self._config = config
         self._include_region: list[tuple[int, str]] = []
 
-    # todo: simplifiy by passing in the file path instead of the analysed tokens?
-    def _locate_include_regions(self, trans_unit) -> None:
+    # todo: simplify by passing in the file path instead of the analysed tokens?
+    def _locate_include_regions(self, trans_unit: clang.cindex.TranslationUnit) -> None:
         """
-        Look for Fab pragmas identifying included code which came from system or user #includes.
+        Look for Fab pragmas identifying included code which came from system
+        or user #includes.
         """
         # Aim is to identify where included (top level) regions start and end in the file
         self._include_region = []

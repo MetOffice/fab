@@ -7,13 +7,14 @@
 Tests the FabBase class
 """
 
+from __future__ import annotations
+
 import argparse
 import inspect
 import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 from unittest import mock
 
 import pytest
@@ -335,7 +336,7 @@ def test_site_specific_callbacks(monkeypatch):
         """Dummy class to keep track of the parser"""
 
         def define_command_line_options(
-            self, parser: Optional[argparse.ArgumentParser] = None
+            self, parser: argparse.ArgumentParser | None = None
         ) -> argparse.ArgumentParser:
             """Simple class that stores the parser created."""
             self.parser = super().define_command_line_options(parser)

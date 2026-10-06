@@ -36,18 +36,24 @@ def build(fab_workspace, fpp_flags=None):
     return config
 
 
-def test_FortranPreProcess(tmp_path):
+def test_fortran_pre_process(tmp_path):
 
     # stay
     stay_config = build(fab_workspace=tmp_path, fpp_flags=["-P", "-DSHOULD_I_STAY=yes"])
 
-    stay_exe = list(stay_config.artefact_store[ArtefactSet.EXECUTABLES])[0]
-    stay_res = subprocess.run(str(stay_exe), capture_output=True)
+    # Note: Ordering is not guaranteed in sets so returning the first item
+    #       could return anything.
+    #
+    stay_exe = next(stay_config.artefact_store[ArtefactSet.EXECUTABLES].__iter__())
+    stay_res = subprocess.run(str(stay_exe), check=False, capture_output=True)
     assert stay_res.stdout.decode().strip() == "I should stay"
 
     # go
     go_config = build(fab_workspace=tmp_path, fpp_flags=["-P"])
 
-    go_exe = list(go_config.artefact_store[ArtefactSet.EXECUTABLES])[0]
-    go_res = subprocess.run(str(go_exe), capture_output=True)
+    # Note: Ordering is not guaranteed in sets so returning the first item
+    #       could return anything.
+    #
+    go_exe = next(go_config.artefact_store[ArtefactSet.EXECUTABLES].__iter__())
+    go_res = subprocess.run(str(go_exe), check=False, capture_output=True)
     assert go_res.stdout.decode().strip() == "I should go now"

@@ -1,6 +1,3 @@
-#! /usr/bin/env python3
-
-
 """
 This module contains the default Fab configuration class.
 """

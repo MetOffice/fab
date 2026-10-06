@@ -45,7 +45,7 @@ def test_fortran_dependencies(tmp_path):
     # run both exes
     output = set()
     for exe in config.artefact_store[ArtefactSet.EXECUTABLES]:
-        res = subprocess.run(str(exe), capture_output=True)
+        res = subprocess.run(str(exe), check=False, capture_output=True)
         output.add(res.stdout.decode())
 
     # check output

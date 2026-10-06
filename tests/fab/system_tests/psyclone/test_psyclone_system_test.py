@@ -158,10 +158,8 @@ class TestPsyclone:
             list(config.prebuild_folder.glob(f)) == [] for f in expect_prebuild_files
         )
         assert all(list(config.build_output.glob(f)) == [] for f in expect_build_files)
-        with warns(UserWarning, match="no transformation script specified"):
-            with warns(
-                UserWarning, match="_metric_send_conn not set, cannot send metrics"
-            ):
+        with warns(UserWarning, match="no transformation script specified"), \
+             warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                 self.steps(config)
         assert all(
             list(config.prebuild_folder.glob(f)) != [] for f in expect_prebuild_files
@@ -190,17 +188,13 @@ class TestPsyclone:
         """
         config.prebuild_folder.mkdir(parents=True)
 
-        with warns(UserWarning, match="no transformation script specified"):
-            with warns(
-                UserWarning, match="_metric_send_conn not set, cannot send metrics"
-            ):
+        with warns(UserWarning, match="no transformation script specified"), \
+             warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                 self.steps(config)
         first_timestamps = self.__file_stats(config.prebuild_folder)
 
-        with warns(UserWarning, match="no transformation script specified"):
-            with warns(
-                UserWarning, match="_metric_send_conn not set, cannot send metrics"
-            ):
+        with warns(UserWarning, match="no transformation script specified"), \
+             warns(UserWarning, match="_metric_send_conn not set, cannot send metrics"):
                 self.steps(config)
         second_timestamps = self.__file_stats(config.prebuild_folder)
 

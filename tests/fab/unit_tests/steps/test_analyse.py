@@ -169,7 +169,7 @@ class Test_parse_files:
         """
 
         def raises(*args, **kwargs):
-            raise Exception("foo")
+            raise RuntimeError("foo")
 
         # The warning "deprecated 'DEPENDS ON:' comment found in fortran
         # code" is in "def _parse_files" in "source/steps/analyse.py"

@@ -3,7 +3,7 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fab.artefacts import ArtefactSet
@@ -57,8 +57,8 @@ class TestCleanupPrebuilds:
         Tests expiration date helper function.
         """
         prebuilds_ts = {
-            Path("foo.123.o"): datetime(2022, 10, 31),
-            Path("foo.234.o"): datetime(2022, 10, 1),
+            Path("foo.123.o"): datetime(2022, 10, 31, tzinfo=UTC),
+            Path("foo.234.o"): datetime(2022, 10, 1, tzinfo=UTC),
         }
 
         result = by_age(
@@ -73,8 +73,8 @@ class TestCleanupPrebuilds:
         Tests expiration of up-to-date files.
         """
         prebuilds_ts = {
-            Path("foo.123.o"): datetime(2022, 10, 31),
-            Path("foo.234.o"): datetime(2022, 10, 1),
+            Path("foo.123.o"): datetime(2022, 10, 31, tzinfo=UTC),
+            Path("foo.234.o"): datetime(2022, 10, 1, tzinfo=UTC),
         }
 
         result = by_age(
@@ -89,8 +89,8 @@ class TestCleanupPrebuilds:
         Tests expiration of older versions of files.
         """
         prebuilds_ts = {
-            Path("foo.123.o"): datetime(2022, 10, 31),
-            Path("foo.234.o"): datetime(2022, 10, 1),
+            Path("foo.123.o"): datetime(2022, 10, 31, tzinfo=UTC),
+            Path("foo.234.o"): datetime(2022, 10, 1, tzinfo=UTC),
         }
 
         result = by_version_age(
@@ -105,8 +105,8 @@ class TestCleanupPrebuilds:
         Tests old version expiration when all files are current.
         """
         prebuilds_ts = {
-            Path("foo.123.o"): datetime(2022, 10, 31),
-            Path("foo.234.o"): datetime(2022, 10, 1),
+            Path("foo.123.o"): datetime(2022, 10, 31, tzinfo=UTC),
+            Path("foo.234.o"): datetime(2022, 10, 1, tzinfo=UTC),
         }
 
         result = by_version_age(

@@ -63,7 +63,7 @@ def test_contained_subroutine(tmp_path):
 
         # The contained subroutine in main should not be exported
         af_main = build_tree[source_path / "main.f90"]
-        assert af_main.symbol_defs == set(["main"])
+        assert af_main.symbol_defs == {"main"}
 
         # Just in case, also compile and link
         compile_fortran(config)

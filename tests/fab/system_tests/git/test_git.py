@@ -46,7 +46,7 @@ class TestGitCheckout:
         ):
             git_checkout(config, src=url, dst_label="tiny_fortran")
             # todo: The commit will keep changing. Perhaps make a non-changing branch
-            assert git.current_commit(config.source_root / "tiny_fortran") == "3cba55e"
+        assert git.current_commit(config.source_root / "tiny_fortran") == "3cba55e"
 
     def test_checkout_branch(self, tmp_path, url, config):
         git = Git()
@@ -54,7 +54,7 @@ class TestGitCheckout:
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
         ):
             git_checkout(config, src=url, dst_label="tiny_fortran", revision="main")
-            assert git.current_commit(config.source_root / "tiny_fortran") == "3cba55e"
+        assert git.current_commit(config.source_root / "tiny_fortran") == "3cba55e"
 
     def test_checkout_tag(self, tmp_path, url, config):
         git = Git()
@@ -62,7 +62,7 @@ class TestGitCheckout:
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
         ):
             git_checkout(config, src=url, dst_label="tiny_fortran", revision="early")
-            assert git.current_commit(config.source_root / "tiny_fortran") == "ee56489"
+        assert git.current_commit(config.source_root / "tiny_fortran") == "ee56489"
 
     def test_checkout_commit(self, tmp_path, url, config):
         git = Git()
@@ -75,7 +75,7 @@ class TestGitCheckout:
                 dst_label="tiny_fortran",
                 revision="ee5648928893701c5dbccdbf0561c0038352a5ff",
             )
-            assert git.current_commit(config.source_root / "tiny_fortran") == "ee56489"
+        assert git.current_commit(config.source_root / "tiny_fortran") == "ee56489"
 
 
 # todo: we could do with a test to ensure left-over files from previous fetches are cleaned away
@@ -96,14 +96,11 @@ class TestGitMerge:
     def test_vanilla(self, repo_url, config):
 
         # checkout main
-        with pytest.warns(
-            UserWarning, match="_metric_send_conn not set, cannot send metrics"
-        ):
-            git_checkout(
-                config, src=repo_url, dst_label="tiny_fortran", revision="main"
-            )
-            check_file = config.source_root / "tiny_fortran/file1.txt"
-            assert "This is sentence one in file one." in open(check_file).read()
+        with pytest.warns(UserWarning,
+                          match="_metric_send_conn not set, cannot send metrics"):
+            git_checkout(config, src=repo_url, dst_label="tiny_fortran", revision="main")
+        check_file = config.source_root / "tiny_fortran/file1.txt"
+        assert "This is sentence one in file one." in check_file.read_text()
 
         with pytest.warns(
             UserWarning, match="_metric_send_conn not set, cannot send metrics"
@@ -111,10 +108,10 @@ class TestGitMerge:
             git_merge(
                 config, src=repo_url, dst_label="tiny_fortran", revision="experiment_a"
             )
-            assert (
-                "This is sentence one, with Experiment A modification."
-                in open(check_file).read()
-            )
+        assert (
+            "This is sentence one, with Experiment A modification."
+            in check_file.read_text()
+        )
 
         with pytest.raises(RuntimeError):
             git_merge(

@@ -11,7 +11,7 @@ Most of the testing happens at the task level.
 ToDo: Messing with "private" members.
 """
 
-from typing import Optional
+from __future__ import annotations
 
 from fab.steps.grab.svn import _get_revision
 from pytest import mark, raises
@@ -29,7 +29,7 @@ class TestRevision:
             ("http://example.net/repo@rev", ("http://example.net/repo", "rev")),
         ],
     )
-    def test_no_revision(self, url: str, expected: tuple[str, Optional[str]]) -> None:
+    def test_no_revision(self, url: str, expected: tuple[str, str | None]) -> None:
         """
         Tests revision argument not given.
         """
@@ -43,7 +43,7 @@ class TestRevision:
         ],
     )
     def test_revision_param(
-        self, url: str, revision: str, expected: tuple[str, Optional[str]]
+        self, url: str, revision: str, expected: tuple[str, str | None]
     ):
         """
         Tests revision argument given.

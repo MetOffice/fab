@@ -42,7 +42,7 @@ class TestFortranPrebuild:
 
         return config
 
-    def test_repeatable_fmod_hashes(self, tmp_path):
+    def test_repeatable_fmod_hashes(self, tmp_path: Path):
         # Make sure we get the SAME FORTRAN MODULE HASHES in DIFFERENT FOLDERS.
         # This is achieved by changing to the source file's folder during compilation.
         # If we don't do this, then modules built in different workspaces can have different folders embedded in them,
@@ -55,14 +55,14 @@ class TestFortranPrebuild:
         config1 = self.build_config(fab_workspace=tmp_path / "first_workspace")
         pb_files1 = set(file_walk(config1.prebuild_folder))
         pb_hashes1 = {
-            f.relative_to(config1.build_output): zlib.crc32(open(f, "rb").read())
+            f.relative_to(config1.build_output): zlib.crc32(f.read_bytes())
             for f in pb_files1
         }
 
         config2 = self.build_config(fab_workspace=tmp_path / "second_workspace")
         pb_files2 = set(file_walk(config2.prebuild_folder))
         pb_hashes2 = {
-            f.relative_to(config2.build_output): zlib.crc32(open(f, "rb").read())
+            f.relative_to(config2.build_output): zlib.crc32(f.read_bytes())
             for f in pb_files2
         }
 
@@ -143,7 +143,7 @@ class TestFortranPrebuild:
         )
 
 
-def files_identical(a, b):
-    a_bytes = open(a, "rb").read()
-    b_bytes = open(b, "rb").read()
+def files_identical(a: Path, b: Path):
+    a_bytes = a.read_bytes()
+    b_bytes = b.read_bytes()
     return a_bytes == b_bytes

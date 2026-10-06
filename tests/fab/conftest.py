@@ -7,9 +7,10 @@
 Fixtures and helpers for testing.
 """
 
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Optional
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
@@ -80,15 +81,15 @@ class ExtendedRecorder:
             calls.append([str(arg) for arg in call.args])
         return calls
 
-    def extras(self) -> list[dict[str, Optional[str]]]:
+    def extras(self) -> list[dict[str, str | None]]:
         """
         Lists arguments passed to subprocess.
 
         This allows .e.g. pwd to be seen, if set.
         """
-        args: list[dict[str, Optional[str]]] = []
+        args: list[dict[str, str | None]] = []
         for call in self.recorder.calls:
-            things: dict[str, Optional[str]] = {}
+            things: dict[str, str | None] = {}
             if call.kwargs is None:
                 continue
             for key, value in call.kwargs.items():
