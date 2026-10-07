@@ -95,7 +95,7 @@ def test_artefact_store_replace() -> None:
     )
     assert artefact_store[ArtefactSet.INITIAL_SOURCE_FILES] == {Path("B"), Path("c")}
     # Test the behaviour for dictionaries
-    with pytest.raises(RuntimeError) as err:
+    with pytest.raises(TypeError) as err:
         artefact_store.replace(
             ArtefactSet.OBJECT_FILES, remove_files=[Path("a")], add_files=["c"]
         )

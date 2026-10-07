@@ -159,7 +159,7 @@ def test_get_default_error_invalid_category() -> None:
     not e.g. a string.
     """
     tr = ToolRepository()
-    with raises(RuntimeError) as err:
+    with raises(TypeError) as err:
         tr.get_default("unknown-category-type")  # type: ignore[arg-type]
     assert "Invalid category type 'str'." in str(err.value)
 
@@ -170,21 +170,21 @@ def test_get_default_error_missing_mpi() -> None:
     parameter is missing (which is required for a compiler).
     """
     tr = ToolRepository()
-    with raises(RuntimeError) as err:
+    with raises(TypeError) as type_error:
         tr.get_default(Category.FORTRAN_COMPILER, openmp=True)
-    assert str(err.value) == (
+    assert str(type_error.value) == (
         "Invalid or missing mpi specification for 'FORTRAN_COMPILER'."
     )
 
-    with raises(RuntimeError) as err:
+    with raises(TypeError) as type_error:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
-    assert str(err.value) == (
+    assert str(type_error.value) == (
         "Invalid or missing openmp specification for 'FORTRAN_COMPILER'."
     )
 
-    with raises(RuntimeError) as err:
+    with raises(RuntimeError) as runtime_error:
         tr.get_default(Category.LINKER, mpi=True, openmp=True)
-    assert str(err.value) == (
+    assert str(runtime_error.value) == (
         "Invalid or missing enforce_fortran_linker specification for 'LINKER'."
     )
 
@@ -196,12 +196,12 @@ def test_get_default_error_missing_openmp() -> None:
     """
     tr = ToolRepository()
 
-    with raises(RuntimeError) as err:
+    with raises(TypeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True)
     assert "Invalid or missing openmp specification for 'FORTRAN_COMPILER'" in str(
         err.value
     )
-    with raises(RuntimeError) as err:
+    with raises(TypeError) as err:
         tr.get_default(Category.FORTRAN_COMPILER, mpi=True, openmp="123")  # type: ignore[arg-type]
     assert str(err.value) == (
         "Invalid or missing openmp specification for 'FORTRAN_COMPILER'."

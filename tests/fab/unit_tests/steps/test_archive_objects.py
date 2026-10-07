@@ -120,7 +120,7 @@ class TestArchiveObjects:
         # Now add this 'ar' tool to the tool box
         stub_tool_box.add_tool(cc)
 
-        with raises(RuntimeError) as err:
+        with raises(TypeError) as err:
             archive_objects(config=config, output_fpath=config.build_output / "mylib.a")
         assert str(err.value) == (
             "Unexpected tool 'some C compiler' of type "

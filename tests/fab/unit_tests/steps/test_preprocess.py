@@ -73,7 +73,7 @@ def test_wrong_exe(
     tool_box.add_tool(cpp, silent_replace=True)
 
     config = BuildConfig("proj", tool_box, fab_workspace=tmp_path)
-    with raises(RuntimeError) as err:
+    with raises(TypeError) as err:
         preprocess_fortran(config=config)
     assert (
         str(err.value) == "Unexpected tool 'cpp' of type '<class "
