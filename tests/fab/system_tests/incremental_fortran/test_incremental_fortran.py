@@ -1,7 +1,7 @@
 import logging
 import os
 import zlib
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import ClassVar
 from unittest.mock import Mock
@@ -301,10 +301,10 @@ class TestCleanupPrebuilds:
         Creates several versions of the same artefact.
         """
         artefacts = [
-            ("a.123.foo", datetime(2022, 10, 31, tzinfo=UTC)),
-            ("a.234.foo", datetime(2022, 10, 21, tzinfo=UTC)),
-            ("a.345.foo", datetime(2022, 10, 11, tzinfo=UTC)),
-            ("a.456.foo", datetime(2022, 10, 1, tzinfo=UTC)),
+            ("a.123.foo", datetime(2022, 10, 31, tzinfo=timezone.utc)),
+            ("a.234.foo", datetime(2022, 10, 21, tzinfo=timezone.utc)),
+            ("a.345.foo", datetime(2022, 10, 11, tzinfo=timezone.utc)),
+            ("a.456.foo", datetime(2022, 10, 1, tzinfo=timezone.utc)),
         ]
         configuration = BuildConfig(
             PROJECT_LABEL, Mock(), fab_workspace=Path("/fab"), multiprocessing=False
