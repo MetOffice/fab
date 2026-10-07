@@ -91,7 +91,7 @@ def compile_fortran(
     # compile everything in multiple passes
     compiled: dict[Path, CompiledFile] = {}
     uncompiled: set[AnalysedFortran] = reduce(
-        lambda s, v: s.add(v), build_lists.values(), set()
+        lambda s, v: s | set(v), build_lists.values(), set()
     )
     logger.info(f"compiling {len(uncompiled)} fortran files")
 
@@ -136,7 +136,7 @@ def compile_fortran(
 
         # A single pass should now compile all the object files in one go
         # todo: order by last compile duration
-        uncompiled = reduce(lambda s, i: s.add(i), build_lists.values(), set())
+        uncompiled = reduce(lambda s, i: s | set(i), build_lists.values(), set())
         mp_args = [(fpath, mp_common_args) for fpath in uncompiled]
         results_this_pass = run_mp(config, items=mp_args, func=process_file)
         log_or_dot_finish(logger)
@@ -263,7 +263,7 @@ def store_artefacts(
 
 def process_file(
     arg: tuple[AnalysedFortran, MpCommonArgs],
-) -> tuple[CompiledFile, list[Path]] | Exception | None:
+) -> tuple[CompiledFile, list[Path]] | tuple[Exception, None]:
     """
     Prepare to compile a fortran file, and compile it if anything has changed
     since it was last compiled.

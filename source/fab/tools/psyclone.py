@@ -166,8 +166,11 @@ class Psyclone(ToolWithFlags):
         if additional_parameters:
             parameters.extend(additional_parameters)
         if kernel_roots:
-            roots_with_dash_d = reduce(
-                lambda x, y: x.extend(["-d"], str(y)), kernel_roots
+            directory_argument_lambda: Callable[[list[str], Path | str], list[str]] = (
+                lambda x, y: x + ["-d", str(y)]
+            )
+            roots_with_dash_d: list[str] = reduce(
+                directory_argument_lambda, kernel_roots, []
             )
             parameters.extend(roots_with_dash_d)
         parameters.append(str(x90_file))

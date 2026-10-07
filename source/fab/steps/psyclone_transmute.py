@@ -44,7 +44,6 @@ class MpCommonArgs:
     Runtime data for child processes to read.
 
     Contains data used to calculate the prebuild hash.
-
     """
 
     config: BuildConfig
@@ -164,7 +163,7 @@ def _generate_mp_payload(
 
 def transmute_one_file(
     arg: tuple[Path, MpCommonArgs],
-) -> tuple[Path, Path] | tuple[Exception | None]:
+) -> tuple[Path, Path] | tuple[Exception, None]:
     """
     Transmutes a single file. This function is called in parallel
     from psyclone_transmute.

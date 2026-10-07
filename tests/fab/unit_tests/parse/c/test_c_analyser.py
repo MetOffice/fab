@@ -100,7 +100,7 @@ class TestLocateIncludeRegions:
         mock_trans_unit = Mock()
         mock_trans_unit.cursor.get_tokens.return_value = tokens
 
-        analyser = CAnalyser(config=None)
+        analyser = CAnalyser(Mock())
         analyser._locate_include_regions(mock_trans_unit)
 
         assert analyser._include_region == expect

@@ -88,10 +88,9 @@ class CompilerWrapper(Compiler):
     def get_flags(
         self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
-        """:returns: the ProfileFlags for the given profile, combined
-            from the wrapped compiler and this wrapper.
-
-        :param profile: the profile to use.
+        """
+        :returns: the ProfileFlags for the given profile, combined
+                  from the wrapped compiler and this wrapper.
         """
         return self._compiler.get_flags(config, file_path) + super().get_flags(
             config, file_path
@@ -164,7 +163,7 @@ class CompilerWrapper(Compiler):
                 input_file,
                 output_file,
                 add_flags=resolved_flags,
-                syntax_only=syntax_only,
+                syntax_only=syntax_only or False,
             )
         else:
             # It's not valid to specify syntax_only for a non-Fortran compiler

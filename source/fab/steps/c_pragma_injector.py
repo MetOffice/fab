@@ -66,7 +66,7 @@ def c_pragma_injector(
     )
 
 
-def _process_artefact(config_fpath: BuildConfig | Path) -> None:
+def _process_artefact(config_fpath: tuple[BuildConfig, Path]) -> None:
     """
     Adds the pragmas to a given C file, and stores the modified file
     with a ".prag" suffix in the output directory.

@@ -105,7 +105,7 @@ class CAnalyser:
             return include_stack[-1]
         return None
 
-    def run(self, fpath: Path) -> tuple[AnalysedC, Path] | Exception | None:
+    def run(self, fpath: Path) -> tuple[AnalysedC, Path] | tuple[Exception, None]:
 
         if not clang:
             msg = "clang not available, C analysis disabled"

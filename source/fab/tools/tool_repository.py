@@ -61,7 +61,7 @@ class ToolRepository(dict):
         if not cls._singleton:
             cls._singleton = super().__new__(cls)
 
-        return cls._singleton
+        return cast(Self, cls._singleton)
 
     def __init__(self):
         # Note that in this singleton pattern the constructor is called each

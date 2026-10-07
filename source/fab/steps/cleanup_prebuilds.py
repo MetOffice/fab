@@ -105,7 +105,7 @@ def cleanup_prebuilds(
 def by_age(
     older_than: timedelta | None,
     prebuilds_ts: dict[Path, datetime],
-    current_files: Path | None,
+    current_files: list[Path],
 ) -> set[Path]:
     to_delete = set()
 
@@ -126,7 +126,7 @@ def by_age(
 
 
 def by_version_age(
-    n_versions: int, prebuilds_ts: dict[Path, datetime], current_files: Path | None
+    n_versions: int, prebuilds_ts: dict[Path, datetime], current_files: list[Path]
 ) -> set[Path]:
     to_delete = set()
 
@@ -148,7 +148,7 @@ def by_version_age(
     return to_delete
 
 
-def remove_all_unused(found_files: Path | None, current_files: Path | None):
+def remove_all_unused(found_files: list[Path], current_files: list[Path]):
     num_removed = 0
 
     for f in found_files:

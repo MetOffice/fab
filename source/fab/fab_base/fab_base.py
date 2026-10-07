@@ -696,7 +696,7 @@ class FabBase:
         return []
 
     def add_preprocessor_flags(
-        self, list_of_flags: AddFlags | str | list[AddFlags] | list[str]
+        self, list_of_flags: AddFlags | str | list[AddFlags | str]
     ) -> None:
         """
         This function appends a preprocessor flags to the internal list of

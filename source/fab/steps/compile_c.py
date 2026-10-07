@@ -81,7 +81,7 @@ def compile_c(
 
     # gather all the source to compile, for all build trees, into one big lump
     build_lists: dict = source_getter(config.artefact_store)
-    to_compile: list = reduce(lambda l, v: l.extend(v), build_lists.values(), [])
+    to_compile: list = reduce(lambda l, v: l + v, build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
 
     if len(to_compile) == 0:
