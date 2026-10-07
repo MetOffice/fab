@@ -15,9 +15,8 @@ from fab.api import (
     preprocess_x90,
     psyclone,
 )
-
-from .grab_lfric import gpl_utils_source_config, lfric_source_config
-from .lfric_common import API, configurator
+from grab_lfric import gpl_utils_source_config, lfric_source_config
+from lfric_common import API, configurator
 
 if __name__ == "__main__":
     lfric_source = lfric_source_config.source_root / "lfric"

@@ -310,7 +310,7 @@ class ToolRepository(dict):
             raise TypeError(
                 f"Invalid or missing openmp specification for '{category}'."
             )
-
+        print(f"enforce_fotran_linker argument: {enforce_fortran_linker}")
         if category is Category.LINKER and not isinstance(enforce_fortran_linker, bool):
             raise RuntimeError(
                 f"Invalid or missing enforce_fortran_linker "

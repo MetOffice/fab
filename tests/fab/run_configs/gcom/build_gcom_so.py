@@ -12,8 +12,7 @@ from fab.api import (
     common_arg_parser,
     link_shared_object,
 )
-
-from .gcom_build_steps import common_build_steps
+from gcom_build_steps import common_build_steps
 
 if __name__ == "__main__":
     arg_parser = common_arg_parser()

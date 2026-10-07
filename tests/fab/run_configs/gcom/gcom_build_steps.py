@@ -13,8 +13,7 @@ from fab.api import (
     preprocess_c,
     preprocess_fortran,
 )
-
-from .grab_gcom import grab_config
+from grab_gcom import grab_config
 
 
 def common_build_steps(config, fpic=False):
