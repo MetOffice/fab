@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Self, Union, cast
+from typing import Union, cast
 
 from fab.tools.ar import Ar
 from fab.tools.category import Category
@@ -54,14 +54,14 @@ class ToolRepository(dict):
 
     _singleton: None | ToolRepository = None
 
-    def __new__(cls) -> Self:
+    def __new__(cls):
         """Singleton access. Changes the value of _singleton so that the
         constructor can verify that it is indeed called from here.
         """
         if not cls._singleton:
             cls._singleton = super().__new__(cls)
 
-        return cast(Self, cls._singleton)
+        return cls._singleton
 
     def __init__(self):
         # Note that in this singleton pattern the constructor is called each

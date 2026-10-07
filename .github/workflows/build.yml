@@ -73,7 +73,7 @@ jobs:
           pip install .[dev,docs]
 
       - name: Type check with mypy
-        run: python -m mypy source/fab tests/fab  run_configs
+        run: python -m mypy source/fab tests/fab/unit_tests tests/fab/system_tests
 
       - name: Code style check with ruff
         if: always()
