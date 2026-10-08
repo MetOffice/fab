@@ -47,7 +47,7 @@ from fab.mo import add_mo_commented_file_deps
 from fab.parse import AnalysedFile, EmptySourceFile
 from fab.parse.c import AnalysedC, CAnalyser
 from fab.parse.fortran import AnalysedFortran, FortranParserWorkaround, FortranAnalyser
-from fab.steps import run_mp, step
+from fab.steps import run_mp, step, check_error
 from fab.util import TimerLogger, by_type
 
 logger = logging.getLogger(__name__)
@@ -290,7 +290,7 @@ def _parse_files(
         )
     c_analyses, c_artefacts = zip(*c_results) if c_results else (tuple(), tuple())
 
-    # Check for parse errors but don't fail. The failed files might not be required.
+    # Check for parse errors and abort if any occurred.
     analyses = fortran_analyses + c_analyses
     exceptions = list(by_type(analyses, Exception))
     if exceptions:
@@ -299,6 +299,7 @@ def _parse_files(
             f"\nThere were {len(exceptions)} analysis errors:\n\n{err_str}\n\n",
             file=sys.stderr,
         )
+        check_error()
 
     # record the artefacts as being current
     artefacts = by_type(fortran_artefacts + c_artefacts, Path)
