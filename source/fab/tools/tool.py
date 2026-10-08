@@ -13,10 +13,12 @@ It provides basic support for running a binary, and keeping track if
 a tool is actually available.
 """
 
+from __future__ import annotations
+
 import logging
-from pathlib import Path
 import subprocess
-from typing import Optional, Sequence, Union
+from collections.abc import Sequence
+from pathlib import Path
 
 from fab.tools.category import Category
 
@@ -36,9 +38,9 @@ class Tool:
     def __init__(
         self,
         name: str,
-        exec_name: Union[str, Path],
+        exec_name: Path | str,
         category: Category = Category.MISC,
-        availability_option: Optional[Union[str, list[str]]] = None,
+        availability_option: str | list[str] | None = None,
     ):
         self._logger = logging.getLogger(__name__)
         self._name = name
@@ -57,7 +59,7 @@ class Tool:
         # raise a RuntimeError. As long as it is still set to None (or True),
         # the `run` method will work, allowing the `check_available` method
         # to use `run` to determine if a tool is available or not.
-        self._is_available: Optional[bool] = None
+        self._is_available: bool | None = None
 
     def check_available(self) -> bool:
         """Run a 'test' command to check if this tool is available in the
@@ -114,7 +116,7 @@ class Tool:
         return self._name
 
     @property
-    def availability_option(self) -> Union[str, list[str]]:
+    def availability_option(self) -> str | list[str]:
         """:returns: the option to use to check if the tool is available."""
         return self._availability_option
 
@@ -134,9 +136,9 @@ class Tool:
 
     def run(
         self,
-        additional_parameters: Optional[Union[str, Sequence[Union[Path, str]]]] = None,
-        env: Optional[dict[str, str]] = None,
-        cwd: Optional[Union[Path, str]] = None,
+        additional_parameters: str | Sequence[Path | str] | None = None,
+        env: dict[str, str] | None = None,
+        cwd: Path | str | None = None,
         capture_output=True,
     ) -> str:
         """

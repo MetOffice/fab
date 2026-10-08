@@ -3,16 +3,17 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+from __future__ import annotations
+
 from inspect import signature
 from pathlib import Path
 from shutil import unpack_archive
-from typing import Union
 
 from fab.steps import step
 
 
 @step
-def grab_archive(config, src: Union[Path, str], dst_label: str = ""):
+def grab_archive(config, src: Path | str, dst_label: str = ""):
     """
     Copy source from an archive into the project folder.
 
@@ -21,15 +22,12 @@ def grab_archive(config, src: Union[Path, str], dst_label: str = ""):
     :param dst_label:
         The name of a sub folder, in the project workspace, in which to put the source.
         If not specified, the code is copied into the root of the source folder.
-    :param name:
-        Human friendly name for logger output, with sensible default.
-
     """
     dst: Path = config.source_root / dst_label
     dst.mkdir(parents=True, exist_ok=True)
 
     # The filtering was added at v3.12 so this check may be removed once we
-    # nolonger support earlier versions. It must be specified as default
+    # no longer support earlier versions. It must be specified as default
     # behaviour of the filter changes at v3.14.
     #
     unpack_archive_sig = signature(unpack_archive)

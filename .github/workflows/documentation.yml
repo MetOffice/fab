@@ -42,8 +42,8 @@ jobs:
       - name: Install documentation tools
         run: uv sync --extra docs
 
-      - name: Build HTML documentation
-        working-directory: Documentation
+      - name: Build HTML documentation (Fab)
+        working-directory: Documentation/fab
         run: uv run make clean html
 
       - name: Install LaTeX packages for PDF generation
@@ -58,17 +58,17 @@ jobs:
             texlive-latex-extra \
             latexmk
 
-      - name: Generate PDF documentation
+      - name: Generate PDF documentation (Fab)
         if: github.event_name != 'pull_request'
-        working-directory: Documentation
+        working-directory: Documentation/fab
         run: |
           uv run make latexpdf
           cp -r build/latex build/html/
 
-      - name: Prepare and upload asset
+      - name: Prepare and upload asset (Fab)
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: Documentation/build/html
+          path: Documentation/fab/build/html
 
   deploy-documentation:
     name: Deploy

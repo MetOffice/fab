@@ -5,21 +5,20 @@
 ##############################################################################
 """
 Object archive creation from a list of object files for use in static linking.
-
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
 from pathlib import Path
 from string import Template
 
-from fab.artefacts import ArtefactSet
+from fab.artefacts import ArtefactSet, ArtefactsGetter, CollectionGetter
 from fab.build_config import BuildConfig
 from fab.steps import step
-from fab.util import log_or_dot
 from fab.tools.ar import Ar
 from fab.tools.category import Category
-from fab.artefacts import ArtefactsGetter, CollectionGetter
+from fab.util import log_or_dot
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +36,8 @@ DEFAULT_SOURCE_GETTER = CollectionGetter(ArtefactSet.OBJECT_FILES)
 @step
 def archive_objects(
     config: BuildConfig,
-    source: Optional[ArtefactsGetter] = None,
-    output_fpath: Optional[Path] = None,
+    source: ArtefactsGetter | None = None,
+    output_fpath: Path | None = None,
     output_collection=ArtefactSet.OBJECT_ARCHIVES,
 ):
     """
@@ -110,7 +109,7 @@ def archive_objects(
     source_getter = source or DEFAULT_SOURCE_GETTER
     ar = config.tool_box.get_tool(Category.AR)
     if not isinstance(ar, Ar):
-        raise RuntimeError(
+        raise TypeError(
             f"Unexpected tool '{ar.name}' of type '{type(ar)}' instead of Ar"
         )
 

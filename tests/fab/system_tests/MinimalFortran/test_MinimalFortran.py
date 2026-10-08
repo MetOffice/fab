@@ -1,0 +1,48 @@
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+import subprocess
+from pathlib import Path
+
+import pytest
+from fab.artefacts import ArtefactSet
+from fab.build_config import BuildConfig
+from fab.steps.analyse import analyse
+from fab.steps.compile_fortran import compile_fortran
+from fab.steps.find_source_files import find_source_files
+from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
+from fab.steps.preprocess import preprocess_fortran
+from fab.tools.tool_box import ToolBox
+
+PROJECT_SOURCE = Path(__file__).parent / "project-source"
+
+
+def test_minimal_fortran(tmp_path):
+
+    # build
+    with BuildConfig(
+        fab_workspace=tmp_path,
+        tool_box=ToolBox(),
+        project_label="foo",
+        multiprocessing=False,
+    ) as config:
+        grab_folder(config, PROJECT_SOURCE)
+        find_source_files(config)
+        preprocess_fortran(config)
+        analyse(config, root_symbols="test")
+        with pytest.warns(UserWarning, match="Removing managed flag"):
+            compile_fortran(config, common_flags=["-c"])
+        link_exe(config, flags=["-lgfortran"])
+
+    assert len(config.artefact_store[ArtefactSet.EXECUTABLES]) == 1
+
+    # Note: The artefact store returns sets. There is no guarantee to the
+    #       ordering of sets, so taking the first item could return anything.
+    #
+    command = [str(next(config.artefact_store[ArtefactSet.EXECUTABLES].__iter__()))]
+    res = subprocess.run(command, check=False, capture_output=True)
+    output = res.stdout.decode()
+    assert output.strip() == "Hello world!"

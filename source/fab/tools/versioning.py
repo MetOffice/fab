@@ -7,9 +7,10 @@
 Versioning tools such as Subversion and Git.
 """
 
+from __future__ import annotations
+
 from abc import ABC
 from pathlib import Path
-from typing import Optional, Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -20,7 +21,7 @@ class Versioning(Tool, ABC):
     Base class for versioning tools like Git and Subversion.
     """
 
-    def __init__(self, name: str, exec_name: Union[str, Path], category: Category):
+    def __init__(self, name: str, exec_name: str | Path, category: Category):
         """
         Constructor.
 
@@ -42,7 +43,7 @@ class Git(Versioning):
     def __init__(self):
         super().__init__("git", "git", category=Category.GIT)
 
-    def current_commit(self, folder: Optional[Union[Path, str]] = None) -> str:
+    def current_commit(self, folder: str | Path | None = None) -> str:
         """:returns: the hash of the current commit.
 
         :param folder: the folder for which to determine the current commit
@@ -53,23 +54,21 @@ class Git(Versioning):
         commit = output.split()[0]
         return commit
 
-    def init(self, folder: Union[Path, str]):
+    def init(self, folder: str | Path):
         """Initialises a directory.
 
         :param folder: the directory to initialise.
         """
         self.run(["init", "."], cwd=folder)
 
-    def clean(self, folder: Union[Path, str]):
+    def clean(self, folder: str | Path):
         """Removes all non versioned files in a directory.
 
         :param folder: the directory to clean.
         """
         self.run(["clean", "-f"], cwd=folder)
 
-    def fetch(
-        self, src: Union[str, Path], dst: Union[str, Path], revision: Union[None, str]
-    ):
+    def fetch(self, src: str | Path, dst: str | Path, revision: str | None):
         """Runs `git fetch` in the specified directory
 
         :param src: the source directory from which to fetch
@@ -77,12 +76,12 @@ class Git(Versioning):
         :param dst: the directory in which to run fetch.
         """
         # todo: allow shallow fetch with --depth 1
-        command: list[Union[str, Path]] = ["fetch", str(src)]
+        command: list[str | Path] = ["fetch", str(src)]
         if revision:
             command.append(revision)
         self.run(command, cwd=str(dst), capture_output=False)
 
-    def checkout(self, src: str, dst: str = "", revision: Optional[str] = None):
+    def checkout(self, src: str, dst: str = "", revision: str | None = None):
         """Checkout or update a Git repo.
 
         :param src: the source directory from which to checkout.
@@ -93,7 +92,7 @@ class Git(Versioning):
         self.fetch(src, dst, revision)
         self.run(["checkout", "FETCH_HEAD"], cwd=dst, capture_output=False)
 
-    def merge(self, dst: Union[str, Path], revision: Optional[str] = None):
+    def merge(self, dst: str | Path, revision: str | None = None):
         """Merge a git repo into a local working copy. If the merge fails,
         it will run `git merge --abort` to clean the directory.
 
@@ -120,8 +119,8 @@ class Subversion(Versioning):
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        exec_name: Optional[Union[str, Path]] = None,
+        name: str | None = None,
+        exec_name: str | Path | None = None,
         category: Category = Category.SUBVERSION,
     ):
         """
@@ -141,11 +140,11 @@ class Subversion(Versioning):
     # pylint: disable-next=too-many-arguments
     def execute(
         self,
-        pre_commands: Optional[list[str]] = None,
-        revision: Optional[Union[int, str]] = None,
-        post_commands: Optional[list[str]] = None,
-        env: Optional[dict[str, str]] = None,
-        cwd: Optional[Union[Path, str]] = None,
+        pre_commands: list[str] | None = None,
+        revision: int | str | None = None,
+        post_commands: list[str] | None = None,
+        env: dict[str, str] | None = None,
+        cwd: str | Path | None = None,
         capture_output=True,
     ) -> str:
         """Executes a svn command.
@@ -155,12 +154,13 @@ class Subversion(Versioning):
         :param revision: optional revision number as argument
         :param post_commands: list of additional strings to be sent to
             :func:`subprocess.run` after the optional revision number.
-        :param env: Optional env for the command. By default it will use
+        :param env: Optional env for the command. By default, it will use
             the current session's environment.
+        :param cwd: Current working directory.
         :param capture_output: If True, capture and return stdout. If False,
             the command will print its output directly to the console.
         """
-        command: list[Union[str, Path]] = []
+        command: list[str | Path] = []
         if pre_commands:
             command.extend(pre_commands)
         if revision:
@@ -171,9 +171,9 @@ class Subversion(Versioning):
 
     def export(
         self,
-        src: Union[str, Path],
-        dst: Union[str, Path],
-        revision: Optional[str] = None,
+        src: str | Path,
+        dst: str | Path,
+        revision: str | None = None,
     ):
         """Runs svn export.
 
@@ -185,9 +185,9 @@ class Subversion(Versioning):
 
     def checkout(
         self,
-        src: Union[str, Path],
-        dst: Union[str, Path],
-        revision: Optional[str] = None,
+        src: str | Path,
+        dst: str | Path,
+        revision: str | None = None,
     ):
         """Runs svn checkout.
 
@@ -197,7 +197,7 @@ class Subversion(Versioning):
         """
         self.execute(["checkout"], revision, [str(src), str(dst)])
 
-    def update(self, dst: Union[str, Path], revision: Optional[str] = None):
+    def update(self, dst: str | Path, revision: str | None = None):
         """Runs svn checkout.
 
         :param dst: destination path.
@@ -207,9 +207,9 @@ class Subversion(Versioning):
 
     def merge(
         self,
-        src: Union[str, Path],
-        dst: Union[str, Path],
-        revision: Optional[str] = None,
+        src: str | Path,
+        dst: str | Path,
+        revision: str | None = None,
     ):
         """Runs svn merge.
 

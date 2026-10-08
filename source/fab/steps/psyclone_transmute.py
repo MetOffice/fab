@@ -10,28 +10,29 @@ https://github.com/stfc/PSyclone
 
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
+
 import logging
 import shutil
 import warnings
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, cast, Optional, Sequence, Union
-
-
-from fab.build_config import BuildConfig
+from typing import Callable, cast
 
 from fab.artefacts import ArtefactSet
-from fab.steps import run_mp, check_for_errors, step
+from fab.build_config import BuildConfig
+from fab.steps import check_for_errors, run_mp, step
 from fab.tools.category import Category
 from fab.tools.psyclone import Psyclone
 from fab.util import (
-    log_or_dot,
-    input_to_output_fpath,
+    TimerLogger,
     file_checksum,
     file_walk,
-    TimerLogger,
-    string_checksum,
+    input_to_output_fpath,
+    log_or_dot,
     log_or_dot_finish,
+    string_checksum,
 )
 
 logger = logging.getLogger(__name__)
@@ -43,14 +44,13 @@ class MpCommonArgs:
     Runtime data for child processes to read.
 
     Contains data used to calculate the prebuild hash.
-
     """
 
     config: BuildConfig
     suffix: str
-    transformation_script: Optional[Callable[[Path, BuildConfig], Path]]
+    transformation_script: Callable[[Path, BuildConfig], Path] | None
     cli_args: list[str]
-    overrides_folder: Optional[Path]
+    overrides_folder: Path | None
     # filenames (not paths) of hand crafted overrides
     override_files: list[str]
 
@@ -58,12 +58,12 @@ class MpCommonArgs:
 @step
 def psyclone_transmute(
     config: BuildConfig,
-    fortran_files: Union[Sequence[Path], Sequence[Path]],
-    transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
-    cli_args: Optional[list[str]] = None,
-    suffix: Optional[str] = None,
-    overrides_folder: Optional[Path] = None,
-    artefact_set: Optional[ArtefactSet] = None,
+    fortran_files: Sequence[Path],
+    transformation_script: Callable[[Path, BuildConfig], Path] | None = None,
+    cli_args: list[str] | None = None,
+    suffix: str | None = None,
+    overrides_folder: Path | None = None,
+    artefact_set: ArtefactSet | None = None,
 ):
     """
     PSyclone runner step.
@@ -163,7 +163,7 @@ def _generate_mp_payload(
 
 def transmute_one_file(
     arg: tuple[Path, MpCommonArgs],
-) -> Union[tuple[Path, Path], tuple[Exception, None]]:
+) -> tuple[Path, Path] | tuple[Exception, None]:
     """
     Transmutes a single file. This function is called in parallel
     from psyclone_transmute.

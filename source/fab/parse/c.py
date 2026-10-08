@@ -3,14 +3,14 @@
 # which you should have received as part of this distribution
 """
 C language handling classes.
-
 """
+
+from __future__ import annotations
 
 import logging
 import warnings
 from collections import deque
 from pathlib import Path
-from typing import Optional, Union
 
 try:
     import clang  # type: ignore
@@ -20,7 +20,7 @@ except ImportError:
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
-from fab.util import log_or_dot, file_checksum
+from fab.util import file_checksum, log_or_dot
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +56,11 @@ class CAnalyser:
         self._config = config
         self._include_region: list[tuple[int, str]] = []
 
-    # todo: simplifiy by passing in the file path instead of the analysed tokens?
-    def _locate_include_regions(self, trans_unit) -> None:
+    # todo: simplify by passing in the file path instead of the analysed tokens?
+    def _locate_include_regions(self, trans_unit: clang.cindex.TranslationUnit) -> None:
         """
-        Look for Fab pragmas identifying included code which came from system or user #includes.
+        Look for Fab pragmas identifying included code which came from system
+        or user #includes.
         """
         # Aim is to identify where included (top level) regions start and end in the file
         self._include_region = []
@@ -89,7 +90,7 @@ class CAnalyser:
                 elif full == "# pragma FAB UsrIncludeEnd":
                     self._include_region.append((lineno, "usr_include_end"))
 
-    def _check_for_include(self, lineno) -> Optional[str]:
+    def _check_for_include(self, lineno) -> str | None:
         """Check whether a given line number is in a region that has come from an include."""
         # todo: don't need a stack?
         include_stack = []
@@ -104,7 +105,7 @@ class CAnalyser:
             return include_stack[-1]
         return None
 
-    def run(self, fpath: Path) -> Union[tuple[AnalysedC, Path], tuple[Exception, None]]:
+    def run(self, fpath: Path) -> tuple[AnalysedC, Path] | tuple[Exception, None]:
 
         if not clang:
             msg = "clang not available, C analysis disabled"

@@ -1,26 +1,28 @@
-# ##############################################################################
-#  (c) Crown copyright Met Office. All rights reserved.
-#  For further details please refer to the file COPYRIGHT
-#  which you should have received as part of this distribution
-# ##############################################################################
+###############################################################################
+# (c) Crown copyright Met Office. All rights reserved.
+# For further details please refer to the file COPYRIGHT
+# which you should have received as part of this distribution
+###############################################################################
 
 """Functions to run Fab from the command line."""
 
+from __future__ import annotations
+
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 from fab.artefacts import ArtefactSet, CollectionGetter
 from fab.build_config import BuildConfig
 from fab.steps.analyse import analyse
 from fab.steps.c_pragma_injector import c_pragma_injector
 from fab.steps.compile_c import compile_c
-from fab.steps.link import link_exe
-from fab.steps.root_inc_files import root_inc_files
 from fab.steps.compile_fortran import compile_fortran
 from fab.steps.find_source_files import find_source_files
 from fab.steps.grab.folder import grab_folder
+from fab.steps.link import link_exe
 from fab.steps.preprocess import preprocess_c, preprocess_fortran
+from fab.steps.root_inc_files import root_inc_files
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
@@ -73,7 +75,7 @@ def _generic_build_config(folder: Path, kwargs=None) -> BuildConfig:
     return config
 
 
-def cli_fab(folder: Optional[Path] = None, kwargs: Optional[dict] = None):
+def cli_fab(folder: Path | None = None, kwargs: dict[str, Any] | None = None):
     """
     Running Fab from the command line will attempt to build the project in
     the current or given folder. The following params are used for testing.

@@ -6,31 +6,19 @@
 
 """This file contains the ToolRepository class."""
 
-# We can't declare _singleton and __new__() using ToolRepository, but
-# it is allowed if we use this import:
 from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import cast, Optional, Union
+from typing import Union, cast
 
-from fab.tools.tool import Tool
-from fab.tools.category import Category
-from fab.tools.compiler import Compiler, FortranCompiler
-from fab.tools.compiler_wrapper import (
-    CompilerWrapper,
-    CrayCcWrapper,
-    CrayFtnWrapper,
-    Mpif90,
-    Mpicc,
-)
-from fab.tools.linker import Linker
-from fab.tools.versioning import Fcm, Git, Subversion
 from fab.tools.ar import Ar
-from fab.tools.preprocessor import Cpp, CppFortran
+from fab.tools.category import Category
 from fab.tools.compiler import (
+    Compiler,
     Craycc,
     Crayftn,
+    FortranCompiler,
     Gcc,
     Gfortran,
     Icc,
@@ -40,10 +28,21 @@ from fab.tools.compiler import (
     Nvc,
     Nvfortran,
 )
+from fab.tools.compiler_wrapper import (
+    CompilerWrapper,
+    CrayCcWrapper,
+    CrayFtnWrapper,
+    Mpicc,
+    Mpif90,
+)
+from fab.tools.linker import Linker
 from fab.tools.pfunit import PfUnit
+from fab.tools.preprocessor import Cpp, CppFortran
 from fab.tools.psyclone import Psyclone
 from fab.tools.rsync import Rsync
 from fab.tools.shell import Shell
+from fab.tools.tool import Tool
+from fab.tools.versioning import Fcm, Git, Subversion
 
 
 class ToolRepository(dict):
@@ -55,7 +54,7 @@ class ToolRepository(dict):
 
     _singleton: None | ToolRepository = None
 
-    def __new__(cls) -> ToolRepository:
+    def __new__(cls):
         """Singleton access. Changes the value of _singleton so that the
         constructor can verify that it is indeed called from here.
         """
@@ -265,9 +264,9 @@ class ToolRepository(dict):
     def get_default(
         self,
         category: Category,
-        mpi: Optional[bool] = None,
-        openmp: Optional[bool] = None,
-        enforce_fortran_linker: Optional[bool] = None,
+        mpi: bool | None = None,
+        openmp: bool | None = None,
+        enforce_fortran_linker: bool | None = None,
     ) -> Tool:
         """Returns the default tool for a given category that is available.
         For most tools that will be the first entry in the list of tools. The
@@ -291,7 +290,7 @@ class ToolRepository(dict):
         """
 
         if not isinstance(category, Category):
-            raise RuntimeError(f"Invalid category type '{type(category).__name__}'.")
+            raise TypeError(f"Invalid category type '{type(category).__name__}'.")
 
         tool: Tool
         # If not a compiler or linker, return the first tool
@@ -305,15 +304,13 @@ class ToolRepository(dict):
             )
 
         if not isinstance(mpi, bool):
-            raise RuntimeError(
-                f"Invalid or missing mpi specification for '{category}'."
-            )
+            raise TypeError(f"Invalid or missing mpi specification for '{category}'.")
 
         if not isinstance(openmp, bool):
-            raise RuntimeError(
+            raise TypeError(
                 f"Invalid or missing openmp specification for '{category}'."
             )
-
+        print(f"enforce_fotran_linker argument: {enforce_fortran_linker}")
         if category is Category.LINKER and not isinstance(enforce_fortran_linker, bool):
             raise RuntimeError(
                 f"Invalid or missing enforce_fortran_linker "

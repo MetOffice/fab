@@ -10,9 +10,12 @@ This module contains a class that manages the dependencies specified in
 a dependencies.yaml file.
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator, Optional, Union
+
 import yaml
 
 
@@ -38,8 +41,8 @@ class RepoInfo:
         be None if there is no information for a repository.
         """
 
-        source: Optional[str]
-        ref: Optional[str]
+        source: str | None
+        ref: str | None
 
     # The URL and reference of all sources
     source_ref: list[SourceRef] = field(default_factory=list)
@@ -63,8 +66,7 @@ class RepoInfo:
         This function allows to iterate over all sources/references
         of this dependency.
         """
-        for item in self.source_ref:
-            yield item
+        yield from self.source_ref
 
 
 # ============================================================================
@@ -98,8 +100,8 @@ class DependencyInfo(dict):
 
     def __init__(
         self,
-        filename: Optional[Union[str, Path]],
-        only_repos: Optional[list[str]] = None,
+        filename: Path | str | None,
+        only_repos: list[str] | None = None,
     ) -> None:
         super().__init__()
 

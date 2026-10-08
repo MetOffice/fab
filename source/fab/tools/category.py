@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import ClassVar
 
 
 class CategoryMeta(type):
@@ -18,7 +18,7 @@ class CategoryMeta(type):
     """
 
     # A dictionary used for iterating over all enums.
-    _values: dict[str, "Category"] = {}
+    _values: ClassVar[dict[str, Category]] = {}
 
     def __iter__(cls):
         return iter(cls._values.values())
@@ -37,7 +37,7 @@ class Category(int, metaclass=CategoryMeta):
 
     """
 
-    def __new__(cls, name: str, val: Optional[int] = None):
+    def __new__(cls, name: str, val: int | None = None):
         # choose a numeric value for the int part
         if val is not None:
             # Called via __reduce__ (i.e. pickle), restore
@@ -59,7 +59,7 @@ class Category(int, metaclass=CategoryMeta):
         # return (callable, args) so pickle can reconstruct the object
         return (Category, (self._name, int(self)))
 
-    def __init__(self, name: str, value: Optional[int] = None):
+    def __init__(self, name: str, value: int | None = None):
         """
         Creates the instance, and also sets it as class attribute of the
         Category class. The `value` parameter is only required for

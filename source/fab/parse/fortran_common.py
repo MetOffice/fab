@@ -5,13 +5,14 @@
 # ##############################################################################
 """
 Common functionality for both Fortran and (sanitised) X90 processing.
-
 """
+
+from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional, Union
+from typing import ClassVar
 
 from fparser.common.readfortran import FortranFileReader  # type: ignore
 from fparser.two.parser import ParserFactory  # type: ignore
@@ -21,8 +22,7 @@ from fab import FabException
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
 from fab.parse import EmptySourceFile
-from fab.util import log_or_dot, file_checksum
-
+from fab.util import file_checksum, log_or_dot
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,9 @@ class FortranAnalyserBase(ABC):
 
     """
 
-    _intrinsic_modules = ["iso_fortran_env", "iso_c_binding"]
+    _intrinsic_modules: ClassVar[list[str]] = ["iso_fortran_env", "iso_c_binding"]
 
-    def __init__(self, config: BuildConfig, result_class, std: Optional[str] = None):
+    def __init__(self, config: BuildConfig, result_class, std: str | None = None):
         """
         :param config: The BuildConfig object.
         :param result_class:
@@ -74,11 +74,11 @@ class FortranAnalyserBase(ABC):
 
     def run(
         self, fpath: Path
-    ) -> Union[
-        tuple[AnalysedDependent, Path],
-        tuple[EmptySourceFile, None],
-        tuple[Exception, None],
-    ]:
+    ) -> (
+        tuple[AnalysedDependent, Path]
+        | tuple[EmptySourceFile, None]
+        | tuple[Exception, None]
+    ):
         """
         Parse the source file and record what we're interested in (subclass
         specific).
@@ -152,7 +152,10 @@ class FortranAnalyserBase(ABC):
             # Don't return the FortranSyntaxError, it breaks multiprocessing!
             logger.error(f"\nfparser raised a syntax error in {fpath}\n{err}")
             return Exception(f"syntax error in {fpath}\n{err}")
-        except Exception as err:
+
+        # Todo: This catch is over general.
+        #
+        except Exception as err:  # noqa: BLE001
             logger.error(f"\nunhandled error '{type(err)}' in {fpath}\n{err}")
             return Exception(f"unhandled error '{type(err)}' in {fpath}\n{err}")
 

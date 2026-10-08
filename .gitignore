@@ -5,8 +5,8 @@ __pycache__/
 
 # Build directory for documentation
 Documentation/build
-Documentation/source/api
-Documentation/source/apidoc
+Documentation/fab/source/api
+Documentation/fab/source/apidoc
 
 # C extensions
 *.so

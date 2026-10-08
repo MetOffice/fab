@@ -3,16 +3,19 @@
 #  For further details please refer to the file COPYRIGHT
 #  which you should have received as part of this distribution
 # ##############################################################################
+from __future__ import annotations
+
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Union, Optional, Any
+from typing import Any
 
 from fparser.two.Fortran2003 import (  # type: ignore
-    Use_Stmt,
+    Actual_Arg_Spec_List,
     Call_Stmt,
     Name,
     Only_List,
-    Actual_Arg_Spec_List,
     Part_Ref,
+    Use_Stmt,
 )
 from fparser.two.utils import walk  # type: ignore
 
@@ -24,8 +27,8 @@ except ImportError:
     BUILTIN_MAP = {}
 
 from fab.build_config import BuildConfig
-from fab.parse.fortran_common import FortranAnalyserBase, logger, _typed_child
 from fab.parse import AnalysedFile
+from fab.parse.fortran_common import FortranAnalyserBase, _typed_child, logger
 from fab.util import by_type
 
 
@@ -37,11 +40,11 @@ class AnalysedX90(AnalysedFile):
 
     def __init__(
         self,
-        fpath: Union[str, Path],
+        fpath: Path | str,
         file_hash: int,
         # todo: the fortran version doesn't include the remaining
         # args - update this too, for simplicity.
-        kernel_deps: Optional[Iterable[str]] = None,
+        kernel_deps: Iterable[str] | None = None,
     ):
         """
         :param fpath:
@@ -104,7 +107,9 @@ class X90Analyser(FortranAnalyserBase):
                 elif obj_type == Call_Stmt:
                     self._process_call_statement(symbol_deps, analysed_file, obj)
 
-            except Exception:
+            # Todo: This catch is over general.
+            #
+            except Exception:  # noqa: BLE001
                 logger.exception(
                     f"error processing node {obj.item or obj_type} in {fpath}"
                 )

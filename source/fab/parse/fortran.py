@@ -5,43 +5,45 @@
 # ##############################################################################
 """
 Fortran language handling classes.
-
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Union, Optional, Iterable, Any
+from typing import Any
 
 from fparser.two.Fortran2003 import (  # type: ignore
-    Entity_Decl_List,
-    Use_Stmt,
-    Module_Stmt,
-    Program_Stmt,
-    Subroutine_Stmt,
-    Function_Stmt,
-    Language_Binding_Spec,
-    Char_Literal_Constant,
-    Interface_Block,
-    Name,
-    Comment,
-    Module,
     Call_Stmt,
+    Char_Literal_Constant,
+    Comment,
     Derived_Type_Def,
     Derived_Type_Stmt,
-    Type_Attr_Spec_List,
-    Type_Attr_Spec,
-    Type_Name,
-    Subroutine_Subprogram,
-    Function_Subprogram,
-    Internal_Subprogram_Part,
+    Entity_Decl_List,
     External_Stmt,
+    Function_Stmt,
+    Function_Subprogram,
+    Interface_Block,
+    Internal_Subprogram_Part,
+    Language_Binding_Spec,
+    Module,
+    Module_Stmt,
+    Name,
+    Program_Stmt,
+    Subroutine_Stmt,
+    Subroutine_Subprogram,
+    Type_Attr_Spec,
+    Type_Attr_Spec_List,
     Type_Declaration_Stmt,
+    Type_Name,
+    Use_Stmt,
 )
 from fparser.two.utils import walk  # type: ignore
 
 from fab.build_config import BuildConfig
 from fab.dep_tree import AnalysedDependent
-from fab.parse.fortran_common import _typed_child, FortranAnalyserBase
+from fab.parse.fortran_common import FortranAnalyserBase, _typed_child
 from fab.util import file_checksum, string_checksum
 
 logger = logging.getLogger(__name__)
@@ -62,16 +64,16 @@ class AnalysedFortran(AnalysedDependent):
 
     def __init__(
         self,
-        fpath: Union[str, Path],
-        file_hash: Optional[int] = None,
-        program_defs: Optional[Iterable[str]] = None,
-        module_defs: Optional[Iterable[str]] = None,
-        symbol_defs: Optional[Iterable[str]] = None,
-        module_deps: Optional[Iterable[str]] = None,
-        symbol_deps: Optional[Iterable[str]] = None,
-        mo_commented_file_deps: Optional[Iterable[str]] = None,
-        file_deps: Optional[Iterable[Path]] = None,
-        psyclone_kernels: Optional[dict[str, int]] = None,
+        fpath: Path | str,
+        file_hash: int | None = None,
+        program_defs: Iterable[str] | None = None,
+        module_defs: Iterable[str] | None = None,
+        symbol_defs: Iterable[str] | None = None,
+        module_deps: Iterable[str] | None = None,
+        symbol_deps: Iterable[str] | None = None,
+        mo_commented_file_deps: Iterable[str] | None = None,
+        file_deps: Iterable[Path] | None = None,
+        psyclone_kernels: dict[str, int] | None = None,
     ):
         """
         :param fpath:
@@ -177,10 +179,10 @@ class AnalysedFortran(AnalysedDependent):
         result = super().to_dict()
         result.update(
             {
-                "program_defs": list(sorted(self.program_defs)),
-                "module_defs": list(sorted(self.module_defs)),
-                "module_deps": list(sorted(self.module_deps)),
-                "mo_commented_file_deps": list(sorted(self.mo_commented_file_deps)),
+                "program_defs": sorted(self.program_defs),
+                "module_defs": sorted(self.module_defs),
+                "module_deps": sorted(self.module_deps),
+                "mo_commented_file_deps": sorted(self.mo_commented_file_deps),
                 "psyclone_kernels": self.psyclone_kernels,
             }
         )
@@ -236,8 +238,8 @@ class FortranAnalyser(FortranAnalyserBase):
     def __init__(
         self,
         config: BuildConfig,
-        std: Optional[str] = None,
-        ignore_dependencies: Optional[Iterable[str]] = None,
+        std: str | None = None,
+        ignore_dependencies: Iterable[str] | None = None,
     ):
         """
         :param config: The BuildConfig to use.
@@ -352,25 +354,25 @@ class FortranAnalyser(FortranAnalyserBase):
                         stmt = _typed_child(obj, Derived_Type_Stmt)
                         spec_list = _typed_child(stmt, Type_Attr_Spec_List)
                         type_spec = _typed_child(spec_list, Type_Attr_Spec)
-                        if type_spec.children[0] == "EXTENDS":
-                            if (
-                                isinstance(type_spec.children[1], Name)
-                                and type_spec.children[1].string == "kernel_type"
-                            ):
-                                # We've found a psyclone kernel metadata. What's it called?
-                                kernel_name = _typed_child(stmt, Type_Name).string
+                        if (
+                            type_spec.children[0] == "EXTENDS"
+                            and isinstance(type_spec.children[1], Name)
+                            and type_spec.children[1].string == "kernel_type"
+                        ):
+                            # We've found a psyclone kernel metadata. What's it called?
+                            kernel_name = _typed_child(stmt, Type_Name).string
 
-                                # Hash this kernel metadata.
-                                # If it changes, Psyclone will reprocess any x90 which uses it.
-                                kernel_hash = string_checksum(str(obj))
+                            # Hash this kernel metadata.
+                            # If it changes, Psyclone will reprocess any x90 which uses it.
+                            kernel_hash = string_checksum(str(obj))
 
-                                assert (
-                                    kernel_name not in analysed_fortran.psyclone_kernels
-                                )
-                                analysed_fortran.psyclone_kernels[kernel_name] = (
-                                    kernel_hash
-                                )
-                    except Exception:
+                            assert kernel_name not in analysed_fortran.psyclone_kernels
+                            analysed_fortran.psyclone_kernels[kernel_name] = kernel_hash
+                    # Todo: This catch is too general.
+                    #
+                    except Exception:  # noqa: BLE001 S110
+                        # Todo: Surely this should do something?
+                        #
                         pass
 
             except Exception:
@@ -457,7 +459,7 @@ class FortranAnalyser(FortranAnalyserBase):
         self,
         analysed_file: AnalysedFortran,
         fpath: Path,
-        obj: Union[Function_Stmt, Subroutine_Stmt],
+        obj: Function_Stmt | Subroutine_Stmt,
     ):
         """
         Processes a subroutine statement. It handles:
@@ -529,12 +531,12 @@ class FortranParserWorkaround:
 
     def __init__(
         self,
-        fpath: Union[str, Path],
-        module_defs: Optional[Iterable[str]] = None,
-        symbol_defs: Optional[Iterable[str]] = None,
-        module_deps: Optional[Iterable[str]] = None,
-        symbol_deps: Optional[Iterable[str]] = None,
-        mo_commented_file_deps: Optional[Iterable[str]] = None,
+        fpath: Path | str,
+        module_defs: Iterable[str] | None = None,
+        symbol_defs: Iterable[str] | None = None,
+        module_deps: Iterable[str] | None = None,
+        symbol_deps: Iterable[str] | None = None,
+        mo_commented_file_deps: Iterable[str] | None = None,
     ):
         """
         :param fpath:

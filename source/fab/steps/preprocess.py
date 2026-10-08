@@ -5,29 +5,30 @@
 ##############################################################################
 """
 Fortran and C Preprocessing.
-
 """
+
+from __future__ import annotations
 
 import logging
 import shutil
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Collection, Optional, Union
 
-from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter, CollectionGetter
+from fab.artefacts import ArtefactSet, ArtefactsGetter, CollectionGetter, SuffixFilter
 from fab.build_config import BuildConfig
 from fab.metrics import send_metric
 from fab.steps import check_for_errors, run_mp, step
 from fab.tools.category import Category
-from fab.tools.preprocessor import Cpp, CppFortran, Preprocessor
 from fab.tools.flags import FlagList
+from fab.tools.preprocessor import Cpp, CppFortran, Preprocessor
 from fab.util import (
-    log_or_dot_finish,
-    input_to_output_fpath,
-    log_or_dot,
-    suffix_filter,
     Timer,
     by_type,
+    input_to_output_fpath,
+    log_or_dot,
+    log_or_dot_finish,
+    suffix_filter,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,10 +49,10 @@ def pre_processor(
     config: BuildConfig,
     preprocessor: Preprocessor,
     files: Collection[Path],
-    output_collection: Union[str, ArtefactSet],
+    output_collection: ArtefactSet | str,
     output_suffix,
-    common_flags: Optional[list[str]] = None,
-    path_flags: Optional[list] = None,
+    common_flags: list[str] | None = None,
+    path_flags: list | None = None,
     name="preprocess",
 ):
     """
@@ -133,7 +134,9 @@ def process_artefact(arg: tuple[Path, MpCommonArgs]):
                     input_fpath, output_fpath, args.config, flags
                 )
             except Exception as err:
-                raise Exception(f"error preprocessing {input_fpath}:\n{err}") from err
+                raise RuntimeError(
+                    f"error preprocessing {input_fpath}:\n{err}"
+                ) from err
 
     send_metric(
         args.name, str(input_fpath), {"time_taken": timer.taken, "start": timer.start}
@@ -144,7 +147,7 @@ def process_artefact(arg: tuple[Path, MpCommonArgs]):
 # todo: rename preprocess_fortran
 @step
 def preprocess_fortran(
-    config: BuildConfig, source: Optional[ArtefactsGetter] = None, **kwargs
+    config: BuildConfig, source: ArtefactsGetter | None = None, **kwargs
 ):
     """
     Wrapper to pre_processor for Fortran files.
@@ -167,7 +170,7 @@ def preprocess_fortran(
 
     fpp = config.tool_box.get_tool(Category.FORTRAN_PREPROCESSOR)
     if not isinstance(fpp, CppFortran):
-        raise RuntimeError(
+        raise TypeError(
             f"Unexpected tool '{fpp.name}' of type '{type(fpp)}' instead of CppFortran"
         )
 
@@ -233,9 +236,7 @@ class DefaultCPreprocessorSource(ArtefactsGetter):
 
 # todo: rename preprocess_c
 @step
-def preprocess_c(
-    config: BuildConfig, source: Optional[ArtefactsGetter] = None, **kwargs
-):
+def preprocess_c(config: BuildConfig, source: ArtefactsGetter | None = None, **kwargs):
     """
     Wrapper to pre_processor for C files.
 
@@ -248,7 +249,7 @@ def preprocess_c(
     source_files = source_getter(config.artefact_store)
     cpp = config.tool_box.get_tool(Category.C_PREPROCESSOR)
     if not isinstance(cpp, Cpp):
-        raise RuntimeError(
+        raise TypeError(
             f"Unexpected tool '{cpp.name}' of type '{type(cpp)}' instead of Cpp"
         )
 

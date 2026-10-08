@@ -6,8 +6,9 @@
 
 """This file contains the Rsync class for synchronising file trees."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -37,7 +38,7 @@ class Rsync(Tool):
             src_str = str(src_abs)
 
         # Note that run will change Path to str internally
-        parameters: list[Union[str, Path]] = [
+        parameters: list[Path | str] = [
             "--times",
             "--links",
             "--stats",

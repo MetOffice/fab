@@ -5,14 +5,14 @@
 ##############################################################################
 """
 Link an executable.
-
 """
+
+from __future__ import annotations
 
 import logging
 from string import Template
-from typing import Optional
 
-from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, CollectionGetter
+from fab.artefacts import ArtefactSet, ArtefactsGetter, ArtefactStore, CollectionGetter
 from fab.parse.fortran import AnalysedFortran
 from fab.steps import step
 from fab.tools.category import Category
@@ -38,9 +38,9 @@ class DefaultLinkerSource(ArtefactsGetter):
 @step
 def link_exe(
     config,
-    libs: Optional[list[str]] = None,
-    flags: Optional[list[str]] = None,
-    source: Optional[ArtefactsGetter] = None,
+    libs: list[str] | None = None,
+    flags: list[str] | None = None,
+    source: ArtefactsGetter | None = None,
 ) -> None:
     """
     Link object files into an executable for every build target.
@@ -101,8 +101,7 @@ def link_exe(
     flags = flags or []
 
     for root, objects in target_objects.items():
-        if root.startswith("main@"):
-            root = root[len("main@") :]
+        root = root.removeprefix("main@")
         exe_path = config.project_workspace / f"{root}"
         linker.link(objects, exe_path, config=config, libs=libs, add_flags=flags)
         config.artefact_store.add(ArtefactSet.EXECUTABLES, exe_path)
@@ -114,8 +113,8 @@ def link_exe(
 def link_shared_object(
     config,
     output_fpath: str,
-    flags: Optional[list[str]] = None,
-    source: Optional[ArtefactsGetter] = None,
+    flags: list[str] | None = None,
+    source: ArtefactsGetter | None = None,
 ):
     """
     Produce a shared object (*.so*) file from the given build target.

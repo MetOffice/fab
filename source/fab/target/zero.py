@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -12,19 +11,20 @@ Class which implements a zero-configuration build target.
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from .base import FabTargetBase
 from fab.tools.category import Category
 from fab.tools.tool_box import ToolBox
 from fab.tools.tool_repository import ToolRepository
+
 from ..build_config import BuildConfig
-from ..steps.grab.folder import grab_folder
-from ..steps.find_source_files import find_source_files
-from ..steps.preprocess import preprocess_fortran
-from ..steps.c_pragma_injector import c_pragma_injector
 from ..steps.analyse import analyse
-from ..steps.compile_fortran import compile_fortran
+from ..steps.c_pragma_injector import c_pragma_injector
 from ..steps.compile_c import compile_c
+from ..steps.compile_fortran import compile_fortran
+from ..steps.find_source_files import find_source_files
+from ..steps.grab.folder import grab_folder
 from ..steps.link import link_exe
+from ..steps.preprocess import preprocess_fortran
+from .base import FabTargetBase
 
 
 class FabZeroConfig(FabTargetBase):

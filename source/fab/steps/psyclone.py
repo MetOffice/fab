@@ -9,40 +9,42 @@ https://github.com/stfc/PSyclone
 
 """
 
-from dataclasses import dataclass
+from __future__ import annotations
+
 import logging
 import shutil
 import warnings
+from collections.abc import Iterable
+from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
-from typing import Callable, Iterable, Optional, Union
-
-from fab.build_config import BuildConfig
+from typing import Callable
 
 from fab.artefacts import ArtefactSet, ArtefactsGetter, SuffixFilter
-from fab.parse.fortran import FortranAnalyser, AnalysedFortran
-from fab.parse.x90 import X90Analyser, AnalysedX90
-from fab.steps import run_mp, check_for_errors, step
+from fab.build_config import BuildConfig
+from fab.parse.fortran import AnalysedFortran, FortranAnalyser
+from fab.parse.x90 import AnalysedX90, X90Analyser
+from fab.steps import check_for_errors, run_mp, step
 from fab.steps.preprocess import pre_processor
 from fab.tools.category import Category
 from fab.tools.psyclone import Psyclone
 from fab.util import (
-    log_or_dot,
-    input_to_output_fpath,
+    TimerLogger,
+    by_type,
     file_checksum,
     file_walk,
-    TimerLogger,
+    input_to_output_fpath,
+    log_or_dot,
+    log_or_dot_finish,
     string_checksum,
     suffix_filter,
-    by_type,
-    log_or_dot_finish,
 )
 
 logger = logging.getLogger(__name__)
 
 
 # todo: should this be part of the psyclone step?
-def preprocess_x90(config, common_flags: Optional[list[str]] = None):
+def preprocess_x90(config, common_flags: list[str] | None = None):
     common_flags = common_flags or []
 
     fpp = config.tool_box.get_tool(Category.FORTRAN_PREPROCESSOR)
@@ -78,12 +80,12 @@ class MpCommonArgs:
     config: BuildConfig
     analysed_x90: dict[Path, AnalysedX90]
 
-    kernel_roots: list[Union[str, Path]]
-    transformation_script: Optional[Callable[[Path, BuildConfig], Path]]
+    kernel_roots: list[Path | str]
+    transformation_script: Callable[[Path, BuildConfig], Path] | None
     cli_args: list[str]
-    api: Union[str, None]
+    api: str | None
     all_kernel_hashes: dict[str, int]
-    overrides_folder: Optional[Path]
+    overrides_folder: Path | None
     override_files: list[str]  # filenames (not paths) of hand crafted overrides
 
 
@@ -94,13 +96,13 @@ DEFAULT_SOURCE_GETTER = SuffixFilter(ArtefactSet.X90_COMPILER_FILES, ".x90")
 @step
 def psyclone(
     config: BuildConfig,
-    kernel_roots: Optional[list[Path]] = None,
-    transformation_script: Optional[Callable[[Path, BuildConfig], Path]] = None,
-    cli_args: Optional[list[str]] = None,
-    source_getter: Optional[ArtefactsGetter] = None,
-    overrides_folder: Optional[Path] = None,
-    api: Optional[str] = None,
-    ignore_dependencies: Optional[Iterable[str]] = None,
+    kernel_roots: list[Path] | None = None,
+    transformation_script: Callable[[Path, BuildConfig], Path] | None = None,
+    cli_args: list[str] | None = None,
+    source_getter: ArtefactsGetter | None = None,
+    overrides_folder: Path | None = None,
+    api: str | None = None,
+    ignore_dependencies: Iterable[str] | None = None,
 ):
     """
     PSyclone runner step.
@@ -199,7 +201,7 @@ def _generate_mp_payload(
     kernel_roots,
     transformation_script,
     cli_args,
-    api: Union[str, None],
+    api: str | None,
 ) -> MpCommonArgs:
     override_files: list[str] = []
     if overrides_folder:
@@ -251,7 +253,7 @@ def _analyse_x90s(config: BuildConfig, x90s: set[Path]) -> dict[Path, AnalysedX9
 def _analyse_kernels(
     config: BuildConfig,
     kernel_roots: list[Path],
-    ignore_dependencies: Optional[Iterable[str]] = None,
+    ignore_dependencies: Iterable[str] | None = None,
 ) -> dict[str, int]:
     """
     We want to hash the kernel metadata (type defs).
@@ -283,7 +285,7 @@ def _analyse_kernels(
         list(file_walk(root, ignore_folders=[config.prebuild_folder]))
         for root in kernel_roots
     ]
-    all_kernel_files: set[Path] = set(sum(file_lists, []))
+    all_kernel_files: set[Path] = set(chain(*file_lists))
     kernel_files: list[Path] = suffix_filter(all_kernel_files, [".f90"])
 
     # We use the normal Fortran analyser, which records psyclone kernel metadata.
@@ -297,7 +299,7 @@ def _analyse_kernels(
         fortran_results = run_mp(config, items=kernel_files, func=fortran_analyser.run)
     log_or_dot_finish(logger)
     fortran_analyses, fortran_artefacts = (
-        zip(*fortran_results) if fortran_results else (tuple(), tuple())
+        zip(*fortran_results) if fortran_results else ((), ())
     )
 
     errors: list[Exception] = list(by_type(fortran_analyses, Exception))
@@ -383,7 +385,9 @@ def do_one_file(arg: tuple[Path, MpCommonArgs]):
                 shutil.copy2(psy_file, prebuilt_gen)
             log_or_dot(logger=logger, msg=msg)
 
-        except Exception as err:
+        # Todo: This catch is much to general.
+        #
+        except Exception as err:  # noqa: BLE001
             logger.error(err)
             return err, None
 

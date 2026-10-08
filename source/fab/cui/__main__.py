@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ##############################################################################
 # (c) Crown copyright Met Office. All rights reserved.
 # For further details please refer to the file COPYRIGHT
@@ -8,19 +7,18 @@
 Fab command to build and maintain complex software applications.
 """
 
+from __future__ import annotations
+
 import sys
-from importlib.util import module_from_spec, spec_from_loader
 from importlib.machinery import SourceFileLoader
+from importlib.util import module_from_spec, spec_from_loader
 from pathlib import Path
 from types import ModuleType
-from typing import Optional
 
-
-from .arguments import FabArgumentParser
 from ..logtools import make_logger, setup_file_logging
 from ..target.base import FabTargetBase
 from ..target.zero import FabZeroConfig
-
+from .arguments import FabArgumentParser
 
 # Names of default build recipe class and methods in the FabFile
 TARGET_CLASS = "FabBuildTarget"
@@ -28,7 +26,7 @@ ARGUMENT_METHOD = "add_arguments"
 CHECK_METHOD = "check_arguments"
 
 
-def import_from_path(module_name: str, file_path: Path) -> Optional[ModuleType]:
+def import_from_path(module_name: str, file_path: Path) -> ModuleType | None:
     """Load a module by file path."""
     # Temporarily disable bytecode genearation to prevent __pycache__
     # directories from being created in the current working directory
@@ -50,7 +48,7 @@ def import_from_path(module_name: str, file_path: Path) -> Optional[ModuleType]:
     return module
 
 
-def main(argv: Optional[list[str]] = None):
+def main(argv: list[str] | None = None):
     """Main function.
 
     :param argv: list of command line arguments.  Use sys.argv if not specified.
@@ -63,11 +61,12 @@ def main(argv: Optional[list[str]] = None):
     parser = FabArgumentParser(description=__doc__)
     file_args = parser.parse_fabfile_only(argv)
 
+    build_class: type[FabTargetBase] | None = None
     if file_args.file is not None:
-        builder = import_from_path("builder", file_args.file)
-        if builder is None:
+        builder_mod = import_from_path("builder", file_args.file)
+        if builder_mod is None:
             parser.error(f"unable to import {file_args.file}")
-        build_class = getattr(builder, TARGET_CLASS, None)
+        build_class = getattr(builder_mod, TARGET_CLASS, None)
         if build_class is None:
             parser.error(f"unable to find {TARGET_CLASS} in {file_args.file}")
         if not issubclass(build_class, FabTargetBase):
@@ -76,6 +75,8 @@ def main(argv: Optional[list[str]] = None):
     elif file_args.zero_config:
         # There is no --file or FabFile, so use zero config mode
         build_class = FabZeroConfig
+
+    assert build_class is not None
 
     # Allow the build target to add options to the parser
     add_arguments = getattr(build_class, ARGUMENT_METHOD, None)
@@ -92,7 +93,7 @@ def main(argv: Optional[list[str]] = None):
 
     if args.project is None:
         # Use the project_name from the class
-        args.project = str(getattr(build_class, "project_name"))
+        args.project = str(build_class.project_name)
 
     args.project_workspace = args.workspace / args.project
     args.project_workspace.mkdir(parents=True, exist_ok=True)

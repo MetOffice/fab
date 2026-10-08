@@ -8,8 +8,9 @@
 other scripts.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Union
 
 from fab.tools.category import Category
 from fab.tools.tool import Tool
@@ -34,7 +35,7 @@ class Shell(Tool):
             category=Category.SHELL,
         )
 
-    def exec(self, command: Union[str, list[Union[Path, str]]]) -> str:
+    def exec(self, command: str | list[Path | str]) -> str:
         """Executes the specified command.
 
         :param command: the command and potential parameters to execute.
@@ -42,7 +43,7 @@ class Shell(Tool):
         :returns: stdout of the result.
         """
         # Make mypy happy:
-        params: list[Union[str, Path]]
+        params: list[Path | str]
         if isinstance(command, str):
             params = ["-c", command]
         else:

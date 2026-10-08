@@ -42,17 +42,17 @@ will be convert to `["-g", "-O3"]` if the file contains the string
 
 """
 
+from __future__ import annotations
+
+import logging
+import warnings
 from abc import ABC, abstractmethod
 from fnmatch import fnmatch
-import logging
 from pathlib import Path
 from string import Template
-from typing import Optional, Union
-import warnings
-
-from fab.util import string_checksum
 
 from fab.build_config import AddFlags, BuildConfig
+from fab.util import string_checksum
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ class AbstractFlags(ABC):
 
     @abstractmethod
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
@@ -109,7 +109,7 @@ class AlwaysFlags(AbstractFlags):
     :param flags: a string or list of strings with command line flags.
     """
 
-    def __init__(self, flags: Optional[Union[str, list[str]]] = None) -> None:
+    def __init__(self, flags: str | list[str] | None = None) -> None:
 
         super().__init__()  # type: ignore[safe-super]
         if isinstance(flags, str):
@@ -123,8 +123,8 @@ class AlwaysFlags(AbstractFlags):
     @staticmethod
     def replace_template(
         string_list: list[str],
-        config: Optional["BuildConfig"] = None,
-        file_path: Optional[Path] = None,
+        config: BuildConfig | None = None,
+        file_path: Path | None = None,
     ) -> list[str]:
         """This function replaces all `$relative`, `$source`, and `$output`
         in the string or list of string with the values taken from
@@ -158,7 +158,7 @@ class AlwaysFlags(AbstractFlags):
         return [Template(i).substitute(params) for i in string_list]
 
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
@@ -229,12 +229,12 @@ class MatchFlags(AlwaysFlags):
     :param flags: a string or list of strings with command line flags.
     """
 
-    def __init__(self, pattern: str, flags: Union[str, list[str]]) -> None:
+    def __init__(self, pattern: str, flags: str | list[str]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
@@ -264,12 +264,12 @@ class ContainFlags(AlwaysFlags):
     :param pattern: the substring which is used when matching.
     """
 
-    def __init__(self, pattern: str, flags: Union[str, list[str]]) -> None:
+    def __init__(self, pattern: str, flags: str | list[str]) -> None:
         super().__init__(flags)
         self._pattern = pattern
 
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """
         This function returns the list of flags to be used for the given
@@ -303,8 +303,8 @@ class FlagList(list[AbstractFlags]):
 
     def __init__(
         self,
-        list_of_flags: Optional[Union[AbstractFlags, str, list[str]]] = None,
-        add_flags: Optional[Union[AddFlags, list[AddFlags]]] = None,
+        list_of_flags: None | AbstractFlags | str | list[str] = None,
+        add_flags: AddFlags | list[AddFlags] | None = None,
     ) -> None:
         self._logger = logging.getLogger(__name__)
         super().__init__()
@@ -320,7 +320,7 @@ class FlagList(list[AbstractFlags]):
                 self.add_flags(MatchFlags(add_flag.match, add_flag.flags))
 
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """
         :returns: the flags to be used for the compilation profile and
@@ -339,7 +339,7 @@ class FlagList(list[AbstractFlags]):
         return all_flags_resolved
 
     def checksum(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> int:
         """
         :param config: the config object (used for templating)
@@ -356,7 +356,7 @@ class FlagList(list[AbstractFlags]):
         resolve_flags: list[str] = self.get_flags(config, file_path)
         return string_checksum(str(resolve_flags))
 
-    def add_flags(self, new_flags: Union[AbstractFlags, str, list[str]]) -> None:
+    def add_flags(self, new_flags: AbstractFlags | str | list[str] | None) -> None:
         """Adds the specified flags to the list of flags.
 
         :param new_flags: New flags to be added. Can be either an class

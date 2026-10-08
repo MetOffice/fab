@@ -8,10 +8,11 @@ A helper step to copy include files to the root of the build source folder,
 for easy include by the preprocessor.
 """
 
+from __future__ import annotations
+
 import logging
-from pathlib import Path
 import shutil
-from typing import Optional, Union
+from pathlib import Path
 
 from fab.artefacts import ArtefactSet
 from fab.build_config import BuildConfig
@@ -22,9 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 @step
-def root_inc_files(
-    config: BuildConfig, suffix_list: Optional[Union[list[str], str]] = None
-):
+def root_inc_files(config: BuildConfig, suffix_list: list[str] | str | None = None):
     """
     Copy include files with a specific suffix into the workspace
     output root.

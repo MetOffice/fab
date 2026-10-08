@@ -1,0 +1,234 @@
+# ##############################################################################
+#  (c) Crown copyright Met Office. All rights reserved.
+#  For further details please refer to the file COPYRIGHT
+#  which you should have received as part of this distribution
+# ##############################################################################
+
+"""Tests the Fortran analyser."""
+
+from pathlib import Path
+from unittest import mock
+
+import pytest
+from fab.build_config import BuildConfig
+from fab.parse import EmptySourceFile
+from fab.parse.fortran import AnalysedFortran, FortranAnalyser
+from fab.tools.tool_box import ToolBox
+from fparser.common.readfortran import FortranStringReader  # type: ignore
+from fparser.two.Fortran2003 import Type_Declaration_Stmt  # type: ignore
+from fparser.two.parser import ParserFactory  # type: ignore
+from fparser.two.utils import walk  # type: ignore
+
+# todo: test function binding
+
+
+@pytest.fixture(name="module_fpath")
+def module_fpath_fixture() -> Path:
+    """Simple fixture that sets the name of the module test file."""
+    return Path(__file__).parent / "test_fortran_analyser.f90"
+
+
+@pytest.fixture(name="module_expected")
+def module_expected_fixture(module_fpath: Path) -> AnalysedFortran:
+    """Returns the expected AnalysedFortran instance for the Fortran
+    test module."""
+    return AnalysedFortran(
+        fpath=module_fpath,
+        file_hash=3447500859,
+        module_defs={"foo_mod"},
+        symbol_defs={"external_sub", "external_func", "foo_mod"},
+        module_deps={"bar_mod", "compute_chunk_size_mod"},
+        symbol_deps={
+            "monty_func",
+            "bar_mod",
+            "compute_chunk_size_mod",
+            "some_external_symbol",
+            "some_external_as_attribute",
+            "sub_in_interface",
+        },
+        file_deps=set(),
+        mo_commented_file_deps={"some_file.o"},
+    )
+
+
+class TestAnalyser:
+    """
+    Tests the Fortran analyser in various combinations.
+    """
+
+    @pytest.fixture
+    def fortran_analyser(self, tmp_path: Path) -> FortranAnalyser:
+        """
+        A simple fixture that enables OpenMP and runs the analyser
+        """
+        # Enable openmp, so fparser will handle the lines with omp sentinels
+        config = BuildConfig("proj", ToolBox(), fab_workspace=tmp_path, openmp=True)
+        fortran_analyser = FortranAnalyser(config=config)
+        return fortran_analyser
+
+    def test_empty_file(self, fortran_analyser: FortranAnalyser) -> None:
+        """
+        Make sure we get back an EmptySourceFile if an empty file is given.
+        """
+        with mock.patch("fab.parse.AnalysedFile.save"):
+            analysis, artefact = fortran_analyser.run(
+                fpath=Path(Path(__file__).parent / "empty.f90")
+            )
+        assert isinstance(analysis, EmptySourceFile)
+        assert artefact is None
+
+    def test_module_file(self, fortran_analyser, module_fpath, module_expected):
+        """
+        Tests handling of module statement, including making sure that
+        subroutines in a module are not exported as external symbols.
+        """
+        with mock.patch("fab.parse.AnalysedFile.save"):
+            analysis, artefact = fortran_analyser.run(fpath=module_fpath)
+        assert analysis == module_expected
+        assert artefact == (
+            fortran_analyser._config.prebuild_folder
+            / f"test_fortran_analyser.f90.{analysis.file_hash}.an"
+        )
+
+    def test_module_file_no_openmp(
+        self,
+        fortran_analyser: FortranAnalyser,
+        module_fpath: Path,
+        module_expected: AnalysedFortran,
+    ) -> None:
+        """Disable OpenMP, meaning the dependency on compute_chunk_size_mod
+        should not be detected anymore.
+        """
+        fortran_analyser.config._openmp = False
+        with mock.patch("fab.parse.AnalysedFile.save"):
+            analysis, artefact = fortran_analyser.run(fpath=module_fpath)
+
+        # Without parsing openmp sentinels, the compute_chunk... symbols
+        # must not be added:
+        module_expected.module_deps.remove("compute_chunk_size_mod")
+        module_expected.symbol_deps.remove("compute_chunk_size_mod")
+
+        assert analysis == module_expected
+        assert isinstance(analysis, AnalysedFortran)
+        assert artefact == (
+            fortran_analyser._config.prebuild_folder
+            / f"test_fortran_analyser.f90.{analysis.file_hash}.an"
+        )
+
+    def test_module_file_ignore_dependencies(
+        self,
+        fortran_analyser: FortranAnalyser,
+        module_fpath: Path,
+        module_expected: AnalysedFortran,
+    ) -> None:
+        """Test ignore_dependencies parameter for fortran_analyser, meaning the
+        dependency on some_file.o ('DEPENDS ON' c file), monty_func ('DEPENDS
+        ON' fortran module) and compute_chunk_size_mod (Use fortran module)
+        should not be detected
+        """
+        fortran_analyser.ignore_dependencies = [
+            "some_file.o",
+            "monty_func",
+            "compute_chunk_size_mod",
+        ]
+        with mock.patch("fab.parse.AnalysedFile.save"):
+            analysis, artefact = fortran_analyser.run(fpath=module_fpath)
+
+        # With ignore_dependencies, some_file.o, monty_func symbol and
+        # compute_chunk_size_mod symbol must not be added:
+        module_expected.mo_commented_file_deps = set()
+        module_expected.symbol_deps.remove("monty_func")
+        module_expected.module_deps.remove("compute_chunk_size_mod")
+        module_expected.symbol_deps.remove("compute_chunk_size_mod")
+
+        assert analysis == module_expected
+        assert isinstance(analysis, AnalysedFortran)
+        assert artefact == (
+            fortran_analyser._config.prebuild_folder
+            / f"test_fortran_analyser.f90.{analysis.file_hash}.an"
+        )
+
+    def test_program_file(
+        self,
+        tmp_path: Path,
+        fortran_analyser: FortranAnalyser,
+        module_fpath: Path,
+        module_expected: AnalysedFortran,
+    ) -> None:
+        """
+        Test the handling of a Program. This test replaces 'MODULE'
+        in the standard test here with 'PROGRAM'.
+        """
+        prog_path = tmp_path / "prog.f90"
+        with prog_path.open("w") as tmp_file:
+            tmp_file.write(module_fpath.open().read().replace("MODULE", "PROGRAM"))
+            tmp_file.flush()
+            with mock.patch("fab.parse.AnalysedFile.save"):
+                analysis, artefact = fortran_analyser.run(fpath=Path(tmp_file.name))
+
+            module_expected.fpath = Path(tmp_file.name)
+            module_expected._file_hash = 975186955
+            module_expected.program_defs = {"foo_mod"}
+            module_expected.module_defs = set()
+
+            assert analysis == module_expected
+            assert isinstance(analysis, AnalysedFortran)
+            assert artefact == (
+                fortran_analyser._config.prebuild_folder
+                / f"{prog_path.name}.{analysis.file_hash}.an"
+            )
+
+
+# todo: test more methods!
+
+
+class TestProcessVariableBinding:
+    """This test class tests the variable binding."""
+
+    # todo: define and depend, with and without bind name
+
+    def test_define_without_bind_name(self, stub_configuration: BuildConfig) -> None:
+        """Test usage of bind"""
+
+        code = """
+            MODULE f_var
+
+            USE, INTRINSIC :: ISO_C_BINDING
+
+            IMPLICIT NONE
+            PRIVATE
+
+            CHARACTER(kind=c_char, len=1), &
+              DIMENSION(12), BIND(c), TARGET, SAVE :: &
+                helloworld=['H','e','L','l','O',' ','w','O','r','L','d','?']
+
+            END MODULE f_var
+        """
+
+        # parse
+        reader = FortranStringReader(code, ignore_comments=False)
+        f2008_parser = ParserFactory().create(std="f2008")
+        tree = f2008_parser(reader)
+
+        # find the tree node representing the variable binding
+        var_decl = next(
+            obj for obj in walk(tree) if isinstance(obj, Type_Declaration_Stmt)
+        )
+
+        # run our handler
+        fpath = Path("foo")
+        analysed_file = AnalysedFortran(fpath=fpath, file_hash=0)
+        analyser = FortranAnalyser(config=stub_configuration)
+        analyser._process_variable_binding(analysed_file=analysed_file, obj=var_decl)
+
+        assert analysed_file.symbol_defs == {
+            "helloworld",
+        }
+
+    # todo: test named variable binding
+    # def test_define_with_bind_name(self, tmp_path):
+    #     pass
+
+    # todo: test depending on a c variable, rather then defining one for c
+    # def test_depend_foo(self):
+    #     pass

@@ -4,22 +4,23 @@
 #  which you should have received as part of this distribution
 # ##############################################################################
 
-"""This file contains the various fcm steps. They are not
+"""
+This file contains the various fcm steps. They are not
 decorated with @steps since all functions here just call the
 corresponding svn steps.
 """
 
-from typing import Optional, Union
+from __future__ import annotations
 
-from fab.steps.grab.svn import svn_export, svn_checkout, svn_merge
+from fab.steps.grab.svn import svn_checkout, svn_export, svn_merge
 from fab.tools.category import Category
 
 
 def fcm_export(
     config,
     src: str,
-    dst_label: Optional[str] = None,
-    revision: Optional[Union[int, str]] = None,
+    dst_label: str | None = None,
+    revision: int | str | None = None,
 ):
     """
     Params as per :func:`~fab.steps.grab.svn.svn_export`.
@@ -29,7 +30,7 @@ def fcm_export(
 
 
 def fcm_checkout(
-    config, src: str, dst_label: Optional[str] = None, revision: Optional[str] = None
+    config, src: str, dst_label: str | None = None, revision: str | None = None
 ):
     """
     Params as per :func:`~fab.steps.grab.svn.svn_checkout`.
@@ -39,7 +40,7 @@ def fcm_checkout(
 
 
 def fcm_merge(
-    config, src: str, dst_label: Optional[str] = None, revision: Optional[str] = None
+    config, src: str, dst_label: str | None = None, revision: str | None = None
 ):
     """
     Params as per :func:`~fab.steps.grab.svn.svn_merge`.

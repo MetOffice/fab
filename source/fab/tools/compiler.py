@@ -8,15 +8,17 @@
 classes for gcc, gfortran, icc, ifort
 """
 
+from __future__ import annotations
+
 import re
-from pathlib import Path
 import warnings
-from typing import cast, Optional, Union
+from pathlib import Path
+from typing import cast
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
-from fab.tools.flags import AlwaysFlags
 from fab.tools.compiler_suite_tool import CompilerSuiteTool
+from fab.tools.flags import AlwaysFlags
 from fab.util import string_checksum
 
 
@@ -64,13 +66,13 @@ class Compiler(CompilerSuiteTool):
     def __init__(
         self,
         name: str,
-        exec_name: Union[str, Path],
+        exec_name: Path | str,
         suite: str,
         version_regex: str,
         category: Category,
         mpi: bool = False,
-        version_argument: Optional[str] = None,
-        availability_option: Optional[Union[str, list[str]]] = None,
+        version_argument: str | None = None,
+        availability_option: str | list[str] | None = None,
     ):
         super().__init__(
             name,
@@ -79,7 +81,7 @@ class Compiler(CompilerSuiteTool):
             category=category,
             availability_option=availability_option,
         )
-        self._version: Union[tuple[int, ...], None] = None
+        self._version: tuple[int, ...] | None = None
         self._mpi = mpi
         self.__version_argument = version_argument or "--version"
         self._version_regex = version_regex
@@ -110,7 +112,7 @@ class Compiler(CompilerSuiteTool):
         except KeyError:
             return False
 
-    def get_hash(self, config: "BuildConfig", file_path: Path) -> int:
+    def get_hash(self, config: BuildConfig, file_path: Path) -> int:
         """
         Computes a hash code using the name and version of the compiler,
         and the compilation flag used by the compiler for the specified
@@ -129,10 +131,10 @@ class Compiler(CompilerSuiteTool):
 
     def get_all_commandline_options(
         self,
-        config: "BuildConfig",
+        config: BuildConfig,
         input_file: Path,
         output_file: Path,
-        add_flags: Union[None, list[str]] = None,
+        add_flags: list[str] | None = None,
     ) -> list[str]:
         """This function returns all command line options for a compiler
         (but not the executable name). It is used by a compiler wrapper
@@ -174,7 +176,7 @@ class Compiler(CompilerSuiteTool):
         return params
 
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """
         The flags to use when compiling the specified flag. All
@@ -192,8 +194,8 @@ class Compiler(CompilerSuiteTool):
         self,
         input_file: Path,
         output_file: Path,
-        config: "BuildConfig",
-        add_flags: Union[None, list[str]] = None,
+        config: BuildConfig,
+        add_flags: list[str] | None = None,
     ):
         """Compiles a file. It will add the flag for compilation-only
         automatically, as well as the output directives. The current working
@@ -284,7 +286,7 @@ class Compiler(CompilerSuiteTool):
         self._version = version
         return version
 
-    def run_version_command(self, version_command: Optional[str] = "--version") -> str:
+    def run_version_command(self, version_command: str | None = "--version") -> str:
         """
         Run the compiler's command to get its version.
 
@@ -339,8 +341,8 @@ class CCompiler(Compiler):
         suite: str,
         version_regex: str,
         mpi: bool = False,
-        version_argument: Optional[str] = None,
-        availability_option: Optional[str] = None,
+        version_argument: str | None = None,
+        availability_option: str | None = None,
     ):
         super().__init__(
             name,
@@ -376,7 +378,7 @@ class FortranCompiler(Compiler):
         suite: str,
         version_regex: str,
         mpi: bool = False,
-        version_argument: Optional[str] = None,
+        version_argument: str | None = None,
     ):
 
         super().__init__(
@@ -408,11 +410,11 @@ class FortranCompiler(Compiler):
 
     def get_all_commandline_options(
         self,
-        config: "BuildConfig",
+        config: BuildConfig,
         input_file: Path,
         output_file: Path,
-        add_flags: Union[None, list[str]] = None,
-        syntax_only: Optional[bool] = False,
+        add_flags: list[str] | None = None,
+        syntax_only: bool = False,
     ) -> list[str]:
         """This function returns all command line options for a Fortran
         compiler (but not the executable name). It is used by a compiler
@@ -470,9 +472,9 @@ class FortranCompiler(Compiler):
         self,
         input_file: Path,
         output_file: Path,
-        config: "BuildConfig",
-        add_flags: Union[None, list[str]] = None,
-        syntax_only: Optional[bool] = False,
+        config: BuildConfig,
+        add_flags: list[str] | None = None,
+        syntax_only: bool = False,
     ):
         """Compiles a file. This basically re-implements `compile_file` of
         the base class, but passes the syntax_only flag in

@@ -6,7 +6,7 @@
 
 """This file contains the class to interface with pkg-config."""
 
-from typing import List
+from __future__ import annotations
 
 from fab.tools.category import Category
 from fab.tools.tool_with_flags import ToolWithFlags
@@ -26,14 +26,14 @@ class PkgConfig(ToolWithFlags):
         super().__init__(f"pkg-config({name})", "pkg-config", Category.MISC)
         self._package = name
 
-    def get_compiler_flags(self) -> List[str]:
+    def get_compiler_flags(self) -> list[str]:
         """
         :returns: the compilation flags to use for the specified package.
         """
         flags = self.run(additional_parameters=[self._package, "--cflags"])
         return flags.split()
 
-    def get_linker_flags(self) -> List[str]:
+    def get_linker_flags(self) -> list[str]:
         """
         :returns: the linker flags to use for the specified package.
         """

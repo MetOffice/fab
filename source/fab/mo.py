@@ -6,11 +6,12 @@
 """
 A temporary place for some Met Office specific logic which, for now, needs to
 be integrated into Fab's internals.
-
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Optional
 
 from fab.dep_tree import AnalysedDependent, logger
 from fab.parse.c import AnalysedC
@@ -19,7 +20,7 @@ from fab.parse.fortran import AnalysedFortran
 
 def add_mo_commented_file_deps(
     source_tree: dict[Path, AnalysedDependent],
-    ignore_dependencies: Optional[Iterable[str]] = None,
+    ignore_dependencies: Iterable[str] | None = None,
 ) -> None:
     """
     Handle dependencies from Met Office "DEPENDS ON:" code comments which

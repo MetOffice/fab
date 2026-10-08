@@ -8,15 +8,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
 import warnings
+from pathlib import Path
 
 from fab.build_config import BuildConfig
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
-from fab.tools.profile_flags import ProfileFlags
 from fab.tools.compiler_suite_tool import CompilerSuiteTool
+from fab.tools.profile_flags import ProfileFlags
 
 
 class Linker(CompilerSuiteTool):
@@ -39,8 +38,8 @@ class Linker(CompilerSuiteTool):
     def __init__(
         self,
         compiler: Compiler,
-        linker: Optional[Linker] = None,
-        name: Optional[str] = None,
+        linker: Linker | None = None,
+        name: str | None = None,
     ):
 
         self._compiler = compiler
@@ -114,7 +113,7 @@ class Linker(CompilerSuiteTool):
             return result
         return self._compiler[generic_name]
 
-    def define_profile(self, name: str, inherit_from: Optional[str] = None):
+    def define_profile(self, name: str, inherit_from: str | None = None):
         """Defines a new profile name, and allows to specify if this new
         profile inherit settings from an existing profile.
 
@@ -126,7 +125,7 @@ class Linker(CompilerSuiteTool):
         self._pre_lib_flags.define_profile(name, inherit_from)
         self._post_lib_flags.define_profile(name, inherit_from)
 
-    def get_profile_flags(self, config: "BuildConfig") -> list[str]:
+    def get_profile_flags(self, config: BuildConfig) -> list[str]:
         """
         :returns: the ProfileFlags for the given profile, combined
             from the wrapped compiler and this wrapper.
@@ -178,21 +177,21 @@ class Linker(CompilerSuiteTool):
         # Make a copy to avoid modifying the caller's list
         self._lib_flags[lib] = flags[:]
 
-    def add_pre_lib_flags(self, flags: list[str], profile: Optional[str] = None):
+    def add_pre_lib_flags(self, flags: list[str], profile: str | None = None):
         """Add a set of flags to use before any library-specific flags
 
         :param flags: the flags to include
         """
         self._pre_lib_flags.add_flags(flags, profile)
 
-    def add_post_lib_flags(self, flags: list[str], profile: Optional[str] = None):
+    def add_post_lib_flags(self, flags: list[str], profile: str | None = None):
         """Add a set of flags to use after any library-specific flags
 
         :param flags: the flags to include
         """
         self._post_lib_flags.add_flags(flags, profile)
 
-    def get_pre_link_flags(self, config: "BuildConfig") -> list[str]:
+    def get_pre_link_flags(self, config: BuildConfig) -> list[str]:
         """Returns the list of pre-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will come first - the assumption is that
@@ -214,7 +213,7 @@ class Linker(CompilerSuiteTool):
             params.extend(self._linker.get_pre_link_flags(config))
         return params
 
-    def get_post_link_flags(self, config: "BuildConfig") -> list[str]:
+    def get_post_link_flags(self, config: BuildConfig) -> list[str]:
         """Returns the list of post-link flags. It will concatenate the
         flags for this instance with all potentially wrapped linkers.
         This wrapper's flag will be added to the end.
@@ -237,9 +236,9 @@ class Linker(CompilerSuiteTool):
         self,
         input_files: list[Path],
         output_file: Path,
-        config: "BuildConfig",
-        libs: Optional[list[str]] = None,
-        add_flags: Optional[list[str]] = None,
+        config: BuildConfig,
+        libs: list[str] | None = None,
+        add_flags: list[str] | None = None,
     ) -> str:
         """Executes the linker with the specified input files,
         creating `output_file`.

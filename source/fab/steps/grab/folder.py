@@ -8,16 +8,17 @@
 This file contains the grab_folder function.
 """
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import Union
 
 from fab.steps.grab.files import grab_files
 
 logger = logging.getLogger(__name__)
 
 
-def grab_folder(config, src: Union[Path, str], dst_label: str = ""):
+def grab_folder(config, src: Path | str, dst_label: str = ""):
     """
     Copy a source folder to the project workspace. This function is
     deprecated, use `grab_files` instead.

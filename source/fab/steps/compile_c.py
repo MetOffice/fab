@@ -5,15 +5,17 @@
 ##############################################################################
 """
 C file compilation.
-
 """
+
+from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import cast, Optional
+from functools import reduce
+from typing import cast
 
 from fab import FabException
-from fab.artefacts import ArtefactsGetter, ArtefactSet, ArtefactStore, FilterBuildTrees
+from fab.artefacts import ArtefactSet, ArtefactsGetter, ArtefactStore, FilterBuildTrees
 from fab.build_config import AddFlags, BuildConfig
 from fab.metrics import send_metric
 from fab.parse.c import AnalysedC
@@ -21,7 +23,7 @@ from fab.steps import check_for_errors, run_mp, step
 from fab.tools.category import Category
 from fab.tools.compiler import Compiler
 from fab.tools.flags import FlagList
-from fab.util import CompiledFile, log_or_dot, Timer, by_type
+from fab.util import CompiledFile, Timer, by_type, log_or_dot
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +42,9 @@ class MpCommonArgs:
 @step
 def compile_c(
     config: BuildConfig,
-    common_flags: Optional[list[str]] = None,
-    path_flags: Optional[list[AddFlags]] = None,
-    source: Optional[ArtefactsGetter] = None,
+    common_flags: list[str] | None = None,
+    path_flags: list[AddFlags] | None = None,
+    source: ArtefactsGetter | None = None,
 ):
     """
     Compiles all C files in all build trees, creating or extending a set of
@@ -79,7 +81,7 @@ def compile_c(
 
     # gather all the source to compile, for all build trees, into one big lump
     build_lists: dict = source_getter(config.artefact_store)
-    to_compile: list = sum(build_lists.values(), [])
+    to_compile: list = reduce(lambda l, v: l + v, build_lists.values(), [])
     logger.info(f"compiling {len(to_compile)} c files")
 
     if len(to_compile) == 0:

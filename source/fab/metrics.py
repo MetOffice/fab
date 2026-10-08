@@ -21,31 +21,31 @@ reading process
 stop
     closes pipes & process
     return metrics from summary pipe
-
 """
 
 # todo: replace this module with something like prometheus & grafana?
+
+from __future__ import annotations
 
 import datetime
 import json
 import logging
 import warnings
 from collections import defaultdict
-from multiprocessing import Process, Pipe
+from multiprocessing import Pipe, Process
 from multiprocessing.connection import Connection
 from pathlib import Path
-from typing import Optional
 
 JSON_FILENAME = "metrics.json"
 
 logger = logging.getLogger(__name__)
 
 # the pipe for individual metrics
-_metric_recv_conn: Optional[Connection] = None
-_metric_send_conn: Optional[Connection] = None
+_metric_recv_conn: Connection | None = None
+_metric_send_conn: Connection | None = None
 
 # the process which receives individual metrics
-_metric_recv_process: Optional[Process] = None
+_metric_recv_process: Process | None = None
 
 
 def init_metrics(metrics_folder: Path):

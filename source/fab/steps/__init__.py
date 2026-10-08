@@ -7,12 +7,14 @@
 Predefined build steps with sensible defaults.
 """
 
+from __future__ import annotations
+
 import multiprocessing
-from typing import Iterable, Optional, Union
+from collections.abc import Iterable
+from functools import wraps
 
 from fab.metrics import send_metric
-from fab.util import by_type, TimerLogger
-from functools import wraps
+from fab.util import TimerLogger, by_type
 
 # For python 3.14, switch explicitly back to the old-style
 # fork method for subprocesses (otherwise subprocesses will
@@ -91,7 +93,7 @@ def run_mp_imap(config, items, func, result_handler):
 
 
 def check_for_errors(
-    results: Iterable[Union[str, Exception]], caller_label: Optional[str] = None
+    results: Iterable[str | Exception], caller_label: str | None = None
 ) -> None:
     """
     Check an iterable of results for any exceptions and handle them gracefully.

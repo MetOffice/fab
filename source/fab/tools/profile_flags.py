@@ -21,14 +21,15 @@ will be convert to `["-g", "-O3"]` if the file contains the string
 
 """
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
-from typing import Optional, Union
-
-from fab.tools.flags import AbstractFlags, FlagList
-from fab.util import string_checksum
+from typing import ClassVar
 
 from fab.build_config import BuildConfig
+from fab.tools.flags import AbstractFlags, FlagList
+from fab.util import string_checksum
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +53,11 @@ class ProfileFlags:
     # 'inherits' the flags from a different mode (recursively). To
     # avoid having to handle "" as special case, it is added here
     # as an always available dummy profile.
-    _inherit_from: dict[str, str] = {"": ""}
+    _inherit_from: ClassVar[dict[str, str]] = {"": ""}
 
     def __init__(
         self,
-        flags: Optional[Union[AbstractFlags, str, list[str]]] = None,
+        flags: AbstractFlags | str | list[str] | None = None,
         profile: str = "",
     ) -> None:
         # Stores the flags for each profile mode. The key is the (lower case)
@@ -70,7 +71,7 @@ class ProfileFlags:
             self.add_flags(flags, profile)
 
     @classmethod
-    def define_profile(cls, name: str, inherit_from: Optional[str] = None):
+    def define_profile(cls, name: str, inherit_from: str | None = None):
         """Defines a new profile name, and allows to specify if this new
         profile inherit settings from an existing profile. If inherit_from
         is specified, the newly defined profile will inherit from an existing
@@ -93,7 +94,7 @@ class ProfileFlags:
             cls._inherit_from[name] = ""
 
     def get_flags(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> list[str]:
         """
         This method returns the flags used for the specified file,
@@ -121,7 +122,7 @@ class ProfileFlags:
 
         return resolved_flags
 
-    def __getitem__(self, profile: Optional[str] = None) -> list[AbstractFlags]:
+    def __getitem__(self, profile: str | None = None) -> list[AbstractFlags]:
         """Returns the flags for the requested profile. If profile is not
         specified, the empty profile ("") will be used. It will also take
         inheritance into account, so add flags (recursively) from inherited
@@ -158,8 +159,8 @@ class ProfileFlags:
 
     def add_flags(
         self,
-        new_flags: Union[AbstractFlags, str, list[str]],
-        profile: Optional[str] = None,
+        new_flags: AbstractFlags | str | list[str],
+        profile: str | None = None,
     ) -> None:
         """Adds the specified flags to the list of flags.
 
@@ -185,7 +186,7 @@ class ProfileFlags:
     def remove_flag(
         self,
         remove_flag: str,
-        profile: Optional[str] = None,
+        profile: str | None = None,
         has_parameter: bool = False,
     ):
         """Removes all occurrences of `remove_flag` in flags.
@@ -211,7 +212,7 @@ class ProfileFlags:
         self._profiles[profile].remove_flag(remove_flag, has_parameter)
 
     def checksum(
-        self, config: Optional["BuildConfig"] = None, file_path: Optional[Path] = None
+        self, config: BuildConfig | None = None, file_path: Path | None = None
     ) -> int:
         """
         :param config: the config object (used for templating)
