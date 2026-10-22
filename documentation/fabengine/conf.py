@@ -61,11 +61,11 @@ nitpick_ignore = {
 # -- Automatic API documentation generator -----------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/apidoc.html
 
-sys_path.insert(0, str(Path("..", "source").resolve()))
+sys_path.insert(0, str(Path("..", "..", "source", "fabengine").resolve()))
 
 apidoc_modules = [
     {
-        "path": "../source",
+        "path": "../../source/fabengine",
         "destination": "_api",
         "separate_modules": True,
         "module_first": True,

@@ -12,7 +12,7 @@ SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
 APIDIR        = $(SOURCEDIR)/_api
-CODEDIR       = $(SOURCEDIR)/../source
+CODEDIR       = $(SOURCEDIR)/../../source/fabengine
 
 # Put it first so that "make" without argument is like "make help".
 help:
