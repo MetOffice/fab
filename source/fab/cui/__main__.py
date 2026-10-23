@@ -43,7 +43,11 @@ def import_from_path(module_name: str, file_path: Path) -> ModuleType | None:
 
     module_name = file_path.stem
     loader = SourceFileLoader(module_name, str(file_path))
-    spec = spec_from_loader(module_name, loader)
+    #
+    # Python 3.15 seems to have become confused over the types of its arguments
+    # So we disable the check until we can get to the bottom of it.
+    #
+    spec = spec_from_loader(module_name, loader)  # type: ignore
     if spec is None:
         raise ImportError(f"Unable to determine a spec for '{file_path}'")
     if spec.loader is None:
