@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sys
 from importlib.machinery import SourceFileLoader
-from importlib.util import module_from_spec, spec_from_loader
+from importlib.util import module_from_spec, spec_from_loader, spec_from_file_location
 from pathlib import Path
 from types import ModuleType
 
@@ -33,15 +33,25 @@ def import_from_path(module_name: str, file_path: Path) -> ModuleType | None:
     bytecode_setting = sys.dont_write_bytecode
     sys.dont_write_bytecode = True
 
+    # Validate our inputs first
+    #
+    if file_path.stem in sys.modules:
+        raise ImportError(f"Module '{file_path.stem}' already imported")
+    file_path = file_path.resolve()
+    if not file_path.exists():
+        raise FileNotFoundError(file_path)
+
+    module_name = file_path.stem
     loader = SourceFileLoader(module_name, str(file_path))
     spec = spec_from_loader(module_name, loader)
-    if spec is None or spec.loader is None:
-        # Unable to find the file for some reason
-        return None
+    if spec is None:
+        raise ImportError(f"Unable to determine a spec for '{file_path}'")
+    if spec.loader is None:
+        raise ImportError(f"Unable to determine a loader for '{file_path}'")
 
     module = module_from_spec(spec)
-    sys.modules[module_name] = module
     spec.loader.exec_module(module)
+    sys.modules[file_path.stem] = module
 
     # Restore previous bytecode generation setting
     sys.dont_write_bytecode = bytecode_setting
