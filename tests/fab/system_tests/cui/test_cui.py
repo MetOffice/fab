@@ -61,7 +61,7 @@ class TestUserTarget:
     ) -> None:
         """Test with an invalid build class name."""
 
-        target = tmp_path / "invalid.py"
+        target = tmp_path / "invalid_class.py"
 
         target.write_text(
             """
@@ -108,7 +108,7 @@ class FabBuildInvalidName(FabTargetBase):
     ) -> None:
         """Test subclass that lacks a project name is invalid."""
 
-        target = tmp_path / "valid.py"
+        target = tmp_path / "invalid_abstract.py"
 
         target.write_text(
             dedent(
@@ -191,7 +191,7 @@ class FabBuildInvalidName(FabTargetBase):
     ) -> None:
         """Test the KeyboardInterrupt handling."""
 
-        target = tmp_path / "valid.py"
+        target = tmp_path / "valid_interupt.py"
 
         target.write_text(
             dedent(
@@ -213,12 +213,10 @@ class FabBuildInvalidName(FabTargetBase):
         captured = capsys.readouterr()
         assert captured.err.startswith("error: interrupted by user")
 
-    def test_invalid_import(
-        self, tmp_path: Path, capsys: pytest.CaptureFixture, monkeypatch
-    ) -> None:
+    def test_invalid_file(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         """Test import failure error handling."""
 
-        target = tmp_path / "valid.py"
+        target = tmp_path / "invalid_no_class.py"
 
         target.write_text(
             dedent(
@@ -229,12 +227,9 @@ class FabBuildInvalidName(FabTargetBase):
             )
         )
 
-        monkeypatch.setattr(fab.cui.__main__, "spec_from_loader", lambda a, b: None)
-
         with pytest.raises(SystemExit) as exc:
             fab.cui.__main__.main(["--file", str(target)])
         assert exc.value.code == 2
 
         captured = capsys.readouterr()
-
-        assert "unable to import" in captured.err
+        assert "unable to find FabBuildTarget" in captured.err
