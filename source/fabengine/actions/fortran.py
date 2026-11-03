@@ -116,7 +116,7 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         for name, value in self._macros.items():
             arguments.append(f"-D{name}={value}")
 
-        super().__init__(Path("cpp"), arguments)
+        super().__init__(Path("cpp"), arguments, key=filename)
 
     def __str__(self) -> str:
         return f"Preprocess {self._kind} <({self._project}) {self._real_file.branch}>"
@@ -417,6 +417,9 @@ class DetermineFortranProgram(Action):
         self._modules: set[str] = set()
         self._units = {name}
 
+    def __hash__(self) -> int:
+        return self._hash
+
     def __eq__(self, other: object) -> bool:
         # Because DetermineFortranProgram will be compared against other
         # Action objects, it can't simply fail if the other is of different
@@ -458,6 +461,8 @@ class DetermineFortranProgram(Action):
         """
         logger = make_logger("system")
         actions: list[Action] = []
+        if self._name in self._database._program_unseen_units:
+            self._units |= self._database._program_unseen_units[self._name]
 
         working_units = self._units
         self._units = set()
@@ -504,6 +509,10 @@ class DetermineFortranProgram(Action):
             else:  # Unit has not yet been analysed
                 logger.debug("Not yet seen: " + unit_name)
                 self._units.add(unit_name)
+
+        if self._name not in self._database._program_unseen_units:
+            self._database._program_unseen_units[self._name] = set()
+        self._units |= self._database._program_unseen_units[self._name]
 
         if len(self._units) == 0:
             actions.append(LinkFortran(self._name, self._modules, self._database))
@@ -576,7 +585,10 @@ class CompileFortran(SubprocessAction):
         )
 
         exe = Path("mpif90")
-        super().__init__(exe, arguments)
+        super().__init__(exe, arguments, key=self._source)
+
+    def __hash__(self) -> int:
+        return self._hash
 
     def __eq__(self, other: object) -> bool:
         assert isinstance(other, Action)
@@ -635,7 +647,10 @@ class CompileFortran(SubprocessAction):
         self.run_subprocess()
 
         if self.first_pass:
-            return [CompileFortran(self._source, [], self._database, False)]
+            # Remove the prerequisites and add back in the queue
+            self._prerequisites = set()
+            self._syntax_only = False
+            return [self]
         return []
 
     @property
@@ -705,7 +720,10 @@ class LinkFortran(SubprocessAction):
                     raise TypeError("Unrecognised linker argument: " + str(arg))
 
         exe = Path("mpif90")
-        super().__init__(exe, arguments)
+        super().__init__(exe, arguments, key=self._exe_file)
+
+    def __hash__(self) -> int:
+        return self._hash
 
     def __eq__(self, other: object) -> bool:
         assert isinstance(other, Action)

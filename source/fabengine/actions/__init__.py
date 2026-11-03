@@ -69,13 +69,18 @@ class Action(ABC):
     Interface for work queue actions.
     """
 
-    def __init__(self, identifier: str):
+    def __init__(self, identifier: str, key: object | None = None):
         """
         :param identifier: Uniquely identifiers an action instance from others
                            in its class. Often an input filename.
         """
         self._id = identifier
         self._reused = False
+        self._key = key or identifier
+        self._hash = hash(f"{self.__class__}.{self._key}")
+
+    def __hash__(self) -> int:
+        return self._hash
 
     @property
     def action_id(self) -> str:
@@ -111,6 +116,7 @@ class SubprocessAction(Action, ABC):
         arguments: Iterable[Any] | None = None,
         identification: str | None = None,
         mpi: int | None = None,
+        key: object | None = None,
     ):
         self._executable = executable
         self._arguments = arguments or []
@@ -122,7 +128,11 @@ class SubprocessAction(Action, ABC):
             identification = (
                 f"{self._executable} {' '.join(str(arg) for arg in self._arguments)}"
             )
-        super().__init__(identification)
+
+        super().__init__(
+            identification,
+            key=key,
+        )
 
     @property
     def executable(self) -> Path | None:

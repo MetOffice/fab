@@ -1,5 +1,5 @@
-from collections import defaultdict, deque
 from enum import Enum, auto
+from multiprocessing.managers import DictProxy
 
 from fabengine.actions import Action
 from fabengine.actions.sentinel import Sentinel
@@ -23,24 +23,39 @@ class WorkQueue:
     Manages a queue of work actions.
     """
 
-    def __init__(self, strategy: QueueStrategy = QueueStrategy.ALWAYS_TO_BACK) -> None:
-        self._strategy = strategy
-        self._user_logger, self._system_logger = make_loggers()
-        self._system_logger.debug("Queue strategy is: " + self._strategy.name.lower())
+    def __init__(
+        self,
+        manager,
+        tracking: bool = True,
+    ) -> None:
+        self._tracking = tracking
 
-        self._queue: deque[Action] = deque()
-        self._stop = False
-        self._in_barrier = False
-        self._sentinel: int | None = None
-        self._length = 0
-        self._work_tally: dict[type[Action], int] = defaultdict(int)
+        self._user_logger, self._system_logger = make_loggers()
+        self._system_logger.debug("Queue strategy is: always_to_back")
+
+        # Local data structures
+        self._local_actions: dict[int, Action] = {}
+
+        # Shared data structures
+        self._queue = manager.SharedDeque()  # type:ignore
+        self._shared_actions: DictProxy[int, Action] = manager.dict()  # type:ignore
+        self._work_tally: DictProxy[str, int] = manager.dict()  # type:ignore
+
+        # Shared variables
+        self._stop = manager.Value("?", False)
+        self._in_barrier = manager.Value("?", False)
+        self._sentinel = manager.Value("l", -1)
+        self._length = manager.Value("L", 0)
+
+        # Lock for non-atomic variable updates
+        self._lock = manager.Lock()
 
     def stop(self) -> None:
         """
         Signals queue to stop work.
         """
         self._user_logger.debug("Stop requested")
-        self._stop = True
+        self._stop.value = True
 
     # This method cannot be a "property" as it will be accessed through a
     # multiprocessing AutoProxy. These only support methods.
@@ -49,19 +64,19 @@ class WorkQueue:
         """
         :return: Is queue stopping?
         """
-        return self._stop
+        return self._stop.value
 
     def enter_barrier(self):
         """
         Informs queue sentinel barrier is being entered.
         """
-        self._in_barrier = True
+        self._in_barrier.value = True
 
     def leave_barrier(self):
         """
         Informs queue sentinel barrier is being left.
         """
-        self._in_barrier = False
+        self._in_barrier.value = False
 
     # This method cannot be a "property" as it will be accessed through a
     # multiprocessing AutoProxy. These only support methods.
@@ -70,12 +85,9 @@ class WorkQueue:
         """
         Gets number of actions on queue.
         """
-        return self._length
+        return self._length.value
 
-    # This method cannot be a "property" as it will be accessed through a
-    # multiprocessing AutoProxy. These only support methods.
-    #
-    def work_tally(self) -> dict[type[Action], int]:
+    def work_tally(self):
         """
         Gets number of each action type on queue.
         """
@@ -83,31 +95,21 @@ class WorkQueue:
 
     def new_action(self, action: Action) -> None:
         """
-        Adds an action to the queue.
-
-        Respects queue strategy.
+        Adds an action to the back of the queue.
         """
         self._system_logger.debug("Queueing action: " + str(action))
-        if isinstance(action, Sentinel):
-            self._add_back(action)
-            return
+        index = hash(action)
 
-        if self._strategy == QueueStrategy.ALWAYS_TO_BACK:
-            self._add_back(action)
-        elif self._strategy == QueueStrategy.NEW_TO_FRONT:
-            self._add_front(action)
-        elif self._strategy == QueueStrategy.SENTINEL_MAGIC:
-            if self._in_barrier:
-                self._add_back(action)
-            else:
-                self._add_front(action)
-        elif self._strategy == QueueStrategy.SENTINEL_EXTRA_MAGIC:
-            if self._in_barrier:
-                self._add_after_sentinel(action)
-            else:  # Not in barrier
-                self._add_front(action)
-        else:
-            raise RuntimeError("Unrecognised stack strategy: " + self._strategy.name)
+        # todo: this allows the same action to be added more than once.
+        # Is this correct?
+        if index not in self._shared_actions:
+            # Store shared and local copies of the action
+            self._shared_actions[index] = action
+            self._local_actions[index] = action
+        elif not action.__class__ is Sentinel:
+            raise ValueError(f"Action clash: {action} ({hash(action)})")
+
+        self._add_back(index, action.__class__.__name__, action.__class__ is Sentinel)
 
     def requeue_action(self, action: Action) -> None:
         """
@@ -115,52 +117,60 @@ class WorkQueue:
 
         Respects queue strategy.
         """
+        index = hash(action)
+        if index not in self._local_actions:
+            # We can only re-add something we know about
+            raise ValueError("cannot requeue an unknown action")
+
         self._system_logger.debug("Requeueing: " + str(action))
-        #
-        # Todo: Is there performance to be had by rotating the queue rather
-        #       that explicit pop/push?
-        #
-        self._add_back(action)
 
-    def _add_front(self, item: Action) -> None:
-        self._queue.append(item)
-        if isinstance(item, Sentinel):
-            self._sentinel = len(self._queue) - 1
+        # Add the action back on the queue using its index
+        self._add_back(index, action.__class__.__name__, action.__class__ is Sentinel)
+
+    def _add_back(self, index: int, name: str, is_sentinel: bool) -> None:
+        self._queue.appendleft(index)
+        if is_sentinel:
+            self._sentinel.value = 0
             return
-        if self._sentinel is not None:
-            self._sentinel += 1
-        self._length += 1
-        self._work_tally[item.__class__] += 1
 
-    def _add_back(self, item: Action) -> None:
-        self._queue.appendleft(item)
-        if isinstance(item, Sentinel):
-            self._sentinel = 0
-            return
-        self._length += 1
-        self._work_tally[item.__class__] += 1
+        with self._lock:
+            self._length.value += 1
 
-    def _add_after_sentinel(self, item: Action) -> None:
-        assert not isinstance(item, Sentinel)
-        assert self._sentinel is not None
-        sentinel = self._queue[self._sentinel]
-        assert isinstance(sentinel, Sentinel)
-
-        self._queue.insert(self._sentinel, item)
-        self._sentinel += 1
-        self._length += 1
-        self._work_tally[item.__class__] += 1
+        if self._tracking:
+            # todo: is there a race condition here?
+            if name in self._work_tally:
+                with self._lock:
+                    self._work_tally[name] += 1
+            else:
+                self._work_tally[name] = 1
 
     def pop(self) -> Action:
         """
         Gets next work action from queue.
         """
-        item = self._queue.pop()
-        if isinstance(item, Sentinel):
-            self._sentinel = None
+        index = self._queue.pop()
+        item = self._get_action(index)
+
+        if item.__class__ is Sentinel:
+            self._sentinel.value = -1
             return item
-        self._length -= 1
-        self._work_tally[item.__class__] -= 1
-        if self._work_tally[item.__class__] == 0:
-            del self._work_tally[item.__class__]
+
+        with self._lock:
+            self._length.value -= 1
+
+        if self._tracking:
+            # todo: is there a race condition here?
+            name = item.__class__.__name__
+            if name in self._work_tally:
+                with self._lock:
+                    self._work_tally[name] -= 1
+                    if self._work_tally[name] == 0:
+                        del self._work_tally[name]
+
         return item
+
+    def _get_action(self, index: int) -> Action:
+        if index not in self._local_actions:
+            # Cache a copy of the global action
+            self._local_actions[index] = self._shared_actions[index]
+        return self._local_actions[index]

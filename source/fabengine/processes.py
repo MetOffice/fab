@@ -84,7 +84,8 @@ class MonitorProcess(Process, SignalHandler):
             length = self._work_queue.length
             for action, tally in self._work_queue.work_tally().items():
                 percentage = 100 * tally / length()
-                logger.info(f"{tally} ({int(percentage)}%): {action.__name__} on queue")
+                name = action.__name__ if hasattr(action, "__name__") else action
+                logger.info(f"{tally} ({int(percentage)}%): {name} on queue")
 
         logger.debug("Monitor stopped")
 

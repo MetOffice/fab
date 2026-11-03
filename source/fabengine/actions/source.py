@@ -31,6 +31,9 @@ class RepositoryAction(ABC):
         self._projects = projects
         self._database = database
 
+    def __hash__(self) -> int:
+        return hash(str(self._projects))
+
     @property
     def database(self) -> Database:
         return self._database
@@ -167,6 +170,9 @@ class RemoteGitAction(SubprocessAction, RepositoryAction):
 
         SubprocessAction.__init__(self, identification=f"Remote Git Extract {identity}")
 
+    def __hash__(self) -> int:
+        return hash(str(self._source))
+
     def __str__(self) -> str:
         return "Remote Git repository: " + self._source
 
@@ -243,6 +249,9 @@ class LocalGitAction(SubprocessAction, RepositoryAction):
         self._ref = ref
 
         SubprocessAction.__init__(self, identification=f"Local Git Extract {identity}")
+
+    def __hash__(self) -> int:
+        return hash(str(self._source))
 
     def __str__(self) -> str:
         return f"Local Git repository: {self._source}"

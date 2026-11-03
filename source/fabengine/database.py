@@ -36,6 +36,9 @@ class Database:
         self.config_meta_dirs: ListProxy[Path] = manager.list()
         self.unit_test_data: ListProxy[str] = manager.list()
 
+        # Synchronise unseen modules between runs of DetermineProgram
+        self._program_unseen_units: DictProxy[str, set[str]] = manager.dict()
+
         self._processed_this_round: ValueProxy[int] = manager.Value("i", 0)
         self._processed_last_round: ValueProxy[int] = manager.Value("i", 0)
 

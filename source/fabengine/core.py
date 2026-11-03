@@ -16,6 +16,7 @@ from fabengine.database import Database, PrerequisiteInfo, PrerequisiteType
 from fabengine.logserver import make_logger
 from fabengine.manager import FabManager
 from fabengine.processes import MonitorProcess, SignalHandler, WorkerProcess
+from fabengine.work_queue import WorkQueue
 
 
 # Todo, convert core to a class with methods called from entry.
@@ -29,7 +30,7 @@ def fab_core(configuration: WriteOnceDict):
     with FabManager() as manager:
         database = Database(configuration, manager)
 
-        work_queue = manager.WorkQueue(configuration["queue_strategy"])  # type:ignore
+        work_queue = WorkQueue(manager, configuration["monitor"])
 
         if configuration["extract_path"] is not None:
             extract = ExtractArchive(database.configuration["extract_path"], database)
