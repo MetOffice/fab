@@ -22,31 +22,35 @@ There are a number of features which all (or nearly all) compilers offer but
 which are controlled using different arguments. A good example of this is
 controling the directory to which a Fortran compilers stores module files.
 
-Intel compilers use the ``-module`` argument while GNU compilers use `-J`.
+Intel compilers use the ``-module`` argument while GNU compilers use ``-J``.
 nVidia uses ``-module`` as well.
 
 Another example would be how to enable OpenMP support; Intel uses ``-qopenmp``
 while GNU use ``-fopenmp``. Meanwhile nVidia use ``-mp``.
 
-We might implement this as a class per compiler with these valus wired into
+We might implement this as a class per compiler with these values wired into
 them. Alternatively we might persue a more data driven model where we have a
 single compiler class which is initialised from a file listing each compilers
 particular arguments.
+
+The advantage of the data-driver approach is that it removes the need to
+modify source code to add a new compiler. It also opens up the opportunity
+of easy user defined compilers. As such we prefer this approach.
 
 Project Arguments
 ^^^^^^^^^^^^^^^^^
 
 Some compiler arguments will be required by a project. This will not be the
-case for most projects but we do have a few which, for historical reasons, are
-always compiled with real variables promoted to double width.
+case for most projects but we do have a few which, for historical reasons,
+are always compiled with real variables promoted to double width.
 
-More useful for this class of argument relates to optimisations which go
-pathalogical for particular source files with particular compilers and
-particular compiler versions. In these cases we would like to turn that
-optimisation off.
+More useful in the long term, are those arguments which relate to
+optimisations which go pathalogical for particular source files with
+particular compilers and particular compiler versions. In these cases we
+would like to turn that optimisation off.
 
 This tells us that each project needs the ability to specify special cases
-for each version of each compiler it hsa been tested with. The build system
+for each version of each compiler it has been tested with. The build system
 will then choose the correct special case based on the compiler it has been
 instructed to use.
 
@@ -65,7 +69,7 @@ user bundles in the build system. They are only of interest to a subset of
 users and their platforms, they are just dead weight to other users and
 represent a maintenance burden to project owners.
 
-They do represent a real requirement though, so must be supporter.
+They do represent a real requirement though, so must be supported.
 
 The proposed solution are user generated files which may be given to the build
 system on invocation. These will need to support per compiler, per version
