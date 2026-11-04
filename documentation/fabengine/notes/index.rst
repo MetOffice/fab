@@ -12,4 +12,5 @@ Articles giving technical details about the toy and its processes.
    linking
    testing
    incremental
+   components
    performance

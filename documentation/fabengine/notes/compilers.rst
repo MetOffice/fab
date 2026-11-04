@@ -75,6 +75,8 @@ proven.
 These files need not support multiple named bundles, this functionality can be
 obtained by having multiple named files.
 
+.. _build-tree-arguments:
+
 Propagating Arguments Down the Build Tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
