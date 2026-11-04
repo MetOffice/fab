@@ -315,3 +315,18 @@ class SubprocessActionException(ActionException):
         if self._stderr:
             description += "\nStandard error: " + self._stderr
         return description
+
+
+class SyntaxException(Exception):
+    """A syntax error was found during dependency analysis."""
+
+    def __init__(
+        self,
+        filename: Path,
+        point: tuple[int, int],
+    ):
+
+        super().__init__(
+            f"Syntax error parsing '{filename}' at "
+            f"line {point[0] + 1}, column {point[1] + 1}"
+        )

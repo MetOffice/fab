@@ -7,11 +7,16 @@ from os import environ as os_environ
 from pathlib import Path
 from re import IGNORECASE
 from re import compile as re_compile
+from textwrap import dedent
+
+import tree_sitter_fortran
+from tree_sitter import Language, Parser, Query, QueryCursor
 
 from fabengine.actions import (
     Action,
     Prerequisite,
     SubprocessAction,
+    SyntaxException,
     TwoPartPath,
 )
 from fabengine.actions.file import MapFile
@@ -216,7 +221,7 @@ def normalise_source(artefact: Artefact) -> Generator[str, None, None]:
                     yield line.rstrip()
 
 
-class AnalyseFortran(Action):
+class AnalyseFortranRE(Action):
     """
     Analyses Fortran source for dependency information.
     """
@@ -397,6 +402,7 @@ class AnalyseFortran(Action):
 
                         state = State.SEEKING
                     continue
+
         return actions
 
 
@@ -498,7 +504,7 @@ class DetermineFortranProgram(Action):
                 # the future list.
                 #
                 for prereq in self._database.prerequisites[unit_name]:
-                    working_units.add(prereq.name)
+                    working_units.add(prereq.name.lower())
 
                 # Deal with any hand specified dependencies:
                 #
@@ -517,7 +523,7 @@ class DetermineFortranProgram(Action):
         if len(self._units) == 0:
             actions.append(LinkFortran(self._name, self._modules, self._database))
         else:
-            logger.debug(f"Missing: {', '.join(self._units)}")
+            logger.info(f"LinkFortran missing: {', '.join(self._units)}")
             actions.append(self)
         return actions
 
@@ -789,3 +795,204 @@ class LinkFortran(SubprocessAction):
             )
 
         return []
+
+
+class AnalyseFortranTS(Action):
+    # TODO: eq needs to be case agnostic
+    _sexpression = dedent(
+        r"""
+        (module (module_statement (name) @start.module))
+        ((end_module_statement) @end.module)
+        (program (program_statement (name) @start.program))
+        ((end_program_statement) @end.program)
+        (subroutine (subroutine_statement name: (name) @start.subroutine))
+        ((end_subroutine_statement) @end.subroutine)
+        (function (function_statement name: (name) @start.function))
+        ((end_function_statement) @end.function)
+        (use_statement (module_name) @use)
+        (derived_type_definition (derived_type_statement
+                                  (access_specifier) @type.access
+                                  (type_name) @type.name)
+                                  (#eq? @type.access "public"))
+        (public_statement (identifier) @public.name)
+        ((comment) @comment.fcm
+         (#match? @comment.fcm "(?i)^\\s*!\\s*depends\\s+on:\\s*"))
+        ((comment) @comment.omp
+         (#match? @comment.omp "(?i)^\\s*!\\$\\s*use\\s+"))
+        ((variable_declaration type: (intrinsic_type)
+                               attribute: (type_qualifier) @external.qualifier
+                               declarator: (identifier) @external.identifier)
+         (#match? @external.qualifier "(?i)external"))
+        ((variable_modification (type_qualifier) @external.qualifier
+                               declarator: (identifier) @external.identifier)
+         (#match? @external.qualifier "(?i)external"))
+        ((variable_declaration type: (derived_type name: (type_name))
+                               attribute: (type_qualifier) @external.qualifier
+                               declarator: (identifier) @external.identifier)
+         (#match? @external.qualifier "(?i)extern"))
+        ((ERROR) @error)
+        """
+    )
+
+    _fortran = Language(tree_sitter_fortran.language())
+    _parser = Parser(_fortran)
+    _query = Query(_fortran, _sexpression)
+
+    def __init__(self, source: ArtefactPath, database: Database):
+        super().__init__(str(source))
+        self._source = source
+        self._database = database
+        self._logger = make_logger("system")
+
+    @property
+    def source(self) -> ArtefactPath:
+        """
+        :return: Fortran source file.
+        """
+        return self._source
+
+    def __str__(self) -> str:
+        return f"Analyse: <{self._source}>"
+
+    def prerequisites(self) -> Iterable[Prerequisite]:
+        """
+        Determines prerequisites for analysis.
+
+        :return: Source file must exist.
+        """
+        return [ArtefactPrerequisite(self._source, self._database)]
+
+    @set_ps_name
+    def perform(self) -> list[Action]:
+
+        artefact = self._database.artefact_store.get_artefact(self._source)
+        syntax_checks = self._database.configuration.get("syntax_checks", False)
+
+        tree = self._parser.parse(artefact.real_filename.read_bytes())
+        cursor = QueryCursor(self._query)
+
+        actions: list[Action] = []
+        unit_prereqs: dict[str, PrerequisiteInfo] = {}
+        current_unit: str | None = None
+        contains_units: list[str] = []
+
+        class State(Enum):
+            SEEKING = auto()
+            IN_UNIT = auto()
+
+        status = State.SEEKING
+        for _, match in cursor.matches(tree.root_node):
+            for key, nodes in match.items():
+                name = nodes[0].text.decode("utf-8").lower()  # type: ignore
+
+                if syntax_checks and key == "error":
+                    raise SyntaxException(artefact.real_filename, nodes[0].start_point)
+
+                if status == State.SEEKING and key.startswith("start."):
+                    unit = key.split(".")[-1]
+                    self._logger.info("Found %s: %s in %s", unit, name, self._source)
+
+                    if name in self._database.symbol_table:
+                        raise RuntimeError(
+                            f"Duplicate unit '{name}' "
+                            f"found in {self._source.name}. Previously seen in "
+                            + self._database.symbol_table[name].source_file.name
+                        )
+
+                    info = SymbolInfo(name, SymbolType[unit.upper()], self._source)
+                    self._database.symbol_table[name] = info
+
+                    current_unit = name
+                    contains_units.append(name)
+
+                    if unit == "program":
+                        actions.append(DetermineFortranProgram(name, self._database))
+
+                    status = State.IN_UNIT
+
+                elif status == State.IN_UNIT:
+                    if key == "type.name":
+                        info = SymbolInfo(name, SymbolType.TYPE, self._source)
+                        self._database.symbol_table[name] = info
+                        self._logger.info("Found type: %s in %s", name, self._source)
+
+                    elif key == "public.name":
+                        for node in nodes:
+                            name = node.text.decode("utf-8").lower()  # type: ignore
+                            info = SymbolInfo(name, SymbolType.PROCEDURE, self._source)
+                            self._database.symbol_table[name] = info
+                            self._logger.info(
+                                "Found public: %s in %s", name, self._source
+                            )
+
+                    elif key in ["use", "comment.omp"]:
+                        if key == "comment.omp":
+                            if not self._database.configuration["use_open_mp"]:
+                                continue
+                            fields = name.split()  # type: ignore
+                            if len(fields) < 3:
+                                continue
+                            name = fields[2].strip(",")
+
+                        if name in self._database.configuration["fc_ignore_modules"]:
+                            continue
+
+                        if name.startswith(("iso_", "ieee_", "omp_lib")):
+                            # todo: get tree-sitter to reject these?
+                            continue
+
+                        # Todo: We need to reject internal dependencies. This
+                        #       approach only works backwards. i.e. only detects
+                        #       references to units already seen.
+                        #
+                        if name not in unit_prereqs and name not in contains_units:
+                            unit_prereqs[name] = PrerequisiteInfo(
+                                name, PrerequisiteType.USE
+                            )
+                            self._logger.info("Found use: %s in %s", name, self._source)
+
+                    elif key == "external.identifier":
+                        # Handle externals
+                        if name not in unit_prereqs:
+                            self._logger.info(
+                                "Found external: %s in %s", name, self._source
+                            )
+                            unit_prereqs[name] = PrerequisiteInfo(
+                                name, PrerequisiteType.EXTERNAL
+                            )
+
+                    elif key.startswith("comment.fcm"):
+                        # FCM-style depends on comment
+                        fields = name.split()  # type: ignore
+                        if len(fields) < 4:
+                            continue
+                        name = fields[3].split(".")[0]
+                        unit_prereqs[name] = PrerequisiteInfo(name, PrerequisiteType.UM)
+                        self._logger.info(
+                            "Found UM/FCM dependency comment: %s in %s",
+                            name,
+                            self._source,
+                        )
+
+                    elif key.startswith("end."):
+                        assert current_unit is not None
+
+                        if name in ["", "end", f"end {unit}"]:
+                            # Anoymous end statement, so assume the current unit?
+                            name = current_unit
+                        else:
+                            # Remove the Fortran keywords from the name
+                            name = name.split(None, 2)[-1]
+
+                        if name == current_unit:
+                            self._database.prerequisites[current_unit] = list(
+                                unit_prereqs.values()
+                            )
+
+                            status = State.SEEKING
+                            current_unit = None
+
+        return actions
+
+
+AnalyseFortran = AnalyseFortranTS
