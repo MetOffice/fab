@@ -1,0 +1,57 @@
+from pathlib import Path
+from typing import Iterable
+
+from fab.api import (
+    BuildScript,
+    WriteOnceDict,
+    Project,
+    Repository,
+    SVNRepository,
+)
+
+
+class Nemo(BuildScript):
+    def repositories(self, dependencies_file) -> Iterable[Repository]:
+        return [
+            SVNRepository(
+                identity="nemo",
+                source="https://metomi/svn/nemo.xm/NEMO/branches/UKMO/NEMO_4.0.4_mirror",
+                projects=[
+                    Project(
+                        Path(""),
+                        source_dir=Path("src"),
+                        source_encoding="latin1",
+                        source_include=[
+                            Path('ICE'),
+                            Path('OCE'),
+                        ],
+                        force_include_dir=[
+                            Path("OCE")
+                        ]
+                    ),
+                    Project(
+                        Path("ext/IOIPSL"),
+                        "ioipsl",
+                        source_dir=Path("src"),
+                        source_encoding="latin1",
+                    )
+                ]
+            )
+        ]
+
+    def packages(self) -> list[str]:
+        return ["netcdf-fortran", "netcdf", "xios"]
+
+    def add_configuration(self, configuration: WriteOnceDict) -> None:
+        configuration["fpp_definitions"] = {
+            "key_si3": "true",
+            "key_mpp_mpi": True,
+            "key_nosignedzero": True,
+            "key_iomput": True,
+        # config["key_oasis3"] = "true"
+        }
+
+    def force_prerequisites(self) -> dict[str, list[str]]:
+        return {
+            'trdvor': ['wheneq']
+        }

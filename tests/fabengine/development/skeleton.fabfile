@@ -1,0 +1,94 @@
+from pathlib import Path
+from typing import Iterable
+
+from fab.api import (
+    BuildScript,
+    WriteOnceDict,
+    Project,
+    GitRepository,
+    Repository
+)
+
+class Skeleton(BuildScript):
+    def repositories(self, dependencies_file: Path) -> Iterable[Repository]:
+        return [
+            GitRepository(
+                identity="lfric_core",
+                source="git@github.com:MetOffice/lfric_core.git",
+                ref="vn3.1",
+                paths={"psyclone_config": Path("etc/psyclone.cfg")},
+                projects=[
+                    Project(
+                        Path("infrastructure"),
+                        paths={
+                            "generate-config-loader": Path(
+                                "build/tools/GenerateConfigLoader"
+                            ),
+                            "generate-config-type": Path(
+                                "build/tools/GenerateConfigType"
+                            ),
+                            "generate-extended-namelist-type": Path(
+                                "build/tools/GenerateExtendedNamelistType"
+                            ),
+                            "generate-feigns": Path("build/tools/GenerateFeigns"),
+                            "generate-namelist-loader": Path(
+                                "build/tools/GenerateNamelistLoader"
+                            ),
+                            "templaterator": Path("build/tools/Templaterator"),
+                        },
+                    ),
+                    Project(
+                        Path("components/driver"),
+                        #
+                        # Any tests which use "feigners" needs the "NO_MPI"
+                        # macro set, which conflicts with our need to not set
+                        # it.
+                        #
+                        unit_test_dir=Path('no_tests')
+                    ),
+                    Project(
+                        Path("components/science"),
+                        #
+                        # Any tests which use "feigners" needs the "NO_MPI"
+                        # macro set, which conflicts with our need to not set
+                        # it.
+                        #
+                        unit_test_dir=Path('no_tests')
+                    ),
+                    Project(Path("components/inventory")),
+                    Project(Path("components/lfric-xios")),
+                    Project(
+                        Path("applications/skeleton"),
+                        configuration_meta_data=Path(
+                            "rose-meta/lfric-skeleton/HEAD/rose-meta.conf"
+                        ),
+                    ),
+                ],
+            )
+        ]
+
+    def packages(self) -> Iterable[str]:
+        package_list = ['yaxt', 'yaxt_c', 'netcdf-fortran', 'netcdf', 'xios']
+
+        # Todo: How to switch pFUnit on and off depending on whether we're
+        #       using it?
+        #
+        package_list.extend(['pfunit', 'funit', 'fargparse', 'gftl', 'gftl-shared'])
+
+        return package_list
+
+    def add_configuration(self, configuration: WriteOnceDict) -> None:
+        configuration['fpp_definitions'] = {
+            "LFRIC": "true",
+            "USSPREC_32B": "true",
+            "LSPREC_32B": "true",
+            # I/O platform
+            "USE_XIOS": "true",
+            # Component precision
+            "RDEF_PRECISION": "64",
+            "R_SOLVER_PRECISION": "32",
+            "R_TRAN_PRECISION": "64",
+            "R_BL_PRECISION": "64",
+            # Transitional
+            "LEGACY_MPI": "true",
+        }
