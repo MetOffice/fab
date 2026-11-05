@@ -1,0 +1,34 @@
+#!/bin/sh
+##############################################################################
+# This launch script is needed while there are problems with the automatic
+# environment inference systems.
+##############################################################################
+set -eu  # Exit on error # Undefined variables are errors
+
+# Until the XIOS module implements pkg_config, it is specified manually.
+# We could create a local package-config as we do for pFUnit but it's good to
+# test both approaches.
+#
+if ! echo "${_LMFILES_:-}" | grep -q xios
+then
+    # Load the LFRic modules if not already loaded
+    module use ~lfricadmin/lmod
+    module load lfric
+fi
+
+if echo "${_LMFILES_:-}" | grep -q py-sci-fab
+then
+    module -q unload py-sci-fab
+fi
+
+xios_path=$(which xios_server.exe)
+xios_path=$(dirname "$xios_path")
+echo found XIOS at ["$xios_path"]
+xios_inc_path=$(readlink -f "$xios_path/../include")
+xios_lib_path=$(readlink -f "$xios_path/../lib")
+XIOS_LIB="-m xios:$xios_inc_path::$xios_lib_path"
+
+# Using a local package-config database for pFUnit
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:~matthew.hambley/.local/lib/pkg_config
+
+fabtoy "$XIOS_LIB" "$@"
