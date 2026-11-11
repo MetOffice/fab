@@ -46,7 +46,7 @@ class TestSetPsName:
         result = func()
         assert result != ""
 
-        assert func() == "fabtoy: TestSetPsName.test_function.<locals>.func"
+        assert func() == "fabengine: TestSetPsName.test_function.<locals>.func"
         assert setproctitle.getproctitle() == before
 
     def test_exception(self):
@@ -61,7 +61,7 @@ class TestSetPsName:
         with raises(RuntimeError) as excinfo:
             func()
 
-        assert "fabtoy: TestSetPsName.test_exception.<locals>.func" in str(
+        assert "fabengine: TestSetPsName.test_exception.<locals>.func" in str(
             excinfo.value
         )
         assert setproctitle.getproctitle() == before
@@ -97,7 +97,7 @@ class TestSetPsName:
 
         assert (
             dummy.check()
-            == "fabtoy: TestSetPsName.test_method.<locals>.DummyClass.check"
+            == "fabengine: TestSetPsName.test_method.<locals>.DummyClass.check"
         )
         assert setproctitle.getproctitle() == before
 
@@ -105,7 +105,7 @@ class TestSetPsName:
         """Check subclasses of Process use name attribute."""
 
         before = setproctitle.getproctitle()
-        padding = 20
+        padding = 32
 
         class Worker(Process):
             """Trivial Process subclass."""
@@ -123,7 +123,7 @@ class TestSetPsName:
         p.start()
         p.join()
 
-        assert name.value == b"fabtoy: WorkerTest"
+        assert name.value == b"fabengine: WorkerTest"
         assert setproctitle.getproctitle() == before
 
 
@@ -149,7 +149,9 @@ class TestTerminalTitle:
         captured = capsys.readouterr()
         assert captured.out == ""
 
-    @mark.parametrize("title, result", [(None, "fabtoy"), ("Test", "fabtoy: Test")])
+    @mark.parametrize(
+        "title, result", [(None, "fabengine"), ("Test", "fabengine: Test")]
+    )
     def test_xterm_title(self, title, result, monkeypatch, capsys):
 
         monkeypatch.setattr(atexit, "register", lambda x: None)
