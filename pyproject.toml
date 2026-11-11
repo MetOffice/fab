@@ -1,67 +1,157 @@
 [build-system]
-requires = ['setuptools']
-build-backend = 'setuptools.build_meta'
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools >= 80.0" ]
 
 [project]
-name = "sci-fab"
-description = "Build system for scientific software"
 authors = [
-    {name = "Core Capabilities Development Team", email = 'CoreCapabilityDevelopmentTeam@metoffice.gov.uk'}
+    {name = "Core Capabilities Development Team", email = "CoreCapabilityDevelopmentTeam@metoffice.gov.uk"}
 ]
-license = {file = 'LICENCE'}
-dynamic = ['version', 'readme']
-requires-python = '>=3.9, <4'
-dependencies = ['fparser >= 0.2.5']
 classifiers = [
-    'Development Status :: 1 - Planning',
-    'Environment :: Console',
-    'License :: OSI Approved :: BSD License',
-    'Operating System :: POSIX',
-    'Programming Language :: Python :: 3',
-    'Topic :: Scientific/Engineering',
-    'Topic :: Software Development :: Build Tools'
+    "Development Status :: 1 - Planning",
+    "Environment :: Console",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Build Tools",
 ]
+dependencies = [
+        "fparser >= 0.2.5",
+        "pyyaml",
+        "rich",
+        "setproctitle",
+        "tree-sitter",
+        "tree-sitter-fortran",
+]
+description = "Build system for scientific software"
+dynamic = [ "version", "readme" ]
+license = {file = "LICENCE"}
+name = "sci-fab"
+requires-python = ">= 3.12, <4"
 
 [project.optional-dependencies]
-c-language = ['libclang']
-plots = ['matplotlib']
-docs = [
-    'sphinx',
-    'pydata-sphinx-theme>=0.13.3',
-    'sphinx-autodoc-typehints',
-    'sphinx-copybutton',
-    "sphinxcontrib-svg2pdfconverter>=1.3.0"
-]
+c-language = [ "libclang" ]
 dev = [
-    'pytest >= 8.3.0',
-    'pytest-cov',
-    'pytest-mock',
-    'pytest-subprocess >= 1.5.3',
-    'pyfakefs',
-    'ruff  >= 0.15.13',
-    'mypy',
-    'pyyaml',
-    'types-PyYAML'
+    "pytest >= 8.3.0",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-subprocess >= 1.6.0",
+    "pyfakefs",
+    "ruff  >= 0.15.13",
+    "mypy",
+    "types-PyYAML",
 ]
+docs = [
+    "matplotlib",
+    "numpy",
+    "pydata-sphinx-theme >= 0.19.0",
+    "rich",
+    "sphinx == 9.1.0",  # Peg Sphinx to version which works with theme
+    "sphinx-autodoc-typehints",
+    "sphinx-copybutton",
+    "sphinx_design == 0.7.0",
+    "sphinxcontrib-svg2pdfconverter >= 1.3.0",
+]
+plots = [ "matplotlib" ]
 
 [project.scripts]
-fab = 'fab.cui.__main__:main'
+fab = "fab.cui.__main__:main"
+fabtoy = "fabengine.entry:cli"
 
 [project.urls]
-homepage = 'https://github.com/MetOffice/fab'
-documentation = 'https://MetOffice.github.io/fab'
-repository = 'https://github.com/MetOffice/fab'
-'Bug Reports' = 'https://github.com/MetOffice/fab/issues'
-
-[tool.setuptools.packages.find]
-where = ['source']
+"Bug Reports" = "https://github.com/MetOffice/fab/issues"
+documentation = "https://MetOffice.github.io/fab"
+homepage = "https://github.com/MetOffice/fab"
+repository = "https://github.com/MetOffice/fab"
 
 [tool.setuptools.dynamic]
-readme = {file = 'README.rst', content-type = "text/x-rst"}
-version = {attr = 'fab.__version__'}
+readme = {file = "README.rst", content-type = "text/x-rst"}
+version = {attr = "fab.__version__"}
 
-# This is required so that pytest finds conftest.py files.
-[tool.pytest.ini_options]
-testpaths = [
-    "tests",
+[tool.setuptools.packages.find]
+where = [ "source" ]
+
+[tool.tox]
+env_list = [
+    {product = [ [ "3.12", "3.13", "3.14", "3.15" ], [ "coverage" ] ]},
+    "type", "lint", "format",
 ]
+requires = [ "tox>=4.19" ]
+
+[tool.tox.env_run_base]
+commands = [
+    [
+        "pytest", "-W", "ignore::DeprecationWarning",
+        "--ignore=tests/fabengine/development",
+        { replace = "if", condition = "factor.coverage", then = [ "--cov=.", "--cov-report=xml" ], extend = true},
+        {replace = "posargs", extend = true},
+    ]
+]
+deps = [
+    "fparser >= 0.2.5",
+    "pyfakefs",
+    "pytest >= 8",
+    { replace = "if", condition = "factor.coverage", then = [ "pytest-cov >= 7.1.0" ], extend = true},
+    "pytest-subprocess >= 1.6.0",
+    "pyyaml",
+    "rich",
+    "setproctitle",
+    "tree-sitter",
+    "tree-sitter-fortran",
+]
+description = "Run test under {base_python}"
+
+[tool.tox.env.development]
+allowlist_externals = [ "/bin/sh", "/bin/rm" ]
+change_dir = "tests/fabengine/development"
+commands = [
+    [ "/bin/rm", "-Rf", "work" ],
+    ["/bin/sh", "-l", "run",
+     {replace = "posargs", default = [ "-v", "-j", "4", "--fabfile", "skeleton.fabfile" ], extend = true}]]
+description = "run LFRic development test cases"
+interrupt_timeout = 30
+
+[tool.tox.env.docs]
+allowlist_externals = [ "/bin/cp", "/bin/rm", "/usr/bin/mkdir", "/usr/bin/make" ]
+commands = [
+    [ "/bin/rm", "-Rf", "{env_tmp_dir}/documentation/fabengine", "{env_tmp_dir}/_build" ],
+    [ "mkdir", "{env_tmp_dir}/Documentation" ],
+    [ "/bin/cp", "-a", "{tox_root}/Documentation/fabengine", "{env_tmp_dir}/Documentation/fabengine" ],
+    ["/usr/bin/make", "-f", "{env_tmp_dir}/Documentation/fabengine/Makefile",
+     "SOURCEDIR={env_tmp_dir}/Documentation/fabengine", "BUILDDIR={env_tmp_dir}/_build",
+     "CODEDIR={tox_root}/source/fabengine", "html"],
+]
+deps = [
+    "pydata_sphinx_theme == 0.16.1",
+    "sphinx == 9.0.4",  # Peg Sphinx to version which works with theme
+    "sphinxcontrib_mermaid",
+    "matplotlib",
+    "numpy",
+    "rich",
+]
+description = "build documentation"
+
+[tool.tox.env.format]
+commands = [ [ "ruff", "format",
+               {replace = "posargs", default = [ "--check" ], extend = true},
+               "source/fabengine", "tests/fabengine/unit_test" ] ]
+deps = [ "ruff>=0.14" ]
+description = "run ruff format check on code base"
+
+[tool.tox.env.lint]
+commands = [ [ "ruff", "check",
+               {replace = "posargs", extend = true},
+               "source/fabengine", "tests/fabengine/unit_test" ] ]
+deps = [ "ruff >= 0.14" ]
+description = "run ruff lint check on code base"
+
+[tool.tox.env.type]
+commands = [ [ "mypy", "source/fabengine", "tests/fabengine/unit_test" ] ]
+deps = [
+    "mypy >= 1.18",
+    "pytest >= 8",
+    "pytest-subprocess >= 1.6.0",
+    "types-PyYAML",
+]
+description = "run type check on code base"
+

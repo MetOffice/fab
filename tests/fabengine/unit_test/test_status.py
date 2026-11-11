@@ -3,12 +3,32 @@ import os
 import sys
 from multiprocessing import Array, Process
 
-from pytest import importorskip, mark, raises
+from pytest import importorskip, mark, raises, skip
 
 setproctitle = importorskip("setproctitle")
 
 import fabengine.cui.status
 from fabengine.cui.status import set_ps_name, set_terminal_title
+
+
+def check_settitle_works():
+    """Check whether titles can be changed.
+
+    This checks for problems with settitle when run in the test suite
+    and allows tests to be skipped if the functionality is not
+    available.
+    """
+    before = setproctitle.getproctitle()
+    try:
+        setproctitle.setproctitle("updated")
+        after = setproctitle.getproctitle()
+    finally:
+        setproctitle.setproctitle(before)
+    return before != after
+
+
+if not check_settitle_works():
+    skip("skipping settitle tests", allow_module_level=True)
 
 
 class TestSetPsName:
@@ -22,6 +42,9 @@ class TestSetPsName:
         @set_ps_name
         def func():
             return setproctitle.getproctitle()
+
+        result = func()
+        assert result != ""
 
         assert func() == "fabtoy: TestSetPsName.test_function.<locals>.func"
         assert setproctitle.getproctitle() == before
