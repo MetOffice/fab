@@ -56,7 +56,7 @@ plots = [ "matplotlib" ]
 
 [project.scripts]
 fab = "fab.cui.__main__:main"
-fabtoy = "fabengine.entry:cli"
+fabengine = "fabengine.entry:cli"
 
 [project.urls]
 "Bug Reports" = "https://github.com/MetOffice/fab/issues"
