@@ -284,7 +284,7 @@ def _call_pkg_config(specification: str, arguments: list[str]) -> list[str]:
     command.extend(arguments)
     command.append(specification)
     process = run(
-        command, env=environment, check=False, capture_output=True, encoding="utf8"
+        command, env=environment, check=False, capture_output=True, encoding="utf-8"
     )
     if process.returncode != 0:
         raise PackageException(f"Failed to run [{command}]:\n{process.stderr}")

@@ -14,7 +14,7 @@ from fabengine.actions.fortran import (
     PreprocessFortranBase,
     normalise_source,
 )
-from fabengine.artefact_store import Artefact
+from fabengine.artefact_store import ENCODING_META, Artefact
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.database import (
     ArtefactPath,
@@ -473,3 +473,27 @@ class TestAnalyseFortranTS:
 
         for item in externals:
             assert item.name in expected
+
+    @mark.parametrize(
+        "code_example, encoding, failure",
+        [("test_latin1.f90", "latin1", False), ("test_latin1.f90", "utf-8", True)],
+        indirect=["code_example"],
+        ids=["latin-1", "utf-8"],
+    )
+    def test_encoding(self, code_example, encoding, failure, database: Database):
+        database.artefact_store.map_file(
+            code_example, code_example, **{ENCODING_META: encoding}
+        )
+
+        test_unit = AnalyseFortranTS(code_example, database)
+
+        context = raises(SystemError) if failure else nullcontext(True)
+
+        with context as result:
+            test_unit.perform()
+
+        if failure:
+            assert "UnicodeDecodeError" in str(result.value)  # type: ignore
+        else:
+            assert result is True
+            assert "latin1" in database.symbol_table

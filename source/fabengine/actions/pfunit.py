@@ -217,7 +217,7 @@ class PfUnit(SubprocessAction):
                     ),
                 ),
                 "",
-                "utf8",
+                "utf-8",
                 self._database,
                 {"_TEST_SUITES": f'"{driver_inclusion.absolute()}"'},
                 [],
