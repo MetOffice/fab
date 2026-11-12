@@ -42,7 +42,7 @@ class Project:
         self._identifier = identifier or self._project_dir.name
         self._source_dir = source_dir
         self._source_include = source_include
-        self._source_encoding = source_encoding or "utf8"
+        self._source_encoding = source_encoding or "utf-8"
         self._force_include_dir = force_include_dir or []
 
         # Todo: This is a fix for the immediate problem of finding the

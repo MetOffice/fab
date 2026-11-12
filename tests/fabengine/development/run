@@ -31,4 +31,4 @@ XIOS_LIB="-m xios:$xios_inc_path::$xios_lib_path"
 # Using a local package-config database for pFUnit
 export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:~matthew.hambley/.local/lib/pkg_config
 
-fabtoy "$XIOS_LIB" "$@"
+fabengine "$XIOS_LIB" "$@"

@@ -12,7 +12,7 @@ except ModuleNotFoundError:
     __set_process_titles = False
 
 # todo: this shouldn't be hardwired
-progname = "fabtoy"
+progname = "fabengine"
 
 
 def set_terminal_title(build_name: str | None = None) -> None:

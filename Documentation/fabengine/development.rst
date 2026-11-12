@@ -82,9 +82,9 @@ development Use the toy to build skeleton (default) or lfric_atm
 The ``development`` environment has the ability to pass command line
 options to the build command.  These must be separated from the
 ``tox`` command line arguments by ``--`` and the options must match
-the format used by the ``fabtoy`` command.
+the format used by the ``fabengine`` command.
 
-The following options are passed through to the ``fabtoy`` command
+The following options are passed through to the ``fabengine`` command
 running in the development environment, replacing the default action
 to build skeleton with a build of the LFRic atmosphere model on four
 CPUs:
