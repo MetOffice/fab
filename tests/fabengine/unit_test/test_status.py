@@ -3,12 +3,32 @@ import os
 import sys
 from multiprocessing import Array, Process
 
-from pytest import importorskip, mark, raises
+from pytest import importorskip, mark, raises, skip
 
 setproctitle = importorskip("setproctitle")
 
 import fabengine.cui.status
 from fabengine.cui.status import set_ps_name, set_terminal_title
+
+
+def check_settitle_works():
+    """Check whether titles can be changed.
+
+    This checks for problems with settitle when run in the test suite
+    and allows tests to be skipped if the functionality is not
+    available.
+    """
+    before = setproctitle.getproctitle()
+    try:
+        setproctitle.setproctitle("updated")
+        after = setproctitle.getproctitle()
+    finally:
+        setproctitle.setproctitle(before)
+    return before != after
+
+
+if not check_settitle_works():
+    skip("skipping settitle tests", allow_module_level=True)
 
 
 class TestSetPsName:
@@ -23,7 +43,10 @@ class TestSetPsName:
         def func():
             return setproctitle.getproctitle()
 
-        assert func() == "fabtoy: TestSetPsName.test_function.<locals>.func"
+        result = func()
+        assert result != ""
+
+        assert func() == "fabengine: TestSetPsName.test_function.<locals>.func"
         assert setproctitle.getproctitle() == before
 
     def test_exception(self):
@@ -38,7 +61,7 @@ class TestSetPsName:
         with raises(RuntimeError) as excinfo:
             func()
 
-        assert "fabtoy: TestSetPsName.test_exception.<locals>.func" in str(
+        assert "fabengine: TestSetPsName.test_exception.<locals>.func" in str(
             excinfo.value
         )
         assert setproctitle.getproctitle() == before
@@ -74,7 +97,7 @@ class TestSetPsName:
 
         assert (
             dummy.check()
-            == "fabtoy: TestSetPsName.test_method.<locals>.DummyClass.check"
+            == "fabengine: TestSetPsName.test_method.<locals>.DummyClass.check"
         )
         assert setproctitle.getproctitle() == before
 
@@ -82,7 +105,7 @@ class TestSetPsName:
         """Check subclasses of Process use name attribute."""
 
         before = setproctitle.getproctitle()
-        padding = 20
+        padding = 32
 
         class Worker(Process):
             """Trivial Process subclass."""
@@ -100,7 +123,7 @@ class TestSetPsName:
         p.start()
         p.join()
 
-        assert name.value == b"fabtoy: WorkerTest"
+        assert name.value == b"fabengine: WorkerTest"
         assert setproctitle.getproctitle() == before
 
 
@@ -126,7 +149,9 @@ class TestTerminalTitle:
         captured = capsys.readouterr()
         assert captured.out == ""
 
-    @mark.parametrize("title, result", [(None, "fabtoy"), ("Test", "fabtoy: Test")])
+    @mark.parametrize(
+        "title, result", [(None, "fabengine"), ("Test", "fabengine: Test")]
+    )
     def test_xterm_title(self, title, result, monkeypatch, capsys):
 
         monkeypatch.setattr(atexit, "register", lambda x: None)

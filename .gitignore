@@ -8,6 +8,10 @@ Documentation/build
 Documentation/fab/source/api
 Documentation/fab/source/apidoc
 
+# Fabengine development tests
+tests/fabengine/development/artefact_map.txt
+tests/fabengine/development/work
+
 # C extensions
 *.so
 

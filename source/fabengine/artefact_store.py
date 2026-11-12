@@ -8,7 +8,6 @@ transitory build files to be managed in the same namespace.
 from __future__ import annotations
 
 from pathlib import Path
-from sys import version_info as python_version
 from typing import Any
 
 # Artefact metadata keys used by the build framework:
@@ -186,24 +185,8 @@ class Artefact:
 
 
 class ArtefactPath(Path):
-    # Todo: Path is only extended clumsily until Python 3.12. Once that
-    #       is the lowest version we are supporting this can go away and
-    #       we can treat Path like any other class.
-    #
-    if python_version < (3, 12):
-        _flavour = type(Path())._flavour  # type: ignore
-
-    # Todo: Also a pre-python 3.12 requirement, to be removed.
-    #
-    def __new__(cls, *args):
-        return super().__new__(cls, *args)
-
     def __init__(self, *args: str | Path):
-        # Todo: And another
-        if python_version < (3, 12):
-            super().__init__()
-        else:
-            super().__init__(*args)
+        super().__init__(*args)
 
         if self.is_absolute():
             raise ValueError(f"Artefact filenames must be relative: {self}")
