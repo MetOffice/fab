@@ -189,10 +189,7 @@ _CONTINUE_PATTERN = re_compile(r"\s*(.*?)\s*&\s*$")
 
 
 def normalise_source(artefact: Artefact) -> Generator[str, None, None]:
-    try:
-        encoding = artefact.get_meta(ENCODING_META)
-    except KeyError:
-        encoding = "utf8"
+    encoding = artefact.get_meta(ENCODING_META, "utf-8")
     line_buffer = ""
     with artefact.real_filename.open("rt", encoding=encoding) as stream:
         for line in stream:
@@ -866,9 +863,14 @@ class AnalyseFortranTS(Action):
     def perform(self) -> list[Action]:
 
         artefact = self._database.artefact_store.get_artefact(self._source)
+        encoding = artefact.get_meta(ENCODING_META, "utf-8")
         syntax_checks = self._database.configuration.get("syntax_checks", False)
 
-        tree = self._parser.parse(artefact.real_filename.read_bytes())
+        material = artefact.real_filename.read_bytes()
+        if encoding != "utf-8":
+            material = material.decode(encoding).encode("utf-8")
+
+        tree = self._parser.parse(material)
         cursor = QueryCursor(self._query)
 
         actions: list[Action] = []
@@ -883,7 +885,7 @@ class AnalyseFortranTS(Action):
         status = State.SEEKING
         for _, match in cursor.matches(tree.root_node):
             for key, nodes in match.items():
-                name = nodes[0].text.decode("utf-8").lower()  # type: ignore
+                name = nodes[0].text.decode(encoding).lower()  # type: ignore
 
                 if syntax_checks and key == "error":
                     raise SyntaxException(artefact.real_filename, nodes[0].start_point)
