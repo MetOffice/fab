@@ -115,6 +115,3 @@ uv.lock
 
 # Profiler stats
 .pstats
-
-#fabengine output
-*/.artefact_map.txt
