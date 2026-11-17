@@ -17,19 +17,23 @@ class Nemo(BuildScript):
                 source="https://metomi/svn/nemo.xm/NEMO/branches/UKMO/NEMO_4.0.4_mirror",
                 projects=[
                     Project(
-                        Path("."),
-                        identifier="NEMO",
-                        source_dir=Path("."),
+                        Path(""),
+                        source_dir=Path("src"),
                         source_encoding="latin1",
                         source_include=[
-                            Path('src/ICE'),
-                            Path('src/OCE'),
-                            Path('ext/IOIPSL/src')
+                            Path('ICE'),
+                            Path('OCE'),
                         ],
                         force_include_dir=[
-                            Path("src/OCE")
+                            Path("OCE")
                         ]
                     ),
+                    Project(
+                        Path("ext/IOIPSL"),
+                        "ioipsl",
+                        source_dir=Path("src"),
+                        source_encoding="latin1",
+                    )
                 ]
             )
         ]
