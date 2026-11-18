@@ -1,10 +1,12 @@
 from pathlib import Path
 from typing import Iterable
 
-from fabengine.build_script import BuildScript
-from fabengine.configuration_tools import WriteOnceDict
-from fabengine.project import Project
-from fabengine.repository import GitRepository, Repository
+from fab.api.v3 import (
+    BuildScript,
+    Project,
+    GitRepository,
+    Repository
+)
 
 
 class Jules(BuildScript):
@@ -48,6 +50,7 @@ class Jules(BuildScript):
                             "src/science/river_routing/rivers_route_trip_mod.F90",
                             "src/science/river_routing/rivers_route_utils_mod.F90",
                             "src/science/river_routing/route_minor_reservoirs_mod.F90",
+                            "src/science/river_routing/route_reservoirs_mod.F90",
                             "src/science/snow",
                             "src/science/soil",
                             "src/science/soil_biogeochem",
@@ -66,14 +69,12 @@ class Jules(BuildScript):
     def packages(self) -> Iterable[str]:
         return ["netcdf-fortran", "netcdf"]
 
-    def fpp_definitions(self) -> WriteOnceDict:
-        return WriteOnceDict(
-            {
+    def fpp_definitions(self) -> dict:
+        return {
                 "SCMA": "",
                 "BL_DIAG_HACK": "",
-                "INTEL_FORTRAN": "",
-            }
-        )
+                "INTEL_FORTRAN": ""
+        }
 
     def openmp(self) -> bool:
         return True

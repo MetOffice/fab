@@ -315,6 +315,8 @@ def pollute_configuration(configuration: WriteOnceDict) -> None:
         "yaxt",  # YAXT
         "vernier_mod",  # Vernier
         "c_shum_byteswap",  # ShUMlib
+        "ifcore",       # For intel compilation
+        "ifposix",
     ]
 
     configuration["field_instances"] = [

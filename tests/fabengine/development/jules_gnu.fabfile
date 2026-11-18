@@ -50,6 +50,7 @@ class Jules(BuildScript):
                             "src/science/river_routing/rivers_route_trip_mod.F90",
                             "src/science/river_routing/rivers_route_utils_mod.F90",
                             "src/science/river_routing/route_minor_reservoirs_mod.F90",
+                            "src/science/river_routing/route_reservoirs_mod.F90",
                             "src/science/snow",
                             "src/science/soil",
                             "src/science/soil_biogeochem",
