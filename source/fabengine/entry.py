@@ -377,12 +377,12 @@ def load_compiler_data(
         compilers = compilers | user_compilers
 
     configuration["fc"] = fc
-    if fc and fc in compilers:
-        configuration["fortran_data"] = compilers[fc]
+    if fc and Path(fc).name in compilers:
+        configuration["fortran_data"] = compilers[Path(fc).name]
 
     configuration["cc"] = cc
-    if cc and cc in compilers:
-        configuration["c_data"] = compilers[cc]
+    if cc and Path(cc).name in compilers:
+        configuration["c_data"] = compilers[Path(cc).name]
 
     if two_pass_compiles and "syntax_only" in configuration["fortran_data"]:
         configuration["two_pass_compilation"] = True
