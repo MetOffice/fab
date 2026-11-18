@@ -16,6 +16,7 @@ If you are not submitting contributions on behalf of an organisation please use
 | yaswant         | Yaswant Pradhan | Met Office                       |
 | hiker           | Joerg Henrichs  | Bureau of Meteorology, Australia |
 | t00sa           | Sam Clarke-Green | Met Office                      |
+| james-bruten-mo | James Bruten    | Met Office
 
 ---
 

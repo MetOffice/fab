@@ -2,7 +2,6 @@ from abc import ABC
 from collections.abc import Iterable
 from pathlib import Path
 
-from fabengine.configuration_tools import WriteOnceDict
 from fabengine.repository import Repository
 
 
@@ -15,13 +14,49 @@ class BuildScript(ABC):
     def packages(self) -> list[str]:
         return []
 
-    def add_configuration(
-        self,
-        configuration: WriteOnceDict,
-    ) -> None:
-        pass
+    def fpp_definitions(self) -> dict:
+        return {}
 
     def force_prerequisites(self) -> dict[str, str]:
+        return {}
+
+    def openmp(self) -> bool:
+        return False
+
+    def fortran_pp(self) -> Path:
+        return Path("cpp")
+
+    def fortran_pp_flags(self) -> list[str]:
+        return []
+
+    def fortran_compile_flags_common(self) -> list[str]:
+        return []
+
+    def fortran_overrides(self) -> dict:
+        """
+        Path specific overrides to fortran compilation settings.
+
+        :return: A dictionary of Paths. Values should be dictionaries with keys and item
+                 types as described in validate_overrides
+        """
+        return {}
+
+    def c_pp(self) -> Path:
+        return Path("cpp")
+
+    def c_pp_flags(self) -> list[str]:
+        return []
+
+    def c_compile_flags_common(self) -> list[str]:
+        return []
+
+    def c_overrides(self) -> dict:
+        """
+        Path specific overrides to c compilation settings.
+
+        :return: A dictionary of Paths. Values should be dictionaries with keys and item
+                 types as described in validate_overrides
+        """
         return {}
 
     @property

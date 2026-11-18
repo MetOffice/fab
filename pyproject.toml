@@ -71,6 +71,9 @@ version = {attr = "fab.__version__"}
 [tool.setuptools.packages.find]
 where = [ "source" ]
 
+[tool.setuptools.package-data]
+"fabengine.data" = ["*.yaml"]
+
 [tool.tox]
 env_list = [
     {product = [ [ "3.12", "3.13", "3.14", "3.15" ], [ "coverage" ] ]},
@@ -155,3 +158,6 @@ deps = [
 ]
 description = "run type check on code base"
 
+[[tool.mypy.overrides]]
+module = ["yaml.*"]
+ignore_missing_imports = true

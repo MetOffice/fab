@@ -82,7 +82,8 @@ class AnalyseC(Action):
                 # we are in a comment, so look for the end of the comment
                 match = AnalyseC._END_COMMENT_PATTERN.match(line)
                 if match:
-                    # found end of comment, switch back to seeking mode and check if there is any code after the comment ends
+                    # found end of comment, switch back to seeking mode and check if
+                    # there is any code after the comment ends
                     mode = AnalyseC.AnalysisMode.SEEKING
                     after_comment = match.group(1).strip()
                     if after_comment:
@@ -92,7 +93,8 @@ class AnalyseC(Action):
                 # we are seeking, so look for the start of a comment
                 match = AnalyseC._BEGIN_COMMENT_PATTERN.match(line)
                 if match:
-                    # found start of comment, switch to in_comment mode and check if there is any code before the comment starts
+                    # found start of comment, switch to in_comment mode and check if
+                    # there is any code before the comment starts
                     mode = AnalyseC.AnalysisMode.IN_COMMENT
                     before_comment = match.group(1).strip()
                     if before_comment:
@@ -137,7 +139,8 @@ class AnalyseC(Action):
         """
         Perform analyses.
 
-        :return: Every source file must be return a CompileC action, and those with a main program must also return a LinkC action.
+        :return: Every source file must return a CompileC action, and those with a main
+                 program must also return a LinkC action.
         """
 
         logger = make_logger("system")
@@ -153,7 +156,8 @@ class AnalyseC(Action):
         for normalised_line in self._normalise_source(
             self._database.artefact_store.get_artefact(self._source)
         ):
-            # (comments and blank lines have already been removed, so we can just search for includes and main programs without worrying about comment syntax)
+            # (comments and blank lines have already been removed, so we can just search
+            # for includes and main programs without worrying about comment syntax)
 
             match = self._MAIN_PATTERN.match(normalised_line)
             if match:
@@ -164,7 +168,8 @@ class AnalyseC(Action):
 
             match = self._INCLUDE_PATTERN.match(normalised_line)
             if match:
-                # found an include, so add a prerequisite for the included file (so long as it isn't a self-include)
+                # found an include, so add a prerequisite for the included file
+                # (so long as it isn't a self-include)
                 included_file = match.group(1)
                 included_file_basename = included_file.rpartition(".")[0]
                 if included_file_basename != source_basename:
@@ -195,8 +200,6 @@ class CompileC(SubprocessAction):
     Compiles C source to object file.
     """
 
-    _COMPILER = "gcc"
-
     def __init__(
         self,
         source: Path,
@@ -211,12 +214,44 @@ class CompileC(SubprocessAction):
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
+        self._compiler = database.configuration["cc"]
 
-        arguments = []
-        destination = self._source.with_suffix(".o")
-        arguments.extend(["-c", str(self._source), "-o", str(destination)])
+        if not self._compiler:
+            raise RuntimeError(
+                "Attempting to compile c code but the c compiler hasn't been defined."
+            )
 
-        exe = Path(self._COMPILER)
+        arguments = [self._database.configuration["c_data"]["compile_only"]]
+
+        common_flags = self._database.configuration["c_compile_flags_common"]
+        openmp = self._database.configuration["openmp"]
+
+        for override_path, values in self._database.configuration[
+            "c_overrides"
+        ].items():
+            if self._source.is_relative_to(override_path):
+                profile_args = values.get("compile_flags", common_flags)
+                openmp = values.get("openmp", openmp)
+                break
+        else:
+            profile_args = common_flags
+        for arg in profile_args:
+            arguments.append(arg)  # noqa: PERF402
+
+        if openmp:
+            arguments.append(self._database.configuration["c_data"]["openmp"])
+
+        arguments.extend(
+            [
+                self._database.artefact_store.get_artefact(self._source).real_filename,
+                self._database.configuration["c_data"]["output_path"],
+                self._database.artefact_store.get_artefact(
+                    self._source.with_suffix(".o")
+                ).real_filename,
+            ]
+        )
+
+        exe = Path(self._database.configuration["cc"])
         super().__init__(exe, arguments)
 
     def __str__(self) -> str:
@@ -229,7 +264,8 @@ class CompileC(SubprocessAction):
         Unlike Fortran, C does not have an explicit module system.
         Instead, dependencies are determined by the presence of "#include" directives.
         Header files will already have been imported as part of the ImportC Action.
-        And, the compiler automatically handles these dependencies so no explicit prerequisite rules are needed.
+        And, the compiler automatically handles these dependencies so no explicit
+        prerequisite rules are needed, other than the loading of the compile module.
         """
         prereqs: list[Prerequisite] = []
         return prereqs
@@ -252,8 +288,6 @@ class LinkC(SubprocessAction):
     """
     Uses C compiler to link object into executable.
     """
-
-    _LINKER = "gcc"
 
     def __init__(
         self,
@@ -281,11 +315,14 @@ class LinkC(SubprocessAction):
                 prerequisite.filename.real_filename
                 for prerequisite in sorted(self._prerequisites)
             ],
-            "-o",
+            self._database.configuration["c_data"]["output_path"],
             self._exe_file,
         ]
 
-        exe = Path(self._LINKER)
+        if self._database.configuration["openmp"]:
+            arguments.append(self._database.configuration["c_data"]["openmp"])
+
+        exe = Path(self._database.configuration["cc"])
         super().__init__(exe, arguments)
 
     def __str__(self) -> str:

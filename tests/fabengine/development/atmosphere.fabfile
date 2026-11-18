@@ -3,7 +3,6 @@ from typing import Iterable
 
 from fab.api.v3 import (
     BuildScript,
-    WriteOnceDict,
     Project,
     GitRepository,
 )
@@ -12,7 +11,7 @@ from fab.api.v3 import (
 class Atmosphere(BuildScript):
     def repositories(self, dependencies_file: Path):
         if not dependencies_file:
-            dependencies_file = Path(__file__).parent / "dependencies.yaml"
+            dependencies_file = Path(__file__).parent / "test_dependencies.yaml"
         return [
             GitRepository(
                 identity="lfric_core",
@@ -1020,8 +1019,8 @@ class Atmosphere(BuildScript):
 
         return package_list
 
-    def add_configuration(self, configuration: WriteOnceDict) -> None:
-        configuration["fpp_definitions"] = {
+    def fpp_definitions(self) -> dict:
+        return {
             # Physics from the UM
             "UM_PHYSICS": "true",
             "LFRIC": "true",
@@ -1037,4 +1036,32 @@ class Atmosphere(BuildScript):
             "R_BL_PRECISION": "64",
             # Transitional
             "LEGACY_MPI": "true",
+        }
+
+    def openmp(self) -> bool:
+        return True
+
+    def fortran_pp_flags(self) -> list[str]:
+        return ["-traditional-cpp", "-P"]
+
+    _COMMON_FORTRAN = ["-std=f2008", "-ffree-line-length-none",]
+    _UM_GNU = ["-fdefault-real-8", "-fdefault-double-8"]
+
+    def fortran_compile_flags_common(self) -> list[str]:
+        return self._COMMON_FORTRAN
+
+    def fortran_overrides(self) -> dict:
+        return {
+            Path("infrastructure/utilities/lfric_mpi_mod.f90"): {
+                "compile_flags": self._COMMON_FORTRAN + ["-fallow-argument-mismatch"],
+            },
+            Path("infrastructure/utilities/timer_mod_test.f90"): {
+                "compile_flags": self._COMMON_FORTRAN + ["-fall-instrinsics"]
+            },
+            Path("casim/"): {"compile_flags": self._COMMON_FORTRAN + self._UM_GNU,},
+            Path("jules/"): {"compile_flags": self._COMMON_FORTRAN + self._UM_GNU,},
+            Path("physics_schemes/"): {"compile_flags": self._COMMON_FORTRAN + self._UM_GNU,},
+            Path("physics_schemes_interface/legacy/"): {"compile_flags": self._COMMON_FORTRAN + self._UM_GNU,},
+            Path("socrates/"): {"compile_flags": self._COMMON_FORTRAN + self._UM_GNU,},
+            Path("ukca/"): {"compile_flags": self._COMMON_FORTRAN + self._UM_GNU,},
         }

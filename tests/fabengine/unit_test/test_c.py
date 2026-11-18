@@ -13,6 +13,7 @@ from fabengine.actions.c import AnalyseC, CompileC, LinkC
 from fabengine.artefact_store import ArtefactPath
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.database import Database
+from fabengine.entry import load_compiler_data
 from fabengine.manager import FabManager
 from fabengine.prerequisite import ArtefactPrerequisite
 from pytest import fixture
@@ -93,12 +94,19 @@ def database(tmp_path: Path) -> Generator[Database, None, None]:
     """
     Sets up a per-test database with basic configuration.
     """
-    configuration = WriteOnceDict()
+    configuration = WriteOnceDict({})
     configuration["paths"] = WriteOnceDict()
     configuration["paths"]["bin_dir"] = tmp_path / "bin"
-    configuration["paths"]["build_dir"] = tmp_path / "build"
+    work_dir = tmp_path / "work"
+    configuration["paths"]["work_dir"] = work_dir
+    configuration["paths"]["build_dir"] = work_dir / "build"
+    configuration["openmp"] = False
+    configuration["c_compile_flags_common"] = []
+    configuration["c_overrides"] = {}
+    load_compiler_data(configuration, None, "", "gcc", False)
     with FabManager() as manager:
-        yield Database(configuration, manager)
+        database = Database(configuration, manager)
+        yield database
 
 
 @fixture(scope="function")
@@ -137,8 +145,11 @@ class TestCBuild:
             ArtefactPrerequisite(ArtefactPath("foo.o"), database),
         }
 
-    def test_compile_c(self, database: Database, fake_gcc, source_dir: Path):
-        TEST_COMMAND = "gcc -c foo/source/foo.c -o foo/source/foo.o"
+    def test_compile_c(self, database: Database, fake_gcc):
+        TEST_COMMAND = (
+            f"gcc -c {database.configuration['paths']['build_dir'] / 'foo/source/foo.c'} "
+            f"-o {database.configuration['paths']['build_dir'] / 'foo/source/foo.o'}"
+        )
         test_unit = CompileC(Path("foo/source/foo.c"), set(), database)
         actions = test_unit.perform()
         gcc_commands = fake_gcc.calls
@@ -163,12 +174,23 @@ class TestCBuild:
         )
         actions = test_unit.perform()
         assert len(actions) == 0, "LinkC should not produce any further actions"
-        assert list(fake_gcc.calls) == [
+        assert list(fake_gcc.calls) in (
             [
-                "gcc",
-                f"{tmp_path / 'build'}/bar.o",
-                f"{tmp_path / 'build'}/foo.o",
-                "-o",
-                f"{tmp_path}/bin/foo",
-            ]
-        ]
+                [
+                    "gcc",
+                    f"{tmp_path / 'work/build'}/foo.o",
+                    f"{tmp_path / 'work/build'}/bar.o",
+                    "-o",
+                    f"{tmp_path}/bin/foo",
+                ]
+            ],
+            [
+                [
+                    "gcc",
+                    f"{tmp_path / 'work/build'}/bar.o",
+                    f"{tmp_path / 'work/build'}/foo.o",
+                    "-o",
+                    f"{tmp_path}/bin/foo",
+                ]
+            ],
+        )

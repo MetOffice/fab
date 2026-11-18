@@ -52,6 +52,7 @@ nitpick_ignore = {
     #
     ("py:class", "ListProxy"),
     ("py:class", "DictProxy"),
+    ("py:class", "ValueProxy"),
     ("py:class", "Queue"),
     ("py:class", "multiprocessing.Process"),
     ("py:class", "multiprocessing.context.Process"),

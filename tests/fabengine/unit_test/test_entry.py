@@ -1,11 +1,14 @@
 from logging import DEBUG, INFO, WARNING
+from os import environ
 from pathlib import Path
 from textwrap import dedent
 
 from fabengine.entry import (
+    CompilerType,
     command_line,
     instantiate_build_script,
     parse_libmap,
+    validate_overrides,
 )
 from fabengine.package import (
     IncludePath,
@@ -160,8 +163,21 @@ class TestParseLibMap:
         assert package.link_arguments == tuple(largs_list) + (LibraryName("test"),)
 
 
+class TestCompilerType:
+    def test_compiler_type(self):
+        env_var = "testing_env"
+        environ.pop(env_var, None)
+        compiler_type = CompilerType(env_var)
+        assert compiler_type("gfortran") == "gfortran"
+        assert compiler_type("") is None
+        environ[env_var] = "gfortran"
+        assert compiler_type("") == "gfortran"
+
+
 class TestCommandline:
     def test_default(self):
+        for value in ("fc", "cc"):
+            environ[value.upper()] = f"compiler/{value}"
         options = command_line([])
         assert options.fabfile == Path("Fabfile")
         assert options.jobs == 1
@@ -173,6 +189,10 @@ class TestCommandline:
         assert options.monitor is True
         assert options.queue_strategy == QueueStrategy.ALWAYS_TO_BACK
         assert options.timing_file is None
+        assert options.fc == "fc"
+        assert options.cc == "cc"
+        for value in ("fc", "cc"):
+            environ.pop(value.upper(), None)
         assert options.logfile is None
         assert options.save_archive is None
         assert options.extract_archive is None
@@ -302,3 +322,26 @@ class TestInstantiateBuildScript:
         )
         with raises(RuntimeError):
             instantiate_build_script(test_file)
+
+
+class TestValidateOverrides:
+    def test_success(self):
+        validate_overrides(
+            {Path("/path/to/somewhere"): {"compile_flags": ["-flag"], "openmp": True}}
+        )
+
+    def test_not_path(self):
+        with raises(TypeError):
+            validate_overrides({"not_a_path": {}})
+
+    def test_not_dict(self):
+        with raises(TypeError):
+            validate_overrides({Path("/path/to/somewhere"): []})
+
+    def test_unknown_key(self):
+        with raises(AttributeError):
+            validate_overrides({Path("/path/to/somewhere"): {"unknown": []}})
+
+    def test_wrong_type(self):
+        with raises(TypeError):
+            validate_overrides({Path("/path/to/somewhere"): {"openmp": []}})

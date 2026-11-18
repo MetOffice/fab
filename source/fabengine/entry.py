@@ -4,18 +4,22 @@ import sys
 from argparse import ArgumentParser, Namespace
 from collections.abc import Sequence
 from importlib.machinery import SourceFileLoader
+from importlib.resources import files as import_files
 from importlib.util import module_from_spec, spec_from_file_location
 from inspect import getmembers, isclass
 from logging import DEBUG, INFO, WARNING
 from multiprocessing import set_start_method
+from os import getenv
 from pathlib import Path
 from sys import argv
+
+from yaml import safe_load
 
 from fabengine.build_script import BuildScript
 from fabengine.configuration_tools import WriteOnceDict
 from fabengine.core import fab_core
 from fabengine.cui.status import set_terminal_title
-from fabengine.logserver import LoggingServer
+from fabengine.logserver import LoggingServer, make_logger
 from fabengine.package import (
     CompilerArgument,
     IncludePath,
@@ -88,6 +92,33 @@ def parse_libmap(argument: str) -> Package:
     largs.append(LibraryName(bits[0].strip()))
 
     return Package(bits[0].strip(), (), cargs, largs)
+
+
+class CompilerType:
+    """
+    Return compiler from command line or environment variable (FC/CC/CXX)
+    Raise an error if neither provided
+    """
+
+    def __init__(self, environment_variable: str):
+        """
+        :param environment_variable: Environment variable to read compiler from if
+                                     command line not set. FC/CC/CXX
+        """
+        self._environment_variable = environment_variable
+
+    def __call__(self, arg: str) -> str | None:
+        """
+        :param arg: Command line provided compiler argument
+        """
+
+        if arg:
+            return arg
+
+        compiler = getenv(self._environment_variable, None)
+        if compiler:
+            compiler = compiler.split("/")[-1]
+        return compiler
 
 
 def command_line(arguments: Sequence[str] | None = None) -> Namespace:
@@ -181,6 +212,17 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
         help="Experiment with queue strategy.",
     )
     parser.add_argument(
+        "--fc", default="", type=CompilerType("FC"), help="Fortran Compiler to be used"
+    )
+    parser.add_argument(
+        "--cc", default="", type=CompilerType("CC"), help="C Compiler to be used"
+    )
+    parser.add_argument(
+        "--extra_compilers",
+        type=Path,
+        help="Path to yaml file containing data for additional compilers",
+    )
+    parser.add_argument(
         "--extract-archive",
         type=Path,
         help="populate the work directory from an archive file.",
@@ -256,9 +298,9 @@ def instantiate_build_script(fabfile: Path) -> BuildScript:
 def pollute_configuration(configuration: WriteOnceDict) -> None:
     """
     Dump a lot of stuff into the configuration.
-
     .. todo:: This should be handled better, and at the build script level.
     """
+
     configuration["fc_ignore_modules"] = [
         "funit",
         "pfunit",  # pFUnit
@@ -273,72 +315,29 @@ def pollute_configuration(configuration: WriteOnceDict) -> None:
         "yaxt",  # YAXT
         "vernier_mod",  # Vernier
         "c_shum_byteswap",  # ShUMlib
+        "ifcore",  # For intel compilation
+        "ifposix",
     ]
+
     configuration["field_instances"] = [
         {"real": "real32"},
         {"real": "real64"},
         {"integer": "int32"},
     ]
-    configuration["build_tags"] = {
-        "crusty": ["-std=gnu"],
-        "um": ["-fdefault-real-8", "-fdefault-double-8"],
-        "old-mpi": ["-fallow-argument-mismatch"],
-        "gnu-intrinsics": ["-fall-intrinsics"],
-        "nemo-nasty": ["-fdefault-real-8"],
-        "nemo-crusty": ["-std=legacy"],
-        "gnu-extensions": ["-std=gnu"],
-    }
-    configuration["tag_dirs"] = {
-        "infrastructure/utilities/lfric_mpi_mod.f90": ["old-mpi"],
-        "infrastructure/utilities/timer_mod_test.f90": ["gnu-intrinsics"],
-        "casim/": ["um"],
-        "jules/": ["um"],
-        "physics_schemes/": ["um"],
-        "physics_schemes_interface/legacy/": ["um"],
-        "socrates/": ["um"],
-        "ukca/": ["um"],
-        "OCE/": ["nemo-nasty"],
-        "OCE/nemogcm.f90": ["nemo-crusty"],
-        "OCE/step.f90": ["gnu-extensions"],
-        "OCE/stpctl.f90": ["nemo-crusty"],
-        "OCE/timing.f90": ["nemo-crusty"],
-        "OCE/DIA/diadct.f90": ["gnu-extensions"],
-        "OCE/DIA/diaharm.f90": ["gnu-extensions"],
-        "OCE/FLO/flodom.f90": ["gnu-extensions"],
-        "OCE/ICB/icbdia.f90": ["gnu-extensions"],
-        "OCE/ICB/icbdyn.f90": ["gnu-extensions"],
-        "OCE/ICB/icbini.f90": ["gnu-extensions"],
-        "OCE/ICB/icblbc.f90": ["nemo-crusty"],
-        "OCE/ICB/icbstp.f90": ["gnu-extensions"],
-        "OCE/ICB/icbthm.f90": ["gnu-extensions"],
-        "OCE/ICB/icbutl.f90": ["gnu-extensions"],
-        "OCE/ICB/icbtrj.f90": ["nemo-crusty"],
-        "OCE/LBC/lib_mpp.f90": ["nemo-crusty"],
-        "OCE/LBC/lbclnk.f90": ["nemo-crusty"],
-        "OCE/OBS/mpp_map.f90": ["nemo-crusty"],
-        "OCE/OBS/obs_mpp.f90": ["nemo-crusty"],
-        "OCE/OBS/obs_oper.f90": ["gnu-extensions"],
-        "OCE/OBS/obs_prep.f90": ["gnu-extensions"],
-        "OCE/OBS/obs_readmdt.f90": ["gnu-extensions"],
-        "OCE/SBC/fldread.f90": ["gnu-extensions"],
-        "OCE/SBC/tide_mod.f90": ["gnu-extensions"],
-        "OCE/TRD/trdvor.f90": ["gnu-extensions"],
-        "ICE/": ["nemo-nasty"],
-        "ioipsl/": ["nemo-nasty"],
-    }
+
     configuration["inclusion_suffixes"] = [".h", ".inc", ".h90"]
+
     configuration["mock_tests"] = [
         "lfric_xios_diag_mod_test",
         "lfric_xios_read_mod_test",
         "lfric_xios_write_mod_test",
     ]
-    configuration["use_open_mp"] = True
-    configuration["internal_psyclone"] = True
 
 
 def process_packages(
     build_script: BuildScript, library_map: list[Package], configuration: WriteOnceDict
 ) -> None:
+    configuration["packages"] = WriteOnceDict()
     package_table = {package.name: package for package in library_map or []}
     for specification in build_script.packages():
         package_name, _, _ = partition_specification(specification)
@@ -347,11 +346,84 @@ def process_packages(
         else:  # package_name not in package_table
             configuration["packages"][package_name] = pkg_config(specification)
     # Todo: Hardwired C++ runtime. Need a proper solution for language runtimes.
-    #
     if "stdc++" not in configuration["packages"]:
         configuration["packages"]["stdc++"] = Package(
             "stdc++", (0, 0, 0), [], [LibraryName("stdc++")]
         )
+
+
+def load_compiler_data(
+    configuration: WriteOnceDict,
+    extra_compilers: Path | None,
+    fc: Path | str,
+    cc: Path | str,
+    two_pass_compiles: bool,
+) -> None:
+    """
+    Load in compiler data from central and user sources.
+    Select data based on compiler name
+    TODO: Select the data based on compiler version as well as name. Use most specific
+    available, eg. gfortran 12.2 over gfortran 12 over gfortran
+    """
+
+    with import_files("fabengine.data").joinpath("compilers.yaml").open("r") as f:
+        compilers = safe_load(f)
+
+    if extra_compilers and extra_compilers.exists():
+        with open(extra_compilers, "r") as f:
+            user_compilers = safe_load(f)
+
+        # Combine known compiler data and user data. Prioritise user data
+        compilers = compilers | user_compilers
+
+    configuration["fc"] = fc
+    if fc and Path(fc).name in compilers:
+        configuration["fortran_data"] = compilers[Path(fc).name]
+
+    configuration["cc"] = cc
+    if cc and Path(cc).name in compilers:
+        configuration["c_data"] = compilers[Path(cc).name]
+
+    if two_pass_compiles and "syntax_only" in configuration["fortran_data"]:
+        configuration["two_pass_compilation"] = True
+    else:
+        configuration["two_pass_compilation"] = False
+        if two_pass_compiles:
+            logger = make_logger("user")
+            logger.warning(
+                "Two Pass Compiles requested but not available for the current fortran "
+                "compiler - switching to single pass compile instead."
+            )
+
+
+def validate_overrides(override_dict: dict) -> None:
+    """
+    Check that the entries to c/fortran overrides are of expected type and with only
+    keys that the build system will understand.
+
+    :param input_profile: Compiler profile to check
+    """
+
+    valid_keys = {
+        "compile_flags": list,
+        "openmp": bool,
+    }
+
+    for key, value in override_dict.items():
+        if not isinstance(key, Path):
+            raise TypeError(f"The key '{key}' is not of type Path.")
+        if not isinstance(value, dict):
+            raise TypeError(f"The value for key '{key}' is not a dict")
+        for key2, value2 in value.items():
+            if key2 not in valid_keys:
+                raise AttributeError(f"The override key '{key2}' is unknown.")
+            override_expected_type = valid_keys[key2]
+            if not isinstance(value2, override_expected_type):
+                raise TypeError(
+                    f"The value '{value2}' of override key "
+                    f"'{key2}' is not of expected type "
+                    f"{override_expected_type}."
+                )
 
 
 def cli() -> None:
@@ -368,39 +440,59 @@ def cli() -> None:
 
     with log_server:
         configuration = WriteOnceDict()
-        configuration["monitor"] = options.monitor
-        configuration["queue_strategy"] = options.queue_strategy
-        configuration["testing"] = options.testing
-        configuration["worker_threads"] = options.jobs
-        configuration["archive_path"] = options.save_archive
-        configuration["extract_path"] = options.extract_archive
-        configuration["two_pass_compiles"] = options.two_pass_compiles
-        configuration["metrics_csv"] = options.metrics_csv
-
+        build_script = instantiate_build_script(options.fabfile)
+        process_packages(build_script, options.map_library, configuration)
+        load_compiler_data(
+            configuration,
+            options.extra_compilers,
+            options.fc,
+            options.cc,
+            options.two_pass_compiles,
+        )
         configuration["paths"] = WriteOnceDict()
         configuration["paths"]["work_dir"] = options.work_dir
         configuration["paths"]["build_dir"] = (
             configuration["paths"]["work_dir"] / "build"
         )
         configuration["paths"]["module_dir"] = (
-            configuration["paths"]["work_dir"] / "_fortran_modules"
+            configuration["paths"]["work_dir"] / "fortran_modules"
         )
         configuration["paths"]["bin_dir"] = options.bin_dir
         configuration["paths"]["performance_file"] = options.timing_file
-        configuration["packages"] = WriteOnceDict()
-
         # All directory paths have to exist
         for key, value in configuration["paths"].items():
             if key.endswith("_dir"):
                 value.mkdir(exist_ok=True, parents=True)
 
-        build_script = instantiate_build_script(options.fabfile)
-        process_packages(build_script, options.map_library, configuration)
+        validate_overrides(build_script.fortran_overrides())
+        validate_overrides(build_script.c_overrides())
+
         configuration["repositories"] = build_script.repositories(
             options.dependencies_file
         )
+        configuration["fpp_definitions"] = WriteOnceDict(build_script.fpp_definitions())
         configuration["forced_prerequisites"] = build_script.force_prerequisites()
-        build_script.add_configuration(configuration)
+        configuration["openmp"] = build_script.openmp()
+        configuration["fortran_pp"] = build_script.fortran_pp()
+        configuration["fortran_pp_flags"] = build_script.fortran_pp_flags()
+        configuration["fortran_compile_flags_common"] = (
+            build_script.fortran_compile_flags_common()
+        )
+        configuration["fortran_overrides"] = build_script.fortran_overrides()
+        configuration["c_pp"] = build_script.c_pp()
+        configuration["c_pp_flags"] = build_script.c_pp_flags()
+        configuration["c_compile_flags_common"] = build_script.c_compile_flags_common()
+        configuration["c_overrides"] = build_script.c_overrides()
+
+        configuration["worker_threads"] = options.jobs
+        configuration["monitor"] = options.monitor
+        configuration["testing"] = options.testing
+        configuration["queue_strategy"] = options.queue_strategy
+        configuration["archive_path"] = options.save_archive
+        configuration["extract_path"] = options.extract_archive
+        configuration["two_pass_compiles"] = options.two_pass_compiles
+        configuration["metrics_csv"] = options.metrics_csv
+        configuration["internal_psyclone"] = True
 
         pollute_configuration(configuration)
 

@@ -1,0 +1,24 @@
+gfortran:
+    language: fortran
+    compile_only: -c
+    module_dir: -J
+    output_path: -o
+    openmp: -fopenmp
+    syntax_only: -fsyntax-only
+gcc:
+    language: c
+    compile_only: -c
+    output_path: -o
+    openmp: -fopenmp
+ifx:
+    language: fortran
+    compile_only: -c
+    module_dir: -module
+    output_path: -o
+    openmp: -fiopenmp
+    syntax_only: -fsyntax-only
+icx:
+    language: c
+    compile_only: -c
+    output_path: -o
+    openmp: -fiopenmp

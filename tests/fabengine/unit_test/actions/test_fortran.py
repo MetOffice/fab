@@ -24,6 +24,7 @@ from fabengine.database import (
     SymbolInfo,
     SymbolType,
 )
+from fabengine.entry import load_compiler_data
 from fabengine.manager import FabManager
 from fabengine.prerequisite import AnalysedPrerequisite, ArtefactPrerequisite
 from pytest import fixture, mark, raises
@@ -31,7 +32,7 @@ from pytest import fixture, mark, raises
 
 @fixture(scope="function")
 def database(tmp_path: Path) -> Generator[Database, None, None]:
-    configuration = WriteOnceDict()
+    configuration = WriteOnceDict({})
     configuration["packages"] = WriteOnceDict()
     configuration["fc_ignore_modules"] = []
     configuration["forced_prerequisites"] = {}
@@ -43,9 +44,15 @@ def database(tmp_path: Path) -> Generator[Database, None, None]:
     configuration["paths"]["build_dir"] = work_dir / "build"
     configuration["paths"]["module_dir"] = work_dir / "modules"
     configuration["tag_dirs"] = WriteOnceDict()
-    configuration["use_open_mp"] = False
+    configuration["openmp"] = False
+    configuration["fortran_compile_flags_common"] = []
+    configuration["fortran_overrides"] = {}
+    configuration["fortran_pp_flags"] = []
+    configuration["fortran_pp"] = Path("cpp")
+    load_compiler_data(configuration, None, "gfortran", "", False)
     with FabManager() as manager:
-        yield Database(configuration, manager)
+        database = Database(configuration, manager)
+        yield database
 
 
 testcases = [
@@ -155,7 +162,7 @@ class TestPreprocessFortranBase:
         ]
         test_unit = self.PreprocessFortranStub(*args)
 
-        expected = "cpp -traditional-cpp -P"
+        expected = "cpp"
         if definitions is not None:
             for key, value in definitions.items():
                 expected += f" -D{key}={value}"
@@ -182,7 +189,7 @@ class TestPreprocessFortranBase:
 
 
 class TestNormaliseLine:
-    def test_simple(self, tmp_path: Path):
+    def test_simple(self, database: Database, tmp_path: Path):
         test_file = tmp_path / "test_mod.f90"
         test_file.write_text(
             dedent(
@@ -190,7 +197,6 @@ class TestNormaliseLine:
                 ! Copyright banner
                 !
                 module test_mod  ! This module
-    
                 end module test_mod
                 """
             ).lstrip()
@@ -200,7 +206,7 @@ class TestNormaliseLine:
         )
         assert list(result) == ["module test_mod", "end module test_mod"]
 
-    def test_continuation(self, tmp_path: Path):
+    def test_continuation(self, database: Database, tmp_path: Path):
         test_file = tmp_path / "test_mod.f90"
         test_file.write_text(
             dedent(
@@ -233,7 +239,7 @@ class TestAnalyseFortran:
         indirect=["code_example"],
     )
     def test_perform(self, code_example, openmp, symbols, prereqs, program, database):
-        super(WriteOnceDict, database.configuration).__setitem__("use_open_mp", openmp)
+        super(WriteOnceDict, database.configuration).__setitem__("openmp", openmp)
 
         test_unit = AnalyseFortran(code_example, database)
         actions = test_unit.perform()
@@ -397,7 +403,7 @@ class TestAnalyseFortranTS:
         indirect=["code_example"],
     )
     def test_perform(self, code_example, openmp, symbols, prereqs, program, database):
-        super(WriteOnceDict, database.configuration).__setitem__("use_open_mp", openmp)
+        super(WriteOnceDict, database.configuration).__setitem__("openmp", openmp)
 
         test_unit = AnalyseFortranTS(code_example, database)
         actions = test_unit.perform()
