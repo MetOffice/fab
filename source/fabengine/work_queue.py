@@ -137,12 +137,8 @@ class WorkQueue:
             self._length.value += 1
 
         if self._tracking:
-            # todo: is there a race condition here?
-            if name in self._work_tally:
-                with self._lock:
-                    self._work_tally[name] += 1
-            else:
-                self._work_tally[name] = 1
+            with self._lock:
+                self._work_tally[name] = self._work_tally.get(name, 0) + 1
 
     def pop(self) -> Action:
         """
@@ -159,10 +155,9 @@ class WorkQueue:
             self._length.value -= 1
 
         if self._tracking:
-            # todo: is there a race condition here?
             name = item.__class__.__name__
-            if name in self._work_tally:
-                with self._lock:
+            with self._lock:
+                if name in self._work_tally:
                     self._work_tally[name] -= 1
                     if self._work_tally[name] == 0:
                         del self._work_tally[name]
