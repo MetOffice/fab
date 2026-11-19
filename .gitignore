@@ -7,6 +7,8 @@ __pycache__/
 Documentation/build
 Documentation/fab/source/api
 Documentation/fab/source/apidoc
+Documentation/fabengine/_api
+Documentation/fabengine/_build
 
 # Fabengine development tests
 tests/fabengine/development/artefact_map.txt
