@@ -65,6 +65,19 @@ autodoc_default_options = {
 autoclass_content = 'both'
 
 
+def _skip_api_reexports(app, what, name, obj, skip, options):
+    """FabBase is documented in fab.fab_base.fab_base; don't document the
+    re-export in fab.api.v2 as well (duplicate object description)."""
+    if (name == 'FabBase'
+            and app.env.temp_data.get('autodoc:module') == 'fab.api.v2'):
+        return True
+    return None
+
+
+def setup(app):
+    app.connect('autodoc-skip-member', _skip_api_reexports)
+
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -102,7 +115,6 @@ autodoc_member_order = 'bysource'
 # Join the class and constructor docstrings.
 autoclass_content = 'both'
 
-#
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # create linkable targets from section headings
@@ -111,6 +123,9 @@ autosectionlabel_prefix_document = True
 
 # include default values in argument descriptions
 typehints_defaults = 'braces-after'
+
+# Row colouring in longtables overflows TeX's input stack with TeX Live 2026
+latex_table_style = ['booktabs']
 
 # linkcheck builder
 linkcheck_allow_redirects = True  # Allow redirects to pass
