@@ -32,7 +32,7 @@ In not-representative tests, importing tool using ``api`` takes around
 
 The list of functions and classes provided:
 
-.. literalinclude:: ../../source/fab/api.py
+.. literalinclude:: ../../../source/fab/api/v2.py
     :start-after: __all__ = [
     :end-before:     ]
 

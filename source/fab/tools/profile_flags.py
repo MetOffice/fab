@@ -10,9 +10,7 @@ for tools, especially path-specific flags for compiler. A ProfileFlag
 manages flags for specific profiles, including inheritance.
 
 Each tool uses a ProfileFlags instance. At runtime, the compilation steps
-will use the selected profile to get the Flags inProfileFlags:
-    Manages a set of flags for specific profiles, including inheritance.
-stance to use.
+will use the selected profile to get the Flags instance to use.
 The function `get_flags` will resolve the list of AbstractFlags by
 converting them from left to right into a list of strings. For example,
 [AlwaysFlag("-g"), ContainFlags("-O3", pattern="special_file")]
