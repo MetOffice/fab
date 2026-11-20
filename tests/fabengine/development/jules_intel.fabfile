@@ -83,11 +83,12 @@ class Jules(BuildScript):
         return ["-traditional", "-P"]
 
     _COMMON_FORTRAN = [
-        "-heap-arrays"
+        "-heap-arrays",
         "-std03",
         "-fpscomp",
         "logicals",
-        "-diag-disable 6477",
+        "-diag-disable",
+        "6477",
         "-assume",
         "nosource_include,protect_parens",
         "-fp-model",

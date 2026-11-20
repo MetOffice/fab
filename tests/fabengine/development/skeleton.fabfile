@@ -112,6 +112,6 @@ class Skeleton(BuildScript):
                 "compile_flags": self._COMMON_FORTRAN + ["-fallow-argument-mismatch"],
             },
             Path("infrastructure/utilities/timer_mod_test.f90"): {
-                "compile_flags": self._COMMON_FORTRAN + ["-fall-instrinsics"]
+                "compile_flags": self._COMMON_FORTRAN + ["-fall-intrinsics"]
             },
         }
