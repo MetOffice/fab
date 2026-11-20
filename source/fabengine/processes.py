@@ -184,8 +184,14 @@ class WorkerProcess(Process, SignalHandler):
                     #
                     # An action is only considered "stalled" if it returns only
                     # itself.
-                    #
-                    if resulting_actions != [action] or (isinstance(action, CompileFortran) and self._database.configuration["two_pass_compilation"]):
+                    # However, take into account two-pass-compiles which return
+                    # themselves, but should count as having processed an action else
+                    # the queue may stall prematurely.
+                    # TODO: Is there a better mechanism for checking for 2-pass compiles
+                    if resulting_actions != [action] or (
+                        isinstance(action, CompileFortran)
+                        and self._database.configuration["two_pass_compilation"]
+                    ):
                         self._database.bump_processed_tally()
                     for resulting_action in resulting_actions:
                         if resulting_action is action:  # Action returned itself

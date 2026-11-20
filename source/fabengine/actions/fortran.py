@@ -663,7 +663,11 @@ class CompileFortran(SubprocessAction):
         """
 
         if self.first_pass:
-            self.run_subprocess(additional_arguments=[self._database.configuration["fortran_data"]["syntax_only"]])
+            self.run_subprocess(
+                additional_arguments=[
+                    self._database.configuration["fortran_data"]["syntax_only"]
+                ]
+            )
             # Remove the prerequisites and add back in the queue
             self._prerequisites = set()
             self._syntax_only = False
