@@ -585,11 +585,6 @@ class CompileFortran(SubprocessAction):
         if openmp:
             arguments.append(self._database.configuration["fortran_data"]["openmp"])
 
-        if self.first_pass:
-            arguments.append(
-                self._database.configuration["fortran_data"]["syntax_only"]
-            )
-
         for arg in profile_args:
             arguments.append(arg)  # noqa: PERF402
 
@@ -666,13 +661,14 @@ class CompileFortran(SubprocessAction):
 
         :return: Error if the compilation failed.
         """
-        self.run_subprocess()
 
         if self.first_pass:
+            self.run_subprocess(additional_arguments=[self._database.configuration["fortran_data"]["syntax_only"]])
             # Remove the prerequisites and add back in the queue
             self._prerequisites = set()
             self._syntax_only = False
             return [self]
+        self.run_subprocess()
         return []
 
     @property

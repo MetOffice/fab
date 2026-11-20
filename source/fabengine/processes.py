@@ -13,6 +13,7 @@ from fabengine.actions import (
     ExceptionActionException,
     WorkerException,
 )
+from fabengine.actions.fortran import CompileFortran
 from fabengine.cui.status import set_ps_name
 from fabengine.database import Database
 from fabengine.logserver import make_logger, make_loggers
@@ -184,7 +185,7 @@ class WorkerProcess(Process, SignalHandler):
                     # An action is only considered "stalled" if it returns only
                     # itself.
                     #
-                    if resulting_actions != [action]:
+                    if resulting_actions != [action] or (isinstance(action, CompileFortran) and self._database.configuration["two_pass_compilation"]):
                         self._database.bump_processed_tally()
                     for resulting_action in resulting_actions:
                         if resulting_action is action:  # Action returned itself

@@ -48,6 +48,9 @@ class TwoPartPath:
         """
         return self._root / self._branch
 
+    def __str__(self) -> str:
+        return str(self.full)
+
 
 class Prerequisite(ABC):
     """
