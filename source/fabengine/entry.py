@@ -379,10 +379,20 @@ def load_compiler_data(
     configuration["fc"] = fc
     if fc and fc in compilers:
         configuration["fortran_data"] = compilers[fc]
+    else:
+        configuration["fortran_data"] = {}
 
     configuration["cc"] = cc
     if cc and cc in compilers:
         configuration["c_data"] = compilers[cc]
+    else:
+        configuration["c_data"] = {}
+
+    # Check we have at least one compiler defined
+    # Further checks that we have a fortran/c compiler specifically are handled in the
+    # relevant compile actions
+    if not configuration["fc"] and not configuration["cc"]:
+        raise RuntimeError("No Compiler has been defined (for any language).")
 
     if two_pass_compiles and "syntax_only" in configuration["fortran_data"]:
         configuration["two_pass_compilation"] = True

@@ -57,9 +57,6 @@ class Nemo(BuildScript):
     def openmp(self) -> bool:
         return True
 
-    def fortran_pp_flags(self) -> list[str]:
-        return ["-traditional-cpp", "-P"]
-
     _COMMON_FORTRAN = [
         "-std=f2008",
         "-ffree-line-length-none",

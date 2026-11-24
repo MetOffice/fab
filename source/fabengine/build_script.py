@@ -27,7 +27,7 @@ class BuildScript(ABC):
         return Path("cpp")
 
     def fortran_pp_flags(self) -> list[str]:
-        return []
+        return ["-traditional-cpp", "-P"]
 
     def fortran_compile_flags_common(self) -> list[str]:
         return []
