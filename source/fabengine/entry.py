@@ -378,13 +378,13 @@ def load_compiler_data(
 
     configuration["fc"] = fc
     if fc and Path(fc).name in compilers:
-            configuration["fortran_data"] = compilers[Path(fc).name]
+        configuration["fortran_data"] = compilers[Path(fc).name]
     else:
         configuration["fortran_data"] = {}
 
     configuration["cc"] = cc
     if cc and Path(cc).name in compilers:
-            configuration["c_data"] = compilers[Path(cc).name]
+        configuration["c_data"] = compilers[Path(cc).name]
     else:
         configuration["c_data"] = {}
 
@@ -480,12 +480,14 @@ def cli() -> None:
         configuration["repositories"] = build_script.repositories(
             options.dependencies_file
         )
-        configuration["fpp_definitions"] = WriteOnceDict(build_script.fpp_definitions())
         configuration["forced_prerequisites"] = build_script.force_prerequisites()
         configuration["openmp"] = build_script.openmp()
 
         configuration["fortran_pp"] = build_script.fortran_pp()
         configuration["fortran_pp_flags"] = build_script.fortran_pp_flags()
+        configuration["fortran_pp_definitions"] = WriteOnceDict(
+            build_script.fortran_pp_definitions()
+        )
         configuration["fortran_compile_flags_common"] = (
             build_script.fortran_compile_flags_common()
         )
@@ -497,6 +499,9 @@ def cli() -> None:
 
         configuration["c_pp"] = build_script.c_pp()
         configuration["c_pp_flags"] = build_script.c_pp_flags()
+        configuration["c_pp_definitions"] = WriteOnceDict(
+            build_script.c_pp_definitions()
+        )
         configuration["c_compile_flags_common"] = build_script.c_compile_flags_common()
         configuration["c_overrides"] = build_script.c_overrides()
         configuration["c_link_openmp"] = configuration["openmp"] or any(

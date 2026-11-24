@@ -41,7 +41,7 @@ class Nemo(BuildScript):
     def packages(self) -> list[str]:
         return ["netcdf-fortran", "netcdf", "xios"]
 
-    def fpp_definitions(self) -> dict:
+    def fortran_pp_definitions(self) -> dict:
         return {
             "key_si3": "true",
             "key_mpp_mpi": True,

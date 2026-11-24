@@ -76,7 +76,7 @@ class Skeleton(BuildScript):
 
         return package_list
 
-    def fpp_definitions(self) -> dict:
+    def fortran_pp_definitions(self) -> dict:
         return {
             "LFRIC": "true",
             "USSPREC_32B": "true",

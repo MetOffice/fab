@@ -241,11 +241,10 @@ class CompileC(SubprocessAction):
         if openmp:
             arguments.append(self._database.configuration["c_data"]["openmp"])
 
-
         # We don't have a separate pre-process step for c code, so these are included
         # here instead
-        arguments.extend(self._database.configuration["fortran_pp_flags"])
-        for name, value in self._database.configuration["fpp_definitions"].items():
+        arguments.extend(self._database.configuration["c_pp_flags"])
+        for name, value in self._database.configuration["c_pp_definitions"].items():
             arguments.append(f"-D{name}={value}")
 
         arguments.extend(

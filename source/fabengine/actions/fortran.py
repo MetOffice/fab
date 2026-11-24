@@ -116,7 +116,9 @@ class PreprocessFortranBase(SubprocessAction, ABC):
 
         arguments.extend(self._database.configuration["fortran_pp_flags"])
 
-        for name, value in self._database.configuration["fpp_definitions"].items():
+        for name, value in self._database.configuration[
+            "fortran_pp_definitions"
+        ].items():
             arguments.append(f"-D{name}={value}")
 
         for name, value in self._macros.items():

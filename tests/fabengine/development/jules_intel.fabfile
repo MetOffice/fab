@@ -69,7 +69,7 @@ class Jules(BuildScript):
     def packages(self) -> Iterable[str]:
         return ["netcdf-fortran", "netcdf"]
 
-    def fpp_definitions(self) -> dict:
+    def fortran_pp_definitions(self) -> dict:
         return {
                 "SCMA": "",
                 "BL_DIAG_HACK": "",

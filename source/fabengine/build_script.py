@@ -14,9 +14,6 @@ class BuildScript(ABC):
     def packages(self) -> list[str]:
         return []
 
-    def fpp_definitions(self) -> dict:
-        return {}
-
     def force_prerequisites(self) -> dict[str, str]:
         return {}
 
@@ -28,6 +25,9 @@ class BuildScript(ABC):
 
     def fortran_pp_flags(self) -> list[str]:
         return ["-traditional-cpp", "-P"]
+
+    def fortran_pp_definitions(self) -> dict:
+        return {}
 
     def fortran_compile_flags_common(self) -> list[str]:
         return []
@@ -46,6 +46,9 @@ class BuildScript(ABC):
 
     def c_pp_flags(self) -> list[str]:
         return []
+
+    def c_pp_definitions(self) -> dict:
+        return {}
 
     def c_compile_flags_common(self) -> list[str]:
         return []

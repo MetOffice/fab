@@ -1019,7 +1019,7 @@ class Atmosphere(BuildScript):
 
         return package_list
 
-    def fpp_definitions(self) -> dict:
+    def fortran_pp_definitions(self) -> dict:
         return {
             # Physics from the UM
             "UM_PHYSICS": "true",

@@ -103,6 +103,9 @@ def database(tmp_path: Path) -> Generator[Database, None, None]:
     configuration["openmp"] = False
     configuration["c_compile_flags_common"] = []
     configuration["c_overrides"] = {}
+    configuration["c_pp_flags"] = []
+    configuration["c_pp_definitions"] = {}
+    configuration["c_link_openmp"] = False
     load_compiler_data(configuration, None, "", "gcc", False)
     with FabManager() as manager:
         database = Database(configuration, manager)

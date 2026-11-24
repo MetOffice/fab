@@ -36,7 +36,6 @@ def database(tmp_path: Path) -> Generator[Database, None, None]:
     configuration["packages"] = WriteOnceDict()
     configuration["fc_ignore_modules"] = []
     configuration["forced_prerequisites"] = {}
-    configuration["fpp_definitions"] = {}
     configuration["paths"] = WriteOnceDict()
     configuration["paths"]["bin_dir"] = tmp_path / "bin"
     work_dir = tmp_path / "work"
@@ -48,7 +47,9 @@ def database(tmp_path: Path) -> Generator[Database, None, None]:
     configuration["fortran_compile_flags_common"] = []
     configuration["fortran_overrides"] = {}
     configuration["fortran_pp_flags"] = []
+    configuration["fortran_pp_definitions"] = {}
     configuration["fortran_pp"] = Path("cpp")
+    configuration["fortran_link_openmp"] = False
     load_compiler_data(configuration, None, "gfortran", "", False)
     with FabManager() as manager:
         database = Database(configuration, manager)
