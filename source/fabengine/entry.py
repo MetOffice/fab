@@ -473,16 +473,26 @@ def cli() -> None:
         configuration["fpp_definitions"] = WriteOnceDict(build_script.fpp_definitions())
         configuration["forced_prerequisites"] = build_script.force_prerequisites()
         configuration["openmp"] = build_script.openmp()
+
         configuration["fortran_pp"] = build_script.fortran_pp()
         configuration["fortran_pp_flags"] = build_script.fortran_pp_flags()
         configuration["fortran_compile_flags_common"] = (
             build_script.fortran_compile_flags_common()
         )
         configuration["fortran_overrides"] = build_script.fortran_overrides()
+        configuration["fortran_link_openmp"] = configuration["openmp"] or any(
+            override.get("openmp", False)
+            for override in configuration["fortran_overrides"].values()
+        )
+
         configuration["c_pp"] = build_script.c_pp()
         configuration["c_pp_flags"] = build_script.c_pp_flags()
         configuration["c_compile_flags_common"] = build_script.c_compile_flags_common()
         configuration["c_overrides"] = build_script.c_overrides()
+        configuration["c_link_openmp"] = configuration["openmp"] or any(
+            override.get("openmp", False)
+            for override in configuration["c_overrides"].values()
+        )
 
         configuration["worker_threads"] = options.jobs
         configuration["monitor"] = options.monitor

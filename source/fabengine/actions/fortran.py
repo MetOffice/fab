@@ -727,7 +727,7 @@ class LinkFortran(SubprocessAction):
             self._exe_file,
         ]
 
-        if self._database.configuration["openmp"]:
+        if self._database.configuration["fortran_link_openmp"]:
             arguments.append(self._database.configuration["fortran_data"]["openmp"])
 
         # Todo: Support for pure static linkage?

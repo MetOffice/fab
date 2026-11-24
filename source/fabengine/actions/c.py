@@ -319,7 +319,7 @@ class LinkC(SubprocessAction):
             self._exe_file,
         ]
 
-        if self._database.configuration["openmp"]:
+        if self._database.configuration["c_link_openmp"]:
             arguments.append(self._database.configuration["c_data"]["openmp"])
 
         exe = Path(self._database.configuration["cc"])
