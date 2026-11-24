@@ -296,6 +296,14 @@ class AnalyseFortranRE(Action):
         current_unit: str | None = None
         contains_units: list[str] = []
 
+        openmp = self._database.configuration["openmp"]
+        for override_path, values in self._database.configuration[
+            "fortran_overrides"
+        ].items():
+            override_path_lower = Path(str(override_path).replace(".F90", ".f90"))
+            if self._source.is_relative_to(override_path_lower):
+                openmp = values.get("openmp", openmp)
+
         class State(Enum):
             SEEKING = auto()
             IN_UNIT = auto()
@@ -349,9 +357,9 @@ class AnalyseFortranRE(Action):
                 match = self._USE_PATTERN.match(line)
                 if match:
                     name = match.group(2).lower()
-                    open_mp = match.group(1) or ""
-                    open_mp = "OpenMP " if open_mp.strip() else ""
-                    if open_mp and not self._database.configuration["openmp"]:
+                    open_mp_block = match.group(1) or ""
+                    open_mp_block = "OpenMP " if open_mp_block.strip() else ""
+                    if open_mp_block and not openmp:
                         continue
 
                     if name in self._database.configuration["fc_ignore_modules"]:
@@ -905,6 +913,14 @@ class AnalyseFortranTS(Action):
         current_unit: str | None = None
         contains_units: list[str] = []
 
+        openmp = self._database.configuration["openmp"]
+        for override_path, values in self._database.configuration[
+            "fortran_overrides"
+        ].items():
+            override_path_lower = Path(str(override_path).replace(".F90", ".f90"))
+            if self._source.is_relative_to(override_path_lower):
+                openmp = values.get("openmp", openmp)
+
         class State(Enum):
             SEEKING = auto()
             IN_UNIT = auto()
@@ -956,7 +972,7 @@ class AnalyseFortranTS(Action):
 
                     elif key in ["use", "comment.omp"]:
                         if key == "comment.omp":
-                            if not self._database.configuration["openmp"]:
+                            if not openmp:
                                 continue
                             fields = name.split()  # type: ignore
                             if len(fields) < 3:
