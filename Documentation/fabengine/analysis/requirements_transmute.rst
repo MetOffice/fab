@@ -1,6 +1,6 @@
-########################################
+######################################
 Requirements doc for Transmute in FAB3
-########################################
+######################################
 
 (A separate requirements document will be created for further Transmute Developments, QA and working practices)
 
@@ -15,13 +15,13 @@ Transmute currently describes using PSyclone without an API in LFRic Apps.
 
 
 Functional Requirements
-^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The Transmute Psyclone build step in FAB3:
--------------------------------------------
+------------------------------------------
 
 It must be possible to generate a PSyclone Transmute action for little .f90 source files.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 It must be possible to generate a PSyclone Transmute action for big .F90 files after they are pre-processed to become "little .f90" files.
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -35,7 +35,7 @@ Psyclone needs this to confirm some external variables are safe to Transform.
 Compiler defined macros for these files must be adhered too.
 
 The FAB configuration must allow the user to configure whether a Fortran file generates it's respective Transmute build step action:
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 By source tree, specified by root directory.  
 Also, by simple glob.  
@@ -48,19 +48,19 @@ The FAB configuration must be able to inform the transmute build step of:
 
 <architecture>  
 Opt-In/Out  
-These must be overridable by appropriate settings in cylc.
+These must be overridable by appropriate environment settings.
 
-Variables set in cylc must be available to inform the Transmute step.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Enviroment variables set in cylc must be available to inform the Transmute step.
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 <architecture> must be controllable by sites in cylc, this will override the configuration.  
 Opt-In/Out must be controllable by sites in cylc, this will override the configuration.
 
 It must be configurable as to which transformation script will be applied to the Fortran file (see the transformation script configuration in FAB3).
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The Psyclone command must have sensible default flags configured, denoted earlier.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 These flags need to be configurable per Fortran file.  
 * From a specific list, Opt-In.
@@ -74,26 +74,32 @@ It must also point to the appropriate Transmute python function library root.
 
 * Currently in LFRic Apps this is: ``interfaces/build/transmute_psytrans``
 
-It must preserve current ordering of Transmute and PSyKAl steps from the make system:
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-Currently Transmute occurs after PSyKAl to preserve kernel metadata comments for the PSyKAl PSyclone step.  
-In the working practices we currently do not allow a developer to Transmute in-lined source.
+Transmute and PSyKAl PSclone step ordering for kernels it important.
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-* It's not unsafe to do so, just redundant.
-* PSyKAl PSyclone developers in-lining source which has a Transmute script should be aware and resolve this.
+For a GPU build, offloading a PSyKAl Kernel requires that any routines that it calls must also be marked for GPU compilation (e.g. ``!$acc routine``):
+* We should therefore Transmute first and add suitable directives to all routines.
+* The PSyKAl stage can then check a call stack for necessary markup when transforming
+Therefore PSyKAl needs kernel metadata (comments) present when kernels are Transmuted first:
+* The default Transmute PSyclone command flags must preserve comments (We currently do Transmute after PSyKal so kernel comments are present)
+
 
 
 Future Considerations for the FAB3 Transmute build Step
 -------------------------------------------------------
 
-Currently there is no interaction between Transmute and PSyKAl steps for kernels.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+Transmute and PSyKAl PSclone step ordering
+""""""""""""""""""""""""""""""""""""""""""
+We can make this configurable as to the ordering of Transmute and PSyKal, it's not always important.
+We could allow multiple Transmute passes of the same file.
+If we need to optimise the build time, we could store if we plan to inline a kernel much earlier in the configuration:
+* We can use this to avoid a Transmute step
+* We can then call the Transmute functionality from inside the PSyKAl Psyclone step, when inlining the kernel
 
-Currently a Fortran source file should only be passed to Transmute if it is not in-lined by the algorithm.
 
 We could allow reversal of build steps, PSyKAl after Transmute step for Kernels
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Would require preservation of comments in Transmute step.  
 Would allow inlining of Transmuted kernels.  
@@ -101,7 +107,7 @@ Would require preservation of clauses generated by Transmute in PSyKAl step.
 Would introduce additional calls to PSyclone, when Transmute behaviour could be done to the in-lined source in the PSYKAL step.
 
 Transmute and PSyKAl are distinct build actions, could re-combine if optimal.
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 For the parallel PSyclone step, the build may be more performant if we combined these.  
 However, these were only separated for:
@@ -117,7 +123,7 @@ However, these were only separated for:
 	* They are fundamentally different approaches to transforming source using PSyclone, this consideration needs preserving.
 
 Architecture set to Minimum for Transmute needs further exploring as a potential build optimisation
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Minimum for PSyKAl is to apply very basic PSyclone features to algorithms.  
 Principle should extend to Transmutable source.  
@@ -130,41 +136,41 @@ If minimum is selected, we need to identify if a Transmute Action is actually re
 
 
 The transformation script configuration in FAB3:
--------------------------------------------------
+------------------------------------------------
 
 It must allow the user to choose which transformation script is applied to a specific Fortran File.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-The interpretation of a configuration option must use glob (or a similar method) to resolve to an appropriate transformation script from the configuration file.
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+The interpretation of the transformation script configuration option must use glob (or a similar method) to resolve to an appropriate transformation script from the configuration file.
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 If no script is defined in the configuration for a Fortran File to be transmuted, it must resolve to the appropriate default script.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The default script must be a global.py.
 """""""""""""""""""""""""""""""""""""""
 
 In LFRic Apps, the global.py must be stored by application, by PSyclone method and by <architecture> method.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 FAB3 must resolve this default without the configuration.  
 This must adhere to: <application>/optimisation/<PSyclone-method>/<architecture>.  
 Sites must be able to control the <architecture> method in cylc. The FAB3 configuration must understand this.
 
 It must allow multiple Fortran files to be matched to a single transformation script, wildcarding part of a file or directory name.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-This replaces the existing make local.py method.
+This replaces the existing make local.py method.  
 
 It must be able to select the right transformation script if multiple options are provided in a configuration, following a set hierarchy of priority.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Only one script can be chosen  
 Developers can add multiple similar entires to allow matching multiple files to a script based on shared naming conventions or directories.  
 FAB must compare the relative resolved glob for the Fortran file against those generated per option of the configuration.
 
 There is a hierarchy of priority for pair matching scripts to Fortran files, which will supersede the default.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 This will be resolved in the order of the following, top to bottom:
 * An exact filename match.
 * A filename wildcard match.
@@ -178,7 +184,7 @@ For example, for ``super_work/myfile.f90``:
 Use ``global.py`` only if none of the configured selectors are present or match.
 
 To reduce script duplication, transformation scripts must still be able to:
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Import other Python functions from a library like the PSyclone PSyKAl method does.
 
@@ -196,7 +202,7 @@ Must allow parameterised transformations for common functionality.
 * It should not be used to control major forking pathways in scripts; users should be encouraged to write a bespoke script.
 
 Developers must be able to choose flags for the PSyclone command per Fortran file:
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 We must have sensible defaults configured by the build step action.  
 To define in the configuration which additional flags we want to use per file.  
@@ -207,10 +213,10 @@ To define in the configuration alternative flag options from the default.
 This can be its own configuration or combined with the transformation script configuration.
 
 Further developments/consideration to the script selection configuration:
----------------------------------------------------------------------------
+-------------------------------------------------------------------------
 
 Which default global.py (stored by application, by PSyclone method and by architecture method), is selected by the configuration.
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The default methodology could be expanded.
 
@@ -219,13 +225,17 @@ The default methodology could be expanded.
 * This would further reduce duplication overhead, especially for architecture overrides.
 
 We should still store PSyKAl and Transmute scripts separately in LFRic.
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 We are transforming the source differently, using different APIs.  
 This provides cleaner separation of concerns for users and developers.  
 There might be future overlap between function libraries.
 
 * No occurrence of cross Transmute PSyKAl usage yet, until we start actively in-lining source.
+
+
+
+
 
 Technical Requirements
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -234,19 +244,19 @@ Transmute
 ---------
 
 Transmute in Fab3 must maintain model runtime performance
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Executables built by FAB3 must be of comparable runtime performance to those built by make.  
 Developers must have appropriately similar methods as the make system of controlling how source is optimised by FAB3 Transmute.
 
 Transmute should operate in the build system like PSyclone PSyKAl where possible:
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 Fundamentally we are applying PSyclone over source.  
 Though it is not the same as PSyKAl, we are using PSyclone differently.
 
 Developers must be able to control whether to Transmute a Fortran Source file:
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 In LFRic Apps, long-term, eventually all hand coded optimisations (Such as OpenMP or compiler clauses) in Fortran source must be done through PSyclone.
 * However, there will be edge cases, and so not every file will want to go through PSyclone. 
@@ -265,7 +275,7 @@ External partners want Opt-Out, especially for GPU porting:
 When our working-practices, QA, and script coverage improve sufficiently, MO will move to Opt-Out.
 
 Developers must be able to control how they use Transmute on Fortran Source:
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 PSyclone uses passed in python Transformation scripts to alter the input Fortran file.  
 These Transformation scripts are written in a specific way.  
@@ -277,7 +287,7 @@ This can be done in python, or with YAML files or another appropriate method.
 A entry in the configuration must resolve to a Transformation Script for a Fortran File.
 
 For the usage of Transmute scripts, FAB3 must interface with the existing separations of concerns LFRic Apps.
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Such as:
 * <application>
 * <PSyclone-method>
@@ -294,23 +304,23 @@ Current <architecture> options include:
 The folder structure under ``<application>/optimisation/<PSyclone-method>/<architecture>/`` may be extended by LFRic developers to further organise scripts.
 
 Configuration properties of the Transmute build step must be able to be externally overwritten from cylc.
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The Psyclone step must be able to run in Parallel
-""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""
 
 For Spice, we need to avoid importing the Python libraries too many times as it adversely affects the file system.  
 The make build system uses a python tool to handle this step with farmer and worker threads.
 
 Transmute uses the PSyclone command, which has a number of command line options:
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 These are ``-l all -s $(OPTIMISATION_PATH_PSY)/$(DSL)/$*.py -o $(SOURCE_DIR)/$*.f90 INPUTFILE``
 Some the flags in the command should be extensible
 Existing flags such as -l all must be configurable per Fortran input file.
 
 It must have PYTHONPATHs setup for the PSyclone command so that it can use the appropriate Transformation script and it's imports, including:
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 The PSyclone build from the loaded environment
 The python library is stored at: interfaces/build/transmute_psytrans
