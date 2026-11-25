@@ -503,7 +503,7 @@ class TestAnalyseFortranTS:
 
         if failure:
             assert "invalid continuation byte" in str(
-                result.value                                # type: ignore
+                result.value  # type: ignore
             ) or "UnicodeDecodeError" in str(result.value)  # type: ignore
         else:
             assert result is True
