@@ -139,6 +139,16 @@ class PSyclone(SubprocessAction):
                 self._virtual_filename
             ).real_filename
         )
+
+        # Support for re-use of psyclone files
+        self._inputs = [
+            self._database.configuration["paths"]["psyclone_config"],
+            self._virtual_filename,
+        ]
+        self._outputs = [
+            self._algorithm_path,
+        ]
+
         super().__init__(Path("psyclone"), arguments)
 
     def __str__(self) -> str:
@@ -268,8 +278,11 @@ class PSyclone(SubprocessAction):
                 ["-d", self._database.artefact_store.ensure_directory(root)]
             )
 
-        method = self.psyclone_method()
-        method(additional_arguments=arguments)
+        if not self._database.artefact_store.reusable(self._inputs, self._outputs):
+            method = self.psyclone_method()
+            method(additional_arguments=arguments)
+        else:
+            self._reused = True
 
         actions: list[Action] = [AnalyseFortran(self._algorithm_path, self._database)]
         if self._psy:

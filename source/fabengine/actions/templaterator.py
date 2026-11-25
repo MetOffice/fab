@@ -30,10 +30,10 @@ class Templaterator(SubprocessAction):
         self._leafname = leafname
         self._database = database
 
-        destination = database.artefact_store.get_artefact(leafname).real_filename
+        self._destination = database.artefact_store.get_artefact(leafname).real_filename
         # Todo: Just have the source here?
         # Todo: Put generated files in the correct place.
-        arguments = ["-o", destination]
+        arguments = ["-o", self._destination]
         for key, value in inserts.items():
             arguments.extend(["-s", key + "=" + value])
         arguments.append(self._filename)
@@ -60,5 +60,13 @@ class Templaterator(SubprocessAction):
 
         :return: Analyse resulting Fortran source.
         """
-        self.run_subprocess()
+
+        if not self._database.artefact_store.reusable(
+            [self._filename], [self._destination]
+        ):
+            # Reuse existing file
+            self.run_subprocess()
+        else:
+            self._reused = True
+
         return [AnalyseFortran(self._leafname, self._database)]

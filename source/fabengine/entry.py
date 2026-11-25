@@ -194,6 +194,11 @@ def command_line(arguments: Sequence[str] | None = None) -> Namespace:
         help="Enable two pass compilations.",
     )
     parser.add_argument(
+        "--fresh",
+        action="store_true",
+        help="Ignore existing build files",
+    )
+    parser.add_argument(
         "-s",
         "--dependencies-file",
         type=Path,
@@ -376,6 +381,7 @@ def cli() -> None:
         configuration["extract_path"] = options.extract_archive
         configuration["two_pass_compiles"] = options.two_pass_compiles
         configuration["metrics_csv"] = options.metrics_csv
+        configuration["fresh_build"] = options.fresh
 
         configuration["paths"] = WriteOnceDict()
         configuration["paths"]["work_dir"] = options.work_dir
