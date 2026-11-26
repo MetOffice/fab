@@ -4,9 +4,12 @@ __pycache__/
 *$py.class
 
 # Build directory for documentation
-Documentation/build
+Documentation/site
+Documentation/fab/build
 Documentation/fab/source/api
 Documentation/fab/source/apidoc
+Documentation/fabengine/_api
+Documentation/fabengine/_build
 
 # Fabengine development tests
 tests/fabengine/development/artefact_map.txt

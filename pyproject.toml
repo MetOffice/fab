@@ -49,6 +49,7 @@ docs = [
     "sphinx == 9.1.0",  # Peg Sphinx to version which works with theme
     "sphinx-autodoc-typehints",
     "sphinx-copybutton",
+    "sphinxcontrib_mermaid",
     "sphinx_design == 0.7.0",
     "sphinxcontrib-svg2pdfconverter >= 1.3.0",
 ]
