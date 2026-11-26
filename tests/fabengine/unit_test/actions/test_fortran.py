@@ -487,13 +487,13 @@ class TestAnalyseFortranTS:
 
         test_unit = AnalyseFortranTS(code_example, database)
 
-        context = raises(SystemError) if failure else nullcontext(True)
+        context = raises(UnicodeDecodeError) if failure else nullcontext(True)
 
         with context as result:
             test_unit.perform()
 
         if failure:
-            assert "UnicodeDecodeError" in str(result.value)  # type: ignore
+            assert "invalid continuation byte" in str(result.value)  # type: ignore
         else:
             assert result is True
             assert "latin1" in database.symbol_table
