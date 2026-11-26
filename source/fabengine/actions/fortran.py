@@ -155,6 +155,12 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         artefact.set_meta(ENCODING_META, self._encoding)
         self._database.artefact_store.set_artefact(artefact)
 
+        if self._database.artefact_store.reusable(
+            [self.source_file], [self.destination_file]
+        ):
+            self._reused = True
+            return
+
         arguments: list[str | Path] = additional_arguments or []
 
         for path in self._force_include_dir:
@@ -546,6 +552,7 @@ class CompileFortran(SubprocessAction):
         # Todo: Shouldn't this action know it's own prerequisites?
         #
         self._source = source
+        self._destination = self._source.with_suffix(".o")
         self._prerequisites = set(prerequisites)
         self._database = database
         self._syntax_only = syntax_only
@@ -582,7 +589,7 @@ class CompileFortran(SubprocessAction):
                 self._database.artefact_store.get_artefact(self._source).real_filename,
                 "-o",
                 self._database.artefact_store.get_artefact(
-                    self._source.with_suffix(".o")
+                    self._destination
                 ).real_filename,
             ]
         )
@@ -647,6 +654,12 @@ class CompileFortran(SubprocessAction):
 
         :return: Error if the compilation failed.
         """
+
+        if self._database.artefact_store.reusable([self._source], [self._destination]):
+            # Existing file can be reused
+            self._reused = True
+            return []
+
         self.run_subprocess()
 
         if self.first_pass:
@@ -780,7 +793,8 @@ class LinkFortran(SubprocessAction):
         arguments: list[str | Path] = list(objects)
         arguments.extend(self._library_args)
 
-        self.run_subprocess(additional_arguments=arguments)
+        if not self._database.artefact_store.reusable(list(objects), [self._exe_file]):
+            self.run_subprocess(additional_arguments=arguments)
 
         # todo: what if there is a pre-existing executable with the
         # same name?

@@ -134,6 +134,14 @@ class RosePicker(SubprocessAction):
         """
         return [RosePickerPrerequisite(self._filename, self._database)]
 
+    def _file_digests(self) -> tuple[str, str]:
+        """Generate hash digests for the output files if they exist."""
+        result = []
+        for target in (_LIST_FILE, _JSON_FILE):
+            filename = self._database.artefact_store.make_virtual_path(target)
+            result.append(self._database.artefact_store.digest(filename))
+        return tuple(result)
+
     def perform(self) -> Iterable[Action]:
         """
         Performs "Rose Picker" action.
@@ -145,14 +153,25 @@ class RosePicker(SubprocessAction):
         arguments: list[str | Path] = []
         for directory in self._database.config_meta_dirs:
             arguments.extend(["-include_dirs", directory])
+
+        prior_list, prior_json = self._file_digests()
+
         self.run_subprocess(additional_arguments=arguments)
         self._database.artefact_store.notice_file(_LIST_FILE)
         self._database.artefact_store.notice_file(_JSON_FILE)
+
+        reusable = False
+        if prior_list is not None and prior_json is not None:
+            post_list, post_json = self._file_digests()
+            reusable = self._database.artefact_store.reusable_digests(
+                [prior_list, prior_json], [post_list, post_json]
+            )
+
         return [
-            ConfigurationLoader(_LIST_FILE, self._database),
-            NamelistType(_JSON_FILE, _LIST_FILE, self._database),
-            NamelistLoader(_JSON_FILE, _LIST_FILE, self._database),
-            FeignConfiguration(_JSON_FILE, self._database),
+            ConfigurationLoader(_LIST_FILE, self._database, reusable),
+            NamelistType(_JSON_FILE, _LIST_FILE, self._database, reusable),
+            NamelistLoader(_JSON_FILE, _LIST_FILE, self._database, reusable),
+            FeignConfiguration(_JSON_FILE, self._database, reusable),
         ]
 
 
@@ -161,7 +180,9 @@ class ConfigurationLoader(SubprocessAction):
     Generates Fortran source to load full configuration.
     """
 
-    def __init__(self, filename: ArtefactPath, database: Database):
+    def __init__(
+        self, filename: ArtefactPath, database: Database, reusable: bool = False
+    ):
         """
         :param filename: Virtual filename of ``config_namelists.txt`` file from
                          Rose Picker.
@@ -169,6 +190,7 @@ class ConfigurationLoader(SubprocessAction):
         """
         self._filename = filename
         self._database = database
+        self._reusable = reusable
 
         self._configuration_dir = self._database.artefact_store.ensure_directory(
             _CONFIGURATION_DIR
@@ -200,7 +222,11 @@ class ConfigurationLoader(SubprocessAction):
 
         :return: Action to analyse resulting Fortran source.
         """
-        self.run_subprocess()
+
+        if not self._reusable:
+            self.run_subprocess()
+        else:
+            self._reused = True
 
         self._database.artefact_store.notice_file(_LOADER_FILE)
         return [AnalyseFortran(_LOADER_FILE, self._database)]
@@ -212,7 +238,11 @@ class NamelistType(SubprocessAction):
     """
 
     def __init__(
-        self, json_file: ArtefactPath, namelist_file: ArtefactPath, database: Database
+        self,
+        json_file: ArtefactPath,
+        namelist_file: ArtefactPath,
+        database: Database,
+        reusable: bool = False,
     ):
         """
         .. todo:: Change namelist generation to be done namelist at a time.
@@ -226,6 +256,7 @@ class NamelistType(SubprocessAction):
         self._json_file = json_file
         self._namelist_file = namelist_file
         self._database = database
+        self._reusable = reusable
 
         self._configuration_dir = self._database.artefact_store.ensure_directory(
             _CONFIGURATION_DIR
@@ -258,7 +289,10 @@ class NamelistType(SubprocessAction):
 
         :return: Action to analyse resulting Fortran source.
         """
-        self.run_subprocess()
+        if not self._reusable:
+            self.run_subprocess()
+        else:
+            self._reused = True
 
         actions: list[Action] = []
         list_artefact = self._database.artefact_store.get_artefact(self._namelist_file)
@@ -280,6 +314,7 @@ class ConfigType(SubprocessAction):
         namelist_file: ArtefactPath,
         duplicates_file: ArtefactPath,
         database: Database,
+        reusable: bool = False,
     ):
         """
         .. todo:: Change namelist generation to be done namelist at a time.
@@ -287,6 +322,7 @@ class ConfigType(SubprocessAction):
         self._namelist_file = namelist_file
         self._duplicates_file = duplicates_file
         self._database = database
+        self._reusable = reusable
 
         configuration_dir = self._database.artefact_store.ensure_directory(
             _CONFIGURATION_DIR
@@ -337,7 +373,10 @@ class ConfigType(SubprocessAction):
 
         :return: Action to analyse resulting Fortran source.
         """
-        self.run_subprocess()
+        if not self._reusable:
+            self.run_subprocess()
+        else:
+            self._reused = True
 
         actions: list[Action] = []
         for multi_list in self._multi_lists:
@@ -360,7 +399,11 @@ class NamelistLoader(SubprocessAction):
     """
 
     def __init__(
-        self, json_file: ArtefactPath, namelist_file: ArtefactPath, database: Database
+        self,
+        json_file: ArtefactPath,
+        namelist_file: ArtefactPath,
+        database: Database,
+        reusable: bool = False,
     ):
         """
         :param json_file: Virtual filename of ``rose-meta.json`` generated by
@@ -372,6 +415,7 @@ class NamelistLoader(SubprocessAction):
         self._json_file = json_file
         self._namelist_file = namelist_file
         self._database = database
+        self._reusable = reusable
 
         configuration_dir = self._database.artefact_store.ensure_directory(
             _CONFIGURATION_DIR
@@ -404,13 +448,17 @@ class NamelistLoader(SubprocessAction):
 
         :return: Action to analyse resulting Fortran source.
         """
-        self.run_subprocess()
+        if not self._reusable:
+            self.run_subprocess()
+        else:
+            self._reused = True
 
         actions: list[Action] = [
             ConfigType(
                 self._namelist_file,
                 _DUPLICATE_FILE,
                 self._database,
+                self._reusable,
             )
         ]
 
@@ -424,7 +472,9 @@ class NamelistLoader(SubprocessAction):
 
 
 class FeignConfiguration(SubprocessAction):
-    def __init__(self, json_file: ArtefactPath, database: Database):
+    def __init__(
+        self, json_file: ArtefactPath, database: Database, reusable: bool = False
+    ):
         """
         :param json_file: Location of ``rose-meta.json`` generated by Rose
                           Picker.
@@ -432,6 +482,7 @@ class FeignConfiguration(SubprocessAction):
         """
         self._json_file = json_file
         self._database = database
+        self._reusable = reusable
 
         self._feign_artefact = self._database.artefact_store.get_artefact(
             _CONFIGURATION_DIR / "feign_config_mod.f90"
@@ -461,5 +512,9 @@ class FeignConfiguration(SubprocessAction):
 
         :return: Action to analyse resulting Fortran source.
         """
-        self.run_subprocess()
+        if not self._reusable:
+            self.run_subprocess()
+        else:
+            self._reused = True
+
         return [AnalyseFortran(self._feign_artefact.virtual_filename, self._database)]

@@ -7,8 +7,12 @@ transitory build files to be managed in the same namespace.
 
 from __future__ import annotations
 
+from hashlib import file_digest
+from os import stat_result
 from pathlib import Path
 from typing import Any
+
+from fabengine.actions import TwoPartPath
 
 # Artefact metadata keys used by the build framework:
 #
@@ -22,12 +26,16 @@ class ArtefactStore:
     Maps static files and intermediate files into a single namespace.
     """
 
-    def __init__(self, intermediate_dir: Path):
+    _digest_mode = "sha256"
+
+    def __init__(self, intermediate_dir: Path, fresh_build: bool = False):
         """
         :param intermediate_dir: Directory for storing intermediate files.
+        :param fresh_build: do not reuse anything if True.
         """
         self._intermediate_dir = intermediate_dir
         self._intermediate_dir.mkdir(parents=True, exist_ok=True)
+        self._fresh_build = fresh_build
 
         self._map: dict[Path, Artefact] = {}
 
@@ -79,6 +87,13 @@ class ArtefactStore:
             )
         else:
             raise RuntimeError(f"Asked to notice nonexistent file <{virtual_filename}>")
+
+    def make_virtual_path(self, virtual_filename: ArtefactPath) -> Path:
+        """Potential path to a virtual file.
+
+        Get a path before a file is added with notice_file.
+        """
+        return self._intermediate_dir / virtual_filename
 
     def exists(self, virtual_filename: ArtefactPath) -> bool:
         """
@@ -134,6 +149,138 @@ class ArtefactStore:
 
         return self._map[virtual_filename]
 
+    def status(self, target: ArtefactPath | Path | TwoPartPath) -> stat_result | None:
+        """Get the status of a file."""
+        if isinstance(target, ArtefactPath):
+            if (artefact := self._map.get(target)) is None:
+                return None
+            target = artefact.real_filename
+        elif isinstance(target, TwoPartPath):
+            target = target.full
+        elif not isinstance(target, Path):
+            raise TypeError(f"invalid target path: {target}")
+
+        if not target.exists():
+            return None
+
+        return target.stat()
+
+    def digest(self, target: ArtefactPath | Path | TwoPartPath) -> str | None:
+        """Hex digest of a hash of the file contents."""
+        if isinstance(target, ArtefactPath):
+            if (artefact := self._map.get(target)) is None:
+                return None
+            target = artefact.real_filename
+        elif isinstance(target, TwoPartPath):
+            target = target.full
+        elif not isinstance(target, Path):
+            raise TypeError(f"invalid target path: {target}")
+
+        if not target.is_file():
+            return None
+
+        return file_digest(target.open("rb"), self._digest_mode).hexdigest()
+
+    def reusable_digests(self, first: list[str], second: list[str]) -> bool:
+        """Whether the lists of digests match and can be reused."""
+
+        if self._fresh_build:
+            # Never reuse anything if running in fresh mode
+            return False
+
+        if len(first) != len(second):
+            raise IndexError("argument lists are different sizes")
+
+        for i in range(len(first)):
+            if first[i] is None or second[i] is None or first[i] != second[i]:
+                return False
+
+        return True
+
+    def reusable(
+        self,
+        inputs: list[Any],
+        outputs: list[Any],
+    ) -> bool:
+        """Whether the virtual file can be reused as a dependency.
+
+        Items can be reused if the build system is running in
+        incremental mode and if the inputs have not changed relative
+        to the outputs.
+        """
+
+        if self._fresh_build:
+            # Never reuse anything if running in fresh mode
+            return False
+
+        # todo: implement with something other than timestamps
+
+        # Find the most recently changed input file
+        newest_input = -1.0
+        for target in inputs:
+            status = self.status(target)
+            if status is None:
+                return False
+            newest_input = max(newest_input, status.st_mtime)
+
+        # Find the oldest output file
+        oldest_output = 1.0e20
+        for target in outputs:
+            status = self.status(target)
+            if status is None:
+                return False
+            oldest_output = min(oldest_output, status.st_mtime)
+
+        return newest_input < oldest_output
+
+    def valid(self, source: Artefact) -> bool:
+        """Whether the file has changed relative to its past self.
+
+        If running in fresh mode or if no previous status is
+        available, file is never valid for reuse.  If running in
+        incremental mode, file is only fresh if it predates its
+        former self.
+        """
+
+        if self._fresh_build:
+            # Never valid for reuse if running in fresh mode
+            return False
+
+        # todo: support something other than timestamps
+        previous_status = source.get_meta("mtime", None)
+        if previous_status is None:
+            # Not valid if no previous comparison is available
+            return False
+
+        status = self.status(source.real_filename)
+        if status is None:
+            return False
+
+        return previous_status <= status.st_mtime
+
+    def as_list(self) -> list[dict[str, Any]]:
+        """Convert instance into a serialiable list."""
+        return [i.as_dict() for i in self._map.values()]
+
+    def load_list(self, values: list[dict[str, Any]]) -> None:
+        """Populate from a list of serialised values.
+
+        Any metadata keys that start with a double underscore stripped
+        out before each Artefact is added, allowing them to be used as
+        transient properties.  They are dumped out to help with
+        debugging.
+        """
+
+        for entry in values:
+            meta = {
+                k: v for k, v in entry.get("meta", {}).items() if not k.startswith("__")
+            }
+            self.map_file(
+                Path(entry["real_filename"]),
+                ArtefactPath(entry["virtual_filename"]),
+                **meta,
+            )
+
 
 # Todo: Can we do away with "Artefact" and just use "ArtefactPath"?
 #
@@ -182,6 +329,15 @@ class Artefact:
                   redundant as Path already provides it.
         """
         self.real_filename.write_text(text)
+
+    def as_dict(self) -> dict[str, Any]:
+        """Convert instance into a serialisable dictionary."""
+
+        return {
+            "virtual_filename": str(self._virtual_filename),
+            "real_filename": str(self._real_filename),
+            "meta": {k: v for k, v in self._meta.items()},
+        }
 
 
 class ArtefactPath(Path):

@@ -30,7 +30,9 @@ class Database:
         self.configuration = configuration
 
         build_dir = self.configuration["paths"]["build_dir"]
-        self.artefact_store = manager.ArtefactStore(build_dir)  # type:ignore
+        self.artefact_store = manager.ArtefactStore(  # type:ignore
+            build_dir, configuration.get("fresh_build", False)
+        )
         self.prerequisites: DictProxy[str, list[PrerequisiteInfo]] = manager.dict()
         self.symbol_table: DictProxy[str, SymbolInfo] = manager.dict()
         self.config_meta_dirs: ListProxy[Path] = manager.list()

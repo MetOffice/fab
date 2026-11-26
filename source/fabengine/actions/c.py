@@ -211,10 +211,10 @@ class CompileC(SubprocessAction):
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
+        self._destination = self._source.with_suffix(".o")
 
         arguments = []
-        destination = self._source.with_suffix(".o")
-        arguments.extend(["-c", str(self._source), "-o", str(destination)])
+        arguments.extend(["-c", str(self._source), "-o", str(self._destination)])
 
         exe = Path(self._COMPILER)
         super().__init__(exe, arguments)
@@ -241,6 +241,10 @@ class CompileC(SubprocessAction):
 
         :return: Error if the compilation failed.
         """
+        if self._database.artefact_store.reusable([self._source], [self._destination]):
+            self._reused = True
+            return []
+
         logger = make_logger("system")
         logger.debug(f"CompileC: {self._source.name}")
 
