@@ -3,7 +3,6 @@ from typing import Iterable
 
 from fab.api.v3 import (
     BuildScript,
-    WriteOnceDict,
     Project,
     Repository,
     SVNRepository,
@@ -42,16 +41,58 @@ class Nemo(BuildScript):
     def packages(self) -> list[str]:
         return ["netcdf-fortran", "netcdf", "xios"]
 
-    def add_configuration(self, configuration: WriteOnceDict) -> None:
-        configuration["fpp_definitions"] = {
+    def fortran_pp_definitions(self) -> dict:
+        return {
             "key_si3": "true",
             "key_mpp_mpi": True,
             "key_nosignedzero": True,
             "key_iomput": True,
-        # config["key_oasis3"] = "true"
         }
 
     def force_prerequisites(self) -> dict[str, list[str]]:
         return {
             'trdvor': ['wheneq']
+        }
+
+    def openmp(self) -> bool:
+        return True
+
+    _COMMON_FORTRAN = [
+        "-std=f2008",
+        "-ffree-line-length-none",
+        "-fdefault-real-8",
+    ]
+    _STD_GNU = _COMMON_FORTRAN + ["-std=gnu"]
+    _STD_LEGACY = _COMMON_FORTRAN + ["-std=legacy"]
+
+    def fortran_compile_flags_common(self) -> list[str]:
+        return self._COMMON_FORTRAN
+
+    def fortran_overrides(self) -> dict:
+        return {
+            Path("NEMO/src/OCE/nemogcm.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/step.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/stpctl.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/timing.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/DIA/diadct.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/DIA/diaharm.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/FLO/flodom.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/ICB/icbdia.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/ICB/icbdyn.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/ICB/icbini.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/ICB/icblbc.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/ICB/icbstp.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/ICB/icbthm.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/ICB/icbutl.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/ICB/icbtrj.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/LBC/lib_mpp.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/LBC/lbclnk.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/OBS/mpp_map.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/OBS/obs_mpp.f90"): {"compile_flags": self._STD_LEGACY,},
+            Path("NEMO/src/OCE/OBS/obs_oper.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/OBS/obs_prep.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/OBS/obs_readmdt.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/SBC/fldread.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/SBC/tide_mod.f90"): {"compile_flags": self._STD_GNU,},
+            Path("NEMO/src/OCE/TRD/trdvor.f90"): {"compile_flags": self._STD_GNU,},
         }

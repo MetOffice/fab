@@ -15,20 +15,20 @@ import sys
 
 from fab import __version__ as fab_version
 
-sys.path.insert(0, os.path.abspath('../../../source'))
+sys.path.insert(0, os.path.abspath("../../../source"))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'Fab'
-copyright = '2025 Met Office. All rights reserved.'
-author = 'Fab Team'
+project = "Fab"
+copyright = "2025 Met Office. All rights reserved."
+author = "Fab Team"
 
 # The full version, including alpha/beta/rc tags
 release = fab_version
 
 # The version up to the minor patch, for distinguishing multi-version docs
-version = '.'.join(release.split('.')[:2])
+version = ".".join(release.split(".")[:2])
 
 # -- General configuration ---------------------------------------------------
 
@@ -36,18 +36,18 @@ version = '.'.join(release.split('.')[:2])
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.graphviz',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.autosectionlabel',
-    'sphinxcontrib.rsvgconverter',
-    'sphinx_autodoc_typehints',
-    'sphinx_copybutton',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.graphviz",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.autosectionlabel",
+    "sphinxcontrib.rsvgconverter",
+    "sphinx_autodoc_typehints",
+    "sphinx_copybutton",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -57,12 +57,9 @@ exclude_patterns = []
 
 # -- Autodoc -----------------------------------------------------------------
 
-autodoc_default_options = {
-    'members': True,
-    'show-inheritane': True
-}
+autodoc_default_options = {"members": True, "show-inheritane": True}
 
-autoclass_content = 'both'
+autoclass_content = "both"
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -70,15 +67,15 @@ autoclass_content = 'both'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pydata_sphinx_theme'
+html_theme = "pydata_sphinx_theme"
 
-html_last_updated_fmt = '%Y-%m-%d %H:%M'
+html_last_updated_fmt = "%Y-%m-%d %H:%M"
 html_theme_options = {
     "icon_links": [
         {
             "name": "GitHub",
             "url": "https://github.com/MetOffice/fab",
-            "icon": "fa-brands fa-github"
+            "icon": "fa-brands fa-github",
         }
     ],
     "footer_start": ["crown-copyright"],
@@ -92,31 +89,31 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 
 # Don't sort module contents alphabetically, we want to order them in a helpful way for the user to read.
-autodoc_member_order = 'bysource'
+autodoc_member_order = "bysource"
 
 
 # Join the class and constructor docstrings.
-autoclass_content = 'both'
+autoclass_content = "both"
 
 #
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
+intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
 # create linkable targets from section headings
 autosectionlabel_prefix_document = True
 
 
 # include default values in argument descriptions
-typehints_defaults = 'braces-after'
+typehints_defaults = "braces-after"
 
 # linkcheck builder
 linkcheck_allow_redirects = True  # Allow redirects to pass
 linkcheck_ignore = [
     "https://metoffice.sharepoint.com",  # Ignore SharePoint links
-    r'.*\.py$',  # Ignores URLs ending with .py
+    r".*\.py$",  # Ignores URLs ending with .py
 ]
 linkcheck_timeout = 2
 linkcheck_allow_unauthorized = True  # Allow unauthorized links to pass

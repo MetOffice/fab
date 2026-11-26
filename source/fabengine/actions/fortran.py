@@ -112,16 +112,21 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         filename = self._real_file.branch.with_suffix(suffix)
         self._destination_path = ArtefactPath(self._project / filename)
 
-        # Todo: Hardwired command
-        arguments: list[str | Path] = ["-traditional-cpp", "-P"]
+        arguments: list[str | Path] = []
 
-        for name, value in self._database.configuration["fpp_definitions"].items():
+        arguments.extend(self._database.configuration["fortran_pp_flags"])
+
+        for name, value in self._database.configuration[
+            "fortran_pp_definitions"
+        ].items():
             arguments.append(f"-D{name}={value}")
 
         for name, value in self._macros.items():
             arguments.append(f"-D{name}={value}")
 
-        super().__init__(Path("cpp"), arguments, key=filename)
+        super().__init__(
+            self._database.configuration["fortran_pp"], arguments, key=filename
+        )
 
     def __str__(self) -> str:
         return f"Preprocess {self._kind} <({self._project}) {self._real_file.branch}>"
@@ -141,7 +146,9 @@ class PreprocessFortranBase(SubprocessAction, ABC):
         return self._destination_path
 
     def prerequisites(self) -> Iterable[Prerequisite]:
-        return [RealFilePrerequisite(self._real_file.full)]
+        return [
+            RealFilePrerequisite(self._real_file.full),
+        ]
 
     def preprocess_file(
         self, additional_arguments: list[str | Path] | None = None
@@ -289,6 +296,14 @@ class AnalyseFortranRE(Action):
         current_unit: str | None = None
         contains_units: list[str] = []
 
+        openmp = self._database.configuration["openmp"]
+        for override_path, values in self._database.configuration[
+            "fortran_overrides"
+        ].items():
+            override_path_lower = Path(str(override_path).replace(".F90", ".f90"))
+            if self._source.is_relative_to(override_path_lower):
+                openmp = values.get("openmp", openmp)
+
         class State(Enum):
             SEEKING = auto()
             IN_UNIT = auto()
@@ -342,9 +357,9 @@ class AnalyseFortranRE(Action):
                 match = self._USE_PATTERN.match(line)
                 if match:
                     name = match.group(2).lower()
-                    open_mp = match.group(1) or ""
-                    open_mp = "OpenMP " if open_mp.strip() else ""
-                    if open_mp and not self._database.configuration["use_open_mp"]:
+                    open_mp_block = match.group(1) or ""
+                    open_mp_block = "OpenMP " if open_mp_block.strip() else ""
+                    if open_mp_block and not openmp:
                         continue
 
                     if name in self._database.configuration["fc_ignore_modules"]:
@@ -548,39 +563,48 @@ class CompileFortran(SubprocessAction):
         self._source = source
         self._prerequisites = set(prerequisites)
         self._database = database
+        self._compiler = database.configuration["fc"]
         self._syntax_only = syntax_only
 
-        extra_arguments: list[str] = []
-        for case, tags in self._database.configuration["tag_dirs"].items():
-            if self._source.is_relative_to(case):
-                for tag in tags:
-                    extra_arguments.extend(
-                        self._database.configuration["build_tags"][tag]
-                    )
-        make_logger("system").debug("Special arguments: " + ", ".join(extra_arguments))
+        if not self._compiler:
+            raise RuntimeError(
+                "Attempting to compile fortran code but the fortran compiler hasn't "
+                "been defined."
+            )
 
-        self._full_module_dir = self._database.configuration["paths"]["module_dir"]
-        self._full_module_dir.mkdir(parents=True, exist_ok=True)
-        # Todo: Hardwired arguments
         arguments = [
-            "-c",
-            "-J",
-            self._full_module_dir,
-            "-fopenmp",
-            "-std=f2008",
-            "-ffree-line-length-none",
+            self._database.configuration["fortran_data"]["compile_only"],
+            self._database.configuration["fortran_data"]["module_dir"],
+            str(self._database.configuration["paths"]["module_dir"]),
         ]
 
-        if self.first_pass:
-            arguments.append("-fsyntax-only")
+        common_flags = self._database.configuration["fortran_compile_flags_common"]
+        openmp = self._database.configuration["openmp"]
 
-        arguments.extend(os_environ["FFLAGS"].split())
-        arguments.extend(extra_arguments)
+        for override_path, values in self._database.configuration[
+            "fortran_overrides"
+        ].items():
+            override_path_lower = Path(str(override_path).replace(".F90", ".f90"))
+            if self._source.is_relative_to(override_path_lower):
+                profile_args = values.get("compile_flags", common_flags)
+                openmp = values.get("openmp", openmp)
+                break
+        else:
+            profile_args = common_flags
+
+        if openmp:
+            arguments.append(self._database.configuration["fortran_data"]["openmp"])
+
+        for arg in profile_args:
+            arguments.append(arg)  # noqa: PERF402
+
+        for arg in os_environ["FFLAGS"].split():
+            arguments.append(arg)  # noqa: PERF402
 
         arguments.extend(
             [
                 self._database.artefact_store.get_artefact(self._source).real_filename,
-                "-o",
+                self._database.configuration["fortran_data"]["output_path"],
                 self._database.artefact_store.get_artefact(
                     self._source.with_suffix(".o")
                 ).real_filename,
@@ -624,7 +648,7 @@ class CompileFortran(SubprocessAction):
         for symbol in self._prerequisites:
             if symbol.nature == PrerequisiteType.USE:
                 name = Path(symbol.name).with_suffix(".mod").name
-                module_file = self._full_module_dir / name
+                module_file = self._database.configuration["paths"]["module_dir"] / name
                 prereqs.append(RealFilePrerequisite(module_file))
             elif symbol.nature == PrerequisiteType.EXTERNAL:
                 pass  # The compiler doesn't interrogate externals
@@ -647,13 +671,18 @@ class CompileFortran(SubprocessAction):
 
         :return: Error if the compilation failed.
         """
-        self.run_subprocess()
 
         if self.first_pass:
+            self.run_subprocess(
+                additional_arguments=[
+                    self._database.configuration["fortran_data"]["syntax_only"]
+                ]
+            )
             # Remove the prerequisites and add back in the queue
             self._prerequisites = set()
             self._syntax_only = False
             return [self]
+        self.run_subprocess()
         return []
 
     @property
@@ -703,7 +732,13 @@ class LinkFortran(SubprocessAction):
             )
         self._exe_file.parent.mkdir(parents=True, exist_ok=True)
 
-        arguments = ["-fopenmp", "-o", self._exe_file]
+        arguments = [
+            self._database.configuration["fortran_data"]["output_path"],
+            self._exe_file,
+        ]
+
+        if self._database.configuration["fortran_link_openmp"]:
+            arguments.append(self._database.configuration["fortran_data"]["openmp"])
 
         # Todo: Support for pure static linkage?
 
@@ -878,6 +913,14 @@ class AnalyseFortranTS(Action):
         current_unit: str | None = None
         contains_units: list[str] = []
 
+        openmp = self._database.configuration["openmp"]
+        for override_path, values in self._database.configuration[
+            "fortran_overrides"
+        ].items():
+            override_path_lower = Path(str(override_path).replace(".F90", ".f90"))
+            if self._source.is_relative_to(override_path_lower):
+                openmp = values.get("openmp", openmp)
+
         class State(Enum):
             SEEKING = auto()
             IN_UNIT = auto()
@@ -929,7 +972,7 @@ class AnalyseFortranTS(Action):
 
                     elif key in ["use", "comment.omp"]:
                         if key == "comment.omp":
-                            if not self._database.configuration["use_open_mp"]:
+                            if not openmp:
                                 continue
                             fields = name.split()  # type: ignore
                             if len(fields) < 3:

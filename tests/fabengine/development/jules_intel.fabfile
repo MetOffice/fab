@@ -1,0 +1,98 @@
+from pathlib import Path
+from typing import Iterable
+
+from fab.api.v3 import (
+    BuildScript,
+    Project,
+    GitRepository,
+    Repository
+)
+
+
+class Jules(BuildScript):
+    def repositories(self, dependencies_file: Path) -> Iterable[Repository]:
+        return [
+            GitRepository(
+                identity="jules",
+                source="git@github.com:MetOffice/jules.git",
+                ref="main",
+                projects=[
+                    Project(
+                        Path("."),
+                        identifier="jules",
+                        source_dir=Path("."),
+                        source_include=[
+                            "src/control/cable",
+                            "src/control/imogen",
+                            "src/control/shared",
+                            "src/control/standalone",
+                            "src/initialisation/cable",
+                            "src/initialisation/shared",
+                            "src/initialisation/standalone",
+                            "src/io/dump",
+                            "src/io/file_handling",
+                            "src/io/input",
+                            "src/io/model_interface",
+                            "src/io/output",
+                            "src/params/imogen",
+                            "src/params/standalone",
+                            "src/science/deposition",
+                            "src/science/fire",
+                            "src/science/flake",
+                            "src/science/params",
+                            "src/science/radiation",
+                            "src/science/river_routing/areaver_mod.F90",
+                            "src/science/river_routing/overbank_update_mod.F90",
+                            "src/science/river_routing/rivers_regrid_mod.F90",
+                            "src/science/river_routing/rivers_route_camaflood_mod.F90",
+                            "src/science/river_routing/rivers_route_mod.F90",
+                            "src/science/river_routing/rivers_route_rfm_mod.F90",
+                            "src/science/river_routing/rivers_route_trip_mod.F90",
+                            "src/science/river_routing/rivers_route_utils_mod.F90",
+                            "src/science/river_routing/route_minor_reservoirs_mod.F90",
+                            "src/science/river_routing/route_reservoirs_mod.F90",
+                            "src/science/snow",
+                            "src/science/soil",
+                            "src/science/soil_biogeochem",
+                            "src/science/surface",
+                            "src/science/vegetation",
+                            "src/science/water_resources",
+                            "src/util",
+                            "utils/drhook_dummy",
+                        ],
+                        force_include_dir=[Path("src/initialisation/cable")],
+                    ),
+                ],
+            )
+        ]
+
+    def packages(self) -> Iterable[str]:
+        return ["netcdf-fortran", "netcdf"]
+
+    def fortran_pp_definitions(self) -> dict:
+        return {
+                "SCMA": "",
+                "BL_DIAG_HACK": "",
+                "INTEL_FORTRAN": ""
+        }
+
+    def openmp(self) -> bool:
+        return True
+
+    _COMMON_FORTRAN = [
+        "-heap-arrays",
+        "-std03",
+        "-fpscomp",
+        "logicals",
+        "-diag-disable",
+        "6477",
+        "-assume",
+        "nosource_include,protect_parens",
+        "-fp-model",
+        "precise",
+        "-no-vec",
+        "-traceback",
+    ]
+
+    def fortran_compile_flags_common(self) -> list[str]:
+        return self._COMMON_FORTRAN

@@ -3,7 +3,6 @@ from typing import Iterable
 
 from fab.api.v3 import (
     BuildScript,
-    WriteOnceDict,
     Project,
     GitRepository,
     Repository
@@ -44,7 +43,7 @@ class Skeleton(BuildScript):
                         # macro set, which conflicts with our need to not set
                         # it.
                         #
-                        unit_test_dir=Path('no_tests')
+                        unit_test_dir=Path("no_tests"),
                     ),
                     Project(
                         Path("components/science"),
@@ -53,7 +52,7 @@ class Skeleton(BuildScript):
                         # macro set, which conflicts with our need to not set
                         # it.
                         #
-                        unit_test_dir=Path('no_tests')
+                        unit_test_dir=Path("no_tests"),
                     ),
                     Project(Path("components/inventory")),
                     Project(Path("components/lfric-xios")),
@@ -68,17 +67,17 @@ class Skeleton(BuildScript):
         ]
 
     def packages(self) -> Iterable[str]:
-        package_list = ['yaxt', 'yaxt_c', 'netcdf-fortran', 'netcdf', 'xios']
+        package_list = ["yaxt", "yaxt_c", "netcdf-fortran", "netcdf", "xios"]
 
         # Todo: How to switch pFUnit on and off depending on whether we're
         #       using it?
         #
-        package_list.extend(['pfunit', 'funit', 'fargparse', 'gftl', 'gftl-shared'])
+        package_list.extend(["pfunit", "funit", "fargparse", "gftl", "gftl-shared"])
 
         return package_list
 
-    def add_configuration(self, configuration: WriteOnceDict) -> None:
-        configuration['fpp_definitions'] = {
+    def fortran_pp_definitions(self) -> dict:
+        return {
             "LFRIC": "true",
             "USSPREC_32B": "true",
             "LSPREC_32B": "true",
@@ -91,4 +90,25 @@ class Skeleton(BuildScript):
             "R_BL_PRECISION": "64",
             # Transitional
             "LEGACY_MPI": "true",
+        }
+
+    def openmp(self) -> bool:
+        return True
+
+    _COMMON_FORTRAN = [
+        "-std=f2008",
+        "-ffree-line-length-none",
+    ]
+
+    def fortran_compile_flags_common(self) -> list[str]:
+        return self._COMMON_FORTRAN
+
+    def fortran_overrides(self) -> dict:
+        return {
+            Path("infrastructure/utilities/lfric_mpi_mod.f90"): {
+                "compile_flags": self._COMMON_FORTRAN + ["-fallow-argument-mismatch"],
+            },
+            Path("infrastructure/utilities/timer_mod_test.f90"): {
+                "compile_flags": self._COMMON_FORTRAN + ["-fall-intrinsics"]
+            },
         }
